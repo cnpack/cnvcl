@@ -203,7 +203,7 @@ begin
 end;
 
 procedure AddTipTool(hWnd: DWORD; IconType: Integer;
-  Title,  Text: PChar; BackColor,  FontColor: TColor);
+  Title, Text: PChar; BackColor, FontColor: TColor);
 const
   TTS_BALLOON = $0040;
   TTM_SETTITLE = WM_USER + 32;
@@ -219,8 +219,8 @@ begin
     ToolInfo.uId:= hWnd;
     SendMessage(hWndTip, TTM_SETTIPBKCOLOR, BackColor, 0);
     SendMessage(hWndTip, TTM_SETTIPTEXTCOLOR, FontColor, 0);
-    SendMessage(hWndTip, TTM_ADDTOOL, 0, Integer(@ToolInfo));
-    SendMessage(hWndTip, TTM_SETTITLE, IconType, Integer(Title));
+    SendMessage(hWndTip, TTM_ADDTOOL, 0, LPARAM(@ToolInfo));
+    SendMessage(hWndTip, TTM_SETTITLE, IconType, LPARAM(Title));
   end;
   InitCommonControls();
 end;
@@ -321,7 +321,7 @@ begin
     for I := 0 to BtnCount - 1 do
     begin
       WriteProcessMemory(ThreadHandle, Buff, @BtnInfo, SizeOf(BtnInfo), R);
-      SendMessage(FTrayBarHandle, TB_GETBUTTON, I, Integer(Buff));
+      SendMessage(FTrayBarHandle, TB_GETBUTTON, I, LPARAM(Buff));
       ReadProcessMemory(ThreadHandle, Buff, @BtnInfo, SizeOf(BtnInfo), R);
       SysHide := IsSysBtnHide(BtnInfo.fsState);
       if SysHide and (not FShowHideBtn) then
@@ -332,17 +332,17 @@ begin
       SysToolBtn.FVisible := not SysHide;
       SysToolBtn.AssignBtnInfo(BtnInfo);
       SysToolBtn.FIsTrayBtn := True;
-      //SysToolBtn.FPicture.Canvas
+
       SysToolBtn.FBtnIndex := BtnInfo.idCommand;
-      SendMessage(FTrayBarHandle, TB_GETBUTTONTEXT, SysToolBtn.FBtnInfo.idCommand, Integer(Integer(@Buff[0]) + SizeOf(@SysToolBtn.FBtnInfo)));
-      ReadProcessMemory(ThreadHandle,  Pointer(Integer(@Buff[0]) + SizeOf(@SysToolBtn.FBtnInfo)), @S[0], SizeOf(S),  R);
-      //if SysToolBtn.FBtnInfo.fsState = 12 then
+      SendMessage(FTrayBarHandle, TB_GETBUTTONTEXT, SysToolBtn.FBtnInfo.idCommand, LPARAM(LPARAM(@Buff[0]) + SizeOf(@SysToolBtn.FBtnInfo)));
+      ReadProcessMemory(ThreadHandle,  Pointer(TCnNativeInt(@Buff[0]) + SizeOf(@SysToolBtn.FBtnInfo)), @S[0], SizeOf(S),  R);
+
       SysToolBtn.FBtnCaption := string(s);
       SysToolBtn.FHandle := FTrayBarHandle;
       if not SysHide then
       begin
-        SendMessage(FTrayBarHandle, TB_GETRECT, BtnInfo.idCommand, Integer(Integer(@Buff[0]) + SizeOf(BtnInfo)));
-        ReadProcessMemory(ThreadHandle, Pointer(Integer(@Buff[0]) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), R);// 得到 Rect 信息
+        SendMessage(FTrayBarHandle, TB_GETRECT, BtnInfo.idCommand, LPARAM(LPARAM(@Buff[0]) + SizeOf(BtnInfo)));
+        ReadProcessMemory(ThreadHandle, Pointer(TCnNativeInt(@Buff[0]) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), R);// 得到 Rect 信息
         SysToolBtn.FBtnRect := BtnRect;
 
         SysToolBtn.FPicture.Width := BtnRect.Right - BtnRect.Left;
@@ -397,11 +397,11 @@ begin
     for I := 0 to BtnCount - 1 do
     begin
       WriteProcessMemory(ThreadHandle, Buff, @BtnInfo, Sizeof(BtnInfo), WriteNum);
-      SendMessage(FProgramToolBarHandle, TB_GETBUTTON,  I, Integer(Buff));
+      SendMessage(FProgramToolBarHandle, TB_GETBUTTON, I, LPARAM(Buff));
       ReadProcessMemory(ThreadHandle, Buff, @BtnInfo, SizeOf(BtnInfo), WriteNum);
 
-      SendMessage(FProgramToolBarHandle, TB_GETRECT, BtnInfo.idCommand, Integer(Integer(Buff) + SizeOf(BtnInfo)));
-      ReadProcessMemory(ThreadHandle, Pointer(Integer(Buff) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), WriteNum);
+      SendMessage(FProgramToolBarHandle, TB_GETRECT, BtnInfo.idCommand, LPARAM(LPARAM(Buff) + SizeOf(BtnInfo)));
+      ReadProcessMemory(ThreadHandle, Pointer(TCnNativeInt(Buff) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), WriteNum);
       // 得到 Rect 信息
       SysHide := (BtnRect.Right - BtnRect.Left = 0) and (BtnRect.Bottom - BtnRect.Top  = 0);
       SysHide := IsSysBtnHide(BtnInfo.fsState) or SysHide;
@@ -415,8 +415,8 @@ begin
       SysToolBtn.FIsTrayBtn := false;
       //SysToolBtn.FPicture.Canvas
       SysToolBtn.FBtnIndex := BtnInfo.idCommand;
-      SendMessage(FProgramToolBarHandle, TB_GETBUTTONTEXT, SysToolBtn.FBtnInfo.idCommand, Integer(Integer(Buff) + SizeOf(@SysToolBtn.FBtnInfo)));
-      ReadProcessMemory(ThreadHandle, Pointer(Integer(Buff) + SizeOf(@SysToolBtn.FBtnInfo)), @VBuffer, SizeOf(VBuffer),  WriteNum);
+      SendMessage(FProgramToolBarHandle, TB_GETBUTTONTEXT, SysToolBtn.FBtnInfo.idCommand, LPARAM(LPARAM(Buff) + SizeOf(@SysToolBtn.FBtnInfo)));
+      ReadProcessMemory(ThreadHandle, Pointer(TCnNativeInt(Buff) + SizeOf(@SysToolBtn.FBtnInfo)), @VBuffer, SizeOf(VBuffer),  WriteNum);
       SysToolBtn.FBtnCaption := string(VBuffer);
 
       SysToolBtn.FHandle := FProgramToolBarHandle;
@@ -681,14 +681,14 @@ end;
 
 procedure TCnTaskBar.SetStartBtnCaption(const Value: string);
 begin
-  SendMessage(FStartBtnHandle, WM_SETTEXT, 0, Integer(PChar(Value)));
+  SendMessage(FStartBtnHandle, WM_SETTEXT, 0, LPARAM(PChar(Value)));
 end;
 
 function TCnTaskBar.GetStartBtnCaption: string;
 var
   Buff: array[0..255] of Char;
 begin
-  SendMessage(FStartBtnHandle, WM_GETTEXT, 256, Integer(@Buff));
+  SendMessage(FStartBtnHandle, WM_GETTEXT, 256, LPARAM(@Buff));
   Result := Buff;
 end;
 

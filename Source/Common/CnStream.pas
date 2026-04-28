@@ -67,7 +67,7 @@ type
   private
     FStream: TStream;
     FOwned: Boolean;
-    function GetHandle: Integer;
+    function GetHandle: THandle;
     function GetMemory: Pointer;
   protected
     class procedure ReadError; reintroduce;
@@ -117,7 +117,7 @@ type
     procedure WriteData(const Buffer; Count: Longint);
 
     property Memory: Pointer read GetMemory;
-    property Handle: Integer read GetHandle;
+    property Handle: THandle read GetHandle;
   end;
 
 //==============================================================================
@@ -350,10 +350,12 @@ end;
 //------------------------------------------------------------------------------
 
 {$IFDEF COMPILER7_UP}
+
 function TCnStream.GetSize: Int64;
 begin
   Result := FStream.Size;
 end;
+
 {$ENDIF}
 
 function TCnStream.Read(var Buffer; Count: LongInt): Longint;
@@ -552,12 +554,12 @@ end;
 //  Ù–‘∂¡–¥∑Ω∑®
 //------------------------------------------------------------------------------
 
-function TCnStream.GetHandle: Integer;
+function TCnStream.GetHandle: THandle;
 begin
   if FStream is THandleStream then
     Result := THandleStream(FStream).Handle
   else
-    Result := -1;
+    Result := INVALID_HANDLE_VALUE;
 end;
 
 function TCnStream.GetMemory: Pointer;

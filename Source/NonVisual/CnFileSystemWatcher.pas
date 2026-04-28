@@ -73,7 +73,7 @@ type
   private
     FParent: TCnFileSystemWatcher;
     FActive: Boolean;
-    FDirectoryHandle: Cardinal;
+    FDirectoryHandle: THandle;
     FCS: TRTLCriticalSection;
     FChangeEvent: TFileDealMethod;
     FDirectory: string;
@@ -81,7 +81,7 @@ type
     FFileMasks: TStringList;
     FTmpFileMasks: TStringList;
     FIncludePath: Boolean;
-    FCompletionPort: Cardinal;
+    FCompletionPort: THandle;
     FOverlapped: TOverlapped;
     FNotifyOptionFlags: DWORD;
     FBytesWritten: DWORD;
@@ -261,6 +261,7 @@ begin
       PFOverlapped := @FOverlapped;
       GetQueuedCompletionStatus(TempCompletionPort, numBytes, CompletionKey,
         PFOverlapped, INFINITE);
+
       if CompletionKey = Handle then
       begin
         Synchronize(DoIOCompletionEvent);
@@ -282,18 +283,18 @@ end;
 
 function TCnShellChangeThread.ResetReadDirctory: Boolean;
 var
-  TempHandle: Cardinal;
-  TempCompletionPort: Cardinal;
+  TempHandle: THandle;
+  TempCompletionPort: THandle;
 begin
   Result := False;
   CloseHandle(FDirectoryHandle);
   PostQueuedCompletionStatus(FCompletionPort, 0, 0, nil);
   CloseHandle(FCompletionPort);
 
-  TempHandle := CreateFile(PChar(FDirectory), GENERIC_READ, 
-                            FILE_SHARE_READ or FILE_SHARE_WRITE or FILE_SHARE_DELETE,
-                            nil, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS
-                            or FILE_FLAG_OVERLAPPED, 0);
+  TempHandle := CreateFile(PChar(FDirectory), GENERIC_READ,
+    FILE_SHARE_READ or FILE_SHARE_WRITE or FILE_SHARE_DELETE,
+    nil, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS
+    or FILE_FLAG_OVERLAPPED, 0);
   Lock;
   FDirectoryHandle := TempHandle;
   Unlock;

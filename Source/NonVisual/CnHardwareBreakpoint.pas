@@ -53,9 +53,9 @@ type
 
   TCnVectoredException = class(TComponent) // VEH 基类
   private
-    FHandler: HWND; // VEH句柄
+    FHandler: Pointer; // VEH 句柄
     FOnCallback: TVEHCallbackProc;
-    FOnCallback_Instance: TCallbackInstance;
+    FOnCallbackInstance: TCallbackInstance;
     procedure MakeCallbackInstance(var Instance: TCallbackInstance; ObjectAddr, FunctionAddr: Pointer);
     procedure SetBreakCallbackProc(FunctionAddr: Pointer); // 设置回调函数地址
   protected
@@ -139,7 +139,7 @@ end;
 
 procedure TCnVectoredException.SetBreakCallbackProc(FunctionAddr: Pointer);
 begin
-  MakeCallbackInstance(FOnCallback_Instance, Self, FunctionAddr);
+  MakeCallbackInstance(FOnCallbackInstance, Self, FunctionAddr);
 end;
 
 constructor TCnVectoredException.Create(AOwner: TComponent);
@@ -159,27 +159,27 @@ end;
 
 function TCnVectoredException.InstallVEH: boolean;
 type
-  TAddVectored = function(FirstHandler: Integer; VectoredHandler: Pointer): HWND; stdcall;
+  TAddVectored = function(FirstHandler: Integer; VectoredHandler: Pointer): Pointer; stdcall;
 var
   _pAddVectored: TAddVectored;
 begin
   Result := False;
-  if FHandler <> 0 then Exit;
+  if FHandler <> nil then Exit;
   _pAddVectored := GetProcAddress(LoadLibrary('Kernel32.dll'), 'AddVectoredExceptionHandler');
   if not Assigned(_pAddVectored) then Exit;
-  FHandler := _pAddVectored(1, @Self.FOnCallback_Instance); //安装VEH
+  FHandler := _pAddVectored(1, @Self.FOnCallbackInstance); //安装 VEH
   Result := True;
 end;
 
 procedure TCnVectoredException.RemoveVEH;
 type
-  TRemoveVectored = function(VectoredHandler: HWND): Integer; stdcall;
+  TRemoveVectored = function(VectoredHandler: Pointer): Integer; stdcall;
 var
   _pRemoveVectored: TRemoveVectored;
 begin
-  if FHandler = 0 then Exit;
+  if FHandler = nil then Exit;
   _pRemoveVectored := GetProcAddress(LoadLibrary('Kernel32.dll'), 'RemoveVectoredExceptionHandler');
-  if Assigned(_pRemoveVectored) then _pRemoveVectored(FHandler); //卸载VEH
+  if Assigned(_pRemoveVectored) then _pRemoveVectored(FHandler); // 卸载 VEH
   FHandler := 0;
 end;
 

@@ -244,8 +244,8 @@ type
 
   TCnShellChangeThread = class(TThread)
   private
-    FMutex,
-    FWaitHandle: Integer;
+    FMutex: THandle;
+    FWaitHandle: THandle;
     FChangeEvent: TThreadMethod;
     FDirectory: string;
     FWatchSubTree: Boolean;

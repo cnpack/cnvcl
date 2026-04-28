@@ -192,6 +192,9 @@ function TypeTranslator: TTypeTranslator;
 
 implementation
 
+uses
+  CnNative;
+
 {$IFDEF WIN32}
 
 const
@@ -260,27 +263,27 @@ var
 begin
   B := Byte(P^);
   SetLength(Result, B);
-  P := Pointer(Integer(P) + 1);
-  Move(P^, Result[1], Integer(B));
-  P := Pointer(Integer(P) + B);
+  P := Pointer(TCnNativeInt(P) + 1);
+  Move(P^, Result[1], TCnNativeInt(B));
+  P := Pointer(TCnNativeInt(P) + B);
 end;
 
 function ReadByte(var P: Pointer): Byte;
 begin
   Result := Byte(P^);
-  P := Pointer(Integer(P) + 1);
+  P := Pointer(TCnNativeInt(P) + 1);
 end;
 
 function ReadWord(var P: Pointer): Word;
 begin
   Result := Word(P^);
-  P := Pointer(Integer(P) + 2);
+  P := Pointer(TCnNativeInt(P) + 2);
 end;
 
 function ReadLong(var P: Pointer): Integer;
 begin
-  Result := Integer(P^);
-  P := Pointer(Integer(P) + 4);
+  Result := TCnNativeInt(P^);
+  P := Pointer(TCnNativeInt(P) + 4);
 end;
 
 procedure FillMethodArray(P: Pointer; IntfMD: PIntfMetaData; Offset, Methods:
@@ -353,9 +356,9 @@ begin
   ReadByte(P); // Kind
   S := ReadString(P); // Symbol name
   AncTP := Pointer(ReadLong(P)); // Ancestor TypeInfo
-  P := Pointer(Integer(P) + 17); // Intf.flags and GUID
+  P := Pointer(TCnNativeInt(P) + 17); // Intf.flags and GUID
   B := Byte(P^); // Length
-  P := Pointer(Integer(P) + B + 1); // Unit name  and count
+  P := Pointer(TCnNativeInt(P) + B + 1); // Unit name  and count
   NumMethods := ReadWord(P); // # methods
   I := ReadWord(P); // $FFFF if no RTTI, # methods again if has RTTI
   HasRTTI := (I <> $FFFF);
@@ -391,7 +394,7 @@ begin
   Result := 0;
   ReadByte(P); // tkKind
   B := Byte(P^); // Symbol length
-  P := Pointer(Integer(P) + B + 1); // Skip sym name  and count
+  P := Pointer(TCnNativeInt(P) + B + 1); // Skip sym name  and count
   Anc := Pointer(ReadLong(P)); // Ancestor pointer
   if Anc <> nil then
     Result := WalkAncestors(Anc, False, nil, WithRTTIOnly);
@@ -768,7 +771,7 @@ begin
   begin
     if Assigned(DynArrayToClear[I].P) then
     begin
-      P := Pointer( PInteger(DynArrayToClear[I].P)^);
+      P := Pointer(PCnNativeInt(DynArrayToClear[I].P)^);
       DynArrayClear(P, DynArrayToClear[I].Info)
     end;
   end;
@@ -1317,7 +1320,7 @@ begin
             PSmallint(NatData)^ := Int;
           otSLong,
             otULong:
-            PInteger(NatData)^ := Int;
+            PCnNativeInt(NatData)^ := Int;
         end;
       end;
     tkFloat:
@@ -1367,7 +1370,7 @@ begin
               that enums have generated with the proper size }
       PByte(NatData)^ := GetEnumValueEx(Info, Value);
     tkClass:
-      PInteger(NatData)^ := Value;
+      PCnNativeInt(NatData)^ := Value;
     tkSet, tkMethod, { TODO -oyygw : 增加对集合类型的处理 }
       tkArray, tkRecord, tkInterface,
       tkDynArray:
@@ -1433,7 +1436,7 @@ begin
               that enums have generated with the proper size }
       Value := GetEnumName(Info, PByte(NatData)^);
     tkClass:
-      Value := PInteger(NatData)^; // 对象按指针（整数）处理
+      Value := PCnNativeInt(NatData)^; // 对象按指针（整数）处理
     tkSet, tkMethod, { TODO -oyygw : 增加对集合类型的处理 }
       tkArray, tkRecord, tkInterface,
       tkDynArray:

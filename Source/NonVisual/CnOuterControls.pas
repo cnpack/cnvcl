@@ -42,15 +42,16 @@ uses
   SysUtils, Classes, Windows, TlHelp32;
 
 type
-  TProcessInfo = record
-    pHandle: Cardinal;
+  TCnProcessInfo = record
+    pHandle: THandle;
     pClassName: string;
     pText: string;
   end;
 
 type
-  TOnSendMessage = procedure(Sender: TObject; SndMsgResult: Cardinal) of object;
-  TOnWindowChange = procedure(Sender: TObject) of object;
+  TCnOnSendMessage = procedure(Sender: TObject; SndMsgResult: LRESULT) of object;
+
+  TCnOnWindowChange = procedure(Sender: TObject) of object;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
@@ -58,50 +59,51 @@ type
 {$ENDIF}
   TCnOuterControls = class(TComponent)
   private
-    fProcessHandle: THandle;
-    fTextList: TStringList;
-    fHandleList: TStringList;
-    fClassList: TStringList;
-    fWindowCaption: string;
-    fSM: Cardinal;
-    fSLP: Cardinal;
-    fSWP: Cardinal;
-    fSMH: THandle;
-    fOnSendMessage: TOnSendMessage;
-    fOnWindowChange: TOnWindowChange;
-    fPossibleWindow: TStringList;
+    FProcessHandle: THandle;
+    FTextList: TStringList;
+    FHandleList: TStringList;
+    FClassList: TStringList;
+    FWindowCaption: string;
+    FSM: UINT;
+    FSLP: LPARAM;
+    FSWP: WPARAM;
+    FSMH: THandle;
+    FOnSendMessage: TCnOnSendMessage;
+    FOnWindowChange: TCnOnWindowChange;
+    FPossibleWindow: TStringList;
     procedure SetProcessHandle(const Value: THandle);
     procedure SetWindowCaption(const Value: string);
-
   public
     constructor Create(AOwner: TComponent); override;
-    {* 获取可用的窗口 }
+
     function GetPossibleWindows: TStringList;
-    {* 获取指定 index 的组件信息 }
-    function GetProcessControlInfo(index: Integer): TProcessInfo;
-    {* 向指定组件发送消息 }
+    {* 获取可用的窗口 }
+    function GetProcessControlInfo(Index: Integer): TCnProcessInfo;
+    {* 获取指定 Index 的组件信息 }
     procedure SendMessageToControl; overload;
-    procedure SendMessageToControl(hWnd: THandle; Msg: Cardinal; WParam: Cardinal; LParam: Cardinal); overload;
+    procedure SendMessageToControl(hWnd: THandle; Msg: UINT; WParam: WPARAM; LParam: LPARAM); overload;
+    {* 向指定组件发送消息 }
   published
+    property PossibleWindows: TStringList read FPossibleWindow write FPossibleWindow;
     {* 可用的窗口列表 }
-    property PossibleWindows: TStringList read fPossibleWindow write fPossibleWindow;
+    property OnSendMessage: TCnOnSendMessage read FOnSendMessage write FOnSendMessage;
     {* 发送消息时触发事件 }
-    property OnSendMessage: TOnSendMessage read fOnSendMessage write fOnSendMessage;
+    property OnWindowChange: TCnOnWindowChange read FOnWindowChange write FOnWindowChange;
     {* 窗口有改动时触发事件 }
-    property OnWindowChange: TOnWindowChange read fOnWindowChange write fOnWindowChange;
-    property SndMsgHandle: THandle read fSMH write fSMH;
-    property SndMessage: Cardinal read fSM write fSM;
-    property SndLParam: Cardinal read fSLP write fSLP;
-    property SndWParam: Cardinal read fSWP write fSWP;
-    property ProcessHandle: THandle read fProcessHandle write SetProcessHandle;
+    property SndMsgHandle: THandle read FSMH write FSMH;
+    property SndMessage: UINT read FSM write FSM;
+    property SndLParam: LPARAM read FSLP write FSLP;
+    property SndWParam: WPARAM read FSWP write FSWP;
+    property ProcessHandle: THandle read FProcessHandle write SetProcessHandle;
+
+    property HandleList: TStringList read FHandleList;
     {* 可用的句柄列表 }
-    property HandleList: TStringList read fHandleList;
+    property ClassList: TStringList read FClassList;
     {* 可用的类列表 }
-    property ClassList: TStringList read fClassList;
+    property TextList: TStringList read FTextList;
     {* 可用的界面文本列表 }
-    property TextList: TStringList read fTextList;
+    property WindowCaption: string read FWindowCaption write SetWindowCaption;
     {* 窗口标题 }
-    property WindowCaption: string read fWindowCaption write SetWindowCaption;
   end;
 
 var
@@ -125,7 +127,7 @@ begin
   IHandleList.Add(IntToStr(AhWnd));
   IClassList.Add(string(WndClassName));
   ITextList.Add(string(WndCaption));
-  result := true;
+  Result := True;
 end;
 
 function EnumWindowsFunc(Handle: THandle; List: TStringList): boolean; stdcall;
@@ -137,7 +139,7 @@ begin
     if List.IndexOf(Caption) = -1 then
       List.Add(Caption);
   end;
-  result := true;
+  Result := True;
 end;
 
 { TCnOuterControls }
@@ -145,86 +147,86 @@ end;
 constructor TCnOuterControls.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  fTextList := TStringList.Create;
-  fTextList.Clear;
-  fHandleList := TStringList.Create;
-  fHandleList.Clear;
-  fClassList := TStringList.Create;
-  fClassList.Clear;
+  FTextList := TStringList.Create;
+  FTextList.Clear;
+  FHandleList := TStringList.Create;
+  FHandleList.Clear;
+  FClassList := TStringList.Create;
+  FClassList.Clear;
   IHandleList := TStringList.Create;
   IHandleList.Clear;
   IClassList := TStringList.Create;
   IClassList.Clear;
   ITextList := TStringList.Create;
   ITextList.Clear;
-  fPossibleWindow := TStringList.Create;
-  fPossibleWindow.Clear;
+  FPossibleWindow := TStringList.Create;
+  FPossibleWindow.Clear;
   GetPossibleWindows;
 end;
 
 function TCnOuterControls.GetPossibleWindows: TStringList;
 begin
-  fPossibleWindow.Clear;
-  EnumWindows(@EnumWindowsFunc, LParam(fPossibleWindow));
-  result := fPossibleWindow;
+  FPossibleWindow.Clear;
+  EnumWindows(@EnumWindowsFunc, LParam(FPossibleWindow));
+  Result := FPossibleWindow;
 end;
 
 function TCnOuterControls.GetProcessControlInfo(
-  index: Integer): TProcessInfo;
+  Index: Integer): TCnProcessInfo;
 var
-  piInfo: TProcessInfo;
+  piInfo: TCnProcessInfo;
 begin
   piInfo.pHandle := 0;
   piInfo.pClassName := '';
   piInfo.pText := '';
-  if fHandleList.Count - 1 < index then
+  if FHandleList.Count - 1 < index then
   begin
-    result := piInfo;
+    Result := piInfo;
     Exit;
   end;
-  piInfo.pHandle := StrToInt(fHandleList.Strings[index]);
-  piInfo.pClassName := fClassList.Strings[index];
-  piInfo.pText := fTextList.Strings[index];
-  result := piInfo;
+  piInfo.pHandle := StrToInt(FHandleList.Strings[Index]);
+  piInfo.pClassName := FClassList.Strings[Index];
+  piInfo.pText := FTextList.Strings[Index];
+  Result := piInfo;
 end;
 
 procedure TCnOuterControls.SendMessageToControl;
 var
-  SndResult: Cardinal;
+  SndResult: LRESULT;
 begin
-  SndResult := SendMessage(fSMH, fSM, fSWP, fSLP);
-  if Assigned(OnSendMessage) then
-    OnSendMessage(self, SndResult);
+  SndResult := SendMessage(FSMH, FSM, FSWP, FSLP);
+  if Assigned(FOnSendMessage) then
+    FOnSendMessage(Self, SndResult);
 end;
 
-procedure TCnOuterControls.SendMessageToControl(hWnd: THandle; Msg, WParam,
-  LParam: Cardinal);
+procedure TCnOuterControls.SendMessageToControl(hWnd: THandle; Msg: UINT;
+  WParam: WPARAM; LParam: LPARAM);
 var
-  SndResult: Cardinal;
+  SndResult: LRESULT;
 begin
   SndResult := SendMessage(hWnd, Msg, WParam, LParam);
-  if Assigned(OnSendMessage) then
-    OnSendMessage(self, SndResult);
+  if Assigned(FOnSendMessage) then
+    FOnSendMessage(Self, SndResult);
 end;
 
 procedure TCnOuterControls.SetProcessHandle(const Value: THandle);
 begin
-  fProcessHandle := Value;
+  FProcessHandle := Value;
   IHandleList.Clear;
   IClassList.Clear;
   ITextList.Clear;
-  if fProcessHandle <> 0 then EnumChildWindows(fProcessHandle, @EnumChildWndProc, 0);
-  fTextList := ITextList;
-  fHandleList := IHandleList;
-  fClassList := IClassList;
-  if Assigned(OnWindowChange) then
-    OnWindowChange(self);
+  if FProcessHandle <> 0 then EnumChildWindows(FProcessHandle, @EnumChildWndProc, 0);
+  FTextList := ITextList;
+  FHandleList := IHandleList;
+  FClassList := IClassList;
+  if Assigned(FOnWindowChange) then
+    FOnWindowChange(Self);
 end;
 
 procedure TCnOuterControls.SetWindowCaption(const Value: string);
 begin
-  fWindowCaption := Value;
-  ProcessHandle := FindWindow(nil, PChar(fWindowCaption));
+  FWindowCaption := Value;
+  ProcessHandle := FindWindow(nil, PChar(FWindowCaption));
 end;
 
 end.

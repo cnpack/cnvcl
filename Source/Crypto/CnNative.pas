@@ -137,7 +137,10 @@ type
   TCnNativeUIntPtr = PCardinal;
   {* 统一定义 32 位和 64 位下通用的指向无符号整数的指针类型}
 {$ENDIF}
-
+  PCnNativeInt = ^TCnNativeInt;
+  {* 指向统一定义 32 位和 64 位下通用的有符号整数类型的指针}
+  PCnNativeUInt = ^TCnNativeUInt;
+  {* 指向统一定义 32 位和 64 位下通用的无符号整数类型的指针}
 {$IFDEF FPC}
   TCnHashCode      = PtrInt;
   {* 统一定义 Delphi 和 FPC 下的 HashCode 类型}

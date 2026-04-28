@@ -1282,7 +1282,7 @@ end;
 function TCnDockCustomTabControl.GetDisplayRect: TRect;
 begin
   Result := ClientRect;
-  SendMessage(Handle, TCM_ADJUSTRECT, 0, Integer(@Result));
+  SendMessage(Handle, TCM_ADJUSTRECT, 0, LPARAM(@Result));
   if TabPosition = tpTop then
     Inc(Result.Top, 2);
 end;
@@ -1290,7 +1290,8 @@ end;
 function TCnDockCustomTabControl.GetImageIndex(TabIndex: Integer): Integer;
 begin
   Result := TabIndex;
-  if Assigned(FOnGetImageIndex) then FOnGetImageIndex(Self, TabIndex, Result);
+  if Assigned(FOnGetImageIndex) then
+    FOnGetImageIndex(Self, TabIndex, Result);
 end;
 
 function TCnDockCustomTabControl.GetTabIndex: Integer;
@@ -1481,7 +1482,7 @@ begin
   begin
     TCItem.iImage := GetImageIndex(I);
     if SendMessage(Handle, TCM_SETITEM, I,
-      Longint(@TCItem)) = 0 then
+      LPARAM(@TCItem)) = 0 then
       TabControlError(Format(sTabFailSet, [FTabs[I], I]));
   end;
   TabsChanged;
@@ -2177,7 +2178,7 @@ var
   HitTestInfo: TTCHitTestInfo;
 begin
   HitTestInfo.pt := SmallPointToPoint(Message.Pos);
-  HitIndex := SendMessage(Handle, TCM_HITTEST, 0, Longint(@HitTestInfo));
+  HitIndex := SendMessage(Handle, TCM_HITTEST, 0, LPARAM(@HitTestInfo));
   if (HitIndex >= 0) and (HitIndex <> TabIndex) then Message.Result := 1;
 end;
 
@@ -2271,7 +2272,7 @@ begin
   if DockSite then
   begin
     HitTestInfo.pt := MousePos;
-    HitIndex := SendMessage(Handle, TCM_HITTEST, 0, Longint(@HitTestInfo));
+    HitIndex := SendMessage(Handle, TCM_HITTEST, 0, LPARAM(@HitTestInfo));
     if HitIndex >= 0 then
     begin
       Page := nil;
@@ -2354,7 +2355,7 @@ begin
   TCItem.pszText := Buffer;
   TCItem.cchTextMax := SizeOf(Buffer);
   if SendMessage(FTabControl.Handle, TCM_GETITEM, Index,
-    Longint(@TCItem)) = 0 then
+    LPARAM(@TCItem)) = 0 then
     TabControlError(Format(sTabFailRetrieve, [Index]));
   Result := Buffer;
 end;
@@ -2370,7 +2371,7 @@ var
 begin
   TCItem.mask := TCIF_PARAM;
   if SendMessage(FTabControl.Handle, TCM_GETITEM, Index,
-    Longint(@TCItem)) = 0 then
+    LPARAM(@TCItem)) = 0 then
     TabControlError(Format(sTabFailGetObject, [Index]));
   Result := TObject(TCItem.lParam);
 end;
@@ -2386,7 +2387,7 @@ begin
   TCItem.pszText := PChar(S);
   TCItem.iImage := FTabControl.GetImageIndex(Index);
   if SendMessage(FTabControl.Handle, TCM_SETITEM, Index,
-    Longint(@TCItem)) = 0 then
+    LPARAM(@TCItem)) = 0 then
     TabControlError(Format(sTabFailSet, [S, Index]));
   FTabControl.TabsChanged;
 end;
@@ -2396,9 +2397,9 @@ var
   TCItem: TTCItem;
 begin
   TCItem.mask := TCIF_PARAM;
-  TCItem.lParam := Longint(AObject);
+  TCItem.lParam := LPARAM(AObject);
   if SendMessage(FTabControl.Handle, TCM_SETITEM, Index,
-    Longint(@TCItem)) = 0 then
+    LPARAM(@TCItem)) = 0 then
     TabControlError(Format(sTabFailSetObject, [Index]));
 end;
 
@@ -2413,7 +2414,7 @@ begin
   TCItem.pszText := PChar(S);
   TCItem.iImage := FTabControl.GetImageIndex(Index);
   if SendMessage(FTabControl.Handle, TCM_INSERTITEM, Index,
-    Longint(@TCItem)) < 0 then
+    LPARAM(@TCItem)) < 0 then
     TabControlError(Format(sTabFailSet, [S, Index]));
   FTabControl.TabsChanged;
 end;
@@ -2699,25 +2700,24 @@ procedure TCnDockPresident.BeginDrag(Control: TControl; Immediate: Boolean; Thre
 var
   P: TPoint;
 begin
-  if (TCnControlAccess(Control).DragKind <> dkDock) then
-    { 如果Control的DragKind属性不是dkDock,就推出 }
+  if (TCnControlAccess(Control).DragKind <> dkDock) then // 如果Control的DragKind属性不是 dkDock，就退出
     Exit;
-//    raise EInvalidOperation.CreateRes(@SCannotDragForm);
+
   CalcDockSizes(Control);
-  if (DragControl = nil) or (DragControl = Pointer($FFFFFFFF)) then
+  if (DragControl = nil) or (DragControl = Pointer(not 0)) then
   begin
     DragControl := nil;
     if csLButtonDown in Control.ControlState then
     begin
       GetCursorPos(P);
       P := Control.ScreenToClient(P);
-      Control.Perform(WM_LBUTTONUP, 0, Longint(PointToSmallPoint(P)));
+      Control.Perform(WM_LBUTTONUP, 0, LPARAM(PointToSmallPoint(P)));
     end;
-    { 当Threshold<0的时候，使用默认的值Mouse.DragThreshold }
+    { 当 Threshold < 0 的时候，使用默认的值 Mouse.DragThreshold }
     if Threshold < 0 then
       Threshold := Mouse.DragThreshold;
-    { 防止在BeginDrag里面调用EndDrag }
-    if DragControl <> Pointer($FFFFFFFF) then
+    { 防止在 BeginDrag 里面调用 EndDrag }
+    if DragControl <> Pointer(not 0) then
       DragInitControl(Control, Immediate, Threshold);
   end;
 end;
@@ -2725,7 +2725,6 @@ end;
 procedure TCnDockPresident.DragInitControl(Control: TControl;
   Immediate: Boolean; Threshold: Integer);
 var
-//  ADragObject: TCnDragDockObject;
   ARect: TRect;
 
   procedure DoStartDock;
@@ -2801,8 +2800,6 @@ var
   TargetHandle: HWND;
   DoErase: Boolean;
   TempAlign: TAlign;
-//  CanDock: Boolean;
-//  R: TRect;
 begin
   if {(ActiveDrag <> dopNone) or }(Abs(DragStartPos.X - Pos.X) >= DragThreshold) or
     (Abs(DragStartPos.Y - Pos.Y) >= DragThreshold) then
@@ -2956,7 +2953,7 @@ var
 
     Info.Found := False;
     Info.MousePos := MousePos;
-    EnumThreadWindows(GetCurrentThreadID, @IsBeforeTargetWindow, Longint(@Info));
+    EnumThreadWindows(GetCurrentThreadID, @IsBeforeTargetWindow, LPARAM(@Info));
     { CurrentWnd is in front of TargetWnd, so check whether they're overlapped. }
     if Info.Found then
     begin

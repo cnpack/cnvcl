@@ -365,7 +365,7 @@ begin
     if MethodInfo <> nil then
       Inc(Count, PWord(MethodInfo)^);
     // Find the parent VMT
-    VMT := PPointer(Integer(VMT) + vmtParent)^;
+    VMT := PPointer(TCnNativeInt(VMT) + vmtParent)^;
     if VMT = nil then
       Break;
     VMT := PPointer(VMT)^;
@@ -374,7 +374,7 @@ begin
   I   := 0;
   VMT := ClassType;
   repeat
-    MethodInfo := PPointer(Integer(VMT) + vmtMethodTable)^;
+    MethodInfo := PPointer(TCnNativeInt(VMT) + vmtMethodTable)^;
     if MethodInfo <> nil then
     begin
       Count := PWord(MethodInfo)^;
@@ -556,6 +556,7 @@ begin
         ParameterMismatch(I);
     end
     else
+    begin
       // Convert the parameter to the right type
       case ConvertKindOf(VarType and varTypeMask, ParamType) of
         ckConvert:
@@ -574,6 +575,7 @@ begin
           end;
         ckError: ParameterMismatch(I);
       end;
+    end;
 
     if ParamType = varVariant then
     begin
@@ -595,10 +597,10 @@ begin
   // Set up the call frame        RET EBP
   ParamBytes := ReturnInfo^.ParamSize - (4 + 4);
   asm
-    SUB     ESP,ParamBytes
-    MOV     Frame,ESP
+    SUB     ESP, ParamBytes
+    MOV     Frame, ESP
   end;
-  Dec(Integer(Frame), 4 + 4); // Access numbers include RET and EBP
+  Dec(TCnNativeInt(Frame), 4 + 4); // Access numbers include RET and EBP
 
   // Push the parameters on the stack (or put them into the correct register)
   ResultParam := nil;
@@ -607,6 +609,7 @@ begin
     Param    := ParamInfos[I];
     PushData := ParamData[I];
     if PushData = nil then
+    begin
       if (Param^.ParamType^.Kind = tkClass) and {$IFDEF UNICODE}SamePropTypeName{$ELSE}SameText{$ENDIF}(Param^.Name, 'SELF') then
         // Self is special. It doesn't appear in the ParamData array since it
         // is not represented in the Params array.
@@ -624,6 +627,8 @@ begin
       end
       else
         raise Exception.CreateFmt(sParamRequired, [I, MethodName]);
+    end;
+
     if Param^.Access < Word(Ord(paStack)) then
       Regs[Param^.Access] := PCardinal(PushData)^
     else
@@ -640,10 +645,10 @@ begin
           begin
             PCardinal(@Frame[Param^.Access])^     := PCardinal(PushData)^;
             PCardinal(@Frame[Param^.Access + 4])^ :=
-              PCardinal(Integer(PushData) + 4)^;
+              PCardinal(TCnNativeInt(PushData) + 4)^;
           end;
-          else
-            Move(PushData^, Frame[Param^.Access and not 3], Size);
+        else
+          Move(PushData^, Frame[Param^.Access and not 3], Size);
         end;
       end;
     end;
@@ -681,7 +686,7 @@ begin
         TVarData(RetVal).VInteger := Integer(Boolean(Regs[paEAX]))
       else
         TVarData(RetVal).VInteger := Integer(Regs[paEAX]);
-      PCardinal(Integer(@TVarData(RetVal).VInteger) + 4)^ := Regs[paEDX];
+      PCardinal(TCnNativeInt(@TVarData(RetVal).VInteger) + 4)^ := Regs[paEDX];
     end;
     Result                 := RetVal;
     TVarData(RetVal).VType := varEmpty;
@@ -698,7 +703,7 @@ begin
     Result := nil;
     Exit;
   end;
-  Result := PReturnInfo(integer(mi) + SizeOf(TMethodInfoHeader) + Length(mi.Name) - SHORT_LEN);
+  Result := PReturnInfo(TCnNativeInt(mi) + SizeOf(TMethodInfoHeader) + Length(mi.Name) - SHORT_LEN);
 end;
 
 function GetParams(aObj: TObject; aMethodName: string): TParamInfoArray;
@@ -706,21 +711,21 @@ var
   mi:    PMethodInfoHeader;
   miEnd: Pointer;
   param: PParamInfo;
-  Count: integer;
+  Count: Integer;
 begin
   SetLength(Result, 0);
   mi := GetMethodInfo(aObj, ShortString(aMethodName));
   if mi.Len <= SizeOf(TMethodInfoHeader) + Length(mi.Name) - SHORT_LEN then
     Exit;
-  miEnd := Pointer(integer(mi) + mi.Len);
-  param := PParamInfo(integer(mi) + SizeOf(TMethodInfoHeader) + Length(mi.Name) - SHORT_LEN + SizeOf(TReturnInfo));
+  miEnd := Pointer(TCnNativeInt(mi) + mi.Len);
+  param := PParamInfo(TCnNativeInt(mi) + SizeOf(TMethodInfoHeader) + Length(mi.Name) - SHORT_LEN + SizeOf(TReturnInfo));
   Count := 0;
-  while integer(param) < integer(miEnd) do
+  while TCnNativeInt(param) < TCnNativeInt(miEnd) do
   begin
     Inc(Count);
     SetLength(Result, Count);
     Result[Count - 1] := param;
-    param             := PParamInfo(integer(param) + SizeOf(TParamInfo) + Length(param.Name) - SHORT_LEN);
+    param             := PParamInfo(TCnNativeInt(param) + SizeOf(TParamInfo) + Length(param.Name) - SHORT_LEN);
   end;
 end;
 
@@ -967,7 +972,7 @@ begin
     else
     begin
       Regs[paEAX] := TVarData(ReturnValue).VLongWord;
-      Regs[paEDX] := PCardinal(Integer(@TVarData(ReturnValue).VLongWord) + 4)^;
+      Regs[paEDX] := PCardinal(TCnNativeInt(@TVarData(ReturnValue).VLongWord) + 4)^;
     end;
   end;
 

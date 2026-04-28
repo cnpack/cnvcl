@@ -3537,7 +3537,7 @@ end;
 function SetFileDate(const FileName: string; CreationTime, LastWriteTime, LastAccessTime:
   TFileTime): Boolean;
 var
-  FileHandle: Integer;
+  FileHandle: THandle;
 begin
   FileHandle := FileOpen(FileName, fmOpenWrite or fmShareDenyNone);
   if FileHandle > 0 then
@@ -3554,7 +3554,7 @@ end;
 function GetFileDate(const FileName: string; var CreationTime, LastWriteTime, LastAccessTime:
   TFileTime): Boolean;
 var
-  FileHandle: Integer;
+  FileHandle: THandle;
 begin
   FileHandle := FileOpen(FileName, fmOpenRead or fmShareDenyNone);
   if FileHandle > 0 then
@@ -3569,21 +3569,19 @@ end;
 
 // 取得与文件相关的图标
 // FileName: e.g. "e:\hao\a.txt"
-// 成功则返回True
+// 成功则返回 True
 function GetFileIcon(const FileName: string; var Icon: TIcon): Boolean;
 var
   SHFileInfo: TSHFileInfo;
-  h: HWND;
+  H: HWND;
 begin
   if not Assigned(Icon) then
     Icon := TIcon.Create;
-  h := SHGetFileInfo(PChar(FileName),
-    0,
-    SHFileInfo,
-    SizeOf(SHFileInfo),
-    SHGFI_ICON or SHGFI_SYSICONINDEX);
+
+  H := SHGetFileInfo(PChar(FileName), 0, SHFileInfo,
+    SizeOf(SHFileInfo), SHGFI_ICON or SHGFI_SYSICONINDEX);
   Icon.Handle := SHFileInfo.hIcon;
-  Result := (h <> 0);
+  Result := (H <> 0);
 end;
 
 // 文件时间转本地日期时间
@@ -8132,7 +8130,7 @@ function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 var
   Token: THandle;
 
-  function InternalEnablePrivilege(Token: Cardinal; PrivName: string; Enable: Boolean): Boolean;
+  function InternalEnablePrivilege(Token: THandle; PrivName: string; Enable: Boolean): Boolean;
   var
     TP {$IFDEF FPC}, Prev {$ENDIF}: TOKEN_PRIVILEGES;
     Dummy: Cardinal;
