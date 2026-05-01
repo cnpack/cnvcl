@@ -76,8 +76,7 @@ function SM3(Input: PAnsiChar; ByteLength: Cardinal): TCnSM3Digest;
      ByteLength: Cardinal                 - 待计算的数据块字节长度
 
    返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
-
- }
+}
 
 function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
 {* 对数据块进行 SM3 计算。

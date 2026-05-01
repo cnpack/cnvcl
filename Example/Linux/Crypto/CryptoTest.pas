@@ -50,8 +50,9 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
-  CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP;
+  CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3, CnXXH, CnWideStrings, CnContainers, CnMLKEM,
+  CnMLDSA, CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom,
+  CnOTP;
 
 type
   TCnCryptoTestProc = function: Boolean;
@@ -410,6 +411,15 @@ function TestBLAKE2SKey: Boolean;
 function TestBLAKE2BKey: Boolean;
 function TestBLAKE2SUpdate: Boolean;
 function TestBLAKE2BUpdate: Boolean;
+
+// =============================== BLAKE3 ======================================
+
+function TestBLAKE3: Boolean;
+function TestBLAKE3LongInput: Boolean;
+function TestBLAKE3Keyed: Boolean;
+function TestBLAKE3DeriveKey: Boolean;
+function TestBLAKE3XOF: Boolean;
+function TestBLAKE3Update: Boolean;
 
 // =============================== Base64 ======================================
 
@@ -1014,6 +1024,15 @@ begin
   MyAssert(TestBLAKE2BKey, 'TestBLAKE2BKey');
   MyAssert(TestBLAKE2SUpdate, 'TestBLAKE2SUpdate');
   MyAssert(TestBLAKE2BUpdate, 'TestBLAKE2BUpdate');
+
+// =============================== BLAKE3 ======================================
+
+  MyAssert(TestBLAKE3, 'TestBLAKE3');
+  MyAssert(TestBLAKE3LongInput, 'TestBLAKE3LongInput');
+  MyAssert(TestBLAKE3Keyed, 'TestBLAKE3Keyed');
+  MyAssert(TestBLAKE3DeriveKey, 'TestBLAKE3DeriveKey');
+  MyAssert(TestBLAKE3XOF, 'TestBLAKE3XOF');
+  MyAssert(TestBLAKE3Update, 'TestBLAKE3Update');
 
 // ================================ Base64 =====================================
 
@@ -10307,6 +10326,338 @@ begin
   BLAKE2BFinal(C, D2);
 
   Result := BLAKE2BMatch(D1, D2);
+end;
+
+// =============================== BLAKE3 ======================================
+
+function TestBLAKE3: Boolean;
+var
+  Dig: TCnBLAKE3Digest;
+  Data: TBytes;
+  I: Integer;
+begin
+  // 空输入（0 字节）
+  Dig := BLAKE3Bytes(nil);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'AF1349B9F5F9A1A6A0404DEA36DCC9499BCB25C9ADC112B7CC9A93CAE41F3262';
+  if not Result then Exit;
+
+  // 1 字节输入（值 0x00）
+  SetLength(Data, 1);
+  Data[0] := 0;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '2D3ADEDFF11B61F14C886E35AFA036736DCD87A74D27B5C1510225D0F592E213';
+  if not Result then Exit;
+
+  // 63 字节输入（内容 0,1,...,62）
+  SetLength(Data, 63);
+  for I := 0 to 62 do
+    Data[I] := I;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'E9BC37A594DAAD83BE9470DF7F7B3798297C3D834CE80BA85D6E207627B7DB7B';
+  if not Result then Exit;
+
+  // 64 字节输入（内容 0,1,...,63）
+  SetLength(Data, 64);
+  for I := 0 to 63 do
+    Data[I] := I;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '4EED7141EA4A5CD4B788606BD23F46E212AF9CACEBACDC7D1F4C6DC7F2511B98';
+  if not Result then Exit;
+
+  // 65 字节输入（内容 0,1,...,64）
+  SetLength(Data, 65);
+  for I := 0 to 64 do
+    Data[I] := I;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'DE1E5FA0BE70DF6D2BE8FFFD0E99CEAA8EB6E8C93A63F2D8D1C30ECB6B263DEE';
+end;
+
+function TestBLAKE3LongInput: Boolean;
+var
+  Dig: TCnBLAKE3Digest;
+  Data: TBytes;
+  I: Integer;
+begin
+  // 1023 字节输入（内容为 0,1,...,250 循环）
+  SetLength(Data, 1023);
+  for I := 0 to 1022 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '10108970EEDA3EB932BAAC1428C7A2163B0E924C9A9E25B35BBA72B28F70BD11';
+  if not Result then Exit;
+
+  // 1024 字节输入（恰好一个 Chunk）
+  SetLength(Data, 1024);
+  for I := 0 to 1023 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '42214739F095A406F3FC83DEB889744AC00DF831C10DAA55189B5D121C855AF7';
+  if not Result then Exit;
+
+  // 1025 字节输入（跨 Chunk 边界，触发 Merkle 树合并）
+  SetLength(Data, 1025);
+  for I := 0 to 1024 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'D00278AE47EB27B34FAECF67B4FE263F82D5412916C1FFD97C8CB7FB814B8444';
+end;
+
+function TestBLAKE3Keyed: Boolean;
+var
+  Dig: TCnBLAKE3Digest;
+  Data, Key: TBytes;
+  I: Integer;
+begin
+  // 密钥：'whats the Elvish word for friend'（32 字节 ASCII）
+  Key := AnsiToBytes('whats the Elvish word for friend');
+
+  // 空输入
+  Dig := BLAKE3KeyedBytes(nil, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '92B2B75604ED3C761F9D6F62392C8A9227AD0EA3F09573E783F1498A4ED60D26';
+  if not Result then Exit;
+
+  // 1 字节输入
+  SetLength(Data, 1);
+  Data[0] := 0;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '6D7878DFFF2F485635D39013278AE14F1454B8C0A3A2D34BC1AB38228A80C95B';
+  if not Result then Exit;
+
+  // 63 字节输入
+  SetLength(Data, 63);
+  for I := 0 to 62 do
+    Data[I] := I;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'BB1EB5D4AFA793C1EBDD9FB08DEF6C36D10096986AE0CFE148CD101170CE37AE';
+  if not Result then Exit;
+
+  // 64 字节输入
+  SetLength(Data, 64);
+  for I := 0 to 63 do
+    Data[I] := I;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'BA8CED36F327700D213F120B1A207A3B8C04330528586F414D09F2F7D9CCB7E6';
+  if not Result then Exit;
+
+  // 65 字节输入
+  SetLength(Data, 65);
+  for I := 0 to 64 do
+    Data[I] := I;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'C0A4EDEFA2D2ACCB9277C371AC12FCDBB52988A86EDC54F0716E1591B4326E72';
+  if not Result then Exit;
+
+  // 1023 字节输入
+  SetLength(Data, 1023);
+  for I := 0 to 1022 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'C951ECDF03288D0FCC96EE3413563D8A6D3589547F2C2FB36D9786470F1B9D6E';
+  if not Result then Exit;
+
+  // 1024 字节输入
+  SetLength(Data, 1024);
+  for I := 0 to 1023 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '75C46F6F3D9EB4F55ECAAEE480DB732E6C2105546F1E675003687C31719C7BA4';
+  if not Result then Exit;
+
+  // 1025 字节输入
+  SetLength(Data, 1025);
+  for I := 0 to 1024 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3KeyedBytes(Data, Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '357DC55DE0C7E382C900FD6E320ACC04146BE01DB6A8CE7210B7189BD664EA69';
+end;
+
+function TestBLAKE3DeriveKey: Boolean;
+var
+  Dig: TCnBLAKE3Digest;
+  Data: TBytes;
+  Ctx: AnsiString;
+  I: Integer;
+begin
+  Ctx := 'BLAKE3 2019-12-27 16:29:52 test vectors context';
+
+  // 空输入
+  Dig := BLAKE3DeriveKeyStr(Ctx, nil);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '2CC39783C223154FEA8DFB7C1B1660F2AC2DCBD1C1DE8277B0B0DD39B7E50D7D';
+  if not Result then Exit;
+
+  // 1 字节输入
+  SetLength(Data, 1);
+  Data[0] := 0;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'B3E2E340A117A499C6CF2398A19EE0D29CCA2BB7404C73063382693BF66CB06C';
+  if not Result then Exit;
+
+  // 63 字节输入
+  SetLength(Data, 63);
+  for I := 0 to 62 do
+    Data[I] := I;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'B6451E30B953C206E34644C6803724E9D2725E0893039CFC49584F991F451AF3';
+  if not Result then Exit;
+
+  // 64 字节输入
+  SetLength(Data, 64);
+  for I := 0 to 63 do
+    Data[I] := I;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'A5C4A7053FA86B64746D4BB688D06AD1F02A18FCE9AFD3E818FEFAA7126BF73E';
+  if not Result then Exit;
+
+  // 65 字节输入
+  SetLength(Data, 65);
+  for I := 0 to 64 do
+    Data[I] := I;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '51FD05C3C1CFBC8ED67D139AD76F5CF8236CD2ACD26627A30C104DFD9D3FF8A8';
+  if not Result then Exit;
+
+  // 1023 字节输入
+  SetLength(Data, 1023);
+  for I := 0 to 1022 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '74A16C1C3D44368A86E1CA6DF64BE6A2F64CCE8F09220787450722D85725DEA5';
+  if not Result then Exit;
+
+  // 1024 字节输入
+  SetLength(Data, 1024);
+  for I := 0 to 1023 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    '7356CD7720D5B66B6D0697EB3177D9F8D73A4A5C5E968896EB6A689684302706';
+  if not Result then Exit;
+
+  // 1025 字节输入
+  SetLength(Data, 1025);
+  for I := 0 to 1024 do
+    Data[I] := I mod 251;
+  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+    'EFFAA245F065FBF82AC186839A249707C3BDDF6D3FDDA22D1B95A3C970379BCB';
+end;
+
+function TestBLAKE3XOF: Boolean;
+var
+  Dig: TCnBLAKE3Digest;
+  XOFOut: TBytes;
+begin
+  // 对空输入输出 131 字节，验证与官方测试向量一致
+  // 官方向量（input_len=0 hash 字段前 131 字节 = 262 个十六进制字符）：
+  // af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262
+  // e00f03e7b69af26b7faaf09fcd333050338ddfe085b8cc869ca98b206c08243a
+  // 26f5487789e8f660afe6c99ef9e0c52b92e7393024a80459cf91f476f9ffdbda
+  // 7001c22e159b402631f277ca96f2defdf1078282314e763699a31c5363165421
+  // cc (131 bytes)
+  XOFOut := BLAKE3XOFBytes(nil, 131);
+  Result := Length(XOFOut) = 131;
+  if not Result then Exit;
+
+  Result := DataToHex(@XOFOut[0], 131) =
+    'AF1349B9F5F9A1A6A0404DEA36DCC9499BCB25C9ADC112B7CC9A93CAE41F3262' +
+    'E00F03E7B69AF26B7FAAF09FCD333050338DDFE085B8CC869CA98B206C08243A' +
+    '26F5487789E8F660AFE6C99EF9E0C52B92E7393024A80459CF91F476F9FFDBDA' +
+    '7001C22E159B402631F277CA96F2DEFDF1078282314E763699A31C5363165421' +
+    'CCE14D';
+  if not Result then Exit;
+
+  // XOF 输出 32 字节时与普通哈希一致
+  XOFOut := BLAKE3XOFBytes(nil, 32);
+  Dig := BLAKE3Bytes(nil);
+  Result := CompareMem(@XOFOut[0], @Dig[0], 32);
+end;
+
+function TestBLAKE3Update: Boolean;
+var
+  D1, D2: TCnBLAKE3Digest;
+  C: TCnBLAKE3Context;
+  Data: TBytes;
+  I: Integer;
+begin
+  // 1025 字节输入（跨 Chunk 边界）
+  SetLength(Data, 1025);
+  for I := 0 to 1024 do
+    Data[I] := I mod 251;
+
+  // 一次性调用
+  D1 := BLAKE3Bytes(Data);
+
+  // 分两段：512 + 513
+  BLAKE3Init(C);
+  BLAKE3Update(C, PAnsiChar(@Data[0]), 512);
+  BLAKE3Update(C, PAnsiChar(@Data[512]), 513);
+  BLAKE3Final(C, D2);
+  Result := BLAKE3Match(D1, D2);
+  if not Result then Exit;
+
+  // 分三段：64 + 960 + 1（跨 Block 和 Chunk 边界）
+  BLAKE3Init(C);
+  BLAKE3Update(C, PAnsiChar(@Data[0]), 64);
+  BLAKE3Update(C, PAnsiChar(@Data[64]), 960);
+  BLAKE3Update(C, PAnsiChar(@Data[1024]), 1);
+  BLAKE3Final(C, D2);
+  Result := BLAKE3Match(D1, D2);
+  if not Result then Exit;
+
+  // 逐字节送入
+  BLAKE3Init(C);
+  for I := 0 to 1024 do
+    BLAKE3Update(C, PAnsiChar(@Data[I]), 1);
+  BLAKE3Final(C, D2);
+  Result := BLAKE3Match(D1, D2);
+  if not Result then Exit;
+
+  // 测试跨 Block 边界（64 字节）：128 字节输入，分 63+65
+  SetLength(Data, 128);
+  for I := 0 to 127 do
+    Data[I] := I;
+  D1 := BLAKE3Bytes(Data);
+
+  BLAKE3Init(C);
+  BLAKE3Update(C, PAnsiChar(@Data[0]), 63);
+  BLAKE3Update(C, PAnsiChar(@Data[63]), 65);
+  BLAKE3Final(C, D2);
+  Result := BLAKE3Match(D1, D2);
+  if not Result then Exit;
+
+  // 测试跨 Chunk 边界（1024 字节）：2048 字节输入，分 1024+1024
+  SetLength(Data, 2048);
+  for I := 0 to 2047 do
+    Data[I] := I mod 251;
+  D1 := BLAKE3Bytes(Data);
+
+  BLAKE3Init(C);
+  BLAKE3Update(C, PAnsiChar(@Data[0]), 1024);
+  BLAKE3Update(C, PAnsiChar(@Data[1024]), 1024);
+  BLAKE3Final(C, D2);
+  Result := BLAKE3Match(D1, D2);
 end;
 
 // ================================ Base64 =====================================
