@@ -1616,6 +1616,7 @@ var
   GHashCtx: TCnGHash128Context;
   Tag: TCnGCM128Tag;
   OrigEnByteLength: Integer;
+  OldPlain: Pointer;
 begin
   OrigEnByteLength := EnByteLength;
   if Key = nil then
@@ -1625,6 +1626,7 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
+  OldPlain := PlainData;
   AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
   // 计算 Enc(Key, 128 个 0)，得到 H
@@ -1705,8 +1707,8 @@ begin
   MemoryXor(@Tag[0], @Y0[0], SizeOf(TCnGHash128Tag), @Tag[0]);
 
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
-  if (not Result) and (PlainData <> nil) and (OrigEnByteLength > 0) then
-    FillChar(PlainData^, OrigEnByteLength, 0);
+  if (not Result) and (OldPlain <> nil) and (OrigEnByteLength > 0) then
+    FillChar(OldPlain^, OrigEnByteLength, 0);
 end;
 
 function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag;
@@ -2334,6 +2336,7 @@ var
   P: PByte;
   Tag: TCnCCM128Tag;
   OrigEnByteLength: Integer;
+  OldPlain: Pointer;
 begin
   OrigEnByteLength := EnByteLength;
   if Key = nil then
@@ -2345,6 +2348,7 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
+  OldPlain := PlainData;
   FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
   FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
 
@@ -2504,8 +2508,8 @@ begin
 
   // 比对 Tag 是否相同
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
-  if (not Result) and (PlainData <> nil) and (OrigEnByteLength > 0) then
-    FillChar(PlainData^, OrigEnByteLength, 0);
+  if (not Result) and (OldPlain <> nil) and (OrigEnByteLength > 0) then
+    FillChar(OldPlain^, OrigEnByteLength, 0);
 end;
 
 function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;

@@ -178,6 +178,16 @@ function Base64Decode(const InputData: string; out OutputData: TBytes;
    返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE64_OK
 }
 
+function Base64IsStrictText(const InputData: string; AllowURLSafe: Boolean = False): Boolean;
+{* 判断字符串是否严格合法的 Base64 编码字符串，包括内容检测与长度检测。
+
+   参数：
+     const InputData: string              - 待判断的字符串
+     AllowURLSafe: Boolean                - 是否允许使用 URL 安全字符
+
+   返回值：Boolean                        - 返回是否是严格合法的 Base64 字符串
+}
+
 implementation
 
 var
@@ -548,6 +558,51 @@ begin
 
     Move(Data[0], OutPutData^, Length(Data));
   end;
+end;
+
+function Base64IsStrictText(const InputData: string; AllowURLSafe: Boolean): Boolean;
+var
+  I, EqPos: Integer;
+  Ch: Char;
+begin
+  Result := False;
+  if InputData = '' then
+    Exit;
+
+  if AllowURLSafe then
+  begin
+    for I := 1 to Length(InputData) do
+    begin
+      Ch := InputData[I];
+      if not (Ch in ['A'..'Z', 'a'..'z', '0'..'9', '-', '_', '=']) then
+        Exit;
+    end;
+  end
+  else
+  begin
+    for I := 1 to Length(InputData) do
+    begin
+      Ch := InputData[I];
+      if not (Ch in ['A'..'Z', 'a'..'z', '0'..'9', '+', '/', '=']) then
+        Exit;
+    end;
+  end;
+
+  if (Length(InputData) mod 4) <> 0 then
+    Exit;
+
+  EqPos := Pos('=', InputData);
+  if EqPos > 0 then
+  begin
+    for I := EqPos to Length(InputData) do
+      if InputData[I] <> '=' then
+        Exit;
+
+    if (Length(InputData) - EqPos + 1) > 2 then
+      Exit;
+  end;
+
+  Result := True;
 end;
 
 end.

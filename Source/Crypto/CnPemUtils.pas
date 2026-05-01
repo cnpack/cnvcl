@@ -1161,6 +1161,8 @@ begin
             S := S + Sl[I];
 
           S := Trim(S);
+          if not Base64IsStrictText(S) then
+            Exit;
 
           Result := DecryptPemString(S, M1, M2, M3, Password, MemoryStream, KeyHashMethod);
         end
@@ -1176,6 +1178,9 @@ begin
 
           // To De Base64 S
           MemoryStream.Clear;
+          if not Base64IsStrictText(S) then
+            Exit;
+
           Result := (ECN_BASE64_OK = Base64Decode(S, MemoryStream, False));
         end;
       end;
