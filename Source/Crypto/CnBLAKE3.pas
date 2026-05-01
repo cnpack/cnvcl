@@ -25,8 +25,8 @@ unit CnBLAKE3;
 * 单元名称：BLAKE3 哈希算法实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 *           参考 https://github.com/BLAKE3-team/BLAKE3 的 C 参考实现移植而来
-* 备    注：本单元实现 BLAKE3 哈希算法，支持普通哈希、Keyed Hash、
-*           DeriveKey 三种模式，以及 XOF 可扩展输出。
+* 备    注：本单元实现 BLAKE3 杂凑算法，支持普通杂凑、带密钥杂凑（类似于 HMAC）、
+*           派生密钥三种模式，以及 XOF 可变长度扩展输出。
 * 开发平台：PWin7 + Delphi 7.0
 * 兼容测试：PWinXP/7/10/11 + Delphi 5/6/7 ~ D12
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -61,8 +61,15 @@ type
 
   PCnBLAKE3Digest = ^TCnBLAKE3Digest;
   {* BLAKE3 摘要值指针}
+
   TCnBLAKE3Digest = array[0..CN_BLAKE3_OUTBYTES - 1] of Byte;
   {* BLAKE3 默认摘要类型，32 字节数组}
+
+  TCnBLAKE3DerivedKey = array[0..CN_BLAKE3_OUTBYTES - 1] of Byte;
+  {* BLAKE3 派生密钥结构}
+
+  PCnBLAKE3DerivedKey = ^TCnBLAKE3DerivedKey;
+  {* BLAKE3 派生密钥结构指针}
 
   TCnBLAKE3ChunkState = packed record
   {* BLAKE3 Chunk 状态（内部使用）}
@@ -96,104 +103,119 @@ type
     Boolean) of object;
   {* 计算 BLAKE3 哈希值进度回调事件类型}
 
-function BLAKE3(Input: PAnsiChar; ByteLength: Cardinal): TCnBLAKE3Digest;
+function BLAKE3(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar = nil;
+  KeyLength: Integer = 0): TCnBLAKE3Digest;
 {* 对数据块进行 BLAKE3 计算。
 
    参数：
      Input: PAnsiChar                     - 待计算的数据块地址
      ByteLength: Cardinal                 - 待计算的数据块字节长度
+     Key: PAnsiChar                       - BLAKE3 密钥，默认为空
+     KeyLength: Integer                   - BLAKE3 密钥字节长度，默认为 0
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3Buffer(const Buffer; Count: Cardinal): TCnBLAKE3Digest;
+function BLAKE3Buffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardinal): TCnBLAKE3Digest;
 {* 对数据块进行 BLAKE3 计算。
 
    参数：
      const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
+     const Key                            - BLAKE3 密钥
+     KeyCount: Cardinal                   - BLAKE3 密钥字节长度
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3Bytes(const Data: TBytes): TCnBLAKE3Digest;
+function BLAKE3Bytes(const Data: TBytes; const Key: TBytes = nil): TCnBLAKE3Digest;
 {* 对字节数组进行 BLAKE3 计算。
 
    参数：
      const Data: TBytes                   - 待计算的字节数组
+     const Key: TBytes                    - BLAKE3 密钥字节数组，默认为空
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3String(const Str: string): TCnBLAKE3Digest;
+function BLAKE3String(const Str: string; const Key: string = ''): TCnBLAKE3Digest;
 {* 对 String 类型数据进行 BLAKE3 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
    代码中会将其强行转换成 AnsiString 进行计算。
 
    参数：
      const Str: string                    - 待计算的字符串
+     const Key: string                    - BLAKE3 密钥的字符串形式
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3StringA(const Str: AnsiString): TCnBLAKE3Digest;
+function BLAKE3StringA(const Str: AnsiString; const Key: AnsiString = ''): TCnBLAKE3Digest;
 {* 对 AnsiString 类型数据进行 BLAKE3 计算。
 
    参数：
      const Str: AnsiString                - 待计算的字符串
+     const Key: AnsiString                - BLAKE3 密钥的字符串形式
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3StringW(const Str: WideString): TCnBLAKE3Digest;
+function BLAKE3StringW(const Str: WideString; const Key: WideString = ''): TCnBLAKE3Digest;
 {* 对 WideString 类型字符串进行转换并进行 BLAKE3 计算。
    计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
      const Str: WideString                - 待计算的宽字符串
+     const Key: WideString                - BLAKE3 密钥的宽字符串形式
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
 {$IFDEF UNICODE}
 
-function BLAKE3UnicodeString(const Str: string): TCnBLAKE3Digest;
+function BLAKE3UnicodeString(const Str: string; const Key: string = ''): TCnBLAKE3Digest;
 {* 对 UnicodeString 类型数据进行直接的 BLAKE3 计算，直接计算内部 UTF16 内容，不进行转换。
 
    参数：
      const Str: string                    - 待计算的宽字符串
+     const Key: string                    - BLAKE3 密钥的宽字符串形式
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
 {$ELSE}
 
-function BLAKE3UnicodeString(const Str: WideString): TCnBLAKE3Digest;
+function BLAKE3UnicodeString(const Str: WideString; const Key: WideString = ''): TCnBLAKE3Digest;
 {* 对 UnicodeString 类型数据进行直接的 BLAKE3 计算，直接计算内部 UTF16 内容，不进行转换。
 
    参数：
      const Str: string                    - 待计算的宽字符串
+     const Key: WideString                - BLAKE3 密钥的宽字符串形式
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
 {$ENDIF}
 
-function BLAKE3File(const FileName: string; CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
+function BLAKE3File(const FileName: string; Key: TBytes = nil;
+  CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
 {* 对指定文件内容进行 BLAKE3 计算。
 
    参数：
      const FileName: string               - 待计算的文件名
+     Key: TBytes                          - BLAKE3 密钥字节数组，默认为空
      CallBack: TCnBLAKE3CalcProgressFunc  - 进度回调函数，默认为空
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3Stream(Stream: TStream; CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
-{* 对指定流数据进行 SM3 计算。
+function BLAKE3Stream(Stream: TStream; Key: TBytes = nil;
+  CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
+{* 对指定流数据进行 BLAKE3 计算。
 
    参数：
      Stream: TStream                      - 待计算的流内容
+     Key: TBytes                          - BLAKE3 密钥字节数组，默认为空
      CallBack: TCnBLAKE3CalcProgressFunc  - 进度回调函数，默认为空
 
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
@@ -201,78 +223,159 @@ function BLAKE3Stream(Stream: TStream; CallBack: TCnBLAKE3CalcProgressFunc = nil
 
 // 以下三类函数用于外部持续对数据进行零散的 BLAKE3 计算，BLAKE3Update 可多次被调用
 
-procedure BLAKE3Init(var Context: TCnBLAKE3Context);
-{* 初始化普通哈希模式的 BLAKE3 上下文。}
+procedure BLAKE3Init(var Context: TCnBLAKE3Context; Key: PAnsiChar = nil; KeyLength: Integer = 0);
+{* 初始化一轮 BLAKE3 计算上下文，准备计算 BLAKE3 结果。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
 
-procedure BLAKE3InitKeyed(var Context: TCnBLAKE3Context; Key: PAnsiChar; KeyLength: Integer);
-{* 初始化 KeyedHash 模式的 BLAKE3 上下文，密钥长度必须为 32 字节。}
+   参数：
+     var Context: TCnBLAKE2SContext       - 待初始化的 BLAKE3 上下文
+     Key: PAnsiChar                       - BLAKE3 密钥，默认为空
+     KeyLength: Integer                   - BLAKE3 密钥字节长度，默认为 0
+
+   返回值：（无）
+}
 
 procedure BLAKE3InitDeriveKey(var Context: TCnBLAKE3Context; ContextStr: PAnsiChar; ContextLength: Integer);
-{* 初始化 DeriveKey 模式的 BLAKE3 上下文。}
+{* 使用派生密钥模式初始化一轮 BLAKE3 计算上下文，准备计算 BLAKE3 结果。
+
+   参数：
+     var Context: TCnBLAKE2SContext       - 待初始化的 BLAKE3 上下文
+     ContextStr: PAnsiChar                - BLAKE3 派生密钥，默认为空
+     KeyLength: Integer                   - BLAKE3 密钥字节长度，默认为 0
+
+   返回值：（无）
+}
 
 procedure BLAKE3Update(var Context: TCnBLAKE3Context; Input: PAnsiChar; ByteLength: Cardinal);
-{* 向 BLAKE3 上下文追加输入数据，可多次调用。}
+{* 以初始化后的上下文对一块数据进行 BLAKE3 计算。
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnBLAKE2BContext       - BLAKE3 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure BLAKE3Final(var Context: TCnBLAKE3Context; var Digest: TCnBLAKE3Digest);
-{* 完成 BLAKE3 计算，将 32 字节结果写入 Digest。}
+{* 结束本轮计算，将 BLAKE3 结果返回至 Digest 中。
+
+   参数：
+     var Context: TCnBLAKE2BContext       - BLAKE3 上下文
+     var Digest: TCnBLAKE3Digest          - 返回的 BLAKE3 杂凑值
+
+   返回值：（无）
+}
 
 procedure BLAKE3FinalXOF(var Context: TCnBLAKE3Context; OutBuf: PByte; OutLength: Integer);
-{* 完成 BLAKE3 计算，将 OutLength 字节的 XOF 输出写入 OutBuf。}
+{* 结束本轮计算，将 OutLength 字节的 XOF 输出写入 OutBuf。
 
-// ============ Keyed Hash 便捷函数 ============
+   参数：
+     var Context: TCnBLAKE2BContext       - BLAKE3 上下文
+     OutBuf: PByte                        - 供写入变长杂凑结果的数据区
+     OutLength: Integer                   - 需写入变长杂凑结果的字节长度
 
-function BLAKE3Keyed(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar; KeyLength: Integer): TCnBLAKE3Digest;
-{* 使用 KeyedHash 模式对数据块计算 BLAKE3 哈希，密钥长度必须为 32 字节。}
+   返回值：（无）
+}
 
-function BLAKE3KeyedBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardinal): TCnBLAKE3Digest;
-{* 使用 KeyedHash 模式对内存块计算 BLAKE3 哈希。}
+function BLAKE3DeriveKey(Context: PAnsiChar; ContextLength: Integer;
+  KeyMaterial: PAnsiChar; KeyMaterialLength: Integer): TCnBLAKE3DerivedKey;
+{* 使用派生密钥模式，通过数据块形式的上下文和密钥材料派生出 BLAKE3 密钥。
 
-function BLAKE3KeyedBytes(const Data: TBytes; const Key: TBytes): TCnBLAKE3Digest;
-{* 使用 KeyedHash 模式对字节数组计算 BLAKE3 哈希。}
+   参数：
+     Context: PAnsiChar                   - BLAKE3 上下文数据块地址
+     ContextLength: Integer               - BLAKE3 上下文数据块字节长度
+     KeyMaterial: PAnsiChar               - BLAKE3 密钥材料地址
+     KeyMaterialLength: Integer           - BLAKE3 密钥材料地址的字节长度
 
-function BLAKE3KeyedFile(const FileName: string; const Key: TBytes; CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
-{* 使用 KeyedHash 模式对文件内容计算 BLAKE3 哈希，支持进度回调。}
+   返回值：TCnBLAKE3DerivedKey            - 返回的 BLAKE3 派生密钥
+}
 
-function BLAKE3KeyedStream(Stream: TStream; const Key: TBytes; CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
-{* 使用 KeyedHash 模式对流内容计算 BLAKE3 哈希，支持进度回调。}
+function BLAKE3DeriveKeyBytes(const Context: TBytes;
+  const KeyMaterial: TBytes): TCnBLAKE3DerivedKey;
+{* 使用派生密钥模式，通过字节数组形式的上下文和密钥材料派生出 BLAKE3 密钥。
 
-// ============ DeriveKey 便捷函数 ============
+   参数：
+     Context: TBytes                      - BLAKE3 上下文字节数组
+     KeyMaterial: TBytes                  - BLAKE3 密钥材料字节数组
 
-function BLAKE3DeriveKey(Context: PAnsiChar; ContextLength: Integer; KeyMaterial: PAnsiChar; KeyMaterialLength: Integer): TCnBLAKE3Digest;
-{* 使用 DeriveKey 模式，通过上下文字符串和密钥材料派生密钥。}
+   返回值：TCnBLAKE3DerivedKey            - 返回的 BLAKE3 派生密钥
+}
 
-function BLAKE3DeriveKeyBytes(const Context: TBytes; const KeyMaterial: TBytes): TCnBLAKE3Digest;
-{* 使用 DeriveKey 模式，通过字节数组形式的上下文和密钥材料派生密钥。}
+function BLAKE3DeriveKeyStr(const Context: AnsiString;
+  const KeyMaterial: TBytes): TCnBLAKE3DerivedKey;
+{* 使用派生密钥模式，通过 AnsiString 形式的上下文和字节数组形式的密钥材料派生出 BLAKE3 密钥。
 
-function BLAKE3DeriveKeyStr(const Context: AnsiString; const KeyMaterial: TBytes): TCnBLAKE3Digest;
-{* 使用 DeriveKey 模式，通过 AnsiString 形式的上下文和字节数组形式的密钥材料派生密钥。}
+   参数：
+     Context: AnsiString                  - BLAKE3 上下文字符串
+     KeyMaterial: AnsiString              - BLAKE3 密钥材料字符串
 
-// ============ XOF 便捷函数 ============
+   返回值：TCnBLAKE3DerivedKey            - 返回的 BLAKE3 派生密钥
+}
 
 function BLAKE3XOF(Input: PAnsiChar; ByteLength: Cardinal; OutLength: Integer): TBytes;
-{* 对数据块计算 BLAKE3 XOF 输出，返回 OutLength 字节。}
+{* 对数据块计算 BLAKE3 XOF 可变长度杂凑输出，返回 OutLength 字节长度的杂凑结果。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     OutLength: Integer                   - 输出的杂凑结果的字节长度
+
+   返回值：TBytes                         - 返回 OutLength 字节长度的杂凑结果
+}
 
 function BLAKE3XOFBuffer(const Buffer; Count: Cardinal; OutLength: Integer): TBytes;
-{* 对内存块计算 BLAKE3 XOF 输出，返回 OutLength 字节。}
+{* 对内存块计算 BLAKE3 XOF 可变长度杂凑输出，返回 OutLength 字节长度的杂凑结果。
+
+   参数：
+     const Buffer                         - 待计算的数据块
+     Count: Cardinal                      - 待计算的数据块字节长度
+     OutLength: Integer                   - 输出的杂凑结果的字节长度
+
+   返回值：TBytes                         - 返回 OutLength 字节长度的杂凑结果
+}
 
 function BLAKE3XOFBytes(const Data: TBytes; OutLength: Integer): TBytes;
-{* 对字节数组计算 BLAKE3 XOF 输出，返回 OutLength 字节。}
+{* 对字节数组计算 BLAKE3 XOF 可变长度杂凑输出，返回 OutLength 字节长度的杂凑结果。
 
-// ============ 辅助函数 ============
+   参数：
+     const Data: TBytes                   - 待计算的字节数组
+     OutLength: Integer                   - 输出的杂凑结果的字节长度
+
+   返回值：TBytes                         - 返回 OutLength 字节长度的杂凑结果
+}
 
 function BLAKE3Print(const Digest: TCnBLAKE3Digest): string;
-{* 以十六进制格式打印 BLAKE3 摘要值，返回 64 个小写十六进制字符的字符串。}
+{* 以十六进制格式输出 BLAKE3 杂凑值，返回 64 个小写十六进制字符的字符串。
+
+   参数：
+     const Digest: TCnBLAKE3Digest        - 指定的 BLAKE3 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function BLAKE3Match(const D1, D2: TCnBLAKE3Digest): Boolean;
-{* 比较两个 BLAKE3 摘要值是否相等。}
+{* 比较两个 BLAKE3 杂凑值是否相等。
+
+   参数：
+     const D1: TCnBLAKE3Digest            - 待比较的 BLAKE3 杂凑值一
+     const D2: TCnBLAKE3Digest            - 待比较的 BLAKE3 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function BLAKE3DigestToStr(const Digest: TCnBLAKE3Digest): string;
-{* BLAKE3 摘要值直接转 string，每字节对应一字符。}
+{* BLAKE3 杂凑值内容直接转 string，每字节对应一字符。
+
+   参数：
+     const Digest: TCnBLAKE3Digest        - 待转换的 BLAKE3 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
 
 implementation
 
 resourcestring
-  SCnErrorBLAKE3InvalidKeySize = 'BLAKE3 Keyed Hash Key Length Must be 32 Bytes';
   SCnErrorBLAKE3InvalidXOFSize = 'BLAKE3 XOF Output Length must be Positive';
 
 const
@@ -559,35 +662,43 @@ begin
   end;
 end;
 
-procedure BLAKE3Init(var Context: TCnBLAKE3Context);
-begin
-  FillChar(Context, SizeOf(TCnBLAKE3Context), 0);
-  Move(BLAKE3_IV[0], Context.Key[0], 8 * SizeOf(Cardinal));
-  ChunkStateInit(Context.Chunk, BLAKE3_IV, 0, 0);
-end;
-
-procedure BLAKE3InitKeyed(var Context: TCnBLAKE3Context; Key: PAnsiChar; KeyLength: Integer);
+procedure BLAKE3Init(var Context: TCnBLAKE3Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
   P: PCardinal;
+  KeyBuf: array[0..CN_BLAKE3_KEYBYTES - 1] of Byte;
+  Take: Integer;
 begin
-  if KeyLength <> CN_BLAKE3_KEYBYTES then
-    raise ECnBLAKE3Exception.Create(SCnErrorBLAKE3InvalidKeySize);
-
   FillChar(Context, SizeOf(TCnBLAKE3Context), 0);
-  // 将 32 字节密钥按小端序解析为 8 个 Cardinal
-  for I := 0 to 7 do
+  if (Key <> nil) and (KeyLength > 0) then
   begin
-    P := PCardinal(TCnIntAddress(Key) + I * SizeOf(Cardinal));
-    Context.Key[I] := UInt32ToLittleEndian(P^);
+    FillChar(KeyBuf[0], CN_BLAKE3_KEYBYTES, 0);
+    if KeyLength > CN_BLAKE3_KEYBYTES then
+      Take := CN_BLAKE3_KEYBYTES
+    else
+      Take := KeyLength;
+    Move(Key^, KeyBuf[0], Take);
+
+    // 将 32 字节密钥按小端序解析为 8 个 Cardinal
+    for I := 0 to 7 do
+    begin
+      P := PCardinal(TCnIntAddress(@KeyBuf[0]) + I * SizeOf(Cardinal));
+      Context.Key[I] := UInt32ToLittleEndian(P^);
+    end;
+    ChunkStateInit(Context.Chunk, Context.Key, 0, BLAKE3_FLAG_KEYED_HASH);
+  end
+  else
+  begin
+    Move(BLAKE3_IV[0], Context.Key[0], 8 * SizeOf(Cardinal));
+    ChunkStateInit(Context.Chunk, BLAKE3_IV, 0, 0);
   end;
-  ChunkStateInit(Context.Chunk, Context.Key, 0, BLAKE3_FLAG_KEYED_HASH);
 end;
 
 procedure BLAKE3InitDeriveKey(var Context: TCnBLAKE3Context; ContextStr: PAnsiChar; ContextLength: Integer);
 var
   CtxHasher: TCnBLAKE3Context;
-  CtxKey: TCnBLAKE3Digest;
+  CtxKey: TCnBLAKE3DerivedKey;
+  TmpDigest: TCnBLAKE3Digest;
   I: Integer;
   P: PCardinal;
 begin
@@ -596,7 +707,8 @@ begin
   Move(BLAKE3_IV[0], CtxHasher.Key[0], 8 * SizeOf(Cardinal));
   ChunkStateInit(CtxHasher.Chunk, BLAKE3_IV, 0, BLAKE3_FLAG_DERIVE_KEY_CONTEXT);
   BLAKE3Update(CtxHasher, ContextStr, ContextLength);
-  BLAKE3Final(CtxHasher, CtxKey);
+  BLAKE3Final(CtxHasher, TmpDigest);
+  Move(TmpDigest[0], CtxKey[0], CN_BLAKE3_OUTBYTES);
 
   // 第二步：将上下文密钥解析为 8 个 Cardinal，作为新的密钥字
   FillChar(Context, SizeOf(TCnBLAKE3Context), 0);
@@ -731,25 +843,32 @@ begin
 end;
 // ============ 普通哈希便捷函数实现 ============
 
-function BLAKE3(Input: PAnsiChar; ByteLength: Cardinal): TCnBLAKE3Digest;
+function BLAKE3(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar;
+  KeyLength: Integer): TCnBLAKE3Digest;
 var
   Context: TCnBLAKE3Context;
 begin
-  BLAKE3Init(Context);
+  if (Key <> nil) and (KeyLength > 0) then
+    BLAKE3Init(Context, Key, KeyLength)
+  else
+    BLAKE3Init(Context);
   BLAKE3Update(Context, Input, ByteLength);
   BLAKE3Final(Context, Result);
 end;
 
-function BLAKE3Buffer(const Buffer; Count: Cardinal): TCnBLAKE3Digest;
+function BLAKE3Buffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardinal): TCnBLAKE3Digest;
 var
   Context: TCnBLAKE3Context;
 begin
-  BLAKE3Init(Context);
+  if KeyCount > 0 then
+    BLAKE3Init(Context, PAnsiChar(@Key), KeyCount)
+  else
+    BLAKE3Init(Context);
   BLAKE3Update(Context, PAnsiChar(@Buffer), Count);
   BLAKE3Final(Context, Result);
 end;
 
-function BLAKE3Bytes(const Data: TBytes): TCnBLAKE3Digest;
+function BLAKE3Bytes(const Data: TBytes; const Key: TBytes): TCnBLAKE3Digest;
 var
   D: PAnsiChar;
   DL: Cardinal;
@@ -764,39 +883,63 @@ begin
     D := PAnsiChar(@Data[0]);
     DL := Length(Data);
   end;
-  Result := BLAKE3(D, DL);
+  if (Key <> nil) and (Length(Key) > 0) then
+    Result := BLAKE3(D, DL, PAnsiChar(@Key[0]), Length(Key))
+  else
+    Result := BLAKE3(D, DL, nil, 0);
 end;
 
-function BLAKE3String(const Str: string): TCnBLAKE3Digest;
+function BLAKE3String(const Str: string; const Key: string): TCnBLAKE3Digest;
 var
   AStr: AnsiString;
+  AKey: AnsiString;
 begin
   AStr := AnsiString(Str);
-  Result := BLAKE3StringA(AStr);
+  AKey := AnsiString(Key);
+  Result := BLAKE3StringA(AStr, AKey);
 end;
 
-function BLAKE3StringA(const Str: AnsiString): TCnBLAKE3Digest;
+function BLAKE3StringA(const Str: AnsiString; const Key: AnsiString): TCnBLAKE3Digest;
 var
   Context: TCnBLAKE3Context;
 begin
-  BLAKE3Init(Context);
+  if Length(Key) > 0 then
+    BLAKE3Init(Context, PAnsiChar(Key), Length(Key))
+  else
+    BLAKE3Init(Context);
   BLAKE3Update(Context, PAnsiChar(Str), Length(Str));
   BLAKE3Final(Context, Result);
 end;
 
-function BLAKE3StringW(const Str: WideString): TCnBLAKE3Digest;
+function BLAKE3StringW(const Str: WideString; const Key: WideString): TCnBLAKE3Digest;
 var
   Context: TCnBLAKE3Context;
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
   iLen: Cardinal;
+  KeyA: PAnsiChar;
+  KeyLen: Cardinal;
 {$ELSE}
   S: string;
   A: AnsiString;
+  AKey: AnsiString;
 {$ENDIF}
 begin
-  BLAKE3Init(Context);
 {$IFDEF MSWINDOWS}
+  if Length(Key) > 0 then
+  begin
+    GetMem(KeyA, Length(Key) * SizeOf(WideChar));
+    try
+      KeyLen := WideCharToMultiByte(0, 0, PWideChar(Key), Length(Key),
+        PAnsiChar(KeyA), Length(Key) * SizeOf(WideChar), nil, nil);
+      BLAKE3Init(Context, KeyA, KeyLen);
+    finally
+      FreeMem(KeyA);
+    end;
+  end
+  else
+    BLAKE3Init(Context);
+
   GetMem(Content, Length(Str) * SizeOf(WideChar));
   try
     iLen := WideCharToMultiByte(0, 0, PWideChar(Str), Length(Str),
@@ -806,6 +949,15 @@ begin
     FreeMem(Content);
   end;
 {$ELSE}
+  if Length(Key) > 0 then
+  begin
+    S := StrNew(PWideChar(Key));
+    AKey := AnsiString(S);
+    BLAKE3Init(Context, PAnsiChar(AKey), Length(AKey));
+  end
+  else
+    BLAKE3Init(Context);
+
   S := StrNew(PWideChar(Str));
   A := AnsiString(S);
   BLAKE3Update(Context, PAnsiChar(A), Length(A));
@@ -814,14 +966,17 @@ begin
 end;
 
 {$IFDEF UNICODE}
-function BLAKE3UnicodeString(const Str: string): TCnBLAKE3Digest;
+function BLAKE3UnicodeString(const Str: string; const Key: string): TCnBLAKE3Digest;
 {$ELSE}
-function BLAKE3UnicodeString(const Str: WideString): TCnBLAKE3Digest;
+function BLAKE3UnicodeString(const Str: WideString; const Key: WideString): TCnBLAKE3Digest;
 {$ENDIF}
 var
   Context: TCnBLAKE3Context;
 begin
-  BLAKE3Init(Context);
+  if Length(Key) > 0 then
+    BLAKE3Init(Context, PAnsiChar(@Key[1]), Length(Key) * SizeOf(WideChar))
+  else
+    BLAKE3Init(Context);
   if Length(Str) > 0 then
     BLAKE3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   BLAKE3Final(Context, Result);
@@ -878,11 +1033,14 @@ begin
   end;
 end;
 
-function BLAKE3Stream(Stream: TStream; CallBack: TCnBLAKE3CalcProgressFunc): TCnBLAKE3Digest;
+function BLAKE3Stream(Stream: TStream; Key: TBytes; CallBack: TCnBLAKE3CalcProgressFunc): TCnBLAKE3Digest;
 var
   Context: TCnBLAKE3Context;
 begin
-  BLAKE3Init(Context);
+  if (Key <> nil) and (Length(Key) > 0) then
+    BLAKE3Init(Context, PAnsiChar(@Key[0]), Length(Key))
+  else
+    BLAKE3Init(Context);
   InternalBLAKE3Stream(Stream, 4096 * 1024, Context, CallBack);
   BLAKE3Final(Context, Result);
 end;
@@ -918,7 +1076,7 @@ begin
 {$ENDIF}
 end;
 
-function BLAKE3File(const FileName: string; CallBack: TCnBLAKE3CalcProgressFunc): TCnBLAKE3Digest;
+function BLAKE3File(const FileName: string; Key: TBytes; CallBack: TCnBLAKE3CalcProgressFunc): TCnBLAKE3Digest;
 var
   Context: TCnBLAKE3Context;
   Stream: TStream;
@@ -929,7 +1087,10 @@ var
   ViewPointer: Pointer;
 {$ENDIF}
 begin
-  BLAKE3Init(Context);
+  if (Key <> nil) and (Length(Key) > 0) then
+    BLAKE3Init(Context, PAnsiChar(@Key[0]), Length(Key))
+  else
+    BLAKE3Init(Context);
   FileIsZeroSize := False;
   if FileSizeIsLargeThanMaxOrCanNotMap3(FileName, FileIsZeroSize) then
   begin
@@ -974,99 +1135,20 @@ begin
   end;
   BLAKE3Final(Context, Result);
 end;
-// ============ Keyed Hash 便捷函数实现 ============
 
-function BLAKE3Keyed(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar; KeyLength: Integer): TCnBLAKE3Digest;
-var
-  Context: TCnBLAKE3Context;
-begin
-  BLAKE3InitKeyed(Context, Key, KeyLength);
-  BLAKE3Update(Context, Input, ByteLength);
-  BLAKE3Final(Context, Result);
-end;
-
-function BLAKE3KeyedBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardinal): TCnBLAKE3Digest;
-var
-  Context: TCnBLAKE3Context;
-begin
-  BLAKE3InitKeyed(Context, PAnsiChar(@Key), KeyCount);
-  BLAKE3Update(Context, PAnsiChar(@Buffer), Count);
-  BLAKE3Final(Context, Result);
-end;
-
-function BLAKE3KeyedBytes(const Data: TBytes; const Key: TBytes): TCnBLAKE3Digest;
-var
-  D: PAnsiChar;
-  DL: Cardinal;
-  K: PAnsiChar;
-  KL: Integer;
-begin
-  if (Data = nil) or (Length(Data) = 0) then
-  begin
-    D := nil;
-    DL := 0;
-  end
-  else
-  begin
-    D := PAnsiChar(@Data[0]);
-    DL := Length(Data);
-  end;
-  if (Key = nil) or (Length(Key) = 0) then
-  begin
-    K := nil;
-    KL := 0;
-  end
-  else
-  begin
-    K := PAnsiChar(@Key[0]);
-    KL := Length(Key);
-  end;
-  Result := BLAKE3Keyed(D, DL, K, KL);
-end;
-
-function BLAKE3KeyedStream(Stream: TStream; const Key: TBytes; CallBack: TCnBLAKE3CalcProgressFunc): TCnBLAKE3Digest;
-var
-  Context: TCnBLAKE3Context;
-  K: PAnsiChar;
-  KL: Integer;
-begin
-  if (Key = nil) or (Length(Key) = 0) then
-  begin
-    K := nil;
-    KL := 0;
-  end
-  else
-  begin
-    K := PAnsiChar(@Key[0]);
-    KL := Length(Key);
-  end;
-  BLAKE3InitKeyed(Context, K, KL);
-  InternalBLAKE3Stream(Stream, 4096 * 1024, Context, CallBack);
-  BLAKE3Final(Context, Result);
-end;
-
-function BLAKE3KeyedFile(const FileName: string; const Key: TBytes; CallBack: TCnBLAKE3CalcProgressFunc): TCnBLAKE3Digest;
-var
-  Stream: TStream;
-begin
-  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-  try
-    Result := BLAKE3KeyedStream(Stream, Key, CallBack);
-  finally
-    Stream.Free;
-  end;
-end;
-
-function BLAKE3DeriveKey(Context: PAnsiChar; ContextLength: Integer; KeyMaterial: PAnsiChar; KeyMaterialLength: Integer): TCnBLAKE3Digest;
+function BLAKE3DeriveKey(Context: PAnsiChar; ContextLength: Integer;
+  KeyMaterial: PAnsiChar; KeyMaterialLength: Integer): TCnBLAKE3DerivedKey;
 var
   Ctx: TCnBLAKE3Context;
+  TmpDigest: TCnBLAKE3Digest;
 begin
   BLAKE3InitDeriveKey(Ctx, Context, ContextLength);
   BLAKE3Update(Ctx, KeyMaterial, KeyMaterialLength);
-  BLAKE3Final(Ctx, Result);
+  BLAKE3Final(Ctx, TmpDigest);
+  Move(TmpDigest[0], Result[0], CN_BLAKE3_OUTBYTES);
 end;
 
-function BLAKE3DeriveKeyBytes(const Context: TBytes; const KeyMaterial: TBytes): TCnBLAKE3Digest;
+function BLAKE3DeriveKeyBytes(const Context: TBytes; const KeyMaterial: TBytes): TCnBLAKE3DerivedKey;
 var
   CP: PAnsiChar;
   CL: Integer;
@@ -1096,7 +1178,7 @@ begin
   Result := BLAKE3DeriveKey(CP, CL, KP, KL);
 end;
 
-function BLAKE3DeriveKeyStr(const Context: AnsiString; const KeyMaterial: TBytes): TCnBLAKE3Digest;
+function BLAKE3DeriveKeyStr(const Context: AnsiString; const KeyMaterial: TBytes): TCnBLAKE3DerivedKey;
 var
   KP: PAnsiChar;
   KL: Integer;
@@ -1164,16 +1246,8 @@ begin
 end;
 
 function BLAKE3Match(const D1, D2: TCnBLAKE3Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < CN_BLAKE3_OUTBYTES) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnBLAKE3Digest));
 end;
 
 function BLAKE3DigestToStr(const Digest: TCnBLAKE3Digest): string;

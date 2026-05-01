@@ -329,12 +329,12 @@ function BLAKE2SFile(const FileName: string; Key: TBytes = nil;
 {* 对指定文件内容进行 BLAKE2S 计算。
 
    参数：
-     const FileName: string                - 待计算的文件名
-     Key: TBytes                           - BLAKE2S 密钥字节数组，默认为空
-     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
-     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+     const FileName: string               - 待计算的文件名
+     Key: TBytes                          - BLAKE2S 密钥字节数组，默认为空
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc  - 进度回调函数，默认为空
 
-   返回值：TCnBLAKE2SDigest                - 返回的 BLAKE2S 杂凑值
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
 }
 
 function BLAKE2SStream(Stream: TStream; Key: TBytes = nil;
@@ -343,12 +343,12 @@ function BLAKE2SStream(Stream: TStream; Key: TBytes = nil;
 {* 对指定流数据进行 BLAKE2S 计算。
 
    参数：
-     Stream: TStream                       - 待计算的流内容
-     Key: TBytes                           - BLAKE2S 密钥字节数组，默认为空
-     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
-     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+     Stream: TStream                      - 待计算的流内容
+     Key: TBytes                          - BLAKE2S 密钥字节数组，默认为空
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc  - 进度回调函数，默认为空
 
-   返回值：TCnBLAKE2SDigest                - 返回的 BLAKE2S 杂凑值
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
 }
 
 function BLAKE2BFile(const FileName: string; Key: TBytes = nil;
@@ -357,12 +357,12 @@ function BLAKE2BFile(const FileName: string; Key: TBytes = nil;
 {* 对指定文件内容进行 BLAKE2B 计算。
 
    参数：
-     const FileName: string                - 待计算的文件名
-     Key: TBytes                           - BLAKE2B 密钥字节数组，默认为空
-     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
-     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+     const FileName: string               - 待计算的文件名
+     Key: TBytes                          - BLAKE2B 密钥字节数组，默认为空
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc  - 进度回调函数，默认为空
 
-   返回值：TCnBLAKE2BDigest                - 返回的 BLAKE2B 杂凑值
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
 }
 
 function BLAKE2BStream(Stream: TStream; Key: TBytes = nil;
@@ -371,12 +371,12 @@ function BLAKE2BStream(Stream: TStream; Key: TBytes = nil;
 {* 对指定流数据进行 BLAKE2B 计算。
 
    参数：
-     Stream: TStream                       - 待计算的流内容
-     Key: TBytes                           - BLAKE2B 密钥字节数组，默认为空
-     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
-     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+     Stream: TStream                      - 待计算的流内容
+     Key: TBytes                          - BLAKE2B 密钥字节数组，默认为空
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc  - 进度回调函数，默认为空
 
-   返回值：TCnBLAKE2BDigest                - 返回的 BLAKE2B 杂凑值
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
 }
 
 // 以下三类函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用

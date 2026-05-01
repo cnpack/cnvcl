@@ -10420,7 +10420,7 @@ begin
   Key := AnsiToBytes('whats the Elvish word for friend');
 
   // 空输入
-  Dig := BLAKE3KeyedBytes(nil, Key);
+  Dig := BLAKE3Bytes(nil, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '92B2B75604ED3C761F9D6F62392C8A9227AD0EA3F09573E783F1498A4ED60D26';
   if not Result then Exit;
@@ -10428,7 +10428,7 @@ begin
   // 1 字节输入
   SetLength(Data, 1);
   Data[0] := 0;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '6D7878DFFF2F485635D39013278AE14F1454B8C0A3A2D34BC1AB38228A80C95B';
   if not Result then Exit;
@@ -10437,7 +10437,7 @@ begin
   SetLength(Data, 63);
   for I := 0 to 62 do
     Data[I] := I;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'BB1EB5D4AFA793C1EBDD9FB08DEF6C36D10096986AE0CFE148CD101170CE37AE';
   if not Result then Exit;
@@ -10446,7 +10446,7 @@ begin
   SetLength(Data, 64);
   for I := 0 to 63 do
     Data[I] := I;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'BA8CED36F327700D213F120B1A207A3B8C04330528586F414D09F2F7D9CCB7E6';
   if not Result then Exit;
@@ -10455,7 +10455,7 @@ begin
   SetLength(Data, 65);
   for I := 0 to 64 do
     Data[I] := I;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'C0A4EDEFA2D2ACCB9277C371AC12FCDBB52988A86EDC54F0716E1591B4326E72';
   if not Result then Exit;
@@ -10464,7 +10464,7 @@ begin
   SetLength(Data, 1023);
   for I := 0 to 1022 do
     Data[I] := I mod 251;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'C951ECDF03288D0FCC96EE3413563D8A6D3589547F2C2FB36D9786470F1B9D6E';
   if not Result then Exit;
@@ -10473,7 +10473,7 @@ begin
   SetLength(Data, 1024);
   for I := 0 to 1023 do
     Data[I] := I mod 251;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '75C46F6F3D9EB4F55ECAAEE480DB732E6C2105546F1E675003687C31719C7BA4';
   if not Result then Exit;
@@ -10482,14 +10482,14 @@ begin
   SetLength(Data, 1025);
   for I := 0 to 1024 do
     Data[I] := I mod 251;
-  Dig := BLAKE3KeyedBytes(Data, Key);
+  Dig := BLAKE3Bytes(Data, Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '357DC55DE0C7E382C900FD6E320ACC04146BE01DB6A8CE7210B7189BD664EA69';
 end;
 
 function TestBLAKE3DeriveKey: Boolean;
 var
-  Dig: TCnBLAKE3Digest;
+  DK: TCnBLAKE3DerivedKey;
   Data: TBytes;
   Ctx: AnsiString;
   I: Integer;
@@ -10497,16 +10497,16 @@ begin
   Ctx := 'BLAKE3 2019-12-27 16:29:52 test vectors context';
 
   // 空输入
-  Dig := BLAKE3DeriveKeyStr(Ctx, nil);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, nil);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     '2CC39783C223154FEA8DFB7C1B1660F2AC2DCBD1C1DE8277B0B0DD39B7E50D7D';
   if not Result then Exit;
 
   // 1 字节输入
   SetLength(Data, 1);
   Data[0] := 0;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     'B3E2E340A117A499C6CF2398A19EE0D29CCA2BB7404C73063382693BF66CB06C';
   if not Result then Exit;
 
@@ -10514,8 +10514,8 @@ begin
   SetLength(Data, 63);
   for I := 0 to 62 do
     Data[I] := I;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     'B6451E30B953C206E34644C6803724E9D2725E0893039CFC49584F991F451AF3';
   if not Result then Exit;
 
@@ -10523,8 +10523,8 @@ begin
   SetLength(Data, 64);
   for I := 0 to 63 do
     Data[I] := I;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     'A5C4A7053FA86B64746D4BB688D06AD1F02A18FCE9AFD3E818FEFAA7126BF73E';
   if not Result then Exit;
 
@@ -10532,8 +10532,8 @@ begin
   SetLength(Data, 65);
   for I := 0 to 64 do
     Data[I] := I;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     '51FD05C3C1CFBC8ED67D139AD76F5CF8236CD2ACD26627A30C104DFD9D3FF8A8';
   if not Result then Exit;
 
@@ -10541,8 +10541,8 @@ begin
   SetLength(Data, 1023);
   for I := 0 to 1022 do
     Data[I] := I mod 251;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     '74A16C1C3D44368A86E1CA6DF64BE6A2F64CCE8F09220787450722D85725DEA5';
   if not Result then Exit;
 
@@ -10550,8 +10550,8 @@ begin
   SetLength(Data, 1024);
   for I := 0 to 1023 do
     Data[I] := I mod 251;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     '7356CD7720D5B66B6D0697EB3177D9F8D73A4A5C5E968896EB6A689684302706';
   if not Result then Exit;
 
@@ -10559,8 +10559,8 @@ begin
   SetLength(Data, 1025);
   for I := 0 to 1024 do
     Data[I] := I mod 251;
-  Dig := BLAKE3DeriveKeyStr(Ctx, Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
+  DK := BLAKE3DeriveKeyStr(Ctx, Data);
+  Result := DataToHex(@DK[0], SizeOf(TCnBLAKE3Digest)) =
     'EFFAA245F065FBF82AC186839A249707C3BDDF6D3FDDA22D1B95A3C970379BCB';
 end;
 
