@@ -68,6 +68,7 @@
       ..\..\Source\Crypto\CnBits.obj 
       ..\..\Source\Crypto\CnBLAKE.obj 
       ..\..\Source\Crypto\CnBLAKE2.obj 
+      ..\..\Source\Crypto\CnBLAKE3.obj 
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Crypto\CnCRC32.obj 
