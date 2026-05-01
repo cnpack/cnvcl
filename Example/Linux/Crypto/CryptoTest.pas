@@ -184,8 +184,11 @@ function TestBitsTBits: Boolean;
 
 function TestBERInvalidLengthField: Boolean;
 function TestBERTruncatedInput: Boolean;
+function TestBERConstructedChildTruncated: Boolean;
 function TestPEMInvalidHeaderFooter: Boolean;
 function TestPEMCorruptedBase64: Boolean;
+function TestPEMEncryptedMissingDekInfo: Boolean;
+function TestPEMEncryptedCorruptedBase64: Boolean;
 function TestCARejectInvalidCert: Boolean;
 
 // =============================== Int128 ======================================
@@ -435,6 +438,8 @@ function TestBLAKE3Update: Boolean;
 
 function TestBase64: Boolean;
 function TestBase64URL: Boolean;
+function TestBase64StrictRejectInvalidChar: Boolean;
+function TestBase64StrictRejectInvalidPadding: Boolean;
 
 // ================================ OTP ========================================
 
@@ -820,8 +825,11 @@ begin
 
   MyAssert(TestBERInvalidLengthField, 'TestBERInvalidLengthField');
   MyAssert(TestBERTruncatedInput, 'TestBERTruncatedInput');
+  MyAssert(TestBERConstructedChildTruncated, 'TestBERConstructedChildTruncated');
   MyAssert(TestPEMInvalidHeaderFooter, 'TestPEMInvalidHeaderFooter');
   MyAssert(TestPEMCorruptedBase64, 'TestPEMCorruptedBase64');
+  MyAssert(TestPEMEncryptedMissingDekInfo, 'TestPEMEncryptedMissingDekInfo');
+  MyAssert(TestPEMEncryptedCorruptedBase64, 'TestPEMEncryptedCorruptedBase64');
   MyAssert(TestCARejectInvalidCert, 'TestCARejectInvalidCert');
 
 // =============================== Int128 ======================================
@@ -1071,6 +1079,8 @@ begin
 
   MyAssert(TestBase64, 'TestBase64');
   MyAssert(TestBase64URL, 'TestBase64URL');
+  MyAssert(TestBase64StrictRejectInvalidChar, 'TestBase64StrictRejectInvalidChar');
+  MyAssert(TestBase64StrictRejectInvalidPadding, 'TestBase64StrictRejectInvalidPadding');
 
 // ================================ OTP ========================================
 
@@ -3903,7 +3913,6 @@ end;
 
 // =============================== BER/DER =====================================
 
-
 function TestBERInvalidLengthField: Boolean;
 var
   B: TBytes;
@@ -3934,6 +3943,27 @@ var
 begin
   Result := False;
   B := HexToBytes('3006020101');
+  R := TCnBerReader.Create(@B[0], Length(B));
+  try
+    R.ParseToTree;
+    if R.TotalCount <= 0 then Exit;
+
+    N := R.Items[0];
+    Result := (N.BerTag = CN_BER_TAG_SEQUENCE)
+      and (N.BerLength > Length(B));
+  finally
+    R.Free;
+  end;
+end;
+
+function TestBERConstructedChildTruncated: Boolean;
+var
+  B: TBytes;
+  R: TCnBerReader;
+  N: TCnBerReadNode;
+begin
+  Result := False;
+  B := HexToBytes('30030201');
   R := TCnBerReader.Create(@B[0], Length(B));
   try
     R.ParseToTree;
@@ -3983,6 +4013,51 @@ begin
     InSt.Position := 0;
     Result := not LoadPemStreamToMemory(InSt, '-----BEGIN CERTIFICATE-----',
       '-----END CERTIFICATE-----', OutSt);
+  finally
+    OutSt.Free;
+    InSt.Free;
+  end;
+end;
+
+function TestPEMEncryptedMissingDekInfo: Boolean;
+var
+  S: AnsiString;
+  InSt, OutSt: TMemoryStream;
+begin
+  S := '-----BEGIN CERTIFICATE-----' + SCRLF +
+    'Proc-Type: 4,ENCRYPTED' + SCRLF +
+    'QUJDRA==' + SCRLF +
+    '-----END CERTIFICATE-----' + SCRLF;
+  InSt := TMemoryStream.Create;
+  OutSt := TMemoryStream.Create;
+  try
+    InSt.Write(S[1], Length(S));
+    InSt.Position := 0;
+    Result := not LoadPemStreamToMemory(InSt, '-----BEGIN CERTIFICATE-----',
+      '-----END CERTIFICATE-----', OutSt, '123456', ckhSha256);
+  finally
+    OutSt.Free;
+    InSt.Free;
+  end;
+end;
+
+function TestPEMEncryptedCorruptedBase64: Boolean;
+var
+  S: AnsiString;
+  InSt, OutSt: TMemoryStream;
+begin
+  S := '-----BEGIN CERTIFICATE-----' + SCRLF +
+    'Proc-Type: 4,ENCRYPTED' + SCRLF +
+    'DEK-Info: AES-256-CBC,00112233445566778899AABBCCDDEEFF' + SCRLF +
+    'QUJ$' + SCRLF +
+    '-----END CERTIFICATE-----' + SCRLF;
+  InSt := TMemoryStream.Create;
+  OutSt := TMemoryStream.Create;
+  try
+    InSt.Write(S[1], Length(S));
+    InSt.Position := 0;
+    Result := not LoadPemStreamToMemory(InSt, '-----BEGIN CERTIFICATE-----',
+      '-----END CERTIFICATE-----', OutSt, '123456', ckhSha256);
   finally
     OutSt.Free;
     InSt.Free;
@@ -10892,6 +10967,19 @@ begin
     Result := CompareBytes(Data, Output)
   else
     Result := False;
+end;
+
+function TestBase64StrictRejectInvalidChar: Boolean;
+begin
+  Result := not Base64IsStrictText('QUJ$');
+end;
+
+function TestBase64StrictRejectInvalidPadding: Boolean;
+begin
+  Result := not Base64IsStrictText('AA=A');
+  if not Result then Exit;
+
+  Result := not Base64IsStrictText('A===');
 end;
 
 // ================================ OTP ========================================
