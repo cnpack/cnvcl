@@ -35,17 +35,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, CnNative;
-
-const
-  CN_STDIO_WAIT_INFINITE = Cardinal($FFFFFFFF);
-  CN_STDIO_DEFAULT_READ_BUFFER_SIZE = 1024;
-  CN_STDIO_WRITE_FLUSH_TIMEOUT = 3000;
-  SCN_STDIO_CRLF = #13#10;
-  SCN_STDIO_STAGE_CREATE_PIPE = 'CreatePipe';
-  SCN_STDIO_STAGE_CREATE_PROCESS = 'CreateProcess';
-  SCN_STDIO_STAGE_WRITE_STDIN = 'WriteStdIn';
-  SCN_STDIO_STAGE_WAIT_PROCESS = 'WaitProcess';
+  Windows, SysUtils, Classes, CnNative, CnClasses, CnConsts, CnCompConsts;
 
 type
   TCnStdioState = (csIdle, csStarting, csRunning, csExited, csError);
@@ -161,7 +151,101 @@ type
     property OnError: TCnStdioErrorEvent read FOnError write FOnError;
   end;
 
+{$IFNDEF FPC}
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+{$ENDIF}
+  TCnStdioProcessor = class(TCnComponent)
+  private
+    FProcess: TCnStdioProcess;
+    FActive: Boolean;
+    FOnStateChanged: TCnStdioStateEvent;
+    FOnRawData: TCnStdioRawDataEvent;
+    FOnLine: TCnStdioLineEvent;
+    FOnExited: TCnStdioExitEvent;
+    FOnError: TCnStdioErrorEvent;
+
+    function GetApplicationName: string;
+    procedure SetApplicationName(const Value: string);
+    function GetCommandLine: string;
+    procedure SetCommandLine(const Value: string);
+    function GetWorkingDirectory: string;
+    procedure SetWorkingDirectory(const Value: string);
+    function GetCreateNoWindow: Boolean;
+    procedure SetCreateNoWindow(const Value: Boolean);
+    function GetState: TCnStdioState;
+    function GetProcessId: Cardinal;
+    function GetExitCode: Cardinal;
+    function GetExitCodeReady: Boolean;
+    function GetRunningTime: Cardinal;
+    function GetStdOutText: string;
+    function GetStdErrText: string;
+
+    procedure ProcessStateChanged(Sender: TObject; OldState, NewState: TCnStdioState);
+    procedure ProcessRawData(Sender: TObject; StreamKind: TCnStdioStreamKind; const Data: TBytes);
+    procedure ProcessLine(Sender: TObject; StreamKind: TCnStdioStreamKind; const Line: string);
+    procedure ProcessExited(Sender: TObject; ExitCode: Cardinal);
+    procedure ProcessError(Sender: TObject; const Stage: string; ErrorCode: Cardinal;
+      const ErrorMessage: string);
+
+    procedure SetActive(const Value: Boolean);
+  protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
+    procedure Loaded; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+
+    function Start: Boolean;
+    procedure Stop;
+    function WaitFor(Timeout: Cardinal): Boolean;
+    procedure CloseInput;
+    function WriteBytes(const Data: TBytes): Boolean;
+    function WriteString(const S: string): Boolean;
+    function WriteLine(const S: string): Boolean;
+    procedure ClearOutput;
+
+    property Process: TCnStdioProcess read FProcess;
+    property State: TCnStdioState read GetState;
+    property ProcessId: Cardinal read GetProcessId;
+    property ExitCode: Cardinal read GetExitCode;
+    property ExitCodeReady: Boolean read GetExitCodeReady;
+    property RunningTime: Cardinal read GetRunningTime;
+    property StdOutText: string read GetStdOutText;
+    property StdErrText: string read GetStdErrText;
+  published
+    property Active: Boolean read FActive write SetActive default False;
+    property ApplicationName: string read GetApplicationName write SetApplicationName;
+    property CommandLine: string read GetCommandLine write SetCommandLine;
+    property WorkingDirectory: string read GetWorkingDirectory write SetWorkingDirectory;
+    property CreateNoWindow: Boolean read GetCreateNoWindow write SetCreateNoWindow default True;
+
+    property OnStateChanged: TCnStdioStateEvent read FOnStateChanged write FOnStateChanged;
+    property OnRawData: TCnStdioRawDataEvent read FOnRawData write FOnRawData;
+    property OnLine: TCnStdioLineEvent read FOnLine write FOnLine;
+    property OnExited: TCnStdioExitEvent read FOnExited write FOnExited;
+    property OnError: TCnStdioErrorEvent read FOnError write FOnError;
+  end;
+
 implementation
+
+const
+  CN_STDIO_WAIT_INFINITE = Cardinal($FFFFFFFF);
+
+  CN_STDIO_DEFAULT_READ_BUFFER_SIZE = 1024;
+
+  CN_STDIO_WRITE_FLUSH_TIMEOUT = 3000;
+
+  SCN_STDIO_STAGE_CREATE_PIPE = 'CreatePipe';
+
+  SCN_STDIO_STAGE_CREATE_PROCESS = 'CreateProcess';
+
+  SCN_STDIO_STAGE_WRITE_STDIN = 'WriteStdIn';
+
+  SCN_STDIO_STAGE_WAIT_PROCESS = 'WaitProcess';
+
+  SCN_STDIO_CRLF = #13#10;
 
 type
   TCnStdioReadThread = class(TThread)
@@ -785,5 +869,217 @@ begin
   Result := FStdErrBuffer.Text;
 end;
 
-end.
+{ TCnStdioProcessComponent }
 
+constructor TCnStdioProcessor.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  FProcess := TCnStdioProcess.Create;
+  FProcess.OnStateChanged := ProcessStateChanged;
+  FProcess.OnRawData := ProcessRawData;
+  FProcess.OnLine := ProcessLine;
+  FProcess.OnExited := ProcessExited;
+  FProcess.OnError := ProcessError;
+  FActive := False;
+end;
+
+destructor TCnStdioProcessor.Destroy;
+begin
+  Stop;
+  FProcess.Free;
+  inherited Destroy;
+end;
+
+procedure TCnStdioProcessor.GetComponentInfo(var AName, Author, Email,
+  Comment: string);
+begin
+  AName := SCnStdioProcessorName;
+  Author := SCnPack_LiuXiao;
+  Email := SCnPack_LiuXiaoEmail;
+  Comment := SCnStdioProcessorComment;
+end;
+
+procedure TCnStdioProcessor.Loaded;
+begin
+  inherited Loaded;
+  if FActive then
+    SetActive(True);
+end;
+
+function TCnStdioProcessor.GetApplicationName: string;
+begin
+  Result := FProcess.ApplicationName;
+end;
+
+procedure TCnStdioProcessor.SetApplicationName(const Value: string);
+begin
+  FProcess.ApplicationName := Value;
+end;
+
+function TCnStdioProcessor.GetCommandLine: string;
+begin
+  Result := FProcess.CommandLine;
+end;
+
+procedure TCnStdioProcessor.SetCommandLine(const Value: string);
+begin
+  FProcess.CommandLine := Value;
+end;
+
+function TCnStdioProcessor.GetWorkingDirectory: string;
+begin
+  Result := FProcess.WorkingDirectory;
+end;
+
+procedure TCnStdioProcessor.SetWorkingDirectory(const Value: string);
+begin
+  FProcess.WorkingDirectory := Value;
+end;
+
+function TCnStdioProcessor.GetCreateNoWindow: Boolean;
+begin
+  Result := FProcess.CreateNoWindow;
+end;
+
+procedure TCnStdioProcessor.SetCreateNoWindow(const Value: Boolean);
+begin
+  FProcess.CreateNoWindow := Value;
+end;
+
+function TCnStdioProcessor.GetState: TCnStdioState;
+begin
+  Result := FProcess.State;
+end;
+
+function TCnStdioProcessor.GetProcessId: Cardinal;
+begin
+  Result := FProcess.ProcessId;
+end;
+
+function TCnStdioProcessor.GetExitCode: Cardinal;
+begin
+  Result := FProcess.ExitCode;
+end;
+
+function TCnStdioProcessor.GetExitCodeReady: Boolean;
+begin
+  Result := FProcess.ExitCodeReady;
+end;
+
+function TCnStdioProcessor.GetRunningTime: Cardinal;
+begin
+  Result := FProcess.RunningTime;
+end;
+
+function TCnStdioProcessor.GetStdOutText: string;
+begin
+  Result := FProcess.StdOutText;
+end;
+
+function TCnStdioProcessor.GetStdErrText: string;
+begin
+  Result := FProcess.StdErrText;
+end;
+
+procedure TCnStdioProcessor.ProcessStateChanged(Sender: TObject; OldState,
+  NewState: TCnStdioState);
+begin
+  FActive := NewState = csRunning;
+  if Assigned(FOnStateChanged) then
+    FOnStateChanged(Self, OldState, NewState);
+end;
+
+procedure TCnStdioProcessor.ProcessRawData(Sender: TObject;
+  StreamKind: TCnStdioStreamKind; const Data: TBytes);
+begin
+  if Assigned(FOnRawData) then
+    FOnRawData(Self, StreamKind, Data);
+end;
+
+procedure TCnStdioProcessor.ProcessLine(Sender: TObject;
+  StreamKind: TCnStdioStreamKind; const Line: string);
+begin
+  if Assigned(FOnLine) then
+    FOnLine(Self, StreamKind, Line);
+end;
+
+procedure TCnStdioProcessor.ProcessExited(Sender: TObject;
+  ExitCode: Cardinal);
+begin
+  FActive := False;
+  if Assigned(FOnExited) then
+    FOnExited(Self, ExitCode);
+end;
+
+procedure TCnStdioProcessor.ProcessError(Sender: TObject;
+  const Stage: string; ErrorCode: Cardinal; const ErrorMessage: string);
+begin
+  if Assigned(FOnError) then
+    FOnError(Self, Stage, ErrorCode, ErrorMessage);
+end;
+
+procedure TCnStdioProcessor.SetActive(const Value: Boolean);
+begin
+  if FActive = Value then
+    Exit;
+
+  FActive := Value;
+  if csDesigning in ComponentState then
+    Exit;
+
+  if csLoading in ComponentState then
+    Exit;
+
+  if FActive then
+    FActive := FProcess.Start
+  else
+  begin
+    FProcess.Terminate;
+    FProcess.WaitFor(2000);
+    FActive := False;
+  end;
+end;
+
+function TCnStdioProcessor.Start: Boolean;
+begin
+  Result := FProcess.Start;
+end;
+
+procedure TCnStdioProcessor.Stop;
+begin
+  FProcess.Terminate;
+  FProcess.WaitFor(2000);
+  FActive := False;
+end;
+
+function TCnStdioProcessor.WaitFor(Timeout: Cardinal): Boolean;
+begin
+  Result := FProcess.WaitFor(Timeout);
+end;
+
+procedure TCnStdioProcessor.CloseInput;
+begin
+  FProcess.CloseInput;
+end;
+
+function TCnStdioProcessor.WriteBytes(const Data: TBytes): Boolean;
+begin
+  Result := FProcess.WriteBytes(Data);
+end;
+
+function TCnStdioProcessor.WriteString(const S: string): Boolean;
+begin
+  Result := FProcess.WriteString(S);
+end;
+
+function TCnStdioProcessor.WriteLine(const S: string): Boolean;
+begin
+  Result := FProcess.WriteLine(S);
+end;
+
+procedure TCnStdioProcessor.ClearOutput;
+begin
+  FProcess.ClearOutput;
+end;
+
+end.

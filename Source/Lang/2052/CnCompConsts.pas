@@ -156,6 +156,10 @@ resourcestring
   SCnSystemDebugControlName = 'SystemDebugControl控制组件';
   SCnSystemDebugControlComment = 'SystemDebugControl控制组件';
 
+  // CnStdioProcessor
+  SCnStdioProcessorName = '输入输出重定向组件';
+  SCnStdioProcessorComment = '输入输出重定向组件';
+
 implementation
 
 end.

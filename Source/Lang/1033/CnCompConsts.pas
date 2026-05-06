@@ -158,6 +158,10 @@ resourcestring
   SCnSystemDebugControlName = 'SystemDebugControl Component';
   SCnSystemDebugControlComment = 'An Encapsulated SystemDebugControl Component';
 
+  // CnStdioProcessor
+  SCnStdioProcessorName = 'Stdio Processor Component';
+  SCnStdioProcessorComment = 'A Stdio Processor Component';
+
 implementation
 
 end.
