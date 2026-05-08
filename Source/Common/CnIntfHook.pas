@@ -26,7 +26,7 @@ unit CnIntfHook;
 * 单元作者：CnPack 开发组
 * 备    注：本单元用于挂钩（Hook）接口实例的指定方法。
 *
-*           支持两种方式定位目标方法：
+*           InlineHook 支持两种方式定位目标方法：
 *           1. 直接指定 MethodIndex（vtable 槽索引，从 0 开始，
 *              0/1/2 分别对应 QueryInterface/_AddRef/_Release）。
 *           2. 通过接口的 TypeInfo 加方法名字符串自动查找 MethodIndex，
@@ -45,10 +45,14 @@ unit CnIntfHook;
 *           - 新方法（ANewMethod）的调用约定和参数须与原方法完全一致，
 *             且第一个隐含参数为实现对象的 Self（非接口指针）。
 *
+*           同时 CreateAtVirtualTable 方法支持更改指针表方式的 Hook，不破坏函数体
+*
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：Delphi 5 或以上版本
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.03.31
+* 修改记录：2026.05.09
+*               加入更改指针表方式的 Hook
+*           2026.03.31
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -58,8 +62,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, TypInfo,
-  CnMethodHook;
+  Windows, SysUtils, Classes, TypInfo, CnMethodHook;
 
 type
   ECnIntfHookException = class(Exception);
@@ -67,9 +70,13 @@ type
 
   TCnIntfHook = class(TObject)
   {* 接口方法挂钩类。
-     通过修改接口 vtable 对应 stub 函数入口的跳转目标，实现对接口方法的挂钩。
-     内部委托 TCnMethodHook 完成实际的代码补丁工作。}
+     可修改接口方法表的入口地址实现挂钩，
+     也可通过修改接口 vtable 对应 stub 函数入口的跳转目标，实现对接口方法的挂钩。
+     后者内部委托 TCnMethodHook 完成实际的代码补丁工作。}
   private
+    FVirtualTable: Pointer;
+    FVirtualTableIndex: Integer;
+    FVirtualTableMode: Boolean;
     FMethodHook: TCnMethodHook;
     FHooked: Boolean;
     FRealMethodAddr: Pointer;  // 真实实现地址（stub 解析后）
@@ -98,6 +105,15 @@ type
 
 {$ENDIF}
 
+    constructor CreateAtVirtualTable(const AIntf; AMethodIndex: Integer;
+      ANewMethod: Pointer; DefaultHook: Boolean = True);
+    {* 通过 vtable 槽索引覆盖指针的方式实现挂钩，而并非代码体内部 Hook。
+
+       AIntf        - 接口实例
+       AMethodIndex - vtable 槽索引（从 0 开始，IUnknown 占 0/1/2）
+       ANewMethod   - 替换的新方法地址
+       DefaultHook  - 是否立即挂钩，默认为 True }
+
     destructor Destroy; override;
 
     procedure HookMethod;
@@ -109,6 +125,9 @@ type
     {* 是否已挂钩 }
     property RealMethodAddr: Pointer read FRealMethodAddr;
     {* 被挂钩方法的真实实现地址（可用于在新方法中调用原始实现） }
+
+    property VirtualTableMode: Boolean read FVirtualTableMode;
+    {* 使用接口表指针更新，而并非代码体内部 Hook}
   end;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
@@ -135,6 +154,11 @@ resourcestring
   SCnIntfHookNoRealAddr     = 'Cannot resolve real method address for MethodIndex %d.';
   SCnIntfHookMethodNotFound = 'Method "%s" not found in interface RTTI. ' +
     'Ensure the interface is declared with {$M+} or inherits from IInvokable.';
+
+type
+  TCnVTable = array[0..999] of Pointer;
+  PCnVTable = ^TCnVTable;
+  PPCnVTable = ^PCnVTable;
 
 //==============================================================================
 // 内部辅助函数
@@ -252,6 +276,25 @@ end;
 
 {$ENDIF}
 
+constructor TCnIntfHook.CreateAtVirtualTable(const AIntf; AMethodIndex: Integer;
+  ANewMethod: Pointer; DefaultHook: Boolean);
+begin
+  inherited Create;
+  FHooked := False;
+  FNewMethod := ANewMethod;
+
+  if Pointer(AIntf) = nil then
+    raise ECnIntfHookException.Create(SCnIntfHookNilIntf);
+  if AMethodIndex < 0 then
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookInvalidIndex, [AMethodIndex]);
+
+  FVirtualTableIndex := AMethodIndex;
+  FVirtualTable := Pointer(AIntf);
+  FVirtualTableMode := True;
+  if DefaultHook then
+    HookMethod;
+end;
+
 destructor TCnIntfHook.Destroy;
 begin
   if FHooked then
@@ -261,16 +304,45 @@ begin
 end;
 
 procedure TCnIntfHook.HookMethod;
+var
+  OP: DWORD;
 begin
   if FHooked then Exit;
-  FMethodHook.HookMethod;
+
+  if FVirtualTableMode then
+  begin
+    FRealMethodAddr := PPCnVTable(FVirtualTable)^^[FVirtualTableIndex];
+    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      PAGE_EXECUTE_READWRITE, OP);
+
+    PPCnVTable(FVirtualTable)^^[FVirtualTableIndex] := FNewMethod;
+    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      OP, OP);
+  end
+  else
+    FMethodHook.HookMethod;
+
   FHooked := True;
 end;
 
 procedure TCnIntfHook.UnhookMethod;
+var
+  OP: DWORD;
 begin
   if not FHooked then Exit;
-  FMethodHook.UnhookMethod;
+
+  if FVirtualTableMode then
+  begin
+    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      PAGE_EXECUTE_READWRITE, OP);
+
+    PPCnVTable(FVirtualTable)^^[FVirtualTableIndex] := FRealMethodAddr;
+    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      OP, OP);
+  end
+  else
+    FMethodHook.UnhookMethod;
+
   FHooked := False;
 end;
 
