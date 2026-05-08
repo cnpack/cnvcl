@@ -112,6 +112,15 @@ object IntfHookForm: TIntfHookForm
         TabOrder = 8
         OnClick = btnCallAddClick
       end
+      object btnHookByVTable: TButton
+        Left = 428
+        Top = 436
+        Width = 256
+        Height = 25
+        Caption = 'CreateAtVirtualTable Hook (Toggle)'
+        TabOrder = 9
+        OnClick = btnHookByVTableClick
+      end
     end
     object ts2: TTabSheet
       Caption = 'Manually Test'

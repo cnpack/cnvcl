@@ -45,6 +45,7 @@ type
     btnClearLog: TButton;
     btnCallGetName: TButton;
     btnCallAdd: TButton;
+    btnHookByVTable: TButton;
     ts2: TTabSheet;
     btnHook: TButton;
     btnUnhook: TButton;
@@ -64,6 +65,7 @@ type
     procedure btnUnhookClick(Sender: TObject);
     procedure btnCall1Click(Sender: TObject);
     procedure btnCall2Click(Sender: TObject);
+    procedure btnHookByVTableClick(Sender: TObject);
   private
 
   public
@@ -288,6 +290,31 @@ begin
   end;
 end;
 
+type
+  TCalcAddVTableFunc = function(Self: TObject; A, B: Integer): Integer; stdcall;
+
+var
+  HookAddByVTable: TCnIntfHook = nil;
+
+function MyAddByVTable(Self: TObject; A, B: Integer): Integer; stdcall;
+var
+  OrigResult: Integer;
+begin
+  IntfHookForm.mmoLog.Lines.Add(
+    Format('[MyAddByVTable Hook] 进入 Add(%d, %d)', [A, B]));
+
+  HookAddByVTable.UnhookMethod;
+  try
+    OrigResult := TCalcAddVTableFunc(HookAddByVTable.RealMethodAddr)(Self, A, B);
+  finally
+    HookAddByVTable.HookMethod;
+  end;
+
+  Result := OrigResult + 2000;
+  IntfHookForm.mmoLog.Lines.Add(
+    Format('[MyAddByVTable Hook] 返回值: %d -> %d', [OrigResult, Result]));
+end;
+
 {$IFDEF SUPPORT_ENHANCED_RTTI}
 // 场景五：通过方法名字符串挂钩 ICalc.Add（仅 Delphi 2010+）
 var
@@ -354,6 +381,8 @@ begin
   HookSetValue := nil;
   HookGetName.Free;
   HookGetName := nil;
+  HookAddByVTable.Free;
+  HookAddByVTable := nil;
   HookAdd.Free;
   HookAdd := nil;
   GCalc := nil;
@@ -514,6 +543,39 @@ end;
 procedure TIntfHookForm.btnCall2Click(Sender: TObject);
 begin
   TestIntf.Test2('444');
+end;
+
+procedure TIntfHookForm.btnHookByVTableClick(Sender: TObject);
+begin
+  if HookAddByVTable = nil then
+  begin
+    if (HookAdd <> nil) or (HookGetName <> nil) or (HookSetValue <> nil) then
+    begin
+      ShowMessage('已有 Hook by Index 了，VTable Hook 没法实施');
+      Exit;
+    end;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    if HookAddByName <> nil then
+    begin
+      ShowMessage('已有 Hook by Name 了，VTable Hook 没法实施');
+      Exit;
+    end;
+{$ENDIF}
+
+    HookAddByVTable := TCnIntfHook.CreateAtVirtualTable(GCalc, 3, @MyAddByVTable);
+    mmoLog.Lines.Add('=== 开始 CreateAtVirtualTable ===');
+    mmoLog.Lines.Add('  HookAddByVTable.RealMethodAddr = $' +
+      PtrToHex(HookAddByVTable.RealMethodAddr));
+    mmoLog.Lines.Add('  调用 "Call Add(10, 20)" 检查是否增加 2000');
+    mmoLog.Lines.Add('');
+  end
+  else
+  begin
+    HookAddByVTable.Free;
+    HookAddByVTable := nil;
+    mmoLog.Lines.Add('=== 取消 CreateAtVirtualTable 了 ===');
+    mmoLog.Lines.Add('');
+  end;
 end;
 
 end.
