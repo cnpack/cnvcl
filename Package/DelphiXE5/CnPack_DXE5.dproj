@@ -354,6 +354,7 @@
         <DCCReference Include="..\..\Source\NonVisual\CnOuterControls.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnRawInput.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnRestoreSystemMenu.pas"/>
+        <DCCReference Include="..\..\Source\NonVisual\CnStdio.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnSystemDebugControl.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnTaskBar.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnThreadPool.pas"/>

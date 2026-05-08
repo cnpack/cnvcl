@@ -236,6 +236,7 @@
       ..\..\Source\NonVisual\CnOuterControls.obj 
       ..\..\Source\NonVisual\CnRawInput.obj 
       ..\..\Source\NonVisual\CnRestoreSystemMenu.obj 
+      ..\..\Source\NonVisual\CnStdio.obj 
       ..\..\Source\NonVisual\CnSystemDebugControl.obj 
       ..\..\Source\NonVisual\CnTaskBar.obj 
       ..\..\Source\NonVisual\CnThreadPool.obj 
@@ -540,6 +541,7 @@
       <FILE FILENAME="..\..\Source\NonVisual\CnOuterControls.pas" FORMNAME="" UNITNAME="CnOuterControls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnRawInput.pas" FORMNAME="" UNITNAME="CnRawInput" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnRestoreSystemMenu.pas" FORMNAME="" UNITNAME="CnRestoreSystemMenu" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NonVisual\CnStdio.pas" FORMNAME="" UNITNAME="CnStdio" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnSystemDebugControl.pas" FORMNAME="" UNITNAME="CnSystemDebugControl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnTaskBar.pas" FORMNAME="" UNITNAME="CnTaskBar" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnThreadPool.pas" FORMNAME="" UNITNAME="CnThreadPool" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

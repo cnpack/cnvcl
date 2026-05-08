@@ -206,6 +206,7 @@
       ..\..\Source\NonVisual\CnOuterControls.obj 
       ..\..\Source\NonVisual\CnRawInput.obj 
       ..\..\Source\NonVisual\CnRestoreSystemMenu.obj 
+      ..\..\Source\NonVisual\CnStdio.obj 
       ..\..\Source\NonVisual\CnSystemDebugControl.obj 
       ..\..\Source\NonVisual\CnTaskBar.obj 
       ..\..\Source\NonVisual\CnThreadPool.obj 

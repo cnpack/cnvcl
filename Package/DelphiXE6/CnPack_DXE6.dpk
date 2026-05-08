@@ -285,6 +285,7 @@ contains
   CnOuterControls in '..\..\Source\NonVisual\CnOuterControls.pas',
   CnRawInput in '..\..\Source\NonVisual\CnRawInput.pas',
   CnRestoreSystemMenu in '..\..\Source\NonVisual\CnRestoreSystemMenu.pas',
+  CnStdio in '..\..\Source\NonVisual\CnStdio.pas',
   CnSystemDebugControl in '..\..\Source\NonVisual\CnSystemDebugControl.pas',
   CnTaskBar in '..\..\Source\NonVisual\CnTaskBar.pas',
   CnThreadPool in '..\..\Source\NonVisual\CnThreadPool.pas',
