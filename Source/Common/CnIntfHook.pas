@@ -78,20 +78,24 @@ type
     constructor Create(const AIntf: IUnknown; AMethodIndex: Integer;
       ANewMethod: Pointer; DefaultHook: Boolean = True);
     {* 通过 vtable 槽索引创建挂钩。
+
        AIntf        - 接口实例
        AMethodIndex - vtable 槽索引（从 0 开始，IUnknown 占 0/1/2）
        ANewMethod   - 替换的新方法地址
        DefaultHook  - 是否立即挂钩，默认为 True }
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
+
     constructor CreateByName(const AIntf: IUnknown; AIntfTypeInfo: PTypeInfo;
       const AMethodName: string; ANewMethod: Pointer; DefaultHook: Boolean = True);
-    {* 通过接口 TypeInfo 和方法名字符串创建挂钩（需 Delphi 2010+，接口须有 RTTI）。
+    {* 通过接口 TypeInfo 和方法名字符串创建挂钩（需 Delphi 2010+，且接口须有 RTTI）。
+
        AIntf         - 接口实例
        AIntfTypeInfo - 接口的 TypeInfo，如 TypeInfo(IMyInterface)
        AMethodName   - 方法名称字符串（不区分大小写）
        ANewMethod    - 替换的新方法地址
        DefaultHook   - 是否立即挂钩，默认为 True }
+
 {$ENDIF}
 
     destructor Destroy; override;
@@ -230,15 +234,15 @@ begin
   FNewMethod := ANewMethod;
 
   if AIntf = nil then
-    raise ECnIntfHookError.Create(SCnIntfHookNilIntf);
+    raise ECnIntfHookException.Create(SCnIntfHookNilIntf);
 
   Idx := CnGetIntfMethodIndexByName(AIntfTypeInfo, AMethodName);
   if Idx < 0 then
-    raise ECnIntfHookError.CreateFmt(SCnIntfHookMethodNotFound, [AMethodName]);
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookMethodNotFound, [AMethodName]);
 
   FRealMethodAddr := InternalGetRealAddr(AIntf, Idx);
   if FRealMethodAddr = nil then
-    raise ECnIntfHookError.CreateFmt(SCnIntfHookNoRealAddr, [Idx]);
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookNoRealAddr, [Idx]);
 
   FMethodHook := TCnMethodHook.Create(FRealMethodAddr, FNewMethod, False);
 
