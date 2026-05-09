@@ -144,7 +144,7 @@ type
 
 function CnGetIntfMethodIndexByName(AIntfTypeInfo: PTypeInfo;
   const AMethodName: string): Integer;
-{* 通过接口 TypeInfo 和方法名查找 vtable 槽索引。
+{* 通过接口 TypeInfo 和方法名查找 vtable 槽索引，不区分大小写。
    返回 -1 表示未找到或接口无 RTTI。
    注意：索引从 0 开始，IUnknown 的 3 个方法占 0/1/2，
    接口自身声明的方法从 3 开始（若直接继承 IInterface/IUnknown）。}
@@ -320,9 +320,13 @@ begin
   if Idx < 0 then
     raise ECnIntfHookException.CreateFmt(SCnIntfHookMethodNotFound, [AMethodName]);
 
-  // TODO: 用 RTTI 根据方法名 AMethodName 获取 AIntf 的其 AMethodIndex
+  // 用 RTTI 根据方法名 AMethodName 获取 AIntf 的其 AMethodIndex
   // 并赋值给 FVirtualTableIndex，如有 overload 方法则只返回第一个
+  Idx := CnGetIntfMethodIndexByName(AIntfTypeInfo, AMethodName);
+  if Idx < 0 then
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookMethodNotFound, [AMethodName]);
 
+  FVirtualTableIndex := Idx;
   FVirtualTable := Pointer(AIntf);
   FVirtualTableMode := True;
 
