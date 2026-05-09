@@ -3736,13 +3736,14 @@
 {$IFDEF DELPHI7_UP}
   {$DEFINE SUPPORT_FORMAT_SETTINGS}       // Delphi 7 开始支持 FormatSettings
   {$DEFINE OTA_CODEINSIGHT_MANAGER}       // Delphi 7 才有 IOTACodeInsightManager 接口
-  {$IFNDEF BDS2010_UP}
-  {$DEFINE IDE_CODEINSIGHT_STDHINT}       // Delphi 7 到 2009 的光标提示 Hint 是标准的且调用 GetHintText
-  {$ENDIF}
   {$DEFINE IDE_MENUBAR_VERTICAL_POSITION_BUG}
   // Delphi 7 及以上的 MenuBar 的竖直方向上的弹出位置计算错误，容易超出上界
   {$DEFINE IDE_MENUBAR_VERTICAL_NOSCROLL_BUG}
   // Delphi 7 及以上的 MenuBar 的竖直方向上数量超标时不会滚动
+{$ENDIF}
+
+{$IFDEF DELPHI7}
+  {$DEFINE IDE_CODEINSIGHT_STDHINT}       // Delphi 7 的光标提示 Hint 是标准的且调用 GetHintText
 {$ENDIF}
 
 {$IFDEF COMPILER6_UP}
