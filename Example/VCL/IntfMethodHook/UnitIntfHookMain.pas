@@ -1,8 +1,8 @@
 unit UnitIntfHookMain;
 {
-  CnIntfHook 使用示例
+  CnIntfMethodHook 使用示例
   =====================
-  本示例演示 TCnIntfHook 的以下用法：
+  本示例演示 TCnIntfMethodHook 的以下用法：
 
   场景一：通过 MethodIndex 挂钩 stdcall 方法（全版本兼容）
     - 挂钩 ICalc.Add，新方法中先记录日志再调用原始实现
@@ -21,7 +21,7 @@ unit UnitIntfHookMain;
 
   注意：
     新方法的第一个参数是实现对象的 Self（TObject），不是接口指针。
-    stdcall 方法须在新方法声明上也加 stdcall。
+    如果方法是 stdcall 方法，须在新方法声明上也加 stdcall，其他调用方式也要对应。
 }
 
 interface
@@ -30,7 +30,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnMethodHook, CnIntfHook, ComCtrls;
+  StdCtrls, CnMethodHook, CnIntfMethodHook, ComCtrls;
 
 type
   TIntfHookForm = class(TForm)
@@ -233,7 +233,7 @@ type
   TCalcAddFunc = function(Self: TObject; A, B: Integer): Integer; stdcall;
 
 var
-  HookAdd: TCnIntfHook = nil;
+  HookAdd: TCnIntfMethodHook = nil;
 
 function MyAdd(Self: TObject; A, B: Integer): Integer; stdcall;
 var
@@ -262,7 +262,7 @@ type
   TCalcGetNameFunc = function(Self: TObject): string;
 
 var
-  HookGetName: TCnIntfHook = nil;
+  HookGetName: TCnIntfMethodHook = nil;
 
 function MyGetName(Self: TObject): string;
 begin
@@ -276,7 +276,7 @@ type
   TCalcSetValueProc = procedure(Self: TObject; const AValue: Integer);
 
 var
-  HookSetValue: TCnIntfHook = nil;
+  HookSetValue: TCnIntfMethodHook = nil;
 
 procedure MySetValue(Self: TObject; const AValue: Integer);
 begin
@@ -294,7 +294,7 @@ type
   TCalcAddVTableFunc = function(Self: TObject; A, B: Integer): Integer; stdcall;
 
 var
-  HookAddByVTable: TCnIntfHook = nil;
+  HookAddByVTable: TCnIntfMethodHook = nil;
 
 function MyAddByVTable(Self: TObject; A, B: Integer): Integer; stdcall;
 var
@@ -318,7 +318,7 @@ end;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
 // 场景五：通过方法名字符串挂钩 ICalc.Add（仅 Delphi 2010+）
 var
-  HookAddByName: TCnIntfHook = nil;
+  HookAddByName: TCnIntfMethodHook = nil;
 
 function MyAddByName(Self: TObject; A, B: Integer): Integer; stdcall;
 begin
@@ -398,11 +398,11 @@ begin
   end;
 
   // 挂钩 Add（slot 3，stdcall）
-  HookAdd := TCnIntfHook.Create(GCalc, 3, @MyAdd);
+  HookAdd := TCnIntfMethodHook.Create(GCalc, 3, @MyAdd);
   // 挂钩 GetName（slot 4，默认调用约定）
-  HookGetName := TCnIntfHook.Create(GCalc, 4, @MyGetName);
+  HookGetName := TCnIntfMethodHook.Create(GCalc, 4, @MyGetName);
   // 挂钩 SetValue（slot 5，默认调用约定）
-  HookSetValue := TCnIntfHook.Create(GCalc, 5, @MySetValue);
+  HookSetValue := TCnIntfMethodHook.Create(GCalc, 5, @MySetValue);
 
   mmoLog.Lines.Add('=== 通过 MethodIndex 挂钩成功 ===');
   mmoLog.Lines.Add('  HookAdd.RealMethodAddr     = $' +
@@ -476,7 +476,7 @@ begin
     Exit;
   end;
   // 接口须有 RTTI（已在 {$M+} 范围内声明）
-  HookAddByName := TCnIntfHook.CreateByName(
+  HookAddByName := TCnIntfMethodHook.CreateByName(
     GCalc, TypeInfo(ICalc), 'Add', @MyAddByName);
   mmoLog.Lines.Add('=== 通过方法名 "Add" 挂钩成功（RTTI 路径）===');
   mmoLog.Lines.Add('  HookAddByName.RealMethodAddr = $' +
@@ -562,7 +562,7 @@ begin
     end;
 {$ENDIF}
 
-    HookAddByVTable := TCnIntfHook.CreateAtVirtualTable(GCalc, 3, @MyAddByVTable);
+    HookAddByVTable := TCnIntfMethodHook.CreateAtVirtualTable(GCalc, 3, @MyAddByVTable);
     mmoLog.Lines.Add('=== 开始 CreateAtVirtualTable ===');
     mmoLog.Lines.Add('  HookAddByVTable.RealMethodAddr = $' +
       PtrToHex(HookAddByVTable.RealMethodAddr));

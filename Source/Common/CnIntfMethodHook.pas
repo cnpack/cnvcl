@@ -18,7 +18,7 @@
 {                                                                              }
 {******************************************************************************}
 
-unit CnIntfHook;
+unit CnIntfMethodHook;
 { |<PRE>
 ================================================================================
 * 软件名称：CnPack 组件包
@@ -66,9 +66,9 @@ uses
 
 type
   ECnIntfHookException = class(Exception);
-  {* 接口挂钩相关异常类 }
+  {* 接口方法挂钩相关异常类 }
 
-  TCnIntfHook = class(TObject)
+  TCnIntfMethodHook = class(TObject)
   {* 接口方法挂钩类。
      可修改接口方法表的入口地址实现挂钩，
      也可通过修改接口 vtable 对应 stub 函数入口的跳转目标，实现对接口方法的挂钩。
@@ -91,6 +91,15 @@ type
        ANewMethod   - 替换的新方法地址
        DefaultHook  - 是否立即挂钩，默认为 True }
 
+    constructor CreateAtVirtualTable(const AIntf; AMethodIndex: Integer;
+      ANewMethod: Pointer; DefaultHook: Boolean = True);
+    {* 通过 vtable 槽索引覆盖指针的方式实现挂钩，而并非代码体内部 Hook。
+
+       AIntf        - 接口实例
+       AMethodIndex - vtable 槽索引（从 0 开始，IUnknown 占 0/1/2）
+       ANewMethod   - 替换的新方法地址
+       DefaultHook  - 是否立即挂钩，默认为 True }
+
 {$IFDEF SUPPORT_ENHANCED_RTTI}
 
     constructor CreateByName(const AIntf: IUnknown; AIntfTypeInfo: PTypeInfo;
@@ -103,16 +112,17 @@ type
        ANewMethod    - 替换的新方法地址
        DefaultHook   - 是否立即挂钩，默认为 True }
 
+    constructor CreateAtVirtualTableByName(const AIntf: IUnknown; AIntfTypeInfo: PTypeInfo;
+      const AMethodName: string; ANewMethod: Pointer; DefaultHook: Boolean = True);
+    {* 通过接口 TypeInfo 和方法名字符串创建覆盖指针方式的挂钩（需 Delphi 2010+，且接口须有 RTTI）。
+
+       AIntf         - 接口实例
+       AIntfTypeInfo - 接口的 TypeInfo，如 TypeInfo(IMyInterface)
+       AMethodName   - 方法名称字符串（不区分大小写）
+       ANewMethod    - 替换的新方法地址
+       DefaultHook   - 是否立即挂钩，默认为 True }
+
 {$ENDIF}
-
-    constructor CreateAtVirtualTable(const AIntf; AMethodIndex: Integer;
-      ANewMethod: Pointer; DefaultHook: Boolean = True);
-    {* 通过 vtable 槽索引覆盖指针的方式实现挂钩，而并非代码体内部 Hook。
-
-       AIntf        - 接口实例
-       AMethodIndex - vtable 槽索引（从 0 开始，IUnknown 占 0/1/2）
-       ANewMethod   - 替换的新方法地址
-       DefaultHook  - 是否立即挂钩，默认为 True }
 
     destructor Destroy; override;
 
@@ -220,10 +230,10 @@ end;
 {$ENDIF}
 
 //==============================================================================
-// TCnIntfHook
+// TCnIntfMethodHook
 //==============================================================================
 
-constructor TCnIntfHook.Create(const AIntf: IUnknown; AMethodIndex: Integer;
+constructor TCnIntfMethodHook.Create(const AIntf: IUnknown; AMethodIndex: Integer;
   ANewMethod: Pointer; DefaultHook: Boolean);
 begin
   inherited Create;
@@ -245,9 +255,28 @@ begin
     HookMethod;
 end;
 
+constructor TCnIntfMethodHook.CreateAtVirtualTable(const AIntf; AMethodIndex: Integer;
+  ANewMethod: Pointer; DefaultHook: Boolean);
+begin
+  inherited Create;
+  FHooked := False;
+  FNewMethod := ANewMethod;
+
+  if Pointer(AIntf) = nil then
+    raise ECnIntfHookException.Create(SCnIntfHookNilIntf);
+  if AMethodIndex < 0 then
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookInvalidIndex, [AMethodIndex]);
+
+  FVirtualTableIndex := AMethodIndex;
+  FVirtualTable := Pointer(AIntf);
+  FVirtualTableMode := True;
+  if DefaultHook then
+    HookMethod;
+end;
+
 {$IFDEF SUPPORT_ENHANCED_RTTI}
 
-constructor TCnIntfHook.CreateByName(const AIntf: IInterface;
+constructor TCnIntfMethodHook.CreateByName(const AIntf: IUnknown;
   AIntfTypeInfo: PTypeInfo; const AMethodName: string; ANewMethod: Pointer;
   DefaultHook: Boolean);
 var
@@ -274,28 +303,36 @@ begin
     HookMethod;
 end;
 
-{$ENDIF}
-
-constructor TCnIntfHook.CreateAtVirtualTable(const AIntf; AMethodIndex: Integer;
-  ANewMethod: Pointer; DefaultHook: Boolean);
+constructor TCnIntfMethodHook.CreateAtVirtualTableByName(const AIntf: IUnknown;
+  AIntfTypeInfo: PTypeInfo; const AMethodName: string; ANewMethod: Pointer;
+  DefaultHook: Boolean);
+var
+  Idx: Integer;
 begin
   inherited Create;
   FHooked := False;
   FNewMethod := ANewMethod;
 
-  if Pointer(AIntf) = nil then
+  if AIntf = nil then
     raise ECnIntfHookException.Create(SCnIntfHookNilIntf);
-  if AMethodIndex < 0 then
-    raise ECnIntfHookException.CreateFmt(SCnIntfHookInvalidIndex, [AMethodIndex]);
 
-  FVirtualTableIndex := AMethodIndex;
+  Idx := CnGetIntfMethodIndexByName(AIntfTypeInfo, AMethodName);
+  if Idx < 0 then
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookMethodNotFound, [AMethodName]);
+
+  // TODO: 用 RTTI 根据方法名 AMethodName 获取 AIntf 的其 AMethodIndex
+  // 并赋值给 FVirtualTableIndex，如有 overload 方法则只返回第一个
+
   FVirtualTable := Pointer(AIntf);
   FVirtualTableMode := True;
+
   if DefaultHook then
     HookMethod;
 end;
 
-destructor TCnIntfHook.Destroy;
+{$ENDIF}
+
+destructor TCnIntfMethodHook.Destroy;
 begin
   if FHooked then
     UnhookMethod;
@@ -303,7 +340,7 @@ begin
   inherited;
 end;
 
-procedure TCnIntfHook.HookMethod;
+procedure TCnIntfMethodHook.HookMethod;
 var
   OP: DWORD;
 begin
@@ -325,7 +362,7 @@ begin
   FHooked := True;
 end;
 
-procedure TCnIntfHook.UnhookMethod;
+procedure TCnIntfMethodHook.UnhookMethod;
 var
   OP: DWORD;
 begin
