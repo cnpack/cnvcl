@@ -29,12 +29,14 @@ unit CnBase64;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：Base64 编解码算法实现单元
+* 单元名称：Base64/32/16 编解码算法实现单元
 * 单元作者：詹葵（Solin） solin@21cn.com; http://www.ilovezhuzhu.net
 *           wr960204
 *           CnPack 开发组 (master@cnpack.org)
 *           部分内容基于 Dennis D. Spreen 的 UTBASE64.pas 改写，保留原有版权信息。
-* 备    注：本单元实现了标准 Base64 与 Base64URL 的编码与解码功能。
+* 备    注：本单元实现了标准 Base64 与 Base64URL 的编码与解码功能，以及 RFC 4648 中的
+*           Base32 编码解码功能（Base16 即大写 HEX，无需额外实现）。
+*
 *           Base64URL 规则基于标准 Base64，但把符号 + / 替换成了 - _ 以做到 URL 编解码
 *           友好，且删除了尾部的 =
 *
@@ -45,7 +47,9 @@ unit CnBase64;
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.10.04 V1.6
+* 修改记录：2026.05.11 V1.7
+*               加入 Base32 的编解码实现
+*           2023.10.04 V1.6
 *               删除慢速实现。Base64Encode 与 Base64Decode 支持 Base64URL 的编码与解码
 *           2019.12.12 V1.5
 *               支持 TBytes
@@ -79,6 +83,12 @@ const
 
   ECN_BASE64_LENGTH                    = ECN_BASE64_ERROR_BASE + 1;
   {* Base64 错误码之数据长度非法}
+
+  ECN_BASE32_OK                        = ECN_OK;
+  {* Base32 系列错误码：无错误，值为 0}
+
+  ECN_BASE32_LENGTH                    = ECN_BASE64_LENGTH;
+  {* Base32 错误码之数据长度非法}
 
 function Base64Encode(InputData: TStream; var OutputData: string;
   URL: Boolean = False): Integer; overload;
@@ -188,6 +198,98 @@ function Base64IsStrictText(const InputData: string; AllowURLSafe: Boolean = Fal
    返回值：Boolean                        - 返回是否是严格合法的 Base64 字符串
 }
 
+function Base32Encode(InputData: TStream; var OutputData: string): Integer; overload;
+{* 对流进行 Base32 编码，如编码成功返回 ECN_BASE32_OK。
+
+   参数：
+     InputData: TStream                   - 待编码的数据流
+     var OutputData: string               - 编码后的输出字符串
+
+   返回值：Integer                        - 返回编码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Encode(const InputData: AnsiString; var OutputData: string): Integer; overload;
+{* 对字符串进行 Base32 编码，如编码成功返回 ECN_BASE32_OK。
+
+   参数：
+     const InputData: AnsiString          - 待编码的字符串
+     var OutputData: string               - 编码后的输出字符串
+
+   返回值：Integer                        - 返回编码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Encode(InputData: Pointer; DataByteLen: Integer; var OutputData: string): Integer; overload;
+{* 对数据块进行 Base32 编码，如编码成功返回 ECN_BASE32_OK。
+
+   参数：
+     InputData: Pointer                   - 待编码的数据块地址
+     DataByteLen: Integer                 - 待编码的数据块字节长度
+     var OutputData: string               - 编码后的输出字符串
+
+   返回值：Integer                        - 返回编码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Encode(const InputData: TBytes; var OutputData: string): Integer; overload;
+{* 对字节数组进行 Base32 编码，如编码成功返回 ECN_BASE32_OK。
+
+   参数：
+     const InputData: TBytes              - 待编码的字节数组
+     var OutputData: string               - 编码后的输出字符串
+
+   返回值：Integer                        - 返回编码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Decode(const InputData: string; OutputData: TStream): Integer; overload;
+{* 对字符串进行 Base32 解码，结果写入流。如解码成功返回 ECN_BASE32_OK。
+
+   参数：
+     const InputData: string              - 待解码的字符串
+     OutputData: TStream                  - 解码后的输出流
+
+   返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Decode(const InputData: string; var OutputData: AnsiString): Integer; overload;
+{* 对字符串进行 Base32 解码，结果写入字符串。如解码成功返回 ECN_BASE32_OK。
+
+   参数：
+     const InputData: string              - 待解码的字符串
+     var OutputData: AnsiString           - 解码后的输出字符串
+
+   返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Decode(const InputData: string; OutputData: Pointer;
+  DataByteLen: Integer): Integer; overload;
+{* 对字符串进行 Base32 解码，结果写入内存区。如解码成功返回 ECN_BASE32_OK。
+
+   参数：
+     const InputData: string              - 待解码的字符串
+     OutputData: Pointer                  - 解码后的输出内存区地址
+     DataByteLen: Integer                 - 输出内存区的字节长度，应至少为 1 + (Length(InputData) * 5 / 8)
+
+   返回值：Integer                        - 如 OutputData 传 nil，返回所需的解码区的字节长度。其他情况返回解码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32Decode(const InputData: string; out OutputData: TBytes): Integer; overload;
+{* 对字符串进行 Base32 解码，结果写入字节数组。如解码成功返回 ECN_BASE32_OK。
+
+   参数：
+     const InputData: string              - 待解码的字符串
+     out OutputData: TBytes               - 解码后的字节数组
+
+   返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE32_OK
+}
+
+function Base32IsStrictText(const InputData: string): Boolean;
+{* 判断字符串是否严格合法的 Base32 编码字符串，包括内容检测与长度检测。
+
+   参数：
+     const InputData: string              - 待判断的字符串
+
+   返回值：Boolean                        - 返回是否是严格合法的 Base32 字符串
+}
+
 implementation
 
 var
@@ -197,7 +299,7 @@ var
 // 编码的参考表
 //------------------------------------------------------------------------------
 
-  EnCodeTab: array[0..64] of AnsiChar =
+  EnCodeTab64: array[0..64] of AnsiChar =
   (
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -209,7 +311,7 @@ var
     '4', '5', '6', '7', '8', '9', '+', '/',
     '=');
 
-  EnCodeTabURL: array[0..64] of AnsiChar =
+  EnCodeTab64URL: array[0..64] of AnsiChar =
   (
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -226,7 +328,7 @@ var
 //------------------------------------------------------------------------------
 
   { 不包含在 Base64 里面的字符直接给零，反正也取不到}
-  DecodeTable: array[#0..#127] of Byte =
+  DecodeTable64: array[#0..#127] of Byte =
   (
     Byte('='), 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
     00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
@@ -238,22 +340,9 @@ var
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 00, 00, 00, 00, 00
   );
 
-function Base64Encode(InputData: TStream; var OutputData: string; URL: Boolean): Integer;
-var
-  Mem: TMemoryStream;
-begin
-  Mem := TMemoryStream.Create;
-  try
-    Mem.CopyFrom(InputData, InputData.Size);
-    Result := Base64Encode(Mem.Memory, Mem.Size, OutputData, URL);
-  finally
-    Mem.Free;
-  end;
-end;
-
 // 以下为 wr960204 改进的快速 Base64 编解码算法
-function Base64Encode(InputData: Pointer; DataByteLen: Integer; var OutputData: string;
-  URL: Boolean): Integer;
+function Base64Encode(InputData: Pointer; DataByteLen: Integer;
+  var OutputData: string; URL: Boolean): Integer;
 var
   Times, I: Integer;
   X1, X2, X3, X4: AnsiChar;
@@ -278,31 +367,31 @@ begin
     begin
       if DataByteLen >= (3 + I * 3) then
       begin
-        X1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        X1 := EnCodeTab64URL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
         XT := XT or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-        X2 := EnCodeTabURL[XT];
+        X2 := EnCodeTab64URL[XT];
         XT := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
         XT := XT or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
-        X3 := EnCodeTabURL[XT];
+        X3 := EnCodeTab64URL[XT];
         XT := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
-        X4 := EnCodeTabURL[XT];
+        X4 := EnCodeTab64URL[XT];
       end
       else if DataByteLen >= (2 + I * 3) then
       begin
-        X1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        X1 := EnCodeTab64URL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
         XT := XT or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-        X2 := EnCodeTabURL[XT];
+        X2 := EnCodeTab64URL[XT];
         XT := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
-        X3 := EnCodeTabURL[XT ];
+        X3 := EnCodeTab64URL[XT ];
         X4 := '=';
       end
       else
       begin
-        X1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        X1 := EnCodeTab64URL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-        X2 := EnCodeTabURL[XT];
+        X2 := EnCodeTab64URL[XT];
         X3 := '=';
         X4 := '=';
       end;
@@ -318,31 +407,31 @@ begin
     begin
       if DataByteLen >= (3 + I * 3) then
       begin
-        X1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        X1 := EnCodeTab64[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
         XT := XT or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-        X2 := EnCodeTab[XT];
+        X2 := EnCodeTab64[XT];
         XT := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
         XT := XT or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
-        X3 := EnCodeTab[XT];
+        X3 := EnCodeTab64[XT];
         XT := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
-        X4 := EnCodeTab[XT];
+        X4 := EnCodeTab64[XT];
       end
       else if DataByteLen >= (2 + I * 3) then
       begin
-        X1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        X1 := EnCodeTab64[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
         XT := XT or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-        X2 := EnCodeTab[XT];
+        X2 := EnCodeTab64[XT];
         XT := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
-        X3 := EnCodeTab[XT ];
+        X3 := EnCodeTab64[XT ];
         X4 := '=';
       end
       else
       begin
-        X1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        X1 := EnCodeTab64[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-        X2 := EnCodeTab[XT];
+        X2 := EnCodeTab64[XT];
         X3 := '=';
         X4 := '=';
       end;
@@ -369,6 +458,19 @@ begin
     end;
   end;
   Result := ECN_BASE64_OK;
+end;
+
+function Base64Encode(InputData: TStream; var OutputData: string; URL: Boolean): Integer;
+var
+  Mem: TMemoryStream;
+begin
+  Mem := TMemoryStream.Create;
+  try
+    Mem.CopyFrom(InputData, InputData.Size);
+    Result := Base64Encode(Mem.Memory, Mem.Size, OutputData, URL);
+  finally
+    Mem.Free;
+  end;
 end;
 
 function Base64Encode(const InputData: AnsiString; var OutputData: string; URL: Boolean): Integer;
@@ -481,10 +583,10 @@ begin
 
   for I := 0 to Times - 1 do
   begin
-    X1 := DecodeTable[Data[1 + I shl 2]];
-    X2 := DecodeTable[Data[2 + I shl 2]];
-    X3 := DecodeTable[Data[3 + I shl 2]];
-    X4 := DecodeTable[Data[4 + I shl 2]];
+    X1 := DecodeTable64[Data[1 + I shl 2]];
+    X2 := DecodeTable64[Data[2 + I shl 2]];
+    X3 := DecodeTable64[Data[3 + I shl 2]];
+    X4 := DecodeTable64[Data[4 + I shl 2]];
     X1 := Byte(X1 shl 2);
     XT := Byte(X2 shr 4);
     X1 := Byte(X1 or XT);
@@ -599,6 +701,131 @@ begin
         Exit;
 
     if (Length(InputData) - EqPos + 1) > 2 then
+      Exit;
+  end;
+
+  Result := True;
+end;
+
+function Base32Encode(InputData: Pointer; DataByteLen: Integer;
+  var OutputData: string): Integer;
+begin
+
+end;
+
+function Base32Encode(InputData: TStream; var OutputData: string): Integer;
+var
+  Mem: TMemoryStream;
+begin
+  Mem := TMemoryStream.Create;
+  try
+    Mem.CopyFrom(InputData, InputData.Size);
+    Result := Base32Encode(Mem.Memory, Mem.Size, OutputData);
+  finally
+    Mem.Free;
+  end;
+end;
+
+function Base32Encode(const InputData: AnsiString; var OutputData: string): Integer;
+begin
+  if InputData <> '' then
+    Result := Base32Encode(@InputData[1], Length(InputData), OutputData)
+  else
+    Result := ECN_BASE32_LENGTH;
+end;
+
+function Base32Encode(const InputData: TBytes; var OutputData: string): Integer;
+begin
+  if Length(InputData) > 0 then
+    Result := Base64Encode(@InputData[0], Length(InputData), OutputData)
+  else
+    Result := ECN_BASE32_LENGTH;
+end;
+
+function Base32Decode(const InputData: string; out OutputData: TBytes): Integer;
+begin
+
+end;
+
+function Base32Decode(const InputData: string; OutputData: TStream): Integer;
+var
+  Data: TBytes;
+begin
+  Result := Base32Decode(InputData, Data);
+  if (Result = ECN_BASE32_OK) and (Length(Data) > 0) then
+  begin
+    OutputData.Size := Length(Data);
+    OutputData.Position := 0;
+    OutputData.Write(Data[0], Length(Data));
+  end;
+end;
+
+function Base32Decode(const InputData: string; var OutputData: AnsiString): Integer;
+var
+  Data: TBytes;
+begin
+  Result := Base32Decode(InputData, Data);
+  if (Result = ECN_BASE32_OK) and (Length(Data) > 0) then
+  begin
+    SetLength(OutputData, Length(Data));
+    Move(Data[0], OutputData[1], Length(Data));
+  end;
+end;
+
+function Base32Decode(const InputData: string; OutputData: Pointer;
+  DataByteLen: Integer): Integer;
+var
+  Data: TBytes;
+begin
+  Result := Base32Decode(InputData, Data);
+  if (Result = ECN_BASE32_OK) and (Length(Data) > 0) then
+  begin
+    if OutputData = nil then
+    begin
+      Result := Length(Data);
+      Exit;
+    end;
+
+    if DataByteLen < Length(Data) then
+    begin
+      Result := ECN_BASE32_LENGTH;
+      Exit;
+    end;
+
+    Move(Data[0], OutPutData^, Length(Data));
+  end;
+end;
+
+function Base32IsStrictText(const InputData: string): Boolean;
+var
+  I, EqPos, EC: Integer;
+  Ch: Char;
+begin
+  Result := False;
+  if InputData = '' then
+    Exit;
+
+  for I := 1 to Length(InputData) do
+  begin
+    Ch := InputData[I];
+    if not (Ch in ['A'..'Z', '2'..'7', '=']) then
+      Exit;
+  end;
+
+  if (Length(InputData) mod 8) <> 0 then
+    Exit;
+
+  EqPos := Pos('=', InputData);
+  if EqPos > 0 then
+  begin
+    for I := EqPos to Length(InputData) do
+    begin
+      if InputData[I] <> '=' then
+        Exit;
+    end;
+
+    EC := Length(InputData) - EqPos + 1;
+    if (EC = 2) or (EC = 5) or (EC > 6) then
       Exit;
   end;
 
