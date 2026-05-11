@@ -323,6 +323,15 @@ var
     '4', '5', '6', '7', '8', '9', '-', '_',
     '=');
 
+  EnCodeTab32: array[0..32] of AnsiChar =
+  (
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', '2', '3', '4', '5', '6', '7',
+    '='
+  );
+
 //------------------------------------------------------------------------------
 // 解码的参考表
 //------------------------------------------------------------------------------
@@ -709,8 +718,84 @@ end;
 
 function Base32Encode(InputData: Pointer; DataByteLen: Integer;
   var OutputData: string): Integer;
+var
+  Times, I, J, Remain, DataPos, OutPos: Integer;
+  B0, B1, B2, B3, B4: Byte;
+  Chars: array[0..7] of Byte;
 begin
+  if (InputData = nil) or (DataByteLen <= 0) then
+  begin
+    Result := ECN_BASE32_LENGTH;
+    Exit;
+  end;
 
+  Times := DataByteLen div 5;
+  if (DataByteLen mod 5) <> 0 then
+    Inc(Times);
+
+  SetLength(OutputData, Times * 8);
+  FillChar(OutputData[1], Length(OutputData) * SizeOf(Char), 0);
+
+  for I := 0 to Times - 1 do
+  begin
+    DataPos := I * 5;
+    Remain := DataByteLen - DataPos;
+    if Remain > 5 then
+      Remain := 5;
+
+    B0 := 0;
+    B1 := 0;
+    B2 := 0;
+    B3 := 0;
+    B4 := 0;
+    if Remain > 0 then B0 := Byte(PAnsiChar(InputData)[DataPos]);
+    if Remain > 1 then B1 := Byte(PAnsiChar(InputData)[DataPos + 1]);
+    if Remain > 2 then B2 := Byte(PAnsiChar(InputData)[DataPos + 2]);
+    if Remain > 3 then B3 := Byte(PAnsiChar(InputData)[DataPos + 3]);
+    if Remain > 4 then B4 := Byte(PAnsiChar(InputData)[DataPos + 4]);
+
+    Chars[0] := (B0 shr 3) and $1F;
+    Chars[1] := ((B0 and $07) shl 2) or (B1 shr 6);
+    Chars[2] := (B1 shr 1) and $1F;
+    Chars[3] := ((B1 and $01) shl 4) or (B2 shr 4);
+    Chars[4] := ((B2 and $0F) shl 1) or (B3 shr 7);
+    Chars[5] := (B3 shr 2) and $1F;
+    Chars[6] := ((B3 and $03) shl 3) or (B4 shr 5);
+    Chars[7] := B4 and $1F;
+
+    OutPos := I * 8 + 1;
+    for J := 0 to 7 do
+      OutputData[OutPos + J] := Char(EnCodeTab32[Chars[J]]);
+
+    case Remain of
+      1:
+        begin
+          OutputData[OutPos + 2] := '=';
+          OutputData[OutPos + 3] := '=';
+          OutputData[OutPos + 4] := '=';
+          OutputData[OutPos + 5] := '=';
+          OutputData[OutPos + 6] := '=';
+          OutputData[OutPos + 7] := '=';
+        end;
+      2:
+        begin
+          OutputData[OutPos + 4] := '=';
+          OutputData[OutPos + 5] := '=';
+          OutputData[OutPos + 6] := '=';
+          OutputData[OutPos + 7] := '=';
+        end;
+      3:
+        begin
+          OutputData[OutPos + 5] := '=';
+          OutputData[OutPos + 6] := '=';
+          OutputData[OutPos + 7] := '=';
+        end;
+      4:
+        OutputData[OutPos + 7] := '=';
+    end;
+  end;
+
+  Result := ECN_BASE32_OK;
 end;
 
 function Base32Encode(InputData: TStream; var OutputData: string): Integer;
@@ -737,14 +822,164 @@ end;
 function Base32Encode(const InputData: TBytes; var OutputData: string): Integer;
 begin
   if Length(InputData) > 0 then
-    Result := Base64Encode(@InputData[0], Length(InputData), OutputData)
+    Result := Base32Encode(@InputData[0], Length(InputData), OutputData)
   else
     Result := ECN_BASE32_LENGTH;
 end;
 
 function Base32Decode(const InputData: string; out OutputData: TBytes): Integer;
-begin
+var
+  Data: AnsiString;
+  SrcLen, Times, I, J, C, PadCnt, DstLen, BlockPad: Integer;
+  V: array[0..7] of Byte;
+  Ch: AnsiChar;
 
+  function FilterLine(const Source: AnsiString): AnsiString;
+  var
+    P, PP: PAnsiChar;
+    I, FL: Integer;
+    C: AnsiChar;
+  begin
+    Result := '';
+    FL := Length(Source);
+    if FL > 0 then
+    begin
+      GetMem(P, FL);
+      PP := P;
+      FillChar(P^, FL, 0);
+      for I := 1 to FL do
+      begin
+        C := Source[I];
+        if C in ['a'..'z'] then
+          C := AnsiChar(Ord(C) - 32);
+        if C in ['A'..'Z', '2'..'7', '='] then
+        begin
+          PP^ := C;
+          Inc(PP);
+        end;
+      end;
+      SetString(Result, P, PP - P);
+      FreeMem(P);
+    end;
+  end;
+
+  function DecodeChar32(C: AnsiChar; out Value: Byte): Boolean;
+  begin
+    if C in ['A'..'Z'] then
+    begin
+      Value := Ord(C) - Ord('A');
+      Result := True;
+      Exit;
+    end;
+    if C in ['2'..'7'] then
+    begin
+      Value := Ord(C) - Ord('2') + 26;
+      Result := True;
+      Exit;
+    end;
+    Result := False;
+  end;
+
+begin
+  OutPutData := nil;
+  if InputData = '' then
+  begin
+    Result := ECN_BASE32_OK;
+    Exit;
+  end;
+
+{$IFDEF UNICODE}
+  Data := FilterLine(AnsiString(InputData));
+{$ELSE}
+  Data := FilterLine(InputData);
+{$ENDIF}
+
+  SrcLen := Length(Data);
+  if (SrcLen = 0) or ((SrcLen mod 8) <> 0) then
+  begin
+    Result := ECN_BASE32_LENGTH;
+    Exit;
+  end;
+
+{$IFDEF UNICODE}
+  if not Base32IsStrictText(string(Data)) then
+{$ELSE}
+  if not Base32IsStrictText(Data) then
+{$ENDIF}
+  begin
+    Result := ECN_BASE32_LENGTH;
+    Exit;
+  end;
+
+  PadCnt := 0;
+  while (PadCnt < SrcLen) and (Data[SrcLen - PadCnt] = '=') do
+    Inc(PadCnt);
+
+  DstLen := (SrcLen div 8) * 5;
+  case PadCnt of
+    0: ;
+    1: Dec(DstLen, 1);
+    3: Dec(DstLen, 2);
+    4: Dec(DstLen, 3);
+    6: Dec(DstLen, 4);
+  else
+    begin
+      Result := ECN_BASE32_LENGTH;
+      Exit;
+    end;
+  end;
+
+  SetLength(OutputData, DstLen);
+  Times := SrcLen div 8;
+  C := 0;
+
+  for I := 0 to Times - 1 do
+  begin
+    BlockPad := 0;
+    for J := 0 to 7 do
+    begin
+      Ch := Data[I * 8 + J + 1];
+      if Ch = '=' then
+      begin
+        V[J] := 0;
+        Inc(BlockPad);
+      end
+      else if DecodeChar32(Ch, V[J]) then
+      begin
+        // do nothing
+      end
+      else
+      begin
+        Result := ECN_BASE32_LENGTH;
+        Exit;
+      end;
+    end;
+
+    OutputData[C] := Byte((V[0] shl 3) or (V[1] shr 2));
+    Inc(C);
+    if BlockPad = 6 then
+      Continue;
+
+    OutputData[C] := Byte((V[1] shl 6) or (V[2] shl 1) or (V[3] shr 4));
+    Inc(C);
+    if BlockPad = 4 then
+      Continue;
+
+    OutputData[C] := Byte((V[3] shl 4) or (V[4] shr 1));
+    Inc(C);
+    if BlockPad = 3 then
+      Continue;
+
+    OutputData[C] := Byte((V[4] shl 7) or (V[5] shl 2) or (V[6] shr 3));
+    Inc(C);
+    if BlockPad = 1 then
+      Continue;
+
+    OutputData[C] := Byte((V[6] shl 5) or V[7]);
+    Inc(C);
+  end;
+
+  Result := ECN_BASE32_OK;
 end;
 
 function Base32Decode(const InputData: string; OutputData: TStream): Integer;

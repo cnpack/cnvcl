@@ -440,6 +440,9 @@ function TestBase64: Boolean;
 function TestBase64URL: Boolean;
 function TestBase64StrictRejectInvalidChar: Boolean;
 function TestBase64StrictRejectInvalidPadding: Boolean;
+function TestBase32: Boolean;
+function TestBase32StrictRejectInvalidChar: Boolean;
+function TestBase32StrictRejectInvalidPadding: Boolean;
 
 // ================================ OTP ========================================
 
@@ -1081,6 +1084,9 @@ begin
   MyAssert(TestBase64URL, 'TestBase64URL');
   MyAssert(TestBase64StrictRejectInvalidChar, 'TestBase64StrictRejectInvalidChar');
   MyAssert(TestBase64StrictRejectInvalidPadding, 'TestBase64StrictRejectInvalidPadding');
+  MyAssert(TestBase32, 'TestBase32');
+  MyAssert(TestBase32StrictRejectInvalidChar, 'TestBase32StrictRejectInvalidChar');
+  MyAssert(TestBase32StrictRejectInvalidPadding, 'TestBase32StrictRejectInvalidPadding');
 
 // ================================ OTP ========================================
 
@@ -10980,6 +10986,38 @@ begin
   if not Result then Exit;
 
   Result := not Base64IsStrictText('A===');
+end;
+
+function TestBase32: Boolean;
+var
+  Res: string;
+  Data, Output: TBytes;
+begin
+  Data := HexToBytes('666F6F626172'); // "foobar"
+  if ECN_BASE32_OK = Base32Encode(Data, Res) then
+    Result := Res = 'MZXW6YTBOI======'
+  else
+    Result := False;
+
+  if not Result then Exit;
+
+  if ECN_BASE32_OK = Base32Decode(Res, Output) then
+    Result := CompareBytes(Data, Output)
+  else
+    Result := False;
+end;
+
+function TestBase32StrictRejectInvalidChar: Boolean;
+begin
+  Result := not Base32IsStrictText('MZXW6YTB$I======');
+end;
+
+function TestBase32StrictRejectInvalidPadding: Boolean;
+begin
+  Result := not Base32IsStrictText('MZXW6Y=BOI======');
+  if not Result then Exit;
+
+  Result := not Base32IsStrictText('MZXW6YTBOI=====');
 end;
 
 // ================================ OTP ========================================
