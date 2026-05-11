@@ -272,6 +272,10 @@ function TestPolynomialInverseTrunc: Boolean;
 function TestPolynomialMulTrunc: Boolean;
 function TestPolynomialPowerTrunc: Boolean;
 function TestBigNumberPolynomialDerivative: Boolean;
+function TestBigNumberPolynomialGaloisDerivative: Boolean;
+function TestBigNumberPolynomialGaloisSquareFreeFactorization: Boolean;
+function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
+function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
 
 // ================================ NTRU =======================================
 
@@ -916,6 +920,10 @@ begin
   MyAssert(TestPolynomialMulTrunc, 'TestPolynomialMulTrunc');
   MyAssert(TestPolynomialPowerTrunc, 'TestPolynomialPowerTrunc');
   MyAssert(TestBigNumberPolynomialDerivative, 'TestBigNumberPolynomialDerivative');
+  MyAssert(TestBigNumberPolynomialGaloisDerivative, 'TestBigNumberPolynomialGaloisDerivative');
+  MyAssert(TestBigNumberPolynomialGaloisSquareFreeFactorization, 'TestBigNumberPolynomialGaloisSquareFreeFactorization');
+  MyAssert(TestBigNumberPolynomialGaloisFindLinearFactors, 'TestBigNumberPolynomialGaloisFindLinearFactors');
+  MyAssert(TestBigNumberPolynomialGaloisFactorCantorZassenhaus, 'TestBigNumberPolynomialGaloisFactorCantorZassenhaus');
 
 // ================================ NTRU =======================================
 
@@ -2039,8 +2047,6 @@ function TestComplexNumberString: Boolean;
 var
   C1: TCnComplexNumber;
 begin
-  Result := False;
-
   // 测试纯实数：0
   ComplexNumberSetString(C1, '0');
   Result := ComplexNumberIsZero(C1);
@@ -2172,7 +2178,6 @@ function TestBigComplexString: Boolean;
 var
   C1: TCnBigComplex;
 begin
-  Result := False;
   C1 := TCnBigComplex.Create;
   try
     // 测试纯实数：0
@@ -2395,7 +2400,6 @@ function TestBigComplexDecimalString: Boolean;
 var
   C1: TCnBigComplexDecimal;
 begin
-  Result := False;
   C1 := TCnBigComplexDecimal.Create;
   try
     // 测试纯实数：0
@@ -4076,7 +4080,6 @@ var
   St: TMemoryStream;
   S: AnsiString;
 begin
-  Result := False;
   CAPub := TCnRSAPublicKey.Create;
   St := TMemoryStream.Create;
   try
@@ -5863,10 +5866,10 @@ function TestInt64Polynomial: Boolean;
 var
   P1, P2, Res: TCnInt64Polynomial;
 begin
-  Result := False;
   P1 := TCnInt64Polynomial.Create([1, 2, 3]);
   P2 := TCnInt64Polynomial.Create([3, 2, 1]);
   Res := TCnInt64Polynomial.Create;
+
   try
     Result := P1.ToString = '3X^2+2X+1';
     if not Result then Exit;
@@ -5960,12 +5963,12 @@ var
   P1, P2, Res: TCnBigComplexPolynomial;
   C1, C2: TCnBigComplex;
 begin
-  Result := False;
   P1 := TCnBigComplexPolynomial.Create;
   P2 := TCnBigComplexPolynomial.Create;
   Res := TCnBigComplexPolynomial.Create;
   C1 := TCnBigComplex.Create;
   C2 := TCnBigComplex.Create;
+
   try
     // 创建 P1 = 5 + (4i)X + 3X^2
     P1.MaxDegree := 2;
@@ -6031,13 +6034,13 @@ var
   P1, P2, Res, Rem: TCnBigComplexDecimalPolynomial;
   C1, C2, C3, C4: TCnBigComplexDecimal;
 begin
-  Result := False;
   P1 := TCnBigComplexDecimalPolynomial.Create;
   P2 := TCnBigComplexDecimalPolynomial.Create;
   Res := TCnBigComplexDecimalPolynomial.Create;
   Rem := TCnBigComplexDecimalPolynomial.Create;
   C3 := TCnBigComplexDecimal.Create;
   C4 := TCnBigComplexDecimal.Create;
+
   try
     // 创建第一个多项式 P1 = 1 + 2i + (2 + 3i)X + (3 + 4i)X^2
     C1 := TCnBigComplexDecimal.Create;
@@ -6184,11 +6187,11 @@ var
   R1, R2, Res: TCnInt64RationalPolynomial;
   Pool: TCnInt64RationalPolynomialPool;
 begin
-  Result := False;
   Pool := TCnInt64RationalPolynomialPool.Create;
   R1 := Pool.Obtain;
   R2 := Pool.Obtain;
   Res := Pool.Obtain;
+
   try
     R1.Numerator.SetCoefficients([2, 1]);
     R1.Denominator.SetCoefficients([2]);
@@ -6381,15 +6384,11 @@ end;
 function TestBigNumberPolynomialDerivative: Boolean;
 var
   P, Res: TCnBigNumberPolynomial;
-  Prime: TCnBigNumber;
 begin
-  Result := False;
   P := TCnBigNumberPolynomial.Create;
   Res := TCnBigNumberPolynomial.Create;
-  Prime := TCnBigNumber.Create;
-  try
-    // ===== BigNumberPolynomialDerivative ????????? =====
 
+  try
     // P = 3X^3 + 2X^2 + X + 5
     // P' = 9X^2 + 4X + 1
     P.SetCoefficients([5, 1, 2, 3]);
@@ -6423,10 +6422,22 @@ begin
     P.SetCoefficients([0, 1]);
     BigNumberPolynomialDerivative(Res, P);
     Result := Res.ToString = '1';
-    if not Result then Exit;
+  finally
+    Res.Free;
+    P.Free;
+  end;
+end;
 
-    // ===== BigNumberPolynomialGaloisDerivative Galois =====
+function TestBigNumberPolynomialGaloisDerivative: Boolean;
+var
+  P, Res: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+begin
+  P := TCnBigNumberPolynomial.Create;
+  Res := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
 
+  try
     // P = 3X^3 + 2X^2 + X + 5, Prime = 7
     // P' = 9X^2 + 4X + 1, mod 7 => 2X^2 + 4X + 1
     P.SetCoefficients([5, 1, 2, 3]);
@@ -6471,6 +6482,124 @@ begin
     Prime.Free;
     Res.Free;
     P.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGaloisSquareFreeFactorization: Boolean;
+var
+  F: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+  Factors: TCnBigNumberPolynomialList;
+begin
+  Result := False;
+  F := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  Factors := TCnBigNumberPolynomialList.Create;
+
+  try
+    // =====================================================================
+    // Test 1: Square-free polynomial: X^2 - 1 in F7 -> should return 1 factor
+    // =====================================================================
+    Factors.Clear;
+    F.SetCoefficients([-1, 0, 1]);  // -1 + X^2
+    Prime.SetWord(7);
+    if BigNumberPolynomialGaloisSquareFreeFactorization(Factors, F, Prime) <> 1 then
+      Exit;
+
+    // =====================================================================
+    // Test 2: Repeated roots: (X+1)^2 * (X+2) -> should return 2 factors
+    // F = X^3 + 4X^2 + 5X + 2 in F7, has (X+1)^2 repeated factor
+    // Yun's: b1 = F/GCD(F,F') gives the multiplicity-1 part (X+2)
+    //        a1 = GCD(b1, d1) gives the repeated part (X+1)
+    // =====================================================================
+    Factors.Clear;
+    F.SetCoefficients([2, 5, 4, 1]);  // (X+1)^2*(X+2) in F7, has repeated root
+    if BigNumberPolynomialGaloisSquareFreeFactorization(Factors, F, Prime) <> 2 then Exit;
+
+    Factors.Clear;
+    F.SetCoefficients([0, -1, 0, 1]);  // X^3 - X, square-free
+    if BigNumberPolynomialGaloisSquareFreeFactorization(Factors, F, Prime) <> 1 then Exit;
+
+    Factors.Clear;
+    F.SetCoefficients([1, 0, 1]);  // X^2 + 1, square-free, irreducible
+    if BigNumberPolynomialGaloisSquareFreeFactorization(Factors, F, Prime) <> 1 then Exit;
+
+    Result := True;
+  finally
+    F.Free;
+    Prime.Free;
+    Factors.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
+var
+  F: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+  Roots: TCnBigNumberList;
+begin
+  Result := False;
+  F := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  Roots := TCnBigNumberList.Create;
+
+  try
+    Roots.Clear;
+    F.SetCoefficients([0, -1, 0, 1]);  // X^3 - X in F7 -> roots {0, 1, 6}
+    Prime.SetWord(7);
+    if not BigNumberPolynomialGaloisFindLinearFactors(Roots, F, Prime) then Exit;
+    if Roots.Count <> 3 then Exit;
+
+    Roots.Clear;
+    F.SetCoefficients([1, 0, 1]);  // X^2 + 1 in F7 -> no roots
+    if not BigNumberPolynomialGaloisFindLinearFactors(Roots, F, Prime) then Exit;
+    if Roots.Count <> 0 then Exit;
+
+    Roots.Clear;
+    F.SetCoefficients([-2, 0, 1]);  // X^2 - 2 in F7 -> roots {3, 4}
+    if not BigNumberPolynomialGaloisFindLinearFactors(Roots, F, Prime) then Exit;
+    if Roots.Count <> 2 then Exit;
+
+    Result := True;
+  finally
+    F.Free;
+    Prime.Free;
+    Roots.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
+var
+  F: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+  Factors: TCnBigNumberPolynomialList;
+begin
+  Result := False;
+  F := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  Factors := TCnBigNumberPolynomialList.Create;
+
+  try
+    F.SetCoefficients([-2, 0, 1]);  // X^2 - 2 in F7 -> (X-3)(X-4)
+    Prime.SetWord(7);
+    if not BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, F, Prime) then Exit;
+    if Factors.Count <> 2 then Exit;
+
+    Factors.Clear;
+    F.SetCoefficients([1, 0, 1]);  // X^2 + 1 in F7 -> irreducible
+    if not BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, F, Prime) then Exit;
+    if Factors.Count <> 1 then Exit;
+
+    Factors.Clear;
+    F.SetCoefficients([0, -1, 0, 1]);  // X^3 - X in F7 -> X(X-1)(X-6)
+    if not BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, F, Prime) then Exit;
+    if Factors.Count <> 3 then Exit;
+
+    Result := True;
+  finally
+    F.Free;
+    Prime.Free;
+    Factors.Free;
   end;
 end;
 
