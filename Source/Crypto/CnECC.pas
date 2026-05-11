@@ -37,7 +37,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装可无需指定固定长度
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.04.14 V2.6
+* 修改记录：2026.05.11 V2.7
+*               可计算 j 不变量
+*           2024.04.14 V2.6
 *               加入一根 384 及一根 512 曲线
 *           2024.02.07 V2.5
 *               ASN1 输出签名时允许指定固定字节长度，可避免不同的签名长度不同
@@ -728,6 +730,15 @@ type
          H: Integer                       - 魏尔斯特拉斯椭圆曲线方程的辅助因子
 
        返回值：（无）
+    }
+
+    function GetJInvariance(Res: TCnBigNumber): Boolean;
+    {* 计算 j 不变量。
+
+       参数：
+         Res: TCnBigNumber                - 容纳计算结果
+
+       返回值：Boolean                    - 返回计算是否成功
     }
 
     procedure AffinePointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
@@ -2430,6 +2441,20 @@ uses
   CnContainers, CnRandom, CnBase64;
 
 resourcestring
+  SCnErrorEccCanNotCalucateAffine = 'Can NOT Calucate Affine %d,%d,%d + %d,%d,%d';
+  SCnErrorEccInfiniteFieldMustBeAPrimeNumber = 'Infinite Field must be a Prime Number.';
+  SCnErrorEccGeneratorPointMustBeInInfiniteField = 'Generator Point must be in Infinite Field.';
+  SCnErrorEcc4A327B2 = 'Error: 4 * A^3 + 27 * B^2 = 0';
+  SCnErrorEccInvalidFiniteFieldSize = 'Invalid Finite Field Size.';
+  SCnErrorEccRandomkeyDForOrder = 'Error RandomKey %d for Order.';
+  SCnErrorEccCanNotCalucateJacobian = 'Can NOT Calucate Jacobian %d,%d,%d + %d,%d,%d';
+  SCnErrorEccCanNotCalucatePointAdd = 'Can NOT Calucate %d,%d + %d,%d';
+  SCnErrorEccInvalidPrivateKeyOrData = 'Invalid Private Key or Data.';
+  SCnErrorEccCanNotCalucate = 'Can NOT Calucate %s,%s + %s,%s';
+  SCnErrorEccInverseError = 'Inverse Error.';
+  SCnErrorEccFieldExtensionMustOne = 'Field Extension must > 1.';
+  SCnErrorEccPrimitivePolynomialMaxDegreeMustBeField = 'Primitive Polynomial Max Degree must be Field Extension.';
+  SCnErrorEccPrimeNumberIsTooLarge = 'Prime Number is Too Large.';
   SCnErrorEccCurveType = 'Invalid Curve Type.';
   SCnErrorEccKeyData = 'Invalid Key or Data.';
 
@@ -2982,7 +3007,7 @@ begin
         Exit;
       end
       else // X 相等且 Y 不互补，没法相加
-        raise ECnEccException.CreateFmt('Can NOT Calucate Affine %d,%d,%d + %d,%d,%d',
+        raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucateAffine,
           [P.X, P.Y, P.Z, Q.X, Q.Y, Q.Z]);
     end;
 
@@ -3040,15 +3065,15 @@ begin
 
   // 由外界保证 Order 为素数
   if not CnInt64IsPrime(FieldPrime) then // or not CnInt64IsPrime(Order) then
-    raise ECnEccException.Create('Infinite Field must be a Prime Number.');
+    raise ECnEccException.Create(SCnErrorEccInfiniteFieldMustBeAPrimeNumber);
 
   if not (GX >= 0) and (GX < FieldPrime) or
     not (GY >= 0) and (GY < FieldPrime) then
-    raise ECnEccException.Create('Generator Point must be in Infinite Field.');
+    raise ECnEccException.Create(SCnErrorEccGeneratorPointMustBeInInfiniteField);
 
   // 要确保 4*a^3+27*b^2 <> 0
   if 4 * A * A * A + 27 * B * B = 0 then
-    raise ECnEccException.Create('Error: 4 * A^3 + 27 * B^2 = 0');
+    raise ECnEccException.Create(SCnErrorEcc4A327B2);
 
   FCoefficientA := A;
   FCoefficientB := B;
@@ -3077,7 +3102,7 @@ begin
       FSizeUFactor := FFiniteFieldSize div 8;
     end
     else
-      raise ECnEccException.Create('Invalid Finite Field Size.');
+      raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
   end;
 end;
 
@@ -3115,7 +3140,7 @@ begin
   end;
 
   if RandomKey mod FOrder = 0 then
-    raise ECnEccException.CreateFmt('Error RandomKey %d for Order.', [RandomKey]);
+    raise ECnEccException.CreateFmt(SCnErrorEccRandomkeyDForOrder, [RandomKey]);
 
   // M + rK;
   OutDataPoint1 := PublicKey;
@@ -3272,7 +3297,7 @@ begin
         Exit;
       end
       else // X 相等且 Y 不互补，没法相加
-        raise ECnEccException.CreateFmt('Can NOT Calucate Jacobian %d,%d,%d + %d,%d,%d',
+        raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucateJacobian,
           [P.X, P.Y, P.Z, Q.X, Q.Y, Q.Z]);
     end;
 
@@ -3533,7 +3558,7 @@ begin
   else if P.Y <> Q.Y then
   begin
     // P、Q 两点 X 相同，Y 不同但又不是逆元，该如何相加？理论上不会出现
-    raise ECnEccException.CreateFmt('Can NOT Calucate %d,%d + %d,%d', [P.X, P.Y, Q.X, Q.Y]);
+    raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucatePointAdd, [P.X, P.Y, Q.X, Q.Y]);
   end;
 
   // Xsum = (K^2 - X1 - X2) mod p
@@ -4001,7 +4026,7 @@ var
 begin
   if (BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0) or
     not IsPointOnCurve(DataPoint1) or not IsPointOnCurve(DataPoint2) then
-    raise ECnEccException.Create('Invalid Private Key or Data.');
+    raise ECnEccException.Create(SCnErrorEccInvalidPrivateKeyOrData);
 
   P := TCnEccPoint.Create;
   try
@@ -4158,7 +4183,58 @@ begin
       BigNumberDivWord(FSizeUFactor, 8);
     end
     else
-      raise ECnEccException.Create('Invalid Finite Field Size.');
+      raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
+  end;
+end;
+
+function TCnEcc.GetJInvariance(Res: TCnBigNumber): Boolean;
+var
+  A3, B2, Delta, Inv: TCnBigNumber;
+begin
+  Result := False;
+  A3 := FEccBigNumberPool.Obtain;
+  B2 := FEccBigNumberPool.Obtain;
+  Delta := FEccBigNumberPool.Obtain;
+  Inv := FEccBigNumberPool.Obtain;
+
+  try
+    // A^3
+    BigNumberPower(A3, FCoefficientA, 3);
+    BigNumberNonNegativeMod(A3, A3, FFiniteFieldSize);
+    // 4A^3
+    BigNumberMulWord(A3, 4);
+    BigNumberNonNegativeMod(A3, A3, FFiniteFieldSize);
+
+    // B^2
+    BigNumberMul(B2, FCoefficientB, FCoefficientB);
+    BigNumberNonNegativeMod(B2, B2, FFiniteFieldSize);
+    // 27B^2
+    BigNumberMulWord(B2, 27);
+    BigNumberNonNegativeMod(B2, B2, FFiniteFieldSize);
+
+    // Delta = 4A^3 + 27B^2
+    BigNumberAdd(Delta, A3, B2);
+    BigNumberNonNegativeMod(Delta, Delta, FFiniteFieldSize);
+
+    // Check singular curve
+    if Delta.IsZero then Exit;
+
+    // j = 1728 * 4A^3 / Delta mod p
+    // Delta^{-1} mod p
+    if not BigNumberModularInverse(Inv, Delta, FFiniteFieldSize, False) then Exit;
+    BigNumberMul(Res, A3, Inv);
+    BigNumberNonNegativeMod(Res, Res, FFiniteFieldSize);
+
+    // * 1728
+    BigNumberMulWord(Res, 1728);
+    BigNumberNonNegativeMod(Res, Res, FFiniteFieldSize);
+
+    Result := True;
+  finally
+    FEccBigNumberPool.Recycle(Inv);
+    FEccBigNumberPool.Recycle(Delta);
+    FEccBigNumberPool.Recycle(B2);
+    FEccBigNumberPool.Recycle(A3);
   end;
 end;
 
@@ -4563,7 +4639,7 @@ begin
         if BigNumberCompare(A, FFiniteFieldSize) = 0 then  // 互反，和为 0
           Sum.SetZero
         else                                               // 不互反，挂了
-          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucate,
             [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
 
         Exit;
@@ -4747,7 +4823,7 @@ begin
           Exit;
         end
         else // X 相等且 Y 不互补，没法相加
-          raise ECnEccException.CreateFmt('Can NOT Calucate Affine %d,%d,%d + %d,%d,%d',
+          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucateAffine,
             [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, Q.X.ToDec, Q.Y.ToDec, Q.Z.ToDec]);
       end;
 
@@ -4921,7 +4997,7 @@ begin
           Exit;
         end
         else // X 相等且 Y 不互补，没法相加
-          raise ECnEccException.CreateFmt('Can NOT Calucate Jacobian %d,%d,%d + %d,%d,%d',
+          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucateJacobian,
             [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, Q.X.ToDec, Q.Y.ToDec, Q.Z.ToDec]);
       end;
 
@@ -5019,7 +5095,7 @@ end;
 procedure TCnEcc.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create('Inverse Error.');
+    raise ECnEccException.Create(SCnErrorEccInverseError);
 
   BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
@@ -6611,11 +6687,11 @@ begin
 
   // 扩域次数得大于 1
   if Ext <= 1 then
-    raise ECnEccException.Create('Field Extension must > 1.');
+    raise ECnEccException.Create(SCnErrorEccFieldExtensionMustOne);
 
   // 要确保 4*a^3+27*b^2 <> 0
   if 4 * A * A * A + 27 * B * B = 0 then
-    raise ECnEccException.Create('Error: 4 * A^3 + 27 * B^2 = 0');
+    raise ECnEccException.Create(SCnErrorEcc4A327B2);
 
   FCoefficientA := A;
   FCoefficientB := B;
@@ -6943,7 +7019,7 @@ begin
         if T.IsZero then
           Sum.SetZero
         else
-          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucate,
             [P.X.ToString, P.Y.ToString, Q.X.ToString, Q.Y.ToString]);
 
         Exit;
@@ -7285,7 +7361,7 @@ begin
   if Value <> nil then
   begin
     if Value.MaxDegree <> FExtension then
-      raise ECnEccException.Create('Primitive Polynomial Max Degree must be Field Extension.');
+      raise ECnEccException.Create(SCnErrorEccPrimitivePolynomialMaxDegreeMustBeField);
     Int64PolynomialCopy(FPrimitive, Value);
   end;
 end;
@@ -7899,7 +7975,7 @@ begin
     end;
 
     if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
-      raise ECnEccException.Create('Prime Number is Too Large.');
+      raise ECnEccException.Create(SCnErrorEccPrimeNumberIsTooLarge);
 
     Y2.SetCoefficients([B, A, 0, 1]);
 
@@ -8121,11 +8197,11 @@ constructor TCnPolynomialEcc.Create(A, B, FieldPrime: TCnBigNumber;
 begin
   inherited Create;
   if not BigNumberIsProbablyPrime(FieldPrime) then
-    raise ECnEccException.Create('Infinite Field must be a Prime Number.');
+    raise ECnEccException.Create(SCnErrorEccInfiniteFieldMustBeAPrimeNumber);
 
   // 扩域次数得大于 1
   if Ext <= 1 then
-    raise ECnEccException.Create('Field Extension must > 1.');
+    raise ECnEccException.Create(SCnErrorEccFieldExtensionMustOne);
 
   // TODO: 要确保 4*a^3+27*b^2 <> 0，由外界确定
 
@@ -8437,7 +8513,7 @@ begin
         if T.IsZero then
           Sum.SetZero
         else
-          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucate,
             [P.X.ToString, P.Y.ToString, Q.X.ToString, Q.Y.ToString]);
 
         Exit;
@@ -8763,7 +8839,7 @@ begin
   if Value <> nil then
   begin
     if Value.MaxDegree <> FExtension then
-      raise ECnEccException.Create('Primitive Polynomial Max Degree must be Field Extension.');
+      raise ECnEccException.Create(SCnErrorEccPrimitivePolynomialMaxDegreeMustBeField);
     BigNumberPolynomialCopy(FPrimitive, Value);
   end;
 end;
@@ -9035,7 +9111,7 @@ begin
     end;
 
     if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
-      raise ECnEccException.Create('Prime Number is Too Large.');
+      raise ECnEccException.Create(SCnErrorEccPrimeNumberIsTooLarge);
 
     Y2.SetCoefficients([B, A, 0, 1]);
 
@@ -9284,7 +9360,7 @@ begin
     end;
 
     if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
-      raise ECnEccException.Create('Prime Number is Too Large.');
+      raise ECnEccException.Create(SCnErrorEccPrimeNumberIsTooLarge);
 
     Y2.SetCoefficients([B, A, 0, 1]);
 
@@ -9613,7 +9689,7 @@ begin
     end;
 
     if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
-      raise ECnEccException.Create('Prime Number is Too Large.');
+      raise ECnEccException.Create(SCnErrorEccPrimeNumberIsTooLarge);
 
     // 准备好 Y2，等于 x^3 + Ax + B
     Y2.SetCoefficients([B, A, 0, 1]);
