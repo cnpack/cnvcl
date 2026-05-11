@@ -634,6 +634,7 @@ function TestECCVerifyWrongPublicKey: Boolean;
 function TestECCPrivPubPkcs1: Boolean;
 function TestECCPrivPubPkcs8: Boolean;
 function TestECCPub: Boolean;
+function TestECCJInvariant: Boolean;
 function TestECCSchoof: Boolean;
 function TestECCSchoof2: Boolean;
 function TestECCFastSchoof: Boolean;
@@ -1283,6 +1284,7 @@ begin
   MyAssert(TestECCPrivPubPkcs1, 'TestECCPrivPubPkcs1');
   MyAssert(TestECCPrivPubPkcs8, 'TestECCPrivPubPkcs8');
   MyAssert(TestECCPub, 'TestECCPub');
+  MyAssert(TestECCJInvariant, 'TestECCJInvariant');
   MyAssert(TestECCSchoof, 'TestECCSchoof');
   MyAssert(TestECCSchoof2, 'TestECCSchoof2');
   MyAssert(TestECCFastSchoof, 'TestECCFastSchoof');
@@ -15680,6 +15682,44 @@ begin
   Sl.Free;
   Pub.Free;
   Stream.Free;
+end;
+
+function TestECCJInvariant: Boolean;
+var
+  ECC: TCnECC;
+  Res: TCnBigNumber;
+begin
+  Result := False;
+  ECC := TCnECC.Create;
+  Res := TCnBigNumber.Create;
+
+  try
+    // =====================================================================
+    // Test 1: y^2 = x^3 + x + 1 in F7, j-invariant = 1
+    // j = 1728 * 4A^3 / (4A^3 + 27B^2) mod 7
+    // 4*1^3 = 4, 27*1^2 = 27 กิ 6 mod 7
+    // ฆค = 4+6 = 10 กิ 3 mod 7, ฆค^(-1) = 5 (3*5=15กิ1)
+    // j = 1728*4*5 = 34560 กิ 1 mod 7
+    // =====================================================================
+    ECC.Load('1', '1', '7', '0', '0', '0');  // A=1, B=1, P=7
+    if not ECC.GetJInvariance(Res) then Exit;
+    if Res.ToDec <> '1' then Exit;
+
+    // =====================================================================
+    // Test 2: y^2 = x^3 + 2x + 3 in F13, j-invariant = 10
+    // 4*2^3 = 32 กิ 6 mod 13, 27*9 = 243 กิ 9 mod 13
+    // ฆค = 6+9 = 15 กิ 2 mod 13, ฆค^(-1) = 7
+    // j = 1728*6*7 mod 13 = 10
+    // =====================================================================
+    ECC.Load('2', '3', 'D', '0', '0', '0');
+    if not ECC.GetJInvariance(Res) then Exit;
+    if Res.ToDec <> '10' then Exit;
+
+    Result := True;
+  finally
+    ECC.Free;
+    Res.Free;
+  end;
 end;
 
 function TestECCSchoof: Boolean;
