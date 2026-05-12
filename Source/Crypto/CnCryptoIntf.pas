@@ -116,6 +116,7 @@ const
   CN_HASH_BLAKE512           = 23;
   CN_HASH_BLAKE2S            = 24;
   CN_HASH_BLAKE2B            = 25;
+  CN_HASH_BLAKE3             = 26;
   CN_HASH_XXH32              = 30;
   CN_HASH_XXH64              = 31;
   CN_CIPHER_AES128_CBC       = 1001;
@@ -1645,6 +1646,8 @@ function cn_base64_encode; external CnCryptoLib name 'cn_base64_encode';
 function cn_base64_decode; external CnCryptoLib name 'cn_base64_decode';
 function cn_base64url_encode; external CnCryptoLib name 'cn_base64url_encode';
 function cn_base64url_decode; external CnCryptoLib name 'cn_base64url_decode';
+function cn_base32_encode; external CnCryptoLib name 'cn_base32_encode';
+function cn_base32_decode; external CnCryptoLib name 'cn_base32_decode';
 function cn_otp_hotp; external CnCryptoLib name 'cn_otp_hotp';
 function cn_otp_totp; external CnCryptoLib name 'cn_otp_totp';
 function cn_hash_digest; external CnCryptoLib name 'cn_hash_digest';
