@@ -28,7 +28,9 @@ unit CnOTP;
 *           参考《GB/T 38556-2020 信息安全技术动态口令密码应用技术规范》
 *           以及 RFC 4226 与 RFC 6238。
 * 开发平台：Win 7
-* 修改记录：2023.04.11 V1.1
+* 修改记录：2026.05.12 V1.2
+*                修正世界时的偏差问题
+*           2023.04.11 V1.1
 *                增加 RFC 4226 的 HOTP 实现与 RFC 6238 的 TOTP 实现
 *           2022.02.11 V1.0
 *               创建单元，实现功能
@@ -40,7 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Math, CnNative;
+  Classes, SysUtils, Math, {$IFDEF MSWINDOWS} Windows, {$ELSE}
+  {$IFDEF FPC} BaseUnix, Unix, {$ELSE} DateUtils, {$ENDIF} {$ENDIF} CnNative;
 
 const
   CN_DEFAULT_PASSWORD_DIGITS = 6;
@@ -235,12 +238,47 @@ resourcestring
   SCnErrorOTPInvalidDigits = 'Invalid Digits';
   SCnErrorOTPInvalidPeriod = 'Invalid Period';
 
+function CnGetCurrentTimeZoneBiasMinutes: Integer;
+var
+{$IFDEF MSWINDOWS}
+  TZ: TTimeZoneInformation;
+{$ELSE}
+{$IFDEF FPC}
+  tv: timeval;
+  tz: timezone;
+{$ELSE}
+  Ofs: TDateTime;
+{$ENDIF}
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  GetTimeZoneInformation(TZ);
+  if GetTimeZoneInformation(TZ) = TIME_ZONE_ID_DAYLIGHT then
+    Result := TZ.Bias + TZ.DaylightBias
+  else
+    Result := TZ.Bias;
+{$ELSE}
+{$IFDEF FPC}
+  fpGetTimeOfDay(@tv, @tz);
+  Result := tz.tz_minuteswest;
+{$ELSE}
+  // Delphi 的高版本在其他平台上的实现
+  Ofs := -TTimeZone.Local.GetUTCOffset(Now);
+  Result := Round(Ofs / (1 / 24 / 60));
+{$ENDIF}
+{$ENDIF}
+end;
+
 function EpochSeconds: Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   D: TDateTime;
+  B: Integer;
 begin
   D := EncodeDate(1970, 1, 1);
-  Result := Trunc(86400 * (Now - D));
+  Result := Trunc(86400 * (Now - D)); // 实际上要求 UTC，在中国东八区还得 - 3600 * 8;
+
+  B := CnGetCurrentTimeZoneBiasMinutes;
+  Result := Result + B * 60;
 end;
 
 { TCnDynamicToken }

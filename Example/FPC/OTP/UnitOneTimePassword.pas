@@ -1,9 +1,11 @@
 unit UnitOneTimePassword;
 
+{$MODE Delphi}
+
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, CnOTP;
 
 type
@@ -35,7 +37,7 @@ implementation
 uses
   CnBase64, CnNative;
 
-{$R *.DFM}
+{$R *.lfm}
 
 function HexToInt(Hex: AnsiString): Integer;
 var
