@@ -43,7 +43,8 @@ interface
 
 uses
   Classes, SysUtils, Math, {$IFDEF MSWINDOWS} Windows, {$ELSE}
-  {$IFDEF FPC} BaseUnix, Unix, {$ELSE} DateUtils, {$ENDIF} {$ENDIF} CnNative;
+  {$IFDEF FPC} BaseUnix, Unix, {$ELSE} DateUtils, TimeSpan, {$ENDIF} {$ENDIF}
+  CnNative;
 
 const
   CN_DEFAULT_PASSWORD_DIGITS = 6;
@@ -247,7 +248,7 @@ var
   tv: timeval;
   tz: timezone;
 {$ELSE}
-  Ofs: TDateTime;
+  S: TTimeSpan;
 {$ENDIF}
 {$ENDIF}
 begin
@@ -263,8 +264,8 @@ begin
   Result := tz.tz_minuteswest;
 {$ELSE}
   // Delphi 的高版本在其他平台上的实现
-  Ofs := -TTimeZone.Local.GetUTCOffset(Now);
-  Result := Round(Ofs / (1 / 24 / 60));
+  S := TTimeZone.Local.GetUTCOffset(Now);
+  Result := -S.Ticks div S.TicksPerMinute;
 {$ENDIF}
 {$ENDIF}
 end;

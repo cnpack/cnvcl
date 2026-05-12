@@ -3,15 +3,27 @@ unit UnitOneTimePassword;
 interface
 
 uses
-  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls, FMX.Types, FMX.Controls.Presentation;
+  SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, FMX.ExtCtrls, CnOTP, FMX.Edit, FMX.Types, System.Types, System.UITypes,
+  FMX.Controls.Presentation;
 
 type
   TFormOneTimePassword = class(TForm)
     btnGenerate: TButton;
+    btnGen2: TButton;
+    btnGen3: TButton;
+    grpTOTP: TGroupBox;
+    lblTOTP: TLabel;
+    edtTOTPSecret: TEdit;
+    btnTOTPGen: TButton;
+    lblOtpText: TLabel;
+    procedure FormDestroy(Sender: TObject);
     procedure btnGenerateClick(Sender: TObject);
+    procedure btnGen2Click(Sender: TObject);
+    procedure btnGen3Click(Sender: TObject);
+    procedure btnTOTPGenClick(Sender: TObject);
   private
-
+    FTOtp: TCnTOTPGenerator;
   public
 
   end;
@@ -22,7 +34,7 @@ var
 implementation
 
 uses
-  CnOTP;
+  CnBase64, CnNative;
 
 {$R *.fmx}
 
@@ -65,7 +77,7 @@ var
 begin
   T := TCnDynamicToken.Create;
 
-  K := HexToStr('1234567890abcdef1234567890abcdef');
+  K := HexToStr('1234567890ABCDEF1234567890ABCDEF');
   T.SetSeedKey(@K[1], Length(K));
 
   Q := '5678';
@@ -80,6 +92,61 @@ begin
   ShowMessage(T.OneTimePassword);
 
   T.Free;
+end;
+
+procedure TFormOneTimePassword.btnGen2Click(Sender: TObject);
+var
+  T: TCnHOTPGenerator;
+  K: AnsiString;
+begin
+  T := TCnHOTPGenerator.Create;
+
+  K := HexToStr('1234567890ABCDEF1234567890ABCDEF');
+  T.SetSeedKey(@K[1], Length(K));
+  T.SetCounter(4);
+
+  ShowMessage(T.OneTimePassword);
+  ShowMessage(T.OneTimePassword);
+  ShowMessage(T.OneTimePassword);
+
+  T.Free;
+end;
+
+procedure TFormOneTimePassword.btnGen3Click(Sender: TObject);
+var
+  T: TCnTOTPGenerator;
+  K: AnsiString;
+begin
+  T := TCnTOTPGenerator.Create;
+
+  K := HexToStr('1234567890ABCDEF1234567890ABCDEF');
+  T.SetSeedKey(@K[1], Length(K));
+  T.PasswordType := tptSHA1;
+
+  ShowMessage(T.OneTimePassword);
+
+  T.Free;
+end;
+
+procedure TFormOneTimePassword.btnTOTPGenClick(Sender: TObject);
+var
+  B: TBytes;
+begin
+  FreeAndNil(FTOtp);
+  if Base32Decode(edtTOTPSecret.Text, B) = ECN_BASE32_OK then
+  begin
+    if Length(B) > 0 then
+    begin
+      FTOtp := TCnTOTPGenerator.Create;
+      FTOtp.SetSeedKey(@B[0], Length(B));
+      lblOtpText.Text := FTOtp.OneTimePassword;
+    end;
+  end;
+end;
+
+procedure TFormOneTimePassword.FormDestroy(Sender: TObject);
+begin
+  FTOtp.Free;
 end;
 
 end.
