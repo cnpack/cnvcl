@@ -129,11 +129,10 @@ procedure TFormQRTest.btnTestDecodeImageClick(Sender: TObject);
 var
   Encoder: TCnQREncoder;
   Bitmap: TBitmap;
-  GrayImage: TCnQRGrayImage;
+  GrayImage: TCnQRData;
   DecodedText: string;
   Size, X, Y, CellSize, Margin: Integer;
   Binarized: TCnQRData;
-  BW, BH: Integer;
   LineStr: string;
   TLFP: TCnQRFinderPattern;
   TRFP: TCnQRFinderPattern;
@@ -182,9 +181,9 @@ begin
       GrayImage := CnBitmapToGrayImage(Bitmap);
 
       // ---- 调试：独立二值化并打印 ----
-      Binarized := CnQRBinarize(GrayImage, BW, BH);
+      Binarized := CnQRBinarize(GrayImage);
       mmoDecodeResult.Lines.Add('=== 调试: 二值化矩阵 (左上角 21x21) ===');
-      mmoDecodeResult.Lines.Add(Format('矩阵尺寸: %d x %d', [BW, BH]));
+      mmoDecodeResult.Lines.Add(Format('矩阵尺寸: %d x %d', [Length(Binarized), Length(Binarized[0])]));
       mmoDecodeResult.Lines.Add('');
       // 仅输出左上角 21 行（寻像图案所在区域）
       for Y := 0 to 20 do
@@ -202,7 +201,7 @@ begin
       mmoDecodeResult.Lines.Add('');
 
       // ---- 独立测试寻像图案检测 ----
-      if CnQRFindFinderPatterns(Binarized, BW, BH, TLFP, TRFP, BLFP) then
+      if CnQRFindFinderPatterns(Binarized, TLFP, TRFP, BLFP) then
       begin
         mmoDecodeResult.Lines.Add(Format('寻像图案: TL(%.1f,%.1f) TR(%.1f,%.1f) BL(%.1f,%.1f)',
           [TLFP.X, TLFP.Y, TRFP.X, TRFP.Y, BLFP.X, BLFP.Y]));
@@ -211,7 +210,7 @@ begin
         mmoDecodeResult.Lines.Add('寻像图案: 未找到!');
 
       // ---- 调试：对比采样网格与原始编码矩阵 ----
-      if CnQRFindFinderPatterns(Binarized, BW, BH, TLFP, TRFP, BLFP) then
+      if CnQRFindFinderPatterns(Binarized, TLFP, TRFP, BLFP) then
       begin
         ModuleSize := CnQRCalcModuleSize(TLFP, TRFP, BLFP);
         Dimension := CnQRCalcDimension(TLFP, TRFP, BLFP, ModuleSize);
@@ -229,7 +228,7 @@ begin
         DstPoints[3].X := Dimension - 3.5;        DstPoints[3].Y := Dimension - 3.5;
 
         Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
-        QRData := CnQRSampleGrid(Binarized, BW, BH, Transform, Dimension);
+        QRData := CnQRSampleGrid(Binarized, Transform, Dimension);
         mmoDecodeResult.Lines.Add('=== 采样网格 0-8行 0-24列 ===');
         for Y := 0 to 8 do
         begin
@@ -291,7 +290,7 @@ procedure TFormQRTest.btnOpenFileDecodeClick(Sender: TObject);
 var
   Picture: TPicture;
   Bitmap: TBitmap;
-  GrayImage: TCnQRGrayImage;
+  GrayImage: TCnQRData;
   DecodedText: string;
 begin
   mmoDecodeResult.Clear;

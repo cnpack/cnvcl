@@ -122,13 +122,6 @@ type
   TDataBlockArray = array of TBytes;
   {* 数据块数组，每个元素为一个数据块的字节序列}
 
-  TCnQRGrayImage = packed record
-  {* 灰度图像数据 [X, Y]，0=黑 255=白，作为解码阶段二的平台无关中间表示}
-    Width: Integer;
-    Height: Integer;
-    Data: array of array of Byte;
-  end;
-
   TCnQRPointF = packed record
   {* 浮点坐标点，用于透视变换中的坐标表示}
     X: Double;
@@ -368,13 +361,11 @@ function CnQRDecodeFromMatrix(const AQRData: TCnQRData): string;
 {* 从 TCnQRData 矩阵解码出文本。成功返回解码文本，失败抛出 ECnQRCodeException 异常}
 
 // 阶段二：图像检测
-function CnQRBinarize(const AGrayImage: TCnQRGrayImage;
-  out AWidth, AHeight: Integer): TCnQRData;
-{* 将灰度图像二值化输出 0/1 矩阵。AWidth/AHeight 返回矩阵尺寸}
+function CnQRBinarize(const AGrayImage: TCnQRData): TCnQRData;
+{* 将灰度图像二值化输出 0/1 矩阵。输入输出均为 TCnQRData，尺寸由数组维度确定}
 
 function CnQRFindFinderPatterns(const ABinarized: TCnQRData;
-  AWidth, AHeight: Integer; out TopLeft, TopRight,
-  BottomLeft: TCnQRFinderPattern): Boolean;
+  out TopLeft, TopRight, BottomLeft: TCnQRFinderPattern): Boolean;
 {* 在二值矩阵中定位三个寻像图案。成功返回 True 并填充三个图案坐标}
 
 function CnQRFindAlignmentPattern(const ABinarized: TCnQRData;
@@ -392,7 +383,6 @@ function CnQRTransformPoint(const Transform: TCnQRPerspectiveTransform;
 {* 对单点执行透视变换}
 
 function CnQRSampleGrid(const ABinarized: TCnQRData;
-  AWidth, AHeight: Integer;
   const Transform: TCnQRPerspectiveTransform;
   ADimension: Integer): TCnQRData;
 {* 根据透视变换对二值矩阵进行网格采样，输出 ADimension x ADimension 的规范化矩阵}
@@ -406,7 +396,7 @@ function CnQRCalcDimension(const TopLeft, TopRight,
 {* 估算二维码矩阵维度}
 
 // 阶段三：端到端
-function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRGrayImage): string;
+function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRData): string;
 {* 从灰度图像端到端解码二维码文本。内部串联二值化→检测→采样→矩阵解码}
 
 implementation
@@ -3763,18 +3753,17 @@ begin
 end;
 
 // 将灰度图像二值化输出 0/1 矩阵
-function CnQRBinarize(const AGrayImage: TCnQRGrayImage;
-  out AWidth, AHeight: Integer): TCnQRData;
+function CnQRBinarize(const AGrayImage: TCnQRData): TCnQRData;
 var
-  X, Y, BlockCols, BlockRows, BlockX, BlockY: Integer;
+  X, Y, AWidth, AHeight, BlockCols, BlockRows, BlockX, BlockY: Integer;
   StartX, StartY, EndX, EndY: Integer;
   Histogram: array[0..255] of Integer;
   I, MinVal, MaxVal, TotalPixels: Integer;
   SumDark, SumLight, CountDark, CountLight: Integer;
   Threshold: Integer;
 begin
-  AWidth := AGrayImage.Width;
-  AHeight := AGrayImage.Height;
+  AWidth := Length(AGrayImage);
+  AHeight := Length(AGrayImage[0]);
   SetLength(Result, AWidth, AHeight);
 
   // 8x8 子块划分
@@ -3801,7 +3790,7 @@ begin
       for Y := StartY to EndY do
         for X := StartX to EndX do
         begin
-          I := AGrayImage.Data[X, Y];
+          I := AGrayImage[X, Y];
           Inc(Histogram[I]);
           if I < MinVal then MinVal := I;
           if I > MaxVal then MaxVal := I;
@@ -3842,7 +3831,7 @@ begin
       for Y := StartY to EndY do
         for X := StartX to EndX do
         begin
-          if AGrayImage.Data[X, Y] < Threshold then
+          if AGrayImage[X, Y] < Threshold then
             Result[X, Y] := 1
           else
             Result[X, Y] := 0;
@@ -3940,14 +3929,13 @@ end;
 
 // 在二值矩阵中定位三个寻像图案
 function CnQRFindFinderPatterns(const ABinarized: TCnQRData;
-  AWidth, AHeight: Integer; out TopLeft, TopRight,
-  BottomLeft: TCnQRFinderPattern): Boolean;
+  out TopLeft, TopRight, BottomLeft: TCnQRFinderPattern): Boolean;
 const
   MIN_SKIP = 3;
   MAX_CANDIDATES = 25;
 var
   Candidates: array[0..24] of TCnQRFinderPattern;
-  CandidateCount: Integer;
+  CandidateCount, AWidth, AHeight: Integer;
   Y, X, I, J, K: Integer;
   CurrentState: Integer;
   stateCount: array[0..4] of Integer;
@@ -3965,6 +3953,8 @@ var
 begin
   CandidateCount := 0;
   Y := 0;
+  AWidth := Length(ABinarized);
+  AHeight := Length(ABinarized[0]);
 
   while Y < AHeight do
   begin
@@ -4544,14 +4534,16 @@ end;
 
 // 根据透视变换对二值矩阵进行网格采样
 function CnQRSampleGrid(const ABinarized: TCnQRData;
-  AWidth, AHeight: Integer;
   const Transform: TCnQRPerspectiveTransform;
   ADimension: Integer): TCnQRData;
 var
+  AWidth, AHeight: Integer;
   Col, Row: Integer;
   SrcPoint: TCnQRPointF;
   PixelX, PixelY: Integer;
 begin
+  AWidth := Length(ABinarized);
+  AHeight := Length(ABinarized[0]);
   SetLength(Result, ADimension, ADimension);
 
   // Transform 已为 dst→src 映射，直接应用获取源图像坐标
@@ -4596,7 +4588,7 @@ begin
 end;
 
 // 从灰度图像端到端解码二维码文本。内部串联二值化→检测→采样→矩阵解码
-function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRGrayImage): string;
+function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRData): string;
 var
   Binarized: TCnQRData;
   Width, Height, Dimension: Integer;
@@ -4611,16 +4603,17 @@ var
   I, DimCand: Integer;
   ModCand1, ModCand2, MinFrac: Double;
 begin
-  if (AGrayImage.Width < 21) or (AGrayImage.Height < 21) then
+  Width := Length(AGrayImage);
+  Height := Length(AGrayImage[0]);
+  if (Width < 21) or (Height < 21) then
     raise ECnQRCodeException.Create(SCnErrorQRImageTooSmallMin21X21);
 
   // Step 1: 二值化
-  Binarized := CnQRBinarize(AGrayImage, Width, Height);
+  Binarized := CnQRBinarize(AGrayImage);
 
   try
     // Step 2: 寻像图案定位
-    if not CnQRFindFinderPatterns(Binarized, Width, Height,
-      TopLeft, TopRight, BottomLeft) then
+    if not CnQRFindFinderPatterns(Binarized, TopLeft, TopRight, BottomLeft) then
       raise ECnQRCodeException.Create(SCnErrorQRNoFinderPatternsFound);
 
     // Step 3: 枚举合法维度(21,25,29,33,37)找最佳匹配
@@ -4680,7 +4673,7 @@ begin
     Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
 
     // Step 7: 网格采样
-    QRData := CnQRSampleGrid(Binarized, Width, Height, Transform, Dimension);
+    QRData := CnQRSampleGrid(Binarized, Transform, Dimension);
 
     // Step 8: 矩阵解码
     Result := CnQRDecodeFromMatrix(QRData);

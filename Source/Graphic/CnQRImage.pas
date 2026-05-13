@@ -100,35 +100,34 @@ type
     {* 中央图标边缘的空隙}
   end;
 
-function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRGrayImage;
-{* 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRGrayImage。
+function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
+{* 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRData。
    灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
 
 implementation
 
-// 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRGrayImage
-function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRGrayImage;
+// 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRData
+function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
 var
-  X, Y: Integer;
+  X, Y, Width, Height: Integer;
   P: PByteArray;
   R, G, B: Byte;
 begin
-  Result.Width := ABitmap.Width;
-  Result.Height := ABitmap.Height;
-  SetLength(Result.Data, Result.Width, Result.Height);
+  Width := ABitmap.Width;
+  Height := ABitmap.Height;
+  SetLength(Result, Width, Height);
 
   ABitmap.PixelFormat := pf24bit;
-
-  for Y := 0 to Result.Height - 1 do
+  for Y := 0 to Height - 1 do
   begin
     P := ABitmap.ScanLine[Y];
-    for X := 0 to Result.Width - 1 do
+    for X := 0 to Width - 1 do
     begin
       // ScanLine 返回 BGR 顺序
       B := P[X * 3];
       G := P[X * 3 + 1];
       R := P[X * 3 + 2];
-      Result.Data[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+      Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
     end;
   end;
 end;
