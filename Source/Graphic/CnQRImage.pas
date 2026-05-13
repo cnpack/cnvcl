@@ -28,7 +28,9 @@ unit CnQRImage;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.13 V1.0
+* 修改记录：2026.05.13 V1.1
+*               增加将 VCL 的位图转为二维码灰度矩阵的功能供解码用
+*           2026.01.13 V1.0
 *               创建单元，在 AI 帮助下实现编码并能扫描成功
 ================================================================================
 |</PRE>}
@@ -98,7 +100,38 @@ type
     {* 中央图标边缘的空隙}
   end;
 
+function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRGrayImage;
+{* 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRGrayImage。
+   灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
+
 implementation
+
+// 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRGrayImage
+function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRGrayImage;
+var
+  X, Y: Integer;
+  P: PByteArray;
+  R, G, B: Byte;
+begin
+  Result.Width := ABitmap.Width;
+  Result.Height := ABitmap.Height;
+  SetLength(Result.Data, Result.Width, Result.Height);
+
+  ABitmap.PixelFormat := pf24bit;
+
+  for Y := 0 to Result.Height - 1 do
+  begin
+    P := ABitmap.ScanLine[Y];
+    for X := 0 to Result.Width - 1 do
+    begin
+      // ScanLine 返回 BGR 顺序
+      B := P[X * 3];
+      G := P[X * 3 + 1];
+      R := P[X * 3 + 2];
+      Result.Data[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+    end;
+  end;
+end;
 
 { TCnQRCodeImage }
 

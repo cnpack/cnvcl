@@ -24,8 +24,10 @@ unit CnQRCode;
 * 软件名称：开发包基础库
 * 单元名称：二维码生成单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元实现了二维码编码功能，可配合 CnQRCodeImage 控件实现绘制。
-
+* 备    注：本单元实现了二维码编码与解码功能，可配合 CnQRCodeImage 控件实现绘制。
+*
+*           本单元不操作 VCL/FMX 中实际的 TBitmap，而采用了中间层 TCnQRGrayImage
+*
 *           二维码编码内部位操作使用 CnBits，但大部分是 MSB First 模式，
 *           也即符合阅读习惯的高位在前，和 CnBits 里大部分底位在前不同。
 *           阅读代码时需注意。
@@ -33,7 +35,9 @@ unit CnQRCode;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.13 V1.0
+* 修改记录：2026.05.13 V1.1
+*               增加二维码识别功能
+*           2026.01.13 V1.0
 *               创建单元，在 AI 帮助下实现编码并能扫描成功
 ================================================================================
 |</PRE>}
@@ -72,36 +76,37 @@ type
   TCnQRWideCharMode = (cqwUtf8, cqwAnsi);
   {* 宽字符的编码模式，默认 Utf8。后者直接转 Ansi，如是汉字则是 GB18030 编码}
 
-  {* ---- 以下类型用于二维码解码 ----}
-  TCnQRFormatInfo = record
+  // 以下类型用于二维码解码
+  TCnQRFormatInfo = packed record
+  {* QR码格式信息，包含纠错级别和掩码类型（0..7）}
     ErrorLevel: TCnErrorRecoveryLevel;
     MaskType: Integer;
   end;
-  {* QR码格式信息，包含纠错级别和掩码类型（0..7）}
 
-  TCnQRFinderPattern = record
+  TCnQRFinderPattern = packed record
+  {* 寻像图案记录，包含中心坐标、估算模块尺寸和确认计数}
     X: Double;
     Y: Double;
     EstimatedModuleSize: Double;
     ConfirmedCount: Integer;
   end;
-  {* 寻像图案记录，包含中心坐标、估算模块尺寸和确认计数}
 
-  TCnQRAlignmentPattern = record
+  TCnQRAlignmentPattern = packed record
+  {* 对齐图案记录，包含中心坐标和估算模块尺寸}
     X: Double;
     Y: Double;
     EstimatedModuleSize: Double;
   end;
-  {* 对齐图案记录，包含中心坐标和估算模块尺寸}
 
-  TCnQRPerspectiveTransform = record
+  TCnQRPerspectiveTransform = packed record
+  {* 3x3 透视变换矩阵（单精度浮点数），用于四边形到四边形映射}
     a11, a12, a13: Single;
     a21, a22, a23: Single;
     a31, a32, a33: Single;
   end;
-  {* 3x3 透视变换矩阵（单精度浮点数），用于四边形到四边形映射}
 
   TCnQRDecodeMode = (
+  {* 解码模式枚举，对应 QR 码规范中 4 位模式指示符的各种编码模式}
     qrmTerminator,
     qrmNumeric,
     qrmAlphaNumeric,
@@ -113,10 +118,22 @@ type
     qrmFNC1Second,
     qrmHanzi
   );
-  {* 解码模式枚举，对应 QR 码规范中 4 位模式指示符的各种编码模式}
 
   TDataBlockArray = array of TBytes;
   {* 数据块数组，每个元素为一个数据块的字节序列}
+
+  TCnQRGrayImage = packed record
+  {* 灰度图像数据 [X, Y]，0=黑 255=白，作为解码阶段二的平台无关中间表示}
+    Width: Integer;
+    Height: Integer;
+    Data: array of array of Byte;
+  end;
+
+  TCnQRPointF = packed record
+  {* 浮点坐标点，用于透视变换中的坐标表示}
+    X: Double;
+    Y: Double;
+  end;
 
   TCnQRDecoder = class
   {* 二维码解码器类，负责从 TCnQRData 矩阵解码出文本内容}
@@ -130,7 +147,6 @@ type
 
     // 格式信息解码
     function ReadFormatInformation: Boolean;
-    function ExtractFormatBits(AX, AY: Integer; ACount: Integer): Integer;
     function DecodeFormatInfo(MaskedInfo1, MaskedInfo2: Integer): Boolean;
 
     // 版本信息解码
@@ -156,8 +172,6 @@ type
     function GFMul(A, B: Integer): Integer;
     function GFDiv(A, B: Integer): Integer;
     function GFExp(N: Integer): Integer;
-    function GFLog(N: Integer): Integer;
-    function GFInv(N: Integer): Integer;
 
     // 比特流解析
     function DecodeDataStream(const DataBytes: TBytes): string;
@@ -345,16 +359,70 @@ type
     {* 掩码类型，有八种}
   end;
 
-{* ---- 解码全局函数 ----}
+// ============================== 解码全局函数 =================================
+
+// 阶段一：矩阵解码
 function CnQRDecodeFromMatrix(const AQRData: TCnQRData): string;
 {* 从 TCnQRData 矩阵解码出文本。成功返回解码文本，失败抛出 ECnQRCodeException 异常}
-// function CnQRDecodeFromBitmap(const ABitmap: TBitmap): string;
-{* 从 TBitmap 图像解码二维码文本。成功返回解码文本，失败抛出 ECnQRCodeException 异常}
+
+// 阶段二：图像检测
+function CnQRBinarize(const AGrayImage: TCnQRGrayImage;
+  out AWidth, AHeight: Integer): TCnQRData;
+{* 将灰度图像二值化输出 0/1 矩阵。AWidth/AHeight 返回矩阵尺寸}
+
+function CnQRFindFinderPatterns(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer; out TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern): Boolean;
+{* 在二值矩阵中定位三个寻像图案。成功返回 True 并填充三个图案坐标}
+
+function CnQRFindAlignmentPattern(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer; const TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern;
+  out AlignmentPattern: TCnQRAlignmentPattern): Boolean;
+{* 在二值矩阵中定位对齐图案。版本<=1 或未找到时返回 False}
+
+function CnQRCalcPerspectiveTransform(const SrcPoints: array of TCnQRPointF;
+  const DstPoints: array of TCnQRPointF): TCnQRPerspectiveTransform;
+{* 根据源四边形 4 点和目标四边形 4 点计算 3x3 透视变换矩阵（Wolberg 算法）}
+
+function CnQRTransformPoint(const Transform: TCnQRPerspectiveTransform;
+  X, Y: Single): TCnQRPointF;
+{* 对单点执行透视变换}
+
+function CnQRSampleGrid(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer;
+  const Transform: TCnQRPerspectiveTransform;
+  ADimension: Integer): TCnQRData;
+{* 根据透视变换对二值矩阵进行网格采样，输出 ADimension x ADimension 的规范化矩阵}
+
+function CnQRCalcModuleSize(const TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern): Double;
+{* 估算模块尺寸（像素）}
+
+function CnQRCalcDimension(const TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern; ModuleSize: Double): Integer;
+{* 估算二维码矩阵维度}
+
+// 阶段三：端到端
+function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRGrayImage): string;
+{* 从灰度图像端到端解码二维码文本。内部串联二值化→检测→采样→矩阵解码}
 
 implementation
 
 uses
   CnWideStrings;
+
+resourcestring
+  SCnErrorQRRowY8FirstCount = 'Row y=8: First=%d, Count=%d, Size=%d, Threshold(Size-8)=%d';
+  SCnErrorQRColX8FirstCount = 'Col x=8: First=%d, Count=%d, Size=%d, Threshold(Size-8)=%d';
+  SCnErrorQRMatrixSizeTooSmall = 'Matrix Size Too Small';
+  SCnErrorQRFormatInformationDecodeFailed = 'Format Information Decode Failed';
+  SCnErrorQRVersionInformationDecodeFailed = 'Version Information Decode Failed';
+  SCnErrorQRChecksumErrorInBlock = 'Checksum Error in Block %d';
+  SCnErrorQRQrDecodeFailed = 'QR Decode Failed';
+  SCnErrorQRImageTooSmallMin21X21 = 'Image Too Small (Min 21x21)';
+  SCnErrorQRNoFinderPatternsFound = 'No Finder Patterns Found';
+  SCnErrorQRModuleSizeTooSmall = 'Module Size Too Small';
 
 type
   TCn2BytesArray = array[0..1] of Byte;
@@ -2410,7 +2478,7 @@ begin
       Inc(Count);
     end;
   end;
-  Result := Format('Row y=8: first=%d, count=%d, size=%d, threshold(size-8)=%d',
+  Result := Format(SCnErrorQRRowY8FirstCount,
     [First, Count, FQRSize, FQRSize - 8]);
 end;
 
@@ -2430,7 +2498,7 @@ begin
       Inc(Count);
     end;
   end;
-  Result := Format('Col x=8: first=%d, count=%d, size=%d, threshold(size-8)=%d',
+  Result := Format(SCnErrorQRColX8FirstCount,
     [First, Count, FQRSize, FQRSize - 8]);
 end;
 
@@ -2552,6 +2620,7 @@ end;
 
 { TCnQRDecoder }
 
+// 构造函数，初始化内部变量
 constructor TCnQRDecoder.Create;
 begin
   inherited;
@@ -2560,8 +2629,8 @@ begin
   FIsMirrored := False;
   FErrorMessage := '';
 end;
-{* 构造函数，初始化内部变量}
 
+// GF(2^8) 乘法：LOG[A] + LOG[B] mod 255 后查 EXP 表，0 元素特殊处理
 function TCnQRDecoder.GFMul(A, B: Integer): Integer;
 begin
   if (A = 0) or (B = 0) then
@@ -2569,8 +2638,8 @@ begin
   else
     Result := CN_EXP_TABLE[(CN_LOG_TABLE[A] + CN_LOG_TABLE[B]) mod 255];
 end;
-{* GF(2^8) 乘法：LOG[A] + LOG[B] mod 255 后查 EXP 表，0 元素特殊处理}
 
+// GF(2^8) 除法：LOG[A] - LOG[B] + 255 mod 255 后查 EXP 表
 function TCnQRDecoder.GFDiv(A, B: Integer): Integer;
 begin
   if (A = 0) or (B = 0) then
@@ -2578,40 +2647,14 @@ begin
   else
     Result := CN_EXP_TABLE[(CN_LOG_TABLE[A] - CN_LOG_TABLE[B] + 255) mod 255];
 end;
-{* GF(2^8) 除法：LOG[A] - LOG[B] + 255 mod 255 后查 EXP 表}
 
+// GF(2^8) 指数：查 CN_EXP_TABLE[N mod 255]
 function TCnQRDecoder.GFExp(N: Integer): Integer;
 begin
   Result := CN_EXP_TABLE[N mod 255];
 end;
-{* GF(2^8) 指数：查 CN_EXP_TABLE[N mod 255]}
 
-function TCnQRDecoder.GFLog(N: Integer): Integer;
-begin
-  Result := CN_LOG_TABLE[N];
-end;
-{* GF(2^8) 对数：查 CN_LOG_TABLE[N]}
-
-function TCnQRDecoder.GFInv(N: Integer): Integer;
-begin
-  Result := CN_EXP_TABLE[255 - CN_LOG_TABLE[N]];
-end;
-{* GF(2^8) 乘法逆元：CN_EXP_TABLE[255 - CN_LOG_TABLE[N]]}
-
-function TCnQRDecoder.ExtractFormatBits(AX, AY: Integer; ACount: Integer): Integer;
-var
-  I: Integer;
-begin
-  Result := 0;
-  for I := 0 to ACount - 1 do
-  begin
-    if (AX >= 0) and (AX < FQRSize) and (AY >= 0) and (AY < FQRSize) then
-      Result := (Result shl 1) or FQRData[AX, AY];
-    Inc(AX);
-  end;
-end;
-{* 从指定起始位置水平方向读取 ACount 位格式信息位序列，MSB 优先}
-
+// 对两份掩码后的 15 位格式信息进行汉明距离匹配解码
 function TCnQRDecoder.DecodeFormatInfo(MaskedInfo1, MaskedInfo2: Integer): Boolean;
 var
   I, Dist1, Dist2, BestDist1, BestDist2, BestIdx1, BestIdx2: Integer;
@@ -2669,8 +2712,8 @@ begin
   FFormatInfo.MaskType := RawVal1 and $07;
   Result := True;
 end;
-{* 对两份掩码后的 15 位格式信息进行汉明距离匹配解码}
 
+// 从矩阵中读取两份格式信息并解码
 function TCnQRDecoder.ReadFormatInformation: Boolean;
 var
   MaskedInfo1, MaskedInfo2: Integer;
@@ -2701,8 +2744,8 @@ begin
 
   Result := DecodeFormatInfo(MaskedInfo1, MaskedInfo2);
 end;
-{* 从矩阵中读取两份格式信息并解码}
 
+// 从指定位置提取 18 位版本信息位序列，按标准存储布局组合 3 列 x 6 行
 function TCnQRDecoder.ExtractVersionBits(AStartCol, AStartRow: Integer): Integer;
 var
   I: Integer;
@@ -2714,8 +2757,8 @@ begin
       FQRData[AStartCol + (I mod 3), AStartRow + (I div 3)];
   end;
 end;
-{* 从指定位置提取 18 位版本信息位序列，按标准存储布局组合 3 列 x 6 行}
 
+// 对两份 18 位版本信息进行汉明距离匹配解码
 function TCnQRDecoder.DecodeVersion(VersionBits1, VersionBits2: Integer): Boolean;
 var
   I, Dist1, Dist2, BestDist1, BestDist2, BestIdx1, BestIdx2: Integer;
@@ -2768,8 +2811,8 @@ begin
   end;
   Result := True;
 end;
-{* 对两份 18 位版本信息进行汉明距离匹配解码}
 
+// 读取并解码版本信息
 function TCnQRDecoder.ReadVersion: Boolean;
 var
   VersionBits1, VersionBits2: Integer;
@@ -2790,8 +2833,8 @@ begin
   VersionBits2 := ExtractVersionBits(0, FQRSize - 11);
   Result := DecodeVersion(VersionBits1, VersionBits2);
 end;
-{* 读取并解码版本信息}
 
+// 获取指定位置在指定掩码类型下的掩码值，与编码器中的逻辑完全一致
 function TCnQRDecoder.GetMaskPattern(X, Y, MaskType: Integer): Boolean;
 begin
   case MaskType of
@@ -2815,8 +2858,8 @@ begin
     Result := False;
   end;
 end;
-{* 获取指定位置在指定掩码类型下的掩码值，与编码器中的逻辑完全一致}
 
+// 判断指定位置是否属于功能区域（寻像图案/时序图案/格式信息/版本信息/对齐图案）
 function TCnQRDecoder.IsFunctionArea(X, Y: Integer): Boolean;
 var
   I, J, AlignCount: Integer;
@@ -2959,8 +3002,8 @@ begin
 
   Result := False;
 end;
-{* 判断指定位置是否属于功能区域（寻像图案/时序图案/格式信息/版本信息/对齐图案）}
 
+// 对非功能区域按 8 种掩码规则之一执行位翻转（XOR），还原原始数据
 procedure TCnQRDecoder.UnmaskMatrix;
 var
   X, Y, MaskType: Integer;
@@ -2978,11 +3021,11 @@ begin
     end;
   end;
 end;
-{* 对非功能区域按 8 种掩码规则之一执行位翻转（XOR），还原原始数据}
 
+// 按 Z 字形路径从矩阵中读取码字字节序列
 function TCnQRDecoder.ReadCodewords: TBytes;
 var
-  BitIndex, Right, Vert, J, X, Y, CodeCount, MaxCodewords: Integer;
+  Right, Vert, J, X, Y, CodeCount, MaxCodewords: Integer;
   Upward: Boolean;
   CurrentByte, BitsInCurrentByte: Integer;
 begin
@@ -3028,8 +3071,8 @@ begin
     Dec(Right, 2);
   end;
 end;
-{* 按 Z 字形路径从矩阵中读取码字字节序列}
 
+// 将交错的码字序列按版本和纠错级别解交织划分为数据块
 procedure TCnQRDecoder.SplitDataBlocks(const RawCodewords: TBytes;
   var Blocks: array of TBytes; var BlockCount: Integer;
   var ECCPerBlock: Integer);
@@ -3090,8 +3133,8 @@ begin
     end;
   end;
 end;
-{* 将交错的码字序列按版本和纠错级别解交织划分为数据块}
 
+// 对数据块执行 GF(2^8) Reed-Solomon 纠错（Euclidean 算法 + Chien 搜索 + Forney 公式）
 function TCnQRDecoder.RSDecodeBlock(var Data: TBytes; ECCount: Integer): Boolean;
 var
   TwoS, I, J, K, N, ErrCount: Integer;
@@ -3299,8 +3342,8 @@ begin
 
   Result := True;
 end;
-{* 对数据块执行 GF(2^8) Reed-Solomon 纠错（Euclidean 算法 + Chien 搜索 + Forney 公式）}
 
+// 从数据字节流的 BitPos 位置读取 NumBits 位（大端序），返回整数值
 function TCnQRDecoder.ReadBits(var BitPos: Integer; NumBits: Integer;
   const DataBytes: TBytes): Integer;
 var
@@ -3318,8 +3361,8 @@ begin
     Inc(BitPos);
   end;
 end;
-{* 从数据字节流的 BitPos 位置读取 NumBits 位（大端序），返回整数值}
 
+// 获取指定模式在 TCnQRDecoder 版本下的字符计数位长度
 function TCnQRDecoder.GetCharCountBits(AMode: TCnQRDecodeMode): Integer;
 begin
   case AMode of
@@ -3350,12 +3393,12 @@ begin
     Result := 0;
   end;
 end;
-{* 获取指定模式在 TCnQRDecoder 版本下的字符计数位长度}
 
+// 解码 Numeric 模式段
 function TCnQRDecoder.DecodeNumericSegment(var BitPos: Integer; ACount: Integer;
   const DataBytes: TBytes): string;
 var
-  I, Value, ReadCount: Integer;
+  I, Value: Integer;
   ThreeDigits: array[0..2] of Char;
 begin
   Result := '';
@@ -3389,8 +3432,8 @@ begin
     end;
   end;
 end;
-{* 解码 Numeric 模式段}
 
+// 解码 AlphaNumeric 模式段
 function TCnQRDecoder.DecodeAlphaNumericSegment(var BitPos: Integer;
   ACount: Integer; const DataBytes: TBytes): string;
 const
@@ -3420,96 +3463,40 @@ begin
     end;
   end;
 end;
-{* 解码 AlphaNumeric 模式段}
 
+// 解码 Byte 模式段，优先 UTF-8 解码，回退到 ISO-8859-1
 function TCnQRDecoder.DecodeByteSegment(var BitPos: Integer; ACount: Integer;
   const DataBytes: TBytes): string;
 var
-  I, J, ByteVal: Integer;
+  I: Integer;
   ByteBuf: array of Byte;
-  IsUTF8: Boolean;
-  Utf8Seq: array[0..3] of Byte;
-  SeqLen, CodePoint: Integer;
+  Utf8Str: AnsiString;
+  WideResult: WideString;
 begin
-  Result := '';
   // 读取原始字节
   SetLength(ByteBuf, ACount);
   for I := 0 to ACount - 1 do
     ByteBuf[I] := ReadBits(BitPos, 8, DataBytes);
 
-  // 尝试 UTF-8 解码
-  IsUTF8 := True;
-  I := 0;
-  while I < ACount do
-  begin
-    if ByteBuf[I] < $80 then
-    begin
-      Result := Result + Char(ByteBuf[I]);
-      Inc(I);
-    end
-    else if (ByteBuf[I] and $E0) = $C0 then
-    begin
-      // 2 字节 UTF-8: 110xxxxx 10xxxxxx
-      if I + 1 < ACount then
-      begin
-        CodePoint := ((ByteBuf[I] and $1F) shl 6) or
-          (ByteBuf[I + 1] and $3F);
-        if CodePoint < $80 then
-        begin
-          IsUTF8 := False;
-          Break;
-        end;
-        if CodePoint < $100 then
-          Result := Result + Char(CodePoint)
-        else
-          Result := Result + '?';  // 非 ASCII 宽字符占位
-        Inc(I, 2);
-      end
-      else
-      begin
-        IsUTF8 := False;
-        Break;
-      end;
-    end
-    else if (ByteBuf[I] and $F0) = $E0 then
-    begin
-      // 3 字节 UTF-8: 1110xxxx 10xxxxxx 10xxxxxx
-      if I + 2 < ACount then
-      begin
-        CodePoint := ((ByteBuf[I] and $0F) shl 12) or
-          ((ByteBuf[I + 1] and $3F) shl 6) or
-          (ByteBuf[I + 2] and $3F);
-        if CodePoint < $800 then
-        begin
-          IsUTF8 := False;
-          Break;
-        end;
-        Result := Result + '?';
-        Inc(I, 3);
-      end
-      else
-      begin
-        IsUTF8 := False;
-        Break;
-      end;
-    end
-    else
-    begin
-      IsUTF8 := False;
-      Break;
-    end;
-  end;
+  // 将字节组装为 AnsiString（实际内容是 UTF-8 编码）
+  SetLength(Utf8Str, ACount);
+  for I := 0 to ACount - 1 do
+    Utf8Str[I + 1] := AnsiChar(ByteBuf[I]);
 
-  if not IsUTF8 then
+  // 尝试 UTF-8 → WideString 解码
+  WideResult := CnUtf8DecodeToWideString(Utf8Str);
+  if WideResult <> '' then
+    Result := WideResult  // WideString → AnsiString（当前代码页转换，如 CP936 保留汉字）
+  else
   begin
-    // 回退到 ISO-8859-1
+    // 回退：逐字节当作 ISO-8859-1
     Result := '';
     for I := 0 to ACount - 1 do
       Result := Result + Char(ByteBuf[I]);
   end;
 end;
-{* 解码 Byte 模式段，优先 UTF-8 解码，回退到 ISO-8859-1}
 
+// 解码 Kanji 模式段，按 Shift-JIS 编码
 function TCnQRDecoder.DecodeKanjiSegment(var BitPos: Integer; ACount: Integer;
   const DataBytes: TBytes): string;
 var
@@ -3529,8 +3516,8 @@ begin
     Result := Result + '?';
   end;
 end;
-{* 解码 Kanji 模式段，按 Shift-JIS 编码}
 
+// 解码 Hanzi 模式段，按 GB2312 编码
 function TCnQRDecoder.DecodeHanziSegment(var BitPos: Integer; ACount: Integer;
   const DataBytes: TBytes): string;
 var
@@ -3549,12 +3536,11 @@ begin
     Result := Result + '?';
   end;
 end;
-{* 解码 Hanzi 模式段，按 GB2312 编码}
 
+// 解析数据字节流，按编码模式段循环解码并返回完整文本
 function TCnQRDecoder.DecodeDataStream(const DataBytes: TBytes): string;
 var
   BitPos, ModeVal, CharCount, TotalBits: Integer;
-  I: Integer;
 begin
   Result := '';
   BitPos := 0;
@@ -3628,8 +3614,8 @@ begin
     end;
   end;
 end;
-{* 解析数据字节流，按编码模式段循环解码并返回完整文本}
 
+// 将当前矩阵沿主对角线翻转（QRData[X, Y] 与 QRData[Y, X] 互换）
 procedure TCnQRDecoder.MirrorMatrix;
 var
   X, Y: Integer;
@@ -3645,8 +3631,9 @@ begin
     end;
   end;
 end;
-{* 将当前矩阵沿主对角线翻转（QRData[X, Y] 与 QRData[Y, X] 互换）}
 
+// 主解码入口。从 TCnQRData 矩阵解码出文本字符串。
+// 自动尝试镜像重试：正常解码失败后镜像翻转矩阵重新解码
 function TCnQRDecoder.DecodeMatrix(const AQRData: TCnQRData): string;
 var
   Attempt: Integer;
@@ -3662,18 +3649,18 @@ begin
   FIsMirrored := False;
 
   if FQRSize < 21 then
-    raise ECnQRCodeException.Create('Matrix size too small');
+    raise ECnQRCodeException.Create(SCnErrorQRMatrixSizeTooSmall);
 
   for Attempt := 0 to 1 do
   begin
     try
       // Step 1: 格式信息
       if not ReadFormatInformation then
-        raise ECnQRCodeException.Create('Format information decode failed');
+        raise ECnQRCodeException.Create(SCnErrorQRFormatInformationDecodeFailed);
 
       // Step 2: 版本信息
       if not ReadVersion then
-        raise ECnQRCodeException.Create('Version information decode failed');
+        raise ECnQRCodeException.Create(SCnErrorQRVersionInformationDecodeFailed);
 
       // Step 3: 去掩码
       UnmaskMatrix;
@@ -3691,7 +3678,7 @@ begin
       for I := 0 to BlockCount - 1 do
       begin
         if not RSDecodeBlock(Blocks[I], ECCPerBlock) then
-          raise ECnQRCodeException.CreateFmt('Checksum error in block %d', [I]);
+          raise ECnQRCodeException.CreateFmt(SCnErrorQRChecksumErrorInBlock, [I]);
       end;
 
       // Step 7: 合并数据部分
@@ -3735,25 +3722,983 @@ begin
   end;
 
   if Result = '' then
-    raise ECnQRCodeException.Create('QR decode failed');
+  begin
+    FErrorMessage := Format(
+      'QR decode failed: V%d Sz%d EL%d M%d CW0=%d CW1=%d DB0=%d DB1=%d',
+      [FQRVersion, FQRSize, Ord(FFormatInfo.ErrorLevel), FFormatInfo.MaskType,
+       Codewords[0] and $FF, Codewords[1] and $FF,
+       AllDataBytes[0] and $FF, AllDataBytes[1] and $FF]);
+    raise ECnQRCodeException.Create(FErrorMessage);
+  end;
 end;
-{* 主解码入口。从 TCnQRData 矩阵解码出文本字符串。
-   自动尝试镜像重试：正常解码失败后镜像翻转矩阵重新解码。}
-
-{ CnQRDecodeFromMatrix }
 
 function CnQRDecodeFromMatrix(const AQRData: TCnQRData): string;
 var
   Decoder: TCnQRDecoder;
 begin
   if Length(AQRData) < 21 then
-    raise ECnQRCodeException.Create('Matrix size too small');
+    raise ECnQRCodeException.Create(SCnErrorQRMatrixSizeTooSmall);
 
   Decoder := TCnQRDecoder.Create;
   try
     Result := Decoder.DecodeMatrix(AQRData);
   finally
     Decoder.Free;
+  end;
+end;
+
+{ ---- 阶段二辅助函数 ---- }
+
+// 计算两个寻像图案中心的欧几里得距离
+function CnQRDistance(const P1, P2: TCnQRFinderPattern): Double;
+begin
+  Result := Sqrt((P1.X - P2.X) * (P1.X - P2.X) + (P1.Y - P2.Y) * (P1.Y - P2.Y));
+end;
+
+// 计算两个浮点坐标点的欧几里得距离
+function CnQRDistancePointF(const P1, P2: TCnQRPointF): Double;
+begin
+  Result := Sqrt((P1.X - P2.X) * (P1.X - P2.X) + (P1.Y - P2.Y) * (P1.Y - P2.Y));
+end;
+
+// 将灰度图像二值化输出 0/1 矩阵
+function CnQRBinarize(const AGrayImage: TCnQRGrayImage;
+  out AWidth, AHeight: Integer): TCnQRData;
+var
+  X, Y, BlockCols, BlockRows, BlockX, BlockY: Integer;
+  StartX, StartY, EndX, EndY: Integer;
+  Histogram: array[0..255] of Integer;
+  I, MinVal, MaxVal, TotalPixels: Integer;
+  SumDark, SumLight, CountDark, CountLight: Integer;
+  Threshold: Integer;
+begin
+  AWidth := AGrayImage.Width;
+  AHeight := AGrayImage.Height;
+  SetLength(Result, AWidth, AHeight);
+
+  // 8x8 子块划分
+  BlockCols := (AWidth + 7) div 8;
+  BlockRows := (AHeight + 7) div 8;
+
+  for BlockY := 0 to BlockRows - 1 do
+  begin
+    StartY := BlockY * 8;
+    EndY := StartY + 7;
+    if EndY >= AHeight then
+      EndY := AHeight - 1;
+
+    for BlockX := 0 to BlockCols - 1 do
+    begin
+      StartX := BlockX * 8;
+      EndX := StartX + 7;
+      if EndX >= AWidth then
+        EndX := AWidth - 1;
+
+      // 统计子块直方图
+      FillChar(Histogram, SizeOf(Histogram), 0);
+      MinVal := 255;
+      MaxVal := 0;
+      for Y := StartY to EndY do
+        for X := StartX to EndX do
+        begin
+          I := AGrayImage.Data[X, Y];
+          Inc(Histogram[I]);
+          if I < MinVal then MinVal := I;
+          if I > MaxVal then MaxVal := I;
+        end;
+
+      // 计算自适应阈值
+      if MaxVal - MinVal < 24 then
+        Threshold := 128
+      else
+      begin
+        TotalPixels := (EndX - StartX + 1) * (EndY - StartY + 1);
+        // 最暗 5% 像素平均值
+        SumDark := 0;
+        CountDark := 0;
+        for I := 0 to 255 do
+        begin
+          Inc(CountDark, Histogram[I]);
+          Inc(SumDark, I * Histogram[I]);
+          if CountDark >= TotalPixels * 5 div 100 then
+          begin
+            if CountDark > 0 then
+              SumDark := SumDark div CountDark
+            else
+              SumDark := 0;
+            Break;
+          end;
+        end;
+        // 最亮 5% 像素平均值
+        SumLight := 0;
+        CountLight := 0;
+        for I := 255 downto 0 do
+        begin
+          Inc(CountLight, Histogram[I]);
+          Inc(SumLight, I * Histogram[I]);
+          if CountLight >= TotalPixels * 5 div 100 then
+          begin
+            if CountLight > 0 then
+              SumLight := SumLight div CountLight
+            else
+              SumLight := 255;
+            Break;
+          end;
+        end;
+        Threshold := (SumDark + SumLight) div 2;
+      end;
+
+      // 二值化
+      for Y := StartY to EndY do
+      begin
+        for X := StartX to EndX do
+        begin
+          if AGrayImage.Data[X, Y] < Threshold then
+            Result[X, Y] := 1  // 黑色
+          else
+            Result[X, Y] := 0; // 白色
+        end;
+      end;
+    end;
+  end;
+end;
+
+// 验证五段黑白黑白黑比例是否为 1:1:3:1:1
+function CnQRFoundPatternCross(const stateCount: array of Integer): Boolean;
+var
+  TotalModuleSize, I: Integer;
+begin
+  TotalModuleSize := 0;
+  for I := 0 to 4 do
+    Inc(TotalModuleSize, stateCount[I]);
+
+  if TotalModuleSize < 7 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  TotalModuleSize := TotalModuleSize div 7;
+  Result := (Abs(stateCount[0] - TotalModuleSize) < TotalModuleSize) and
+    (Abs(stateCount[1] - TotalModuleSize) < TotalModuleSize) and
+    (Abs(stateCount[2] - 3 * TotalModuleSize) < 3 * TotalModuleSize) and
+    (Abs(stateCount[3] - TotalModuleSize) < TotalModuleSize) and
+    (Abs(stateCount[4] - TotalModuleSize) < TotalModuleSize);
+end;
+
+// 在候选中心列坐标处沿垂直方向扫描并验证 1:1:3:1:1 比例，返回精确行坐标
+function CnQRCrossCheckVertical(const ABinarized: TCnQRData;
+  AWidth, AHeight, StartX, StartY, CenterY, MaxCount: Integer;
+  const stateCount: array of Integer): Double;
+var
+  Y, TopY: Integer;
+  LocalStateCount: array[0..4] of Integer;
+begin
+  // 垂直交叉验证：
+  // 向上: state[2]+=中心黑, [1]=白, [0]=黑
+  // 向下: state[2]+=中心黑, [3]=白, [4]=黑
+  FillChar(LocalStateCount, SizeOf(LocalStateCount), 0);
+
+  Y := StartY;
+  // 向上
+  while (Y >= 0) and (ABinarized[StartX, Y] = 1) and (LocalStateCount[2] < MaxCount) do
+  begin
+    Inc(LocalStateCount[2]);
+    Dec(Y);
+  end;
+  if Y < 0 then begin Result := -1.0; Exit; end;
+  while (Y >= 0) and (ABinarized[StartX, Y] = 0) and (LocalStateCount[1] < MaxCount) do
+  begin
+    Inc(LocalStateCount[1]);
+    Dec(Y);
+  end;
+  if Y < 0 then begin Result := -1.0; Exit; end;
+  while (Y >= 0) and (ABinarized[StartX, Y] = 1) and (LocalStateCount[0] < MaxCount) do
+  begin
+    Inc(LocalStateCount[0]);
+    Dec(Y);
+  end;
+  // TopY = 最顶段黑[0]的首个像素行坐标
+  TopY := Y + 1;
+
+  // 向下
+  Y := StartY + 1;
+  while (Y < AHeight) and (ABinarized[StartX, Y] = 1) and (LocalStateCount[2] < MaxCount) do
+  begin
+    Inc(LocalStateCount[2]);
+    Inc(Y);
+  end;
+  while (Y < AHeight) and (ABinarized[StartX, Y] = 0) and (LocalStateCount[3] < MaxCount) do
+  begin
+    Inc(LocalStateCount[3]);
+    Inc(Y);
+  end;
+  while (Y < AHeight) and (ABinarized[StartX, Y] = 1) and (LocalStateCount[4] < MaxCount) do
+  begin
+    Inc(LocalStateCount[4]);
+    Inc(Y);
+  end;
+
+  // 验证 1:1:3:1:1 比例
+  if not CnQRFoundPatternCross(LocalStateCount) then
+  begin
+    Result := -1.0;
+    Exit;
+  end;
+
+  // 中心 = TopY + state[0] + state[1] + state[2]/2
+  Result := TopY + LocalStateCount[0] + LocalStateCount[1] + LocalStateCount[2] / 2.0;
+end;
+
+// 在二值矩阵中定位三个寻像图案
+function CnQRFindFinderPatterns(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer; out TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern): Boolean;
+const
+  MIN_SKIP = 3;
+  MAX_CANDIDATES = 25;
+var
+  Candidates: array[0..24] of TCnQRFinderPattern;
+  CandidateCount: Integer;
+  Y, X, I, J, K: Integer;
+  CurrentState: Integer;
+  stateCount: array[0..4] of Integer;
+  CenterX, CenterY: Double;
+  ModuleSize: Double;
+  Found: Boolean;
+  TotalPixelCount: Integer;
+  BestDist, Dist, MaxDist: Double;
+  BestI, BestJ, BestK: Integer;
+  Patterns: array[0..2] of TCnQRFinderPattern;
+  D01, D02, D12: Double;
+  A, B, C: Double;
+  Score, BestScore: Double;
+  PointOrder: array[0..2] of Integer;
+begin
+  CandidateCount := 0;
+  Y := 0;
+
+  while Y < AHeight do
+  begin
+    // 状态机（CurrentState）:
+    // 0=等待第一个黑色, 1=计数第一段黑(state[0]), 2=计数白(state[1]),
+    // 3=计数中心黑(state[2]=3模块), 4=计数白(state[3]), 5=计数最后一段黑(state[4])
+    // 6=状态5遇到白色→检查完整模式[0..4] 1:1:3:1:1
+    FillChar(stateCount, SizeOf(stateCount), 0);
+    CurrentState := 0;
+    X := 0;
+
+    while X < AWidth do
+    begin
+      case CurrentState of
+        0:
+          begin
+            if ABinarized[X, Y] = 1 then  // 遇到第一个黑色
+            begin
+              stateCount[0] := 1;
+              CurrentState := 1;
+            end;
+          end;
+        1:
+          begin  // 计数第一段黑
+            if ABinarized[X, Y] = 1 then
+              Inc(stateCount[0])
+            else  // 遇到白色，转入状态2
+            begin
+              stateCount[1] := 1;
+              CurrentState := 2;
+            end;
+          end;
+        2:
+          begin  // 计数白色段
+            if ABinarized[X, Y] = 0 then
+              Inc(stateCount[1])
+            else  // 遇到黑色，转入状态3
+            begin
+              stateCount[2] := 1;
+              CurrentState := 3;
+            end;
+          end;
+        3:
+          begin  // 计数中心黑色段(3模块)
+            if ABinarized[X, Y] = 1 then
+              Inc(stateCount[2])
+            else  // 遇到白色，转入状态4
+            begin
+              stateCount[3] := 1;
+              CurrentState := 4;
+            end;
+          end;
+        4:
+          begin  // 计数白色段
+            if ABinarized[X, Y] = 0 then
+              Inc(stateCount[3])
+            else  // 遇到黑色，转入状态5
+            begin
+              stateCount[4] := 1;
+              CurrentState := 5;
+            end;
+          end;
+        5:
+          begin  // 计数最后一段黑
+            if ABinarized[X, Y] = 1 then
+              Inc(stateCount[4])
+            else  // 遇到白色，模式完成！检查 1:1:3:1:1
+            begin
+              if CnQRFoundPatternCross(stateCount) then
+              begin
+                TotalPixelCount := 0;
+                for I := 0 to 4 do
+                  Inc(TotalPixelCount, stateCount[I]);
+                ModuleSize := TotalPixelCount / 7.0;
+                CenterX := X - stateCount[4] - stateCount[3] - stateCount[2] / 2.0;
+                CenterY := Y;
+
+                // 垂直交叉验证
+                CenterY := CnQRCrossCheckVertical(ABinarized, AWidth, AHeight,
+                  Round(CenterX), Round(CenterY), Round(CenterY), stateCount[2] * 2,
+                  stateCount);
+                if CenterY >= 0 then
+                begin
+                  Found := False;
+                  for I := 0 to CandidateCount - 1 do
+                  begin
+                    Dist := Sqrt((CenterX - Candidates[I].X) * (CenterX - Candidates[I].X) +
+                      (CenterY - Candidates[I].Y) * (CenterY - Candidates[I].Y));
+                    if Dist < Candidates[I].EstimatedModuleSize * 2 then
+                    begin
+                      Candidates[I].X := (Candidates[I].X * Candidates[I].ConfirmedCount + CenterX) /
+                        (Candidates[I].ConfirmedCount + 1);
+                      Candidates[I].Y := (Candidates[I].Y * Candidates[I].ConfirmedCount + CenterY) /
+                        (Candidates[I].ConfirmedCount + 1);
+                      Candidates[I].EstimatedModuleSize :=
+                        (Candidates[I].EstimatedModuleSize * Candidates[I].ConfirmedCount + ModuleSize) /
+                        (Candidates[I].ConfirmedCount + 1);
+                      Inc(Candidates[I].ConfirmedCount);
+                      Found := True;
+                      Break;
+                    end;
+                  end;
+
+                  if not Found and (CandidateCount < MAX_CANDIDATES) then
+                  begin
+                    Candidates[CandidateCount].X := CenterX;
+                    Candidates[CandidateCount].Y := CenterY;
+                    Candidates[CandidateCount].EstimatedModuleSize := ModuleSize;
+                    Candidates[CandidateCount].ConfirmedCount := 1;
+                    Inc(CandidateCount);
+                  end;
+                end;
+              end;
+
+              // 重置：保留最后两段继续搜索
+              stateCount[0] := stateCount[2];
+              stateCount[1] := stateCount[3];
+              stateCount[2] := stateCount[4];
+              stateCount[3] := 1;   // 当前白色段
+              stateCount[4] := 0;
+              CurrentState := 4;    // 回到计数白色
+            end;
+          end;
+      end;
+      Inc(X);
+    end;
+
+    // 动态行跳跃
+    if CandidateCount > 2 then
+    begin
+      ModuleSize := 0;
+      for I := 0 to CandidateCount - 1 do
+        ModuleSize := ModuleSize + Candidates[I].EstimatedModuleSize;
+      ModuleSize := ModuleSize / CandidateCount;
+      Y := Y + Round(ModuleSize);
+    end
+    else
+      Inc(Y, MIN_SKIP);
+  end;
+
+  // 筛选三个最佳图案
+  if CandidateCount < 3 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  BestScore := 1E30;
+  BestI := -1;
+  BestJ := -1;
+  BestK := -1;
+
+  for I := 0 to CandidateCount - 3 do
+    for J := I + 1 to CandidateCount - 2 do
+      for K := J + 1 to CandidateCount - 1 do
+      begin
+        // 计算三边距离
+        D01 := Sqrt((Candidates[I].X - Candidates[J].X) * (Candidates[I].X - Candidates[J].X) +
+          (Candidates[I].Y - Candidates[J].Y) * (Candidates[I].Y - Candidates[J].Y));
+        D02 := Sqrt((Candidates[I].X - Candidates[K].X) * (Candidates[I].X - Candidates[K].X) +
+          (Candidates[I].Y - Candidates[K].Y) * (Candidates[I].Y - Candidates[K].Y));
+        D12 := Sqrt((Candidates[J].X - Candidates[K].X) * (Candidates[J].X - Candidates[K].X) +
+          (Candidates[J].Y - Candidates[K].Y) * (Candidates[J].Y - Candidates[K].Y));
+
+        // 排序列 a ≤ b ≤ c
+        if (D01 <= D02) and (D01 <= D12) then
+        begin
+          A := D01;
+          if D02 <= D12 then begin B := D02; C := D12; end
+          else begin B := D12; C := D02; end;
+        end
+        else if (D02 <= D01) and (D02 <= D12) then
+        begin
+          A := D02;
+          if D01 <= D12 then begin B := D01; C := D12; end
+          else begin B := D12; C := D01; end;
+        end
+        else
+        begin
+          A := D12;
+          if D01 <= D02 then begin B := D01; C := D02; end
+          else begin B := D02; C := D01; end;
+        end;
+
+        // 评估等腰直角三角形程度
+        Score := Abs(C * C - 2 * B * B) + Abs(C * C - 2 * A * A);
+        if Score < BestScore then
+        begin
+          BestScore := Score;
+          BestI := I;
+          BestJ := J;
+          BestK := K;
+        end;
+      end;
+
+  if (BestI < 0) or (BestJ < 0) or (BestK < 0) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  Patterns[0] := Candidates[BestI];
+  Patterns[1] := Candidates[BestJ];
+  Patterns[2] := Candidates[BestK];
+
+  // 确认三个点的模块尺寸相差不超过 40%
+  ModuleSize := (Patterns[0].EstimatedModuleSize + Patterns[1].EstimatedModuleSize +
+    Patterns[2].EstimatedModuleSize) / 3.0;
+  MaxDist := ModuleSize * 0.4;
+  if (Abs(Patterns[0].EstimatedModuleSize - ModuleSize) > MaxDist) or
+     (Abs(Patterns[1].EstimatedModuleSize - ModuleSize) > MaxDist) or
+     (Abs(Patterns[2].EstimatedModuleSize - ModuleSize) > MaxDist) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // 排序：找出左上、右上、左下
+  // 最长边对面的点为左上角
+  D01 := Sqrt((Patterns[0].X - Patterns[1].X) * (Patterns[0].X - Patterns[1].X) +
+    (Patterns[0].Y - Patterns[1].Y) * (Patterns[0].Y - Patterns[1].Y));
+  D02 := Sqrt((Patterns[0].X - Patterns[2].X) * (Patterns[0].X - Patterns[2].X) +
+    (Patterns[0].Y - Patterns[2].Y) * (Patterns[0].Y - Patterns[2].Y));
+  D12 := Sqrt((Patterns[1].X - Patterns[2].X) * (Patterns[1].X - Patterns[2].X) +
+    (Patterns[1].Y - Patterns[2].Y) * (Patterns[1].Y - Patterns[2].Y));
+
+  // 最长边对面的点为左上角
+  if (D01 >= D02) and (D01 >= D12) then
+  begin
+    // D01 最长，Points[2] 为左上角
+    PointOrder[0] := 2;  // 左上
+    // 叉积判断其余两点
+    if ((Patterns[1].X - Patterns[2].X) * (Patterns[0].Y - Patterns[2].Y) -
+        (Patterns[1].Y - Patterns[2].Y) * (Patterns[0].X - Patterns[2].X)) > 0 then
+    begin
+      PointOrder[1] := 1;  // 右上
+      PointOrder[2] := 0;  // 左下
+    end
+    else
+    begin
+      PointOrder[1] := 0;  // 右上
+      PointOrder[2] := 1;  // 左下
+    end;
+  end
+  else if (D02 >= D01) and (D02 >= D12) then
+  begin
+    // D02 最长，Points[1] 为左上角
+    PointOrder[0] := 1;
+    if ((Patterns[2].X - Patterns[1].X) * (Patterns[0].Y - Patterns[1].Y) -
+        (Patterns[2].Y - Patterns[1].Y) * (Patterns[0].X - Patterns[1].X)) > 0 then
+    begin
+      PointOrder[1] := 2;
+      PointOrder[2] := 0;
+    end
+    else
+    begin
+      PointOrder[1] := 0;
+      PointOrder[2] := 2;
+    end;
+  end
+  else
+  begin
+    // D12 最长，Points[0] 为左上角
+    PointOrder[0] := 0;
+    if ((Patterns[1].X - Patterns[0].X) * (Patterns[2].Y - Patterns[0].Y) -
+        (Patterns[1].Y - Patterns[0].Y) * (Patterns[2].X - Patterns[0].X)) > 0 then
+    begin
+      PointOrder[1] := 1;
+      PointOrder[2] := 2;
+    end
+    else
+    begin
+      PointOrder[1] := 2;
+      PointOrder[2] := 1;
+    end;
+  end;
+
+  TopLeft := Patterns[PointOrder[0]];
+  TopRight := Patterns[PointOrder[1]];
+  BottomLeft := Patterns[PointOrder[2]];
+  Result := True;
+end;
+
+// 在二值矩阵中定位对齐图案
+function CnQRFindAlignmentPattern(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer; const TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern;
+  out AlignmentPattern: TCnQRAlignmentPattern): Boolean;
+var
+  EstimatedVersion: Integer;
+  ModuleSize: Double;
+  BottomRightX, BottomRightY: Double;
+  StartX, StartY, SearchRadius: Integer;
+  X, Y: Integer;
+  stateCount: array[0..2] of Integer;
+  CurrentState: Integer;
+  MaxCount: Integer;
+  CenterX, CenterY: Double;
+  Confirmed: Boolean;
+begin
+  Result := False;
+
+  // 估算版本号
+  ModuleSize := (CnQRDistance(TopLeft, TopRight) + CnQRDistance(TopLeft, BottomLeft)) / 28.0;
+  EstimatedVersion := Round((CnQRDistance(TopLeft, TopRight) / ModuleSize + 7 - 17) / 4);
+
+  if EstimatedVersion <= 1 then
+    Exit;
+
+  // 估算右下角位置
+  BottomRightX := TopRight.X - TopLeft.X + BottomLeft.X;
+  BottomRightY := TopRight.Y - TopLeft.Y + BottomLeft.Y;
+
+  // 从右下角向中心偏移，搜索对齐图案
+  StartX := Round(BottomRightX - ModuleSize * 3);
+  StartY := Round(BottomRightY - ModuleSize * 3);
+  SearchRadius := Round(ModuleSize * 4);
+
+  if SearchRadius < 3 then
+    SearchRadius := 3;
+
+  // 尝试不同搜索半径（最多扩大到 16 倍模块尺寸）
+  while SearchRadius < Round(ModuleSize * 16) do
+  begin
+    CenterX := -1;
+    CenterY := -1;
+
+    // 水平搜索 1:1:1 比例
+    for Y := StartY to StartY + SearchRadius * 2 do
+    begin
+      if (Y < 0) or (Y >= AHeight) then
+        Continue;
+
+      FillChar(stateCount, SizeOf(stateCount), 0);
+      CurrentState := 0;
+
+      for X := StartX to StartX + SearchRadius * 2 do
+      begin
+        if (X < 0) or (X >= AWidth) then
+          Continue;
+
+        if ABinarized[X, Y] = 1 then  // 黑色
+        begin
+          if (CurrentState and 1) = 1 then
+            Inc(stateCount[CurrentState])
+          else if CurrentState = 2 then
+          begin
+            // 检查 1:1:1 比例
+            MaxCount := stateCount[0];
+            if stateCount[1] > MaxCount then MaxCount := stateCount[1];
+            if stateCount[2] > MaxCount then MaxCount := stateCount[2];
+            if (MaxCount > 0) and
+               (Abs(stateCount[0] - stateCount[1]) * 2 < MaxCount) and
+               (Abs(stateCount[1] - stateCount[2]) * 2 < MaxCount) then
+            begin
+              CenterX := X - stateCount[2] - stateCount[1] / 2.0;
+              CenterY := Y;
+              Break;
+            end;
+            stateCount[0] := stateCount[2];
+            stateCount[1] := 1;
+            stateCount[2] := 0;
+            CurrentState := 1;
+          end
+          else
+          begin
+            Inc(CurrentState);
+            stateCount[CurrentState] := 1;
+          end;
+        end
+        else  // 白色
+        begin
+          if (CurrentState and 1) = 0 then
+            Inc(stateCount[CurrentState])
+          else
+          begin
+            Inc(CurrentState);
+            stateCount[CurrentState] := 1;
+          end;
+        end;
+      end;
+
+      if CenterX >= 0 then
+        Break;
+    end;
+
+    if CenterX >= 0 then
+    begin
+      // 垂直交叉验证
+      Confirmed := False;
+      FillChar(stateCount, SizeOf(stateCount), 0);
+      CurrentState := 0;
+      for Y := Round(CenterY - SearchRadius) to Round(CenterY + SearchRadius) do
+      begin
+        if (Y < 0) or (Y >= AHeight) then
+          Continue;
+        X := Round(CenterX);
+        if (X < 0) or (X >= AWidth) then
+          Continue;
+
+        if ABinarized[X, Y] = 1 then
+        begin
+          if (CurrentState and 1) = 1 then
+            Inc(stateCount[CurrentState])
+          else if CurrentState = 2 then
+          begin
+            MaxCount := stateCount[0];
+            if stateCount[1] > MaxCount then MaxCount := stateCount[1];
+            if stateCount[2] > MaxCount then MaxCount := stateCount[2];
+            if (MaxCount > 0) and
+               (Abs(stateCount[0] - stateCount[1]) * 2 < MaxCount) and
+               (Abs(stateCount[1] - stateCount[2]) * 2 < MaxCount) then
+            begin
+              CenterY := Y - stateCount[2] - stateCount[1] / 2.0;
+              Confirmed := True;
+              Break;
+            end;
+            stateCount[0] := stateCount[2];
+            stateCount[1] := 1;
+            stateCount[2] := 0;
+            CurrentState := 1;
+          end
+          else
+          begin
+            Inc(CurrentState);
+            stateCount[CurrentState] := 1;
+          end;
+        end
+        else
+        begin
+          if (CurrentState and 1) = 0 then
+            Inc(stateCount[CurrentState])
+          else
+          begin
+            Inc(CurrentState);
+            stateCount[CurrentState] := 1;
+          end;
+        end;
+      end;
+
+      if Confirmed then
+      begin
+        AlignmentPattern.X := CenterX;
+        AlignmentPattern.Y := CenterY;
+        AlignmentPattern.EstimatedModuleSize := ModuleSize;
+        Result := True;
+        Exit;
+      end;
+    end;
+
+    // 扩大搜索半径
+    SearchRadius := SearchRadius * 2;
+    StartX := Round(BottomRightX - SearchRadius);
+    StartY := Round(BottomRightY - SearchRadius);
+  end;
+end;
+
+// 根据源四边形 4 点和目标四边形 4 点计算透视变换矩阵（对照 zxing 精确实现）
+function CnQRCalcPerspectiveTransform(const SrcPoints: array of TCnQRPointF;
+  const DstPoints: array of TCnQRPointF): TCnQRPerspectiveTransform;
+
+  // squareToQuadrilateral: (0,0)-(1,0)-(1,1)-(0,1) → 目标四边形
+  procedure SquareToQuad(const Pts: array of TCnQRPointF;
+    out T: TCnQRPerspectiveTransform);
+  var
+    dx1, dy1, dx2, dy2, dx3, dy3: Single;
+    denom, a13, a23: Single;
+  begin
+    dx3 := Pts[0].X - Pts[1].X + Pts[2].X - Pts[3].X;
+    dy3 := Pts[0].Y - Pts[1].Y + Pts[2].Y - Pts[3].Y;
+    if (Abs(dx3) < 1E-10) and (Abs(dy3) < 1E-10) then
+    begin
+      // 仿射
+      T.a11 := Pts[1].X - Pts[0].X;
+      T.a12 := Pts[3].X - Pts[0].X;
+      T.a13 := Pts[0].X;
+      T.a21 := Pts[1].Y - Pts[0].Y;
+      T.a22 := Pts[3].Y - Pts[0].Y;
+      T.a23 := Pts[0].Y;
+      T.a31 := 0;
+      T.a32 := 0;
+      T.a33 := 1;
+    end
+    else
+    begin
+      dx1 := Pts[1].X - Pts[2].X;
+      dx2 := Pts[3].X - Pts[2].X;
+      dy1 := Pts[1].Y - Pts[2].Y;
+      dy2 := Pts[3].Y - Pts[2].Y;
+      denom := dx1 * dy2 - dx2 * dy1;
+      if Abs(denom) < 1E-10 then
+      begin
+        // 退化为仿射
+        T.a11 := Pts[1].X - Pts[0].X;
+        T.a12 := Pts[3].X - Pts[0].X;
+        T.a13 := Pts[0].X;
+        T.a21 := Pts[1].Y - Pts[0].Y;
+        T.a22 := Pts[3].Y - Pts[0].Y;
+        T.a23 := Pts[0].Y;
+        T.a31 := 0;
+        T.a32 := 0;
+        T.a33 := 1;
+      end
+      else
+      begin
+        a13 := (dx3 * dy2 - dx2 * dy3) / denom;
+        a23 := (dx1 * dy3 - dx3 * dy1) / denom;
+        T.a11 := Pts[1].X - Pts[0].X + a13 * Pts[1].X;
+        T.a12 := Pts[3].X - Pts[0].X + a23 * Pts[3].X;
+        T.a13 := Pts[0].X;
+        T.a21 := Pts[1].Y - Pts[0].Y + a13 * Pts[1].Y;
+        T.a22 := Pts[3].Y - Pts[0].Y + a23 * Pts[3].Y;
+        T.a23 := Pts[0].Y;
+        T.a31 := a13;
+        T.a32 := a23;
+        T.a33 := 1;
+      end;
+    end;
+  end;
+
+  // buildAdjoint: 行主序(row-major)伴随矩阵 = 余子式矩阵的转置
+  procedure Adjoint(const T: TCnQRPerspectiveTransform;
+    out A: TCnQRPerspectiveTransform);
+  begin
+    // C[i][j] = (-1)^(i+j) * det(去掉行i列j后的子矩阵)
+    // adj = C^T
+    A.a11 := T.a22 * T.a33 - T.a23 * T.a32;   // C00
+    A.a12 := T.a13 * T.a32 - T.a12 * T.a33;   // C10 → adj[0][1]
+    A.a13 := T.a12 * T.a23 - T.a13 * T.a22;   // C20 → adj[0][2]
+    A.a21 := T.a23 * T.a31 - T.a21 * T.a33;   // C01 → adj[1][0]
+    A.a22 := T.a11 * T.a33 - T.a13 * T.a31;   // C11
+    A.a23 := T.a13 * T.a21 - T.a11 * T.a23;   // C21 → adj[1][2]
+    A.a31 := T.a21 * T.a32 - T.a22 * T.a31;   // C02 → adj[2][0]
+    A.a32 := T.a12 * T.a31 - T.a11 * T.a32;   // C12 → adj[2][1]
+    A.a33 := T.a11 * T.a22 - T.a12 * T.a21;   // C22
+  end;
+
+  // times: 矩阵乘法 this * other
+  function Multiply(const A, B: TCnQRPerspectiveTransform): TCnQRPerspectiveTransform;
+  begin
+    Result.a11 := A.a11 * B.a11 + A.a12 * B.a21 + A.a13 * B.a31;
+    Result.a12 := A.a11 * B.a12 + A.a12 * B.a22 + A.a13 * B.a32;
+    Result.a13 := A.a11 * B.a13 + A.a12 * B.a23 + A.a13 * B.a33;
+    Result.a21 := A.a21 * B.a11 + A.a22 * B.a21 + A.a23 * B.a31;
+    Result.a22 := A.a21 * B.a12 + A.a22 * B.a22 + A.a23 * B.a32;
+    Result.a23 := A.a21 * B.a13 + A.a22 * B.a23 + A.a23 * B.a33;
+    Result.a31 := A.a31 * B.a11 + A.a32 * B.a21 + A.a33 * B.a31;
+    Result.a32 := A.a31 * B.a12 + A.a32 * B.a22 + A.a33 * B.a32;
+    Result.a33 := A.a31 * B.a13 + A.a32 * B.a23 + A.a33 * B.a33;
+  end;
+
+var
+  SrcToSquare, SquareToDst: TCnQRPerspectiveTransform;
+begin
+  FillChar(SquareToDst, SizeOf(SquareToDst), 0);
+  SquareToQuad(SrcPoints, SquareToDst);
+  Adjoint(SquareToDst, SrcToSquare);
+
+  FillChar(SquareToDst, SizeOf(SquareToDst), 0);
+  SquareToQuad(DstPoints, SquareToDst);
+
+  Result := Multiply(SquareToDst, SrcToSquare);
+end;
+
+// 对单点执行透视变换
+function CnQRTransformPoint(const Transform: TCnQRPerspectiveTransform;
+  X, Y: Single): TCnQRPointF;
+var
+  Denominator: Single;
+begin
+  Denominator := Transform.a31 * X + Transform.a32 * Y + Transform.a33;
+  if Abs(Denominator) < 1E-10 then
+    Denominator := 1E-10;
+  Result.X := (Transform.a11 * X + Transform.a12 * Y + Transform.a13) / Denominator;
+  Result.Y := (Transform.a21 * X + Transform.a22 * Y + Transform.a23) / Denominator;
+end;
+
+// 根据透视变换对二值矩阵进行网格采样
+function CnQRSampleGrid(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer;
+  const Transform: TCnQRPerspectiveTransform;
+  ADimension: Integer): TCnQRData;
+var
+  Col, Row: Integer;
+  SrcPoint: TCnQRPointF;
+  PixelX, PixelY: Integer;
+begin
+  SetLength(Result, ADimension, ADimension);
+
+  // Transform 已为 dst→src 映射，直接应用获取源图像坐标
+  for Row := 0 to ADimension - 1 do
+  begin
+    for Col := 0 to ADimension - 1 do
+    begin
+      SrcPoint := CnQRTransformPoint(Transform, Col + 0.5, Row + 0.5);
+      PixelX := Round(SrcPoint.X);
+      PixelY := Round(SrcPoint.Y);
+
+      if (PixelX >= 0) and (PixelX < AWidth) and
+         (PixelY >= 0) and (PixelY < AHeight) then
+        Result[Col, Row] := ABinarized[PixelX, PixelY]
+      else
+        Result[Col, Row] := 0;
+    end;
+  end;
+end;
+
+// 估算模块尺寸（像素）
+function CnQRCalcModuleSize(const TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern): Double;
+begin
+  Result := (CnQRDistance(TopLeft, TopRight) / 14.0 +
+    CnQRDistance(TopLeft, BottomLeft) / 14.0) / 2.0;
+end;
+
+// 估算二维码矩阵维度
+function CnQRCalcDimension(const TopLeft, TopRight,
+  BottomLeft: TCnQRFinderPattern; ModuleSize: Double): Integer;
+var
+  Dim1, Dim2: Integer;
+begin
+  Dim1 := Round(CnQRDistance(TopLeft, TopRight) / ModuleSize + 7);
+  Dim2 := Round(CnQRDistance(TopLeft, BottomLeft) / ModuleSize + 7);
+  Result := (Dim1 + Dim2) div 2;
+  // 调整为满足 (Dim - 1) mod 4 = 0 的合法值
+  Result := ((Result - 1) div 4) * 4 + 1;
+  if Result < 21 then
+    Result := 21;
+end;
+
+// 从灰度图像端到端解码二维码文本。内部串联二值化→检测→采样→矩阵解码
+function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRGrayImage): string;
+var
+  Binarized: TCnQRData;
+  Width, Height, Dimension: Integer;
+  TopLeft, TopRight, BottomLeft: TCnQRFinderPattern;
+  AlignmentPattern: TCnQRAlignmentPattern;
+  ModuleSize: Double;
+  SrcPoints: array[0..3] of TCnQRPointF;
+  DstPoints: array[0..3] of TCnQRPointF;
+  Transform: TCnQRPerspectiveTransform;
+  QRData: TCnQRData;
+  HasAlignment: Boolean;
+  I, DimCand: Integer;
+  ModCand1, ModCand2, MinFrac: Double;
+begin
+  if (AGrayImage.Width < 21) or (AGrayImage.Height < 21) then
+    raise ECnQRCodeException.Create(SCnErrorQRImageTooSmallMin21X21);
+
+  // Step 1: 二值化
+  Binarized := CnQRBinarize(AGrayImage, Width, Height);
+
+  try
+    // Step 2: 寻像图案定位
+    if not CnQRFindFinderPatterns(Binarized, Width, Height,
+      TopLeft, TopRight, BottomLeft) then
+      raise ECnQRCodeException.Create(SCnErrorQRNoFinderPatternsFound);
+
+    // Step 3: 枚举合法维度(21,25,29,33,37)找最佳匹配
+    // 中心间距(像素) / (维度-7) = 模块尺寸(像素)
+    ModuleSize := CnQRDistance(TopLeft, TopRight) / 14.0;
+    Dimension := 21;
+    MinFrac := 999;
+    for I := 0 to 4 do
+    begin
+      DimCand := 21 + I * 4;
+      ModCand1 := CnQRDistance(TopLeft, TopRight) / (DimCand - 7);
+      ModCand2 := CnQRDistance(TopLeft, BottomLeft) / (DimCand - 7);
+      if Abs(Frac(ModCand1)) + Abs(Frac(ModCand2)) < MinFrac then
+      begin
+        MinFrac := Abs(Frac(ModCand1)) + Abs(Frac(ModCand2));
+        ModuleSize := (ModCand1 + ModCand2) / 2.0;
+        Dimension := DimCand;
+      end;
+    end;
+    if ModuleSize < 1.0 then
+      raise ECnQRCodeException.Create(SCnErrorQRModuleSizeTooSmall);
+
+    // Step 4: 对齐图案定位
+    HasAlignment := CnQRFindAlignmentPattern(Binarized, Width, Height,
+      TopLeft, TopRight, BottomLeft, AlignmentPattern);
+
+    // Step 5: 构建源四点
+    SrcPoints[0].X := TopLeft.X;
+    SrcPoints[0].Y := TopLeft.Y;
+    SrcPoints[1].X := TopRight.X;
+    SrcPoints[1].Y := TopRight.Y;
+    SrcPoints[2].X := BottomLeft.X;
+    SrcPoints[2].Y := BottomLeft.Y;
+    if HasAlignment then
+    begin
+      SrcPoints[3].X := AlignmentPattern.X;
+      SrcPoints[3].Y := AlignmentPattern.Y;
+    end
+    else
+    begin
+      // 无对齐图案时估算右下角
+      SrcPoints[3].X := TopRight.X - TopLeft.X + BottomLeft.X;
+      SrcPoints[3].Y := TopRight.Y - TopLeft.Y + BottomLeft.Y;
+    end;
+
+    // 目标四点：寻像图案中心在模块(3.5, 3.5)，TR在(Dim-3.5, 3.5)
+    DstPoints[0].X := 3.5;
+    DstPoints[0].Y := 3.5;
+    DstPoints[1].X := Dimension - 3.5;
+    DstPoints[1].Y := 3.5;
+    DstPoints[2].X := 3.5;
+    DstPoints[2].Y := Dimension - 3.5;
+    DstPoints[3].X := Dimension - 3.5;
+    DstPoints[3].Y := Dimension - 3.5;
+
+    // Step 6: 透视变换
+    Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
+
+    // Step 7: 网格采样
+    QRData := CnQRSampleGrid(Binarized, Width, Height, Transform, Dimension);
+
+    // Step 8: 矩阵解码
+    Result := CnQRDecodeFromMatrix(QRData);
+  finally
+    SetLength(Binarized, 0);
+    SetLength(QRData, 0);
   end;
 end;
 

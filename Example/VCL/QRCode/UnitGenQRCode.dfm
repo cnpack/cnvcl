@@ -101,10 +101,19 @@ object FormQRTest: TFormQRTest
     Left = 560
     Top = 180
     Width = 161
-    Height = 57
+    Height = 33
     Caption = 'Test Decode Matrix'
     TabOrder = 4
     OnClick = btnTestDecodeClick
+  end
+  object btnTestDecodeImage: TButton
+    Left = 560
+    Top = 218
+    Width = 161
+    Height = 33
+    Caption = 'Test Decode Image'
+    TabOrder = 5
+    OnClick = btnTestDecodeImageClick
   end
   object mmoDecodeResult: TMemo
     Left = 440
@@ -112,7 +121,7 @@ object FormQRTest: TFormQRTest
     Width = 281
     Height = 177
     ReadOnly = True
-    TabOrder = 5
+    TabOrder = 6
   end
   object dlgColor: TColorDialog
     Ctl3D = True
