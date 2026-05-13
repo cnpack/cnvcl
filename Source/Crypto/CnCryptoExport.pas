@@ -3138,6 +3138,7 @@ var
   BK512: TCnBLAKE512Digest;
   B2S: TCnBLAKE2SDigest;
   B2B: TCnBLAKE2BDigest;
+  B3: TCnBLAKE3Digest;
   XX32: TCnXXH32Digest;
   XX64: TCnXXH64Digest;
 begin
@@ -3387,7 +3388,6 @@ var
   BK512: TCnBLAKE512Digest;
   B2S: TCnBLAKE2SDigest;
   B2B: TCnBLAKE2BDigest;
-  B3: TCnBLAKE3Digest;
 begin
   if (key = nil) or (data = nil) then
   begin

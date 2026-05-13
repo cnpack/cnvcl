@@ -349,7 +349,7 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_base32_decode(uint8_t* in_ptr, TCnSize i
 /* 解码 Base32 字符串为二进制数据。
 
    参数：
-     in_ptr: uint8_t*                       - 输入 Base64 数据指针（ASCII）
+     in_ptr: uint8_t*                       - 输入 Base32 数据指针（ASCII）
      in_len: TCnSize                        - 输入字节长度
      out_ptr: uint8_t*                      - 输出二进制缓冲区
      cap: TCnSize                           - 输出缓冲区容量，单位字节
