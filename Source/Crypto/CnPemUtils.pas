@@ -643,7 +643,8 @@ end;
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
 var
-  L, I, V: Byte;
+  L: Integer;
+  I, V: Byte;
   Valid: Boolean;
 begin
   Result := Str;
@@ -661,11 +662,13 @@ begin
   // 修复：原代码只检查最后一个字节，未验证中间字节是否一致
   Valid := True;
   for I := 1 to V do
+  begin
     if Ord(Result[L - I + 1]) <> V then
     begin
       Valid := False;
       Break;
     end;
+  end;
 
   if Valid then
     Delete(Result, L - V + 1, V);
