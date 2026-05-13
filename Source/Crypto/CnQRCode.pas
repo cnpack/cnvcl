@@ -72,6 +72,126 @@ type
   TCnQRWideCharMode = (cqwUtf8, cqwAnsi);
   {* 宽字符的编码模式，默认 Utf8。后者直接转 Ansi，如是汉字则是 GB18030 编码}
 
+  {* ---- 以下类型用于二维码解码 ----}
+  TCnQRFormatInfo = record
+    ErrorLevel: TCnErrorRecoveryLevel;
+    MaskType: Integer;
+  end;
+  {* QR码格式信息，包含纠错级别和掩码类型（0..7）}
+
+  TCnQRFinderPattern = record
+    X: Double;
+    Y: Double;
+    EstimatedModuleSize: Double;
+    ConfirmedCount: Integer;
+  end;
+  {* 寻像图案记录，包含中心坐标、估算模块尺寸和确认计数}
+
+  TCnQRAlignmentPattern = record
+    X: Double;
+    Y: Double;
+    EstimatedModuleSize: Double;
+  end;
+  {* 对齐图案记录，包含中心坐标和估算模块尺寸}
+
+  TCnQRPerspectiveTransform = record
+    a11, a12, a13: Single;
+    a21, a22, a23: Single;
+    a31, a32, a33: Single;
+  end;
+  {* 3x3 透视变换矩阵（单精度浮点数），用于四边形到四边形映射}
+
+  TCnQRDecodeMode = (
+    qrmTerminator,
+    qrmNumeric,
+    qrmAlphaNumeric,
+    qrmStructuredAppend,
+    qrmByte,
+    qrmECI,
+    qrmKanji,
+    qrmFNC1First,
+    qrmFNC1Second,
+    qrmHanzi
+  );
+  {* 解码模式枚举，对应 QR 码规范中 4 位模式指示符的各种编码模式}
+
+  TDataBlockArray = array of TBytes;
+  {* 数据块数组，每个元素为一个数据块的字节序列}
+
+  TCnQRDecoder = class
+  {* 二维码解码器类，负责从 TCnQRData 矩阵解码出文本内容}
+  private
+    FQRData: TCnQRData;
+    FQRSize: Integer;
+    FFormatInfo: TCnQRFormatInfo;
+    FQRVersion: TCnQRCodeVersion;
+    FIsMirrored: Boolean;
+    FErrorMessage: string;
+
+    // 格式信息解码
+    function ReadFormatInformation: Boolean;
+    function ExtractFormatBits(AX, AY: Integer; ACount: Integer): Integer;
+    function DecodeFormatInfo(MaskedInfo1, MaskedInfo2: Integer): Boolean;
+
+    // 版本信息解码
+    function ReadVersion: Boolean;
+    function ExtractVersionBits(AStartCol, AStartRow: Integer): Integer;
+    function DecodeVersion(VersionBits1, VersionBits2: Integer): Boolean;
+
+    // 去掩码
+    function GetMaskPattern(X, Y, MaskType: Integer): Boolean;
+    function IsFunctionArea(X, Y: Integer): Boolean;
+    procedure UnmaskMatrix;
+
+    // 码字读取
+    function ReadCodewords: TBytes;
+
+    // 数据块划分
+    procedure SplitDataBlocks(const RawCodewords: TBytes;
+      var Blocks: array of TBytes; var BlockCount: Integer;
+      var ECCPerBlock: Integer);
+
+    // RS 纠错
+    function RSDecodeBlock(var Data: TBytes; ECCount: Integer): Boolean;
+    function GFMul(A, B: Integer): Integer;
+    function GFDiv(A, B: Integer): Integer;
+    function GFExp(N: Integer): Integer;
+    function GFLog(N: Integer): Integer;
+    function GFInv(N: Integer): Integer;
+
+    // 比特流解析
+    function DecodeDataStream(const DataBytes: TBytes): string;
+    function ReadBits(var BitPos: Integer; NumBits: Integer;
+      const DataBytes: TBytes): Integer;
+    function GetCharCountBits(AMode: TCnQRDecodeMode): Integer;
+    function DecodeNumericSegment(var BitPos: Integer; ACount: Integer;
+      const DataBytes: TBytes): string;
+    function DecodeAlphaNumericSegment(var BitPos: Integer; ACount: Integer;
+      const DataBytes: TBytes): string;
+    function DecodeByteSegment(var BitPos: Integer; ACount: Integer;
+      const DataBytes: TBytes): string;
+    function DecodeKanjiSegment(var BitPos: Integer; ACount: Integer;
+      const DataBytes: TBytes): string;
+    function DecodeHanziSegment(var BitPos: Integer; ACount: Integer;
+      const DataBytes: TBytes): string;
+
+    // 镜像处理
+    procedure MirrorMatrix;
+
+  public
+    constructor Create;
+    function DecodeMatrix(const AQRData: TCnQRData): string;
+
+    property IsMirrored: Boolean read FIsMirrored;
+    {* 是否通过镜像重试解码成功}
+    property QRVersion: TCnQRCodeVersion read FQRVersion;
+    {* 解码得到的二维码版本号}
+    property FormatInfo: TCnQRFormatInfo read FFormatInfo;
+    {* 解码得到的格式信息（纠错级别和掩码类型）}
+    property ErrorMessage: string read FErrorMessage;
+    {* 最后一次解码失败的错误信息}
+  end;
+
   TCnQREncoder = class
   {* 二维码编码实现类}
   private
@@ -224,6 +344,12 @@ type
     property MaskType: Integer read FMaskType;
     {* 掩码类型，有八种}
   end;
+
+{* ---- 解码全局函数 ----}
+function CnQRDecodeFromMatrix(const AQRData: TCnQRData): string;
+{* 从 TCnQRData 矩阵解码出文本。成功返回解码文本，失败抛出 ECnQRCodeException 异常}
+// function CnQRDecodeFromBitmap(const ABitmap: TBitmap): string;
+{* 从 TBitmap 图像解码二维码文本。成功返回解码文本，失败抛出 ECnQRCodeException 异常}
 
 implementation
 
@@ -656,6 +782,33 @@ const
     76, 152, 45, 90, 180, 117, 234, 201, 143, 3, 6, 12, 24, 48, 96, 192, 157,
     39, 78, 156, 37, 74, 148, 53, 106, 212, 181, 119, 238, 193, 159, 35, 70
   );
+
+  // 格式信息解码查找表：已异或掩码 0x5412 的 BCH 码字 -> 格式信息值
+  // 原始数据 bits[4..3]=纠错级别(01=L,00=M,11=Q,10=H), bits[2..0]=掩码类型
+  CN_FORMAT_INFO_DECODE_LOOKUP: array[0..31, 0..1] of Integer = (
+    ($5412, $00), ($5125, $01), ($5E7C, $02), ($5B4B, $03),
+    ($45F9, $04), ($40CE, $05), ($4F97, $06), ($4AA0, $07),
+    ($77C4, $08), ($72F3, $09), ($7DAA, $0A), ($789D, $0B),
+    ($662F, $0C), ($6318, $0D), ($6C41, $0E), ($6976, $0F),
+    ($1689, $10), ($13BE, $11), ($1CE7, $12), ($19D0, $13),
+    ($0762, $14), ($0255, $15), ($0D0C, $16), ($083B, $17),
+    ($355F, $18), ($3068, $19), ($3F31, $1A), ($3A06, $1B),
+    ($24B4, $1C), ($2183, $1D), ($2EDA, $1E), ($2BED, $1F));
+  {* 格式信息解码查找表，用于汉明距离匹配。第 0 列为已异或掩码的 15 位 BCH 码字，
+     第 1 列为原始 5 位数据（高 2 位=纠错级别，低 3 位=掩码类型）}
+
+  // 版本信息解码查找表（索引 0 对应版本 7，按顺序到版本 40）
+  CN_VERSION_DECODE_INFO: array[0..33] of Integer = (
+    $07C94, $085BC, $09A99, $0A4D3, $0BBF6,
+    $0C762, $0D847, $0E60D, $0F928, $10B78,
+    $1145D, $12A17, $13532, $149A6, $15683,
+    $168C9, $177EC, $18EC4, $191E1, $1AFAB,
+    $1B08E, $1CC1A, $1D33F, $1ED75, $1F250,
+    $209D5, $216F0, $228BA, $2379F, $24B0B,
+    $2542E, $26A64, $27541, $28C69);
+  {* 版本信息解码查找表，用于汉明距离匹配。
+     索引 0 对应版本 7，索引 33 对应版本 40。
+     值为 18 位 BCH 编码后的版本信息码字。}
 
 function GetQRSizeFromVersion(Version: TCnQRCodeVersion): Integer;
 begin
@@ -2378,6 +2531,1230 @@ begin
   end
   else
     FRawText := AnsiString(FText);
+end;
+
+{ ---- 二维码解码函数 ---- }
+
+function CnQRHammingDistance(A, B, ABitCount: Integer): Integer;
+var
+  XorVal: Integer;
+  I: Integer;
+begin
+  XorVal := A xor B;
+  Result := 0;
+  for I := 0 to ABitCount - 1 do
+  begin
+    if (XorVal and (1 shl I)) <> 0 then
+      Inc(Result);
+  end;
+end;
+{* 计算两个整数低 ABitCount 位的汉明距离（异或后 1 的个数）}
+
+{ TCnQRDecoder }
+
+constructor TCnQRDecoder.Create;
+begin
+  inherited;
+  FQRSize := 0;
+  FQRVersion := 1;
+  FIsMirrored := False;
+  FErrorMessage := '';
+end;
+{* 构造函数，初始化内部变量}
+
+function TCnQRDecoder.GFMul(A, B: Integer): Integer;
+begin
+  if (A = 0) or (B = 0) then
+    Result := 0
+  else
+    Result := CN_EXP_TABLE[(CN_LOG_TABLE[A] + CN_LOG_TABLE[B]) mod 255];
+end;
+{* GF(2^8) 乘法：LOG[A] + LOG[B] mod 255 后查 EXP 表，0 元素特殊处理}
+
+function TCnQRDecoder.GFDiv(A, B: Integer): Integer;
+begin
+  if (A = 0) or (B = 0) then
+    Result := 0
+  else
+    Result := CN_EXP_TABLE[(CN_LOG_TABLE[A] - CN_LOG_TABLE[B] + 255) mod 255];
+end;
+{* GF(2^8) 除法：LOG[A] - LOG[B] + 255 mod 255 后查 EXP 表}
+
+function TCnQRDecoder.GFExp(N: Integer): Integer;
+begin
+  Result := CN_EXP_TABLE[N mod 255];
+end;
+{* GF(2^8) 指数：查 CN_EXP_TABLE[N mod 255]}
+
+function TCnQRDecoder.GFLog(N: Integer): Integer;
+begin
+  Result := CN_LOG_TABLE[N];
+end;
+{* GF(2^8) 对数：查 CN_LOG_TABLE[N]}
+
+function TCnQRDecoder.GFInv(N: Integer): Integer;
+begin
+  Result := CN_EXP_TABLE[255 - CN_LOG_TABLE[N]];
+end;
+{* GF(2^8) 乘法逆元：CN_EXP_TABLE[255 - CN_LOG_TABLE[N]]}
+
+function TCnQRDecoder.ExtractFormatBits(AX, AY: Integer; ACount: Integer): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to ACount - 1 do
+  begin
+    if (AX >= 0) and (AX < FQRSize) and (AY >= 0) and (AY < FQRSize) then
+      Result := (Result shl 1) or FQRData[AX, AY];
+    Inc(AX);
+  end;
+end;
+{* 从指定起始位置水平方向读取 ACount 位格式信息位序列，MSB 优先}
+
+function TCnQRDecoder.DecodeFormatInfo(MaskedInfo1, MaskedInfo2: Integer): Boolean;
+var
+  I, Dist1, Dist2, BestDist1, BestDist2, BestIdx1, BestIdx2: Integer;
+  RawVal1: Integer;
+begin
+  BestDist1 := MaxInt;
+  BestDist2 := MaxInt;
+  BestIdx1 := 0;
+  BestIdx2 := 0;
+  for I := 0 to 31 do
+  begin
+    Dist1 := CnQRHammingDistance(MaskedInfo1, CN_FORMAT_INFO_DECODE_LOOKUP[I, 0], 15);
+    Dist2 := CnQRHammingDistance(MaskedInfo2, CN_FORMAT_INFO_DECODE_LOOKUP[I, 0], 15);
+    if Dist1 < BestDist1 then
+    begin
+      BestDist1 := Dist1;
+      BestIdx1 := I;
+    end;
+    if Dist2 < BestDist2 then
+    begin
+      BestDist2 := Dist2;
+      BestIdx2 := I;
+    end;
+  end;
+
+  // 两份中选最小距离的
+  if BestDist1 <= BestDist2 then
+  begin
+    if BestDist1 > 3 then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RawVal1 := CN_FORMAT_INFO_DECODE_LOOKUP[BestIdx1, 1];
+  end
+  else
+  begin
+    if BestDist2 > 3 then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RawVal1 := CN_FORMAT_INFO_DECODE_LOOKUP[BestIdx2, 1];
+  end;
+
+  // 解析纠错级别和掩码类型
+  case (RawVal1 shr 3) and $03 of
+    1: FFormatInfo.ErrorLevel := erlL;
+    0: FFormatInfo.ErrorLevel := erlM;
+    3: FFormatInfo.ErrorLevel := erlQ;
+    2: FFormatInfo.ErrorLevel := erlH;
+  else
+    FFormatInfo.ErrorLevel := erlM;
+  end;
+  FFormatInfo.MaskType := RawVal1 and $07;
+  Result := True;
+end;
+{* 对两份掩码后的 15 位格式信息进行汉明距离匹配解码}
+
+function TCnQRDecoder.ReadFormatInformation: Boolean;
+var
+  MaskedInfo1, MaskedInfo2: Integer;
+  I: Integer;
+begin
+  // 读取第一份格式信息（15 位），位顺序对照 zxing FormatInformation.java：
+  // 水平方向：行 8，列 0..5 → bits 0-5
+  // 列 7 行 8 → bit 6，列 8 行 8 → bit 7
+  // 垂直方向：列 8，行 7 → bit 8
+  // 列 8，行 5..0（逆序）→ bits 9-14
+  MaskedInfo1 := 0;
+  for I := 0 to 5 do
+    MaskedInfo1 := (MaskedInfo1 shl 1) or FQRData[I, 8];          // bits 0-5: (0..5, 8)
+  MaskedInfo1 := (MaskedInfo1 shl 1) or FQRData[7, 8];            // bit 6: (7, 8)
+  MaskedInfo1 := (MaskedInfo1 shl 1) or FQRData[8, 8];            // bit 7: (8, 8)
+  MaskedInfo1 := (MaskedInfo1 shl 1) or FQRData[8, 7];            // bit 8: (8, 7)
+  for I := 5 downto 0 do
+    MaskedInfo1 := (MaskedInfo1 shl 1) or FQRData[8, I];          // bits 9-14: (8, 5..0)
+
+  // 读取第二份格式信息（15 位）：
+  // 垂直方向：列 8，行 Size-1..Size-7 → bits 0-6
+  // 水平方向：行 8，列 Size-8..Size-1 → bits 7-14
+  MaskedInfo2 := 0;
+  for I := 0 to 6 do
+    MaskedInfo2 := (MaskedInfo2 shl 1) or FQRData[8, FQRSize - 1 - I];  // bits 0-6: (8, Size-1..Size-7)
+  for I := 0 to 7 do
+    MaskedInfo2 := (MaskedInfo2 shl 1) or FQRData[FQRSize - 8 + I, 8];  // bits 7-14: (Size-8..Size-1, 8)
+
+  Result := DecodeFormatInfo(MaskedInfo1, MaskedInfo2);
+end;
+{* 从矩阵中读取两份格式信息并解码}
+
+function TCnQRDecoder.ExtractVersionBits(AStartCol, AStartRow: Integer): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to 17 do
+  begin
+    Result := (Result shl 1) or
+      FQRData[AStartCol + (I mod 3), AStartRow + (I div 3)];
+  end;
+end;
+{* 从指定位置提取 18 位版本信息位序列，按标准存储布局组合 3 列 x 6 行}
+
+function TCnQRDecoder.DecodeVersion(VersionBits1, VersionBits2: Integer): Boolean;
+var
+  I, Dist1, Dist2, BestDist1, BestDist2, BestIdx1, BestIdx2: Integer;
+begin
+  BestDist1 := MaxInt;
+  BestDist2 := MaxInt;
+  BestIdx1 := 0;
+  BestIdx2 := 0;
+  for I := 0 to 33 do
+  begin
+    Dist1 := CnQRHammingDistance(VersionBits1, CN_VERSION_DECODE_INFO[I], 18);
+    Dist2 := CnQRHammingDistance(VersionBits2, CN_VERSION_DECODE_INFO[I], 18);
+    if Dist1 < BestDist1 then
+    begin
+      BestDist1 := Dist1;
+      BestIdx1 := I;
+    end;
+    if Dist2 < BestDist2 then
+    begin
+      BestDist2 := Dist2;
+      BestIdx2 := I;
+    end;
+  end;
+
+  // 选最小距离的匹配结果
+  if BestDist1 <= BestDist2 then
+  begin
+    if BestDist1 > 3 then
+    begin
+      Result := False;
+      Exit;
+    end;
+    FQRVersion := BestIdx1 + 7;
+  end
+  else
+  begin
+    if BestDist2 > 3 then
+    begin
+      Result := False;
+      Exit;
+    end;
+    FQRVersion := BestIdx2 + 7;
+  end;
+
+  // 验证版本号对应的矩阵尺寸
+  if FQRSize <> FQRVersion * 4 + 17 then
+  begin
+    Result := False;
+    Exit;
+  end;
+  Result := True;
+end;
+{* 对两份 18 位版本信息进行汉明距离匹配解码}
+
+function TCnQRDecoder.ReadVersion: Boolean;
+var
+  VersionBits1, VersionBits2: Integer;
+begin
+  // 版本 <= 6 由尺寸直接推算
+  if FQRSize <= 41 then
+  begin
+    FQRVersion := (FQRSize - 17) div 4;
+    if (FQRVersion >= 1) and (FQRVersion <= 40) then
+      Result := True
+    else
+      Result := False;
+    Exit;
+  end;
+
+  // 版本 >= 7，从两份位置读取 18 位版本信息
+  VersionBits1 := ExtractVersionBits(FQRSize - 11, 0);
+  VersionBits2 := ExtractVersionBits(0, FQRSize - 11);
+  Result := DecodeVersion(VersionBits1, VersionBits2);
+end;
+{* 读取并解码版本信息}
+
+function TCnQRDecoder.GetMaskPattern(X, Y, MaskType: Integer): Boolean;
+begin
+  case MaskType of
+    0:
+      Result := (X + Y) mod 2 = 0;
+    1:
+      Result := Y mod 2 = 0;
+    2:
+      Result := X mod 3 = 0;
+    3:
+      Result := (X + Y) mod 3 = 0;
+    4:
+      Result := ((Y div 2) + (X div 3)) mod 2 = 0;
+    5:
+      Result := ((X * Y) mod 2) + ((X * Y) mod 3) = 0;
+    6:
+      Result := (((X * Y) mod 2) + ((X * Y) mod 3)) mod 2 = 0;
+    7:
+      Result := (((X + Y) mod 2) + ((X * Y) mod 3)) mod 2 = 0;
+  else
+    Result := False;
+  end;
+end;
+{* 获取指定位置在指定掩码类型下的掩码值，与编码器中的逻辑完全一致}
+
+function TCnQRDecoder.IsFunctionArea(X, Y: Integer): Boolean;
+var
+  I, J, AlignCount: Integer;
+  Arr2Ptr: PCn2BytesArray;
+  Arr3Ptr: PCn3BytesArray;
+  Arr4Ptr: PCn4BytesArray;
+  Arr5Ptr: PCn5BytesArray;
+  Arr6Ptr: PCn6BytesArray;
+  Arr7Ptr: PCn7BytesArray;
+  AlignCoords: array of Integer;
+begin
+  Result := True;
+
+  // 边界检查
+  if (X < 0) or (X >= FQRSize) or (Y < 0) or (Y >= FQRSize) then
+    Exit;
+
+  // 左上角位置探测图形 7x7
+  if (X <= 7) and (Y <= 7) then
+    Exit;
+
+  // 右上角位置探测图形 7x7
+  if (X >= FQRSize - 8) and (Y <= 7) then
+    Exit;
+
+  // 左下角位置探测图形 7x7
+  if (X <= 7) and (Y >= FQRSize - 8) then
+    Exit;
+
+  // 时序图案：第6行和第6列
+  if (X = 6) or (Y = 6) then
+    Exit;
+
+  // 格式信息区域
+  if (Y = 8) and ((X <= 5) or (X = 7) or (X = 8)) then
+    Exit;
+  if (X = 8) and ((Y <= 5) or (Y = 7) or (Y = 8)) then
+    Exit;
+  if (Y = 8) and (X >= FQRSize - 8) then
+    Exit;
+  if (X = 8) and (Y >= FQRSize - 8) then
+    Exit;
+
+  // 版本信息区域（版本 7 及以上）
+  if FQRVersion >= 7 then
+  begin
+    if (X >= FQRSize - 11) and (X <= FQRSize - 9) and (Y >= 0) and (Y <= 5) then
+      Exit;
+    if (X >= 0) and (X <= 5) and (Y >= FQRSize - 11) and (Y <= FQRSize - 9) then
+      Exit;
+  end;
+
+  // 对齐图案区域
+  AlignCount := 0;
+  case FQRVersion of
+    2..6:
+      begin
+        Arr2Ptr := CN_ALIGNMENT_PATTERN_2ARRAY[FQRVersion];
+        SetLength(AlignCoords, 2);
+        AlignCoords[0] := Arr2Ptr^[0];
+        AlignCoords[1] := Arr2Ptr^[1];
+        AlignCount := 2;
+      end;
+    7..13:
+      begin
+        Arr3Ptr := CN_ALIGNMENT_PATTERN_3ARRAY[FQRVersion];
+        SetLength(AlignCoords, 3);
+        AlignCoords[0] := Arr3Ptr^[0];
+        AlignCoords[1] := Arr3Ptr^[1];
+        AlignCoords[2] := Arr3Ptr^[2];
+        AlignCount := 3;
+      end;
+    14..20:
+      begin
+        Arr4Ptr := CN_ALIGNMENT_PATTERN_4ARRAY[FQRVersion];
+        SetLength(AlignCoords, 4);
+        AlignCoords[0] := Arr4Ptr^[0];
+        AlignCoords[1] := Arr4Ptr^[1];
+        AlignCoords[2] := Arr4Ptr^[2];
+        AlignCoords[3] := Arr4Ptr^[3];
+        AlignCount := 4;
+      end;
+    21..27:
+      begin
+        Arr5Ptr := CN_ALIGNMENT_PATTERN_5ARRAY[FQRVersion];
+        SetLength(AlignCoords, 5);
+        AlignCoords[0] := Arr5Ptr^[0];
+        AlignCoords[1] := Arr5Ptr^[1];
+        AlignCoords[2] := Arr5Ptr^[2];
+        AlignCoords[3] := Arr5Ptr^[3];
+        AlignCoords[4] := Arr5Ptr^[4];
+        AlignCount := 5;
+      end;
+    28..34:
+      begin
+        Arr6Ptr := CN_ALIGNMENT_PATTERN_6ARRAY[FQRVersion];
+        SetLength(AlignCoords, 6);
+        AlignCoords[0] := Arr6Ptr^[0];
+        AlignCoords[1] := Arr6Ptr^[1];
+        AlignCoords[2] := Arr6Ptr^[2];
+        AlignCoords[3] := Arr6Ptr^[3];
+        AlignCoords[4] := Arr6Ptr^[4];
+        AlignCoords[5] := Arr6Ptr^[5];
+        AlignCount := 6;
+      end;
+    35..40:
+      begin
+        Arr7Ptr := CN_ALIGNMENT_PATTERN_7ARRAY[FQRVersion];
+        SetLength(AlignCoords, 7);
+        AlignCoords[0] := Arr7Ptr^[0];
+        AlignCoords[1] := Arr7Ptr^[1];
+        AlignCoords[2] := Arr7Ptr^[2];
+        AlignCoords[3] := Arr7Ptr^[3];
+        AlignCoords[4] := Arr7Ptr^[4];
+        AlignCoords[5] := Arr7Ptr^[5];
+        AlignCoords[6] := Arr7Ptr^[6];
+        AlignCount := 7;
+      end;
+  end;
+
+  // 检查是否在对齐图案区域内（5x5区域）
+  for I := 0 to AlignCount - 1 do
+  begin
+    for J := 0 to AlignCount - 1 do
+    begin
+      // 排除与寻像图案重叠的位置
+      if ((AlignCoords[I] = 6) and (AlignCoords[J] = 6)) or
+        ((AlignCoords[I] = 6) and (AlignCoords[J] = FQRSize - 7)) or
+        ((AlignCoords[I] = FQRSize - 7) and (AlignCoords[J] = 6)) then
+        Continue;
+
+      if (X >= AlignCoords[I] - 2) and (X <= AlignCoords[I] + 2) and
+        (Y >= AlignCoords[J] - 2) and (Y <= AlignCoords[J] + 2) then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+
+  Result := False;
+end;
+{* 判断指定位置是否属于功能区域（寻像图案/时序图案/格式信息/版本信息/对齐图案）}
+
+procedure TCnQRDecoder.UnmaskMatrix;
+var
+  X, Y, MaskType: Integer;
+begin
+  MaskType := FFormatInfo.MaskType;
+  for X := 0 to FQRSize - 1 do
+  begin
+    for Y := 0 to FQRSize - 1 do
+    begin
+      if not IsFunctionArea(X, Y) then
+      begin
+        if GetMaskPattern(X, Y, MaskType) then
+          FQRData[X, Y] := 1 - FQRData[X, Y];
+      end;
+    end;
+  end;
+end;
+{* 对非功能区域按 8 种掩码规则之一执行位翻转（XOR），还原原始数据}
+
+function TCnQRDecoder.ReadCodewords: TBytes;
+var
+  BitIndex, Right, Vert, J, X, Y, CodeCount, MaxCodewords: Integer;
+  Upward: Boolean;
+  CurrentByte, BitsInCurrentByte: Integer;
+begin
+  MaxCodewords := CN_TOTAL_CODEWORDS[FQRVersion];
+  SetLength(Result, MaxCodewords);
+  BitsInCurrentByte := 0;
+  CurrentByte := 0;
+  CodeCount := 0;
+  Right := FQRSize - 1;
+
+  while (Right >= 1) and (CodeCount < MaxCodewords) do
+  begin
+    if Right = 6 then
+      Right := 5;  // 跳过时序图案列
+
+    Upward := ((Right + 1) and 2) = 0;
+
+    for Vert := 0 to FQRSize - 1 do
+    begin
+      for J := 0 to 1 do
+      begin
+        X := Right - J;
+        if Upward then
+          Y := FQRSize - 1 - Vert
+        else
+          Y := Vert;
+
+        if not IsFunctionArea(X, Y) then
+        begin
+          CurrentByte := (CurrentByte shl 1) or FQRData[X, Y];
+          Inc(BitsInCurrentByte);
+          if BitsInCurrentByte = 8 then
+          begin
+            if CodeCount < MaxCodewords then
+              Result[CodeCount] := CurrentByte;
+            Inc(CodeCount);
+            CurrentByte := 0;
+            BitsInCurrentByte := 0;
+          end;
+        end;
+      end;
+    end;
+    Dec(Right, 2);
+  end;
+end;
+{* 按 Z 字形路径从矩阵中读取码字字节序列}
+
+procedure TCnQRDecoder.SplitDataBlocks(const RawCodewords: TBytes;
+  var Blocks: array of TBytes; var BlockCount: Integer;
+  var ECCPerBlock: Integer);
+var
+  TotalCodewords, NumBlocks, ShortBlockLen, LongBlockLen: Integer;
+  NumLongBlocks, NumShortBlocks, ShortDataSize, LongDataSize: Integer;
+  I, J, K, BlockLen: Integer;
+begin
+  TotalCodewords := CN_TOTAL_CODEWORDS[FQRVersion];
+  NumBlocks := CN_NUM_ERROR_CORRECTION_BLOCKS[FQRVersion, Ord(FFormatInfo.ErrorLevel)];
+  ECCPerBlock := CN_ECC_CODEWORDS_PER_BLOCK[FQRVersion, Ord(FFormatInfo.ErrorLevel)];
+  BlockCount := NumBlocks;
+
+  // 计算短块和长块的数量与长度
+  ShortBlockLen := TotalCodewords div NumBlocks;
+  LongBlockLen := ShortBlockLen + 1;
+  NumLongBlocks := TotalCodewords mod NumBlocks;
+  NumShortBlocks := NumBlocks - NumLongBlocks;
+  ShortDataSize := ShortBlockLen - ECCPerBlock;
+  LongDataSize := LongBlockLen - ECCPerBlock;
+
+  // 初始化各块为空
+  for I := 0 to NumBlocks - 1 do
+    SetLength(Blocks[I], 0);
+
+  K := 0;
+
+  // 数据部分：按列优先分配所有块的数据码字，长块多一个数据字节
+  for I := 0 to LongDataSize - 1 do
+  begin
+    for J := 0 to NumBlocks - 1 do
+    begin
+      // 短块没有对应的数据位置时跳过
+      if (I >= ShortDataSize) and (J < NumShortBlocks) then
+        Continue;
+      if K < Length(RawCodewords) then
+      begin
+        BlockLen := Length(Blocks[J]);
+        SetLength(Blocks[J], BlockLen + 1);
+        Blocks[J][BlockLen] := RawCodewords[K];
+        Inc(K);
+      end;
+    end;
+  end;
+
+  // 纠错码部分：按列优先分配所有块的纠错码
+  for I := 0 to ECCPerBlock - 1 do
+  begin
+    for J := 0 to NumBlocks - 1 do
+    begin
+      if K < Length(RawCodewords) then
+      begin
+        BlockLen := Length(Blocks[J]);
+        SetLength(Blocks[J], BlockLen + 1);
+        Blocks[J][BlockLen] := RawCodewords[K];
+        Inc(K);
+      end;
+    end;
+  end;
+end;
+{* 将交错的码字序列按版本和纠错级别解交织划分为数据块}
+
+function TCnQRDecoder.RSDecodeBlock(var Data: TBytes; ECCount: Integer): Boolean;
+var
+  TwoS, I, J, K, N, ErrCount: Integer;
+  Syndrome: array of Integer;
+  ErrorLocations: array of Integer;
+  ErrorValues: array of Integer;
+  // Euclidean 算法多项式
+  PolyR0, PolyR1, PolyR2: array of Integer;
+  PolyT0, PolyT1, PolyT2: array of Integer;
+  DegR0, DegR1, DegR2: Integer;
+  DegT0, DegT1, DegT2: Integer;
+  LeadingCoeffQ, TempVal, TempDeg: Integer;
+  // Forney 用
+  Sigma, Omega: array of Integer;
+  DegSigma, DegOmega, SigmaPrimeVal: Integer;
+  // Chien 搜索
+  ErrorFound, AllSyndromeZero: Boolean;
+begin
+  TwoS := ECCount;
+  N := Length(Data);
+
+  // Step 1: 计算伴随式 Syndromes
+  SetLength(Syndrome, TwoS);
+  AllSyndromeZero := True;
+  for I := 0 to TwoS - 1 do
+  begin
+    Syndrome[I] := 0;
+    for J := 0 to N - 1 do
+      Syndrome[I] := Data[J] xor GFMul(Syndrome[I], GFExp(I + 1));
+    if Syndrome[I] <> 0 then
+      AllSyndromeZero := False;
+  end;
+
+  // 所有伴随式为 0，无错误
+  if AllSyndromeZero then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // Step 2: Euclidean 算法求解错误定位多项式 sigma(x) 和误差值多项式 omega(x)
+  // 初始化 r[-1] = x^(2t), r[0] = syndrome(x)
+  SetLength(PolyR0, TwoS + 1);
+  FillChar(PolyR0[0], (TwoS + 1) * SizeOf(Integer), 0);
+  PolyR0[TwoS] := 1;  // x^(2t)
+  DegR0 := TwoS;
+
+  SetLength(PolyR1, TwoS);
+  for I := 0 to TwoS - 1 do
+    PolyR1[I] := Syndrome[I];
+  DegR1 := TwoS - 1;
+  while (DegR1 >= 0) and (PolyR1[DegR1] = 0) do
+    Dec(DegR1);
+
+  // 初始化 t[-1] = 0, t[0] = 1
+  SetLength(PolyT0, 1);
+  PolyT0[0] := 0;
+  DegT0 := -1;  // 零多项式
+
+  SetLength(PolyT1, 1);
+  PolyT1[0] := 1;
+  DegT1 := 0;
+
+  // 迭代 Euclidean 算法直到 deg(r[k]) < t
+  while (DegR1 >= TwoS div 2) and (DegR1 >= 0) do
+  begin
+    // 计算商的首项系数
+    LeadingCoeffQ := GFDiv(PolyR0[DegR0], PolyR1[DegR1]);
+    TempDeg := DegR0 - DegR1;
+
+    // 保存当前的 r1 和 t1
+    SetLength(PolyR2, DegR1 + 1);
+    for I := 0 to DegR1 do
+      PolyR2[I] := PolyR1[I];
+    DegR2 := DegR1;
+
+    SetLength(PolyT2, DegT1 + 1);
+    for I := 0 to DegT1 do
+      PolyT2[I] := PolyT1[I];
+    DegT2 := DegT1;
+
+    // r0 = r0 - q * r1
+    for I := 0 to DegR1 do
+    begin
+      K := I + TempDeg;
+      if K <= DegR0 then
+        PolyR0[K] := PolyR0[K] xor GFMul(LeadingCoeffQ, PolyR1[I]);
+    end;
+    while (DegR0 >= 0) and (PolyR0[DegR0] = 0) do
+      Dec(DegR0);
+
+    // t0 = t0 - q * t1
+    for I := 0 to DegT1 do
+    begin
+      K := I + TempDeg;
+      if K >= Length(PolyT0) then
+        SetLength(PolyT0, K + 1);
+      PolyT0[K] := PolyT0[K] xor GFMul(LeadingCoeffQ, PolyT1[I]);
+    end;
+    DegT0 := DegT1 + TempDeg;
+    while (DegT0 >= 0) and (PolyT0[DegT0] = 0) do
+      Dec(DegT0);
+
+    // 交换：r1 -> r2(旧), r0 -> r1, r1(旧) -> r0
+    PolyR1 := PolyR0; DegR1 := DegR0;
+    PolyR0 := PolyR2; DegR0 := DegR2;
+
+    PolyT1 := PolyT0; DegT1 := DegT0;
+    PolyT0 := PolyT2; DegT0 := DegT2;
+  end;
+
+  // sigma(x) = t[k] / t[k](0), omega(x) = r[k] / t[k](0)
+  // 确保结果多项式系数从低次到高次排列
+  DegSigma := DegT1;
+  SetLength(Sigma, DegSigma + 1);
+  if (DegT1 >= 0) and (Length(PolyT1) > 0) and (PolyT1[0] <> 0) then
+  begin
+    for I := 0 to DegT1 do
+      Sigma[I] := GFDiv(PolyT1[I], PolyT1[0]);
+  end
+  else
+  begin
+    SetLength(Sigma, 1);
+    Sigma[0] := 1;
+    DegSigma := 0;
+  end;
+
+  DegOmega := DegR1;
+  SetLength(Omega, DegOmega + 1);
+  if (DegR1 >= 0) and (Length(PolyR1) > 0) and (PolyT1[0] <> 0) then
+  begin
+    for I := 0 to DegR1 do
+      Omega[I] := GFDiv(PolyR1[I], PolyT1[0]);
+  end
+  else
+  begin
+    DegOmega := -1;
+  end;
+
+  // Step 3: Chien 搜索找错误位置
+  ErrCount := 0;
+  SetLength(ErrorLocations, N);
+  for I := 0 to N - 1 do
+  begin
+    // 计算 sigma(alpha^(-i)) = sigma(alpha^(255-i))
+    TempVal := 0;
+    for J := 0 to DegSigma do
+      TempVal := TempVal xor GFMul(Sigma[J], GFExp((255 - I) * J mod 255));
+    if TempVal = 0 then
+    begin
+      ErrorLocations[ErrCount] := I;
+      Inc(ErrCount);
+    end;
+  end;
+
+  // 检查错误数量是否在纠错能力范围内
+  if ErrCount > TwoS div 2 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // Step 4: Forney 公式计算错误值
+  SetLength(ErrorValues, ErrCount);
+  ErrorFound := True;
+  for I := 0 to ErrCount - 1 do
+  begin
+    K := ErrorLocations[I];
+    // 计算 omega(xi^(-1))
+    TempVal := 0;
+    for J := 0 to DegOmega do
+      TempVal := TempVal xor GFMul(Omega[J], GFExp((255 - K) * J mod 255));
+
+    // 计算 sigma'(xi^(-1)) - 形式导数：偶数次项忽略，奇次项系数不变
+    SigmaPrimeVal := 0;
+    for J := 0 to DegSigma do
+    begin
+      if (J mod 2 = 1) then  // 奇次项
+        SigmaPrimeVal := SigmaPrimeVal xor
+          GFMul(Sigma[J], GFExp((255 - K) * (J - 1) mod 255));
+    end;
+
+    if SigmaPrimeVal <> 0 then
+      ErrorValues[I] := GFDiv(TempVal, SigmaPrimeVal)
+    else
+    begin
+      ErrorFound := False;
+      Break;
+    end;
+  end;
+
+  if not ErrorFound then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // Step 5: 修复错误
+  for I := 0 to ErrCount - 1 do
+  begin
+    K := ErrorLocations[I];
+      if (K >= 0) and (K < N) then
+        Data[N - 1 - K] := Data[N - 1 - K] xor ErrorValues[I];
+  end;
+
+  Result := True;
+end;
+{* 对数据块执行 GF(2^8) Reed-Solomon 纠错（Euclidean 算法 + Chien 搜索 + Forney 公式）}
+
+function TCnQRDecoder.ReadBits(var BitPos: Integer; NumBits: Integer;
+  const DataBytes: TBytes): Integer;
+var
+  I, ByteIndex, BitOffset: Integer;
+begin
+  Result := 0;
+  for I := 0 to NumBits - 1 do
+  begin
+    ByteIndex := BitPos div 8;
+    BitOffset := 7 - (BitPos mod 8);
+    if (ByteIndex >= 0) and (ByteIndex < Length(DataBytes)) then
+      Result := (Result shl 1) or ((DataBytes[ByteIndex] shr BitOffset) and 1)
+    else
+      Result := Result shl 1;
+    Inc(BitPos);
+  end;
+end;
+{* 从数据字节流的 BitPos 位置读取 NumBits 位（大端序），返回整数值}
+
+function TCnQRDecoder.GetCharCountBits(AMode: TCnQRDecodeMode): Integer;
+begin
+  case AMode of
+    qrmNumeric:
+      begin
+        if FQRVersion <= 9 then Result := 10
+        else if FQRVersion <= 26 then Result := 12
+        else Result := 14;
+      end;
+    qrmAlphaNumeric:
+      begin
+        if FQRVersion <= 9 then Result := 9
+        else if FQRVersion <= 26 then Result := 11
+        else Result := 13;
+      end;
+    qrmByte:
+      begin
+        if FQRVersion <= 9 then Result := 8
+        else Result := 16;
+      end;
+    qrmKanji, qrmHanzi:
+      begin
+        if FQRVersion <= 9 then Result := 8
+        else if FQRVersion <= 26 then Result := 10
+        else Result := 12;
+      end;
+  else
+    Result := 0;
+  end;
+end;
+{* 获取指定模式在 TCnQRDecoder 版本下的字符计数位长度}
+
+function TCnQRDecoder.DecodeNumericSegment(var BitPos: Integer; ACount: Integer;
+  const DataBytes: TBytes): string;
+var
+  I, Value, ReadCount: Integer;
+  ThreeDigits: array[0..2] of Char;
+begin
+  Result := '';
+  I := 0;
+  while I < ACount do
+  begin
+    if ACount - I >= 3 then
+    begin
+      // 10 位读 3 位数字
+      Value := ReadBits(BitPos, 10, DataBytes);
+      ThreeDigits[0] := Char(Ord('0') + (Value div 100));
+      ThreeDigits[1] := Char(Ord('0') + ((Value div 10) mod 10));
+      ThreeDigits[2] := Char(Ord('0') + (Value mod 10));
+      Result := Result + ThreeDigits[0] + ThreeDigits[1] + ThreeDigits[2];
+      Inc(I, 3);
+    end
+    else if ACount - I >= 2 then
+    begin
+      // 7 位读 2 位数字
+      Value := ReadBits(BitPos, 7, DataBytes);
+      Result := Result + Char(Ord('0') + (Value div 10)) +
+        Char(Ord('0') + (Value mod 10));
+      Inc(I, 2);
+    end
+    else
+    begin
+      // 4 位读 1 位数字
+      Value := ReadBits(BitPos, 4, DataBytes);
+      Result := Result + Char(Ord('0') + Value);
+      Inc(I, 1);
+    end;
+  end;
+end;
+{* 解码 Numeric 模式段}
+
+function TCnQRDecoder.DecodeAlphaNumericSegment(var BitPos: Integer;
+  ACount: Integer; const DataBytes: TBytes): string;
+const
+  ALPHA_TABLE: array[0..44] of Char =
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+var
+  I, Value: Integer;
+begin
+  Result := '';
+  I := 0;
+  while I < ACount do
+  begin
+    if ACount - I >= 2 then
+    begin
+      // 11 位编码 2 个字符
+      Value := ReadBits(BitPos, 11, DataBytes);
+      Result := Result + ALPHA_TABLE[Value div 45] + ALPHA_TABLE[Value mod 45];
+      Inc(I, 2);
+    end
+    else
+    begin
+      // 6 位编码 1 个字符
+      Value := ReadBits(BitPos, 6, DataBytes);
+      if Value < 45 then
+        Result := Result + ALPHA_TABLE[Value];
+      Inc(I, 1);
+    end;
+  end;
+end;
+{* 解码 AlphaNumeric 模式段}
+
+function TCnQRDecoder.DecodeByteSegment(var BitPos: Integer; ACount: Integer;
+  const DataBytes: TBytes): string;
+var
+  I, J, ByteVal: Integer;
+  ByteBuf: array of Byte;
+  IsUTF8: Boolean;
+  Utf8Seq: array[0..3] of Byte;
+  SeqLen, CodePoint: Integer;
+begin
+  Result := '';
+  // 读取原始字节
+  SetLength(ByteBuf, ACount);
+  for I := 0 to ACount - 1 do
+    ByteBuf[I] := ReadBits(BitPos, 8, DataBytes);
+
+  // 尝试 UTF-8 解码
+  IsUTF8 := True;
+  I := 0;
+  while I < ACount do
+  begin
+    if ByteBuf[I] < $80 then
+    begin
+      Result := Result + Char(ByteBuf[I]);
+      Inc(I);
+    end
+    else if (ByteBuf[I] and $E0) = $C0 then
+    begin
+      // 2 字节 UTF-8: 110xxxxx 10xxxxxx
+      if I + 1 < ACount then
+      begin
+        CodePoint := ((ByteBuf[I] and $1F) shl 6) or
+          (ByteBuf[I + 1] and $3F);
+        if CodePoint < $80 then
+        begin
+          IsUTF8 := False;
+          Break;
+        end;
+        if CodePoint < $100 then
+          Result := Result + Char(CodePoint)
+        else
+          Result := Result + '?';  // 非 ASCII 宽字符占位
+        Inc(I, 2);
+      end
+      else
+      begin
+        IsUTF8 := False;
+        Break;
+      end;
+    end
+    else if (ByteBuf[I] and $F0) = $E0 then
+    begin
+      // 3 字节 UTF-8: 1110xxxx 10xxxxxx 10xxxxxx
+      if I + 2 < ACount then
+      begin
+        CodePoint := ((ByteBuf[I] and $0F) shl 12) or
+          ((ByteBuf[I + 1] and $3F) shl 6) or
+          (ByteBuf[I + 2] and $3F);
+        if CodePoint < $800 then
+        begin
+          IsUTF8 := False;
+          Break;
+        end;
+        Result := Result + '?';
+        Inc(I, 3);
+      end
+      else
+      begin
+        IsUTF8 := False;
+        Break;
+      end;
+    end
+    else
+    begin
+      IsUTF8 := False;
+      Break;
+    end;
+  end;
+
+  if not IsUTF8 then
+  begin
+    // 回退到 ISO-8859-1
+    Result := '';
+    for I := 0 to ACount - 1 do
+      Result := Result + Char(ByteBuf[I]);
+  end;
+end;
+{* 解码 Byte 模式段，优先 UTF-8 解码，回退到 ISO-8859-1}
+
+function TCnQRDecoder.DecodeKanjiSegment(var BitPos: Integer; ACount: Integer;
+  const DataBytes: TBytes): string;
+var
+  I, Value, Assembled: Integer;
+begin
+  Result := '';
+  for I := 0 to ACount - 1 do
+  begin
+    Value := ReadBits(BitPos, 13, DataBytes);
+    Assembled := ((Value div $0C0) shl 8) or (Value mod $0C0);
+    if Assembled < $1F00 then
+      Assembled := Assembled + $8140
+    else
+      Assembled := Assembled + $C140;
+    // Shift-JIS 转 Ansi（在 Delphi 5 中需要系统代码页支持）
+    // 此处简化为输出 Shift-JIS 编码值占位
+    Result := Result + '?';
+  end;
+end;
+{* 解码 Kanji 模式段，按 Shift-JIS 编码}
+
+function TCnQRDecoder.DecodeHanziSegment(var BitPos: Integer; ACount: Integer;
+  const DataBytes: TBytes): string;
+var
+  I, Value, Assembled: Integer;
+begin
+  Result := '';
+  for I := 0 to ACount - 1 do
+  begin
+    Value := ReadBits(BitPos, 13, DataBytes);
+    Assembled := ((Value div $060) shl 8) or (Value mod $060);
+    if Assembled < $0A00 then
+      Assembled := Assembled + $0A1A1
+    else
+      Assembled := Assembled + $0A6A1;
+    // GB2312 转 Ansi（在 Delphi 5 中需要系统代码页支持）
+    Result := Result + '?';
+  end;
+end;
+{* 解码 Hanzi 模式段，按 GB2312 编码}
+
+function TCnQRDecoder.DecodeDataStream(const DataBytes: TBytes): string;
+var
+  BitPos, ModeVal, CharCount, TotalBits: Integer;
+  I: Integer;
+begin
+  Result := '';
+  BitPos := 0;
+  TotalBits := Length(DataBytes) * 8;
+
+  while BitPos < TotalBits - 4 do
+  begin
+    // 读取 4 位模式指示符
+    ModeVal := ReadBits(BitPos, 4, DataBytes);
+
+    case ModeVal of
+      0:
+        Break;  // TERMINATOR
+      1:
+        begin
+          CharCount := ReadBits(BitPos, GetCharCountBits(qrmNumeric), DataBytes);
+          Result := Result + DecodeNumericSegment(BitPos, CharCount, DataBytes);
+        end;
+      2:
+        begin
+          CharCount := ReadBits(BitPos, GetCharCountBits(qrmAlphaNumeric), DataBytes);
+          Result := Result + DecodeAlphaNumericSegment(BitPos, CharCount, DataBytes);
+        end;
+      4:
+        begin
+          CharCount := ReadBits(BitPos, GetCharCountBits(qrmByte), DataBytes);
+          Result := Result + DecodeByteSegment(BitPos, CharCount, DataBytes);
+        end;
+      7:
+        begin
+          // ECI 模式：读取 ECI 指定值（7/8/16 位可变），跳过后续 Byte 段
+          // 简化处理：跳过 ECI 头
+          if BitPos < TotalBits then
+          begin
+            if ReadBits(BitPos, 1, DataBytes) = 0 then
+              ReadBits(BitPos, 7, DataBytes)  // 7 位 ECI
+            else if ReadBits(BitPos, 1, DataBytes) = 0 then
+              ReadBits(BitPos, 14, DataBytes) // 14 位 ECI（两段）
+            else
+              ReadBits(BitPos, 21, DataBytes); // 21 位 ECI
+          end;
+        end;
+      8:
+        begin
+          CharCount := ReadBits(BitPos, GetCharCountBits(qrmKanji), DataBytes);
+          Result := Result + DecodeKanjiSegment(BitPos, CharCount, DataBytes);
+        end;
+      9:
+        begin
+          // FNC1 第二位置：读取 GS1 应用标识符后继续解码
+          // 简化处理：跳过
+        end;
+      13:
+        begin
+          // Hanzi 模式（含 4 位子集指示符）
+          ReadBits(BitPos, 4, DataBytes);  // 跳过子集指示符
+          CharCount := ReadBits(BitPos, GetCharCountBits(qrmHanzi), DataBytes);
+          Result := Result + DecodeHanziSegment(BitPos, CharCount, DataBytes);
+        end;
+      5:
+        begin
+          // FNC1 第一位置：标记 GS1 格式后继续解码下一段
+        end;
+      3:
+        begin
+          // Structured Append: 读取奇偶校验信息后跳过
+          ReadBits(BitPos, 16, DataBytes);  // 总共 16 位符号序号+奇偶
+        end;
+    else
+      Break;  // 未知模式，终止
+    end;
+  end;
+end;
+{* 解析数据字节流，按编码模式段循环解码并返回完整文本}
+
+procedure TCnQRDecoder.MirrorMatrix;
+var
+  X, Y: Integer;
+  Temp: Byte;
+begin
+  for X := 0 to FQRSize - 1 do
+  begin
+    for Y := X + 1 to FQRSize - 1 do
+    begin
+      Temp := FQRData[X, Y];
+      FQRData[X, Y] := FQRData[Y, X];
+      FQRData[Y, X] := Temp;
+    end;
+  end;
+end;
+{* 将当前矩阵沿主对角线翻转（QRData[X, Y] 与 QRData[Y, X] 互换）}
+
+function TCnQRDecoder.DecodeMatrix(const AQRData: TCnQRData): string;
+var
+  Attempt: Integer;
+  I, BlockCount, ECCPerBlock, TotalDataBytes, DataByteIdx: Integer;
+  Blocks: array of TBytes;
+  AllDataBytes, Codewords: TBytes;
+  LastErrorMessage: string;
+begin
+  Result := '';
+  LastErrorMessage := '';
+  FQRData := AQRData;
+  FQRSize := Length(FQRData);
+  FIsMirrored := False;
+
+  if FQRSize < 21 then
+    raise ECnQRCodeException.Create('Matrix size too small');
+
+  for Attempt := 0 to 1 do
+  begin
+    try
+      // Step 1: 格式信息
+      if not ReadFormatInformation then
+        raise ECnQRCodeException.Create('Format information decode failed');
+
+      // Step 2: 版本信息
+      if not ReadVersion then
+        raise ECnQRCodeException.Create('Version information decode failed');
+
+      // Step 3: 去掩码
+      UnmaskMatrix;
+
+      // Step 4: 读取码字
+      Codewords := ReadCodewords;
+
+      // Step 5: 数据块划分
+      SetLength(Blocks, 40);  // 最大 40 块
+      BlockCount := 0;
+      ECCPerBlock := 0;
+      SplitDataBlocks(Codewords, Blocks, BlockCount, ECCPerBlock);
+
+      // Step 6: RS 纠错
+      for I := 0 to BlockCount - 1 do
+      begin
+        if not RSDecodeBlock(Blocks[I], ECCPerBlock) then
+          raise ECnQRCodeException.CreateFmt('Checksum error in block %d', [I]);
+      end;
+
+      // Step 7: 合并数据部分
+      TotalDataBytes := 0;
+      for I := 0 to BlockCount - 1 do
+        Inc(TotalDataBytes, Length(Blocks[I]) - ECCPerBlock);
+
+      SetLength(AllDataBytes, TotalDataBytes);
+      DataByteIdx := 0;
+      for I := 0 to BlockCount - 1 do
+      begin
+        Move(Blocks[I][0], AllDataBytes[DataByteIdx],
+          Length(Blocks[I]) - ECCPerBlock);
+        Inc(DataByteIdx, Length(Blocks[I]) - ECCPerBlock);
+      end;
+
+      // Step 8: 比特流解析
+      Result := DecodeDataStream(AllDataBytes);
+      if Result <> '' then
+        Exit;
+
+    except
+      on E: ECnQRCodeException do
+      begin
+        LastErrorMessage := E.Message;
+        if Attempt = 0 then
+        begin
+          // 镜像重试：沿主对角线翻转矩阵
+          MirrorMatrix;
+          FIsMirrored := True;
+          // 重置为镜像后的数据继续解码
+        end
+        else
+        begin
+          // 两次都失败，抛出异常
+          FErrorMessage := LastErrorMessage;
+          raise ECnQRCodeException.Create(LastErrorMessage);
+        end;
+      end;
+    end;
+  end;
+
+  if Result = '' then
+    raise ECnQRCodeException.Create('QR decode failed');
+end;
+{* 主解码入口。从 TCnQRData 矩阵解码出文本字符串。
+   自动尝试镜像重试：正常解码失败后镜像翻转矩阵重新解码。}
+
+{ CnQRDecodeFromMatrix }
+
+function CnQRDecodeFromMatrix(const AQRData: TCnQRData): string;
+var
+  Decoder: TCnQRDecoder;
+begin
+  if Length(AQRData) < 21 then
+    raise ECnQRCodeException.Create('Matrix size too small');
+
+  Decoder := TCnQRDecoder.Create;
+  try
+    Result := Decoder.DecodeMatrix(AQRData);
+  finally
+    Decoder.Free;
+  end;
 end;
 
 end.

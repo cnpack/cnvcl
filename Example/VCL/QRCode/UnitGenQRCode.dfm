@@ -2,7 +2,7 @@ object FormQRTest: TFormQRTest
   Left = 296
   Top = 225
   Width = 747
-  Height = 468
+  Height = 477
   Caption = 'QR Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -96,6 +96,23 @@ object FormQRTest: TFormQRTest
     Height = 21
     TabOrder = 3
     Text = '2'
+  end
+  object btnTestDecode: TButton
+    Left = 560
+    Top = 180
+    Width = 161
+    Height = 57
+    Caption = 'Test Decode Matrix'
+    TabOrder = 4
+    OnClick = btnTestDecodeClick
+  end
+  object mmoDecodeResult: TMemo
+    Left = 440
+    Top = 256
+    Width = 281
+    Height = 177
+    ReadOnly = True
+    TabOrder = 5
   end
   object dlgColor: TColorDialog
     Ctl3D = True

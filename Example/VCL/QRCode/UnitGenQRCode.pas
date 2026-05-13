@@ -20,10 +20,15 @@ type
     lblForeColor: TLabel;
     shpForeColor: TShape;
     dlgColor: TColorDialog;
+    btnTestDecode: TButton;
+    mmoDecodeResult: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure btnShowQRImageClick(Sender: TObject);
-    procedure shpBackColorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure shpForeColorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure shpBackColorMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure shpForeColorMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure btnTestDecodeClick(Sender: TObject);
   private
     FQRImage: TCnQRCodeImage;
   public
@@ -73,6 +78,45 @@ begin
   dlgColor.Color := shpForeColor.Brush.Color;
   if dlgColor.Execute then
     shpForeColor.Brush.Color := dlgColor.Color;
+end;
+
+procedure TFormQRTest.btnTestDecodeClick(Sender: TObject);
+var
+  Encoder: TCnQREncoder;
+  DecodedText: string;
+  TestText: string;
+begin
+  mmoDecodeResult.Clear;
+  TestText := 'CnPack QRCode Decode Test 123!@#';
+
+  // Step 1: 用编码器生成二维码矩阵
+  Encoder := TCnQREncoder.Create;
+  try
+    Encoder.Text := TestText;
+    Encoder.QRErrorRecoveryLevel := erlM;
+
+    // Step 2: 调用 CnQRDecodeFromMatrix 解码
+    try
+      DecodedText := CnQRDecodeFromMatrix(Encoder.QRData);
+      mmoDecodeResult.Lines.Add('=== 解码测试结果 ===');
+      mmoDecodeResult.Lines.Add('');
+      mmoDecodeResult.Lines.Add('原始文本: ' + TestText);
+      mmoDecodeResult.Lines.Add('解码文本: ' + DecodedText);
+      mmoDecodeResult.Lines.Add('');
+      if DecodedText = TestText then
+        mmoDecodeResult.Lines.Add('测试结果: 编解码一致，通过!')
+      else
+        mmoDecodeResult.Lines.Add('测试结果: 编解码不一致，失败!');
+    except
+      on E: Exception do
+      begin
+        mmoDecodeResult.Lines.Add('=== 解码异常 ===');
+        mmoDecodeResult.Lines.Add('错误信息: ' + E.Message);
+      end;
+    end;
+  finally
+    Encoder.Free;
+  end;
 end;
 
 end.
