@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, CnCommon,
-  Controls, Forms, Dialogs, StdCtrls, ExtCtrls, CnNative, CnQRImage, CnQRCode;
+  Controls, Forms, Dialogs, StdCtrls, ExtCtrls, CnNative, CnQRImage, CnQRCode,
+  ExtDlgs, jpeg;
 
 type
   TFormQRTest = class(TForm)
@@ -22,7 +23,9 @@ type
     dlgColor: TColorDialog;
     btnTestDecode: TButton;
     btnTestDecodeImage: TButton;
+    btnOpenFileDecode: TButton;
     mmoDecodeResult: TMemo;
+    dlgOpenPic: TOpenPictureDialog;
     procedure FormCreate(Sender: TObject);
     procedure btnShowQRImageClick(Sender: TObject);
     procedure shpBackColorMouseDown(Sender: TObject; Button: TMouseButton;
@@ -31,6 +34,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure btnTestDecodeClick(Sender: TObject);
     procedure btnTestDecodeImageClick(Sender: TObject);
+    procedure btnOpenFileDecodeClick(Sender: TObject);
   private
     FQRImage: TCnQRCodeImage;
   public
@@ -280,6 +284,48 @@ begin
     end;
   finally
     Encoder.Free;
+  end;
+end;
+
+procedure TFormQRTest.btnOpenFileDecodeClick(Sender: TObject);
+var
+  Picture: TPicture;
+  Bitmap: TBitmap;
+  GrayImage: TCnQRGrayImage;
+  DecodedText: string;
+begin
+  mmoDecodeResult.Clear;
+
+  if not dlgOpenPic.Execute then
+    Exit;
+
+  Picture := TPicture.Create;
+  try
+    Picture.LoadFromFile(dlgOpenPic.FileName);
+    Bitmap := TBitmap.Create;
+    try
+      Bitmap.Assign(Picture.Graphic);
+      GrayImage := CnBitmapToGrayImage(Bitmap);
+      try
+        DecodedText := CnQRDecodeFromGrayImage(GrayImage);
+        mmoDecodeResult.Lines.Add('=== 文件图片解码结果 ===');
+        mmoDecodeResult.Lines.Add('');
+        mmoDecodeResult.Lines.Add('文件: ' + ExtractFileName(dlgOpenPic.FileName));
+        mmoDecodeResult.Lines.Add('尺寸: ' + IntToStr(Bitmap.Width) + 'x' + IntToStr(Bitmap.Height));
+        mmoDecodeResult.Lines.Add('');
+        mmoDecodeResult.Lines.Add('解码文本: ' + DecodedText);
+      except
+        on E: Exception do
+        begin
+          mmoDecodeResult.Lines.Add('=== 文件图片解码异常 ===');
+          mmoDecodeResult.Lines.Add('错误信息: ' + E.Message);
+        end;
+      end;
+    finally
+      Bitmap.Free;
+    end;
+  finally
+    Picture.Free;
   end;
 end;
 

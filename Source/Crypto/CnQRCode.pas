@@ -172,6 +172,8 @@ type
     function GFMul(A, B: Integer): Integer;
     function GFDiv(A, B: Integer): Integer;
     function GFExp(N: Integer): Integer;
+    function GFLog(N: Integer): Integer;
+    function GFInv(N: Integer): Integer;
 
     // 比特流解析
     function DecodeDataStream(const DataBytes: TBytes): string;
@@ -2639,6 +2641,18 @@ begin
     Result := CN_EXP_TABLE[(CN_LOG_TABLE[A] + CN_LOG_TABLE[B]) mod 255];
 end;
 
+// GF(2^8) 对数：查 CN_LOG_TABLE[N]
+function TCnQRDecoder.GFLog(N: Integer): Integer;
+begin
+  Result := CN_LOG_TABLE[N];
+end;
+
+// GF(2^8) 乘法逆元：CN_EXP_TABLE[255 - CN_LOG_TABLE[N]]
+function TCnQRDecoder.GFInv(N: Integer): Integer;
+begin
+  Result := CN_EXP_TABLE[255 - CN_LOG_TABLE[N]];
+end;
+
 // GF(2^8) 除法：LOG[A] - LOG[B] + 255 mod 255 后查 EXP 表
 function TCnQRDecoder.GFDiv(A, B: Integer): Integer;
 begin
@@ -2719,6 +2733,7 @@ var
   MaskedInfo1, MaskedInfo2: Integer;
   I: Integer;
 begin
+  // OutputDebugString(PChar(Format('FI: Size=%d IsMirrored=%d', [FQRSize, Ord(FIsMirrored)])));
   // 读取第一份格式信息（15 位），位顺序对照 zxing FormatInformation.java：
   // 水平方向：行 8，列 0..5 → bits 0-5
   // 列 7 行 8 → bit 6，列 8 行 8 → bit 7
@@ -2743,6 +2758,8 @@ begin
     MaskedInfo2 := (MaskedInfo2 shl 1) or FQRData[FQRSize - 8 + I, 8];  // bits 7-14: (Size-8..Size-1, 8)
 
   Result := DecodeFormatInfo(MaskedInfo1, MaskedInfo2);
+  // OutputDebugString(PChar(Format('FI: M1=%d M2=%d Result=%d EL=%d Mask=%d',
+  //  [MaskedInfo1, MaskedInfo2, Ord(Result), Ord(FFormatInfo.ErrorLevel), FFormatInfo.MaskType])));
 end;
 
 // 从指定位置提取 18 位版本信息位序列，按标准存储布局组合 3 列 x 6 行
@@ -2817,6 +2834,7 @@ function TCnQRDecoder.ReadVersion: Boolean;
 var
   VersionBits1, VersionBits2: Integer;
 begin
+  // OutputDebugString(PChar(Format('VER: Size=%d', [FQRSize])));
   // 版本 <= 6 由尺寸直接推算
   if FQRSize <= 41 then
   begin
@@ -3146,7 +3164,7 @@ var
   PolyT0, PolyT1, PolyT2: array of Integer;
   DegR0, DegR1, DegR2: Integer;
   DegT0, DegT1, DegT2: Integer;
-  LeadingCoeffQ, TempVal, TempDeg: Integer;
+  TempVal, TempDeg: Integer;
   // Forney 用
   Sigma, Omega: array of Integer;
   DegSigma, DegOmega, SigmaPrimeVal: Integer;
@@ -3156,17 +3174,25 @@ begin
   TwoS := ECCount;
   N := Length(Data);
 
-  // Step 1: 计算伴随式 Syndromes
+  // Step 1: 计算伴随式 Syndromes（对照 zxing 反向存储）
+  // S(x) = S[0] + S[1]x + ... + S[2t-1]x^(2t-1)
+  // 其中 S[0] = R(alpha^(2t-1)), S[2t-1] = R(alpha^0)
   SetLength(Syndrome, TwoS);
   AllSyndromeZero := True;
   for I := 0 to TwoS - 1 do
   begin
-    Syndrome[I] := 0;
-    for J := 0 to N - 1 do
-      Syndrome[I] := Data[J] xor GFMul(Syndrome[I], GFExp(I + 1));
-    if Syndrome[I] <> 0 then
+    TempVal := Data[0];
+    for J := 1 to N - 1 do
+      TempVal := GFMul(TempVal, GFExp(I)) xor Data[J];
+    Syndrome[TwoS - 1 - I] := TempVal;  // 反向存储，匹配 zxing
+    if TempVal <> 0 then
       AllSyndromeZero := False;
   end;
+
+//  OutputDebugString(PChar(Format('RS: N=%d t=%d S=%d,%d,%d,%d,%d,%d,%d,%d,%d,%d AllZero=%d',
+//    [N, TwoS div 2, Syndrome[0], Syndrome[1], Syndrome[2], Syndrome[3],
+//     Syndrome[4], Syndrome[5], Syndrome[6], Syndrome[7], Syndrome[8], Syndrome[9],
+//     Ord(AllSyndromeZero)])));
 
   // 所有伴随式为 0，无错误
   if AllSyndromeZero then
@@ -3175,104 +3201,76 @@ begin
     Exit;
   end;
 
-  // Step 2: Euclidean 算法求解错误定位多项式 sigma(x) 和误差值多项式 omega(x)
-  // 初始化 r[-1] = x^(2t), r[0] = syndrome(x)
-  SetLength(PolyR0, TwoS + 1);
-  FillChar(PolyR0[0], (TwoS + 1) * SizeOf(Integer), 0);
-  PolyR0[TwoS] := 1;  // x^(2t)
-  DegR0 := TwoS;
+  // Step 2: Berlekamp-Massey 算法求解错误定位多项式 sigma(x)
+  // C(x)=1, B(x)=1, L=0, m=1, b=1
+  SetLength(Sigma, 1); Sigma[0] := 1; DegSigma := 0;
+  SetLength(PolyT0, 1); PolyT0[0] := 1; DegT1 := 0;  // B(x)
+  DegR0 := 0;  // L
+  DegR1 := 1;  // m
+  DegT0 := 1;  // b
 
-  SetLength(PolyR1, TwoS);
   for I := 0 to TwoS - 1 do
-    PolyR1[I] := Syndrome[I];
-  DegR1 := TwoS - 1;
-  while (DegR1 >= 0) and (PolyR1[DegR1] = 0) do
-    Dec(DegR1);
-
-  // 初始化 t[-1] = 0, t[0] = 1
-  SetLength(PolyT0, 1);
-  PolyT0[0] := 0;
-  DegT0 := -1;  // 零多项式
-
-  SetLength(PolyT1, 1);
-  PolyT1[0] := 1;
-  DegT1 := 0;
-
-  // 迭代 Euclidean 算法直到 deg(r[k]) < t
-  while (DegR1 >= TwoS div 2) and (DegR1 >= 0) do
   begin
-    // 计算商的首项系数
-    LeadingCoeffQ := GFDiv(PolyR0[DegR0], PolyR1[DegR1]);
-    TempDeg := DegR0 - DegR1;
+    // 计算差值 d
+    TempVal := Syndrome[I];
+    for J := 1 to I do
+      if J <= DegSigma then
+        TempVal := TempVal xor GFMul(Sigma[J], Syndrome[I - J]);
 
-    // 保存当前的 r1 和 t1
-    SetLength(PolyR2, DegR1 + 1);
-    for I := 0 to DegR1 do
-      PolyR2[I] := PolyR1[I];
-    DegR2 := DegR1;
-
-    SetLength(PolyT2, DegT1 + 1);
-    for I := 0 to DegT1 do
-      PolyT2[I] := PolyT1[I];
-    DegT2 := DegT1;
-
-    // r0 = r0 - q * r1
-    for I := 0 to DegR1 do
+    if TempVal = 0 then
+      Inc(DegR1)
+    else
     begin
-      K := I + TempDeg;
-      if K <= DegR0 then
-        PolyR0[K] := PolyR0[K] xor GFMul(LeadingCoeffQ, PolyR1[I]);
+      // 保存旧 C(x) 到 PolyR2
+      SetLength(PolyR2, DegSigma + 1);
+      for J := 0 to DegSigma do PolyR2[J] := Sigma[J];
+
+      // T(x) = C(x) - d/b * x^m * B(x)
+      TempDeg := GFMul(TempVal, GFInv(DegT0));  // d/b
+      // 扩展 Sigma 数组以容纳新项
+      if DegSigma < DegR1 + DegT1 then
+        SetLength(Sigma, DegR1 + DegT1 + 1);
+      for J := DegSigma + 1 to Length(Sigma) - 1 do
+        Sigma[J] := 0;
+      for J := 0 to DegT1 do
+        Sigma[J + DegR1] := Sigma[J + DegR1] xor GFMul(TempDeg, PolyT0[J]);
+      // 更新次数
+      DegSigma := Length(Sigma) - 1;
+      while (DegSigma >= 0) and (Sigma[DegSigma] = 0) do Dec(DegSigma);
+
+      if 2 * DegR0 <= I then
+      begin
+        // B(x) = 旧 C(x), b = d, m = 1, L = i+1-L
+        DegT1 := DegR0;
+        SetLength(PolyT0, DegT1 + 1);
+        for J := 0 to DegT1 do PolyT0[J] := PolyR2[J];
+        DegT0 := TempVal;  // b = d (not d/b)
+        DegR0 := I + 1 - DegR0;
+        DegR1 := 1;
+      end
+      else
+        Inc(DegR1);
     end;
-    while (DegR0 >= 0) and (PolyR0[DegR0] = 0) do
-      Dec(DegR0);
-
-    // t0 = t0 - q * t1
-    for I := 0 to DegT1 do
-    begin
-      K := I + TempDeg;
-      if K >= Length(PolyT0) then
-        SetLength(PolyT0, K + 1);
-      PolyT0[K] := PolyT0[K] xor GFMul(LeadingCoeffQ, PolyT1[I]);
-    end;
-    DegT0 := DegT1 + TempDeg;
-    while (DegT0 >= 0) and (PolyT0[DegT0] = 0) do
-      Dec(DegT0);
-
-    // 交换：r1 -> r2(旧), r0 -> r1, r1(旧) -> r0
-    PolyR1 := PolyR0; DegR1 := DegR0;
-    PolyR0 := PolyR2; DegR0 := DegR2;
-
-    PolyT1 := PolyT0; DegT1 := DegT0;
-    PolyT0 := PolyT2; DegT0 := DegT2;
   end;
 
-  // sigma(x) = t[k] / t[k](0), omega(x) = r[k] / t[k](0)
-  // 确保结果多项式系数从低次到高次排列
-  DegSigma := DegT1;
-  SetLength(Sigma, DegSigma + 1);
-  if (DegT1 >= 0) and (Length(PolyT1) > 0) and (PolyT1[0] <> 0) then
-  begin
-    for I := 0 to DegT1 do
-      Sigma[I] := GFDiv(PolyT1[I], PolyT1[0]);
-  end
-  else
-  begin
-    SetLength(Sigma, 1);
-    Sigma[0] := 1;
-    DegSigma := 0;
-  end;
+  // 归一化 sigma(0) = 1
+  if (DegSigma >= 0) and (Sigma[0] <> 0) then
+    for I := 0 to DegSigma do
+      Sigma[I] := GFDiv(Sigma[I], Sigma[0]);
 
-  DegOmega := DegR1;
-  SetLength(Omega, DegOmega + 1);
-  if (DegR1 >= 0) and (Length(PolyR1) > 0) and (PolyT1[0] <> 0) then
-  begin
-    for I := 0 to DegR1 do
-      Omega[I] := GFDiv(PolyR1[I], PolyT1[0]);
-  end
-  else
-  begin
-    DegOmega := -1;
-  end;
+//  OutputDebugString(PChar(Format('RS: BM sigma deg=%d c0=%d c1=%d c2=%d',
+//    [DegSigma, Sigma[0], Sigma[1], Sigma[2]])));
+
+  // omega(x) = S(x)*sigma(x) mod x^(2t)
+  SetLength(Omega, TwoS);
+  FillChar(Omega[0], TwoS * SizeOf(Integer), 0);
+  for I := 0 to TwoS - 1 do
+    for J := 0 to I do
+      if J <= DegSigma then
+        Omega[I] := Omega[I] xor GFMul(Syndrome[I - J], Sigma[J]);
+  DegOmega := TwoS - 1;
+  while (DegOmega >= 0) and (Omega[DegOmega] = 0) do
+    Dec(DegOmega);
 
   // Step 3: Chien 搜索找错误位置
   ErrCount := 0;
@@ -3288,6 +3286,8 @@ begin
       ErrorLocations[ErrCount] := I;
       Inc(ErrCount);
     end;
+//    if I < 3 then
+//      OutputDebugString(PChar(Format('RS: chien i=%d val=%d', [I, TempVal])));
   end;
 
   // 检查错误数量是否在纠错能力范围内
@@ -3331,6 +3331,9 @@ begin
     Result := False;
     Exit;
   end;
+
+//  OutputDebugString(PChar(Format('RS: fix %d err at [%d,%d,%d]',
+//    [ErrCount, ErrorLocations[0], ErrorLocations[1], ErrorLocations[2]])));
 
   // Step 5: 修复错误
   for I := 0 to ErrCount - 1 do
@@ -3588,29 +3591,27 @@ begin
           CharCount := ReadBits(BitPos, GetCharCountBits(qrmKanji), DataBytes);
           Result := Result + DecodeKanjiSegment(BitPos, CharCount, DataBytes);
         end;
-      9:
+      5, 9:
         begin
-          // FNC1 第二位置：读取 GS1 应用标识符后继续解码
-          // 简化处理：跳过
+          // FNC1 第一/第二位置：跳过，后续有独立模式指示符
         end;
       13:
         begin
-          // Hanzi 模式（含 4 位子集指示符）
           ReadBits(BitPos, 4, DataBytes);  // 跳过子集指示符
           CharCount := ReadBits(BitPos, GetCharCountBits(qrmHanzi), DataBytes);
           Result := Result + DecodeHanziSegment(BitPos, CharCount, DataBytes);
         end;
-      5:
-        begin
-          // FNC1 第一位置：标记 GS1 格式后继续解码下一段
-        end;
       3:
         begin
-          // Structured Append: 读取奇偶校验信息后跳过
-          ReadBits(BitPos, 16, DataBytes);  // 总共 16 位符号序号+奇偶
+          ReadBits(BitPos, 16, DataBytes);
         end;
     else
-      Break;  // 未知模式，终止
+      begin
+        // 未知模式：回退 4 位，尝试用 Byte 模式重新解析
+        Dec(BitPos, 4);
+        CharCount := ReadBits(BitPos, GetCharCountBits(qrmByte), DataBytes);
+        Result := Result + DecodeByteSegment(BitPos, CharCount, DataBytes);
+      end;
     end;
   end;
 end;
@@ -3794,7 +3795,6 @@ begin
       if EndX >= AWidth then
         EndX := AWidth - 1;
 
-      // 统计子块直方图
       FillChar(Histogram, SizeOf(Histogram), 0);
       MinVal := 255;
       MaxVal := 0;
@@ -3807,58 +3807,46 @@ begin
           if I > MaxVal then MaxVal := I;
         end;
 
-      // 计算自适应阈值
       if MaxVal - MinVal < 24 then
         Threshold := 128
       else
       begin
         TotalPixels := (EndX - StartX + 1) * (EndY - StartY + 1);
-        // 最暗 5% 像素平均值
-        SumDark := 0;
-        CountDark := 0;
+        SumDark := 0; CountDark := 0;
         for I := 0 to 255 do
         begin
           Inc(CountDark, Histogram[I]);
           Inc(SumDark, I * Histogram[I]);
           if CountDark >= TotalPixels * 5 div 100 then
           begin
-            if CountDark > 0 then
-              SumDark := SumDark div CountDark
-            else
-              SumDark := 0;
+            if CountDark > 0 then SumDark := SumDark div CountDark
+            else SumDark := 0;
             Break;
           end;
         end;
-        // 最亮 5% 像素平均值
-        SumLight := 0;
-        CountLight := 0;
+        SumLight := 0; CountLight := 0;
         for I := 255 downto 0 do
         begin
           Inc(CountLight, Histogram[I]);
           Inc(SumLight, I * Histogram[I]);
           if CountLight >= TotalPixels * 5 div 100 then
           begin
-            if CountLight > 0 then
-              SumLight := SumLight div CountLight
-            else
-              SumLight := 255;
+            if CountLight > 0 then SumLight := SumLight div CountLight
+            else SumLight := 255;
             Break;
           end;
         end;
         Threshold := (SumDark + SumLight) div 2;
       end;
 
-      // 二值化
       for Y := StartY to EndY do
-      begin
         for X := StartX to EndX do
         begin
           if AGrayImage.Data[X, Y] < Threshold then
-            Result[X, Y] := 1  // 黑色
+            Result[X, Y] := 1
           else
-            Result[X, Y] := 0; // 白色
+            Result[X, Y] := 0;
         end;
-      end;
     end;
   end;
 end;

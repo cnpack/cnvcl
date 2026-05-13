@@ -115,13 +115,27 @@ object FormQRTest: TFormQRTest
     TabOrder = 5
     OnClick = btnTestDecodeImageClick
   end
+  object btnOpenFileDecode: TButton
+    Left = 440
+    Top = 180
+    Width = 105
+    Height = 70
+    Caption = 'Open Picture'
+    TabOrder = 6
+    OnClick = btnOpenFileDecodeClick
+  end
   object mmoDecodeResult: TMemo
     Left = 440
-    Top = 256
+    Top = 264
     Width = 281
-    Height = 177
+    Height = 169
     ReadOnly = True
-    TabOrder = 6
+    TabOrder = 7
+  end
+  object dlgOpenPic: TOpenPictureDialog
+    Filter = 'QR Code Images|*.bmp;*.jpg;*.jpeg;*.png;*.gif'
+    Left = 420
+    Top = 440
   end
   object dlgColor: TColorDialog
     Ctl3D = True
