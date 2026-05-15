@@ -3174,7 +3174,7 @@ begin
     TempVal := Data[0];
     for J := 1 to N - 1 do
       TempVal := GFMul(TempVal, GFExp(I)) xor Data[J];
-    Syndrome[TwoS - 1 - I] := TempVal;  // ∑¥œÚ¥Ê¥¢£¨∆•≈‰ zxing
+    Syndrome[I] := TempVal;
     if TempVal <> 0 then
       AllSyndromeZero := False;
   end;
@@ -3308,7 +3308,7 @@ begin
     end;
 
     if SigmaPrimeVal <> 0 then
-      ErrorValues[I] := GFDiv(TempVal, SigmaPrimeVal)
+      ErrorValues[I] := GFMul(GFDiv(TempVal, SigmaPrimeVal), GFExp(ErrorLocations[I]))
     else
     begin
       ErrorFound := False;

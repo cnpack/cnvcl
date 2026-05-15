@@ -43,7 +43,11 @@ interface
 {$I CnPack.inc}
 
 // 如果要在 FMX 中使用解码功能，请定义 ENABLE_FMX 并在工程单元前缀中加上 Vcl
-{$DEFINE ENABLE_FMX}
+// {$DEFINE ENABLE_FMX}
+
+{$IFNDEF SUPPORT_FMX}
+  {$UNDEF ENABLE_FMX}
+{$ENDIF}
 
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
