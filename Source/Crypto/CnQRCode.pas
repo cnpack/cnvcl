@@ -3150,8 +3150,8 @@ var
   ErrorLocations: array of Integer;
   ErrorValues: array of Integer;
   // Euclidean 算法多项式
-  PolyR0, PolyR1, PolyR2: array of Integer;
-  PolyT0, PolyT1, PolyT2: array of Integer;
+  PolyR2: array of Integer;
+  PolyT0, PolyT2: array of Integer;
   DegR0, DegR1, DegR2: Integer;
   DegT0, DegT1, DegT2: Integer;
   TempVal, TempDeg: Integer;
@@ -4600,8 +4600,7 @@ var
   Transform: TCnQRPerspectiveTransform;
   QRData: TCnQRData;
   HasAlignment: Boolean;
-  I, DimCand: Integer;
-  ModCand1, ModCand2, MinFrac: Double;
+  I, DimCand, ValidateCount: Integer;
 begin
   Width := Length(AGrayImage);
   Height := Length(AGrayImage[0]);
@@ -4616,67 +4615,60 @@ begin
     if not CnQRFindFinderPatterns(Binarized, TopLeft, TopRight, BottomLeft) then
       raise ECnQRCodeException.Create(SCnErrorQRNoFinderPatternsFound);
 
-    // Step 3: 枚举合法维度(21,25,29,33,37)找最佳匹配
-    // 中心间距(像素) / (维度-7) = 模块尺寸(像素)
-    ModuleSize := CnQRDistance(TopLeft, TopRight) / 14.0;
-    Dimension := 21;
-    MinFrac := 999;
+    // Step 3: try dimensions in sorted order with fallback
+    Result := '';
     for I := 0 to 4 do
     begin
       DimCand := 21 + I * 4;
-      ModCand1 := CnQRDistance(TopLeft, TopRight) / (DimCand - 7);
-      ModCand2 := CnQRDistance(TopLeft, BottomLeft) / (DimCand - 7);
-      if Abs(Frac(ModCand1)) + Abs(Frac(ModCand2)) < MinFrac then
+      ModuleSize := CnQRDistance(TopLeft, TopRight) / (DimCand - 7);
+      if ModuleSize < 1.0 then Continue;
+
+      HasAlignment := CnQRFindAlignmentPattern(Binarized, Width, Height,
+        TopLeft, TopRight, BottomLeft, AlignmentPattern);
+      SrcPoints[0].X := TopLeft.X; SrcPoints[0].Y := TopLeft.Y;
+      SrcPoints[1].X := TopRight.X; SrcPoints[1].Y := TopRight.Y;
+      SrcPoints[2].X := BottomLeft.X; SrcPoints[2].Y := BottomLeft.Y;
+      if HasAlignment then
       begin
-        MinFrac := Abs(Frac(ModCand1)) + Abs(Frac(ModCand2));
-        ModuleSize := (ModCand1 + ModCand2) / 2.0;
-        Dimension := DimCand;
+        SrcPoints[3].X := AlignmentPattern.X;
+        SrcPoints[3].Y := AlignmentPattern.Y;
+      end
+      else
+      begin
+        SrcPoints[3].X := TopRight.X - TopLeft.X + BottomLeft.X;
+        SrcPoints[3].Y := TopRight.Y - TopLeft.Y + BottomLeft.Y;
+      end;
+      DstPoints[0].X := 3.5; DstPoints[0].Y := 3.5;
+      DstPoints[1].X := DimCand - 3.5; DstPoints[1].Y := 3.5;
+      DstPoints[2].X := 3.5; DstPoints[2].Y := DimCand - 3.5;
+      DstPoints[3].X := DimCand - 3.5; DstPoints[3].Y := DimCand - 3.5;
+      Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
+      QRData := CnQRSampleGrid(Binarized, Transform, DimCand);
+      try
+        Result := CnQRDecodeFromMatrix(QRData);
+        if Result <> '' then
+        begin
+          // Validate: decoded text must contain printable chars
+          // Count ASCII printable chars (32-126)
+          ValidateCount := 0;
+          DimCand := 0;
+          for ValidateCount := 1 to Length(Result) do
+            if (Result[ValidateCount] >= #65) and (Result[ValidateCount] <= #90) or
+               (Result[ValidateCount] >= #97) and (Result[ValidateCount] <= #122) then
+              Inc(DimCand);
+          if DimCand >= 3 then
+          begin
+            Dimension := 21 + I * 4;
+            Break;
+          end
+          else
+            Result := '';
+        end;
+      except
       end;
     end;
-    if ModuleSize < 1.0 then
-      raise ECnQRCodeException.Create(SCnErrorQRModuleSizeTooSmall);
-
-    // Step 4: 对齐图案定位
-    HasAlignment := CnQRFindAlignmentPattern(Binarized, Width, Height,
-      TopLeft, TopRight, BottomLeft, AlignmentPattern);
-
-    // Step 5: 构建源四点
-    SrcPoints[0].X := TopLeft.X;
-    SrcPoints[0].Y := TopLeft.Y;
-    SrcPoints[1].X := TopRight.X;
-    SrcPoints[1].Y := TopRight.Y;
-    SrcPoints[2].X := BottomLeft.X;
-    SrcPoints[2].Y := BottomLeft.Y;
-    if HasAlignment then
-    begin
-      SrcPoints[3].X := AlignmentPattern.X;
-      SrcPoints[3].Y := AlignmentPattern.Y;
-    end
-    else
-    begin
-      // 无对齐图案时估算右下角
-      SrcPoints[3].X := TopRight.X - TopLeft.X + BottomLeft.X;
-      SrcPoints[3].Y := TopRight.Y - TopLeft.Y + BottomLeft.Y;
-    end;
-
-    // 目标四点：寻像图案中心在模块(3.5, 3.5)，TR在(Dim-3.5, 3.5)
-    DstPoints[0].X := 3.5;
-    DstPoints[0].Y := 3.5;
-    DstPoints[1].X := Dimension - 3.5;
-    DstPoints[1].Y := 3.5;
-    DstPoints[2].X := 3.5;
-    DstPoints[2].Y := Dimension - 3.5;
-    DstPoints[3].X := Dimension - 3.5;
-    DstPoints[3].Y := Dimension - 3.5;
-
-    // Step 6: 透视变换
-    Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
-
-    // Step 7: 网格采样
-    QRData := CnQRSampleGrid(Binarized, Transform, Dimension);
-
-    // Step 8: 矩阵解码
-    Result := CnQRDecodeFromMatrix(QRData);
+    if Result = '' then
+      raise ECnQRCodeException.Create(SCnErrorQRQrDecodeFailed);
   finally
     SetLength(Binarized, 0);
     SetLength(QRData, 0);
