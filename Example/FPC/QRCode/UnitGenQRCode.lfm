@@ -1,10 +1,10 @@
 object FormQRTest: TFormQRTest
   Left = 296
-  Height = 468
+  Height = 520
   Top = 225
   Width = 747
   Caption = 'QR Test'
-  ClientHeight = 468
+  ClientHeight = 520
   ClientWidth = 747
   Color = clBtnFace
   Font.Color = clWindowText
@@ -95,6 +95,50 @@ object FormQRTest: TFormQRTest
     TabOrder = 3
     Text = '2'
   end
+  object btnDecodeImage: TButton
+    Left = 440
+    Height = 30
+    Top = 190
+    Width = 290
+    Caption = 'Load Image && Decode QR Code'
+    TabOrder = 4
+    OnClick = btnDecodeImageClick
+  end
+  object lblDecodeResult: TLabel
+    Left = 440
+    Height = 13
+    Top = 230
+    Width = 73
+    Caption = 'Decode Result:'
+  end
+  object mmoResult: TMemo
+    Left = 440
+    Height = 230
+    Top = 250
+    Width = 290
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 5
+  end
+  object imgDebug: TImage
+    Left = 10
+    Height = 450
+    Top = 10
+    Width = 450
+    Anchors = [akTop, akLeft, akBottom]
+    Center = True
+    Stretch = True
+    Visible = False
+  end
+  object lblImageInfo: TLabel
+    Left = 10
+    Height = 13
+    Top = 470
+    Width = 57
+    Anchors = [akLeft, akBottom]
+    Caption = '(image info)'
+  end
   object dlgColor: TColorDialog
     Color = clBlack
     CustomColors.Strings = (
@@ -119,5 +163,9 @@ object FormQRTest: TFormQRTest
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
+  end
+  object dlgOpenPicture: TOpenPictureDialog
+    Title = 'Select QR Code Image'
+    Filter = 'Image Files|*.jpg;*.jpeg;*.bmp|JPEG Images|*.jpg;*.jpeg|Bitmap Images|*.bmp|All Files|*.*'
   end
 end

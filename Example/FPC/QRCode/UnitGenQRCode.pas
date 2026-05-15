@@ -6,7 +6,7 @@ interface
 
 uses
   LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, CnCommon,
-  Controls, Forms, Dialogs, StdCtrls, ExtCtrls, CnNative, CnQRImage, CnQRCode;
+  Controls, Forms, Dialogs, ExtDlgs, StdCtrls, ExtCtrls, CnNative, CnQRImage, CnQRCode;
 
 type
   TFormQRTest = class(TForm)
@@ -22,10 +22,17 @@ type
     lblForeColor: TLabel;
     shpForeColor: TShape;
     dlgColor: TColorDialog;
+    btnDecodeImage: TButton;
+    dlgOpenPicture: TOpenPictureDialog;
+    lblDecodeResult: TLabel;
+    mmoResult: TMemo;
+    imgDebug: TImage;
+    lblImageInfo: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure btnShowQRImageClick(Sender: TObject);
     procedure shpBackColorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure shpForeColorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure btnDecodeImageClick(Sender: TObject);
   private
     FQRImage: TCnQRCodeImage;
   public
@@ -61,6 +68,9 @@ begin
   FQRImage.IconMargin := StrToIntDef(edtIconMargin.Text, 2);
   FQRImage.Color := shpBackColor.Brush.Color;
   FQRImage.ForeColor := shpForeColor.Brush.Color;
+  // Hide debug image, show QR code
+  imgDebug.Visible := False;
+  FQRImage.Visible := True;
 end;
 
 procedure TFormQRTest.shpBackColorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -75,6 +85,63 @@ begin
   dlgColor.Color := shpForeColor.Brush.Color;
   if dlgColor.Execute then
     shpForeColor.Brush.Color := dlgColor.Color;
+end;
+
+procedure TFormQRTest.btnDecodeImageClick(Sender: TObject);
+var
+  Pic: TPicture;
+  Bmp: TBitmap;
+  QRData: TCnQRData;
+  DecodedText: string;
+  P: PByteArray;
+  FirstPixelR, FirstPixelG, FirstPixelB: Byte;
+  InfoLine: string;
+begin
+  if not dlgOpenPicture.Execute then
+    Exit;
+
+  Pic := TPicture.Create;
+  Bmp := TBitmap.Create;
+  try
+    Pic.LoadFromFile(dlgOpenPicture.FileName);
+
+    // Bmp.Assign(Pic.Graphic) in Lazarus does NOT correctly copy JPEG pixel data.
+    // Use Canvas.Draw to rasterize the JPEG/PNG/BMP properly.
+    Bmp.SetSize(Pic.Graphic.Width, Pic.Graphic.Height);
+    Bmp.Canvas.Draw(0, 0, Pic.Graphic);
+
+    // Show the real rasterized bitmap on debug image
+    imgDebug.Picture.Assign(Bmp);
+//    imgDebug.Visible := True;
+//    FQRImage.Visible := False;
+
+    // Convert to gray — sets pf24bit internally for ScanLine access
+    QRData := CnBitmapToGrayImage(Bmp);
+
+    // Build info AFTER conversion (Bmp is now pf24bit)
+    InfoLine := Format('TBitmap: %dx%d pf=%d',
+      [Bmp.Width, Bmp.Height, Ord(Bmp.PixelFormat)]);
+    if (Bmp.Width > 0) and (Bmp.Height > 0) then
+    begin
+      P := Bmp.ScanLine[0];
+      FirstPixelB := P[0];
+      FirstPixelG := P[1];
+      FirstPixelR := P[2];
+      InfoLine := InfoLine + Format(' pixel[0]=(R%d G%d B%d)',
+        [FirstPixelR, FirstPixelG, FirstPixelB]);
+    end;
+    if (Length(QRData) > 0) and (Length(QRData[0]) > 0) then
+      InfoLine := InfoLine + Format(' QRData[0,0]=%d', [QRData[0,0]]);
+    lblImageInfo.Caption := InfoLine;
+
+    DecodedText := CnQRDecodeFromGrayImage(QRData);
+    mmoResult.Text := DecodedText;
+  except
+    on E: Exception do
+      mmoResult.Text := 'Decode Failed: ' + E.Message;
+  end;
+  Bmp.Free;
+  Pic.Free;
 end;
 
 end.

@@ -101,7 +101,7 @@ type
   end;
 
 function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
-{* 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRData。
+{* 将 VCL/FPC 的 TBitmap 转换为二维码专用的 TCnQRData。
    灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
 
 {$IFDEF FPC}
@@ -120,11 +120,54 @@ var
   X, Y, Width, Height: Integer;
   P: PByteArray;
   R, G, B: Byte;
+{$IFDEF FPC}
+  TempBmp: TBitmap;
+{$ENDIF}
 begin
   Width := ABitmap.Width;
   Height := ABitmap.Height;
   SetLength(Result, Width, Height);
+  if (Width <= 0) or (Height <= 0) then Exit;
 
+{$IFDEF FPC}
+  if ABitmap.PixelFormat = pf24bit then
+  begin
+    for Y := 0 to Height - 1 do
+    begin
+      P := ABitmap.ScanLine[Y];
+      for X := 0 to Width - 1 do
+      begin
+        B := P[X * 3];
+        G := P[X * 3 + 1];
+        R := P[X * 3 + 2];
+        Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+      end;
+    end;
+  end
+  else
+  begin
+    TempBmp := TBitmap.Create;
+    try
+      TempBmp.PixelFormat := pf24bit;
+      TempBmp.SetSize(Width, Height);
+      TempBmp.Canvas.Draw(0, 0, ABitmap);
+
+      for Y := 0 to Height - 1 do
+      begin
+        P := TempBmp.ScanLine[Y];
+        for X := 0 to Width - 1 do
+        begin
+          B := P[X * 3];
+          G := P[X * 3 + 1];
+          R := P[X * 3 + 2];
+          Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+        end;
+      end;
+    finally
+      TempBmp.Free;
+    end;
+  end;
+{$ELSE}
   ABitmap.PixelFormat := pf24bit;
   for Y := 0 to Height - 1 do
   begin
@@ -138,7 +181,10 @@ begin
       Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
     end;
   end;
+{$ENDIF}
 end;
+
+{$IFDEF FPC}
 
 function CnFPCImageToGrayImage(Image: TFPCustomImage): TCnQRData;
 var
@@ -160,6 +206,8 @@ begin
     end;
   end;
 end;
+
+{$ENDIF}
 
 { TCnQRCodeImage }
 
