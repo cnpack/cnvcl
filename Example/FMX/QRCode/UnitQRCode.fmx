@@ -1,0 +1,87 @@
+object FormQRTest: TFormQRTest
+  Left = 0
+  Top = 0
+  Caption = 'QR Test'
+  ClientHeight = 480
+  ClientWidth = 800
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object lblText: TLabel
+    Position.X = 470.000000000000000000
+    Position.Y = 16.000000000000000000
+    Text = 'Text:'
+  end
+  object edtQRText: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    Text = 'CnPack Sample QR Code.'
+    Position.X = 520.000000000000000000
+    Position.Y = 12.000000000000000000
+    Size.Width = 260.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnShowQRImage: TButton
+    Position.X = 460.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 160.000000000000000000
+    Size.Height = 54.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Show QR Code Image'
+    OnClick = btnShowQRImageClick
+  end
+  object Image1: TImage
+    MultiResBitmap = <
+      item
+      end>
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 440.000000000000000000
+    Size.Height = 460.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object mmoDecodeResult: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    ReadOnly = True
+    Position.X = 460.000000000000000000
+    Position.Y = 280.000000000000000000
+    Size.Width = 325.000000000000000000
+    Size.Height = 190.000000000000000000
+    Size.PlatformDefault = False
+    Viewport.Width = 321.000000000000000000
+    Viewport.Height = 186.000000000000000000
+  end
+  object btnTestDecode: TButton
+    Position.X = 460.000000000000000000
+    Position.Y = 120.000000000000000000
+    Size.Width = 160.000000000000000000
+    Size.Height = 30.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Test Decode Matrix'
+    OnClick = btnTestDecodeClick
+  end
+  object btnTestDecodeImage: TButton
+    Position.X = 460.000000000000000000
+    Position.Y = 160.000000000000000000
+    Size.Width = 160.000000000000000000
+    Size.Height = 30.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Test Decode Image'
+    OnClick = btnTestDecodeImageClick
+  end
+  object btnOpenFileDecode: TButton
+    Position.X = 460.000000000000000000
+    Position.Y = 200.000000000000000000
+    Size.Width = 160.000000000000000000
+    Size.Height = 30.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Open Picture Decode'
+    OnClick = btnOpenFileDecodeClick
+  end
+  object dlgOpenPic: TOpenDialog
+    Filter = 'Images|*.bmp;*.jpg;*.jpeg;*.png;*.gif'
+  end
+end
