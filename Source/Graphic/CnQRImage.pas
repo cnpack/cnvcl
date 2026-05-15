@@ -24,12 +24,15 @@ unit CnQRImage;
 * 软件名称：开发包基础库
 * 单元名称：二维码显示单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元使用 CnQRCode 单元中的 TCnQREncoder 实现了二维码图形绘制。
+* 备    注：本单元使用 CnQRCode 单元中的 TCnQREncoder 实现 VCL/FPX 下的二维码图形绘制，
+*           暂不支持 FMX 组件。
+*           另外实现了将 VCL/FMX/FPC 的位图转换为二维码矩阵数据供辨识的函数。
+*           注意 FMX 相关功能需要定义 ENABLE_FMX
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.05.13 V1.1
-*               增加将 VCL 的位图转为二维码灰度矩阵的功能供解码用
+* 修改记录：2026.05.15 V1.1
+*               增加将 VCL/FMX/FPC 的位图等转为二维码灰度矩阵的功能供解码用
 *           2026.01.13 V1.0
 *               创建单元，在 AI 帮助下实现编码并能扫描成功
 ================================================================================
@@ -39,12 +42,12 @@ interface
 
 {$I CnPack.inc}
 
-// 如果要在 FMX 中使用，请定义 ENABLE_FMX 并在工程单元前缀中加上 Vcl
-// {$DEFINE ENABLE_FMX}
+// 如果要在 FMX 中使用解码功能，请定义 ENABLE_FMX 并在工程单元前缀中加上 Vcl
+{$DEFINE ENABLE_FMX}
 
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
-  Graphics, Controls, ExtCtrls, {$IFDEF ENABLE_FMX} FMX.Graphics, {$ENDIF} CnQRCode;
+  Graphics, Controls, ExtCtrls, {$IFDEF ENABLE_FMX} UITypes, FMX.Graphics, {$ENDIF} CnQRCode;
 
 type
 {$IFNDEF FPC}
@@ -204,8 +207,35 @@ end;
 {$IFDEF ENABLE_FMX}
 
 function CnFMXBitmapToGrayImage(const ABitmap: FMX.Graphics.TBitmap): TCnQRData;
+var
+  X, Y, W, H: Integer;
+  Data: FMX.Graphics.TBitmapData;
+  Pixel: TAlphaColor;
+  R, G, B: Byte;
 begin
+  W := ABitmap.Width;
+  H := ABitmap.Height;
+  SetLength(Result, W, H);
+  if (W <= 0) or (H <= 0) then Exit;
 
+  if ABitmap.Map(TMapAccess.Read, Data) then
+  begin
+    try
+      for Y := 0 to H - 1 do
+      begin
+        for X := 0 to W - 1 do
+        begin
+          Pixel := Data.GetPixel(X, Y);
+          R := (Pixel shr 16) and $FF;
+          G := (Pixel shr 8) and $FF;
+          B := Pixel and $FF;
+          Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+        end;
+      end;
+    finally
+      ABitmap.Unmap(Data);
+    end;
+  end;
 end;
 
 {$ENDIF}
@@ -224,7 +254,7 @@ begin
   begin
     for X := 0 to Image.Width - 1 do
     begin
-      Pixel := Image.Colors[X, Y];
+      Pixel := Image.Colors[X, Y];  // 注意 TFPColor 是 0 到 65536
       R := Pixel.Red div 256;
       G := Pixel.Green div 256;
       B := Pixel.Blue div 256;
