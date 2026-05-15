@@ -362,7 +362,10 @@ function CnQRDecodeFromMatrix(const AQRData: TCnQRData): string;
 
 // 阶段二：图像检测
 function CnQRBinarize(const AGrayImage: TCnQRData): TCnQRData;
-{* 将灰度图像二值化输出 0/1 矩阵。输入输出均为 TCnQRData，尺寸由数组维度确定}
+{* 将灰度图像用 HybridBinarizer 二值化输出 0/1 矩阵。输入输出均为 TCnQRData，尺寸由数组维度确定}
+
+function CnQRBinarizeGlobalHistogram(const AGrayImage: TCnQRData): TCnQRData;
+{* 将灰度图像用 GlobalHistogramBinarizer 二值化输出 0/1 矩阵。输入输出均为 TCnQRData，尺寸由数组维度确定}
 
 function CnQRFindFinderPatterns(const ABinarized: TCnQRData;
   out TopLeft, TopRight, BottomLeft: TCnQRFinderPattern): Boolean;
@@ -3151,7 +3154,7 @@ var
   ErrorValues: array of Integer;
   // Euclidean 算法多项式
   PolyR2: array of Integer;
-  PolyT0, PolyT2: array of Integer;
+  PolyT0: array of Integer;
   DegR0, DegR1, DegR2: Integer;
   DegT0, DegT1, DegT2: Integer;
   TempVal, TempDeg: Integer;
@@ -3752,89 +3755,230 @@ begin
   Result := Sqrt((P1.X - P2.X) * (P1.X - P2.X) + (P1.Y - P2.Y) * (P1.Y - P2.Y));
 end;
 
+// 用 GlobalHistogramBinarizer 将 将灰度图像二值化输出 0/1 矩阵
+function CnQRBinarizeGlobalHistogram(const AGrayImage: TCnQRData): TCnQRData;
+const
+  CN_LUMINANCE_BITS = 5;
+  CN_LUMINANCE_SHIFT = 3;    // 8 - CN_LUMINANCE_BITS
+  CN_LUMINANCE_BUCKETS = 32; // 1 shl CN_LUMINANCE_BITS
+var
+  X, Y, AWidth, AHeight, ARow, ARight: Integer;
+  Pixel, BlackPoint: Integer;
+  Buckets: array[0..31] of Integer;
+  MaxBucketCount, FirstPeak, FirstPeakSize: Integer;
+  SecondPeak, SecondPeakScore, DistToBiggest, Score: Integer;
+  Temp, BestValley, BestValleyScore, FromFirst: Integer;
+begin
+  AWidth := Length(AGrayImage);
+  AHeight := Length(AGrayImage[0]);
+  SetLength(Result, AWidth, AHeight);
+
+  FillChar(Buckets, SizeOf(Buckets), 0);
+  for Y := 1 to 4 do
+  begin
+    ARow := AHeight * Y div 5;
+    ARight := (AWidth * 4) div 5;
+    for X := AWidth div 5 to ARight - 1 do
+    begin
+      Pixel := AGrayImage[X, ARow];
+      Inc(Buckets[Pixel shr CN_LUMINANCE_SHIFT]);
+    end;
+  end;
+
+  MaxBucketCount := 0;
+  FirstPeak := 0;
+  FirstPeakSize := 0;
+  for X := 0 to CN_LUMINANCE_BUCKETS - 1 do
+  begin
+    if Buckets[X] > FirstPeakSize then
+    begin
+      FirstPeak := X;
+      FirstPeakSize := Buckets[X];
+    end;
+    if Buckets[X] > MaxBucketCount then
+      MaxBucketCount := Buckets[X];
+  end;
+
+  SecondPeak := 0;
+  SecondPeakScore := 0;
+  for X := 0 to CN_LUMINANCE_BUCKETS - 1 do
+  begin
+    DistToBiggest := X - FirstPeak;
+    Score := Buckets[X] * DistToBiggest * DistToBiggest;
+    if Score > SecondPeakScore then
+    begin
+      SecondPeak := X;
+      SecondPeakScore := Score;
+    end;
+  end;
+
+  if FirstPeak > SecondPeak then
+  begin
+    Temp := FirstPeak;
+    FirstPeak := SecondPeak;
+    SecondPeak := Temp;
+  end;
+
+  if SecondPeak - FirstPeak <= CN_LUMINANCE_BUCKETS div 16 then
+    BlackPoint := 128
+  else
+  begin
+    BestValley := SecondPeak - 1;
+    BestValleyScore := -1;
+    for X := SecondPeak - 1 downto FirstPeak + 1 do
+    begin
+      FromFirst := X - FirstPeak;
+      Score := FromFirst * FromFirst * (SecondPeak - X) * (MaxBucketCount - Buckets[X]);
+      if Score > BestValleyScore then
+      begin
+        BestValley := X;
+        BestValleyScore := Score;
+      end;
+    end;
+    BlackPoint := BestValley shl CN_LUMINANCE_SHIFT;
+  end;
+
+  for Y := 0 to AHeight - 1 do
+    for X := 0 to AWidth - 1 do
+    begin
+      if AGrayImage[X, Y] < BlackPoint then
+        Result[X, Y] := 1
+      else
+        Result[X, Y] := 0;
+    end;
+end;
+
 // 将灰度图像二值化输出 0/1 矩阵
 function CnQRBinarize(const AGrayImage: TCnQRData): TCnQRData;
+const
+  CN_BLOCK_SIZE_POWER = 3;
+  CN_BLOCK_SIZE = 8;          // 1 shl CN_BLOCK_SIZE_POWER
+  CN_BLOCK_SIZE_MASK = 7;     // CN_BLOCK_SIZE - 1
+  CN_MIN_DIMENSION = 40;      // CN_BLOCK_SIZE * 5
+  CN_MIN_DYNAMIC_RANGE = 24;
 var
-  X, Y, AWidth, AHeight, BlockCols, BlockRows, BlockX, BlockY: Integer;
-  StartX, StartY, EndX, EndY: Integer;
-  Histogram: array[0..255] of Integer;
-  I, MinVal, MaxVal, TotalPixels: Integer;
-  SumDark, SumLight, CountDark, CountLight: Integer;
-  Threshold: Integer;
+  AWidth, AHeight, SubWidth, SubHeight: Integer;
+  BX, BY: Integer;
+  XOffset, YOffset, MaxXOffset, MaxYOffset: Integer;
+  XX, YY, Pixel, ASum, MinVal, MaxVal: Integer;
+  Average, ALeft, ATop, Z: Integer;
+  AvgNeighborBP, Threshold: Integer;
+  DynReached: Boolean;
+  BlackPoints: array of array of Integer;
 begin
   AWidth := Length(AGrayImage);
   AHeight := Length(AGrayImage[0]);
   SetLength(Result, AWidth, AHeight);
 
   // 8x8 子块划分
-  BlockCols := (AWidth + 7) div 8;
-  BlockRows := (AHeight + 7) div 8;
-
-  for BlockY := 0 to BlockRows - 1 do
+  if (AWidth < CN_MIN_DIMENSION) or (AHeight < CN_MIN_DIMENSION) then
   begin
-    StartY := BlockY * 8;
-    EndY := StartY + 7;
-    if EndY >= AHeight then
-      EndY := AHeight - 1;
+    Result := CnQRBinarizeGlobalHistogram(AGrayImage);
+    Exit;
+  end;
 
-    for BlockX := 0 to BlockCols - 1 do
+  SubWidth := AWidth shr CN_BLOCK_SIZE_POWER;
+  if (AWidth and CN_BLOCK_SIZE_MASK) <> 0 then
+    Inc(SubWidth);
+  SubHeight := AHeight shr CN_BLOCK_SIZE_POWER;
+  if (AHeight and CN_BLOCK_SIZE_MASK) <> 0 then
+    Inc(SubHeight);
+
+  MaxXOffset := AWidth - CN_BLOCK_SIZE;
+  MaxYOffset := AHeight - CN_BLOCK_SIZE;
+
+  SetLength(BlackPoints, SubHeight, SubWidth);
+  for BY := 0 to SubHeight - 1 do
+  begin
+    YOffset := BY shl CN_BLOCK_SIZE_POWER;
+    if YOffset > MaxYOffset then
+      YOffset := MaxYOffset;
+
+    for BX := 0 to SubWidth - 1 do
     begin
-      StartX := BlockX * 8;
-      EndX := StartX + 7;
-      if EndX >= AWidth then
-        EndX := AWidth - 1;
+      XOffset := BX shl CN_BLOCK_SIZE_POWER;
+      if XOffset > MaxXOffset then
+        XOffset := MaxXOffset;
 
-      FillChar(Histogram, SizeOf(Histogram), 0);
+      ASum := 0;
       MinVal := 255;
       MaxVal := 0;
-      for Y := StartY to EndY do
-        for X := StartX to EndX do
-        begin
-          I := AGrayImage[X, Y];
-          Inc(Histogram[I]);
-          if I < MinVal then MinVal := I;
-          if I > MaxVal then MaxVal := I;
-        end;
+      DynReached := False;
 
-      if MaxVal - MinVal < 24 then
-        Threshold := 128
-      else
+      for YY := 0 to CN_BLOCK_SIZE - 1 do
       begin
-        TotalPixels := (EndX - StartX + 1) * (EndY - StartY + 1);
-        SumDark := 0; CountDark := 0;
-        for I := 0 to 255 do
+        for XX := 0 to CN_BLOCK_SIZE - 1 do
         begin
-          Inc(CountDark, Histogram[I]);
-          Inc(SumDark, I * Histogram[I]);
-          if CountDark >= TotalPixels * 5 div 100 then
+          Pixel := AGrayImage[XOffset + XX, YOffset + YY];
+          ASum := ASum + Pixel;
+          if not DynReached then
           begin
-            if CountDark > 0 then SumDark := SumDark div CountDark
-            else SumDark := 0;
-            Break;
+            if Pixel < MinVal then
+              MinVal := Pixel;
+            if Pixel > MaxVal then
+              MaxVal := Pixel;
           end;
         end;
-        SumLight := 0; CountLight := 0;
-        for I := 255 downto 0 do
-        begin
-          Inc(CountLight, Histogram[I]);
-          Inc(SumLight, I * Histogram[I]);
-          if CountLight >= TotalPixels * 5 div 100 then
-          begin
-            if CountLight > 0 then SumLight := SumLight div CountLight
-            else SumLight := 255;
-            Break;
-          end;
-        end;
-        Threshold := (SumDark + SumLight) div 2;
+        if (not DynReached) and (MaxVal - MinVal > CN_MIN_DYNAMIC_RANGE) then
+          DynReached := True;
       end;
 
-      for Y := StartY to EndY do
-        for X := StartX to EndX do
+      Average := ASum shr (CN_BLOCK_SIZE_POWER * 2); // ASum div 64
+      if MaxVal - MinVal <= CN_MIN_DYNAMIC_RANGE then
+      begin
+        Average := MinVal div 2;
+        if (BY > 0) and (BX > 0) then
         begin
-          if AGrayImage[X, Y] < Threshold then
-            Result[X, Y] := 1
+          AvgNeighborBP := (BlackPoints[BY - 1][BX] +
+            2 * BlackPoints[BY][BX - 1] +
+            BlackPoints[BY - 1][BX - 1]) div 4;
+          if MinVal < AvgNeighborBP then
+            Average := AvgNeighborBP;
+        end;
+      end;
+      BlackPoints[BY][BX] := Average;
+    end;
+  end;
+
+  for BY := 0 to SubHeight - 1 do
+  begin
+    YOffset := BY shl CN_BLOCK_SIZE_POWER;
+    if YOffset > MaxYOffset then
+      YOffset := MaxYOffset;
+
+    ATop := BY;
+    if ATop < 2 then
+      ATop := 2;
+    if ATop > SubHeight - 3 then
+      ATop := SubHeight - 3;
+
+    for BX := 0 to SubWidth - 1 do
+    begin
+      XOffset := BX shl CN_BLOCK_SIZE_POWER;
+      if XOffset > MaxXOffset then
+        XOffset := MaxXOffset;
+
+      ALeft := BX;
+      if ALeft < 2 then
+        ALeft := 2;
+      if ALeft > SubWidth - 3 then
+        ALeft := SubWidth - 3;
+
+      ASum := 0;
+      for Z := -2 to 2 do
+        ASum := ASum + BlackPoints[ATop + Z][ALeft - 2]
+                     + BlackPoints[ATop + Z][ALeft - 1]
+                     + BlackPoints[ATop + Z][ALeft]
+                     + BlackPoints[ATop + Z][ALeft + 1]
+                     + BlackPoints[ATop + Z][ALeft + 2];
+      Threshold := ASum div 25;
+      for YY := 0 to CN_BLOCK_SIZE - 1 do
+        for XX := 0 to CN_BLOCK_SIZE - 1 do
+        begin
+          if AGrayImage[XOffset + XX, YOffset + YY] <= Threshold then
+            Result[XOffset + XX, YOffset + YY] := 1
           else
-            Result[X, Y] := 0;
+            Result[XOffset + XX, YOffset + YY] := 0;
         end;
     end;
   end;
@@ -4587,11 +4731,9 @@ begin
     Result := 21;
 end;
 
-// 从灰度图像端到端解码二维码文本。内部串联二值化→检测→采样→矩阵解码
-function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRData): string;
+function CnQRTryDecodeFromBinarized(const ABinarized: TCnQRData;
+  AWidth, AHeight: Integer): string;
 var
-  Binarized: TCnQRData;
-  Width, Height, Dimension: Integer;
   TopLeft, TopRight, BottomLeft: TCnQRFinderPattern;
   AlignmentPattern: TCnQRAlignmentPattern;
   ModuleSize: Double;
@@ -4600,79 +4742,82 @@ var
   Transform: TCnQRPerspectiveTransform;
   QRData: TCnQRData;
   HasAlignment: Boolean;
-  I, DimCand, ValidateCount: Integer;
+  I, DimCand, LetterCount, J: Integer;
+begin
+  Result := '';
+
+  if not CnQRFindFinderPatterns(ABinarized, TopLeft, TopRight, BottomLeft) then
+    Exit;
+
+  for I := 0 to 4 do
+  begin
+    DimCand := 21 + I * 4;
+    ModuleSize := CnQRDistance(TopLeft, TopRight) / (DimCand - 7);
+    if ModuleSize < 1.0 then
+      Continue;
+
+    HasAlignment := CnQRFindAlignmentPattern(ABinarized, AWidth, AHeight,
+      TopLeft, TopRight, BottomLeft, AlignmentPattern);
+    SrcPoints[0].X := TopLeft.X; SrcPoints[0].Y := TopLeft.Y;
+    SrcPoints[1].X := TopRight.X; SrcPoints[1].Y := TopRight.Y;
+    SrcPoints[2].X := BottomLeft.X; SrcPoints[2].Y := BottomLeft.Y;
+    if HasAlignment then
+    begin
+      SrcPoints[3].X := AlignmentPattern.X;
+      SrcPoints[3].Y := AlignmentPattern.Y;
+    end
+    else
+    begin
+      SrcPoints[3].X := TopRight.X - TopLeft.X + BottomLeft.X;
+      SrcPoints[3].Y := TopRight.Y - TopLeft.Y + BottomLeft.Y;
+    end;
+    DstPoints[0].X := 3.5; DstPoints[0].Y := 3.5;
+    DstPoints[1].X := DimCand - 3.5; DstPoints[1].Y := 3.5;
+    DstPoints[2].X := 3.5; DstPoints[2].Y := DimCand - 3.5;
+    DstPoints[3].X := DimCand - 3.5; DstPoints[3].Y := DimCand - 3.5;
+    Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
+    QRData := CnQRSampleGrid(ABinarized, Transform, DimCand);
+    try
+      Result := CnQRDecodeFromMatrix(QRData);
+      if Result <> '' then
+      begin
+        LetterCount := 0;
+        for J := 1 to Length(Result) do
+          if ((Result[J] >= #65) and (Result[J] <= #90)) or
+             ((Result[J] >= #97) and (Result[J] <= #122)) then
+            Inc(LetterCount);
+        if LetterCount >= 3 then
+          Exit;
+        Result := '';
+      end;
+    except
+      Result := '';
+    end;
+  end;
+end;
+
+// 从灰度图像端到端解码二维码文本。
+function CnQRDecodeFromGrayImage(const AGrayImage: TCnQRData): string;
+var
+  Binarized: TCnQRData;
+  Width, Height: Integer;
 begin
   Width := Length(AGrayImage);
   Height := Length(AGrayImage[0]);
   if (Width < 21) or (Height < 21) then
     raise ECnQRCodeException.Create(SCnErrorQRImageTooSmallMin21X21);
 
-  // Step 1: 二值化
-  Binarized := CnQRBinarize(AGrayImage);
+  Binarized := CnQRBinarizeGlobalHistogram(AGrayImage);
+  Result := CnQRTryDecodeFromBinarized(Binarized, Width, Height);
 
-  try
-    // Step 2: 寻像图案定位
-    if not CnQRFindFinderPatterns(Binarized, TopLeft, TopRight, BottomLeft) then
-      raise ECnQRCodeException.Create(SCnErrorQRNoFinderPatternsFound);
-
-    // Step 3: try dimensions in sorted order with fallback
-    Result := '';
-    for I := 0 to 4 do
-    begin
-      DimCand := 21 + I * 4;
-      ModuleSize := CnQRDistance(TopLeft, TopRight) / (DimCand - 7);
-      if ModuleSize < 1.0 then Continue;
-
-      HasAlignment := CnQRFindAlignmentPattern(Binarized, Width, Height,
-        TopLeft, TopRight, BottomLeft, AlignmentPattern);
-      SrcPoints[0].X := TopLeft.X; SrcPoints[0].Y := TopLeft.Y;
-      SrcPoints[1].X := TopRight.X; SrcPoints[1].Y := TopRight.Y;
-      SrcPoints[2].X := BottomLeft.X; SrcPoints[2].Y := BottomLeft.Y;
-      if HasAlignment then
-      begin
-        SrcPoints[3].X := AlignmentPattern.X;
-        SrcPoints[3].Y := AlignmentPattern.Y;
-      end
-      else
-      begin
-        SrcPoints[3].X := TopRight.X - TopLeft.X + BottomLeft.X;
-        SrcPoints[3].Y := TopRight.Y - TopLeft.Y + BottomLeft.Y;
-      end;
-      DstPoints[0].X := 3.5; DstPoints[0].Y := 3.5;
-      DstPoints[1].X := DimCand - 3.5; DstPoints[1].Y := 3.5;
-      DstPoints[2].X := 3.5; DstPoints[2].Y := DimCand - 3.5;
-      DstPoints[3].X := DimCand - 3.5; DstPoints[3].Y := DimCand - 3.5;
-      Transform := CnQRCalcPerspectiveTransform(DstPoints, SrcPoints);
-      QRData := CnQRSampleGrid(Binarized, Transform, DimCand);
-      try
-        Result := CnQRDecodeFromMatrix(QRData);
-        if Result <> '' then
-        begin
-          // Validate: decoded text must contain printable chars
-          // Count ASCII printable chars (32-126)
-          ValidateCount := 0;
-          DimCand := 0;
-          for ValidateCount := 1 to Length(Result) do
-            if (Result[ValidateCount] >= #65) and (Result[ValidateCount] <= #90) or
-               (Result[ValidateCount] >= #97) and (Result[ValidateCount] <= #122) then
-              Inc(DimCand);
-          if DimCand >= 3 then
-          begin
-            Dimension := 21 + I * 4;
-            Break;
-          end
-          else
-            Result := '';
-        end;
-      except
-      end;
-    end;
-    if Result = '' then
-      raise ECnQRCodeException.Create(SCnErrorQRQrDecodeFailed);
-  finally
-    SetLength(Binarized, 0);
-    SetLength(QRData, 0);
+  if Result = '' then
+  begin
+    Binarized := CnQRBinarize(AGrayImage);
+    Result := CnQRTryDecodeFromBinarized(Binarized, Width, Height);
   end;
+
+  if Result = '' then
+    raise ECnQRCodeException.Create(SCnErrorQRQrDecodeFailed);
 end;
 
 end.
