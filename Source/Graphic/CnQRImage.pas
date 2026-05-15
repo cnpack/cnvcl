@@ -39,9 +39,12 @@ interface
 
 {$I CnPack.inc}
 
+// 如果要在 FMX 中使用，请定义 ENABLE_FMX 并在工程单元前缀中加上 Vcl
+// {$DEFINE ENABLE_FMX}
+
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
-  Graphics, Controls, ExtCtrls, CnQRCode;
+  Graphics, Controls, ExtCtrls, {$IFDEF ENABLE_FMX} FMX.Graphics, {$ENDIF} CnQRCode;
 
 type
 {$IFNDEF FPC}
@@ -100,9 +103,23 @@ type
     {* 中央图标边缘的空隙}
   end;
 
+{$IFDEF ENABLE_FMX}
+  // 如果引用了 FMX，会造成 TBitmap 混乱。
+  // 需要显式指定 TBitmap 是 VCL 的 Graphics，FMX 的则用全称
+  TBitmap = Graphics.TBitmap;
+{$ENDIF}
+
 function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
 {* 将 VCL/FPC 的 TBitmap 转换为二维码专用的 TCnQRData。
    灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
+
+{$IFDEF ENABLE_FMX}
+
+function CnFMXBitmapToGrayImage(const ABitmap: FMX.Graphics.TBitmap): TCnQRData;
+{* 将 FMX 的 TBitmap 转换为二维码专用的 TCnQRData。
+   灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
+
+{$ENDIF}
 
 {$IFDEF FPC}
 
@@ -184,6 +201,15 @@ begin
 {$ENDIF}
 end;
 
+{$IFDEF ENABLE_FMX}
+
+function CnFMXBitmapToGrayImage(const ABitmap: FMX.Graphics.TBitmap): TCnQRData;
+begin
+
+end;
+
+{$ENDIF}
+
 {$IFDEF FPC}
 
 function CnFPCImageToGrayImage(Image: TFPCustomImage): TCnQRData;
@@ -199,9 +225,9 @@ begin
     for X := 0 to Image.Width - 1 do
     begin
       Pixel := Image.Colors[X, Y];
-      R := Trunc(Pixel.Red * 255);
-      G := Trunc(Pixel.Green * 255);
-      B := Trunc(Pixel.Blue * 255);
+      R := Pixel.Red div 256;
+      G := Pixel.Green div 256;
+      B := Pixel.Blue div 256;
       Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
     end;
   end;
