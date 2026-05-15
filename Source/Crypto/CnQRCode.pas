@@ -4140,7 +4140,7 @@ begin
         end;
 
         // 评估等腰直角三角形程度
-        Score := Abs(C * C - 2 * B * B) + Abs(C * C - 2 * A * A);
+        if C > 0 then Score := (Abs(C*C-2*B*B)+Abs(C*C-2*A*A))/(C*C) else Score := 1E30;
         if Score < BestScore then
         begin
           BestScore := Score;
