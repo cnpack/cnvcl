@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, {$ELSE} Windows, {$ENDIF}
+  SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
   Graphics, Controls, ExtCtrls, CnQRCode;
 
 type
@@ -104,6 +104,14 @@ function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
 {* 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRData。
    灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
 
+{$IFDEF FPC}
+
+function CnFPCImageToGrayImage(Image: TFPCustomImage): TCnQRData;
+{* 将 FPC 的 TFPCustomImage 转换为二维码专用的 TCnQRData。
+   灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
+
+{$ENDIF}
+
 implementation
 
 // 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRData
@@ -127,6 +135,27 @@ begin
       B := P[X * 3];
       G := P[X * 3 + 1];
       R := P[X * 3 + 2];
+      Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+    end;
+  end;
+end;
+
+function CnFPCImageToGrayImage(Image: TFPCustomImage): TCnQRData;
+var
+  X, Y: Integer;
+  Pixel: TFPColor;
+  R, G, B: Byte;
+begin
+  SetLength(Result, Image.Width, Image.Height);
+
+  for Y := 0 to Image.Height - 1 do
+  begin
+    for X := 0 to Image.Width - 1 do
+    begin
+      Pixel := Image.Colors[X, Y];
+      R := Trunc(Pixel.Red * 255);
+      G := Trunc(Pixel.Green * 255);
+      B := Trunc(Pixel.Blue * 255);
       Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
     end;
   end;
