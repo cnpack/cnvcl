@@ -3576,6 +3576,7 @@
 {$IFDEF DELPHIXE3_UP}
   {$DEFINE SUPPORT_ATOMIC}              // XE3 有 Atomic 相关函数
   {$DEFINE TCONTROL_HAS_STYLEELEMENTS}  // XE3 的 TControl 开始有 StyleElements 属性
+  {$DEFINE FMX_TBITMAP_MAP}             // XE3 及以上 FMX 的 TBitmap 能 Map 成 TBitmapData
   {$DEFINE NEW_SETTING_DELIMITER}       // FormatSettings 和 TStringHelper.LastDelimiter 带来了不兼容问题
   {$DEFINE IDE_NP_FMX_DESIGN_BUG}       // XE3 FMX Designer Cut/Copy/Paste cause AV Bug for -np switch
 {$ENDIF}

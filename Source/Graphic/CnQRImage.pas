@@ -52,8 +52,8 @@ interface
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
   {$IFNDEF ENABLE_FMX} Graphics, {$ENDIF} Controls, ExtCtrls,
-  {$IFDEF ENABLE_FMX} Vcl.Graphics, UITypes,
-  {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ELSE} FMX.Types, {$ENDIF} {$ENDIF} CnQRCode;
+  {$IFDEF ENABLE_FMX} UITypes, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics,
+  {$ELSE} FMX.Types, {$ENDIF} Vcl.Graphics, {$ENDIF} CnQRCode;
 
 type
 {$IFNDEF ENABLE_FMX}
@@ -116,18 +116,23 @@ type
 {$ENDIF}
 
 {$IFDEF ENABLE_FMX}
-  // 如果引用了 FMX，会造成 TBitmap 混乱。
-  // 需要显式指定 TBitmap 是 VCL 的 Graphics，同时兼容 FPC 的 TBitmap，FMX 的则用全称
-  TBitmap = Vcl.Graphics.TBitmap;
 {$IFDEF FMX_HAS_GRAPHICS}
   TCnFMXBitmap = FMX.Graphics.TBitmap;
-  TCnBitmapData =  FMX.Graphics.TBitmapData;
 {$ELSE}
   TCnFMXBitmap = FMX.Types.TBitmap;
+{$ENDIF}
+
+{$IFDEF FMX_TBITMAP_MAP}
+{$IFDEF FMX_HAS_GRAPHICS}
+  TCnBitmapData = FMX.Graphics.TBitmapData;
+{$ELSE}
   TCnBitmapData = FMX.Types.TBitmapData;
 {$ENDIF}
 {$ENDIF}
 
+{$ENDIF}
+
+// 注意这个 TBitmap 是 Vcl.Graphics 里的，因为 uses 靠后
 function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
 {* 将 VCL/FPC 的 TBitmap 转换为二维码专用的 TCnQRData。
    灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
@@ -242,9 +247,11 @@ end;
 function CnFMXBitmapToGrayImage(const ABitmap: TCnFMXBitmap): TCnQRData;
 var
   X, Y, W, H: Integer;
-{$IFDEF FMX_HAS_GRAPHICS}
-  Data: FMX.Graphics.TBitmapData;
+{$IFDEF FMX_TBITMAP_MAP}
+  Data: TCnBitmapData;
   Res: Boolean;
+{$ELSE}
+  P: PByteArray;
 {$ENDIF}
   Pixel: TAlphaColor;
   R, G, B: Byte;
@@ -254,8 +261,8 @@ begin
   SetLength(Result, W, H);
   if (W <= 0) or (H <= 0) then Exit;
 
-{$IFDEF FMX_HAS_GRAPHICS}
-  // XE5 及以上能 map
+{$IFDEF FMX_TBITMAP_MAP}
+  // XE4 及以上能 map
 {$IFDEF DELPHIXE6_UP}
   // XE6 及以上改名了
   Res := ABitmap.Map(TMapAccess.Read, Data);
@@ -281,7 +288,18 @@ begin
     end;
   end;
 {$ELSE}
-  // TODO: 没 Map，直接访问 ScanLine
+  // XE2-XE4 ScanLine
+  for Y := 0 to H - 1 do
+  begin
+    P := PByteArray(ABitmap.ScanLine[Y]);
+    for X := 0 to W - 1 do
+    begin
+      B := P[X * 4];
+      G := P[X * 4 + 1];
+      R := P[X * 4 + 2];
+      Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
+    end;
+  end;
 {$ENDIF}
 end;
 
@@ -331,10 +349,10 @@ end;
 
 function CnFMXDecodeQRImageFile(const FileName: string): string;
 var
-  Bmp: FMX.Graphics.TBitmap;
+  Bmp: TCnFMXBitmap;
   GrayData: TCnQRData;
 begin
-  Bmp := FMX.Graphics.TBitmap.Create;
+  Bmp := TCnFMXBitmap.Create(0, 0);
   try
     Bmp.LoadFromFile(FileName);
     GrayData := CnFMXBitmapToGrayImage(Bmp);

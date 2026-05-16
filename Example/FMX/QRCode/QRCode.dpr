@@ -1,7 +1,6 @@
 program QRCode;
 
 uses
-  System.StartUpCopy,
   FMX.Forms,
   UnitQRCode in 'UnitQRCode.pas' {FormQRTest};
 

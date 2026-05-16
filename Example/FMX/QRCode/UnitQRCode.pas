@@ -2,12 +2,14 @@
 
 interface
 
+{$I CnPack.inc}
+
 uses
   SysUtils, Classes, System.Types, System.UITypes,
-  FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls, FMX.ExtCtrls, FMX.Edit, FMX.Memo, FMX.Types,
-  FMX.ScrollBox, FMX.Controls.Presentation, FMX.Objects,
-  CnQRCode, CnQRImage;
+  FMX.Controls, FMX.Forms, FMX.Dialogs, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF}
+  FMX.ExtCtrls, FMX.Edit, FMX.Memo, FMX.Types,
+  CnQRCode, CnQRImage, FMX.Layouts, FMX.StdCtrls, FMX.Objects, FMX.ScrollBox,
+  FMX.Controls.Presentation;
 
 type
   TFormQRTest = class(TForm)
@@ -55,7 +57,7 @@ end;
 
 procedure TFormQRTest.PaintQRCode;
 var
-  Bmp: FMX.Graphics.TBitmap;
+  Bmp: TBitmap;
   Size, CellSize, Margin, X, Y, ImgSize: Integer;
 begin
   Size := FEncoder.QRSize;
@@ -63,7 +65,7 @@ begin
   Margin := 4;
   ImgSize := Size * CellSize + Margin * 2;
 
-  Bmp := FMX.Graphics.TBitmap.Create(ImgSize, ImgSize);
+  Bmp := TBitmap.Create(ImgSize, ImgSize);
   try
     Bmp.Clear(TAlphaColorRec.White);
 
@@ -123,7 +125,7 @@ end;
 
 procedure TFormQRTest.btnTestDecodeImageClick(Sender: TObject);
 var
-  Bmp: FMX.Graphics.TBitmap;
+  Bmp: TBitmap;
   GrayImage: TCnQRData;
   DecodedText: string;
   Size, X, Y, CellSize, Margin, ImgSize: Integer;
@@ -138,7 +140,7 @@ begin
   Margin := 4;
   ImgSize := Size * CellSize + Margin * 2;
 
-  Bmp := FMX.Graphics.TBitmap.Create(ImgSize, ImgSize);
+  Bmp := TBitmap.Create(ImgSize, ImgSize);
   try
     Bmp.Clear(TAlphaColorRec.White);
 
@@ -182,7 +184,7 @@ end;
 
 procedure TFormQRTest.btnOpenFileDecodeClick(Sender: TObject);
 var
-  Bmp: FMX.Graphics.TBitmap;
+  Bmp: TBitmap;
   GrayImage: TCnQRData;
   DecodedText: string;
 begin
@@ -191,7 +193,7 @@ begin
   if not dlgOpenPic.Execute then
     Exit;
 
-  Bmp := FMX.Graphics.TBitmap.Create;
+  Bmp := TBitmap.Create(0, 0);
   try
     Bmp.LoadFromFile(dlgOpenPic.FileName);
     GrayImage := CnFMXBitmapToGrayImage(Bmp);

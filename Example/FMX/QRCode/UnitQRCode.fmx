@@ -6,79 +6,79 @@ object FormQRTest: TFormQRTest
   ClientWidth = 800
   FormFactor.Width = 320
   FormFactor.Height = 480
-  FormFactor.Devices = [Desktop, iPhone, iPad]
+  FormFactor.Devices = [dkDesktop, dkiPhone, dkiPad]
   OnCreate = FormCreate
-  DesignerMasterStyle = 0
+  DesignerMobile = False
+  DesignerWidth = 0
+  DesignerHeight = 0
+  DesignerDeviceName = ''
+  DesignerOrientation = 0
   object lblText: TLabel
+    Height = 17.000000000000000000
     Position.X = 470.000000000000000000
     Position.Y = 16.000000000000000000
     Text = 'Text:'
+    Width = 120.000000000000000000
   end
   object edtQRText: TEdit
-    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    Touch.InteractiveGestures = [igDoubleTap, igLongTap]
+    TabOrder = 1
     Text = 'CnPack Sample QR Code.'
     Position.X = 520.000000000000000000
     Position.Y = 12.000000000000000000
-    Size.Width = 260.000000000000000000
-    Size.Height = 22.000000000000000000
-    Size.PlatformDefault = False
+    Width = 225.000000000000000000
+    Height = 22.000000000000000000
+    KillFocusByReturn = False
   end
   object btnShowQRImage: TButton
+    Height = 22.000000000000000000
     Position.X = 460.000000000000000000
     Position.Y = 48.000000000000000000
-    Size.Width = 160.000000000000000000
-    Size.Height = 54.000000000000000000
-    Size.PlatformDefault = False
+    TabOrder = 2
     Text = 'Show QR Code Image'
+    Width = 141.000000000000000000
     OnClick = btnShowQRImageClick
   end
   object Image1: TImage
-    MultiResBitmap = <
-      item
-      end>
+    Height = 377.000000000000000000
     Position.X = 8.000000000000000000
     Position.Y = 8.000000000000000000
-    Size.Width = 440.000000000000000000
-    Size.Height = 460.000000000000000000
-    Size.PlatformDefault = False
+    Width = 417.000000000000000000
   end
   object mmoDecodeResult: TMemo
-    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
-    DataDetectorTypes = []
-    ReadOnly = True
+    Touch.InteractiveGestures = [igPan, igDoubleTap, igLongTap]
+    Height = 177.000000000000000000
     Position.X = 460.000000000000000000
     Position.Y = 280.000000000000000000
-    Size.Width = 325.000000000000000000
-    Size.Height = 190.000000000000000000
-    Size.PlatformDefault = False
-    Viewport.Width = 321.000000000000000000
-    Viewport.Height = 186.000000000000000000
+    TabOrder = 4
+    Width = 309.000000000000000000
+    ReadOnly = True
   end
   object btnTestDecode: TButton
+    Height = 22.000000000000000000
     Position.X = 460.000000000000000000
     Position.Y = 120.000000000000000000
-    Size.Width = 160.000000000000000000
-    Size.Height = 30.000000000000000000
-    Size.PlatformDefault = False
+    TabOrder = 5
     Text = 'Test Decode Matrix'
+    Width = 141.000000000000000000
     OnClick = btnTestDecodeClick
   end
   object btnTestDecodeImage: TButton
+    Height = 22.000000000000000000
     Position.X = 460.000000000000000000
     Position.Y = 160.000000000000000000
-    Size.Width = 160.000000000000000000
-    Size.Height = 30.000000000000000000
-    Size.PlatformDefault = False
+    TabOrder = 6
     Text = 'Test Decode Image'
+    Width = 141.000000000000000000
     OnClick = btnTestDecodeImageClick
   end
   object btnOpenFileDecode: TButton
+    Height = 22.000000000000000000
     Position.X = 460.000000000000000000
     Position.Y = 200.000000000000000000
-    Size.Width = 160.000000000000000000
-    Size.Height = 30.000000000000000000
-    Size.PlatformDefault = False
+    TabOrder = 7
     Text = 'Open Picture Decode'
+    Width = 141.000000000000000000
     OnClick = btnOpenFileDecodeClick
   end
   object dlgOpenPic: TOpenDialog
