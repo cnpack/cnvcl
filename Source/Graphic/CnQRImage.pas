@@ -52,7 +52,8 @@ interface
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
   {$IFNDEF ENABLE_FMX} Graphics, {$ENDIF} Controls, ExtCtrls,
-  {$IFDEF ENABLE_FMX} Vcl.Graphics, UITypes, FMX.Graphics, {$ENDIF} CnQRCode;
+  {$IFDEF ENABLE_FMX} Vcl.Graphics, UITypes,
+  {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ELSE} FMX.Types, {$ENDIF} {$ENDIF} CnQRCode;
 
 type
 {$IFNDEF ENABLE_FMX}
@@ -118,6 +119,13 @@ type
   // 如果引用了 FMX，会造成 TBitmap 混乱。
   // 需要显式指定 TBitmap 是 VCL 的 Graphics，同时兼容 FPC 的 TBitmap，FMX 的则用全称
   TBitmap = Vcl.Graphics.TBitmap;
+{$IFDEF FMX_HAS_GRAPHICS}
+  TCnFMXBitmap = FMX.Graphics.TBitmap;
+  TCnBitmapData =  FMX.Graphics.TBitmapData;
+{$ELSE}
+  TCnFMXBitmap = FMX.Types.TBitmap;
+  TCnBitmapData = FMX.Types.TBitmapData;
+{$ENDIF}
 {$ENDIF}
 
 function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
@@ -126,7 +134,7 @@ function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
 
 {$IFDEF ENABLE_FMX}
 
-function CnFMXBitmapToGrayImage(const ABitmap: FMX.Graphics.TBitmap): TCnQRData;
+function CnFMXBitmapToGrayImage(const ABitmap: TCnFMXBitmap): TCnQRData;
 {* 将 FMX 的 TBitmap 转换为二维码专用的 TCnQRData。
    灰度转换（灰度公式: 0.299R+0.587G+0.114B）}
 
@@ -231,10 +239,13 @@ end;
 
 {$IFDEF ENABLE_FMX}
 
-function CnFMXBitmapToGrayImage(const ABitmap: FMX.Graphics.TBitmap): TCnQRData;
+function CnFMXBitmapToGrayImage(const ABitmap: TCnFMXBitmap): TCnQRData;
 var
   X, Y, W, H: Integer;
+{$IFDEF FMX_HAS_GRAPHICS}
   Data: FMX.Graphics.TBitmapData;
+  Res: Boolean;
+{$ENDIF}
   Pixel: TAlphaColor;
   R, G, B: Byte;
 begin
@@ -243,7 +254,15 @@ begin
   SetLength(Result, W, H);
   if (W <= 0) or (H <= 0) then Exit;
 
-  if ABitmap.Map(TMapAccess.Read, Data) then
+{$IFDEF FMX_HAS_GRAPHICS}
+  // XE5 及以上能 map
+{$IFDEF DELPHIXE6_UP}
+  // XE6 及以上改名了
+  Res := ABitmap.Map(TMapAccess.Read, Data);
+{$ELSE}
+  Res := ABitmap.Map(TMapAccess.maRead, Data);
+{$ENDIF}
+  if Res then
   begin
     try
       for Y := 0 to H - 1 do
@@ -261,6 +280,9 @@ begin
       ABitmap.Unmap(Data);
     end;
   end;
+{$ELSE}
+  // TODO: 没 Map，直接访问 ScanLine
+{$ENDIF}
 end;
 
 {$ENDIF}
