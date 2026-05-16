@@ -42,7 +42,7 @@ interface
 
 {$I CnPack.inc}
 
-// 如果要在 FMX 中使用解码功能，请定义 ENABLE_FMX 并在工程单元前缀中加上 Vcl
+// 如果要在 FMX 中使用针对 FMX 的 Bitmap 的解码功能，请工程中或下面定义 ENABLE_FMX
 // {$DEFINE ENABLE_FMX}
 
 {$IFNDEF SUPPORT_FMX}
@@ -51,9 +51,11 @@ interface
 
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
-  Graphics, Controls, ExtCtrls, {$IFDEF ENABLE_FMX} UITypes, FMX.Graphics, {$ENDIF} CnQRCode;
+  {$IFNDEF ENABLE_FMX} Graphics, {$ENDIF} Controls, ExtCtrls,
+  {$IFDEF ENABLE_FMX} Vcl.Graphics, UITypes, FMX.Graphics, {$ENDIF} CnQRCode;
 
 type
+{$IFNDEF ENABLE_FMX}
 {$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
@@ -110,10 +112,12 @@ type
     {* 中央图标边缘的空隙}
   end;
 
+{$ENDIF}
+
 {$IFDEF ENABLE_FMX}
   // 如果引用了 FMX，会造成 TBitmap 混乱。
-  // 需要显式指定 TBitmap 是 VCL 的 Graphics，FMX 的则用全称
-  TBitmap = Graphics.TBitmap;
+  // 需要显式指定 TBitmap 是 VCL 的 Graphics，同时兼容 FPC 的 TBitmap，FMX 的则用全称
+  TBitmap = Vcl.Graphics.TBitmap;
 {$ENDIF}
 
 function CnBitmapToGrayImage(const ABitmap: TBitmap): TCnQRData;
@@ -338,6 +342,8 @@ begin
 end;
 
 {$ENDIF}
+
+{$IFNDEF ENABLE_FMX}
 
 { TCnQRCodeImage }
 
@@ -609,6 +615,8 @@ begin
     Invalidate;
   end;
 end;
+
+{$ENDIF}
 
 end.
 
