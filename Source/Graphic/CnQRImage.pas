@@ -136,6 +136,23 @@ function CnFPCImageToGrayImage(Image: TFPCustomImage): TCnQRData;
 
 {$ENDIF}
 
+function CnDecodeQRImageFile(const FileName: string): string;
+{* 从图片文件中解码二维码文本（VCL/FPC），使用 TPicture 加载文件并解码}
+
+{$IFDEF ENABLE_FMX}
+
+function CnFMXDecodeQRImageFile(const FileName: string): string;
+{* 从图片文件中解码二维码文本（FMX），使用 FMX.Graphics.TBitmap 加载文件并解码}
+
+{$ENDIF}
+
+{$IFDEF FPC}
+
+function CnFPCDecodeQRImageFile(const FileName: string): string;
+{* 从图片文件中解码二维码文本（FPC），使用 TFPCustomImage 加载文件并解码}
+
+{$ENDIF}
+
 implementation
 
 // 将 VCL 的 TBitmap 转换为二维码专用的 TCnQRData
@@ -264,6 +281,59 @@ begin
       B := Pixel.Blue div 256;
       Result[X, Y] := (R * 299 + G * 587 + B * 114) div 1000;
     end;
+  end;
+end;
+
+{$ENDIF}
+
+function CnDecodeQRImageFile(const FileName: string): string;
+var
+  Pic: TPicture;
+  GrayData: TCnQRData;
+begin
+  Pic := TPicture.Create;
+  try
+    Pic.LoadFromFile(FileName);
+    GrayData := CnBitmapToGrayImage(Pic.Bitmap);
+    Result := CnQRDecodeFromGrayImage(GrayData);
+  finally
+    Pic.Free;
+  end;
+end;
+
+{$IFDEF ENABLE_FMX}
+
+function CnFMXDecodeQRImageFile(const FileName: string): string;
+var
+  Bmp: FMX.Graphics.TBitmap;
+  GrayData: TCnQRData;
+begin
+  Bmp := FMX.Graphics.TBitmap.Create;
+  try
+    Bmp.LoadFromFile(FileName);
+    GrayData := CnFMXBitmapToGrayImage(Bmp);
+    Result := CnQRDecodeFromGrayImage(GrayData);
+  finally
+    Bmp.Free;
+  end;
+end;
+
+{$ENDIF}
+
+{$IFDEF FPC}
+
+function CnFPCDecodeQRImageFile(const FileName: string): string;
+var
+  Pic: TPicture;
+  GrayData: TCnQRData;
+begin
+  Pic := TPicture.Create;
+  try
+    Pic.LoadFromFile(FileName);
+    GrayData := CnBitmapToGrayImage(Pic.Bitmap);
+    Result := CnQRDecodeFromGrayImage(GrayData);
+  finally
+    Pic.Free;
   end;
 end;
 

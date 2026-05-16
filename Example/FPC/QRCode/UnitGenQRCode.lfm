@@ -99,7 +99,7 @@ object FormQRTest: TFormQRTest
     Left = 440
     Height = 30
     Top = 190
-    Width = 290
+    Width = 216
     Caption = 'Load Image && Decode QR Code'
     TabOrder = 4
     OnClick = btnDecodeImageClick
@@ -138,6 +138,15 @@ object FormQRTest: TFormQRTest
     Width = 57
     Anchors = [akLeft, akBottom]
     Caption = '(image info)'
+  end
+  object btnDecodeImage1: TButton
+    Left = 669
+    Height = 30
+    Top = 190
+    Width = 52
+    Caption = 'File'
+    TabOrder = 6
+    OnClick = btnDecodeImage1Click
   end
   object dlgColor: TColorDialog
     Color = clBlack

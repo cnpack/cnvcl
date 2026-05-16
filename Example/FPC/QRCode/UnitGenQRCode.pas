@@ -9,7 +9,11 @@ uses
   Controls, Forms, Dialogs, ExtDlgs, StdCtrls, ExtCtrls, CnNative, CnQRImage, CnQRCode;
 
 type
+
+  { TFormQRTest }
+
   TFormQRTest = class(TForm)
+    btnDecodeImage1: TButton;
     lblText: TLabel;
     btnShowQRImage: TButton;
     edtQRText: TEdit;
@@ -28,6 +32,7 @@ type
     mmoResult: TMemo;
     imgDebug: TImage;
     lblImageInfo: TLabel;
+    procedure btnDecodeImage1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnShowQRImageClick(Sender: TObject);
     procedure shpBackColorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -61,6 +66,12 @@ begin
   FQRImage.Icon := Application.Icon;
 end;
 
+procedure TFormQRTest.btnDecodeImage1Click(Sender: TObject);
+begin
+  if dlgOpenPicture.Execute then
+    mmoResult.Lines.Add(CnFPCDecodeQRImageFile(dlgOpenPicture.FileName));
+end;
+
 procedure TFormQRTest.btnShowQRImageClick(Sender: TObject);
 begin
   FQRImage.Text := edtQRText.Text;
@@ -87,6 +98,37 @@ begin
     shpForeColor.Brush.Color := dlgColor.Color;
 end;
 
+function ByteToHex(B: Byte): string;
+begin
+  Result := IntToHex(B, 2);
+end;
+
+function StrToHex(const S: string): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to Length(S) do
+  begin
+    if Result <> '' then
+      Result := Result + ' ';
+    Result := Result + IntToHex(Ord(S[I]), 2);
+  end;
+end;
+
+function Utf8StrToHex(const S: AnsiString): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to Length(S) do
+  begin
+    if Result <> '' then
+      Result := Result + ' ';
+    Result := Result + IntToHex(Ord(S[I]), 2);
+  end;
+end;
+
 procedure TFormQRTest.btnDecodeImageClick(Sender: TObject);
 var
   Pic: TPicture;
@@ -96,6 +138,7 @@ var
   P: PByteArray;
   FirstPixelR, FirstPixelG, FirstPixelB: Byte;
   InfoLine: string;
+  DiagText: string;
 begin
   if not dlgOpenPicture.Execute then
     Exit;
@@ -135,7 +178,12 @@ begin
     lblImageInfo.Caption := InfoLine;
 
     DecodedText := CnQRDecodeFromGrayImage(QRData);
-    mmoResult.Text := DecodedText;
+
+    // Diagnostic: show decoded text + hex dump
+    DiagText := 'Decoded: ' + DecodedText;
+    DiagText := DiagText + #13#10 + 'Hex (AnsiString bytes): ' + StrToHex(DecodedText);
+    DiagText := DiagText + #13#10 + 'Length: ' + IntToStr(Length(DecodedText)) + ' chars';
+    mmoResult.Text := DiagText;
   except
     on E: Exception do
       mmoResult.Text := 'Decode Failed: ' + E.Message;
