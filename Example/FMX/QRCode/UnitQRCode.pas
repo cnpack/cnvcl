@@ -8,8 +8,7 @@ uses
   SysUtils, Classes, System.Types, System.UITypes,
   FMX.Controls, FMX.Forms, FMX.Dialogs, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF}
   FMX.ExtCtrls, FMX.Edit, FMX.Memo, FMX.Types,
-  CnQRCode, CnQRImage, FMX.Layouts, FMX.StdCtrls, FMX.Objects, FMX.ScrollBox,
-  FMX.Controls.Presentation;
+  CnQRCode, CnQRImage, FMX.Layouts, FMX.Objects;
 
 type
   TFormQRTest = class(TForm)

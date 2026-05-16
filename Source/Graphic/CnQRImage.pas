@@ -52,7 +52,7 @@ interface
 uses
   SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, FPImage, {$ELSE} Windows, {$ENDIF}
   {$IFNDEF ENABLE_FMX} Graphics, {$ENDIF} Controls, ExtCtrls,
-  {$IFDEF ENABLE_FMX} UITypes, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics,
+  {$IFDEF ENABLE_FMX} System.UITypes, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics,
   {$ELSE} FMX.Types, {$ENDIF} Vcl.Graphics, {$ENDIF} CnQRCode;
 
 type
