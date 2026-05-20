@@ -5993,7 +5993,6 @@ var
   P1, P2, Res: TCnBigNumberPolynomial;
   X, V: TCnBigNumber;
 begin
-  Result := False;
   P1 := TCnBigNumberPolynomial.Create([1, 2, 3]);
   P2 := TCnBigNumberPolynomial.Create([3, 2, 1]);
   Res := TCnBigNumberPolynomial.Create;
@@ -9460,7 +9459,6 @@ function TestSLHDSAKeyGenKAT: Boolean;
     ADRS: TCnSlhAddr;
     ExpectedRoot: TBytes;
   begin
-    Result := False;
     Ctx := nil;
     try
       Ctx := TCnSLHDSA.Create(AParamSet);
