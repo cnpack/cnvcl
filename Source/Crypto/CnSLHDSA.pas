@@ -215,22 +215,23 @@ type
     FOnProgress: TCnSlhProgressEvent;
     FCancel: Boolean;
     FHashFuncs: TCnSlhHashFuncs;
+    // 大小查询
+    function GetPublicKeySize: Integer;
+    function GetSecretKeySize: Integer;
+    function GetSignatureSize: Integer;
+  protected
+    function SignInternal(const MPrime: TBytes;
+      const SK: TCnSlhSecretKey; const AddRnd: TBytes): TCnSlhSignature;
   public
     constructor Create(AParamSet: TCnSlhParamSet);
     destructor Destroy; override;
 
-    property ParamSet: TCnSlhParamSet read FParamSet;
-    property Params: PCnSlhParams read FParams;
-    property OnProgress: TCnSlhProgressEvent read FOnProgress write FOnProgress;
-
     // 顶层 API
     procedure GenerateKeys(out PK: TCnSlhPublicKey; out SK: TCnSlhSecretKey);
-    function Sign(const M: TBytes; const SK: TCnSlhSecretKey;
+    function SignBytes(const SK: TCnSlhSecretKey; const Msg: TBytes;
       Randomize: Boolean = True): TCnSlhSignature;
-    function Verify(const M: TBytes; const SIG: TCnSlhSignature;
-      const PK: TCnSlhPublicKey): Boolean;
-    function SignInternal(const MPrime: TBytes;
-      const SK: TCnSlhSecretKey; const AddRnd: TBytes): TCnSlhSignature;
+    function VerifyBytes(const PK: TCnSlhPublicKey; const Msg: TBytes;
+      const SIG: TCnSlhSignature): Boolean;
 
     // Prehash 模式
     function SignPreHash(const M: TBytes; const SK: TCnSlhSecretKey;
@@ -246,10 +247,12 @@ type
     function SignatureToBytes(const SIG: TCnSlhSignature): TBytes;
     function BytesToSignature(const Data: TBytes): TCnSlhSignature;
 
-    // 大小查询
-    function GetPublicKeySize: Integer;
-    function GetSecretKeySize: Integer;
-    function GetSignatureSize: Integer;
+    property ParamSet: TCnSlhParamSet read FParamSet;
+    property Params: PCnSlhParams read FParams;
+    property SecretKeySize: Integer read GetSecretKeySize;
+    property PublicKeySize: Integer read GetPublicKeySize;
+    property SignatureSize: Integer read GetSignatureSize;
+    property OnProgress: TCnSlhProgressEvent read FOnProgress write FOnProgress;
   end;
 
 // -------------------------------------------------------------------
@@ -1934,8 +1937,8 @@ begin
   Move(SigHt[0], Result[P.N + ForsSigLen], HtSigLen);
 end;
 
-function TCnSLHDSA.Sign(const M: TBytes; const SK: TCnSlhSecretKey;
-  Randomize: Boolean = True): TCnSlhSignature;
+function TCnSLHDSA.SignBytes(const SK: TCnSlhSecretKey; const Msg: TBytes;
+  Randomize: Boolean): TCnSlhSignature;
 var
   OptRand: TBytes;
 begin
@@ -1945,11 +1948,11 @@ begin
   else
     FillChar(OptRand[0], FParams.N, 0);
 
-  Result := SignInternal(M, SK, OptRand);
+  Result := SignInternal(Msg, SK, OptRand);
 end;
 
-function TCnSLHDSA.Verify(const M: TBytes; const SIG: TCnSlhSignature;
-  const PK: TCnSlhPublicKey): Boolean;
+function TCnSLHDSA.VerifyBytes(const PK: TCnSlhPublicKey; const Msg: TBytes;
+  const SIG: TCnSlhSignature): Boolean;
 var
   P: PCnSlhParams;
   R, Digest, Md, IdxBytes: TBytes;
@@ -1982,7 +1985,7 @@ begin
   Move(SIG[P.N + ForsSigLen], SigHt[0], HtSigLen);
 
   // Digest = H_msg(R, PK.Seed, PK.Root, M)
-  Digest := SlhHMsg(P, R, PK.Seed, PK.Root, M);
+  Digest := SlhHMsg(P, R, PK.Seed, PK.Root, Msg);
 
   // Split Digest
   IdxLen := (P.H + 7) div 8;
@@ -2118,7 +2121,7 @@ var
   MPrime: TBytes;
 begin
   MPrime := SlhPrehashData(M, HashID);
-  Result := Verify(MPrime, SIG, PK);
+  Result := VerifyBytes(PK, MPrime, SIG);
 end;
 
 // -------------------------------------------------------------------

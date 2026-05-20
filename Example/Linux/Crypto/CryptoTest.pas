@@ -9280,15 +9280,15 @@ begin
     Ctx.GenerateKeys(PK, SK);
 
     Msg := HexToBytes('436E5061636B20534C482D445354'); // 'CnPack SLH-DST'
-    Sig := Ctx.Sign(Msg, SK, False);
+    Sig := Ctx.SignBytes(SK, Msg, False);
 
-    Result := Ctx.Verify(Msg, Sig, PK);
+    Result := Ctx.VerifyBytes(PK, Msg, Sig);
     if not Result then Exit;
 
-    Result := not Ctx.Verify(HexToBytes('57726F6E6720'), Sig, PK);
+    Result := not Ctx.VerifyBytes(PK, HexToBytes('57726F6E6720'), Sig);
     if not Result then Exit;
 
-    Result := Length(Sig) = Ctx.GetSignatureSize;
+    Result := Length(Sig) = Ctx.SignatureSize;
     if not Result then Exit;
 
     Result := (Length(PK.Seed) = Ctx.Params.n) and (Length(PK.Root) = Ctx.Params.n);
@@ -9414,7 +9414,7 @@ begin
     Ctx.GenerateKeys(PK1, SK1);
 
     Msg := HexToBytes('436E5061636B20534C482D445354');
-    Sig1 := Ctx.Sign(Msg, SK1, False);
+    Sig1 := Ctx.SignBytes(SK1, Msg, False);
 
     // Serialize
     PKBytes := Ctx.PublicKeyToBytes(PK1);
@@ -9427,18 +9427,18 @@ begin
     Sig2 := Ctx.BytesToSignature(SigBytes);
 
     // Verify deserialized key works
-    Result := Ctx.Verify(Msg, Sig2, PK2);
+    Result := Ctx.VerifyBytes(PK2, Msg, Sig2);
     if not Result then Exit;
 
     // Re-sign with deserialized SK and verify
-    Sig2 := Ctx.Sign(Msg, SK2, False);
-    Result := Ctx.Verify(Msg, Sig2, PK2);
+    Sig2 := Ctx.SignBytes(SK2, Msg, False);
+    Result := Ctx.VerifyBytes(PK2, Msg, Sig2);
     if not Result then Exit;
 
     // Verify byte sizes
-    Result := (Length(PKBytes) = Ctx.GetPublicKeySize)
-      and (Length(SKBytes) = Ctx.GetSecretKeySize)
-      and (Length(SigBytes) = Ctx.GetSignatureSize);
+    Result := (Length(PKBytes) = Ctx.PublicKeySize)
+      and (Length(SKBytes) = Ctx.SecretKeySize)
+      and (Length(SigBytes) = Ctx.SignatureSize);
   finally
     Ctx.Free;
   end;
