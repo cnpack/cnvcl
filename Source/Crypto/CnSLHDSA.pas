@@ -55,13 +55,18 @@ const
   CN_SLH_ADRS_FORS_PRF   = 6;
 
   // 地址偏移常量
+  // Bytes 0-3: Layer (4 bytes)
+  // Bytes 4-15: Tree address (12 bytes, value right-aligned at bytes 8-15)
+  // Bytes 16-19: Type (4 bytes)
+  // Bytes 20-23: Word 4 (key pair / tree index)
+  // Bytes 24-27: Word 5 (chain address / tree height)
+  // Bytes 28-31: Word 6 (hash address / tree index)
   CN_ADRS_OFFSET_LAYER    = 0;
-  CN_ADRS_OFFSET_TREE     = 4;
-  CN_ADRS_OFFSET_TYPE     = 12;
-  CN_ADRS_OFFSET_KEYPAIR  = 16;
-  CN_ADRS_OFFSET_CHAIN    = 20;
-  CN_ADRS_OFFSET_HASH     = 24;
-  CN_ADRS_OFFSET_ZERO     = 28;
+  CN_ADRS_OFFSET_TREE     = 8;   // 8-byte value right-aligned in 12-byte field
+  CN_ADRS_OFFSET_TYPE     = 16;
+  CN_ADRS_OFFSET_KEYPAIR  = 20;
+  CN_ADRS_OFFSET_CHAIN    = 24;
+  CN_ADRS_OFFSET_HASH     = 28;
 
   CN_ADRS_SIZE_SHAKE      = 32;
   CN_ADRS_SIZE_SHA2       = 22;
@@ -267,6 +272,7 @@ procedure SlhAddrInit(var AD: TCnSlhAddr);
 procedure SlhAddrSetLayer(var AD: TCnSlhAddr; Layer: Cardinal);
 procedure SlhAddrSetTree(var AD: TCnSlhAddr; Tree: TUInt64);
 procedure SlhAddrSetType(var AD: TCnSlhAddr; Typ: Cardinal);
+procedure SlhAddrSetTypeAndClear(var AD: TCnSlhAddr; Typ: Cardinal);
 procedure SlhAddrSetKeyPair(var AD: TCnSlhAddr; Pair: Cardinal);
 procedure SlhAddrSetChain(var AD: TCnSlhAddr; Chain: Cardinal);
 procedure SlhAddrSetHash(var AD: TCnSlhAddr; Hash: Cardinal);
@@ -503,12 +509,18 @@ end;
 
 procedure SlhAddrSetTree(var AD: TCnSlhAddr; Tree: TUInt64);
 begin
-  SlhWriteU64BE(AD[4], Tree);
+  SlhWriteU64BE(AD[CN_ADRS_OFFSET_TREE], Tree);
 end;
 
 procedure SlhAddrSetType(var AD: TCnSlhAddr; Typ: Cardinal);
 begin
   SlhWriteU32BE(AD[CN_ADRS_OFFSET_TYPE], Typ);
+end;
+
+procedure SlhAddrSetTypeAndClear(var AD: TCnSlhAddr; Typ: Cardinal);
+begin
+  SlhWriteU32BE(AD[CN_ADRS_OFFSET_TYPE], Typ);
+  FillChar(AD[CN_ADRS_OFFSET_KEYPAIR], 12, 0); // Clear Words 4-6 (bytes 20-31)
 end;
 
 procedure SlhAddrSetKeyPair(var AD: TCnSlhAddr; Pair: Cardinal);
@@ -528,12 +540,12 @@ end;
 
 procedure SlhAddrSetTreeHeight(var AD: TCnSlhAddr; Height: Cardinal);
 begin
-  SlhAddrSetHash(AD, Height);
+  SlhWriteU32BE(AD[CN_ADRS_OFFSET_CHAIN], Height); // Word 5
 end;
 
 procedure SlhAddrSetTreeIndex(var AD: TCnSlhAddr; Index: Cardinal);
 begin
-  SlhAddrSetKeyPair(AD, Index);
+  SlhWriteU32BE(AD[CN_ADRS_OFFSET_HASH], Index); // Word 6
 end;
 
 procedure SlhAddrCopy(const Src: TCnSlhAddr; var Dst: TCnSlhAddr);
@@ -543,27 +555,21 @@ end;
 
 procedure SlhAddrCompress(const Src: TCnSlhAddr; var Dst: TCnSlhAddrSHA2);
 begin
-  // SHA2 22B = Tree[6] + Type[2] + KeyPair[4] + Chain[4] + Hash[4] + Zero[2]
-  // Take from extended 32B: Tree[6..11], Type[14..15], KeyPair[16..19],
-  //   Chain[20..23], Hash[24..27], Zero[30..31]
-  Move(Src[6], Dst[0], 6);      // Tree (lower 48 bits)
-  Move(Src[14], Dst[6], 2);     // Type (lower 16 bits)
-  Move(Src[16], Dst[8], 4);     // KeyPair
-  Move(Src[20], Dst[12], 4);    // Chain
-  Move(Src[24], Dst[16], 4);    // Hash
-  Move(Src[30], Dst[20], 2);    // Zero (lower 16 bits)
+  // FIPS 205: ADRSc = ADRS[3] || ADRS[8:16] || ADRS[19] || ADRS[20:32]
+  Dst[0] := Src[3];                  // Layer (1 byte, LSB of 4-byte field)
+  Move(Src[8], Dst[1], 8);           // Tree address (8 bytes)
+  Dst[9] := Src[19];                 // Type (1 byte, LSB of 4-byte field)
+  Move(Src[20], Dst[10], 12);        // KeyPair(4) + Chain(4) + Hash(4)
 end;
 
 procedure SlhAddrDecompress(const Src: TCnSlhAddrSHA2; var Dst: TCnSlhAddr);
 begin
   FillChar(Dst, SizeOf(TCnSlhAddr), 0);
-  // Reverse of compress
-  Move(Src[0], Dst[6], 6);      // Tree
-  Move(Src[6], Dst[14], 2);     // Type
-  Move(Src[8], Dst[16], 4);     // KeyPair
-  Move(Src[12], Dst[20], 4);    // Chain
-  Move(Src[16], Dst[24], 4);    // Hash
-  Move(Src[20], Dst[30], 2);    // Zero
+  // Reverse of compress: ADRSc = ADRS[3] || ADRS[8:16] || ADRS[19] || ADRS[20:32]
+  Dst[3] := Src[0];                  // Layer
+  Move(Src[1], Dst[8], 8);           // Tree
+  Dst[19] := Src[9];                 // Type
+  Move(Src[10], Dst[20], 12);        // Rest
 end;
 
 function SlhAddrSize(IsSHA2: Boolean): Integer;
@@ -578,13 +584,12 @@ function SlhAddrToBytes(const AD: TCnSlhAddr; IsSHA2: Boolean): TBytes;
 begin
   if IsSHA2 then
   begin
+    // ADRSc = ADRS[3] || ADRS[8:16] || ADRS[19] || ADRS[20:32] = 22 bytes
     SetLength(Result, CN_ADRS_SIZE_SHA2);
-    Move(AD[6], Result[0], 6);      // Tree (lower 48 bits)
-    Move(AD[14], Result[6], 2);     // Type (lower 16 bits)
-    Move(AD[16], Result[8], 4);     // KeyPair
-    Move(AD[20], Result[12], 4);    // Chain
-    Move(AD[24], Result[16], 4);    // Hash
-    Move(AD[30], Result[20], 2);    // Zero (lower 16 bits)
+    Result[0] := AD[3];
+    Move(AD[8], Result[1], 8);
+    Result[9] := AD[19];
+    Move(AD[20], Result[10], 12);
   end
   else
   begin
@@ -658,204 +663,261 @@ begin
 end;
 
 // -------------------------------------------------------------------
-// SlhF - Algorithm 2: 链内杂凑函数
-// Input: PK.Seed (n) || ADRS (32/22) || 0xFF || M1 (n)
-// Output: n
+// SlhF - FIPS 205 Section 10: 链内杂凑函数
+// SHA2: SHA-256(PK.seed || toByte(0, 64-n) || ADRSc || M1)
+// SHAKE: SHAKE256(PK.seed || ADRS || M1, 8n)
 // -------------------------------------------------------------------
 function SlhF(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const M1: TBytes): TBytes;
 var
   AddrBytes: TBytes;
   Input: TBytes;
-  Offset: Integer;
+  PadLen, Offset: Integer;
   D256: TCnSHA256Digest;
-  D512: TCnSHA512Digest;
 begin
-  AddrBytes := SlhAddrToBytes(ADRS, Params.IsSHA2);
-  SetLength(Input, Length(PKSeed) + Length(AddrBytes) + 1 + Length(M1));
+  if not Params.IsSHA2 then
+  begin
+    // SHAKE: PK.seed || ADRS(32) || M1
+    SetLength(Input, Length(PKSeed) + CN_ADRS_SIZE_SHAKE + Length(M1));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Length(PKSeed));
+    Inc(Offset, Length(PKSeed));
+    Move(ADRS, Input[Offset], CN_ADRS_SIZE_SHAKE);
+    Inc(Offset, CN_ADRS_SIZE_SHAKE);
+    if Length(M1) > 0 then
+      Move(M1[0], Input[Offset], Length(M1));
+    Result := SHAKE256Bytes(Input, Params.N);
+    Exit;
+  end;
+
+  // SHA2: F always uses SHA-256, padding = toByte(0, 64-n)
+  AddrBytes := SlhAddrToBytes(ADRS, True);
+  PadLen := 64 - Params.N;
+  SetLength(Input, Params.N + PadLen + Length(AddrBytes) + Length(M1));
   Offset := 0;
-  Move(PKSeed[0], Input[0], Length(PKSeed));
-  Inc(Offset, Length(PKSeed));
+  Move(PKSeed[0], Input[0], Params.N);
+  Inc(Offset, Params.N);
+  FillChar(Input[Offset], PadLen, 0);
+  Inc(Offset, PadLen);
   Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
   Inc(Offset, Length(AddrBytes));
-  Input[Offset] := $FF;
-  Inc(Offset);
-  Move(M1[0], Input[Offset], Length(M1));
+  if Length(M1) > 0 then
+    Move(M1[0], Input[Offset], Length(M1));
 
-  if Params.IsSHA2 then
-  begin
-    if Params.N <= 16 then
-    begin
-      D256 := SHA256Bytes(Input);
-      SetLength(Result, Params.N);
-      Move(D256, Result[0], Params.N);
-    end
-    else
-    begin
-      D512 := SHA512Bytes(Input);
-      SetLength(Result, Params.N);
-      Move(D512, Result[0], Params.N);
-    end;
-  end
-  else
-    Result := SHAKE256Bytes(Input, Params.N);
+  D256 := SHA256Bytes(Input);
+  SetLength(Result, Params.N);
+  Move(D256, Result[0], Params.N);
 end;
 
 // -------------------------------------------------------------------
-// SlhH - Algorithm 3: 树杂凑函数
-// Input: PK.Seed (n) || ADRS (32/22) || M1 (n) || M2 (n)
-// Output: n
+// SlhH - FIPS 205 Section 10: 树杂凑函数
+// SHA2 n=16: SHA-256(PK.seed || toByte(0, 64-n) || ADRSc || M1 || M2)
+// SHA2 n>16: SHA-512(PK.seed || toByte(0, 128-n) || ADRSc || M1 || M2)
+// SHAKE: SHAKE256(PK.seed || ADRS || M1 || M2, 8n)
 // -------------------------------------------------------------------
 function SlhH(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const M1, M2: TBytes): TBytes;
 var
   AddrBytes: TBytes;
   Input: TBytes;
-  Offset: Integer;
+  PadLen, Offset: Integer;
   D256: TCnSHA256Digest;
   D512: TCnSHA512Digest;
 begin
-  AddrBytes := SlhAddrToBytes(ADRS, Params.IsSHA2);
-  SetLength(Input, Length(PKSeed) + Length(AddrBytes) +
-    Length(M1) + Length(M2));
-  Offset := 0;
-  Move(PKSeed[0], Input[0], Length(PKSeed));
-  Inc(Offset, Length(PKSeed));
-  Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
-  Inc(Offset, Length(AddrBytes));
-  Move(M1[0], Input[Offset], Length(M1));
-  Inc(Offset, Length(M1));
-  Move(M2[0], Input[Offset], Length(M2));
-
-  if Params.IsSHA2 then
+  if not Params.IsSHA2 then
   begin
-    if Params.N <= 16 then
-    begin
-      D256 := SHA256Bytes(Input);
-      SetLength(Result, Params.N);
-      Move(D256, Result[0], Params.N);
-    end
-    else
-    begin
-      D512 := SHA512Bytes(Input);
-      SetLength(Result, Params.N);
-      Move(D512, Result[0], Params.N);
-    end;
+    // SHAKE: PK.seed || ADRS(32) || M1 || M2
+    SetLength(Input, Length(PKSeed) + CN_ADRS_SIZE_SHAKE + Length(M1) + Length(M2));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Length(PKSeed));
+    Inc(Offset, Length(PKSeed));
+    Move(ADRS, Input[Offset], CN_ADRS_SIZE_SHAKE);
+    Inc(Offset, CN_ADRS_SIZE_SHAKE);
+    Move(M1[0], Input[Offset], Length(M1));
+    Inc(Offset, Length(M1));
+    Move(M2[0], Input[Offset], Length(M2));
+    Result := SHAKE256Bytes(Input, Params.N);
+    Exit;
+  end;
+
+  // SHA2: n=16 uses SHA-256 (pad to 64), n>16 uses SHA-512 (pad to 128)
+  AddrBytes := SlhAddrToBytes(ADRS, True);
+  if Params.N <= 16 then
+  begin
+    PadLen := 64 - Params.N;
+    SetLength(Input, Params.N + PadLen + Length(AddrBytes) + Length(M1) + Length(M2));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Params.N);
+    Inc(Offset, Params.N);
+    FillChar(Input[Offset], PadLen, 0);
+    Inc(Offset, PadLen);
+    Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
+    Inc(Offset, Length(AddrBytes));
+    Move(M1[0], Input[Offset], Length(M1));
+    Inc(Offset, Length(M1));
+    Move(M2[0], Input[Offset], Length(M2));
+
+    D256 := SHA256Bytes(Input);
+    SetLength(Result, Params.N);
+    Move(D256, Result[0], Params.N);
   end
   else
-    Result := SHAKE256Bytes(Input, Params.N);
+  begin
+    PadLen := 128 - Params.N;
+    SetLength(Input, Params.N + PadLen + Length(AddrBytes) + Length(M1) + Length(M2));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Params.N);
+    Inc(Offset, Params.N);
+    FillChar(Input[Offset], PadLen, 0);
+    Inc(Offset, PadLen);
+    Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
+    Inc(Offset, Length(AddrBytes));
+    Move(M1[0], Input[Offset], Length(M1));
+    Inc(Offset, Length(M1));
+    Move(M2[0], Input[Offset], Length(M2));
+
+    D512 := SHA512Bytes(Input);
+    SetLength(Result, Params.N);
+    Move(D512, Result[0], Params.N);
+  end;
 end;
 
 // -------------------------------------------------------------------
-// SlhT_l - Algorithm 4: WOTS+ 链压缩（L-Tree）
-// Input: PK.Seed (n) || ADRS (32/22) || M (Len*n)
-// Output: n
+// SlhT_l - FIPS 205 Section 10: WOTS+ 链压缩（L-Tree）
+// SHA2 n=16: Trunc_n(SHA-256(PK.seed || toByte(0, 64-n) || ADRSc || M))
+// SHA2 n>16: Trunc_n(SHA-512(PK.seed || toByte(0, 128-n) || ADRSc || M))
+// SHAKE: Trunc_n(SHAKE256(PK.seed || ADRS || M, 8n))
 // -------------------------------------------------------------------
 function SlhTl(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const M: TBytes): TBytes;
 var
-  Height, I, Count, NextCount: Integer;
-  Nodes, NextNodes: TBytes;
+  AddrBytes: TBytes;
+  Input: TBytes;
+  PadLen, Offset: Integer;
+  D256: TCnSHA256Digest;
+  D512: TCnSHA512Digest;
 begin
-  Count := Length(M) div Params.N;
-  SetLength(Nodes, Count * Params.N);
-  Move(M[0], Nodes[0], Count * Params.N);
-  Height := 0;
-  while Count > 1 do
+  if not Params.IsSHA2 then
   begin
-    NextCount := (Count + 1) div 2;
-    SetLength(NextNodes, NextCount * Params.N);
-    for I := 0 to NextCount - 1 do
-    begin
-      if 2 * I + 1 < Count then
-      begin
-        SlhAddrSetChain(ADRS, 2 * I);
-        SlhAddrSetHash(ADRS, Height);
-        // Compute H(PKSeed, ADRS, left, right)
-        Result := SlhH(Params, PKSeed, ADRS,
-          Copy(Nodes, 2 * I * Params.N, Params.N),
-          Copy(Nodes, (2 * I + 1) * Params.N, Params.N));
-        Move(Result[0], NextNodes[I * Params.N], Params.N);
-      end
-      else
-        Move(Nodes[2 * I * Params.N], NextNodes[I * Params.N], Params.N);
-    end;
-    Nodes := NextNodes;
-    Count := NextCount;
-    Inc(Height);
+    // SHAKE: PK.seed || ADRS(32) || M
+    SetLength(Input, Length(PKSeed) + CN_ADRS_SIZE_SHAKE + Length(M));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Length(PKSeed));
+    Inc(Offset, Length(PKSeed));
+    Move(ADRS, Input[Offset], CN_ADRS_SIZE_SHAKE);
+    Inc(Offset, CN_ADRS_SIZE_SHAKE);
+    if Length(M) > 0 then
+      Move(M[0], Input[Offset], Length(M));
+    Result := SHAKE256Bytes(Input, Params.N);
+    Exit;
   end;
-  SetLength(Result, Params.N);
-  Move(Nodes[0], Result[0], Params.N);
+
+  // SHA2: n=16 uses SHA-256, n>16 uses SHA-512
+  AddrBytes := SlhAddrToBytes(ADRS, True);
+  if Params.N <= 16 then
+  begin
+    PadLen := 64 - Params.N;
+    SetLength(Input, Params.N + PadLen + Length(AddrBytes) + Length(M));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Params.N);
+    Inc(Offset, Params.N);
+    FillChar(Input[Offset], PadLen, 0);
+    Inc(Offset, PadLen);
+    Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
+    Inc(Offset, Length(AddrBytes));
+    if Length(M) > 0 then
+      Move(M[0], Input[Offset], Length(M));
+
+    D256 := SHA256Bytes(Input);
+    SetLength(Result, Params.N);
+    Move(D256, Result[0], Params.N);
+  end
+  else
+  begin
+    PadLen := 128 - Params.N;
+    SetLength(Input, Params.N + PadLen + Length(AddrBytes) + Length(M));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Params.N);
+    Inc(Offset, Params.N);
+    FillChar(Input[Offset], PadLen, 0);
+    Inc(Offset, PadLen);
+    Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
+    Inc(Offset, Length(AddrBytes));
+    if Length(M) > 0 then
+      Move(M[0], Input[Offset], Length(M));
+
+    D512 := SHA512Bytes(Input);
+    SetLength(Result, Params.N);
+    Move(D512, Result[0], Params.N);
+  end;
 end;
 
 // -------------------------------------------------------------------
-// SlhPRF - Algorithm 5: 伪随机函数（用于密钥生成）
-// Input: PK.Seed (n) || ADRS (32/22) || SK.Seed (n)
-// Output: n
+// SlhPRF - FIPS 205 Section 10: 伪随机函数（用于密钥生成）
+// SHA2: Trunc_n(SHA-256(PK.seed || toByte(0, 64-n) || ADRSc || SK.seed))
+// SHAKE: Trunc_n(SHAKE256(PK.seed || ADRS || SK.seed, 8n))
 // -------------------------------------------------------------------
 function SlhPRF(Params: PCnSlhParams; const PKSeed, SKSeed: TBytes;
   var ADRS: TCnSlhAddr): TBytes;
 var
   AddrBytes: TBytes;
   Input: TBytes;
-  Offset: Integer;
+  PadLen, Offset: Integer;
   D256: TCnSHA256Digest;
-  D512: TCnSHA512Digest;
 begin
-  AddrBytes := SlhAddrToBytes(ADRS, Params.IsSHA2);
-  SetLength(Input, Length(PKSeed) + Length(AddrBytes) + Length(SKSeed));
+  if not Params.IsSHA2 then
+  begin
+    // SHAKE: PK.seed || ADRS(32) || SK.seed
+    SetLength(Input, Length(PKSeed) + CN_ADRS_SIZE_SHAKE + Length(SKSeed));
+    Offset := 0;
+    Move(PKSeed[0], Input[0], Length(PKSeed));
+    Inc(Offset, Length(PKSeed));
+    Move(ADRS, Input[Offset], CN_ADRS_SIZE_SHAKE);
+    Inc(Offset, CN_ADRS_SIZE_SHAKE);
+    Move(SKSeed[0], Input[Offset], Length(SKSeed));
+    Result := SHAKE256Bytes(Input, Params.N);
+    Exit;
+  end;
+
+  // SHA2: PRF always uses SHA-256, padding = toByte(0, 64-n)
+  AddrBytes := SlhAddrToBytes(ADRS, True);
+  PadLen := 64 - Params.N;
+  SetLength(Input, Params.N + PadLen + Length(AddrBytes) + Length(SKSeed));
   Offset := 0;
-  Move(PKSeed[0], Input[0], Length(PKSeed));
-  Inc(Offset, Length(PKSeed));
+  Move(PKSeed[0], Input[0], Params.N);
+  Inc(Offset, Params.N);
+  FillChar(Input[Offset], PadLen, 0);
+  Inc(Offset, PadLen);
   Move(AddrBytes[0], Input[Offset], Length(AddrBytes));
   Inc(Offset, Length(AddrBytes));
   Move(SKSeed[0], Input[Offset], Length(SKSeed));
 
-  if Params.IsSHA2 then
-  begin
-    if Params.N <= 16 then
-    begin
-      D256 := SHA256Bytes(Input);
-      SetLength(Result, Params.N);
-      Move(D256, Result[0], Params.N);
-    end
-    else
-    begin
-      D512 := SHA512Bytes(Input);
-      SetLength(Result, Params.N);
-      Move(D512, Result[0], Params.N);
-    end;
-  end
-  else
-    Result := SHAKE256Bytes(Input, Params.N);
+  D256 := SHA256Bytes(Input);
+  SetLength(Result, Params.N);
+  Move(D256, Result[0], Params.N);
 end;
 
 // -------------------------------------------------------------------
-// SlhPRF_msg - Algorithm 6: 消息伪随机函数
-// Input: SK.Prf (n) || OptRand (n) || M
-// Output: n
-// SHAKE: SHAKE256(SK.Prf || OptRand || M, n)
-// SHA2: HMAC-SHA256/512(SK.Prf || 0x01, OptRand || M)[0:n-1]
+// SlhPRF_msg - FIPS 205 Section 10: 消息伪随机函数
+// SHA2 n=16: Trunc_n(HMAC-SHA-256(SK.prf, opt_rand || M))
+// SHA2 n>16: Trunc_n(HMAC-SHA-512(SK.prf, opt_rand || M))
+// SHAKE: Trunc_n(SHAKE256(SK.prf || opt_rand || M, 8n))
 // -------------------------------------------------------------------
 function SlhPRFMsg(Params: PCnSlhParams;
   const SKPrf, OptRand, M: TBytes): TBytes;
 var
-  Key, Data: TBytes;
+  Data: TBytes;
   D256: TCnSHA256Digest;
   D512: TCnSHA512Digest;
 begin
   if not Params.IsSHA2 then
   begin
-    Key := ConcatBytes(SKPrf, OptRand, M);
-    Result := SHAKE256Bytes(Key, Params.N);
+    Data := ConcatBytes(SKPrf, OptRand, M);
+    Result := SHAKE256Bytes(Data, Params.N);
     Exit;
   end;
 
-  // SHA2: HMAC-SHA256/512
-  SetLength(Key, Length(SKPrf) + 1);
-  Move(SKPrf[0], Key[0], Length(SKPrf));
-  Key[Length(SKPrf)] := $01;
-
+  // SHA2: HMAC-SHA-x(SK.prf, opt_rand || M) -- key is SK.prf directly
   SetLength(Data, Length(OptRand) + Length(M));
   Move(OptRand[0], Data[0], Length(OptRand));
   if Length(M) > 0 then
@@ -863,62 +925,70 @@ begin
 
   if Params.N <= 16 then
   begin
-    D256 := SHA256HmacBytes(Key, Data);
+    D256 := SHA256HmacBytes(SKPrf, Data);
     SetLength(Result, Params.N);
     Move(D256, Result[0], Params.N);
   end
   else
   begin
-    D512 := SHA512HmacBytes(Key, Data);
+    D512 := SHA512HmacBytes(SKPrf, Data);
     SetLength(Result, Params.N);
     Move(D512, Result[0], Params.N);
   end;
 end;
 
 // -------------------------------------------------------------------
-// SlhH_msg - Algorithm 7: 消息杂凑函数
-// Input: R (n) || PK.Seed (n) || PK.Root (n) || M
-// Output: m
+// SlhH_msg - FIPS 205 Section 10: 消息杂凑函数
+// SHA2 n=16: MGF1-SHA-256(R || PK.seed || SHA-256(R || PK.seed || PK.root || M), m)
+// SHA2 n>16: MGF1-SHA-512(R || PK.seed || SHA-512(R || PK.seed || PK.root || M), m)
 // SHAKE: SHAKE256(R || PK.Seed || PK.Root || M, m)
-// SHA2: MGF1(HMAC-SHA256/512(R || PK.Seed, PK.Root || M), m)
 // -------------------------------------------------------------------
 function SlhHMsg(Params: PCnSlhParams;
   const R, PKSeed, PKRoot, M: TBytes): TBytes;
 var
-  Key, Data: TBytes;
+  InnerInput, MGFSeed: TBytes;
+  Offset: Integer;
   D256: TCnSHA256Digest;
   D512: TCnSHA512Digest;
 begin
   if not Params.IsSHA2 then
   begin
-    Key := ConcatBytes(R, PKSeed, PKRoot, M);
-    Result := SHAKE256Bytes(Key, Params.M);
+    InnerInput := ConcatBytes(R, PKSeed, PKRoot, M);
+    Result := SHAKE256Bytes(InnerInput, Params.M);
     Exit;
   end;
 
-  // SHA2: MGF1(HMAC-SHA256/512(R || PK.Seed, PK.Root || M), m)
-  SetLength(Key, Length(R) + Length(PKSeed));
-  Move(R[0], Key[0], Length(R));
-  Move(PKSeed[0], Key[Length(R)], Length(PKSeed));
-
-  SetLength(Data, Length(PKRoot) + Length(M));
-  Move(PKRoot[0], Data[0], Length(PKRoot));
+  // SHA2: inner_hash = SHA-x(R || PK.seed || PK.root || M)
+  SetLength(InnerInput, Length(R) + Length(PKSeed) + Length(PKRoot) + Length(M));
+  Offset := 0;
+  Move(R[0], InnerInput[0], Length(R));
+  Inc(Offset, Length(R));
+  Move(PKSeed[0], InnerInput[Offset], Length(PKSeed));
+  Inc(Offset, Length(PKSeed));
+  Move(PKRoot[0], InnerInput[Offset], Length(PKRoot));
+  Inc(Offset, Length(PKRoot));
   if Length(M) > 0 then
-    Move(M[0], Data[Length(PKRoot)], Length(M));
+    Move(M[0], InnerInput[Offset], Length(M));
 
   if Params.N <= 16 then
   begin
-    D256 := SHA256HmacBytes(Key, Data);
-    SetLength(Key, 32);
-    Move(D256, Key[0], 32);
-    Result := SlhMGF1_SHA256(Key, Params.M);
+    // SHA-256 inner hash, then MGF1-SHA-256(R || PK.seed || h, m)
+    D256 := SHA256Bytes(InnerInput);
+    SetLength(MGFSeed, Length(R) + Length(PKSeed) + 32);
+    Move(R[0], MGFSeed[0], Length(R));
+    Move(PKSeed[0], MGFSeed[Length(R)], Length(PKSeed));
+    Move(D256, MGFSeed[Length(R) + Length(PKSeed)], 32);
+    Result := SlhMGF1_SHA256(MGFSeed, Params.M);
   end
   else
   begin
-    D512 := SHA512HmacBytes(Key, Data);
-    SetLength(Key, 64);
-    Move(D512, Key[0], 64);
-    Result := SlhMGF1_SHA512(Key, Params.M);
+    // SHA-512 inner hash, then MGF1-SHA-512(R || PK.seed || h, m)
+    D512 := SHA512Bytes(InnerInput);
+    SetLength(MGFSeed, Length(R) + Length(PKSeed) + 64);
+    Move(R[0], MGFSeed[0], Length(R));
+    Move(PKSeed[0], MGFSeed[Length(R)], Length(PKSeed));
+    Move(D512, MGFSeed[Length(R) + Length(PKSeed)], 64);
+    Result := SlhMGF1_SHA512(MGFSeed, Params.M);
   end;
 end;
 
@@ -1014,8 +1084,8 @@ begin
 end;
 
 // -------------------------------------------------------------------
-// SlhWotsKeyGen - Algorithm 3: WOTS+ 密钥生成
-// Input: SK.Seed (n), PK.Seed (n), ADRS
+// SlhWotsKeyGen - FIPS 205 Algorithm 6: WOTS+ 密钥生成
+// Input: SK.Seed (n), PK.Seed (n), ADRS (type=WOTS_HASH, keypair set)
 // Output: PK (n)
 // -------------------------------------------------------------------
 function SlhWotsKeyGen(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
@@ -1024,21 +1094,40 @@ var
   I: Integer;
   SK, PK_i: TBytes;
   PkList: TBytes;
+  SkAdrs, WotsPkAdrs: TCnSlhAddr;
+  KP: Cardinal;
 begin
-  SetLength(PkList, Params.Len * Params.N);
-  for I := 0 to Params.Len - 1 do
+  // Save key pair address from caller
+  KP := SlhReadU32BE(ADRS[CN_ADRS_OFFSET_KEYPAIR]);
+
+  // Create skADRS with type WOTS_PRF for PRF calls
+  SlhAddrCopy(ADRS, SkAdrs);
+  SlhAddrSetTypeAndClear(SkAdrs, CN_SLH_ADRS_WOTS_PRF);
+  SlhAddrSetKeyPair(SkAdrs, KP);
+
+  SetLength(PkList, Params.LenTotal * Params.N);
+  for I := 0 to Params.LenTotal - 1 do
   begin
+    // PRF with WOTS_PRF address
+    SlhAddrSetChain(SkAdrs, I);
+    SK := SlhPRF(Params, PKSeed, SKSeed, SkAdrs);
+
+    // Chain with WOTS_HASH address (original ADRS)
     SlhAddrSetChain(ADRS, I);
     SlhAddrSetHash(ADRS, 0);
-    SK := SlhPRF(Params, PKSeed, SKSeed, ADRS);
     PK_i := SlhChain(Params, PKSeed, ADRS, SK, 0, Params.W - 1);
     Move(PK_i[0], PkList[I * Params.N], Params.N);
   end;
-  Result := SlhTl(Params, PKSeed, ADRS, PkList);
+
+  // Compress with WOTS_PK address
+  SlhAddrCopy(ADRS, WotsPkAdrs);
+  SlhAddrSetTypeAndClear(WotsPkAdrs, CN_SLH_ADRS_WOTS_PK);
+  SlhAddrSetKeyPair(WotsPkAdrs, KP);
+  Result := SlhTl(Params, PKSeed, WotsPkAdrs, PkList);
 end;
 
 // -------------------------------------------------------------------
-// SlhWotsSign - Algorithm 4: WOTS+ 签名
+// SlhWotsSign - FIPS 205 Algorithm 7: WOTS+ 签名
 // Input: M (n), SK.Seed (n), PK.Seed (n), ADRS
 // Output: SIG (LenTotal * n)
 // -------------------------------------------------------------------
@@ -1050,6 +1139,8 @@ var
   CsumBytes: TBytes;
   TotalLen: Integer;
   SK, SigI: TBytes;
+  SkAdrs: TCnSlhAddr;
+  KP: Cardinal;
 begin
   TotalLen := Params.LenTotal;
   SetLength(Msg, TotalLen);
@@ -1064,20 +1155,28 @@ begin
   SlhBaseWEncode(CsumBytes, Length(CsumBytes), Params.W, Params.Len2,
     Msg, Params.Len);
 
+  // Create skADRS for PRF calls
+  KP := SlhReadU32BE(ADRS[CN_ADRS_OFFSET_KEYPAIR]);
+  SlhAddrCopy(ADRS, SkAdrs);
+  SlhAddrSetTypeAndClear(SkAdrs, CN_SLH_ADRS_WOTS_PRF);
+  SlhAddrSetKeyPair(SkAdrs, KP);
+
   // Generate signature
   SetLength(Result, TotalLen * Params.N);
   for I := 0 to TotalLen - 1 do
   begin
+    SlhAddrSetChain(SkAdrs, I);
+    SK := SlhPRF(Params, PKSeed, SKSeed, SkAdrs);
+
     SlhAddrSetChain(ADRS, I);
     SlhAddrSetHash(ADRS, 0);
-    SK := SlhPRF(Params, PKSeed, SKSeed, ADRS);
     SigI := SlhChain(Params, PKSeed, ADRS, SK, 0, Msg[I]);
     Move(SigI[0], Result[I * Params.N], Params.N);
   end;
 end;
 
 // -------------------------------------------------------------------
-// SlhWotsPKFromSig - Algorithm 5: 从签名恢复 WOTS+ 公钥
+// SlhWotsPKFromSig - FIPS 205 Algorithm 8: 从签名恢复 WOTS+ 公钥
 // Input: SIG (LenTotal * n), M (n), PK.Seed (n), ADRS
 // Output: PK (n)
 // -------------------------------------------------------------------
@@ -1090,6 +1189,8 @@ var
   TotalLen: Integer;
   SigI, PK_i: TBytes;
   PkList: TBytes;
+  WotsPkAdrs: TCnSlhAddr;
+  KP: Cardinal;
 begin
   TotalLen := Params.LenTotal;
   SetLength(Msg, TotalLen);
@@ -1104,19 +1205,23 @@ begin
   SlhBaseWEncode(CsumBytes, Length(CsumBytes), Params.W, Params.Len2,
     Msg, Params.Len);
 
-  // Recover public key from signature
-  SetLength(PkList, Params.Len * Params.N);
+  // Recover public key from signature (all LenTotal chains)
+  SetLength(PkList, TotalLen * Params.N);
   for I := 0 to TotalLen - 1 do
   begin
     SlhAddrSetChain(ADRS, I);
     SetLength(SigI, Params.N);
     Move(SIG[I * Params.N], SigI[0], Params.N);
     PK_i := SlhChain(Params, PKSeed, ADRS, SigI, Msg[I], Params.W - 1 - Msg[I]);
-    if I < Params.Len then
-      Move(PK_i[0], PkList[I * Params.N], Params.N);
+    Move(PK_i[0], PkList[I * Params.N], Params.N);
   end;
 
-  Result := SlhTl(Params, PKSeed, ADRS, PkList);
+  // Compress with WOTS_PK address
+  KP := SlhReadU32BE(ADRS[CN_ADRS_OFFSET_KEYPAIR]);
+  SlhAddrCopy(ADRS, WotsPkAdrs);
+  SlhAddrSetTypeAndClear(WotsPkAdrs, CN_SLH_ADRS_WOTS_PK);
+  SlhAddrSetKeyPair(WotsPkAdrs, KP);
+  Result := SlhTl(Params, PKSeed, WotsPkAdrs, PkList);
 end;
 
 // ===================================================================
@@ -1125,9 +1230,8 @@ end;
 
 // -------------------------------------------------------------------
 // SlhXmssTreeHash - Algorithm 9: 堆栈式 Merkle 树杂凑
-// 返回根节点；LeafIdx 用于认证路径生成（未使用 LeafIdx 时为简化版本）
-// Input: SK.Seed (n), PK.Seed (n), LeafIdx
-// Output: root (n)
+// Leaf = wots_PKgen output (NO extra hashing)
+// Internal node at height z: H(PK.seed, ADRS[TREE,z,i], left || right)
 // -------------------------------------------------------------------
 function SlhXmssTreeHash(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes; LeafIdx: Cardinal): TBytes;
@@ -1147,18 +1251,12 @@ begin
 
   for I := 0 to LeafCount - 1 do
   begin
-    // Generate leaf: WOTS+ keygen compressed to n bytes
-    TmpAdrs := ADRS;
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_WOTS_HASH);
-    SlhAddrSetChain(TmpAdrs, 0); // will be set by WotsKeyGen
-    Node := SlhWotsKeyGen(Params, TmpAdrs, SKSeed, PKSeed);
-
-    // Compress leaf: H(PK.seed, ADRS, node, node)
+    // Generate leaf: setTypeAndClear(WOTS_HASH), setKeyPairAddress(i)
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_TREE);
-    SlhAddrSetTreeHeight(TmpAdrs, 0);
-    SlhAddrSetTreeIndex(TmpAdrs, I);
-    Node := SlhH(Params, PKSeed, TmpAdrs, Node, Node);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_WOTS_HASH);
+    SlhAddrSetKeyPair(TmpAdrs, I);
+    // Leaf IS the WOTS+ public key directly (wots_PKgen already includes T_l)
+    Node := SlhWotsKeyGen(Params, TmpAdrs, SKSeed, PKSeed);
 
     CurrentHeight := 0;
 
@@ -1169,13 +1267,13 @@ begin
       Left := StackNodes[StackSize];
       Right := Node;
 
-      SlhAddrCopy(ADRS, TmpAdrs);
-      SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_TREE);
-      SlhAddrSetTreeHeight(TmpAdrs, CurrentHeight);
-      SlhAddrSetTreeIndex(TmpAdrs, I shr (CurrentHeight + 1));
-      Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
-
       Inc(CurrentHeight);
+      // Internal node: setTypeAndClear(TREE), setTreeHeight(z), setTreeIndex(i)
+      SlhAddrCopy(ADRS, TmpAdrs);
+      SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_TREE);
+      SlhAddrSetTreeHeight(TmpAdrs, CurrentHeight);
+      SlhAddrSetTreeIndex(TmpAdrs, I shr CurrentHeight);
+      Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
     end;
 
     // Push to stack
@@ -1184,7 +1282,7 @@ begin
     Inc(StackSize);
   end;
 
-  // Root is the only node remaining (after merging down)
+  // Root is the only node remaining
   Result := StackNodes[StackSize - 1];
 end;
 
@@ -1229,32 +1327,27 @@ begin
 
   for I := 0 to LeafCount - 1 do
   begin
-    // Generate leaf: WOTS+ keygen compressed to n bytes
-    TmpAdrs := ADRS;
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_WOTS_HASH);
-    Node := SlhWotsKeyGen(Params, TmpAdrs, SKSeed, PKSeed);
-
-    // Compress leaf
+    // Generate leaf: setTypeAndClear(WOTS_HASH), setKeyPairAddress(i)
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_TREE);
-    SlhAddrSetTreeHeight(TmpAdrs, 0);
-    SlhAddrSetTreeIndex(TmpAdrs, I);
-    Node := SlhH(Params, PKSeed, TmpAdrs, Node, Node);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_WOTS_HASH);
+    SlhAddrSetKeyPair(TmpAdrs, I);
+    // Leaf IS the WOTS+ public key directly
+    Node := SlhWotsKeyGen(Params, TmpAdrs, SKSeed, PKSeed);
 
     CurrentHeight := 0;
 
-    // Merge with stack
+    // Merge with stack and track auth path
     while (StackSize > 0) and (StackHeights[StackSize - 1] = CurrentHeight) do
     begin
-      if (I shr (CurrentHeight + 1)) = (Idx shr (CurrentHeight + 1)) then
+      // Before merging, check if one of the two nodes is an auth path sibling
+      if CurrentHeight < Params.Hp then
       begin
-        HIdx := CurrentHeight;
-        if HIdx < Params.Hp then
+        if (I shr (CurrentHeight + 1)) = (Idx shr (CurrentHeight + 1)) then
         begin
           if ((Idx shr CurrentHeight) and 1) = 0 then
-            AuthPath[HIdx] := Node
+            AuthPath[CurrentHeight] := Node
           else
-            AuthPath[HIdx] := StackNodes[StackSize - 1];
+            AuthPath[CurrentHeight] := StackNodes[StackSize - 1];
         end;
       end;
 
@@ -1262,13 +1355,13 @@ begin
       Left := StackNodes[StackSize];
       Right := Node;
 
-      SlhAddrCopy(ADRS, TmpAdrs);
-      SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_TREE);
-      SlhAddrSetTreeHeight(TmpAdrs, CurrentHeight);
-      SlhAddrSetTreeIndex(TmpAdrs, I shr (CurrentHeight + 1));
-      Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
-
       Inc(CurrentHeight);
+      // Internal node: setTypeAndClear(TREE), setTreeHeight(z), setTreeIndex(i)
+      SlhAddrCopy(ADRS, TmpAdrs);
+      SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_TREE);
+      SlhAddrSetTreeHeight(TmpAdrs, CurrentHeight);
+      SlhAddrSetTreeIndex(TmpAdrs, I shr CurrentHeight);
+      Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
     end;
 
     // Push to stack
@@ -1277,9 +1370,11 @@ begin
     Inc(StackSize);
   end;
 
-  // Generate WOTS+ signature
-  SlhAddrSetType(ADRS, CN_SLH_ADRS_WOTS_HASH);
-  SigWots := SlhWotsSign(Params, ADRS, M, SKSeed, PKSeed);
+  // Generate WOTS+ signature for leaf at Idx
+  SlhAddrCopy(ADRS, TmpAdrs);
+  SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_WOTS_HASH);
+  SlhAddrSetKeyPair(TmpAdrs, Idx);
+  SigWots := SlhWotsSign(Params, TmpAdrs, M, SKSeed, PKSeed);
 
   // Build output: SIG_WOTS || auth_path
   SetLength(Result, Params.LenTotal * Params.N + Params.Hp * Params.N);
@@ -1296,7 +1391,7 @@ begin
 end;
 
 // -------------------------------------------------------------------
-// SlhXmssPKFromSig - Algorithm 13: 从签名恢复 XMSS 公钥
+// SlhXmssPKFromSig - Algorithm 12: 从签名恢复 XMSS 公钥
 // Input: Idx, SIG (LenTotal*n + hp*n), M (n), PK.Seed (n), ADRS
 // Output: PK (n)
 // -------------------------------------------------------------------
@@ -1308,21 +1403,17 @@ var
   Node: TBytes;
   TmpAdrs: TCnSlhAddr;
 begin
-  // Parse signature
+  // Parse WOTS+ signature
   SetLength(SigWots, Params.LenTotal * Params.N);
   Move(SIG[0], SigWots[0], Params.LenTotal * Params.N);
 
-  // Recover WOTS+ public key
-  SlhAddrSetType(ADRS, CN_SLH_ADRS_WOTS_HASH);
-  Node := SlhWotsPKFromSig(Params, ADRS, SigWots, M, PKSeed);
-
-  // Compress leaf: H(PK.Seed, ADRS[TREE, Layer, Tree, Height=0, Index=Idx], Node, Node)
+  // Recover WOTS+ public key with WOTS_HASH address
   SlhAddrCopy(ADRS, TmpAdrs);
-  SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_TREE);
-  SlhAddrSetTreeHeight(TmpAdrs, 0);
-  SlhAddrSetTreeIndex(TmpAdrs, Idx);
-  SlhAddrSetChain(TmpAdrs, 0);
-  Node := SlhH(Params, PKSeed, TmpAdrs, Node, Node);
+  SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_WOTS_HASH);
+  SlhAddrSetKeyPair(TmpAdrs, Idx);
+  Node := SlhWotsPKFromSig(Params, TmpAdrs, SigWots, M, PKSeed);
+
+  // Node IS the leaf (no extra H(node,node))
 
   // Compute root using auth path
   for I := 0 to Params.Hp - 1 do
@@ -1332,10 +1423,9 @@ begin
     Move(SIG[Offset], AuthPathNode[0], Params.N);
 
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_TREE);
-    SlhAddrSetTreeHeight(TmpAdrs, I);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_TREE);
+    SlhAddrSetTreeHeight(TmpAdrs, I + 1);
     SlhAddrSetTreeIndex(TmpAdrs, Idx shr (I + 1));
-    SlhAddrSetChain(TmpAdrs, 0);
 
     if ((Idx shr I) and 1) = 0 then
       Node := SlhH(Params, PKSeed, TmpAdrs, Node, AuthPathNode)
@@ -1447,9 +1537,9 @@ end;
 // ===================================================================
 
 // -------------------------------------------------------------------
-// SlhForsTreeHash - 构建一棵 FORS Merkle 树并返回根
-// Input: ADRS (type=FORS_TREE), SK.Seed (n), PK.Seed (n), TreeIdx
-// Output: root (n)
+// SlhForsTreeHash - FIPS 205 Algorithm 14: 构建一棵 FORS Merkle 树并返回根
+// TreeIdx = FORS tree number (j), global index = j*2^a + i
+// ADRS KeyPair already set by caller to idx_leaf
 // -------------------------------------------------------------------
 function SlhForsTreeHash(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes; TreeIdx: Byte): TBytes;
@@ -1457,32 +1547,36 @@ var
   StackNodes: array of TBytes;
   StackHeights: array of Integer;
   StackSize: Integer;
-  LeafCount: Cardinal;
+  LeafCount, GlobalBase: Cardinal;
   I, CurrentHeight: Integer;
   Node, Left, Right, SK: TBytes;
   TmpAdrs: TCnSlhAddr;
+  KP: Cardinal;
 begin
   LeafCount := Cardinal(1) shl Params.A;
+  GlobalBase := Cardinal(TreeIdx) * LeafCount;
   SetLength(StackNodes, Params.A + 1);
   SetLength(StackHeights, Params.A + 1);
   StackSize := 0;
 
+  // Preserve KeyPair from caller
+  KP := SlhReadU32BE(ADRS[CN_ADRS_OFFSET_KEYPAIR]);
+
   for I := 0 to LeafCount - 1 do
   begin
-    // Generate leaf private key: PRF(PK.seed, SK.seed, ADRS)
+    // PRF: generate leaf private key
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_PRF);
-    SlhAddrSetKeyPair(TmpAdrs, TreeIdx);
-    SlhAddrSetChain(TmpAdrs, I);
-    SlhAddrSetHash(TmpAdrs, 0);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_PRF);
+    SlhAddrSetKeyPair(TmpAdrs, KP);
+    SlhAddrSetTreeIndex(TmpAdrs, GlobalBase + Cardinal(I));
     SK := SlhPRF(Params, PKSeed, SKSeed, TmpAdrs);
 
-    // Leaf = F(PK.seed, ADRS, SK_i)
+    // Leaf = F(PK.seed, ADRS[FORS_TREE], SK_i)
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
-    SlhAddrSetKeyPair(TmpAdrs, TreeIdx);
-    SlhAddrSetChain(TmpAdrs, I);
-    SlhAddrSetHash(TmpAdrs, 0);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
+    SlhAddrSetKeyPair(TmpAdrs, KP);
+    SlhAddrSetTreeHeight(TmpAdrs, 0);
+    SlhAddrSetTreeIndex(TmpAdrs, GlobalBase + Cardinal(I));
     Node := SlhF(Params, PKSeed, TmpAdrs, SK);
 
     CurrentHeight := 0;
@@ -1494,14 +1588,13 @@ begin
       Left := StackNodes[StackSize];
       Right := Node;
 
-      SlhAddrCopy(ADRS, TmpAdrs);
-      SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
-      SlhAddrSetKeyPair(TmpAdrs, TreeIdx);
-      SlhAddrSetChain(TmpAdrs, I shr (CurrentHeight + 1));
-      SlhAddrSetHash(TmpAdrs, CurrentHeight);
-      Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
-
       Inc(CurrentHeight);
+      SlhAddrCopy(ADRS, TmpAdrs);
+      SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
+      SlhAddrSetKeyPair(TmpAdrs, KP);
+      SlhAddrSetTreeHeight(TmpAdrs, CurrentHeight);
+      SlhAddrSetTreeIndex(TmpAdrs, (GlobalBase + Cardinal(I)) shr CurrentHeight);
+      Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
     end;
 
     StackNodes[StackSize] := Node;
@@ -1535,7 +1628,7 @@ begin
 end;
 
 // -------------------------------------------------------------------
-// SlhForsSign - Algorithm 15: FORS 签名
+// SlhForsSign - Algorithm 16: FORS 签名
 // Input: Md (message digest part), SK.Seed (n), PK.Seed (n), ADRS
 // Output: SIG_FORS = k * (sk + auth_path) = k * (a+1) * n 字节
 // -------------------------------------------------------------------
@@ -1547,16 +1640,17 @@ var
   StackNodes: array of TBytes;
   StackHeights: array of Integer;
   StackSize: Integer;
-  LeafCount: Cardinal;
+  LeafCount, GlobalBase, GlobalI: Cardinal;
   Node, Left, Right, SK: TBytes;
   TmpAdrs: TCnSlhAddr;
   AuthPath: array of TBytes;
-  AuthIdx: Integer;
   Offset: Integer;
   BitIdx: Integer;
+  KP: Cardinal;
 begin
   SetLength(Result, Params.K * (Params.A + 1) * Params.N);
   Offset := 0;
+  KP := SlhReadU32BE(ADRS[CN_ADRS_OFFSET_KEYPAIR]);
 
   for TreeI := 0 to Params.K - 1 do
   begin
@@ -1571,6 +1665,7 @@ begin
 
     // Treehash with auth path tracking
     LeafCount := Cardinal(1) shl Params.A;
+    GlobalBase := Cardinal(TreeI) * LeafCount;
     SetLength(StackNodes, Params.A + 1);
     SetLength(StackHeights, Params.A + 1);
     StackSize := 0;
@@ -1578,35 +1673,36 @@ begin
 
     for I := 0 to LeafCount - 1 do
     begin
-      // Generate leaf private key
+      GlobalI := GlobalBase + Cardinal(I);
+
+      // PRF: generate leaf private key
       SlhAddrCopy(ADRS, TmpAdrs);
-      SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_PRF);
-      SlhAddrSetKeyPair(TmpAdrs, TreeI);
-      SlhAddrSetChain(TmpAdrs, I);
-      SlhAddrSetHash(TmpAdrs, 0);
+      SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_PRF);
+      SlhAddrSetKeyPair(TmpAdrs, KP);
+      SlhAddrSetTreeIndex(TmpAdrs, GlobalI);
       SK := SlhPRF(Params, PKSeed, SKSeed, TmpAdrs);
 
-      // Leaf = F(PK.seed, ADRS, SK_i)
+      // Leaf = F(PK.seed, ADRS[FORS_TREE], SK_i)
       SlhAddrCopy(ADRS, TmpAdrs);
-      SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
-      SlhAddrSetKeyPair(TmpAdrs, TreeI);
-      SlhAddrSetChain(TmpAdrs, I);
-      SlhAddrSetHash(TmpAdrs, 0);
+      SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
+      SlhAddrSetKeyPair(TmpAdrs, KP);
+      SlhAddrSetTreeHeight(TmpAdrs, 0);
+      SlhAddrSetTreeIndex(TmpAdrs, GlobalI);
       Node := SlhF(Params, PKSeed, TmpAdrs, SK);
 
       CurrentHeight := 0;
 
       while (StackSize > 0) and (StackHeights[StackSize - 1] = CurrentHeight) do
       begin
-        if (I shr (CurrentHeight + 1)) = (LeafIdx shr (CurrentHeight + 1)) then
+        // Track auth path
+        if CurrentHeight < Params.A then
         begin
-          AuthIdx := CurrentHeight;
-          if AuthIdx < Params.A then
+          if (I shr (CurrentHeight + 1)) = (LeafIdx shr (CurrentHeight + 1)) then
           begin
             if ((LeafIdx shr CurrentHeight) and 1) = 0 then
-              AuthPath[AuthIdx] := Node
+              AuthPath[CurrentHeight] := Node
             else
-              AuthPath[AuthIdx] := StackNodes[StackSize - 1];
+              AuthPath[CurrentHeight] := StackNodes[StackSize - 1];
           end;
         end;
 
@@ -1614,14 +1710,13 @@ begin
         Left := StackNodes[StackSize];
         Right := Node;
 
-        SlhAddrCopy(ADRS, TmpAdrs);
-        SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
-        SlhAddrSetKeyPair(TmpAdrs, TreeI);
-        SlhAddrSetChain(TmpAdrs, I shr (CurrentHeight + 1));
-        SlhAddrSetHash(TmpAdrs, CurrentHeight);
-        Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
-
         Inc(CurrentHeight);
+        SlhAddrCopy(ADRS, TmpAdrs);
+        SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
+        SlhAddrSetKeyPair(TmpAdrs, KP);
+        SlhAddrSetTreeHeight(TmpAdrs, CurrentHeight);
+        SlhAddrSetTreeIndex(TmpAdrs, GlobalI shr CurrentHeight);
+        Node := SlhH(Params, PKSeed, TmpAdrs, Left, Right);
       end;
 
       StackNodes[StackSize] := Node;
@@ -1629,13 +1724,11 @@ begin
       Inc(StackSize);
     end;
 
-    // Save SK for selected leaf at auth path start
-    // Regenerate SK for LeafIdx
+    // Save SK for selected leaf
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_PRF);
-    SlhAddrSetKeyPair(TmpAdrs, TreeI);
-    SlhAddrSetChain(TmpAdrs, LeafIdx);
-    SlhAddrSetHash(TmpAdrs, 0);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_PRF);
+    SlhAddrSetKeyPair(TmpAdrs, KP);
+    SlhAddrSetTreeIndex(TmpAdrs, GlobalBase + Cardinal(LeafIdx));
     SK := SlhPRF(Params, PKSeed, SKSeed, TmpAdrs);
     Move(SK[0], Result[Offset], Params.N);
     Inc(Offset, Params.N);
@@ -1664,12 +1757,19 @@ var
   Node, Sibling: TBytes;
   TmpAdrs: TCnSlhAddr;
   Offset: Integer;
+  KP, GlobalBase, LeafCount: Cardinal;
 begin
   SetLength(Result, Params.K * Params.N);
   Offset := 0;
 
+  // Preserve KeyPair from caller
+  KP := SlhReadU32BE(ADRS[CN_ADRS_OFFSET_KEYPAIR]);
+  LeafCount := Cardinal(1) shl Params.A;
+
   for TreeI := 0 to Params.K - 1 do
   begin
+    GlobalBase := Cardinal(TreeI) * LeafCount;
+
     // Extract leaf index from Md
     LeafIdx := 0;
     for I := 0 to Params.A - 1 do
@@ -1686,10 +1786,10 @@ begin
 
     // Compute leaf = F(PK.seed, ADRS, SK)
     SlhAddrCopy(ADRS, TmpAdrs);
-    SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
-    SlhAddrSetKeyPair(TmpAdrs, TreeI);
-    SlhAddrSetChain(TmpAdrs, LeafIdx);
-    SlhAddrSetHash(TmpAdrs, 0);
+    SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
+    SlhAddrSetKeyPair(TmpAdrs, KP);
+    SlhAddrSetTreeHeight(TmpAdrs, 0);
+    SlhAddrSetTreeIndex(TmpAdrs, GlobalBase + Cardinal(LeafIdx));
     Node := SlhF(Params, PKSeed, TmpAdrs, Node);
 
     // Compute root using auth path
@@ -1699,10 +1799,10 @@ begin
       Move(SIG[Offset + I * Params.N], Sibling[0], Params.N);
 
       SlhAddrCopy(ADRS, TmpAdrs);
-      SlhAddrSetType(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
-      SlhAddrSetKeyPair(TmpAdrs, TreeI);
-      SlhAddrSetChain(TmpAdrs, LeafIdx shr (I + 1));
-      SlhAddrSetHash(TmpAdrs, I);
+      SlhAddrSetTypeAndClear(TmpAdrs, CN_SLH_ADRS_FORS_TREE);
+      SlhAddrSetKeyPair(TmpAdrs, KP);
+      SlhAddrSetTreeHeight(TmpAdrs, I + 1);
+      SlhAddrSetTreeIndex(TmpAdrs, (GlobalBase + Cardinal(LeafIdx)) shr (I + 1));
 
       if ((LeafIdx shr I) and 1) = 0 then
         Node := SlhH(Params, PKSeed, TmpAdrs, Node, Sibling)
