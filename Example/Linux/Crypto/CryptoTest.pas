@@ -51,8 +51,8 @@ uses
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnBerUtils, CnCertificateAuthority, CnLattice, CnOTS,
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
-  CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnCalendar, CnBigDecimal,
-  CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP;
+  CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
+  CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP;
 
 type
   TCnCryptoTestProc = function: Boolean;
@@ -301,6 +301,24 @@ function TestMLDSA65KeyGen: Boolean;
 function TestMLDSA65SignVerify: Boolean;
 function TestMLDSA87KeyGen: Boolean;
 function TestMLDSA87SignVerify: Boolean;
+
+// ================================ SLHDSA =====================================
+
+function TestSLHDSASHA2128s: Boolean;
+function TestSLHDSASHA2128f: Boolean;
+function TestSLHDSASHA2192s: Boolean;
+function TestSLHDSASHA2192f: Boolean;
+function TestSLHDSASHA2256s: Boolean;
+function TestSLHDSASHA2256f: Boolean;
+function TestSLHDSASHAKE128s: Boolean;
+function TestSLHDSASHAKE128f: Boolean;
+function TestSLHDSASHAKE192s: Boolean;
+function TestSLHDSASHAKE192f: Boolean;
+function TestSLHDSASHAKE256s: Boolean;
+function TestSLHDSASHAKE256f: Boolean;
+function TestSLHDSAPreHash: Boolean;
+function TestSLHDSASerialize: Boolean;
+function TestSLHDSAKeyGenKAT: Boolean;
 
 // ================================ SM4 ========================================
 
@@ -950,7 +968,25 @@ begin
   MyAssert(TestMLDSA65KeyGen, 'TestMLDSA65KeyGen');
   MyAssert(TestMLDSA65SignVerify, 'TestMLDSA65SignVerify');
   MyAssert(TestMLDSA87KeyGen, 'TestMLDSA87KeyGen');
-  MyAssert(TestMLDSA87SignVerify, 'TestMLDSA87SignVerify');
+  MyAssert(TestMLDSA87SignVerify, 'TestMLDSA87SignVerify');  
+
+// ================================ SLHDSA =====================================
+
+  MyAssert(TestSLHDSASHA2128s, 'TestSLHDSASHA2128s');
+  MyAssert(TestSLHDSASHA2128f, 'TestSLHDSASHA2128f');
+  MyAssert(TestSLHDSASHA2192s, 'TestSLHDSASHA2192s');
+  MyAssert(TestSLHDSASHA2192f, 'TestSLHDSASHA2192f');
+  MyAssert(TestSLHDSASHA2256s, 'TestSLHDSASHA2256s');
+  MyAssert(TestSLHDSASHA2256f, 'TestSLHDSASHA2256f');
+  MyAssert(TestSLHDSASHAKE128s, 'TestSLHDSASHAKE128s');
+  MyAssert(TestSLHDSASHAKE128f, 'TestSLHDSASHAKE128f');
+  MyAssert(TestSLHDSASHAKE192s, 'TestSLHDSASHAKE192s');
+  MyAssert(TestSLHDSASHAKE192f, 'TestSLHDSASHAKE192f');
+  MyAssert(TestSLHDSASHAKE256s, 'TestSLHDSASHAKE256s');
+  MyAssert(TestSLHDSASHAKE256f, 'TestSLHDSASHAKE256f');
+  MyAssert(TestSLHDSAPreHash, 'TestSLHDSAPreHash');
+  MyAssert(TestSLHDSASerialize, 'TestSLHDSASerialize');
+  MyAssert(TestSLHDSAKeyGenKAT, 'TestSLHDSAKeyGenKAT');
 
 // ================================ SM4 ========================================
 
@@ -9228,6 +9264,257 @@ begin
     Priv.Free;
     M.Free;
   end;
+end;
+
+// ================================ SLHDSA =====================================
+
+function TestSLHDSAHelper(AParamSet: TCnSlhParamSet): Boolean;
+var
+  Ctx: TCnSLHDSA;
+  PK: TCnSlhPublicKey;
+  SK: TCnSlhSecretKey;
+  Msg, Sig: TBytes;
+begin
+  Ctx := nil;
+  try
+    Ctx := TCnSLHDSA.Create(AParamSet);
+    Ctx.GenerateKeys(PK, SK);
+
+    Msg := HexToBytes('436E5061636B20534C482D445354'); // 'CnPack SLH-DST'
+    Sig := Ctx.Sign(Msg, SK, False);
+
+    Result := Ctx.Verify(Msg, Sig, PK);
+    if not Result then Exit;
+
+    Result := not Ctx.Verify(HexToBytes('57726F6E6720'), Sig, PK);
+    if not Result then Exit;
+
+    Result := Length(Sig) = Ctx.GetSignatureSize;
+    if not Result then Exit;
+
+    Result := (Length(PK.Seed) = Ctx.Params.n) and (Length(PK.Root) = Ctx.Params.n);
+    if not Result then Exit;
+
+    Result := (Length(SK.Seed) = Ctx.Params.n) and (Length(SK.Prf) = Ctx.Params.n)
+      and (Length(SK.PKSeed) = Ctx.Params.n) and (Length(SK.PKRoot) = Ctx.Params.n);
+  finally
+    Ctx.Free;
+  end;
+end;
+
+function TestSLHDSASHA2128s: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHA2_128s);
+end;
+
+function TestSLHDSASHA2128f: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHA2_128f);
+end;
+
+function TestSLHDSASHA2192s: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHA2_192s);
+end;
+
+function TestSLHDSASHA2192f: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHA2_192f);
+end;
+
+function TestSLHDSASHA2256s: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHA2_256s);
+end;
+
+function TestSLHDSASHA2256f: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHA2_256f);
+end;
+
+function TestSLHDSASHAKE128s: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHAKE_128s);
+end;
+
+function TestSLHDSASHAKE128f: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHAKE_128f);
+end;
+
+function TestSLHDSASHAKE192s: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHAKE_192s);
+end;
+
+function TestSLHDSASHAKE192f: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHAKE_192f);
+end;
+
+function TestSLHDSASHAKE256s: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHAKE_256s);
+end;
+
+function TestSLHDSASHAKE256f: Boolean;
+begin
+  Result := TestSLHDSAHelper(slhSHAKE_256f);
+end;
+
+function TestSLHDSAPreHash: Boolean;
+var
+  Ctx: TCnSLHDSA;
+  PK: TCnSlhPublicKey;
+  SK: TCnSlhSecretKey;
+  Msg, Sig: TBytes;
+begin
+  Ctx := nil;
+  try
+    Ctx := TCnSLHDSA.Create(slhSHA2_128f);
+    Ctx.GenerateKeys(PK, SK);
+
+    Msg := HexToBytes('436E5061636B20534C482D445354'); // 'CnPack SLH-DST'
+    Sig := Ctx.SignPreHash(Msg, SK, shiSHA2_256, False);
+
+    Result := Ctx.VerifyPreHash(Msg, Sig, PK, shiSHA2_256);
+    if not Result then Exit;
+
+    Sig := Ctx.SignPreHash(Msg, SK, shiSHA3_256, False);
+    Result := Ctx.VerifyPreHash(Msg, Sig, PK, shiSHA3_256);
+    if not Result then Exit;
+
+    Sig := Ctx.SignPreHash(Msg, SK, shiSHAKE256, False);
+    Result := Ctx.VerifyPreHash(Msg, Sig, PK, shiSHAKE256);
+    if not Result then Exit;
+
+    Sig := Ctx.SignPreHash(Msg, SK, shiSHA2_512, False);
+    Result := Ctx.VerifyPreHash(Msg, Sig, PK, shiSHA2_512);
+    if not Result then Exit;
+
+    Sig := Ctx.SignPreHash(Msg, SK, shiSHA3_512, False);
+    Result := Ctx.VerifyPreHash(Msg, Sig, PK, shiSHA3_512);
+    if not Result then Exit;
+  finally
+    Ctx.Free;
+  end;
+end;
+
+function TestSLHDSASerialize: Boolean;
+var
+  Ctx: TCnSLHDSA;
+  PK1, PK2: TCnSlhPublicKey;
+  SK1, SK2: TCnSlhSecretKey;
+  Sig1, Sig2: TCnSlhSignature;
+  Msg: TBytes;
+  PKBytes, SKBytes, SigBytes: TBytes;
+begin
+  Ctx := nil;
+  try
+    Ctx := TCnSLHDSA.Create(slhSHA2_128f);
+    Ctx.GenerateKeys(PK1, SK1);
+
+    Msg := HexToBytes('436E5061636B20534C482D445354');
+    Sig1 := Ctx.Sign(Msg, SK1, False);
+
+    // Serialize
+    PKBytes := Ctx.PublicKeyToBytes(PK1);
+    SKBytes := Ctx.SecretKeyToBytes(SK1);
+    SigBytes := Ctx.SignatureToBytes(Sig1);
+
+    // Deserialize
+    PK2 := Ctx.BytesToPublicKey(PKBytes);
+    SK2 := Ctx.BytesToSecretKey(SKBytes);
+    Sig2 := Ctx.BytesToSignature(SigBytes);
+
+    // Verify deserialized key works
+    Result := Ctx.Verify(Msg, Sig2, PK2);
+    if not Result then Exit;
+
+    // Re-sign with deserialized SK and verify
+    Sig2 := Ctx.Sign(Msg, SK2, False);
+    Result := Ctx.Verify(Msg, Sig2, PK2);
+    if not Result then Exit;
+
+    // Verify byte sizes
+    Result := (Length(PKBytes) = Ctx.GetPublicKeySize)
+      and (Length(SKBytes) = Ctx.GetSecretKeySize)
+      and (Length(SigBytes) = Ctx.GetSignatureSize);
+  finally
+    Ctx.Free;
+  end;
+end;
+
+// -------------------------------------------------------------------
+// SLH-DSA KeyGen KAT（已知答案测试）
+// 验证固定种子下生成的 PK.Root 与 NIST ACVP 参考值一致
+// -------------------------------------------------------------------
+function TestSLHDSAKeyGenKAT: Boolean;
+
+  function RunKAT(AParamSet: TCnSlhParamSet;
+    const HexSKSeed, HexSKPrf, HexPKSeed, HexPKRoot: string): Boolean;
+  var
+    Ctx: TCnSLHDSA;
+    PK: TCnSlhPublicKey;
+    SK: TCnSlhSecretKey;
+    ADRS: TCnSlhAddr;
+    ExpectedRoot: TBytes;
+  begin
+    Result := False;
+    Ctx := nil;
+    try
+      Ctx := TCnSLHDSA.Create(AParamSet);
+
+      SK.Seed := HexToBytes(HexSKSeed);
+      SK.Prf := HexToBytes(HexSKPrf);
+      PK.Seed := HexToBytes(HexPKSeed);
+      ExpectedRoot := HexToBytes(HexPKRoot);
+
+      // 复现 GenerateKeys 中 root 的计算逻辑
+      SlhAddrInit(ADRS);
+      SlhAddrSetLayer(ADRS, Ctx.Params.D - 1);
+      SlhAddrSetTree(ADRS, 0);
+      PK.Root := SlhXmssKeyGen(Ctx.Params, ADRS, SK.Seed, PK.Seed);
+
+      Result := (Length(PK.Root) = Ctx.Params.N)
+            and CompareMem(@PK.Root[0], @ExpectedRoot[0], Ctx.Params.N);
+    finally
+      Ctx.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+
+  // KAT #1: SLH-DSA-SHA2-128s
+  if not RunKAT(slhSHA2_128s,
+    '2F896D61D9CD9038CA303394FADAA22A',
+    '24AC5EC1D86A989CA2196C3C8632419C',
+    '1A05A42FE300E87B16AEE116CB2E2363',
+    '58E2C3E62632C9DE03D08A535A0EB7E7') then Exit;
+
+  // KAT #2: SLH-DSA-SHA2-192f
+  if not RunKAT(slhSHA2_192f,
+    '8596C97C522D258038765AC80110A584A4E342D58149EBFC',
+    '763CA88D40D68C201C76C2F8DF0908A39F27009B7D3B1E6C',
+    'BD409651BF5E717D83096506B715C3543285AA83535F7743',
+    '3EA3D6D2E7EBF150C2F21DAD9FB71977C83EC6D59C36E0D4') then Exit;
+
+  // KAT #3: SLH-DSA-SHAKE-192s
+  if not RunKAT(slhSHAKE_192s,
+    'BC9543F91D3E83DF793ACC0BBCDF54810691C770F2DC5DAD',
+    '3ACFA79732CDB71D4EF1E9B2ECA1A490F977CB0CCE3AAAC5',
+    'F6C64E2B662BE5DDB6F9C28CC62C20C7697EFEDAAB1C9028',
+    'AC30C249F75B8B7F44730E5341698853B3F48B5D150C802E') then Exit;
+
+  // KAT #4: SLH-DSA-SHAKE-256f
+  if not RunKAT(slhSHAKE_256f,
+    '758161EAF6DB91C65F185B26FD490AFD808E987B339D2CBB5B3045BC2ED9A33D',
+    '5A703A6A2A687A8AE1883A9FC957C26E17F5569D5A28C144780DF013C9AA8324',
+    '0A0EE387983FC9FBE9D5B80A2787C39C6FC1BE3364B9D1FD0C6DC4EDF70E28AA',
+    '397DC9D892E41418FCFF892135D8B33FBCFDF7FFB82B62C7CD2618E18648151C') then Exit;
+
+  Result := True;
 end;
 
 // ================================ SM4 ========================================
