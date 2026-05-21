@@ -84,6 +84,7 @@ USEUNIT("..\..\Source\Crypto\CnRSA.pas");
 USEUNIT("..\..\Source\Crypto\CnSHA1.pas");
 USEUNIT("..\..\Source\Crypto\CnSHA2.pas");
 USEUNIT("..\..\Source\Crypto\CnSHA3.pas");
+USEUNIT("..\..\Source\Crypto\CnSLHDSA.pas");
 USEUNIT("..\..\Source\Crypto\CnSM2.pas");
 USEUNIT("..\..\Source\Crypto\CnSM3.pas");
 USEUNIT("..\..\Source\Crypto\CnSM4.pas");
