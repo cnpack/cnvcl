@@ -15,6 +15,7 @@ object SLHDSAMainForm: TSLHDSAMainForm
   Position = poScreenCenter
   LCLVersion = '4.0.0.4'
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   object Panel1: TPanel
     Left = 0
     Height = 233

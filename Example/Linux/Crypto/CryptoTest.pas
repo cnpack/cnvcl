@@ -10288,8 +10288,12 @@ var
   Msg, Sig: TBytes;
 begin
   Ctx := nil;
+  PK := nil;
+  SK := nil;
   try
     Ctx := TCnSLHDSA.Create(AParamSet);
+    PK := TCnSlhPublicKey.Create;
+    SK := TCnSlhSecretKey.Create;
     Ctx.GenerateKeys(PK, SK);
 
     Msg := HexToBytes('436E5061636B20534C482D445354'); // 'CnPack SLH-DST'
@@ -10310,6 +10314,8 @@ begin
     Result := (Length(SK.Seed) = Ctx.Params.n) and (Length(SK.Prf) = Ctx.Params.n)
       and (Length(SK.PKSeed) = Ctx.Params.n) and (Length(SK.PKRoot) = Ctx.Params.n);
   finally
+    PK.Free;
+    SK.Free;
     Ctx.Free;
   end;
 end;
@@ -10382,8 +10388,12 @@ var
   Msg, Sig: TBytes;
 begin
   Ctx := nil;
+  PK := nil;
+  SK := nil;
   try
     Ctx := TCnSLHDSA.Create(slhSHA2_128f);
+    PK := TCnSlhPublicKey.Create;
+    SK := TCnSlhSecretKey.Create;
     Ctx.GenerateKeys(PK, SK);
 
     Msg := HexToBytes('436E5061636B20534C482D445354'); // 'CnPack SLH-DST'
@@ -10408,6 +10418,8 @@ begin
     Result := Ctx.VerifyPreHash(Msg, Sig, PK, shiSHA3_512);
     if not Result then Exit;
   finally
+    PK.Free;
+    SK.Free;
     Ctx.Free;
   end;
 end;
@@ -10422,8 +10434,14 @@ var
   PKBytes, SKBytes, SigBytes: TBytes;
 begin
   Ctx := nil;
+  PK1 := nil;
+  SK1 := nil;
+  PK2 := nil;
+  SK2 := nil;
   try
     Ctx := TCnSLHDSA.Create(slhSHA2_128f);
+    PK1 := TCnSlhPublicKey.Create;
+    SK1 := TCnSlhSecretKey.Create;
     Ctx.GenerateKeys(PK1, SK1);
 
     Msg := HexToBytes('436E5061636B20534C482D445354');
@@ -10435,8 +10453,10 @@ begin
     SigBytes := Ctx.SignatureToBytes(Sig1);
 
     // Deserialize
-    PK2 := Ctx.BytesToPublicKey(PKBytes);
-    SK2 := Ctx.BytesToSecretKey(SKBytes);
+    PK2 := TCnSlhPublicKey.Create;
+    SK2 := TCnSlhSecretKey.Create;
+    Ctx.BytesToPublicKey(PK2, PKBytes);
+    Ctx.BytesToSecretKey(SK2, SKBytes);
     Sig2 := Ctx.BytesToSignature(SigBytes);
 
     // Verify deserialized key works
@@ -10453,6 +10473,10 @@ begin
       and (Length(SKBytes) = Ctx.SecretKeySize)
       and (Length(SigBytes) = Ctx.SignatureSize);
   finally
+    PK1.Free;
+    SK1.Free;
+    PK2.Free;
+    SK2.Free;
     Ctx.Free;
   end;
 end;
@@ -10473,8 +10497,12 @@ function TestSLHDSAKeyGenKAT: Boolean;
     ExpectedRoot: TBytes;
   begin
     Ctx := nil;
+    PK := nil;
+    SK := nil;
     try
       Ctx := TCnSLHDSA.Create(AParamSet);
+      PK := TCnSlhPublicKey.Create;
+      SK := TCnSlhSecretKey.Create;
 
       SK.Seed := HexToBytes(HexSKSeed);
       SK.Prf := HexToBytes(HexSKPrf);
@@ -10490,6 +10518,8 @@ function TestSLHDSAKeyGenKAT: Boolean;
       Result := (Length(PK.Root) = Ctx.Params.N)
             and CompareMem(@PK.Root[0], @ExpectedRoot[0], Ctx.Params.N);
     finally
+      PK.Free;
+      SK.Free;
       Ctx.Free;
     end;
   end;
@@ -10538,8 +10568,12 @@ var
   Msg, Sig, ExpR: TBytes;
 begin
   Ctx := nil;
+  PK := nil;
+  SK := nil;
   try
     Ctx := TCnSLHDSA.Create(AParamSet);
+    PK := TCnSlhPublicKey.Create;
+    SK := TCnSlhSecretKey.Create;
 
     SK.Seed := HexToBytes(HexSKSeed);
     SK.Prf := HexToBytes(HexSKPrf);
@@ -10558,6 +10592,8 @@ begin
 
     Result := Ctx.VerifyBytes(PK, Msg, Sig);
   finally
+    PK.Free;
+    SK.Free;
     Ctx.Free;
   end;
 end;
@@ -10625,14 +10661,17 @@ var
   Msg, Sig: TBytes;
 begin
   Ctx := nil;
+  PK := nil;
   try
     Ctx := TCnSLHDSA.Create(AParamSet);
+    PK := TCnSlhPublicKey.Create;
     PK.Seed := HexToBytes(HexPKSeed);
     PK.Root := HexToBytes(HexPKRoot);
     Msg := HexToBytes(HexMsg);
     Sig := HexToBytes(HexSig);
     Result := Ctx.VerifyBytes(PK, Msg, Sig);
   finally
+    PK.Free;
     Ctx.Free;
   end;
 end;

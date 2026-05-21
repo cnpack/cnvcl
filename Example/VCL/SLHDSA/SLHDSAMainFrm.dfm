@@ -14,6 +14,7 @@ object SLHDSAMainForm: TSLHDSAMainForm
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 12
   object Panel1: TPanel
@@ -47,8 +48,8 @@ object SLHDSAMainForm: TSLHDSAMainForm
     end
     object lblKeyInfo: TLabel
       Left = 232
-      Top = 12
-      Width = 217
+      Top = 8
+      Width = 225
       Height = 13
       Caption = '√‹‘ø–≈œ¢'
       Font.Charset = DEFAULT_CHARSET

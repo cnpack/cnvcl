@@ -154,8 +154,9 @@ type
   end;
   {* SLH-DSA 参数记录，存储一个参数集的全部参数和派生常量}
 
-  TCnSlhPublicKey = packed record
+  TCnSlhPublicKey = class
   {* SLH-DSA 公钥}
+  public
     Seed: TBytes;
     {* 公钥种子（n 字节）}
     Root: TBytes;
@@ -163,8 +164,9 @@ type
   end;
   {* SLH-DSA 公钥类型}
 
-  TCnSlhSecretKey = packed record
+  TCnSlhSecretKey = class
   {* SLH-DSA 私钥}
+  public
     Seed: TBytes;
     {* 私钥种子（n 字节）}
     Prf: TBytes;
@@ -258,7 +260,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure GenerateKeys(out PK: TCnSlhPublicKey; out SK: TCnSlhSecretKey);
+    procedure GenerateKeys(PK: TCnSlhPublicKey; SK: TCnSlhSecretKey);
     {* 生成 SLH-DSA 密钥对}
 
     function SignBytes(const SK: TCnSlhSecretKey; const Msg: TBytes;
@@ -277,11 +279,11 @@ type
 
     function PublicKeyToBytes(const PK: TCnSlhPublicKey): TBytes;
     {* 将公钥序列化为字节数组（2n 字节）}
-    function BytesToPublicKey(const Data: TBytes): TCnSlhPublicKey;
+    procedure BytesToPublicKey(PK: TCnSlhPublicKey; const Data: TBytes);
     {* 从字节数组反序列化为公钥}
     function SecretKeyToBytes(const SK: TCnSlhSecretKey): TBytes;
     {* 将私钥序列化为字节数组（4n 字节）}
-    function BytesToSecretKey(const Data: TBytes): TCnSlhSecretKey;
+    procedure BytesToSecretKey(SK: TCnSlhSecretKey; const Data: TBytes);
     {* 从字节数组反序列化为私钥}
     function SignatureToBytes(const SIG: TCnSlhSignature): TBytes;
     {* 将签名序列化为字节数组}
@@ -1922,8 +1924,8 @@ begin
   Result := UInt64NetworkToHost(PUInt64(@Tmp)^);
 end;
 
-procedure TCnSLHDSA.GenerateKeys(out PK: TCnSlhPublicKey;
-  out SK: TCnSlhSecretKey);
+procedure TCnSLHDSA.GenerateKeys(PK: TCnSlhPublicKey;
+  SK: TCnSlhSecretKey);
 var
   ADRS: TCnSlhAddr;
 begin
@@ -2198,15 +2200,15 @@ begin
   Move(PK.Root[0], Result[FParams.N], FParams.N);
 end;
 
-function TCnSLHDSA.BytesToPublicKey(
-  const Data: TBytes): TCnSlhPublicKey;
+procedure TCnSLHDSA.BytesToPublicKey(
+  PK: TCnSlhPublicKey; const Data: TBytes);
 begin
   if Length(Data) < FParams.N * 2 then
     raise ECnSlhException.Create('Invalid public key data length');
-  SetLength(Result.Seed, FParams.N);
-  SetLength(Result.Root, FParams.N);
-  Move(Data[0], Result.Seed[0], FParams.N);
-  Move(Data[FParams.N], Result.Root[0], FParams.N);
+  SetLength(PK.Seed, FParams.N);
+  SetLength(PK.Root, FParams.N);
+  Move(Data[0], PK.Seed[0], FParams.N);
+  Move(Data[FParams.N], PK.Root[0], FParams.N);
 end;
 
 function TCnSLHDSA.SecretKeyToBytes(
@@ -2219,19 +2221,19 @@ begin
   Move(SK.PKRoot[0], Result[FParams.N * 3], FParams.N);
 end;
 
-function TCnSLHDSA.BytesToSecretKey(
-  const Data: TBytes): TCnSlhSecretKey;
+procedure TCnSLHDSA.BytesToSecretKey(
+  SK: TCnSlhSecretKey; const Data: TBytes);
 begin
   if Length(Data) < FParams.N * 4 then
     raise ECnSlhException.Create('Invalid secret key data length');
-  SetLength(Result.Seed, FParams.N);
-  SetLength(Result.Prf, FParams.N);
-  SetLength(Result.PKSeed, FParams.N);
-  SetLength(Result.PKRoot, FParams.N);
-  Move(Data[0], Result.Seed[0], FParams.N);
-  Move(Data[FParams.N], Result.Prf[0], FParams.N);
-  Move(Data[FParams.N * 2], Result.PKSeed[0], FParams.N);
-  Move(Data[FParams.N * 3], Result.PKRoot[0], FParams.N);
+  SetLength(SK.Seed, FParams.N);
+  SetLength(SK.Prf, FParams.N);
+  SetLength(SK.PKSeed, FParams.N);
+  SetLength(SK.PKRoot, FParams.N);
+  Move(Data[0], SK.Seed[0], FParams.N);
+  Move(Data[FParams.N], SK.Prf[0], FParams.N);
+  Move(Data[FParams.N * 2], SK.PKSeed[0], FParams.N);
+  Move(Data[FParams.N * 3], SK.PKRoot[0], FParams.N);
 end;
 
 function TCnSLHDSA.SignatureToBytes(

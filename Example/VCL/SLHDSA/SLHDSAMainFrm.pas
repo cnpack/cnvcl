@@ -32,6 +32,7 @@ type
     procedure btnSignClick(Sender: TObject);
     procedure btnVerifyClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure chkPrehashClick(Sender: TObject);
   private
     FPublicKey: TCnSlhPublicKey;
@@ -43,7 +44,7 @@ type
     function GetPrehashID: TCnSlhPrehashID;
     function GetPrehashName(PrehashID: TCnSlhPrehashID): string;
   public
-    { Public declarations }
+
   end;
 
 var
@@ -91,12 +92,8 @@ end;
 procedure TSLHDSAMainForm.ClearKeyData;
 begin
   FHasKeys := False;
-  FPublicKey.Seed := nil;
-  FPublicKey.Root := nil;
-  FSecretKey.Seed := nil;
-  FSecretKey.Prf := nil;
-  FSecretKey.PKSeed := nil;
-  FSecretKey.PKRoot := nil;
+  FreeAndNil(FPublicKey);
+  FreeAndNil(FSecretKey);
   MemoPublicKey.Clear;
   MemoPrivateKey.Clear;
   edtSignature.Clear;
@@ -155,6 +152,11 @@ begin
   end;
 end;
 
+procedure TSLHDSAMainForm.FormDestroy(Sender: TObject);
+begin
+  ClearKeyData;
+end;
+
 procedure TSLHDSAMainForm.chkPrehashClick(Sender: TObject);
 begin
   cbPrehashType.Enabled := chkPrehash.Checked;
@@ -166,6 +168,8 @@ var
 begin
   try
     ClearKeyData;
+    FPublicKey := TCnSlhPublicKey.Create;
+    FSecretKey := TCnSlhSecretKey.Create;
     Ctx := TCnSLHDSA.Create(GetParamSet);
     try
       Ctx.GenerateKeys(FPublicKey, FSecretKey);
@@ -233,6 +237,7 @@ begin
   except
     on E: Exception do
     begin
+      ClearKeyData;
       ShowMessage('Ç©ÃûÊ§°Ü£º' + E.Message);
       UpdateStatus('Ç©ÃûÊ§°Ü');
     end;
