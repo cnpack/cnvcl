@@ -101,6 +101,7 @@
       ..\..\Source\Crypto\CnSHA1.obj 
       ..\..\Source\Crypto\CnSHA2.obj 
       ..\..\Source\Crypto\CnSHA3.obj 
+      ..\..\Source\Crypto\CnSLHDSA.obj 
       ..\..\Source\Crypto\CnSM2.obj 
       ..\..\Source\Crypto\CnSM3.obj 
       ..\..\Source\Crypto\CnSM4.obj 

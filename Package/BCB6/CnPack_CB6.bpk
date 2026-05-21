@@ -102,6 +102,7 @@
       ..\..\Source\Crypto\CnSHA1.obj 
       ..\..\Source\Crypto\CnSHA2.obj 
       ..\..\Source\Crypto\CnSHA3.obj 
+      ..\..\Source\Crypto\CnSLHDSA.obj 
       ..\..\Source\Crypto\CnSM2.obj 
       ..\..\Source\Crypto\CnSM3.obj 
       ..\..\Source\Crypto\CnSM4.obj 
@@ -408,6 +409,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnSHA1.pas" FORMNAME="" UNITNAME="CnSHA1" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSHA2.pas" FORMNAME="" UNITNAME="CnSHA2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSHA3.pas" FORMNAME="" UNITNAME="CnSHA3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSLHDSA.pas" FORMNAME="" UNITNAME="CnSLHDSA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSM2.pas" FORMNAME="" UNITNAME="CnSM2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSM3.pas" FORMNAME="" UNITNAME="CnSM3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSM4.pas" FORMNAME="" UNITNAME="CnSM4" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

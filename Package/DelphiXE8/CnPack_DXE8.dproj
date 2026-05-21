@@ -190,6 +190,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnSHA1.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSHA2.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSHA3.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSLHDSA.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSM2.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSM3.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSM4.pas"/>

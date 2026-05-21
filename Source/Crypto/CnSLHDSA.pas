@@ -21,18 +21,17 @@
 unit CnSLHDSA;
 {* |<PRE>
 ================================================================================
-* 单元名称：后量子数字签名单元
-* 单元名称：SLH-DSA 后量子数字签名算法实现单元
+* 单元名称：SLH-DSA 无状态杂凑数字签名算法实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 修   注：本单元实现了 NIST FIPS 205 规范中的 SLH-DSA
+* 备    注：本单元实现了 NIST FIPS 205 规范中的 SLH-DSA
 *           （Stateless Hash-Based Digital Signature Algorithm），
-*           即无状态杂凑数字签名算法（原 SPHINCS+）。
+*           即抗量子的无状态杂凑数字签名算法（原 SPHINCS+）。
 *
 * 开发平台：Win10 + Delphi 12.0
 * 内容测试：尚未测试
-* 说    明：本单元使用 SHA2/SHA3 等底层杂凑，需 CnSHA2 和 CnSHA3 单元。
+* 说    明：本单元使用 SHA2/SHA3 等底层杂凑，需 CnSHA2 和 CnSHA3 等单元。
 * 修改记录：2026.05.18 V1.0
-*               创建单元，实现初始架构
+*               创建单元，实现功能
 ================================================================================
 |</PRE>}
 
@@ -47,12 +46,19 @@ uses
 const
   // 地址类型常量
   CN_SLH_ADRS_WOTS_HASH  = 0;
+  {* ADRS 地址类型：WOTS+ 杂凑}
   CN_SLH_ADRS_WOTS_PK    = 1;
+  {* ADRS 地址类型：WOTS+ 公钥}
   CN_SLH_ADRS_TREE       = 2;
+  {* ADRS 地址类型：XMSS 树}
   CN_SLH_ADRS_FORS_TREE  = 3;
+  {* ADRS 地址类型：FORS 树}
   CN_SLH_ADRS_FORS_ROOTS = 4;
+  {* ADRS 地址类型：FORS 根压缩}
   CN_SLH_ADRS_WOTS_PRF   = 5;
+  {* ADRS 地址类型：WOTS+ 密钥生成}
   CN_SLH_ADRS_FORS_PRF   = 6;
+  {* ADRS 地址类型：FORS 密钥生成}
 
   // 地址偏移常量
   // Bytes 0-3: Layer (4 bytes)
@@ -62,37 +68,44 @@ const
   // Bytes 24-27: Word 5 (chain address / tree height)
   // Bytes 28-31: Word 6 (hash address / tree index)
   CN_ADRS_OFFSET_LAYER    = 0;
-  CN_ADRS_OFFSET_TREE     = 8;   // 8-byte value right-aligned in 12-byte field
+  {* ADRS 层地址偏移（4 字节）}
+  CN_ADRS_OFFSET_TREE     = 8;
+  {* ADRS 树地址偏移（8 字节，在 12 字节字段中右对齐）}
   CN_ADRS_OFFSET_TYPE     = 16;
+  {* ADRS 类型偏移（4 字节）}
   CN_ADRS_OFFSET_KEYPAIR  = 20;
+  {* ADRS 密钥对索引偏移（4 字节）}
   CN_ADRS_OFFSET_CHAIN    = 24;
+  {* ADRS 链地址偏移（4 字节）}
   CN_ADRS_OFFSET_HASH     = 28;
+  {* ADRS 杂凑地址偏移（4 字节）}
 
   CN_ADRS_SIZE_SHAKE      = 32;
+  {* ADRS 地址大小：SHAKE 变体（32 字节）}
   CN_ADRS_SIZE_SHA2       = 22;
+  {* ADRS 地址大小：SHA2 变体（22 字节）}
 
 type
   ECnSlhException = class(Exception);
+  {* SLH-DSA 异常基类}
 
-  // -------------------------------------------------------------------
-  // 地址类型：SHAKE 32 字节，SHA2 22 字节
-  // -------------------------------------------------------------------
   PCnSlhAddr = ^TCnSlhAddr;
+  {* ADRS 地址指针类型}
   TCnSlhAddr = array[0..31] of Byte;
+  {* ADRS 地址类型（SHAKE 变体，32 字节）}
 
   TCnSlhAddrSHA2 = array[0..21] of Byte;
+  {* ADRS 地址类型（SHA2 变体，22 字节压缩格式）}
 
-  // -------------------------------------------------------------------
-  // 安全参数缓冲区
-  // -------------------------------------------------------------------
   TCnSlhBytes16 = array[0..15] of Byte;
+  {* 16 字节缓冲区，对应 n=16 参数集}
   TCnSlhBytes24 = array[0..23] of Byte;
+  {* 24 字节缓冲区，对应 n=24 参数集}
   TCnSlhBytes32 = array[0..31] of Byte;
+  {* 32 字节缓冲区，对应 n=32 参数集}
   TCnSlhDigest = TBytes;
+  {* 通用摘要类型}
 
-  // -------------------------------------------------------------------
-  // 参数集枚举
-  // -------------------------------------------------------------------
   TCnSlhParamSet = (
     slhSHA2_128s,
     slhSHA2_128f,
@@ -107,54 +120,66 @@ type
     slhSHAKE_256s,
     slhSHAKE_256f
   );
+  {* SLH-DSA 参数集枚举，共 12 种，按安全级别和性能分为 s（签名小）和 f（签名快）两组}
 
-  // -------------------------------------------------------------------
-  // 参数记录
-  // -------------------------------------------------------------------
   PCnSlhParams = ^TCnSlhParams;
+  {* SLH-DSA 参数记录指针}
   TCnSlhParams = record
-    N: Byte;            // 安全参数（字节）: 16/24/32
-    H: Byte;            // Hypertree 总高度: 63/64/66/68
-    D: Byte;            // Hypertree 层数: 7/8/17/22
-    Hp: Byte;           // 每层高度 h' = h/d
-    A: Byte;            // FORS 树高度 (2^a 叶节点)
-    K: Byte;            // FORS 树数量
-    W: Byte;            // Winternitz 参数: w = 16 (固定)
-    M: Byte;            // 消息摘要长度（字节）
-    // 派生常量
-    Len: Byte;          // WOTS+ 链数
+    N: Byte;
+    {* 安全参数（字节）: 16/24/32}
+    H: Byte;
+    {* Hypertree 总高度: 63/64/66/68}
+    D: Byte;
+    {* Hypertree 层数: 7/8/17/22}
+    Hp: Byte;
+    {* 每层 XMSS 树高度 h' = h / d}
+    A: Byte;
+    {* FORS 树高度，每棵树有 2^a 个叶子}
+    K: Byte;
+    {* FORS 树数量}
+    W: Byte;
+    {* Winternitz 参数，固定为 w = 16}
+    M: Byte;
+    {* 消息摘要长度（字节）}
+    Len: Byte;
+    {* WOTS+ 链数 Len = Ceil(8*n / Lg(w))}
     Len1: Byte;
+    {* WOTS+ 消息编码链数，Len1 = Len}
     Len2: Byte;
+    {* WOTS+ 校验和链数}
     LenTotal: Byte;
-    // 杂凑家族标识
+    {* WOTS+ 总链数 Len + Len2}
     IsSHA2: Boolean;
+    {* 杂凑家族标识：True = SHA2 系列，False = SHAKE 系列}
   end;
+  {* SLH-DSA 参数记录，存储一个参数集的全部参数和派生常量}
 
-  // -------------------------------------------------------------------
-  // 密钥与签名类型
-  // -------------------------------------------------------------------
   TCnSlhPublicKey = record
     Seed: TBytes;
+    {* 公钥种子（n 字节）}
     Root: TBytes;
+    {* 公钥根值（n 字节）}
   end;
+  {* SLH-DSA 公钥类型}
 
   TCnSlhSecretKey = record
     Seed: TBytes;
+    {* 私钥种子（n 字节）}
     Prf: TBytes;
+    {* 私钥伪随机函数种子（n 字节）}
     PKSeed: TBytes;
+    {* 公钥种子副本（n 字节）}
     PKRoot: TBytes;
+    {* 公钥根值副本（n 字节）}
   end;
+  {* SLH-DSA 私钥类型}
 
   TCnSlhSignature = TBytes;
+  {* SLH-DSA 签名类型，为 TBytes 别名}
 
-  // -------------------------------------------------------------------
-  // 进度回调
-  // -------------------------------------------------------------------
   TCnSlhProgressEvent = procedure(Percent: Integer; var Cancel: Boolean) of object;
+  {* SLH-DSA 进度回调事件，Percent 为进度百分比，Cancel 用于取消操作}
 
-  // -------------------------------------------------------------------
-  // Prehash 标识
-  // -------------------------------------------------------------------
   TCnSlhPrehashID = (
     shiSHA2_224,
     shiSHA2_256,
@@ -170,32 +195,34 @@ type
     shiSHAKE256,
     shiSM3           // 注意 SM3 的标识值不在 FIPS 205 规范里，属于我们新增的
   );
+  {* SLH-DSA Prehash 模式杂凑算法标识}
 
-  // -------------------------------------------------------------------
-  // 前向声明
-  // -------------------------------------------------------------------
   TCnSLHDSA = class;
 
-  // -------------------------------------------------------------------
-  // 杂凑函数表
-  // -------------------------------------------------------------------
+
   TCnSlhFFunc = function(AParams: PCnSlhParams; const PKSeed: TBytes;
     var ADRS: TCnSlhAddr; const M1: TBytes): TBytes;
+  {* 核心杂凑函数 F 的函数指针类型，用于 WOTS+ 链内杂凑}
 
   TCnSlhHFunc = function(AParams: PCnSlhParams; const PKSeed: TBytes;
     var ADRS: TCnSlhAddr; const M1, M2: TBytes): TBytes;
+  {* 核心杂凑函数 H 的函数指针类型，用于 Merkle 树节点杂凑}
 
   TCnSlhTlFunc = function(AParams: PCnSlhParams; const PKSeed: TBytes;
     var ADRS: TCnSlhAddr; const M: TBytes): TBytes;
+  {* 核心杂凑函数 T_l 的函数指针类型，用于 WOTS+ 公钥压缩}
 
   TCnSlhPRFFunc = function(AParams: PCnSlhParams; const PKSeed, SKSeed: TBytes;
     var ADRS: TCnSlhAddr): TBytes;
+  {* 核心杂凑函数 PRF 的函数指针类型，用于生成 WOTS+/FORS 私钥值}
 
   TCnSlhPRFMsgFunc = function(AParams: PCnSlhParams;
     const SKPrf, OptRand, M: TBytes): TBytes;
+  {* 核心杂凑函数 PRF_msg 的函数指针类型，用于生成签名随机数 R}
 
   TCnSlhHMsgFunc = function(AParams: PCnSlhParams;
     const R, PKSeed, PKRoot, M: TBytes): TBytes;
+  {* 核心杂凑函数 H_msg 的函数指针类型，用于生成消息摘要}
 
   TCnSlhHashFuncs = record
     F: TCnSlhFFunc;
@@ -205,11 +232,10 @@ type
     PRF_msg: TCnSlhPRFMsgFunc;
     H_msg: TCnSlhHMsgFunc;
   end;
+  {* 核心杂凑函数表，根据参数集初始化对应的 SHA2 或 SHAKE 实现}
 
-  // -------------------------------------------------------------------
-  // 主上下文类
-  // -------------------------------------------------------------------
   TCnSLHDSA = class
+  {* SLH-DSA 无状态杂凑数字签名算法主类}
   private
     FParams: PCnSlhParams;
     FParamSet: TCnSlhParamSet;
@@ -223,152 +249,187 @@ type
   protected
     function SignInternal(const MPrime: TBytes;
       const SK: TCnSlhSecretKey; const AddRnd: TBytes): TCnSlhSignature;
+    {* 内部签名函数，Pure 和 Prehash 模式共用}
   public
     constructor Create(AParamSet: TCnSlhParamSet);
+    {* 构造函数，指定 SLH-DSA 参数集}
     destructor Destroy; override;
+    {* 析构函数}
 
-    // 顶层 API
     procedure GenerateKeys(out PK: TCnSlhPublicKey; out SK: TCnSlhSecretKey);
+    {* 生成 SLH-DSA 密钥对}
+
     function SignBytes(const SK: TCnSlhSecretKey; const Msg: TBytes;
       Randomize: Boolean = True): TCnSlhSignature;
+    {* Pure 模式签名，Randomize 为 True 时使用随机化（Hedged）签名，为 False 时确定性签名}
     function VerifyBytes(const PK: TCnSlhPublicKey; const Msg: TBytes;
       const SIG: TCnSlhSignature): Boolean;
+    {* Pure 模式验签，返回 True 表示签名有效}
 
-    // Prehash 模式
     function SignPreHash(const M: TBytes; const SK: TCnSlhSecretKey;
       HashID: TCnSlhPrehashID; Randomize: Boolean = True): TCnSlhSignature;
+    {* Prehash 模式签名，先对消息进行指定杂凑再签名}
     function VerifyPreHash(const M: TBytes; const SIG: TCnSlhSignature;
       const PK: TCnSlhPublicKey; HashID: TCnSlhPrehashID): Boolean;
+    {* Prehash 模式验签，需要与签名时相同的 HashID}
 
-    // 序列化
     function PublicKeyToBytes(const PK: TCnSlhPublicKey): TBytes;
+    {* 将公钥序列化为字节数组（2n 字节）}
     function BytesToPublicKey(const Data: TBytes): TCnSlhPublicKey;
+    {* 从字节数组反序列化为公钥}
     function SecretKeyToBytes(const SK: TCnSlhSecretKey): TBytes;
+    {* 将私钥序列化为字节数组（4n 字节）}
     function BytesToSecretKey(const Data: TBytes): TCnSlhSecretKey;
+    {* 从字节数组反序列化为私钥}
     function SignatureToBytes(const SIG: TCnSlhSignature): TBytes;
+    {* 将签名序列化为字节数组}
     function BytesToSignature(const Data: TBytes): TCnSlhSignature;
+    {* 从字节数组反序列化为签名}
 
     property ParamSet: TCnSlhParamSet read FParamSet;
+    {* 当前使用的参数集}
     property Params: PCnSlhParams read FParams;
+    {* 当前参数集的参数记录指针}
     property SecretKeySize: Integer read GetSecretKeySize;
+    {* 私钥长度（字节）}
     property PublicKeySize: Integer read GetPublicKeySize;
+    {* 公钥长度（字节）}
     property SignatureSize: Integer read GetSignatureSize;
+    {* 签名长度（字节）}
     property OnProgress: TCnSlhProgressEvent read FOnProgress write FOnProgress;
+    {* 进度回调事件}
   end;
 
 // -------------------------------------------------------------------
 // 全局辅助函数
 // -------------------------------------------------------------------
 
-// 参数查询
 function SlhGetParams(AParamSet: TCnSlhParamSet): PCnSlhParams;
+{* 根据参数集枚举获取对应的参数记录指针}
 function SlhParamSetName(AParamSet: TCnSlhParamSet): string;
+{* 获取参数集的名称字符串}
 function SlhParamSetFromName(const AName: string): TCnSlhParamSet;
+{* 根据名称字符串获取对应的参数集枚举}
 
-// 大端读写
 function SlhReadU32BE(const Buf): Cardinal;
+{* 以大端序从缓冲区读取 32 位无符号整数}
 function SlhReadU64BE(const Buf): TUInt64;
+{* 以大端序从缓冲区读取 64 位无符号整数}
 procedure SlhWriteU32BE(var Buf; Value: Cardinal);
+{* 以大端序将 32 位无符号整数写入缓冲区}
 procedure SlhWriteU64BE(var Buf; Value: TUInt64);
+{* 以大端序将 64 位无符号整数写入缓冲区}
 
-// ADRS 地址操作
 procedure SlhAddrInit(var AD: TCnSlhAddr);
+{* 初始化 ADRS 地址，清零所有字段}
 procedure SlhAddrSetLayer(var AD: TCnSlhAddr; Layer: Cardinal);
+{* 设置 ADRS 层地址域}
 procedure SlhAddrSetTree(var AD: TCnSlhAddr; Tree: TUInt64);
+{* 设置 ADRS 树地址域}
 procedure SlhAddrSetType(var AD: TCnSlhAddr; Typ: Cardinal);
+{* 设置 ADRS 类型域（0-6，对应 WOTS+/FORS/XMSS 等）}
 procedure SlhAddrSetTypeAndClear(var AD: TCnSlhAddr; Typ: Cardinal);
+{* 设置 ADRS 类型域并清空后续字段}
 procedure SlhAddrSetKeyPair(var AD: TCnSlhAddr; Pair: Cardinal);
+{* 设置 ADRS 密钥对索引域}
 procedure SlhAddrSetChain(var AD: TCnSlhAddr; Chain: Cardinal);
+{* 设置 ADRS 链地址域}
 procedure SlhAddrSetHash(var AD: TCnSlhAddr; Hash: Cardinal);
+{* 设置 ADRS 杂凑地址域}
 procedure SlhAddrSetTreeHeight(var AD: TCnSlhAddr; Height: Cardinal);
+{* 设置 ADRS 树高度域}
 procedure SlhAddrSetTreeIndex(var AD: TCnSlhAddr; Index: Cardinal);
+{* 设置 ADRS 树索引域}
 procedure SlhAddrCopy(const Src: TCnSlhAddr; var Dst: TCnSlhAddr);
+{* 复制 ADRS 地址}
 procedure SlhAddrCompress(const Src: TCnSlhAddr; var Dst: TCnSlhAddrSHA2);
+{* 将 SHAKE 32 字节 ADRS 压缩为 SHA2 22 字节格式}
 procedure SlhAddrDecompress(const Src: TCnSlhAddrSHA2; var Dst: TCnSlhAddr);
+{* 将 SHA2 22 字节 ADRS 解压为 SHAKE 32 字节格式}
 function SlhAddrSize(IsSHA2: Boolean): Integer;
+{* 获取 ADRS 地址大小，SHA2 返回 22，SHAKE 返回 32}
 function SlhAddrToBytes(const AD: TCnSlhAddr; IsSHA2: Boolean): TBytes;
+{* 将 ADRS 地址转换为字节数组}
 
-// SHA2 辅助：MGF1
 function SlhMGF1_SHA256(const Seed: TBytes; OutLen: Integer): TBytes;
+{* 基于 SHA-256 的 MGF1 掩码生成函数（SHA2 参数集 H_msg 使用）}
 function SlhMGF1_SHA512(const Seed: TBytes; OutLen: Integer): TBytes;
+{* 基于 SHA-512 的 MGF1 掩码生成函数（SHA2 参数集 H_msg 使用）}
 
-// 6 核心杂凑函数
 function SlhF(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const M1: TBytes): TBytes;
+{* 核心杂凑函数 F，用于 WOTS+ 链内单步杂凑}
 function SlhH(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const M1, M2: TBytes): TBytes;
+{* 核心杂凑函数 H，用于 Merkle 树内部节点杂凑}
 function SlhTl(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const M: TBytes): TBytes;
+{* 核心杂凑函数 T_l，用于 WOTS+ 公钥压缩}
 function SlhPRF(Params: PCnSlhParams; const PKSeed, SKSeed: TBytes;
   var ADRS: TCnSlhAddr): TBytes;
+{* 核心杂凑函数 PRF，用于 WOTS+ 和 FORS 私钥值生成}
 function SlhPRFMsg(Params: PCnSlhParams;
   const SKPrf, OptRand, M: TBytes): TBytes;
+{* 核心杂凑函数 PRF_msg，用于生成签名随机数 R}
 function SlhHMsg(Params: PCnSlhParams;
   const R, PKSeed, PKRoot, M: TBytes): TBytes;
+{* 核心杂凑函数 H_msg，用于生成签名消息摘要}
 
-// 函数选择器
 procedure SlhInitHashFuncs(Params: PCnSlhParams; out Funcs: TCnSlhHashFuncs);
+{* 根据参数集初始化 6 个核心杂凑函数的函数指针表}
 
-// WOTS+ 基 w 编码
 procedure SlhBaseWEncode(const M: TBytes; N, W, Len: Byte; var Msg: TBytes; Offset: Integer);
+{* WOTS+ 基 w 编码，将消息编码为 Len 个基 w 的整数序列}
 function SlhBaseWChecksum(const Msg: TBytes; W, Len1, Len2: Byte): TBytes;
+{* WOTS+ 基 w 校验和计算}
 
-// WOTS+ 链迭代（Algorithm 1）
 function SlhChain(Params: PCnSlhParams; const PKSeed: TBytes;
   var ADRS: TCnSlhAddr; const X0: TBytes; Start, Steps: Byte): TBytes;
+{* WOTS+ 链迭代（Algorithm 1），对 X0 迭代调用 F 函数 Steps 次}
 
-// WOTS+ 密钥生成（Algorithm 3）
 function SlhWotsKeyGen(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes): TBytes;
-
-// WOTS+ 签名（Algorithm 4）
+{* WOTS+ 密钥生成（Algorithm 3）}
 function SlhWotsSign(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const M, SKSeed, PKSeed: TBytes): TBytes;
-
-// WOTS+ 从签名恢复公钥（Algorithm 5）
+{* WOTS+ 签名（Algorithm 4）}
 function SlhWotsPKFromSig(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SIG, M, PKSeed: TBytes): TBytes;
+{* WOTS+ 从签名恢复公钥（Algorithm 5）}
 
-// XMSS 树杂凑（Algorithm 9）
 function SlhXmssTreeHash(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes; LeafIdx: Cardinal): TBytes;
-
-// XMSS 密钥生成（Algorithm 8）
+{* XMSS 树杂凑（Algorithm 9），计算指定叶节点的认证路径根}
 function SlhXmssKeyGen(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes): TBytes;
-
-// XMSS 签名（Algorithm 10）
+{* XMSS 密钥生成（Algorithm 8）}
 function SlhXmssSign(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const M, SKSeed, PKSeed: TBytes; Idx: Cardinal): TBytes;
-
-// XMSS 从签名恢复公钥（Algorithm 13）
+{* XMSS 签名（Algorithm 10）}
 function SlhXmssPKFromSig(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   Idx: Cardinal; const SIG, M, PKSeed: TBytes): TBytes;
+{* XMSS 从签名恢复公钥（Algorithm 13）}
 
-// Hypertree 签名（Algorithm 12）
 function SlhHtSign(Params: PCnSlhParams; const M, SKSeed, PKSeed: TBytes;
   TreeIdx: TUInt64; LeafIdx: Cardinal): TBytes;
-
-// Hypertree 验签（Algorithm 14）
+{* Hypertree 签名（Algorithm 12）}
 function SlhHtVerify(Params: PCnSlhParams; const M, SIG: TBytes;
   const PKSeed: TBytes; TreeIdx: TUInt64; LeafIdx: Cardinal;
   const PKRoot: TBytes): Boolean;
+{* Hypertree 验签（Algorithm 14）}
 
-// FORS 树杂凑（构建一棵 FORS Merkle 树，返回根）
 function SlhForsTreeHash(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes; TreeIdx: Byte): TBytes;
-
-// FORS 密钥生成（k 棵树根拼接）
+{* FORS 树杂凑，构建一棵 FORS Merkle 树并返回根}
 function SlhForsKeyGen(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SKSeed, PKSeed: TBytes): TBytes;
-
-// FORS 签名（Algorithm 15）
+{* FORS 密钥生成，生成 k 棵树根并拼接}
 function SlhForsSign(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const Md, SKSeed, PKSeed: TBytes): TBytes;
-
-// FORS 从签名恢复公钥（Algorithm 16）
+{* FORS 签名（Algorithm 15）}
 function SlhForsPKFromSig(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
   const SIG, Md, PKSeed: TBytes): TBytes;
+{* FORS 从签名恢复公钥（Algorithm 16）}
 
 implementation
 

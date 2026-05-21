@@ -348,6 +348,9 @@ cnpack\Source 目录内容说明：
   CnSHA3.pas
     SHA3 算法实现单元
 
+  CnSLHDSA.pas
+    无状态杂凑数字签名算法实现单元
+
   CnSM2.pas
     中国国家密码管理局发布的 SM2 椭圆曲线算法实现单元
 
@@ -372,7 +375,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 50 文件
+                共 51 文件
 
 \DbReport －数据库组件与报表库目录
 
