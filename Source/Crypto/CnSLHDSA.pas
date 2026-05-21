@@ -42,7 +42,7 @@ interface
 
 uses
   SysUtils, Classes,
-  CnSHA2, CnSHA3, CnRandom, CnBits, CnNative;
+  CnSHA2, CnSHA3, CnSM3, CnRandom, CnBits, CnNative;
 
 const
   // 地址类型常量
@@ -167,7 +167,8 @@ type
     shiSHA3_384,
     shiSHA3_512,
     shiSHAKE128,
-    shiSHAKE256
+    shiSHAKE256,
+    shiSM3           // 注意 SM3 的标识值不在 FIPS 205 规范里，属于我们新增的
   );
 
   // -------------------------------------------------------------------
@@ -1051,13 +1052,16 @@ function SlhBaseWChecksum(const Msg: TBytes; W, Len1, Len2: Byte): TBytes;
 var
   I: Integer;
   csum: Cardinal;
-  CsumBytes: Integer;
+  CsumBytes, ShiftBits: Integer;
 begin
   csum := 0;
   for I := 0 to Len1 - 1 do
     csum := csum + (W - 1 - Msg[I]);
 
-  // Len2 * log2(w) bits, convert to bytes
+  // FIPS 205: csum <<= (8 - ((len2 * lg(w)) mod 8)) mod 8
+  ShiftBits := (8 - ((Len2 * 4) mod 8)) mod 8;
+  csum := csum shl ShiftBits;
+
   CsumBytes := (Len2 * 4 + 7) div 8;
   SetLength(Result, CsumBytes);
   for I := 0 to CsumBytes - 1 do
@@ -1314,7 +1318,7 @@ var
   StackHeights: array of Integer;
   StackSize: Integer;
   LeafCount: Cardinal;
-  I, CurrentHeight, HIdx: Integer;
+  I, CurrentHeight: Integer;
   Node, Left, Right: TBytes;
   TmpAdrs: TCnSlhAddr;
   AuthPath: array of TBytes;
@@ -1877,11 +1881,10 @@ end;
 function TCnSLHDSA.SignInternal(const MPrime: TBytes;
   const SK: TCnSlhSecretKey; const AddRnd: TBytes): TCnSlhSignature;
 var
-  R, Digest, Md, IdxBytes: TBytes;
-  MdLen, IdxLen: Integer;
-  Idx, TreeIdx: TUInt64;
+  R, Digest, Md: TBytes;
+  MdLen, TreeLen, LeafLen: Integer;
+  TreeIdx: TUInt64;
   LeafIdx: Cardinal;
-  LeafMask: TUInt64;
   ADRS: TCnSlhAddr;
   SigFors, SigHt, PKFors, PKForsCompressed: TBytes;
   ForsSigLen, HtSigLen, TotalLen: Integer;
@@ -1895,34 +1898,32 @@ begin
   // Digest = H_msg(R, PK.Seed, PK.Root, M)
   Digest := SlhHMsg(P, R, SK.PKSeed, SK.PKRoot, MPrime);
 
-  // Split Digest: Md (m - ceil(h/8) bytes) + IdxBytes (ceil(h/8) bytes)
-  IdxLen := (P.H + 7) div 8;
-  MdLen := P.M - IdxLen;
+  // Split Digest into three byte-aligned blocks per FIPS 205
+  MdLen := (P.K * P.A + 7) div 8;
+  TreeLen := (P.H - P.Hp + 7) div 8;
+  LeafLen := (P.Hp + 7) div 8;
   SetLength(Md, MdLen);
   Move(Digest[0], Md[0], MdLen);
-  SetLength(IdxBytes, IdxLen);
-  Move(Digest[MdLen], IdxBytes[0], IdxLen);
 
-  // Idx = low h bits
-  Idx := SlhBytesToUInt64BE(IdxBytes, 0, IdxLen);
-  if P.H < 64 then
-    Idx := Idx and ((TUInt64(1) shl P.H) - 1);
+  TreeIdx := SlhBytesToUInt64BE(Digest, MdLen, TreeLen);
+  if P.H - P.Hp < 64 then
+    TreeIdx := TreeIdx and ((TUInt64(1) shl (P.H - P.Hp)) - 1);
+
+  LeafIdx := Cardinal(SlhBytesToUInt64BE(Digest, MdLen + TreeLen, LeafLen));
+  LeafIdx := LeafIdx and ((Cardinal(1) shl P.Hp) - 1);
 
   // FORS signature
   SlhAddrInit(ADRS);
-  SlhAddrSetType(ADRS, CN_SLH_ADRS_FORS_TREE);
+  SlhAddrSetTree(ADRS, TreeIdx);
+  SlhAddrSetTypeAndClear(ADRS, CN_SLH_ADRS_FORS_TREE);
+  SlhAddrSetKeyPair(ADRS, LeafIdx);
   SigFors := SlhForsSign(P, ADRS, Md, SK.Seed, SK.PKSeed);
 
-  // PK_FORS = T_l(ForsKeyGen roots)
-  SlhAddrInit(ADRS);
-  SlhAddrSetType(ADRS, CN_SLH_ADRS_FORS_ROOTS);
-  PKFors := SlhForsKeyGen(P, ADRS, SK.Seed, SK.PKSeed);
+  // PK_FORS from signature
+  PKFors := SlhForsPKFromSig(P, ADRS, SigFors, Md, SK.PKSeed);
+  SlhAddrSetTypeAndClear(ADRS, CN_SLH_ADRS_FORS_ROOTS);
+  SlhAddrSetKeyPair(ADRS, LeafIdx);
   PKForsCompressed := SlhTl(P, SK.PKSeed, ADRS, PKFors);
-
-  // Hypertree indices
-  LeafMask := (TUInt64(1) shl P.Hp) - 1;
-  LeafIdx := Idx and LeafMask;
-  TreeIdx := Idx shr P.Hp;
 
   // Hypertree signature
   SigHt := SlhHtSign(P, PKForsCompressed, SK.Seed, SK.PKSeed, TreeIdx, LeafIdx);
@@ -1942,11 +1943,10 @@ function TCnSLHDSA.SignBytes(const SK: TCnSlhSecretKey; const Msg: TBytes;
 var
   OptRand: TBytes;
 begin
-  SetLength(OptRand, FParams.N);
   if Randomize then
     OptRand := CnRandomBytes(FParams.N)
   else
-    FillChar(OptRand[0], FParams.N, 0);
+    OptRand := Copy(SK.PKSeed, 0, FParams.N);
 
   Result := SignInternal(Msg, SK, OptRand);
 end;
@@ -1955,12 +1955,11 @@ function TCnSLHDSA.VerifyBytes(const PK: TCnSlhPublicKey; const Msg: TBytes;
   const SIG: TCnSlhSignature): Boolean;
 var
   P: PCnSlhParams;
-  R, Digest, Md, IdxBytes: TBytes;
+  R, Digest, Md: TBytes;
   SigFors, SigHt, PKFors, PKForsCompressed: TBytes;
-  MdLen, IdxLen: Integer;
-  Idx, TreeIdx: TUInt64;
+  MdLen, TreeLen, LeafLen: Integer;
+  TreeIdx: TUInt64;
   LeafIdx: Cardinal;
-  LeafMask: TUInt64;
   ForsSigLen, HtSigLen: Integer;
   ADRS: TCnSlhAddr;
 begin
@@ -1987,22 +1986,25 @@ begin
   // Digest = H_msg(R, PK.Seed, PK.Root, M)
   Digest := SlhHMsg(P, R, PK.Seed, PK.Root, Msg);
 
-  // Split Digest
-  IdxLen := (P.H + 7) div 8;
-  MdLen := P.M - IdxLen;
+  // Split Digest into three byte-aligned blocks per FIPS 205
+  MdLen := (P.K * P.A + 7) div 8;
+  TreeLen := (P.H - P.Hp + 7) div 8;
+  LeafLen := (P.Hp + 7) div 8;
   SetLength(Md, MdLen);
   Move(Digest[0], Md[0], MdLen);
-  SetLength(IdxBytes, IdxLen);
-  Move(Digest[MdLen], IdxBytes[0], IdxLen);
 
-  // Idx
-  Idx := SlhBytesToUInt64BE(IdxBytes, 0, IdxLen);
-  if P.H < 64 then
-    Idx := Idx and ((TUInt64(1) shl P.H) - 1);
+  TreeIdx := SlhBytesToUInt64BE(Digest, MdLen, TreeLen);
+  if P.H - P.Hp < 64 then
+    TreeIdx := TreeIdx and ((TUInt64(1) shl (P.H - P.Hp)) - 1);
+
+  LeafIdx := Cardinal(SlhBytesToUInt64BE(Digest, MdLen + TreeLen, LeafLen));
+  LeafIdx := LeafIdx and ((Cardinal(1) shl P.Hp) - 1);
 
   // Recover PK_FORS from signature
   SlhAddrInit(ADRS);
-  SlhAddrSetType(ADRS, CN_SLH_ADRS_FORS_TREE);
+  SlhAddrSetTree(ADRS, TreeIdx);
+  SlhAddrSetTypeAndClear(ADRS, CN_SLH_ADRS_FORS_TREE);
+  SlhAddrSetKeyPair(ADRS, LeafIdx);
   try
     PKFors := SlhForsPKFromSig(P, ADRS, SigFors, Md, PK.Seed);
   except
@@ -2010,15 +2012,11 @@ begin
   end;
 
   // Compress FORS roots
-  SlhAddrInit(ADRS);
-  SlhAddrSetType(ADRS, CN_SLH_ADRS_FORS_ROOTS);
+  SlhAddrSetTypeAndClear(ADRS, CN_SLH_ADRS_FORS_ROOTS);
+  SlhAddrSetKeyPair(ADRS, LeafIdx);
   PKForsCompressed := SlhTl(P, PK.Seed, ADRS, PKFors);
 
   // Verify Hypertree
-  LeafMask := (TUInt64(1) shl P.Hp) - 1;
-  LeafIdx := Idx and LeafMask;
-  TreeIdx := Idx shr P.Hp;
-
   Result := SlhHtVerify(P, PKForsCompressed, SigHt, PK.Seed,
     TreeIdx, LeafIdx, PK.Root);
 end;
@@ -2036,7 +2034,7 @@ function SlhGetPrehashOutputLen(HashID: TCnSlhPrehashID): Integer;
 begin
   case HashID of
     shiSHA2_224, shiSHA3_224, shiSHA2_512_224: Result := 28;
-    shiSHA2_256, shiSHA3_256, shiSHA2_512_256, shiSHAKE128: Result := 32;
+    shiSHA2_256, shiSHA3_256, shiSHA2_512_256, shiSHAKE128, shiSM3: Result := 32;
     shiSHA2_384, shiSHA3_384: Result := 48;
     shiSHA2_512, shiSHA3_512: Result := 64;
     shiSHAKE256: Result := 64;
@@ -2059,6 +2057,7 @@ var
   D3_256: TCnSHA3_256Digest;
   D3_384: TCnSHA3_384Digest;
   D3_512: TCnSHA3_512Digest;
+  DSM3: TCnSM3Digest;
 begin
   case HashID of
     shiSHA2_224:
@@ -2085,6 +2084,8 @@ begin
       D := SHAKE128Bytes(M, 32);
     shiSHAKE256:
       D := SHAKE256Bytes(M, 64);
+    shiSM3:
+      begin DSM3 := SM3Bytes(M); SetLength(D, 32); Move(DSM3, D[0], 32); end;
   else
     raise ECnSlhException.Create('Unknown Prehash ID');
   end;
@@ -2099,17 +2100,16 @@ end;
 
 function TCnSLHDSA.SignPreHash(const M: TBytes;
   const SK: TCnSlhSecretKey; HashID: TCnSlhPrehashID;
-  Randomize: Boolean = True): TCnSlhSignature;
+  Randomize: Boolean): TCnSlhSignature;
 var
   MPrime, OptRand: TBytes;
 begin
   MPrime := SlhPrehashData(M, HashID);
 
-  SetLength(OptRand, FParams.N);
   if Randomize then
     OptRand := CnRandomBytes(FParams.N)
   else
-    FillChar(OptRand[0], FParams.N, 0);
+    OptRand := Copy(SK.PKSeed, 0, FParams.N);
 
   Result := SignInternal(MPrime, SK, OptRand);
 end;
