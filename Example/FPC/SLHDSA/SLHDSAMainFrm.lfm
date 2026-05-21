@@ -1,0 +1,194 @@
+object SLHDSAMainForm: TSLHDSAMainForm
+  Left = 192
+  Height = 513
+  Top = 107
+  Width = 688
+  BorderStyle = bsDialog
+  Caption = 'SLH-DSA Demo'
+  ClientHeight = 513
+  ClientWidth = 688
+  Color = clBtnFace
+  Font.CharSet = GB2312_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = '宋体'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object Panel1: TPanel
+    Left = 0
+    Height = 233
+    Top = 0
+    Width = 688
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 233
+    ClientWidth = 688
+    ParentBackground = False
+    TabOrder = 0
+    object Label1: TLabel
+      Left = 8
+      Height = 12
+      Top = 8
+      Width = 96
+      Caption = 'SLH-DSA 参数集：'
+    end
+    object Label3: TLabel
+      Left = 8
+      Height = 12
+      Top = 48
+      Width = 108
+      Caption = '公钥（十六进制）：'
+    end
+    object Label4: TLabel
+      Left = 336
+      Height = 12
+      Top = 48
+      Width = 108
+      Caption = '私钥（十六进制）：'
+    end
+    object lblKeyInfo: TLabel
+      Left = 232
+      Height = 13
+      Top = 12
+      Width = 48
+      Caption = '密钥信息'
+      Font.Color = clBlue
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object cbParamSet: TComboBox
+      Left = 100
+      Height = 20
+      Top = 4
+      Width = 125
+      ItemHeight = 12
+      Style = csDropDownList
+      TabOrder = 0
+    end
+    object btnGenerateKeys: TButton
+      Left = 584
+      Height = 25
+      Top = 4
+      Width = 89
+      Caption = '生成公私钥'
+      TabOrder = 1
+      OnClick = btnGenerateKeysClick
+    end
+    object chkRandomize: TCheckBox
+      Left = 472
+      Height = 17
+      Top = 6
+      Width = 80
+      Caption = '随机化签名'
+      Checked = True
+      State = cbChecked
+      TabOrder = 2
+    end
+    object MemoPublicKey: TMemo
+      Left = 8
+      Height = 153
+      Top = 72
+      Width = 313
+      ScrollBars = ssVertical
+      TabOrder = 3
+    end
+    object MemoPrivateKey: TMemo
+      Left = 336
+      Height = 153
+      Top = 72
+      Width = 337
+      ScrollBars = ssVertical
+      TabOrder = 4
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Height = 280
+    Top = 233
+    Width = 688
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 280
+    ClientWidth = 688
+    ParentBackground = False
+    TabOrder = 1
+    object Label2: TLabel
+      Left = 8
+      Height = 12
+      Top = 8
+      Width = 60
+      Caption = '签名消息：'
+    end
+    object Label5: TLabel
+      Left = 440
+      Height = 12
+      Top = 8
+      Width = 72
+      Caption = '预杂凑类型：'
+    end
+    object Label6: TLabel
+      Left = 8
+      Height = 12
+      Top = 144
+      Width = 60
+      Caption = '签名结果：'
+    end
+    object edtMessage: TMemo
+      Left = 8
+      Height = 105
+      Top = 24
+      Width = 417
+      Lines.Strings = (
+        'Test Message'
+      )
+      ScrollBars = ssVertical
+      TabOrder = 0
+    end
+    object btnSign: TButton
+      Left = 8
+      Height = 25
+      Top = 244
+      Width = 75
+      Caption = '签名'
+      TabOrder = 1
+      OnClick = btnSignClick
+    end
+    object edtSignature: TMemo
+      Left = 8
+      Height = 73
+      Top = 160
+      Width = 665
+      ScrollBars = ssVertical
+      TabOrder = 2
+    end
+    object btnVerify: TButton
+      Left = 96
+      Height = 25
+      Top = 244
+      Width = 75
+      Caption = '验证签名'
+      TabOrder = 3
+      OnClick = btnVerifyClick
+    end
+    object cbPrehashType: TComboBox
+      Left = 528
+      Height = 20
+      Top = 4
+      Width = 129
+      ItemHeight = 12
+      Style = csDropDownList
+      TabOrder = 4
+    end
+    object chkPrehash: TCheckBox
+      Left = 440
+      Height = 17
+      Top = 32
+      Width = 80
+      Caption = '预杂凑模式'
+      TabOrder = 5
+      OnClick = chkPrehashClick
+    end
+  end
+end
