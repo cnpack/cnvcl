@@ -26,7 +26,7 @@ unit CnQRCode;
 * 单元作者：CnPack 开发组
 * 备    注：本单元实现了二维码编码与解码功能，可配合 CnQRCodeImage 控件实现绘制。
 *
-*           本单元不操作 VCL/FMX 中实际的 TBitmap，而采用了中间层 TCnQRGrayImage
+*           本单元不操作 VCL/FMX 中实际的 TBitmap，而采用了中间层 TCnQRData
 *
 *           二维码编码内部位操作使用 CnBits，但大部分是 MSB First 模式，
 *           也即符合阅读习惯的高位在前，和 CnBits 里大部分底位在前不同。

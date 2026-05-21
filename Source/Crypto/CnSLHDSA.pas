@@ -124,7 +124,7 @@ type
 
   PCnSlhParams = ^TCnSlhParams;
   {* SLH-DSA 参数记录指针}
-  TCnSlhParams = record
+  TCnSlhParams = packed record
     N: Byte;
     {* 安全参数（字节）: 16/24/32}
     H: Byte;
@@ -154,7 +154,8 @@ type
   end;
   {* SLH-DSA 参数记录，存储一个参数集的全部参数和派生常量}
 
-  TCnSlhPublicKey = record
+  TCnSlhPublicKey = packed record
+  {* SLH-DSA 公钥}
     Seed: TBytes;
     {* 公钥种子（n 字节）}
     Root: TBytes;
@@ -162,7 +163,8 @@ type
   end;
   {* SLH-DSA 公钥类型}
 
-  TCnSlhSecretKey = record
+  TCnSlhSecretKey = packed record
+  {* SLH-DSA 私钥}
     Seed: TBytes;
     {* 私钥种子（n 字节）}
     Prf: TBytes;
@@ -224,7 +226,8 @@ type
     const R, PKSeed, PKRoot, M: TBytes): TBytes;
   {* 核心杂凑函数 H_msg 的函数指针类型，用于生成消息摘要}
 
-  TCnSlhHashFuncs = record
+  TCnSlhHashFuncs = packed record
+  {* 核心杂凑函数表，根据参数集初始化对应的 SHA2 或 SHAKE 实现}
     F: TCnSlhFFunc;
     H: TCnSlhHFunc;
     T_l: TCnSlhTlFunc;
@@ -232,10 +235,9 @@ type
     PRF_msg: TCnSlhPRFMsgFunc;
     H_msg: TCnSlhHMsgFunc;
   end;
-  {* 核心杂凑函数表，根据参数集初始化对应的 SHA2 或 SHAKE 实现}
 
   TCnSLHDSA = class
-  {* SLH-DSA 无状态杂凑数字签名算法主类}
+  {* SLH-DSA 无状态杂凑数字签名算法实现类}
   private
     FParams: PCnSlhParams;
     FParamSet: TCnSlhParamSet;
