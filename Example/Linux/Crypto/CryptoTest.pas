@@ -320,7 +320,8 @@ function TestSLHDSAPreHash: Boolean;
 function TestSLHDSASerialize: Boolean;
 function TestSLHDSAKeyGenKAT: Boolean;
 function TestSLHDSASigGenKAT: Boolean;
-function TestSLHDSASigVerKAT: Boolean;
+function TestSLHDSASigVerKAT1: Boolean;
+function TestSLHDSASigVerKAT2: Boolean;
 
 // ================================ SM4 ========================================
 
@@ -1999,7 +2000,8 @@ begin
   MyAssert(TestSLHDSASerialize, 'TestSLHDSASerialize');
   MyAssert(TestSLHDSAKeyGenKAT, 'TestSLHDSAKeyGenKAT'); 
   MyAssert(TestSLHDSASigGenKAT, 'TestSLHDSASigGenKAT');
-  MyAssert(TestSLHDSASigVerKAT, 'TestSLHDSASigVerKAT');
+  MyAssert(TestSLHDSASigVerKAT1, 'TestSLHDSASigVerKAT1');
+  MyAssert(TestSLHDSASigVerKAT2, 'TestSLHDSASigVerKAT2');
 
 // ================================ SM4 ========================================
 
@@ -10676,7 +10678,7 @@ begin
   end;
 end;
 
-function TestSLHDSASigVerKAT: Boolean;
+function TestSLHDSASigVerKAT1: Boolean;
 const
   // sigVer KAT #1: SLH-DSA-SHA2-192s (tcId=3)
   SLHDSA_VER_PKSEED1 = '7E945CB2A30BCF9C8388AF4CC03ECC3502AF8558843757EB';
@@ -10693,12 +10695,27 @@ begin
     SLHDSA_VER_MSG1, SLHDSA_VER_SIG1_1 + SLHDSA_VER_SIG1_2 + SLHDSA_VER_SIG1_3) then Exit;
 
   // 不知咋滴，D5 跑下面的时候常量会传错，D7 会提示 Too many local constants.  Use shorter procedures
-  // 只能先注释掉
+  // 只能先拆出来放到下面的新函数里
 {
   if not RunSigVerKAT(slhSHAKE_128f,
     SLHDSA_VER_PKSEED2, SLHDSA_VER_PKROOT2,
     SLHDSA_VER_MSG2, SLHDSA_VER_SIG2_1 + SLHDSA_VER_SIG2_2 + SLHDSA_VER_SIG2_3) then Exit;
 }
+
+  Result := True;
+end;
+
+function TestSLHDSASigVerKAT2: Boolean;
+const
+  // sigVer KAT #2: SLH-DSA-SHAKE-128f (tcId=37)
+  SLHDSA_VER_PKSEED2 = 'B4B0C44173465CCF542085E7C39D5CF0';
+  SLHDSA_VER_PKROOT2 = '4990BB3DBDFECFAF04B82C2F2CDDDB40';
+begin
+  Result := False;
+
+  if not RunSigVerKAT(slhSHAKE_128f,
+    SLHDSA_VER_PKSEED2, SLHDSA_VER_PKROOT2,
+    SLHDSA_VER_MSG2, SLHDSA_VER_SIG2_1 + SLHDSA_VER_SIG2_2 + SLHDSA_VER_SIG2_3) then Exit;
 
   Result := True;
 end;
