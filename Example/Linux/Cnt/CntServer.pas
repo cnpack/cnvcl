@@ -92,6 +92,8 @@ type
     procedure CloseSockets;
     function IsRunning: Boolean;
     procedure OnRecvData(const Data: Pointer; Len: Integer);
+    procedure OnSentData(const Data: Pointer; Len: Integer);
+    procedure RunUDPServer(ServerSock: TSocket);
   public
     constructor Create(const AOptions: TCntOptions; APort: Word);
     destructor Destroy; override;
@@ -281,7 +283,7 @@ end;
 
 function TCntServer.IsRunning: Boolean;
 begin
-  Result := FRunning and (FClientSocket <> INVALID_SOCKET);
+  Result := FRunning and (FClientSocket <> INVALID_SOCKET) and GCntRunning;
 end;
 
 procedure TCntServer.SetupKeepAlive(Sock: TSocket);
@@ -332,6 +334,11 @@ begin
   OutputData(Data, Len, '<');
 end;
 
+procedure TCntServer.OnSentData(const Data: Pointer; Len: Integer);
+begin
+  OutputData(Data, Len, '>');
+end;
+
 {==================== 主运行方法 ====================}
 
 procedure TCntServer.Run;
@@ -348,8 +355,12 @@ begin
   ClientSock := INVALID_SOCKET;
 
   try
-    // Create server socket
+    // Create server socket (TCP or UDP)
+    if FOptions.Protocol = cpUDP then
+      ServerSock := CnNewSocket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)
+    else
     ServerSock := CnNewSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+
     if ServerSock = INVALID_SOCKET then
     begin
       WriteLn('Error: Failed to create server socket');
@@ -373,15 +384,24 @@ begin
       Exit;
     end;
 
-    if CnListen(ServerSock, 5) < 0 then
+    // Only call listen for TCP
+    if FOptions.Protocol = cpTCP then
     begin
-      CnCloseSocket(ServerSock);
-      WriteLn('Error: Failed to listen on port ', FPort);
-      Exit;
+      if CnListen(ServerSock, 5) < 0 then
+      begin
+        CnCloseSocket(ServerSock);
+        WriteLn('Error: Failed to listen on port ', FPort);
+        Exit;
+      end;
     end;
 
     if FOptions.Verbose then
-      WriteLn('Listening on port ', FPort, '...');
+    begin
+      if FOptions.Protocol = cpUDP then
+        WriteLn('UDP server listening on port ', FPort, '...')
+      else
+        WriteLn('Listening on port ', FPort, '...');
+    end;
 
     FServerSocket := ServerSock;
 
@@ -419,7 +439,8 @@ begin
           FTotalSent,
           FTotalReceived,
           IsRunning,
-          OnRecvData
+          OnRecvData,
+          OnSentData
         );
 
         // 客户端断开后关闭
@@ -441,8 +462,11 @@ begin
     end
     else
     begin
-      // UDP server mode - simplified
-      WriteLn('UDP server mode not yet implemented');
+      // UDP server mode
+      if FOptions.Verbose then
+        WriteLn('UDP server listening on port ', FPort, '...');
+
+      RunUDPServer(ServerSock);
     end;
 
   finally
@@ -454,6 +478,77 @@ begin
     WriteLn('Total sent: ', FTotalSent, ' bytes');
     WriteLn('Total received: ', FTotalReceived, ' bytes');
     WriteLn('CNT Server finished.');
+  end;
+end;
+
+procedure TCntServer.RunUDPServer(ServerSock: TSocket);
+var
+  Readfds: TCnFDSet;
+  Tv: TTimeVal;
+  SelRes: Longint;
+  MaxFd: Integer;
+  SockAddr: TSockAddr;
+  AddrLen: Integer;
+  RecvBuf: array[0..CN_CNT_BUF_SIZE - 1] of Byte;
+  N: Integer;
+  StdInFd: Integer;
+  LastSenderAddr: TSockAddr;
+  HasLastSender: Boolean;
+begin
+  HasLastSender := False;
+{$IFDEF MSWINDOWS}
+  StdInFd := GetStdHandle(STD_INPUT_HANDLE);
+{$ELSE}
+  StdInFd := StdInputHandle;
+{$ENDIF}
+
+  while FRunning and GCntRunning do
+  begin
+    CnFDZero(Readfds);
+    CnFDSet(ServerSock, Readfds);
+    CnFDSet(StdInFd, Readfds);
+
+    MaxFd := ServerSock;
+    if StdInFd > MaxFd then
+      MaxFd := StdInFd;
+
+    Tv.tv_sec := 1;
+    Tv.tv_usec := 0;
+
+    SelRes := CnSelect(MaxFd + 1, @Readfds, nil, nil, @Tv);
+    if SelRes <= 0 then
+      Continue;
+
+    // UDP data received from network
+    if CnFDIsSet(ServerSock, Readfds) then
+    begin
+      FillChar(SockAddr, SizeOf(SockAddr), 0);
+      AddrLen := SizeOf(SockAddr);
+      N := CnRecvFrom(ServerSock, RecvBuf, SizeOf(RecvBuf), 0, SockAddr, AddrLen);
+      if N > 0 then
+      begin
+        Inc(FTotalReceived, N);
+        OutputData(@RecvBuf, N, '<');
+
+        LastSenderAddr := SockAddr;
+        HasLastSender := True;
+      end;
+    end;
+
+    // stdin data -> send via UDP to last sender
+    if CnFDIsSet(StdInFd, Readfds) then
+    begin
+      N := FileRead(StdInFd, RecvBuf, SizeOf(RecvBuf));
+      if N > 0 then
+      begin
+        if HasLastSender then
+        begin
+          OnSentData(@RecvBuf, N);
+          CnSendTo(ServerSock, RecvBuf, N, 0, LastSenderAddr, SizeOf(LastSenderAddr));
+          Inc(FTotalSent, N);
+        end;
+      end;
+    end;
   end;
 end;
 

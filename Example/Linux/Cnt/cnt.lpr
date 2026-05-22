@@ -37,6 +37,9 @@ uses
   Windows,
   WinSock,
 {$ENDIF}
+{$IFDEF UNIX}
+  BaseUnix,
+{$ENDIF}
   SysUtils,
   CntCmdLine,
   CntConsts,
@@ -45,6 +48,28 @@ uses
   CntServer,
   CntTunnel,
   CntScan;
+
+{$IFDEF UNIX}
+procedure SignalHandler(Sig: LongInt; Info: PSigInfo; Context: PSigContext); cdecl;
+begin
+  case Sig of
+    SIGINT, SIGTERM:
+      GCntRunning := False;
+  end;
+end;
+
+procedure SetupSignalHandlers;
+var
+  OldAct: SigActionRec;
+  NewAct: SigActionRec;
+begin
+  FillChar(NewAct, SizeOf(NewAct), 0);
+  NewAct.sa_Handler := @SignalHandler;
+  NewAct.sa_Flags := SA_RESTART;
+  fpSigAction(SIGINT, @NewAct, @OldAct);
+  fpSigAction(SIGTERM, @NewAct, @OldAct);
+end;
+{$ENDIF}
 
 procedure Main;
 var
@@ -123,6 +148,10 @@ begin
     WriteLn(ErrOutput, 'WSAStartup failed.');
     Halt(1);
   end;
+{$ENDIF}
+
+{$IFDEF UNIX}
+  SetupSignalHandlers;
 {$ENDIF}
 
   try

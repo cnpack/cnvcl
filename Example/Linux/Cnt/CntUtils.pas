@@ -33,6 +33,9 @@ interface
 uses
   SysUtils, CnNative;
 
+var
+  GCntRunning: Boolean = True;
+
 procedure DebugPrint(const Msg: string; Verbose, Debug: Boolean);
 procedure PrintProgress(const Current, Total: Integer; const Msg: string);
 function HexDump(Data: Pointer; Len: Integer; Offset: Int64; const Prefix: string): string; overload;

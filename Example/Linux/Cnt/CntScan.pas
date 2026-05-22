@@ -93,22 +93,38 @@ procedure RunScanMode(const Options: TCntOptions; const Host, PortStr: string);
 
 implementation
 
+{$IFDEF MSWINDOWS}
+type
 {$IFDEF FPC}
+  PWinInAddr = ^Winsock.in_addr;
+{$ELSE}
+  PWinInAddr = ^in_addr;
+{$ENDIF}
+{$ENDIF}
+{$IFDEF UNIX}
 {$IFDEF DARWIN}
-function inet_ntoa(inaddr: in_addr): PAnsiChar; cdecl; external 'libc' name 'inet_ntoa';
+const
+  EINPROGRESS = 36;
+  EISCONN = 106;
 function inet_addr(cp: PAnsiChar): LongInt; cdecl; external 'libc' name 'inet_addr';
 {$ENDIF}
 
-{$IFDEF MSWINDOWS}
-type
-  PWinInAddr = ^WinSock.in_addr;
-{$ENDIF}
 
-{$IFDEF UNIX}
+{$IFDEF LINUX}
 const
   EINPROGRESS = 115;
   EISCONN = 106;
 {$ENDIF}
+type
+  THostEntRec = record
+    h_name: PAnsiChar;
+    h_aliases: PPAnsiChar;
+    h_addrtype: Integer;
+    h_length: Integer;
+    h_addr_list: PPAnsiChar;
+  end;
+  PHostEntRec = ^THostEntRec;
+function gethostbyname(name: PAnsiChar): PHostEntRec; cdecl; external 'libc' name 'gethostbyname';
 {$ENDIF}
 
 { 常用端口对应的服务名 }
@@ -199,44 +215,46 @@ procedure TCnPortScanner.ResolveHost;
 {$IFDEF MSWINDOWS}
 var
   HostEnt: PHostEnt;
-  SockAddrIn: TSockAddrIn;
+{$ELSE}
+var
+  HostEnt: PHostEntRec;
+  AddrPtr: PLongWord;
 {$ENDIF}
 begin
   // 尝试将主机名转换为 IP 地址
   FIpAddr := FHost;
 
   // 检查是否是 IP 地址格式
-  if inet_addr(PAnsiChar(AnsiString(FIpAddr))) <> INADDR_NONE then
+  if LongWord(inet_addr(PAnsiChar(AnsiString(FIpAddr)))) <> INADDR_NONE then
     Exit;  // 已经是 IP 地址
 
   // 尝试 DNS 解析
 {$IFDEF MSWINDOWS}
-{$IFDEF FPC}
   // FPC on Windows: 使用 WinSock 的 gethostbyname
   HostEnt := gethostbyname(PAnsiChar(AnsiString(FHost)));
   if HostEnt <> nil then
-  begin
     // FPC Windows: 需要使用 WinSock 版本的 in_addr
-    FIpAddr := string(WinSock.inet_ntoa(PWinInAddr(HostEnt^.h_addr_list^)^));
-    Exit;
-  end;
+    FIpAddr := string(inet_ntoa(PWinInAddr(HostEnt^.h_addr_list^)^))
+  else
+    raise Exception.Create('Unable to resolve host: ' + FHost);
 {$ELSE}
   // Delphi on Windows: 使用 h_addr_list 获取地址
   HostEnt := gethostbyname(PAnsiChar(AnsiString(FHost)));
   if HostEnt <> nil then
   begin
-    FIpAddr := string(inet_ntoa(PInAddr(HostEnt^.h_addr_list^)^));
-    Exit;
-  end;
-{$ENDIF}
-{$ELSE}
-{$IFDEF FPC}
+    AddrPtr := PLongWord(HostEnt^.h_addr_list^);
+    FIpAddr := Format('%d.%d.%d.%d', [
+      PByte(AddrPtr)[0],
+      PByte(AddrPtr)[1],
+      PByte(AddrPtr)[2],
+      PByte(AddrPtr)[3]
+    ]);
+  end
+  else
+    raise Exception.Create('Unable to resolve host: ' + FHost);
   // FPC/Linux: 使用 fpGetHostByName
   // 简化处理，直接使用原主机名
-  FIpAddr := FHost;
 {$ENDIF}
-{$ENDIF}
-  raise Exception.Create('Unable to resolve host: ' + FHost);
 end;
 
 function TCnPortScanner.ScanPortTcp(Port: Word): Byte;

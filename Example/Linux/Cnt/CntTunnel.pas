@@ -40,6 +40,8 @@ uses
   SysUtils, Classes,
 {$IFDEF MSWINDOWS}
   Windows, WinSock,
+{$ELSE}
+  BaseUnix, Unix, Sockets,
 {$ENDIF}
   CntCmdLine, CntUtils, CntConsts,
   CnSocket;
@@ -47,6 +49,164 @@ uses
 procedure RunTunnelServer(const Options: TCntOptions; Port: Word);
 
 implementation
+
+{$IFDEF FPC}
+{$IFDEF DARWIN}
+function inet_ntoa(inaddr: in_addr): PAnsiChar; cdecl; external 'libc' name 'inet_ntoa';
+{$ENDIF}
+{$ENDIF}
+
+{$IFDEF UNIX}
+procedure HandleTunnelConnection(ClientSock: TSocket; const Options: TCntOptions);
+var
+  PID: TPid;
+  Cmd: string;
+  Args: array of PAnsiChar;
+  I, ArgCount: Integer;
+  ArgList: TStringList;
+begin
+  PID := fpFork;
+  if PID < 0 then
+  begin
+    WriteLn('Error: fork failed');
+    Exit;
+  end;
+
+  if PID = 0 then
+  begin
+    // Child process: redirect socket to stdin/stdout/stderr
+    fpDup2(ClientSock, 0);  // stdin
+    fpDup2(ClientSock, 1);  // stdout
+    fpDup2(ClientSock, 2);  // stderr
+
+    // Close all other FDs (basic approach: close up to 256)
+    for I := 3 to 255 do
+      fpClose(I);
+
+    if Options.ShellExecCmd <> '' then
+    begin
+      // Shell exec mode (-c): run via /bin/sh -c
+      Cmd := Options.ShellExecCmd;
+      fpExecL('/bin/sh', ['/bin/sh', '-c', PAnsiChar(Cmd)]);
+    end
+    else if Options.ExecCmd <> '' then
+    begin
+      // Direct exec mode (-e): parse command and arguments
+      ArgList := TStringList.Create;
+      try
+        // Simple argument splitting by spaces
+        ArgList.Delimiter := ' ';
+        ArgList.DelimitedText := Options.ExecCmd;
+        SetLength(Args, ArgList.Count + 1);
+        for I := 0 to ArgList.Count - 1 do
+          Args[I] := PAnsiChar(AnsiString(ArgList[I]));
+        Args[ArgList.Count] := nil;
+
+        fpExecVP(Args[0], PPAnsiChar(Args));
+      finally
+        ArgList.Free;
+      end;
+    end;
+
+    // If exec fails, exit
+    fpExit(1);
+  end
+  else
+  begin
+    // Parent process
+    fpClose(ClientSock);
+    if Options.Verbose then
+      WriteLn('Forked child PID ', PID, ' for tunnel');
+    // Wait for child to finish (non-blocking)
+    while fpWaitPid(PID, nil, WNOHANG) = 0 do
+    begin
+      if not GCntRunning then
+      begin
+        fpKill(PID, SIGTERM);
+        Break;
+      end;
+      Sleep(100);
+    end;
+  end;
+end;
+
+procedure RunTunnelServerUnix(const Options: TCntOptions; Port: Word);
+var
+  ServerSock: TSocket;
+  ClientSock: TSocket;
+  ServerAddr: TSockAddr;
+  ClientAddr: TSockAddr;
+  AddrLen: Integer;
+  Data: Integer;
+  RemoteIP: string;
+  RemotePort: Word;
+begin
+  ServerSock := CnNewSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if ServerSock = INVALID_SOCKET then
+  begin
+    WriteLn('Error: Failed to create server socket');
+    Exit;
+  end;
+
+  Data := 1;
+  CnSetSockOpt(ServerSock, SOL_SOCKET, SO_REUSEADDR, PAnsiChar(@Data), SizeOf(Data));
+
+  FillChar(ServerAddr, SizeOf(ServerAddr), 0);
+  ServerAddr.sin_family := AF_INET;
+  ServerAddr.sin_port := htons(Port);
+  ServerAddr.sin_addr.s_addr := INADDR_ANY;
+
+  if CnBind(ServerSock, ServerAddr, SizeOf(ServerAddr)) < 0 then
+  begin
+    CnCloseSocket(ServerSock);
+    WriteLn('Error: Failed to bind to port ', Port);
+    Exit;
+  end;
+
+  if CnListen(ServerSock, 5) < 0 then
+  begin
+    CnCloseSocket(ServerSock);
+    WriteLn('Error: Failed to listen on port ', Port);
+    Exit;
+  end;
+
+  if Options.Verbose then
+    WriteLn('Tunnel server listening on port ', Port, '...');
+
+  while GCntRunning do
+  begin
+    AddrLen := SizeOf(ClientAddr);
+    FillChar(ClientAddr, SizeOf(ClientAddr), 0);
+    ClientSock := CnAccept(ServerSock, @ClientAddr, @AddrLen);
+
+    if ClientSock = INVALID_SOCKET then
+    begin
+      Sleep(100);
+      Continue;
+    end;
+
+    RemoteIP := string(inet_ntoa(ClientAddr.sin_addr));
+    RemotePort := ntohs(ClientAddr.sin_port);
+
+    if Options.Verbose then
+      WriteLn('Tunnel connection from ', RemoteIP, ':', RemotePort);
+
+    HandleTunnelConnection(ClientSock, Options);
+
+    if not Options.KeepListen then
+      Break;
+  end;
+
+  CnCloseSocket(ServerSock);
+end;
+{$ENDIF}
+
+{$IFDEF MSWINDOWS}
+procedure RunTunnelServerWindows(const Options: TCntOptions; Port: Word);
+begin
+  WriteLn('Tunnel server not yet implemented for Windows.');
+end;
+{$ENDIF}
 
 procedure RunTunnelServer(const Options: TCntOptions; Port: Word);
 begin
@@ -58,20 +218,18 @@ begin
 
   if Options.Verbose then
   begin
-    WriteLn('CNT Tunnel Server listening on port ', Port);
+    WriteLn('CNT Tunnel Server on port ', Port);
     if Options.ExecCmd <> '' then
       WriteLn('Exec: ', Options.ExecCmd);
     if Options.ShellExecCmd <> '' then
       WriteLn('Shell Exec: ', Options.ShellExecCmd);
-    if Options.HexDump then
-      WriteLn('Hex dump: enabled');
-    if Options.KeepAlive then
-      WriteLn('Keep-alive: enabled');
-    if Options.KeepListen then
-      WriteLn('Keep listen: enabled');
   end;
 
-  WriteLn('Tunnel server mode not yet implemented for cross-platform.');
+{$IFDEF UNIX}
+  RunTunnelServerUnix(Options, Port);
+{$ELSE}
+  RunTunnelServerWindows(Options, Port);
+{$ENDIF}
 end;
 
 end.

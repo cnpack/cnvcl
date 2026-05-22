@@ -40,7 +40,7 @@ uses
   Windows, WinSock,
 {$ENDIF}
 {$IFDEF FPC}
-  Sockets, {$IFNDEF MSWINDOWS} BaseUnix, {$ENDIF}
+  Sockets, {$IFNDEF MSWINDOWS} BaseUnix, Termio, {$ENDIF}
 {$ENDIF}
 {$IFDEF POSIX}
   Posix.SysTime,
@@ -51,6 +51,9 @@ uses
 type
   // 数据接收回调：收到远程数据时调用，用于显示/记录
   TOnDataReceived = procedure(const Data: Pointer; Len: Integer) of object;
+
+  // 数据发送回调：发送数据到远程时调用，用于显示/记录
+  TOnDataSent = procedure(const Data: Pointer; Len: Integer) of object;
 
   // 运行状态回调：检查是否应该继续运行
   TRunningCheck = function: Boolean of object;
@@ -64,7 +67,8 @@ procedure CnDualCommRun(
   var TotalSent: Int64;
   var TotalReceived: Int64;
   RunningCheck: TRunningCheck;
-  OnRecv: TOnDataReceived
+  OnRecv: TOnDataReceived;
+  OnSent: TOnDataSent = nil
 );
 
 implementation
@@ -83,7 +87,8 @@ procedure DoWinDualComm(
   var TotalSent: Int64;
   var TotalReceived: Int64;
   RunningCheck: TRunningCheck;
-  OnRecv: TOnDataReceived
+  OnRecv: TOnDataReceived;
+  OnSent: TOnDataSent
 ); forward;
 {$ELSE}{$IFDEF UNIX}
 procedure DoUnixDualComm(
@@ -92,7 +97,8 @@ procedure DoUnixDualComm(
   var TotalSent: Int64;
   var TotalReceived: Int64;
   RunningCheck: TRunningCheck;
-  OnRecv: TOnDataReceived
+  OnRecv: TOnDataReceived;
+  OnSent: TOnDataSent
 ); forward;
 {$ENDIF}{$ENDIF}
 
@@ -102,14 +108,15 @@ procedure CnDualCommRun(
   var TotalSent: Int64;
   var TotalReceived: Int64;
   RunningCheck: TRunningCheck;
-  OnRecv: TOnDataReceived
+  OnRecv: TOnDataReceived;
+  OnSent: TOnDataSent = nil
 );
 begin
 {$IFDEF MSWINDOWS}
-  DoWinDualComm(Sock, Options, TotalSent, TotalReceived, RunningCheck, OnRecv);
+  DoWinDualComm(Sock, Options, TotalSent, TotalReceived, RunningCheck, OnRecv, OnSent);
 {$ELSE}
 {$IFDEF UNIX}
-  DoUnixDualComm(Sock, Options, TotalSent, TotalReceived, RunningCheck, OnRecv);
+  DoUnixDualComm(Sock, Options, TotalSent, TotalReceived, RunningCheck, OnRecv, OnSent);
 {$ENDIF}
 {$ENDIF}
 end;
@@ -130,7 +137,8 @@ procedure DoWinDualComm(
   var TotalSent: Int64;
   var TotalReceived: Int64;
   RunningCheck: TRunningCheck;
-  OnRecv: TOnDataReceived
+  OnRecv: TOnDataReceived;
+  OnSent: TOnDataSent
 );
 var
   RecvBuf: array[0..4095] of Byte;
@@ -145,7 +153,8 @@ var
   begin
     if LinePos > 0 then
     begin
-      // 发送整行 + CRLF
+      if Assigned(OnSent) then
+        OnSent(@LineBuf, LinePos);
       LineBuf[LinePos] := 13;   // CR
       LineBuf[LinePos + 1] := 10; // LF
       CnSend(Sock, LineBuf, LinePos + 2, 0);
@@ -239,7 +248,8 @@ procedure DoUnixDualComm(
   var TotalSent: Int64;
   var TotalReceived: Int64;
   RunningCheck: TRunningCheck;
-  OnRecv: TOnDataReceived
+  OnRecv: TOnDataReceived;
+  OnSent: TOnDataSent
 );
 var
   Buffer: array[0..8191] of Byte;
@@ -249,62 +259,88 @@ var
   SelResult: Longint;
   MaxFd: Integer;
   StdInFd: Integer;
+  OldTermios: TermIOS;
+  NewTermios: TermIOS;
+  InRawMode: Boolean;
 begin
   StdInFd := StdInputHandle;
 
-  while RunningCheck do
+  // Switch terminal to raw mode for character-by-character input
+  InRawMode := False;
+  if IsATTY(StdInFd) <> 0 then
   begin
-    CnFDZero(Readfds);
-    CnFDSet(Sock, Readfds);
-    CnFDSet(StdInFd, Readfds);
+    FillChar(NewTermios, SizeOf(NewTermios), 0);
+    TCGetAttr(StdInFd, OldTermios);
+    NewTermios := OldTermios;
+    NewTermios.c_iflag := NewTermios.c_iflag and not (IGNBRK or BRKINT or PARMRK or ISTRIP
+      or INLCR or IGNCR or ICRNL or IXON);
+    NewTermios.c_oflag := NewTermios.c_oflag and not OPOST;
+    NewTermios.c_lflag := NewTermios.c_lflag and not (ECHO or ECHONL or ICANON or ISIG or IEXTEN);
+    NewTermios.c_cflag := NewTermios.c_cflag and not (CSIZE or PARENB);
+    NewTermios.c_cflag := NewTermios.c_cflag or CS8;
+    NewTermios.c_cc[VMIN] := 1;
+    NewTermios.c_cc[VTIME] := 0;
+    TCSetAttr(StdInFd, TCSANOW, NewTermios);
+    InRawMode := True;
+  end;
 
-    MaxFd := Sock;
-    if StdInFd > MaxFd then
-      MaxFd := StdInFd;
-
-    Tv.tv_sec := 1;
-    Tv.tv_usec := 0;
-
-    SelResult := CnSelect(MaxFd + 1, @Readfds, nil, nil, @Tv);
-
-    if SelResult <= 0 then
-      Continue;
-
-    // stdin 可读 -> 读取并发送（终端已自动行缓冲，回车后才到这里）
-    if CnFDIsSet(StdInFd, Readfds) then
+  try
+    while RunningCheck do
     begin
-      Len := FileRead(StdInFd, Buffer, SizeOf(Buffer));
-      if Len > 0 then
+      CnFDZero(Readfds);
+      CnFDSet(Sock, Readfds);
+      CnFDSet(StdInFd, Readfds);
+
+      MaxFd := Sock;
+      if StdInFd > MaxFd then
+        MaxFd := StdInFd;
+
+      Tv.tv_sec := 1;
+      Tv.tv_usec := 0;
+
+      SelResult := CnSelect(MaxFd + 1, @Readfds, nil, nil, @Tv);
+
+      if SelResult <= 0 then
+        Continue;
+
+      if CnFDIsSet(StdInFd, Readfds) then
       begin
-        CnSend(Sock, Buffer, Len, 0);
-        Inc(TotalSent, Len);
-      end
-      else if Len <= 0 then
+        Len := FileRead(StdInFd, Buffer, SizeOf(Buffer));
+        if Len > 0 then
+        begin
+          if Assigned(OnSent) then
+            OnSent(@Buffer, Len);
+          CnSend(Sock, Buffer, Len, 0);
+          Inc(TotalSent, Len);
+        end
+        else if Len <= 0 then
+        begin
+          if Options.Verbose then
+            WriteLn(ErrOutput, 'EOF on stdin');
+          Break;
+        end;
+      end;
+
+      if CnFDIsSet(Sock, Readfds) then
       begin
-        // EOF on stdin
-        if Options.Verbose then
-          WriteLn(ErrOutput, 'EOF on stdin');
-        Break;
+        Len := CnRecv(Sock, Buffer, SizeOf(Buffer), 0);
+        if Len > 0 then
+        begin
+          if Assigned(OnRecv) then
+            OnRecv(@Buffer, Len);
+          Inc(TotalReceived, Len);
+        end
+        else if Len <= 0 then
+        begin
+          if Options.Verbose then
+            WriteLn(ErrOutput, 'Connection closed');
+          Break;
+        end;
       end;
     end;
-
-    // socket 可读 -> 接收并回调
-    if CnFDIsSet(Sock, Readfds) then
-    begin
-      Len := CnRecv(Sock, Buffer, SizeOf(Buffer), 0);
-      if Len > 0 then
-      begin
-        if Assigned(OnRecv) then
-          OnRecv(@Buffer, Len);
-        Inc(TotalReceived, Len);
-      end
-      else if Len <= 0 then
-      begin
-        if Options.Verbose then
-          WriteLn(ErrOutput, 'Connection closed');
-        Break;
-      end;
-    end;
+  finally
+    if InRawMode then
+      TCSetAttr(StdInFd, TCSANOW, OldTermios);
   end;
 end;
 

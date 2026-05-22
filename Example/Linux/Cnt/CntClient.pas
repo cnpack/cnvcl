@@ -83,10 +83,11 @@ type
     FConnected: Boolean;
 
     procedure TCPConnect;
+    procedure CloseConnections;
+    function IsRunning: Boolean;
     procedure OutputData(const Data: Pointer; Len: Integer; const Direction: string);
     procedure OnRecvData(const Data: Pointer; Len: Integer);
-    function IsRunning: Boolean;
-    procedure CloseConnections;
+    procedure OnSentData(const Data: Pointer; Len: Integer);
   public
     constructor Create(const AOptions: TCntOptions; const AHost: string; const APort: Word);
     destructor Destroy; override;
@@ -100,6 +101,22 @@ implementation
 {$IFDEF FPC}
 {$IFDEF DARWIN}
 function inet_addr(cp: PAnsiChar): LongInt; cdecl; external 'libc' name 'inet_addr';
+
+type
+  THostEntRec = record
+    h_name: PAnsiChar;
+    h_aliases: PPAnsiChar;
+    h_addrtype: Integer;
+    h_length: Integer;
+    h_addr_list: PPAnsiChar;
+  end;
+  PHostEntRec = ^THostEntRec;
+
+function gethostbyname(name: PAnsiChar): PHostEntRec; cdecl; external 'libc' name 'gethostbyname';
+{$ENDIF}
+
+{$IFDEF LINUX}
+function gethostbyname(name: PAnsiChar): PHostEnt; cdecl; external 'libc' name 'gethostbyname';
 {$ENDIF}
 {$ENDIF}
 
@@ -165,6 +182,16 @@ var
   SockAddr: TSockAddr;
   Data: Integer;
   ErrorCode: Integer;
+{$IFDEF MSWINDOWS}
+  WinHostEnt: PHostEnt;
+{$ELSE}
+  {$IFDEF DARWIN}
+  HostEnt: PHostEntRec;
+  AddrPtr: PLongWord;
+  {$ELSE}
+  HostEnt: PHostEnt;
+  {$ENDIF}
+{$ENDIF}
 begin
   Disconnect;
 
@@ -188,10 +215,22 @@ begin
 
   if SockAddr.sin_addr.s_addr = INADDR_NONE then
   begin
-    // Try DNS lookup using system resolver
-    // For cross-platform, we'll try using gethostbyname equivalent
-    // This is simplified - in production use a proper DNS lookup
-    raise Exception.Create('Failed to resolve host: ' + AHost);
+{$IFDEF MSWINDOWS}
+    WinHostEnt := WinSock.gethostbyname(PAnsiChar(AnsiString(AHost)));
+    if WinHostEnt <> nil then
+      SockAddr.sin_addr.s_addr := LongWord(PInAddr(WinHostEnt^.h_addr_list^)^.S_addr)
+    else
+      raise Exception.Create('Failed to resolve host: ' + AHost);
+{$ELSE}
+    HostEnt := gethostbyname(PAnsiChar(AnsiString(AHost)));
+    if HostEnt <> nil then
+    begin
+      AddrPtr := PLongWord(HostEnt^.h_addr_list^);
+      SockAddr.sin_addr.s_addr := AddrPtr^;
+    end
+    else
+      raise Exception.Create('Failed to resolve host: ' + AHost);
+{$ENDIF}
   end;
 
   // Connect
@@ -283,7 +322,7 @@ end;
 
 function TCntClient.IsRunning: Boolean;
 begin
-  Result := FRunning and FConnected;
+  Result := FRunning and FConnected and GCntRunning;
 end;
 
 procedure TCntClient.CloseConnections;
@@ -369,6 +408,12 @@ begin
   OutputData(Data, Len, '<');
 end;
 
+// 发送本地数据
+procedure TCntClient.OnSentData(const Data: Pointer; Len: Integer);
+begin
+  OutputData(Data, Len, '>');
+end;
+
 procedure TCntClient.Run;
 begin
   TCPConnect;
@@ -386,7 +431,8 @@ begin
     FTotalSent,
     FTotalReceived,
     IsRunning,
-    OnRecvData
+    OnRecvData,
+    OnSentData
   );
 
   CloseConnections;
