@@ -71,13 +71,13 @@ procedure CnDualCommRun(
   OnSent: TOnDataSent = nil
 );
 
+// 非阻塞地检查 Socket 是否有待读数据（超时毫秒）
+function WaitForSocketReady(Sock: TSocket; TimeOutMs: Integer): Boolean;
+
 implementation
 
 const
   MAX_LINE_BUF = 4096;
-
-// 前向声明
-function WaitForSocketReady(Sock: TSocket; TimeOutMs: Integer): Boolean; forward;
 
 // 平台特定的实现函数
 {$IFDEF MSWINDOWS}

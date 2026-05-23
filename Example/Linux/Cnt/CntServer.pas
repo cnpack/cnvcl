@@ -459,9 +459,6 @@ begin
     else
     begin
       // UDP server mode
-      if FOptions.Verbose then
-        WriteLn('UDP server listening on port ', FPort, '...');
-
       RunUDPServer(ServerSock);
     end;
 
@@ -490,16 +487,117 @@ var
   StdInFd: Integer;
   LastSenderAddr: TSockAddr;
   HasLastSender: Boolean;
+{$IFDEF MSWINDOWS}
+  IsConsole: Boolean;
+  DummyMode, BytesAvail, BytesRead: DWORD;
+  cIn: TInputRecord;
+  nRead: DWORD;
+  LineBuf: array[0..CN_CNT_BUF_SIZE - 1] of Byte;
+  LinePos: Integer;
+{$ENDIF}
 begin
   HasLastSender := False;
 {$IFDEF MSWINDOWS}
   StdInFd := GetStdHandle(STD_INPUT_HANDLE);
+  IsConsole := GetConsoleMode(StdInFd, DummyMode);
 {$ELSE}
   StdInFd := StdInputHandle;
 {$ENDIF}
 
+{$IFDEF MSWINDOWS}
+  LinePos := 0;
+{$ENDIF}
+
   while FRunning and GCntRunning do
   begin
+{$IFDEF MSWINDOWS}
+    // Windows: select() only works with socket handles.
+    // Socket check uses WaitForSocketReady (socket-only select).
+    // Stdin check uses PeekNamedPipe or PeekConsoleInput.
+    if WaitForSocketReady(ServerSock, 100) then
+    begin
+      FillChar(SockAddr, SizeOf(SockAddr), 0);
+      AddrLen := SizeOf(SockAddr);
+      N := CnRecvFrom(ServerSock, RecvBuf, SizeOf(RecvBuf), 0, SockAddr, AddrLen);
+      if N > 0 then
+      begin
+        Inc(FTotalReceived, N);
+        OutputData(@RecvBuf, N, '<');
+
+        LastSenderAddr := SockAddr;
+        HasLastSender := True;
+      end;
+    end;
+
+    if IsConsole then
+    begin
+      if PeekConsoleInput(StdInFd, cIn, 1, nRead) and (nRead > 0) then
+      begin
+        ReadConsoleInput(StdInFd, cIn, 1, nRead);
+        if (cIn.EventType = KEY_EVENT) and cIn.Event.KeyEvent.bKeyDown then
+        begin
+          case cIn.Event.KeyEvent.wVirtualKeyCode of
+            VK_RETURN:
+              begin
+                if (LinePos > 0) and HasLastSender then
+                begin
+                  LineBuf[LinePos] := 13;
+                  LineBuf[LinePos + 1] := 10;
+                  OnSentData(@LineBuf, LinePos);
+                  CnSendTo(ServerSock, LineBuf, LinePos + 2, 0,
+                    LastSenderAddr, SizeOf(LastSenderAddr));
+                  Inc(FTotalSent, LinePos + 2);
+                  LinePos := 0;
+                end;
+                WriteLn;
+              end;
+            VK_BACK:
+              begin
+                if LinePos > 0 then
+                begin
+                  Dec(LinePos);
+                  Write(#8' '#8);
+                  Flush(Output);
+                end;
+              end;
+            else
+              begin
+                if (cIn.Event.KeyEvent.AsciiChar <> #0)
+                   and (LinePos < CN_CNT_BUF_SIZE - 2) then
+                begin
+                  LineBuf[LinePos] := Byte(cIn.Event.KeyEvent.AsciiChar);
+                  Inc(LinePos);
+                  Write(AnsiChar(cIn.Event.KeyEvent.AsciiChar));
+                  Flush(Output);
+                end;
+              end;
+          end;
+        end;
+      end
+      else
+        Sleep(1);
+    end
+    else
+    begin
+      // Pipe mode (Git Bash): non-blocking stdin via PeekNamedPipe
+      BytesAvail := 0;
+      if PeekNamedPipe(StdInFd, nil, 0, nil, @BytesAvail, nil) and (BytesAvail > 0) then
+      begin
+        if BytesAvail > DWORD(SizeOf(RecvBuf)) then
+          BytesAvail := SizeOf(RecvBuf);
+        ReadFile(StdInFd, RecvBuf, BytesAvail, BytesRead, nil);
+        if (BytesRead > 0) and HasLastSender then
+        begin
+          OnSentData(@RecvBuf, BytesRead);
+          CnSendTo(ServerSock, RecvBuf, BytesRead, 0, LastSenderAddr, SizeOf(LastSenderAddr));
+          Inc(FTotalSent, BytesRead);
+        end;
+      end
+      else
+        Sleep(1);
+    end;
+{$ELSE}
+    // Unix: select() works with all file descriptors
     CnFDZero(Readfds);
     CnFDSet(ServerSock, Readfds);
     CnFDSet(StdInFd, Readfds);
@@ -545,6 +643,7 @@ begin
         end;
       end;
     end;
+{$ENDIF}
   end;
 end;
 
