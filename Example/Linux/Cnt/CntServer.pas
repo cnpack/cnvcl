@@ -351,9 +351,6 @@ var
   Data: Integer;
   AddrLen: Integer;
 begin
-  ServerSock := INVALID_SOCKET;
-  ClientSock := INVALID_SOCKET;
-
   try
     // Create server socket (TCP or UDP)
     if FOptions.Protocol = cpUDP then
@@ -448,7 +445,6 @@ begin
         begin
           CnShutdown(ClientSock, SHUT_RDWR);
           CnCloseSocket(ClientSock);
-          ClientSock := INVALID_SOCKET;
           FClientSocket := INVALID_SOCKET;
         end;
 

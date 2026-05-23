@@ -262,8 +262,10 @@ var
   Sock: TSocket;
   SockAddr: TSockAddr;
   Ret: Integer;
+{$IFDEF FPC}
   Readfds: TCnFDSet;
   Writefds: TCnFDSet;
+{$ENDIF}
 {$IFDEF POSIX}
   Tv: timeval;
 {$ELSE}
@@ -360,7 +362,9 @@ var
   Sock: TSocket;
   SockAddr: TSockAddr;
   Data: Byte;
+{$IFDEF FPC}
   Readfds: TCnFDSet;
+{$ENDIF}
 {$IFDEF POSIX}
   Tv: timeval;
 {$ELSE}

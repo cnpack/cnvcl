@@ -146,15 +146,15 @@ var
   LinePos: Integer;      // 当前行缓冲区位置
   Len: Integer;
   cIn: TInputRecord;
-  nRead: DWORD;
+  nRead, BytesRead, BytesAvail: DWORD;
   hCon: THandle;
+  IsConsole: Boolean;
+  DummyMode: DWORD;
 
   procedure SendLine;
   begin
     if LinePos > 0 then
     begin
-      if Assigned(OnSent) then
-        OnSent(@LineBuf, LinePos);
       LineBuf[LinePos] := 13;   // CR
       LineBuf[LinePos + 1] := 10; // LF
       CnSend(Sock, LineBuf, LinePos + 2, 0);
@@ -165,6 +165,7 @@ var
 
 begin
   hCon := GetStdHandle(STD_INPUT_HANDLE);
+  IsConsole := GetConsoleMode(hCon, DummyMode);
   LinePos := 0;
 
   while RunningCheck do
@@ -188,46 +189,68 @@ begin
     end;
 
     // 2. 检查控制台是否有键盘输入
-    if PeekConsoleInput(hCon, cIn, 1, nRead) and (nRead > 0) then
+    if IsConsole then
     begin
-      ReadConsoleInput(hCon, cIn, 1, nRead);
-      if (cIn.EventType = KEY_EVENT) and cIn.Event.KeyEvent.bKeyDown then
+      if PeekConsoleInput(hCon, cIn, 1, nRead) and (nRead > 0) then
       begin
-        case cIn.Event.KeyEvent.wVirtualKeyCode of
-          VK_RETURN:
-            begin
-              // 回车 -> 发送整行并换行
-              SendLine;
-              WriteLn;
-            end;
-          VK_BACK:
-            begin
-              // 退格 -> 删除最后一个字符
-              if LinePos > 0 then
+        ReadConsoleInput(hCon, cIn, 1, nRead);
+        if (cIn.EventType = KEY_EVENT) and cIn.Event.KeyEvent.bKeyDown then
+        begin
+          case cIn.Event.KeyEvent.wVirtualKeyCode of
+            VK_RETURN:
               begin
-                Dec(LinePos);
-                Write(#8' '#8);  // 光标左移、擦除、再左移
-                Flush(Output);
+                // 回车 -> 发送整行并换行
+                SendLine;
+                WriteLn;
               end;
-            end;
-          else
-            begin
-              // 普通可打印字符 -> 缓存并回显
-              if (cIn.Event.KeyEvent.AsciiChar <> #0)
-                 and (LinePos < MAX_LINE_BUF - 2) then
+            VK_BACK:
               begin
-                LineBuf[LinePos] := Byte(cIn.Event.KeyEvent.AsciiChar);
-                Inc(LinePos);
-                // 本地回显
-                Write(AnsiChar(cIn.Event.KeyEvent.AsciiChar));
-                Flush(Output);
+                // 退格 -> 删除最后一个字符
+                if LinePos > 0 then
+                begin
+                  Dec(LinePos);
+                  Write(#8' '#8);  // 光标左移、擦除、再左移
+                  Flush(Output);
+                end;
               end;
-            end;
+            else
+              begin
+                // 普通可打印字符 -> 缓存并回显
+                if (cIn.Event.KeyEvent.AsciiChar <> #0)
+                   and (LinePos < MAX_LINE_BUF - 2) then
+                begin
+                  LineBuf[LinePos] := Byte(cIn.Event.KeyEvent.AsciiChar);
+                  Inc(LinePos);
+                  // 本地回显
+                  Write(AnsiChar(cIn.Event.KeyEvent.AsciiChar));
+                  Flush(Output);
+                end;
+              end;
+          end;
         end;
-      end;
+      end
+      else
+        Sleep(1);  // 避免 CPU 空转
     end
     else
-      Sleep(1);  // 避免 CPU 空转
+    begin
+      // 2b. Git Bash/MSYS2/mintty: WaitForSingleObject + ReadFile
+
+      BytesAvail := 0;
+      if PeekNamedPipe(hCon, nil, 0, nil, @BytesAvail, nil) and (BytesAvail > 0) then
+      begin
+        if BytesAvail > DWORD(SizeOf(RecvBuf)) then
+          BytesAvail := SizeOf(RecvBuf);
+        ReadFile(hCon, RecvBuf, BytesAvail, BytesRead, nil);
+        if (BytesRead > 0) then
+        begin
+          CnSend(Sock, RecvBuf, BytesRead, 0);
+          Inc(TotalSent, BytesRead);
+        end;
+      end
+      else
+        Sleep(1);
+    end;
   end;
 end;
 
@@ -259,88 +282,61 @@ var
   SelResult: Longint;
   MaxFd: Integer;
   StdInFd: Integer;
-  OldTermios: TermIOS;
-  NewTermios: TermIOS;
-  InRawMode: Boolean;
 begin
   StdInFd := StdInputHandle;
 
-  // Switch terminal to raw mode for character-by-character input
-  InRawMode := False;
-  if IsATTY(StdInFd) <> 0 then
+  while RunningCheck do
   begin
-    FillChar(NewTermios, SizeOf(NewTermios), 0);
-    TCGetAttr(StdInFd, OldTermios);
-    NewTermios := OldTermios;
-    NewTermios.c_iflag := NewTermios.c_iflag and not (IGNBRK or BRKINT or PARMRK or ISTRIP
-      or INLCR or IGNCR or ICRNL or IXON);
-    NewTermios.c_oflag := NewTermios.c_oflag and not OPOST;
-    NewTermios.c_lflag := NewTermios.c_lflag and not (ECHO or ECHONL or ICANON or ISIG or IEXTEN);
-    NewTermios.c_cflag := NewTermios.c_cflag and not (CSIZE or PARENB);
-    NewTermios.c_cflag := NewTermios.c_cflag or CS8;
-    NewTermios.c_cc[VMIN] := 1;
-    NewTermios.c_cc[VTIME] := 0;
-    TCSetAttr(StdInFd, TCSANOW, NewTermios);
-    InRawMode := True;
-  end;
+    CnFDZero(Readfds);
+    CnFDSet(Sock, Readfds);
+    CnFDSet(StdInFd, Readfds);
 
-  try
-    while RunningCheck do
+    MaxFd := Sock;
+    if StdInFd > MaxFd then
+      MaxFd := StdInFd;
+
+    Tv.tv_sec := 1;
+    Tv.tv_usec := 0;
+
+    SelResult := CnSelect(MaxFd + 1, @Readfds, nil, nil, @Tv);
+
+    if SelResult <= 0 then
+      Continue;
+
+    if CnFDIsSet(StdInFd, Readfds) then
     begin
-      CnFDZero(Readfds);
-      CnFDSet(Sock, Readfds);
-      CnFDSet(StdInFd, Readfds);
-
-      MaxFd := Sock;
-      if StdInFd > MaxFd then
-        MaxFd := StdInFd;
-
-      Tv.tv_sec := 1;
-      Tv.tv_usec := 0;
-
-      SelResult := CnSelect(MaxFd + 1, @Readfds, nil, nil, @Tv);
-
-      if SelResult <= 0 then
-        Continue;
-
-      if CnFDIsSet(StdInFd, Readfds) then
+      Len := FileRead(StdInFd, Buffer, SizeOf(Buffer));
+      if Len > 0 then
       begin
-        Len := FileRead(StdInFd, Buffer, SizeOf(Buffer));
-        if Len > 0 then
-        begin
-          if Assigned(OnSent) then
-            OnSent(@Buffer, Len);
-          CnSend(Sock, Buffer, Len, 0);
-          Inc(TotalSent, Len);
-        end
-        else if Len <= 0 then
-        begin
-          if Options.Verbose then
-            WriteLn(ErrOutput, 'EOF on stdin');
-          Break;
-        end;
-      end;
-
-      if CnFDIsSet(Sock, Readfds) then
+        if Assigned(OnSent) then
+          OnSent(@Buffer, Len);
+        CnSend(Sock, Buffer, Len, 0);
+        Inc(TotalSent, Len);
+      end
+      else if Len <= 0 then
       begin
-        Len := CnRecv(Sock, Buffer, SizeOf(Buffer), 0);
-        if Len > 0 then
-        begin
-          if Assigned(OnRecv) then
-            OnRecv(@Buffer, Len);
-          Inc(TotalReceived, Len);
-        end
-        else if Len <= 0 then
-        begin
-          if Options.Verbose then
-            WriteLn(ErrOutput, 'Connection closed');
-          Break;
-        end;
+        if Options.Verbose then
+          WriteLn(ErrOutput, 'EOF on stdin');
+        Break;
       end;
     end;
-  finally
-    if InRawMode then
-      TCSetAttr(StdInFd, TCSANOW, OldTermios);
+
+    if CnFDIsSet(Sock, Readfds) then
+    begin
+      Len := CnRecv(Sock, Buffer, SizeOf(Buffer), 0);
+      if Len > 0 then
+      begin
+        if Assigned(OnRecv) then
+          OnRecv(@Buffer, Len);
+        Inc(TotalReceived, Len);
+      end
+      else if Len <= 0 then
+      begin
+        if Options.Verbose then
+          WriteLn(ErrOutput, 'Connection closed');
+        Break;
+      end;
+    end;
   end;
 end;
 

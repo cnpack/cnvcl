@@ -211,9 +211,9 @@ begin
   FillChar(SockAddr, SizeOf(SockAddr), 0);
   SockAddr.sin_family := AF_INET;
   SockAddr.sin_port := htons(APort);
-  SockAddr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(AHost)));
+  SockAddr.sin_addr.s_addr := LongWord(inet_addr(PAnsiChar(AnsiString(AHost))));
 
-  if SockAddr.sin_addr.s_addr = INADDR_NONE then
+  if LongWord(SockAddr.sin_addr.s_addr) = LongWord(INADDR_NONE) then
   begin
 {$IFDEF MSWINDOWS}
     WinHostEnt := WinSock.gethostbyname(PAnsiChar(AnsiString(AHost)));
