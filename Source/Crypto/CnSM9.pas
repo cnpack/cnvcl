@@ -205,6 +205,9 @@ type
     procedure SetZero;
     {* 设置为 0}
 
+    procedure Clear;
+    {* 将二次扩域元素的数据缓冲区全部清零}
+
     procedure SetOne;
     {* 设置为 1}
 
@@ -318,6 +321,9 @@ type
 
     procedure SetZero;
     {* 设置为 0}
+
+    procedure Clear;
+    {* 将四次扩域元素的数据缓冲区全部清零}
 
     procedure SetOne;
     {* 设置为 1}
@@ -450,6 +456,9 @@ type
 
     procedure SetZero;
     {* 设置为 0}
+
+    procedure Clear;
+    {* 将十二次扩域元素的数据缓冲区全部清零}
 
     procedure SetOne;
     {* 设置为 1}
@@ -600,6 +609,9 @@ type
     {* X 坐标}
     property Y: TCnFP2 read FY;
     {* Y 坐标}
+
+    procedure Clear;
+    {* 将 FP2 平面点的 X、Y 坐标数据全部清零}
   end;
 
   TCnFP2AffinePoint = class
@@ -720,6 +732,9 @@ type
     {* Y 坐标}
     property Z: TCnFP2 read FZ;
     {* Z 坐标}
+
+    procedure Clear;
+    {* 将仿射坐标系 FP2 平面点的 X、Y、Z 坐标数据全部清零}
   end;
 
   TCnFP2AffinePointPool = class(TCnMathObjectPool)
@@ -4152,6 +4167,12 @@ begin
   FP2SetZero(Self);
 end;
 
+procedure TCnFP2.Clear;
+begin
+  F0.Clear;
+  F1.Clear;
+end;
+
 function TCnFP2.ToString: string;
 begin
   Result := FP2ToString(Self);
@@ -4237,6 +4258,12 @@ end;
 procedure TCnFP4.SetZero;
 begin
   FP4SetZero(Self);
+end;
+
+procedure TCnFP4.Clear;
+begin
+  F0.Clear;
+  F1.Clear;
 end;
 
 function TCnFP4.ToString: string;
@@ -4342,6 +4369,13 @@ begin
   FP12SetZero(Self);
 end;
 
+procedure TCnFP12.Clear;
+begin
+  F0.Clear;
+  F1.Clear;
+  F2.Clear;
+end;
+
 function TCnFP12.ToString: string;
 begin
   Result := FP12ToString(Self);
@@ -4417,6 +4451,13 @@ begin
   FY.Free;
   FX.Free;
   inherited;
+end;
+
+procedure TCnFP2AffinePoint.Clear;
+begin
+  FX.Clear;
+  FY.Clear;
+  FZ.Clear;
 end;
 
 procedure TCnFP2AffinePoint.GetCoordinatesFP2(FP2X, FP2Y: TCnFP2);
@@ -5877,6 +5918,12 @@ begin
   FY.Free;
   FX.Free;
   inherited;
+end;
+
+procedure TCnFP2Point.Clear;
+begin
+  FX.Clear;
+  FY.Clear;
 end;
 
 function TCnFP2Point.ToString: string;

@@ -416,6 +416,9 @@ type
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
 
+    procedure Clear;
+    {* 将 X、Y 坐标的数据缓冲区全部清零，用于防止敏感数据残留}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 转换为字符串，简单输出用逗号分隔的十六进制 X 和 Y 坐标值。
 
@@ -529,6 +532,9 @@ type
 
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
+
+    procedure Clear;
+    {* 将 X、Y、Z 坐标的数据缓冲区全部清零，用于防止敏感数据残留}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ELSE} virtual; {$ENDIF}
     {* 转换为字符串，简单输出用逗号分隔的十六进制 X、Y、Z 坐标值。
@@ -649,6 +655,8 @@ type
        返回值：Boolean                    - 返回加载是否成功
     }
 
+    procedure Clear;
+    {* 将签名 R、S 的数据缓冲区全部清零，用于防止敏感数据残留}
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
     property S: TCnBigNumber read FS;
@@ -1066,6 +1074,9 @@ type
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
 
+    procedure Clear;
+    {* 将 X、Y 多项式系数数据全部清零，用于防止敏感数据残留}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将多项式转成字符串。
 
@@ -1316,6 +1327,9 @@ type
 
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
+
+    procedure Clear;
+    {* 将 X、Y 大数多项式系数数据全部清零，用于防止敏感数据残留}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将多项式转成字符串。
@@ -3914,6 +3928,12 @@ procedure TCnEccPoint.SetZero;
 begin
   FX.SetZero;
   FY.SetZero;
+end;
+
+procedure TCnEccPoint.Clear;
+begin
+  FX.Clear;
+  FY.Clear;
 end;
 
 function TCnEccPoint.ToBase64(FixedLen: Integer): string;
@@ -6659,6 +6679,12 @@ begin
   FY.SetZero;
 end;
 
+procedure TCnInt64PolynomialEccPoint.Clear;
+begin
+  FX.SetZero;
+  FY.SetZero;
+end;
+
 function TCnInt64PolynomialEccPoint.ToString: string;
 begin
   Result := CnInt64PolynomialEccPointToString(Self);
@@ -8182,6 +8208,12 @@ procedure TCnPolynomialEccPoint.SetZero;
 begin
   FX.SetZero;
   FY.SetZero;
+end;
+
+procedure TCnPolynomialEccPoint.Clear;
+begin
+  FX.Clear;
+  FY.Clear;
 end;
 
 function TCnPolynomialEccPoint.ToString: string;
@@ -10075,6 +10107,13 @@ begin
   Z.SetZero;
 end;
 
+procedure TCnEcc3Point.Clear;
+begin
+  FX.Clear;
+  FY.Clear;
+  FZ.Clear;
+end;
+
 function TCnEcc3Point.ToString: string;
 begin
   Result := CnEcc3PointToHex(Self);
@@ -10105,6 +10144,12 @@ begin
   FS.Free;
   FR.Free;
   inherited;
+end;
+
+procedure TCnEccSignature.Clear;
+begin
+  FR.Clear;
+  FS.Clear;
 end;
 
 function TCnEccSignature.SetAsn1Base64(const Buf: AnsiString): Boolean;
