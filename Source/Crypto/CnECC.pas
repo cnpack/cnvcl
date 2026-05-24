@@ -4414,6 +4414,7 @@ begin
     OrderBits := BigNumberGetBitsCount(FOrder);
     if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
       C := OrderBits + 2;
+
     for I := 0 to C - 1 do
     begin
       JacobianPointAddPoint(R, E, Q);
@@ -4464,9 +4465,10 @@ begin
       BigNumberMod(BK, BK, FOrder);
       Rnd := FEccBigNumberPool.Obtain;
       Tmp := FEccBigNumberPool.Obtain;
-      if BigNumberRandBits(Rnd, 1) then
+
+      // 盲化，乘数增加 16 位随机的价的倍数，最终值会抵消，但运算随机化了能更抗攻击，尤其是 NAF 部分
+      if BigNumberRandBits(Rnd, 16) then
       begin
-        BigNumberAdd(Rnd, Rnd, CnBigNumberOne);
         BigNumberMul(Tmp, Rnd, FOrder);
         BigNumberAdd(BK, BK, Tmp);
       end;

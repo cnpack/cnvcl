@@ -4132,8 +4132,8 @@ end;
 procedure TCnEd25519.ExtendedField64MultiplePoint(K: TCnBigNumber;
   var P: TCn25519Field64Ecc4Point);
 var
-  I: Integer;
-  E, R: TCn25519Field64Ecc4Point;
+  I, C: Integer;
+  E, R, Q: TCn25519Field64Ecc4Point;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -4151,13 +4151,18 @@ begin
 
   // R 要是中性点
   Cn25519Field64Ecc4PointNeutual(R);
+  Cn25519Field64Ecc4PointNeutual(Q);
   Cn25519Field64Ecc4PointCopy(E, P);
 
-  for I := 0 to BigNumberGetBitsCount(K) - 1 do
+  C := BigNumberGetBitsCount(K);
+  for I := 0 to C - 1 do
   begin
-    if BigNumberIsBitSet(K, I) then
-      ExtendedField64PointAddPoint(R, E, R);
-    ExtendedField64PointAddPoint(E, E, E);
+    ExtendedField64PointAddPoint(R, E, Q);
+    if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+      R := Q;
+
+    if I < C - 1 then // 最后一次循环无需加 E
+      ExtendedField64PointAddPoint(E, E, E);
   end;
 
   Cn25519Field64Ecc4PointCopy(P, R);
@@ -4364,8 +4369,8 @@ end;
 
 procedure TCnEd25519.ExtendedMultiplePoint(K: TCnBigNumber; P: TCnEcc4Point);
 var
-  I: Integer;
-  E, R: TCnEcc4Point;
+  I, C: Integer;
+  E, R, Q: TCnEcc4Point;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -4381,32 +4386,40 @@ begin
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
+  Q := nil;
   R := nil;
   E := nil;
 
   try
+    Q := TCnEcc4Point.Create;
     R := TCnEcc4Point.Create;
     E := TCnEcc4Point.Create;
 
     // R 要是中性点
     SetNeutualExtendedPoint(R);
+    SetNeutualExtendedPoint(Q);
 
     E.X := P.X;
     E.Y := P.Y;
     E.Z := P.Z;
     E.T := P.T;
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    for I := 0 to C - 1 do
     begin
-      if BigNumberIsBitSet(K, I) then
-        ExtendedPointAddPoint(R, E, R);
-      ExtendedPointAddPoint(E, E, E);
+      ExtendedPointAddPoint(R, E, Q);
+      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+        R.Assign(Q);
+
+      if I < C - 1 then // 最后一次循环无需加 E
+        ExtendedPointAddPoint(E, E, E);
     end;
 
     P.X := R.X;
     P.Y := R.Y;
     P.Z := R.Z;
   finally
+    Q.Free;
     R.Free;
     E.Free;
   end;
@@ -6001,7 +6014,7 @@ end;
 procedure TCnEd448.AffineMultiplePoint(K: TCnBigNumber; P: TCnEcc3Point);
 var
   I, C: Integer;
-  E, R: TCnEcc3Point;
+  E, R, Q: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -6017,15 +6030,18 @@ begin
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
+  Q := nil;
   R := nil;
   E := nil;
 
   try
+    Q := TCnEcc3Point.Create;
     R := TCnEcc3Point.Create;
     E := TCnEcc3Point.Create;
 
     // R 要是中性点
     SetNeutualAffinePoint(R);
+    SetNeutualAffinePoint(Q);
 
     E.X := P.X;
     E.Y := P.Y;
@@ -6034,8 +6050,9 @@ begin
     C := BigNumberGetBitsCount(K);
     for I := 0 to C - 1 do
     begin
-      if BigNumberIsBitSet(K, I) then
-        AffinePointAddPoint(R, E, R);
+      AffinePointAddPoint(R, E, Q);
+      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+        R.Assign(Q);
 
       if I < C - 1 then
         AffinePointAddPoint(E, E, E);
@@ -6045,6 +6062,7 @@ begin
     P.Y := R.Y;
     P.Z := R.Z;
   finally
+    Q.Free;
     R.Free;
     E.Free;
   end;
