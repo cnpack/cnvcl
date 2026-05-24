@@ -4169,8 +4169,11 @@ end;
 
 procedure TCnFP2.Clear;
 begin
-  F0.Clear;
-  F1.Clear;
+  if Self <> nil then
+  begin
+    F0.Clear;
+    F1.Clear;
+  end;
 end;
 
 function TCnFP2.ToString: string;
@@ -4262,8 +4265,11 @@ end;
 
 procedure TCnFP4.Clear;
 begin
-  F0.Clear;
-  F1.Clear;
+  if Self <> nil then
+  begin
+    F0.Clear;
+    F1.Clear;
+  end;
 end;
 
 function TCnFP4.ToString: string;
@@ -4371,9 +4377,12 @@ end;
 
 procedure TCnFP12.Clear;
 begin
-  F0.Clear;
-  F1.Clear;
-  F2.Clear;
+  if Self <> nil then
+  begin
+    F0.Clear;
+    F1.Clear;
+    F2.Clear;
+  end;
 end;
 
 function TCnFP12.ToString: string;
@@ -4455,9 +4464,12 @@ end;
 
 procedure TCnFP2AffinePoint.Clear;
 begin
-  FX.Clear;
-  FY.Clear;
-  FZ.Clear;
+  if Self <> nil then
+  begin
+    FX.Clear;
+    FY.Clear;
+    FZ.Clear;
+  end;
 end;
 
 procedure TCnFP2AffinePoint.GetCoordinatesFP2(FP2X, FP2Y: TCnFP2);
@@ -5934,8 +5946,11 @@ end;
 
 procedure TCnFP2Point.Clear;
 begin
-  FX.Clear;
-  FY.Clear;
+  if Self <> nil then
+  begin
+    FX.Clear;
+    FY.Clear;
+  end;
 end;
 
 function TCnFP2Point.ToString: string;
