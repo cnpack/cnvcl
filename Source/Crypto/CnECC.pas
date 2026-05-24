@@ -4317,7 +4317,7 @@ end;
 procedure TCnEcc.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
   I, C, OrderBits: Integer;
-  E, R: TCnEcc3Point;
+  E, R, Q: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -4335,10 +4335,12 @@ begin
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
+  Q := nil;
   R := nil;
   E := nil;
 
   try
+    Q := TCnEcc3Point.Create;
     R := TCnEcc3Point.Create;
     E := TCnEcc3Point.Create;
 
@@ -4350,10 +4352,12 @@ begin
     OrderBits := BigNumberGetBitsCount(FOrder);
     if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
       C := OrderBits + 2;
+
     for I := 0 to C - 1 do
     begin
-      if BigNumberIsBitSet(K, I) then
-        AffinePointAddPoint(R, E, R);
+      AffinePointAddPoint(Q, E, Q);
+      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+        R.Assign(Q);
 
       if I < C - 1 then // 最后一次循环无需加 E
         AffinePointAddPoint(E, E, E);
@@ -4363,6 +4367,7 @@ begin
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
+    Q.Free;
     R.Free;
     E.Free;
   end;
@@ -4371,7 +4376,7 @@ end;
 procedure TCnEcc.JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
   I, C, OrderBits: Integer;
-  E, R: TCnEcc3Point;
+  E, R, Q: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -4389,10 +4394,12 @@ begin
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
+  Q := nil;
   R := nil;
   E := nil;
 
   try
+    Q := TCnEcc3Point.Create;
     R := TCnEcc3Point.Create;
     E := TCnEcc3Point.Create;
 
@@ -4406,8 +4413,9 @@ begin
       C := OrderBits + 2;
     for I := 0 to C - 1 do
     begin
-      if BigNumberIsBitSet(K, I) then
-        JacobianPointAddPoint(R, E, R);
+      JacobianPointAddPoint(Q, E, Q);
+      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+        R.Assign(Q);
 
       if I < C - 1 then
         JacobianPointAddPoint(E, E, E);
@@ -4417,6 +4425,7 @@ begin
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
+    Q.Free;
     R.Free;
     E.Free;
   end;

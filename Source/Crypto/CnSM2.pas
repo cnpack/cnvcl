@@ -996,7 +996,7 @@ end;
 procedure TCnSM2.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
   I, C, Row, Col: Integer;
-  E, R: TCnEcc3Point;
+  E, R, Q: TCnEcc3Point;
   IsG: Boolean;
   M: TCnBigNumber;
   Naf: TShortInts;
@@ -1021,12 +1021,14 @@ begin
   IsG := Point.Z.IsOne and BigNumberEqual(Point.X, FLocalSM2Generator.X) and
     BigNumberEqual(Point.Y, FLocalSM2Generator.Y);
 
+  Q := nil;
   R := nil;
   E := nil;
   M := nil;
   Naf := nil;
 
   try
+    Q := TCnEcc3Point.Create;
     R := TCnEcc3Point.Create;
     E := TCnEcc3Point.Create;
 
@@ -1060,8 +1062,9 @@ begin
       begin
         for I := 0 to C - 1 do
         begin
-          if BigNumberIsBitSet(K, I) then
-            AffinePointAddPoint(R, E, R);
+          AffinePointAddPoint(Q, E, Q);
+          if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+            R.Assign(Q);
 
           // P 是 G 点，无需点加，直接取出
           if I < FSM2AffineGPower2KList.Count - 1 then
@@ -1087,8 +1090,9 @@ begin
 //      原始点乘平均一半，改用 NAF 缩小到大概 1/3
 //      for I := 0 to C - 1 do
 //      begin
-//        if BigNumberIsBitSet(K, I) then
-//          AffinePointAddPoint(R, E, R);
+//        AffinePointAddPoint(Q, E, Q);
+//        if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+//          R.Assign(Q);
 //
 //        if I < C - 1 then // 最后一轮不用自加
 //          AffinePointAddPoint(E, E, E);
@@ -1103,6 +1107,7 @@ begin
     M.Free;
     E.Free;
     R.Free;
+    Q.Free;
   end;
 end;
 
