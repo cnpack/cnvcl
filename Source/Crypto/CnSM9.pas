@@ -4747,10 +4747,14 @@ begin
     Result := True;
     _CnSetLastError(ECN_SM9_OK);
   finally
+    L.Clear;
     L.Free;
     Stream.Free;
+    R.Clear;
     R.Free;
+    AP.Clear;
     AP.Free;
+    G.Clear;
     G.Free;
     if C then
       SM9.Free;
@@ -5196,10 +5200,15 @@ begin
     SetLength(P2, 0);
     SetLength(C2, 0);
     Stream.Free;
+    G.Clear;
     G.Free;
+    AP.Clear;
     AP.Free;
+    R.Clear;
     R.Free;
+    Q.Clear;
     Q.Free;
+    H.Clear;
     H.Free;
     if C then
       SM9.Free;
@@ -5580,8 +5589,11 @@ begin
     _CnSetLastError(ECN_SM9_OK);
   finally
     Stream.Free;
+    AP.Clear;
     AP.Free;
+    R.Clear;
     R.Free;
+    T.Clear;
     T.Free;
     if C then
       SM9.Free;

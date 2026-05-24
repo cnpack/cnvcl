@@ -1453,7 +1453,7 @@ function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPriv
 var
   Suc: Boolean;
   IterationCount: Integer;
-  R, Y, Rem, S1, S2, One: TCnBigNumber;
+  R, Y, Rem, S1, S2: TCnBigNumber;
 begin
   Result := False;
   if PrimeBits <= 16 then
@@ -1514,7 +1514,6 @@ begin
     R := nil;
     S1 := nil;
     S2 := nil;
-    One := nil;
 
     try
       Rem := TCnBigNumber.Create;
@@ -1522,11 +1521,9 @@ begin
       R := TCnBigNumber.Create;
       S1 := TCnBigNumber.Create;
       S2 := TCnBigNumber.Create;
-      One := TCnBigNumber.Create;
 
-      BigNumberSetOne(One);
-      BigNumberSub(S1, PrivateKey.PrimeKey1, One);
-      BigNumberSub(S2, PrivateKey.PrimeKey2, One);
+      BigNumberSub(S1, PrivateKey.PrimeKey1, CnBigNumberOne);
+      BigNumberSub(S2, PrivateKey.PrimeKey2, CnBigNumberOne);
       BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
 
       // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
@@ -1539,11 +1536,15 @@ begin
       // TODO: d 不能太小，不满足时得 Continue
       PrivateKey.UpdateCRT;
     finally
-      One.Free;
+      S2.Clear;
       S2.Free;
+      S1.Clear;
       S1.Free;
+      R.Clear;
       R.Free;
+      Y.Clear;
       Y.Free;
+      Rem.Clear;
       Rem.Free;
     end;
 
@@ -1559,7 +1560,7 @@ var
   Suc: Boolean;
   IterationCount: Integer;
   Dif, MinD: TCnBigNumber;
-  R, Y, Rem, S1, S2, One: TCnBigNumber;
+  R, Y, Rem, S1, S2: TCnBigNumber;
 begin
   Result := False;
   _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
@@ -1586,7 +1587,6 @@ begin
   R := nil;
   S1 := nil;
   S2 := nil;
-  One := nil;
   Dif := nil;
   MinD := nil;
 
@@ -1596,7 +1596,6 @@ begin
     R := TCnBigNumber.Create;
     S1 := TCnBigNumber.Create;
     S2 := TCnBigNumber.Create;
-    One := TCnBigNumber.Create;
     Dif := TCnBigNumber.Create;
     MinD := TCnBigNumber.Create;
 
@@ -1647,9 +1646,8 @@ begin
       else
         PublicKey.PubKeyExponent.SetDec('65537');
 
-      BigNumberSetOne(One);
-      BigNumberSub(S1, PrivateKey.PrimeKey1, One);
-      BigNumberSub(S2, PrivateKey.PrimeKey2, One);
+      BigNumberSub(S1, PrivateKey.PrimeKey1, CnBigNumberOne);
+      BigNumberSub(S2, PrivateKey.PrimeKey2, CnBigNumberOne);
       BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
 
       // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
@@ -1671,11 +1669,15 @@ begin
   finally
     MinD.Free;
     Dif.Free;
-    One.Free;
+    S2.Clear;
     S2.Free;
+    S1.Clear;
     S1.Free;
+    R.Clear;
     R.Free;
+    Y.Clear;
     Y.Free;
+    Rem.Clear;
     Rem.Free;
   end;
 
@@ -4519,7 +4521,9 @@ begin
     BigNumberDirectMulMod(M, M, SK, Prime);
     Result := BigNumberAddMod(OutNewRandom, M, InOldRandom, Prime);
   finally
+    SK.Clear;
     SK.Free;
+    M.Clear;
     M.Free;
   end;
 end;
