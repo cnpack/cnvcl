@@ -3932,8 +3932,11 @@ end;
 
 procedure TCnEccPoint.Clear;
 begin
-  FX.Clear;
-  FY.Clear;
+  if Self <> nil then
+  begin
+    FX.Clear;
+    FY.Clear;
+  end;
 end;
 
 function TCnEccPoint.ToBase64(FixedLen: Integer): string;
@@ -4355,7 +4358,7 @@ begin
 
     for I := 0 to C - 1 do
     begin
-      AffinePointAddPoint(Q, E, Q);
+      AffinePointAddPoint(R, E, Q);
       if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
         R.Assign(Q);
 
@@ -4413,7 +4416,7 @@ begin
       C := OrderBits + 2;
     for I := 0 to C - 1 do
     begin
-      JacobianPointAddPoint(Q, E, Q);
+      JacobianPointAddPoint(R, E, Q);
       if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
         R.Assign(Q);
 
@@ -6694,8 +6697,11 @@ end;
 
 procedure TCnInt64PolynomialEccPoint.Clear;
 begin
-  FX.SetZero;
-  FY.SetZero;
+  if Self <> nil then
+  begin
+    FX.SetZero;
+    FY.SetZero;
+  end;
 end;
 
 function TCnInt64PolynomialEccPoint.ToString: string;
@@ -8225,8 +8231,11 @@ end;
 
 procedure TCnPolynomialEccPoint.Clear;
 begin
-  FX.Clear;
-  FY.Clear;
+  if Self <> nil then
+  begin
+    FX.Clear;
+    FY.Clear;
+  end;
 end;
 
 function TCnPolynomialEccPoint.ToString: string;
@@ -10122,9 +10131,12 @@ end;
 
 procedure TCnEcc3Point.Clear;
 begin
-  FX.Clear;
-  FY.Clear;
-  FZ.Clear;
+  if Self <> nil then
+  begin
+    FX.Clear;
+    FY.Clear;
+    FZ.Clear;
+  end;
 end;
 
 function TCnEcc3Point.ToString: string;
@@ -10161,8 +10173,11 @@ end;
 
 procedure TCnEccSignature.Clear;
 begin
-  FR.Clear;
-  FS.Clear;
+  if Self <> nil then
+  begin
+    FR.Clear;
+    FS.Clear;
+  end;
 end;
 
 function TCnEccSignature.SetAsn1Base64(const Buf: AnsiString): Boolean;

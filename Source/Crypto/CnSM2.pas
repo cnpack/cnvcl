@@ -1062,7 +1062,7 @@ begin
       begin
         for I := 0 to C - 1 do
         begin
-          AffinePointAddPoint(Q, E, Q);
+          AffinePointAddPoint(R, E, Q);
           if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
             R.Assign(Q);
 
@@ -1090,7 +1090,7 @@ begin
 //      原始点乘平均一半，改用 NAF 缩小到大概 1/3
 //      for I := 0 to C - 1 do
 //      begin
-//        AffinePointAddPoint(Q, E, Q);
+//        AffinePointAddPoint(R, E, Q);
 //        if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
 //          R.Assign(Q);
 //
