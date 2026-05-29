@@ -5754,10 +5754,8 @@ begin
   PatternSegs := TStringList.Create;
   NameSegs := TStringList.Create;
   try
-    PatternSegs.Delimiter := Sep;
-    PatternSegs.DelimitedText := Pattern;
-    NameSegs.Delimiter := Sep;
-    NameSegs.DelimitedText := FileName;
+    ExtractStrings([Sep], [], PChar(Pattern), PatternSegs);
+    ExtractStrings([Sep], [], PChar(FileName), NameSegs);
     Result := MatchSegments(PatternSegs, NameSegs, 0, 0);
   finally
     NameSegs.Free;
