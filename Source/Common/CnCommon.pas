@@ -753,6 +753,15 @@ function WildcardCompare(const FileWildcard, FileName: string; const IgnoreCase:
   Boolean = True): Boolean;
 {* 文件名通配符比较}
 
+function GlobMatch(const Pattern, FileName: string): Boolean;
+{* Glob 式模式匹配，支持 ** 跨目录匹配。
+   ** 匹配任意目录层，* 匹配单个目录层内的任意字符，? 匹配单个字符。
+
+   示例：
+     "**/*.pas"       匹配任意目录下的 .pas 文件
+     "src/**/*.h"     匹配 src/ 下递归目录中的 .h 文件
+     "Forms/Form*.pas" 匹配 Forms/ 目录中 Form 开头的 .pas 文件 }
+
 {$IFDEF MSWINDOWS}
 
 function ScanCodeToAscii(Code: Word): AnsiChar;
@@ -5670,6 +5679,90 @@ begin
   end;
   // Both the extension and the filename must match
   Result := WildCompare(NameWild, NameFile) and WildCompare(ExtWild, ExtFile);
+end;
+
+function GlobMatch(const Pattern, FileName: string): Boolean;
+
+  function MatchSegments(PatternSegs, NameSegs: TStringList; PIdx, NIdx: Integer): Boolean;
+  var
+    I: Integer;
+    Seg: string;
+  begin
+    Result := False;
+    // 两个都到头 => 匹配
+    if (PIdx >= PatternSegs.Count) and (NIdx >= NameSegs.Count) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    // Pattern 到头但名字还有 => 不匹配
+    if PIdx >= PatternSegs.Count then
+      Exit;
+    // 名字到头但 Pattern 还有 => 仅当剩余 Pattern 全是 ** 时匹配
+    if NIdx >= NameSegs.Count then
+    begin
+      for I := PIdx to PatternSegs.Count - 1 do
+        if PatternSegs[I] <> '**' then
+          Exit;
+      Result := True;
+      Exit;
+    end;
+
+    Seg := PatternSegs[PIdx];
+    if Seg = '**' then
+    begin
+      // ** 匹配 0 个或多个段
+      // 尝试匹配 0 个段
+      if MatchSegments(PatternSegs, NameSegs, PIdx + 1, NIdx) then
+      begin
+        Result := True;
+        Exit;
+      end;
+      // 尝试匹配当前段并继续用 **
+      if MatchSegments(PatternSegs, NameSegs, PIdx, NIdx + 1) then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end
+    else
+    begin
+      // 普通段：用 WildcardCompare 匹配
+      if not WildcardCompare(Seg, NameSegs[NIdx], True) then
+        Exit;
+      Result := MatchSegments(PatternSegs, NameSegs, PIdx + 1, NIdx + 1);
+    end;
+  end;
+
+var
+  PatternSegs, NameSegs: TStringList;
+  Sep: Char;
+begin
+  Result := False;
+  // 确定路径分隔符
+  if Pos('/', Pattern) > 0 then
+    Sep := '/'
+  else if Pos('\', Pattern) > 0 then
+    Sep := '\'
+  else
+  begin
+    // 无路径分隔符，直接使用 WildcardCompare
+    Result := WildcardCompare(Pattern, FileName, True);
+    Exit;
+  end;
+
+  PatternSegs := TStringList.Create;
+  NameSegs := TStringList.Create;
+  try
+    PatternSegs.Delimiter := Sep;
+    PatternSegs.DelimitedText := Pattern;
+    NameSegs.Delimiter := Sep;
+    NameSegs.DelimitedText := FileName;
+    Result := MatchSegments(PatternSegs, NameSegs, 0, 0);
+  finally
+    NameSegs.Free;
+    PatternSegs.Free;
+  end;
 end;
 
 {$IFDEF MSWINDOWS}
