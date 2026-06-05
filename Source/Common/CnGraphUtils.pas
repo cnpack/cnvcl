@@ -1356,8 +1356,9 @@ initialization
     GdipSetPathFillMode := TGdipSetPathFillMode(GetProcAddress(GdiPlusHandle, 'GdipSetPathFillMode'));
     Assert(Assigned(GdipSetPathFillMode), 'Load GdipSetPathFillMode from GDI+ DLL.');
 
+    // 该函数在 Windows 7 Sp 1 上可能没有
     GdipGetPathPointCount := TGdipGetPathPointCount(GetProcAddress(GdiPlusHandle, 'GdipGetPathPointCount'));
-    Assert(Assigned(GdipGetPathPointCount), 'Load GdipGetPathPointCount from GDI+ DLL.');
+    // Assert(Assigned(GdipGetPathPointCount), 'Load GdipGetPathPointCount from GDI+ DLL.');
 
     //---------- Graphics 绘制操作 ----------
     GdipDrawLineI := TGdipDrawLineI(GetProcAddress(GdiPlusHandle, 'GdipDrawLineI'));
