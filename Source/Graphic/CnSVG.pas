@@ -2596,10 +2596,10 @@ procedure TCnSVGRenderer.ApplyStyleAttr(AElement: TCnXMLElement);
 var
   ParentStyle: TCnSVGStyle;
 begin
-  if FStyleTop > 0 then
-    ParentStyle := FStyleStack[FStyleTop - 1]
-  else
-    SVGDefaultStyle(ParentStyle);
+  // The current FCtx.Style is the parent's resolved style.
+  // PushStyle already saved it before we got here, and
+  // the parent's ApplyStyleAttr updated FCtx.Style with
+  ParentStyle := FCtx.Style;
   SVGParseStyleAttr(AElement, FCtx.Style, ParentStyle);
 end;
 
@@ -4404,9 +4404,9 @@ end;
 
 procedure TCnSVGDocument.LoadFromStream(AStream: TStream);
 begin
+  Clear;
   if AStream = nil then
     raise ECnSVGException.Create(SCnErrorSvgStreamNil);
-  Clear;
   FSourceFileName := '';
   FXMLDoc := TCnXMLDocument.Create;
   try
