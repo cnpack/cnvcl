@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Graphics, Math, Controls, Messages, Jpeg,
+  Windows, SysUtils, Classes, Graphics, Math, Controls, {$IFNDEF FPC} Jpeg, {$ENDIF}
   CnNative, CnClasses, CnCommon, CnGraphics, CnXML;
 
 type
@@ -49,22 +49,22 @@ type
 //==============================================================================
 
   TCnSVGFloat = Single;
-  {* SVG 内部使用的浮点类型，Single 精度满足 GDI 像素级需求 *}
+  {* SVG 内部使用的浮点类型，Single 精度满足 GDI 像素级需求 }
 
   TCnSVGColor = record
-  {* SVG 颜色，内部以 R/G/B 三分量存储 *}
+  {* SVG 颜色，内部以 R/G/B 三分量存储 }
     R, G, B: Byte;
   end;
 
   PCnSVGPoint = ^TCnSVGPoint;
   TCnSVGPoint = record
-  {* SVG 用户坐标系中的点 *}
+  {* SVG 用户坐标系中的点 }
     X, Y: TCnSVGFloat;
   end;
 
   PCnSVGRect = ^TCnSVGRect;
   TCnSVGRect = record
-  {* SVG 矩形区域，用于 viewBox 及内部裁剪 *}
+  {* SVG 矩形区域，用于 viewBox 及内部裁剪 }
     X, Y, Width, Height: TCnSVGFloat;
   end;
 
@@ -73,78 +73,78 @@ type
 //==============================================================================
 
   TCnSVGFillRule = (sfrNonZero, sfrEvenOdd);
-  {* SVG 填充规则：nonzero（非零缠绕）或 evenodd（奇偶填充） *}
+  {* SVG 填充规则：nonzero（非零缠绕）或 evenodd（奇偶填充） }
 
   TCnSVGLineCap = (slcButt, slcRound, slcSquare);
-  {* SVG 线端样式：butt（平直）/ round（圆形）/ square（方形） *}
+  {* SVG 线端样式：butt（平直）/ round（圆形）/ square（方形） }
 
   TCnSVGLineJoin = (sljMiter, sljRound, sljBevel);
-  {* SVG 线角样式：miter（斜接）/ round（圆角）/ bevel（斜切） *}
+  {* SVG 线角样式：miter（斜接）/ round（圆角）/ bevel（斜切） }
 
   TCnSVGTextAnchor = (staStart, staMiddle, staEnd);
-  {* SVG 文字锚点：start（左对齐）/ middle（居中）/ end（右对齐） *}
+  {* SVG 文字锚点：start（左对齐）/ middle（居中）/ end（右对齐） }
 
 //==============================================================================
 // 样式记录
 //==============================================================================
 
   TCnSVGStyle = record
-  {* SVG 完整样式记录，每个字段对应一个可继承的 CSS/SVG 样式属性 *}
+  {* SVG 完整样式记录，每个字段对应一个可继承的 CSS/SVG 样式属性 }
     // 填充
     FillColor:        TCnSVGColor;
-    {* fill 颜色 *}
+    {* fill 颜色 }
     FillNone:         Boolean;
-    {* fill = none 时为 True *}
+    {* fill = none 时为 True }
     FillOpacity:      TCnSVGFloat;
-    {* fill-opacity，范围 [0,1] *}
+    {* fill-opacity，范围 [0,1] }
     FillRule:         TCnSVGFillRule;
-    {* fill-rule：nonzero / evenodd *}
+    {* fill-rule：nonzero / evenodd }
     // 描边
     StrokeColor:      TCnSVGColor;
-    {* stroke 颜色 *}
+    {* stroke 颜色 }
     StrokeNone:       Boolean;
-    {* stroke = none 时为 True *}
+    {* stroke = none 时为 True }
     StrokeOpacity:    TCnSVGFloat;
-    {* stroke-opacity，范围 [0,1] *}
+    {* stroke-opacity，范围 [0,1] }
     StrokeWidth:      TCnSVGFloat;
-    {* stroke-width，用户坐标单位 *}
+    {* stroke-width，用户坐标单位 }
     LineCap:          TCnSVGLineCap;
-    {* stroke-linecap *}
+    {* stroke-linecap }
     LineJoin:         TCnSVGLineJoin;
-    {* stroke-linejoin *}
+    {* stroke-linejoin }
     DashArray:        array[0..7] of TCnSVGFloat;
-    {* stroke-dasharray，最多 8 段 *}
+    {* stroke-dasharray，最多 8 段 }
     DashCount:        Integer;
-    {* stroke-dasharray 中有效段数 *}
+    {* stroke-dasharray 中有效段数 }
     DashOffset:       TCnSVGFloat;
-    {* stroke-dashoffset *}
+    {* stroke-dashoffset }
     // 全局透明度
     Opacity:          TCnSVGFloat;
-    {* opacity，范围 [0,1] *}
+    {* opacity，范围 [0,1] }
     // 文字
     FontSize:         TCnSVGFloat;
-    {* font-size，用户坐标单位 *}
+    {* font-size，用户坐标单位 }
     FontFamily:       string;
-    {* font-family *}
+    {* font-family }
     FontBold:         Boolean;
-    {* font-weight = bold *}
+    {* font-weight = bold }
     FontItalic:       Boolean;
-    {* font-style = italic/oblique *}
+    {* font-style = italic/oblique }
     TextAnchor:       TCnSVGTextAnchor;
-    {* text-anchor *}
+    {* text-anchor }
     // 可见性
     DisplayNone:      Boolean;
-    {* display = none 时为 True *}
+    {* display = none 时为 True }
     VisibilityHidden: Boolean;
-    {* visibility = hidden 或 collapse 时为 True *}
+    {* visibility = hidden 或 collapse 时为 True }
     // 描边斜接限制
     MiterLimit:       TCnSVGFloat;
-    {* stroke-miterlimit，默认 4.0，最小 1.0 *}
+    {* stroke-miterlimit，默认 4.0，最小 1.0 }
     // 当前颜色（供 currentColor 关键字使用）
     CurrentColor:     TCnSVGColor;
-    {* color 属性值，fill/stroke 值为 currentColor 时取此颜色 *}
+    {* color 属性值，fill/stroke 值为 currentColor 时取此颜色 }
     CurrentColorSet:  Boolean;
-    {* color 属性是否在本层或祖先已显式声明 *}
+    {* color 属性是否在本层或祖先已显式声明 }
   end;
 
 //==============================================================================
@@ -157,7 +157,7 @@ type
      | a  c  e |
      | b  d  f |
      | 0  0  1 |
-     对应 SVG matrix(a,b,c,d,e,f) 参数顺序 *}
+     对应 SVG matrix(a,b,c,d,e,f) 参数顺序 }
     a, b, c, d, e, f: TCnSVGFloat;
   end;
 
@@ -166,15 +166,15 @@ type
 //==============================================================================
 
   TCnSVGRenderContext = record
-  {* 渲染过程传递的全局状态，包含 TCanvas、当前 CTM、样式栈顶，以及 use 递归深度 *}
+  {* 渲染过程传递的全局状态，包含 TCanvas、当前 CTM、样式栈顶，以及 use 递归深度 }
     Canvas:   TCanvas;
-    {* 目标 GDI 画布 *}
+    {* 目标 GDI 画布 }
     CTM:      TCnSVGMatrix;
-    {* 当前变换矩阵（Current Transformation Matrix） *}
+    {* 当前变换矩阵（Current Transformation Matrix） }
     Style:    TCnSVGStyle;
-    {* 当前继承样式 *}
+    {* 当前继承样式 }
     UseDepth: Integer;
-    {* <use> 实例化递归深度，最大 8 *}
+    {* <use> 实例化递归深度，最大 8 }
   end;
 
 //==============================================================================
@@ -182,43 +182,43 @@ type
 //==============================================================================
 
   TCnSVGPathSegType = (
-  {* SVG 路径段类型枚举，对应 SVG 1.1 path d 属性中的各路径命令 *}
-    pstMoveTo,       {* M/m：移动到指定点 *}
-    pstLineTo,       {* L/l：从当前点画直线到指定点 *}
-    pstHLineTo,      {* H/h：水平线 *}
-    pstVLineTo,      {* V/v：垂直线 *}
-    pstCubicBezier,  {* C/c：三次贝塞尔曲线 *}
-    pstSmoothCubic,  {* S/s：平滑三次贝塞尔 *}
-    pstQuadBezier,   {* Q/q：二次贝塞尔曲线 *}
-    pstSmoothQuad,   {* T/t：平滑二次贝塞尔 *}
-    pstArc,          {* A/a：椭圆弧 *}
-    pstClosePath     {* Z/z：闭合路径 *}
+  {* SVG 路径段类型枚举，对应 SVG 1.1 path d 属性中的各路径命令 }
+    pstMoveTo,       {* M/m：移动到指定点 }
+    pstLineTo,       {* L/l：从当前点画直线到指定点 }
+    pstHLineTo,      {* H/h：水平线 }
+    pstVLineTo,      {* V/v：垂直线 }
+    pstCubicBezier,  {* C/c：三次贝塞尔曲线 }
+    pstSmoothCubic,  {* S/s：平滑三次贝塞尔 }
+    pstQuadBezier,   {* Q/q：二次贝塞尔曲线 }
+    pstSmoothQuad,   {* T/t：平滑二次贝塞尔 }
+    pstArc,          {* A/a：椭圆弧 }
+    pstClosePath     {* Z/z：闭合路径 }
   );
 
   PCnSVGPathSeg = ^TCnSVGPathSeg;
-  {* 指向 TCnSVGPathSeg 的指针类型 *}
+  {* 指向 TCnSVGPathSeg 的指针类型 }
 
   TCnSVGPathSeg = record
-  {* 单条路径段，解析后统一存储在绝对坐标下 *}
+  {* 单条路径段，解析后统一存储在绝对坐标下 }
     SegType:   TCnSVGPathSegType;
-    {* 段类型 *}
+    {* 段类型 }
     // 通用端点
     X, Y:      TCnSVGFloat;
-    {* 目标点坐标（绝对坐标） *}
+    {* 目标点坐标（绝对坐标） }
     // 贝塞尔控制点
     X1, Y1:    TCnSVGFloat;
-    {* 第一控制点 *}
+    {* 第一控制点 }
     X2, Y2:    TCnSVGFloat;
-    {* 第二控制点（三次贝塞尔） *}
+    {* 第二控制点（三次贝塞尔） }
     // 圆弧参数
     RX, RY:    TCnSVGFloat;
-    {* 椭圆半轴 *}
+    {* 椭圆半轴 }
     XRotation: TCnSVGFloat;
-    {* x-axis-rotation（度） *}
+    {* x-axis-rotation（度） }
     LargeArc:  Boolean;
-    {* large-arc-flag *}
+    {* large-arc-flag }
     Sweep:     Boolean;
-    {* sweep-flag *}
+    {* sweep-flag }
   end;
 
 
@@ -227,7 +227,7 @@ type
 //==============================================================================
 
   ECnSVGException = class(Exception);
-  {* CnSVG 模块专用异常类，用于报告 SVG 加载、解析和渲染时的错误 *}
+  {* CnSVG 模块专用异常类，用于报告 SVG 加载、解析和渲染时的错误 }
 
 //==============================================================================
 // 前向声明
@@ -242,58 +242,58 @@ type
 
   TCnSVGPathParser = class(TObject)
   {* SVG <path> d 属性解析器。
-     使用状态机分词，将 d 字符串转换为 TCnSVGPathSeg 列表（绝对坐标）。 *}
+     使用状态机分词，将 d 字符串转换为 TCnSVGPathSeg 列表（绝对坐标）。 }
   private
     FData:     string;
-    {* 待解析的 d 属性字符串 *}
+    {* 待解析的 d 属性字符串 }
     FPos:      Integer;
-    {* 当前扫描位置（1-based） *}
+    {* 当前扫描位置（1-based） }
     FCurX:     TCnSVGFloat;
-    {* 当前笔位 X 坐标（绝对坐标） *}
+    {* 当前笔位 X 坐标（绝对坐标） }
     FCurY:     TCnSVGFloat;
-    {* 当前笔位 Y 坐标（绝对坐标） *}
+    {* 当前笔位 Y 坐标（绝对坐标） }
     FLastCtlX: TCnSVGFloat;
-    {* 上一个贝塞尔控制点 X（用于 S/T 平滑命令） *}
+    {* 上一个贝塞尔控制点 X（用于 S/T 平滑命令） }
     FLastCtlY: TCnSVGFloat;
-    {* 上一个贝塞尔控制点 Y（用于 S/T 平滑命令） *}
+    {* 上一个贝塞尔控制点 Y（用于 S/T 平滑命令） }
     FLastCmd:  Char;
-    {* 上一个命令字符（用于重复参数处理） *}
+    {* 上一个命令字符（用于重复参数处理） }
     procedure SkipWS;
-    {* 跳过空白和逗号 *}
+    {* 跳过空白和逗号 }
     function ReadNumber(var Val: TCnSVGFloat): Boolean;
-    {* 读取一个浮点数（含科学计数法、正负号紧跟），返回是否成功 *}
+    {* 读取一个浮点数（含科学计数法、正负号紧跟），返回是否成功 }
     function PeekCmd: Char;
-    {* 检查当前字符是否为命令字母，返回该字母，否则返回 #0 *}
+    {* 检查当前字符是否为命令字母，返回该字母，否则返回 #0 }
     procedure ParseMoveTo(Relative: Boolean; List: TList);
-    {* 解析 M/m 命令 *}
+    {* 解析 M/m 命令 }
     procedure ParseLineTo(Relative: Boolean; List: TList);
-    {* 解析 L/l 命令 *}
+    {* 解析 L/l 命令 }
     procedure ParseHLineTo(Relative: Boolean; List: TList);
-    {* 解析 H/h 命令 *}
+    {* 解析 H/h 命令 }
     procedure ParseVLineTo(Relative: Boolean; List: TList);
-    {* 解析 V/v 命令 *}
+    {* 解析 V/v 命令 }
     procedure ParseCubicBezier(Relative: Boolean; List: TList);
-    {* 解析 C/c 命令 *}
+    {* 解析 C/c 命令 }
     procedure ParseSmoothCubic(Relative: Boolean; List: TList);
-    {* 解析 S/s 命令，反射上一控制点 *}
+    {* 解析 S/s 命令，反射上一控制点 }
     procedure ParseQuadBezier(Relative: Boolean; List: TList);
-    {* 解析 Q/q 命令 *}
+    {* 解析 Q/q 命令 }
     procedure ParseSmoothQuad(Relative: Boolean; List: TList);
-    {* 解析 T/t 命令，规范化为 Q *}
+    {* 解析 T/t 命令，规范化为 Q }
     procedure ParseArc(Relative: Boolean; List: TList);
-    {* 解析 A/a 命令，读取 7 个参数 *}
+    {* 解析 A/a 命令，读取 7 个参数 }
     procedure ParseClosePath(List: TList);
-    {* 解析 Z/z 命令 *}
+    {* 解析 Z/z 命令 }
   public
     constructor Create;
-    {* 构造函数 *}
+    {* 构造函数 }
     destructor Destroy; override;
-    {* 析构函数 *}
+    {* 析构函数 }
 
     function ParsePathData(const D: string): TList;
     {* 解析路径 d 属性，返回 TList（元素为 PCnSVGPathSeg，堆分配）。
        调用方负责释放列表中每个 PCnSVGPathSeg 及 TList 本身。
-       D 为空或仅含空白时返回空列表，不抛异常。 *}
+       D 为空或仅含空白时返回空列表，不抛异常。 }
   end;
 
 //==============================================================================
@@ -303,62 +303,62 @@ type
   TCnSVGDocument = class(TObject)
   {* SVG 文档加载与渲染门面类。
      持有 TCnXMLDocument DOM 树，对外提供 Render 接口。
-     内部创建 TCnSVGRenderer 执行实际渲染。 *}
+     内部创建 TCnSVGRenderer 执行实际渲染。 }
   private
     FXMLDoc:         TCnXMLDocument;
-    {* XML DOM 文档对象，由本类创建/销毁 *}
+    {* XML DOM 文档对象，由本类创建/销毁 }
     FIsLoaded:       Boolean;
-    {* 是否已成功加载 SVG *}
+    {* 是否已成功加载 SVG }
     FViewportWidth:  TCnSVGFloat;
-    {* SVG 视口宽度（px） *}
+    {* SVG 视口宽度（px） }
     FViewportHeight: TCnSVGFloat;
-    {* SVG 视口高度（px） *}
+    {* SVG 视口高度（px） }
     FViewBox:        TCnSVGRect;
-    {* viewBox 用户坐标系矩形 *}
+    {* viewBox 用户坐标系矩形 }
     FSourceFileName: string;
-    {* 当前 SVG 文件路径；从流加载时为空，用于解析相对 image 路径 *}
+    {* 当前 SVG 文件路径；从流加载时为空，用于解析相对 image 路径 }
     FDefsMap:        TStringList;
-    {* id → TCnXMLElement 的字符串列表，存储 <defs> 内容 *}
+    {* id → TCnXMLElement 的字符串列表，存储 <defs> 内容 }
     procedure ParseViewport;
-    {* 从 <svg> 元素解析 width/height/viewBox *}
+    {* 从 <svg> 元素解析 width/height/viewBox }
     procedure BuildDefsMap;
-    {* 遍历 <defs> 子元素，填充 FDefsMap *}
+    {* 遍历 <defs> 子元素，填充 FDefsMap }
     procedure DoLoad;
-    {* 公共加载后处理：调用 ParseViewport 和 BuildDefsMap *}
+    {* 公共加载后处理：调用 ParseViewport 和 BuildDefsMap }
   public
     constructor Create;
-    {* 构造函数，初始化内部对象 *}
+    {* 构造函数，初始化内部对象 }
     destructor Destroy; override;
-    {* 析构函数，释放 FXMLDoc 和 FDefsMap *}
+    {* 析构函数，释放 FXMLDoc 和 FDefsMap }
 
     procedure LoadFromFile(const AFileName: string);
     {* 从文件加载 SVG。
        参数：
          AFileName: string - SVG 文件完整路径
        若文件不存在或 XML 解析失败，抛出 ECnSVGException。
-       若根元素不是 <svg>，抛出 ECnSVGException。 *}
+       若根元素不是 <svg>，抛出 ECnSVGException。 }
 
     procedure LoadFromStream(AStream: TStream);
     {* 从流加载 SVG。
        参数：
          AStream: TStream - 可读流，不能为 nil
-       若 AStream = nil 或 XML 解析失败，抛出 ECnSVGException。 *}
+       若 AStream = nil 或 XML 解析失败，抛出 ECnSVGException。 }
 
     procedure Clear;
-    {* 清除已加载内容，释放 DOM 树，IsLoaded 置 False *}
+    {* 清除已加载内容，释放 DOM 树，IsLoaded 置 False }
 
     procedure Render(ACanvas: TCanvas; const ADestRect: TRect);
     {* 将 SVG 渲染到指定画布的目标矩形。
-       ADestRect 为空矩形时立即返回（不渲染）。 *}
+       ADestRect 为空矩形时立即返回（不渲染）。 }
 
     property IsLoaded: Boolean read FIsLoaded;
-    {* 是否已成功加载 SVG *}
+    {* 是否已成功加载 SVG }
     property ViewportWidth: TCnSVGFloat read FViewportWidth;
-    {* SVG 视口宽度 *}
+    {* SVG 视口宽度 }
     property ViewportHeight: TCnSVGFloat read FViewportHeight;
-    {* SVG 视口高度 *}
+    {* SVG 视口高度 }
     property ViewBox: TCnSVGRect read FViewBox;
-    {* SVG viewBox 用户坐标系 *}
+    {* SVG viewBox 用户坐标系 }
   end;
 
 //==============================================================================
@@ -367,58 +367,58 @@ type
 
   TCnSVGImage = class(TGraphicControl)
   {* SVG 图像显示控件，继承自 TGraphicControl（Delphi 5 兼容）。
-     通过 CnGraphRegister.pas 注册到"CnPack Graphic"组件面板。 *}
+     通过 CnGraphRegister.pas 注册到"CnPack Graphic"组件面板。 }
   private
     FDocument:         TCnSVGDocument;
-    {* 内部 SVG 文档对象 *}
+    {* 内部 SVG 文档对象 }
     FFileName:         string;
-    {* SVG 文件路径 *}
+    {* SVG 文件路径 }
     FStretch:          Boolean;
-    {* 是否拉伸到客户区 *}
+    {* 是否拉伸到客户区 }
     FCenter:           Boolean;
-    {* 是否居中（Stretch=False 时有效） *}
+    {* 是否居中（Stretch=False 时有效） }
     FProportional:     Boolean;
-    {* 是否保持宽高比（Stretch=True 时有效） *}
+    {* 是否保持宽高比（Stretch=True 时有效） }
     FLastError:        string;
-    {* 最近一次加载或渲染错误信息 *}
+    {* 最近一次加载或渲染错误信息 }
     FLastRenderTimeMs: Cardinal;
-    {* 最近一次渲染耗时（毫秒） *}
+    {* 最近一次渲染耗时（毫秒） }
     FOnRenderDone:     TNotifyEvent;
-    {* 渲染完成事件 *}
+    {* 渲染完成事件 }
     procedure SetFileName(const Value: string);
-    {* 设置 FileName 属性，立即触发加载 *}
+    {* 设置 FileName 属性，立即触发加载 }
     procedure SetStretch(Value: Boolean);
-    {* 设置 Stretch 属性，触发重绘 *}
+    {* 设置 Stretch 属性，触发重绘 }
     procedure SetCenter(Value: Boolean);
-    {* 设置 Center 属性，触发重绘 *}
+    {* 设置 Center 属性，触发重绘 }
     procedure SetProportional(Value: Boolean);
-    {* 设置 Proportional 属性，触发重绘 *}
+    {* 设置 Proportional 属性，触发重绘 }
     function CalcDestRect: TRect;
-    {* 根据 Stretch/Center/Proportional 及控件尺寸计算渲染目标矩形 *}
+    {* 根据 Stretch/Center/Proportional 及控件尺寸计算渲染目标矩形 }
   protected
     procedure Paint; override;
-    {* 渲染 SVG 或绘制错误叉 *}
+    {* 渲染 SVG 或绘制错误叉 }
     procedure Resize; override;
-    {* 控件尺寸变化时触发重绘 *}
+    {* 控件尺寸变化时触发重绘 }
   public
     constructor Create(AOwner: TComponent); override;
-    {* 构造函数，初始化属性默认值 *}
+    {* 构造函数，初始化属性默认值 }
     destructor Destroy; override;
-    {* 析构函数，释放内部文档对象 *}
+    {* 析构函数，释放内部文档对象 }
 
     property LastError: string read FLastError;
-    {* 最近一次错误信息（只读），加载失败时记录，成功加载后清空 *}
+    {* 最近一次错误信息（只读），加载失败时记录，成功加载后清空 }
     property LastRenderTimeMs: Cardinal read FLastRenderTimeMs;
-    {* 最近一次渲染耗时毫秒数（只读） *}
+    {* 最近一次渲染耗时毫秒数（只读） }
   published
     property FileName: string read FFileName write SetFileName;
-    {* SVG 文件路径，赋值后立即加载并刷新显示 *}
+    {* SVG 文件路径，赋值后立即加载并刷新显示 }
     property Stretch: Boolean read FStretch write SetStretch default True;
-    {* 是否拉伸到控件客户区 *}
+    {* 是否拉伸到控件客户区 }
     property Center: Boolean read FCenter write SetCenter default False;
-    {* 是否居中显示（Stretch=False 时有效） *}
+    {* 是否居中显示（Stretch=False 时有效） }
     property Proportional: Boolean read FProportional write SetProportional default True;
-    {* 是否保持宽高比（Stretch=True 时有效） *}
+    {* 是否保持宽高比（Stretch=True 时有效） }
     property Align;
     property Anchors;
     property Enabled;
@@ -426,7 +426,7 @@ type
     property OnClick;
     property OnDblClick;
     property OnRenderDone: TNotifyEvent read FOnRenderDone write FOnRenderDone;
-    {* 每次渲染完成后触发，设计时不触发 *}
+    {* 每次渲染完成后触发，设计时不触发 }
   end;
 
 //==============================================================================
@@ -434,39 +434,39 @@ type
 //==============================================================================
 
 procedure SVGMatrixIdentity(var M: TCnSVGMatrix);
-{* 将矩阵 M 设为单位矩阵 *}
+{* 将矩阵 M 设为单位矩阵 }
 
 procedure SVGMatrixMultiply(var Result: TCnSVGMatrix;
   const A, B: TCnSVGMatrix);
-{* 矩阵乘法：Result = A × B（先应用 B，再应用 A） *}
+{* 矩阵乘法：Result = A × B（先应用 B，再应用 A） }
 
 procedure SVGMatrixTranslate(var M: TCnSVGMatrix;
   TX, TY: TCnSVGFloat);
-{* 在矩阵 M 右侧叠加平移 translate(TX, TY) *}
+{* 在矩阵 M 右侧叠加平移 translate(TX, TY) }
 
 procedure SVGMatrixScale(var M: TCnSVGMatrix;
   SX, SY: TCnSVGFloat);
-{* 在矩阵 M 右侧叠加缩放 scale(SX, SY) *}
+{* 在矩阵 M 右侧叠加缩放 scale(SX, SY) }
 
 procedure SVGMatrixRotate(var M: TCnSVGMatrix;
   AngleDeg, CX, CY: TCnSVGFloat);
-{* 在矩阵 M 右侧叠加绕 (CX,CY) 旋转 AngleDeg 度 *}
+{* 在矩阵 M 右侧叠加绕 (CX,CY) 旋转 AngleDeg 度 }
 
 procedure SVGMatrixSkewX(var M: TCnSVGMatrix;
   AngleDeg: TCnSVGFloat);
-{* 在矩阵 M 右侧叠加沿 X 轴方向的错切变换，等价矩阵 [1,0,tan(angle),1,0,0] *}
+{* 在矩阵 M 右侧叠加沿 X 轴方向的错切变换，等价矩阵 [1,0,tan(angle),1,0,0] }
 
 procedure SVGMatrixSkewY(var M: TCnSVGMatrix;
   AngleDeg: TCnSVGFloat);
-{* 在矩阵 M 右侧叠加沿 Y 轴方向的错切变换，等价矩阵 [1,tan(angle),0,1,0,0] *}
+{* 在矩阵 M 右侧叠加沿 Y 轴方向的错切变换，等价矩阵 [1,tan(angle),0,1,0,0] }
 
 procedure SVGMatrixTransformPoint(const M: TCnSVGMatrix;
   var X, Y: TCnSVGFloat);
-{* 将用户坐标点 (X, Y) 经矩阵 M 变换，结果写回 X, Y *}
+{* 将用户坐标点 (X, Y) 经矩阵 M 变换，结果写回 X, Y }
 
 function SVGMatrixInverse(const M: TCnSVGMatrix;
   var Inv: TCnSVGMatrix): Boolean;
-{* 计算矩阵 M 的逆矩阵，写入 Inv；若矩阵奇异则返回 False *}
+{* 计算矩阵 M 的逆矩阵，写入 Inv；若矩阵奇异则返回 False }
 
 //==============================================================================
 // 独立渲染函数声明
@@ -476,17 +476,17 @@ procedure CnSVGRenderToCanvas(const AFileName: string;
   ACanvas: TCanvas; const ADestRect: TRect);
 {* 从文件加载 SVG 并渲染到指定画布区域。
    内部创建临时 TCnSVGDocument，渲染完成后自动释放。
-   ADestRect 为空矩形时立即返回；加载/渲染异常向上传播。 *}
+   ADestRect 为空矩形时立即返回；加载/渲染异常向上传播。 }
 
 procedure CnSVGRenderToCanvasFromStream(AStream: TStream;
   ACanvas: TCanvas; const ADestRect: TRect);
-{* 从流加载 SVG 并渲染到指定画布区域，行为同 CnSVGRenderToCanvas。 *}
+{* 从流加载 SVG 并渲染到指定画布区域，行为同 CnSVGRenderToCanvas。 }
 
 function CnSVGRenderToBitmap(const AFileName: string;
   AWidth, AHeight: Integer): TBitmap;
 {* 从文件加载 SVG，渲染到新建 AWidth×AHeight 的 TBitmap（pf24bit）后返回。
    若 AWidth ≤ 0 或 AHeight ≤ 0，抛出 ECnSVGException。
-   返回的 TBitmap 由调用方负责释放。 *}
+   返回的 TBitmap 由调用方负责释放。 }
 
 implementation
 
@@ -505,7 +505,7 @@ resourcestring
 type
   TCnSVGRenderer = class(TObject)
   {* SVG 渲染引擎。由 TCnSVGDocument.Render 创建，不对外暴露。
-     持有 CTM 变换栈和样式继承栈，递归遍历 DOM 树调用 GDI。 *}
+     持有 CTM 变换栈和样式继承栈，递归遍历 DOM 树调用 GDI。}
   private
     FCtx:        TCnSVGRenderContext;
     FMatrixStack: array[0..63] of TCnSVGMatrix;
@@ -978,7 +978,7 @@ end;
 function SVGAttrFloat(El: TCnXMLElement; const Name: string;
   Default: TCnSVGFloat): TCnSVGFloat;
 {* 从 XML 元素读取指定属性的浮点值。解析失败或属性不存在时返回 Default，不抛异常。
-   支持 px 后缀（会被去掉）。 *}
+   支持 px 后缀（会被去掉）。 }
 var
   S: string;
 begin
@@ -1000,7 +1000,7 @@ end;
 procedure SVGDefaultStyle(var S: TCnSVGStyle);
 {* 按 SVG 规范初始化样式记录为默认值：fill=black, stroke=none, stroke-width=1,
    opacity=1, font-size=16, stroke-miterlimit=4, color=black。
-   注意：不能对包含 string 字段的记录使用 FillChar；字段逐一赋值。 *}
+   注意：不能对包含 string 字段的记录使用 FillChar；字段逐一赋值。 }
 begin
   // fill
   S.FillColor.R := 0; S.FillColor.G := 0; S.FillColor.B := 0;
@@ -1036,7 +1036,7 @@ begin
 end;
 
 function SVGClampOpacity(V: TCnSVGFloat): TCnSVGFloat;
-{* 将透明度值截断至 [0.0, 1.0] 范围。 *}
+{* 将透明度值截断至 [0.0, 1.0] 范围。 }
 begin
   if V < 0 then
     Result := 0
@@ -1047,7 +1047,7 @@ begin
 end;
 
 function SVGParseMiterLimit(const S: string): TCnSVGFloat;
-{* 解析 stroke-miterlimit 字符串，值 < 1.0 截断为 1.0，解析失败返回默认值 4.0。 *}
+{* 解析 stroke-miterlimit 字符串，值 < 1.0 截断为 1.0，解析失败返回默认值 4.0。 }
 var
   V: Extended;
 begin
@@ -1067,7 +1067,7 @@ procedure SVGParseStyleAttr(El: TCnXMLElement; var Style: TCnSVGStyle;
   const ParentStyle: TCnSVGStyle);
 {* 解析元素的 XML 属性和 style="" 内联样式，后者覆盖前者（CSS 优先级规则）。
    支持 inherit 关键字（强制继承父级对应字段值）和 currentColor 关键字。
-   未能解析的属性静默忽略，不抛异常。 *}
+   未能解析的属性静默忽略，不抛异常。 }
 var
   Attrs: TStringList;
   I, J, EqPos: Integer;
@@ -1425,7 +1425,7 @@ end;
 
 function SVGReadNumberToken(const S: string; var P: Integer;
   var Value: TCnSVGFloat): Boolean;
-{* 从字符串当前位置读取一个浮点数 token，支持符号、小数和科学计数法。 *}
+{* 从字符串当前位置读取一个浮点数 token，支持符号、小数和科学计数法。 }
 var
   Start: Integer;
   HasDot, HasExp: Boolean;
@@ -1478,7 +1478,7 @@ begin
 end;
 
 function SVGParseLengthValue(const S: string; Default: TCnSVGFloat): TCnSVGFloat;
-{* 解析长度值，支持纯数值和带单位的数值；未知单位时仅取其数值前缀。 *}
+{* 解析长度值，支持纯数值和带单位的数值；未知单位时仅取其数值前缀。 }
 var
   P: Integer;
 begin
@@ -1488,7 +1488,7 @@ begin
 end;
 
 function SVGParseViewBoxValue(const S: string; var R: TCnSVGRect): Boolean;
-{* 解析 viewBox="min-x min-y width height"。 *}
+{* 解析 viewBox="min-x min-y width height"。 }
 var
   P: Integer;
   V: array[0..3] of TCnSVGFloat;
@@ -1507,7 +1507,7 @@ begin
 end;
 
 function SVGFindDefNode(ADefsMap: TStringList; const AID: string): TCnXMLElement;
-{* 在定义字典中按区分大小写的 id 查找节点。 *}
+{* 在定义字典中按区分大小写的 id 查找节点。 }
 var
   I: Integer;
 begin
@@ -1524,7 +1524,7 @@ end;
 
 procedure SVGParsePreserveAspectRatio(const S: string; var IsNone, IsSlice: Boolean;
   var AlignX, AlignY: Integer);
-{* 解析 preserveAspectRatio。AlignX/AlignY: 0=min, 1=mid, 2=max。 *}
+{* 解析 preserveAspectRatio。AlignX/AlignY: 0=min, 1=mid, 2=max。 }
 var
   Lower: string;
 begin
@@ -1548,7 +1548,7 @@ end;
 procedure SVGCalcViewMatrix(const ADestRect: TRect; const AViewBox: TCnSVGRect;
   const APreserveAspectRatio: string; var AMatrix: TCnSVGMatrix;
   var NeedClip: Boolean);
-{* 计算 viewBox 到目标矩形的仿射变换矩阵。 *}
+{* 计算 viewBox 到目标矩形的仿射变换矩阵。 }
 var
   IsNone, IsSlice: Boolean;
   AlignX, AlignY: Integer;
@@ -1619,7 +1619,7 @@ end;
 procedure SVGCalcNestedViewMatrix(ADestX, ADestY, ADestW, ADestH: TCnSVGFloat;
   const AViewBox: TCnSVGRect; const APreserveAspectRatio: string;
   var AMatrix: TCnSVGMatrix);
-{* 计算局部用户坐标系中的子视口变换矩阵。 *}
+{* 计算局部用户坐标系中的子视口变换矩阵。 }
 var
   IsNone, IsSlice: Boolean;
   AlignX, AlignY: Integer;
@@ -1677,7 +1677,7 @@ end;
 function SVGCalcAlignedRect(const ABounds: TRect; ASrcWidth, ASrcHeight: Integer;
   const APreserveAspectRatio: string; var NeedClip: Boolean): TRect;
 {* 依据 preserveAspectRatio 计算位图在目标矩形中的实际绘制区域。
-   当为 slice 时返回超出 ABounds 的绘制区域，并通过 NeedClip 提示调用方设置裁剪。 *}
+   当为 slice 时返回超出 ABounds 的绘制区域，并通过 NeedClip 提示调用方设置裁剪。 }
 var
   IsNone, IsSlice: Boolean;
   AlignX, AlignY: Integer;
@@ -1738,7 +1738,7 @@ begin
 end;
 
 function SVGIsHttpLikeRef(const S: string): Boolean;
-{* 判断是否为当前版本不支持的网络 URL。 *}
+{* 判断是否为当前版本不支持的网络 URL。 }
 var
   Lower: string;
 begin
@@ -1748,7 +1748,7 @@ begin
 end;
 
 function SVGResolveLocalFileName(const ABasePath, AHref: string): string;
-{* 解析 image 本地文件名；不支持 URL 和 data URI。 *}
+{* 解析 image 本地文件名；不支持 URL 和 data URI。 }
 var
   Href: string;
 begin
@@ -1774,7 +1774,7 @@ end;
 //==============================================================================
 
 function NewPathSeg(SegType: TCnSVGPathSegType): PCnSVGPathSeg;
-{* 分配并初始化一个新的路径段记录，调用方负责释放。 *}
+{* 分配并初始化一个新的路径段记录，调用方负责释放。 }
 begin
   New(Result);
   FillChar(Result^, SizeOf(TCnSVGPathSeg), 0);
@@ -1921,7 +1921,7 @@ end;
 procedure TCnSVGPathParser.ParseMoveTo(Relative: Boolean; List: TList);
 {* 解析 M/m 命令：读取坐标对序列，首对为 MoveTo，后续对隐式视为 LineTo。
    完成后将 FLastCmd 设为 'L' 或 'l'，以便 ParsePathData 的隐式重复逻辑
-   在下一轮循环中调用 ParseLineTo 处理多余坐标对。 *}
+   在下一轮循环中调用 ParseLineTo 处理多余坐标对。 }
 var
   X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -1975,7 +1975,7 @@ begin
 end;
 
 procedure TCnSVGPathParser.ParseLineTo(Relative: Boolean; List: TList);
-{* 解析 L/l 命令：读取坐标对序列，每对生成一个 LineTo 段（绝对坐标）。 *}
+{* 解析 L/l 命令：读取坐标对序列，每对生成一个 LineTo 段（绝对坐标）。 }
 var
   X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2011,7 +2011,7 @@ begin
 end;
 
 procedure TCnSVGPathParser.ParseHLineTo(Relative: Boolean; List: TList);
-{* 解析 H/h 命令：读取 X 坐标序列，Y 保持当前值，规范化为 LineTo 段。 *}
+{* 解析 H/h 命令：读取 X 坐标序列，Y 保持当前值，规范化为 LineTo 段。 }
 var
   X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2042,7 +2042,7 @@ begin
 end;
 
 procedure TCnSVGPathParser.ParseVLineTo(Relative: Boolean; List: TList);
-{* 解析 V/v 命令：读取 Y 坐标序列，X 保持当前值，规范化为 LineTo 段。 *}
+{* 解析 V/v 命令：读取 Y 坐标序列，X 保持当前值，规范化为 LineTo 段。 }
 var
   X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2074,7 +2074,7 @@ end;
 
 procedure TCnSVGPathParser.ParseCubicBezier(Relative: Boolean; List: TList);
 {* 解析 C/c 命令：每组读取 个数**（X1,Y1, X2,Y2, X,Y），生成三次贝塞尔段。
-   FLastCtlX/Y 保存 X2,Y2 供后续 S/s 命令使用。 *}
+   FLastCtlX/Y 保存 X2,Y2 供后续 S/s 命令使用。 }
 var
   X1, Y1, X2, Y2, X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2123,7 +2123,7 @@ end;
 
 procedure TCnSVGPathParser.ParseSmoothCubic(Relative: Boolean; List: TList);
 {* 解析 S/s 命令：每组读取 4 个数（X2,Y2, X,Y），第一控制点反射上一个控制点。
-   规范化为 pstCubicBezier 段存储。 *}
+   规范化为 pstCubicBezier 段存储。 }
 var
   X1, Y1, X2, Y2, X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2172,7 +2172,7 @@ end;
 
 procedure TCnSVGPathParser.ParseQuadBezier(Relative: Boolean; List: TList);
 {* 解析 Q/q 命令：每组读取 4 个数（X1,Y1, X,Y），生成二次贝塞尔段。
-   FLastCtlX/Y 保存 X1,Y1 供后续 T/t 命令使用。 *}
+   FLastCtlX/Y 保存 X1,Y1 供后续 T/t 命令使用。 }
 var
   X1, Y1, X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2215,7 +2215,7 @@ end;
 
 procedure TCnSVGPathParser.ParseSmoothQuad(Relative: Boolean; List: TList);
 {* 解析 T/t 命令：每组读取 2 个数（X,Y），控制点反射上一个二次贝塞尔控制点。
-   规范化为 pstQuadBezier 段存储。 *}
+   规范化为 pstQuadBezier 段存储。 }
 var
   X1, Y1, X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2258,7 +2258,7 @@ end;
 
 procedure TCnSVGPathParser.ParseArc(Relative: Boolean; List: TList);
 {* 解析 A/a 命令：每组读取 7 个数（RX, RY, XRotation, LargeArcFlag, SweepFlag, X, Y）。
-   RX/RY 取绝对值；FlagA/FlagS 截为布尔值（非零即 True）。 *}
+   RX/RY 取绝对值；FlagA/FlagS 截为布尔值（非零即 True）。 }
 var
   RX, RY, XRot, FlagA, FlagS, X, Y: TCnSVGFloat;
   Seg: PCnSVGPathSeg;
@@ -2304,7 +2304,7 @@ begin
 end;
 
 procedure TCnSVGPathParser.ParseClosePath(List: TList);
-{* 解析 Z/z 命令：生成一个 ClosePath 段，端点记录当前笔位（渲染器负责闭合到子路径起点）。 *}
+{* 解析 Z/z 命令：生成一个 ClosePath 段，端点记录当前笔位（渲染器负责闭合到子路径起点）。 }
 var
   Seg: PCnSVGPathSeg;
 
@@ -2467,7 +2467,7 @@ end;
 procedure SVGParseTransformParams(const S: string;
   var Params: array of Extended; var ParamCount: Integer);
 {* 解析 transform 函数括号内的参数字符串，填入 Params 数组（最多 6 个），
-   返回实际解析到的参数个数（ParamCount）。Delphi 5 兼容，不含嵌套过程。 *}
+   返回实际解析到的参数个数（ParamCount）。Delphi 5 兼容，不含嵌套过程。 }
 var
   P, PStart: Integer;
   Tok: string;
@@ -3480,7 +3480,7 @@ end;
 procedure SVGSubdivideCubic(
   P0X, P0Y, P1X, P1Y, P2X, P2Y, P3X, P3Y: Extended;
   const M: TCnSVGMatrix; OutPts: TList; Depth: Integer);
-{* De Casteljau 三次贝塞尔递归细分，输出 TPoint 指针至 OutPts *}
+{* De Casteljau 三次贝塞尔递归细分，输出 TPoint 指针至 OutPts }
 var
   SP0X, SP0Y, SP1X, SP1Y, SP2X, SP2Y, SP3X, SP3Y: TCnSVGFloat;
   MinX, MaxX, MinY, MaxY, Diag: Extended;
@@ -3525,7 +3525,7 @@ end;
 procedure SVGSubdivideQuad(
   P0X, P0Y, P1X, P1Y, P2X, P2Y: Extended;
   const M: TCnSVGMatrix; OutPts: TList; Depth: Integer);
-{* De Casteljau 二次贝塞尔递归细分 *}
+{* De Casteljau 二次贝塞尔递归细分 }
 var
   SP0X, SP0Y, SP1X, SP1Y, SP2X, SP2Y: TCnSVGFloat;
   MinX, MaxX, MinY, MaxY, Diag: Extended;
@@ -3559,7 +3559,7 @@ begin
 end;
 
 function SVGAngleBetween(UX, UY, VX, VY: Extended): Extended;
-{* 计算两向量之间的有符号角度（弧度） *}
+{* 计算两向量之间的有符号角度（弧度） }
 var
   Dot, Cross, D: Extended;
 begin
@@ -3577,7 +3577,7 @@ procedure SVGArcToPoints(
   X1, Y1, X2, Y2, RX, RY, PhiDeg: Extended;
   LargeArc, Sweep: Boolean;
   const M: TCnSVGMatrix; OutPts: TList);
-{* SVG 圆弧端点参数→中心参数转换（Appendix F.6），以 1° 步长线性化输出点 *}
+{* SVG 圆弧端点参数→中心参数转换（Appendix F.6），以 1° 步长线性化输出点 }
 var
   PhiRad, CosP, SinP: Extended;
   DX2, DY2, X1P, Y1P, Lambda: Extended;

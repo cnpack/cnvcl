@@ -1,0 +1,68 @@
+object FormSVGDemo: TFormSVGDemo
+  Left = 257
+  Height = 578
+  Top = 122
+  Width = 618
+  Caption = 'SVG 绘制'
+  ClientHeight = 578
+  ClientWidth = 618
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object imgResult: TImage
+    Left = 12
+    Height = 450
+    Top = 84
+    Width = 586
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Stretch = True
+  end
+  object edtFileName: TEdit
+    Left = 12
+    Height = 21
+    Top = 12
+    Width = 500
+    TabOrder = 0
+  end
+  object btnBrowse: TButton
+    Left = 518
+    Height = 25
+    Top = 10
+    Width = 80
+    Caption = '浏览...'
+    TabOrder = 1
+    OnClick = btnBrowseClick
+  end
+  object cmbSize: TComboBox
+    Left = 12
+    Height = 21
+    Top = 48
+    Width = 145
+    ItemHeight = 13
+    Items.Strings = (
+      '64x64'
+      '128x128'
+      '256x256'
+      '512x512'
+    )
+    Style = csDropDownList
+    TabOrder = 2
+  end
+  object btnDraw: TButton
+    Left = 166
+    Height = 25
+    Top = 46
+    Width = 100
+    Caption = '绘制'
+    TabOrder = 3
+    OnClick = btnDrawClick
+  end
+  object dlgOpen: TOpenDialog
+    Left = 280
+    Top = 46
+  end
+end
