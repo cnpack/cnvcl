@@ -1464,6 +1464,45 @@ begin
       Exit;
     end;
 
+    // DOCTYPE and other <!...> declarations (e.g. <!DOCTYPE ...>, <!ENTITY ...>)
+    // XML specification: document type declaration starts with <! and ends with >
+    // Skip entirely - SVG rendering does not need DTD validation.
+    if FCurrentChar = '!' then
+    begin
+      NextChar;  // Skip '!'
+      // Skip until matching '>', respecting quoted strings
+      while (FCurrentChar <> #0) do
+      begin
+        if FCurrentChar = '"' then
+        begin
+          NextChar;
+          while (FCurrentChar <> #0) and (FCurrentChar <> '"') do
+            NextChar;
+          if FCurrentChar = '"' then
+            NextChar;
+        end
+        else if FCurrentChar = '''' then
+        begin
+          NextChar;
+          while (FCurrentChar <> #0) and (FCurrentChar <> '''') do
+            NextChar;
+          if FCurrentChar = '''' then
+            NextChar;
+        end
+        else if FCurrentChar = '>' then
+        begin
+          NextChar;
+          Break;
+        end
+        else
+          NextChar;
+      end;
+      // Treat as comment so parser auto-skips it (same as xttComment)
+      Result.TokenType := xttComment;
+      Result.Value := '';
+      Exit;
+    end;
+
     // Processing instruction: <?...?>
     if FCurrentChar = '?' then
     begin
