@@ -256,6 +256,10 @@ type
     {* 上一个贝塞尔控制点 X（用于 S/T 平滑命令） }
     FLastCtlY: TCnSVGFloat;
     {* 上一个贝塞尔控制点 Y（用于 S/T 平滑命令） }
+    FStartX:   TCnSVGFloat;
+    {* 当前子路径起点 X（用于 Z 闭合后恢复笔位） }
+    FStartY:   TCnSVGFloat;
+    {* 当前子路径起点 Y（用于 Z 闭合后恢复笔位） }
     FLastCmd:  Char;
     {* 上一个命令字符（用于重复参数处理） }
     procedure SkipWS;
@@ -1950,6 +1954,8 @@ begin
     begin
       Seg := NewSeg(pstMoveTo);
       IsFirst := False;
+      FStartX := X;
+      FStartY := Y;
     end
     else
     begin
@@ -2321,6 +2327,8 @@ begin
   Seg^.Y := FCurY;
   List.Add(Seg);
 
+  FCurX     := FStartX;
+  FCurY     := FStartY;
   FLastCtlX := FCurX;
   FLastCtlY := FCurY;
 end;
@@ -2338,6 +2346,8 @@ begin
   FPos      := 1;
   FCurX     := 0;
   FCurY     := 0;
+  FStartX   := 0;
+  FStartY   := 0;
   FLastCtlX := 0;
   FLastCtlY := 0;
   FLastCmd  := #0;
