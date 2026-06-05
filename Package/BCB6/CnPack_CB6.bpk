@@ -62,6 +62,7 @@
       ..\..\Source\Common\CnVclFmxMixed.obj 
       ..\..\Source\Common\CnWideStrings.obj 
       ..\..\Source\Common\CnWinSvc.obj 
+      ..\..\Source\Common\CnXML.obj 
       ..\..\Source\Crypto\Cn25519.obj 
       ..\..\Source\Crypto\CnAES.obj 
       ..\..\Source\Crypto\CnBase64.obj 
@@ -369,6 +370,7 @@
       <FILE FILENAME="..\..\Source\Common\CnVclFmxMixed.pas" FORMNAME="" UNITNAME="CnVclFmxMixed" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWideStrings.pas" FORMNAME="" UNITNAME="CnWideStrings" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWinSvc.pas" FORMNAME="" UNITNAME="CnWinSvc" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnXML.pas" FORMNAME="" UNITNAME="CnXML" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\Cn25519.pas" FORMNAME="" UNITNAME="CnAES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnAES.pas" FORMNAME="" UNITNAME="CnAES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBase64.pas" FORMNAME="" UNITNAME="CnBase64" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

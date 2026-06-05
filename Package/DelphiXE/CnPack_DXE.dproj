@@ -119,6 +119,7 @@
 			<DCCReference Include="..\..\Source\Common\CnVclFmxMixed.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnWideStrings.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnWinSvc.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnXML.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnXMLPersistent.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnZip.pas"/>
 			<DCCReference Include="..\..\Source\Crypto\Cn25519.pas"/>

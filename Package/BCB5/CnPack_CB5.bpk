@@ -61,6 +61,7 @@
       ..\..\Source\Common\CnVclFmxMixed.obj 
       ..\..\Source\Common\CnWideStrings.obj 
       ..\..\Source\Common\CnWinSvc.obj 
+      ..\..\Source\Common\CnXML.obj 
       ..\..\Source\Crypto\Cn25519.obj 
       ..\..\Source\Crypto\CnAES.obj 
       ..\..\Source\Crypto\CnBase64.obj 

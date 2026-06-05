@@ -96,6 +96,7 @@ contains
   CnVclFmxMixed in '..\..\Source\Common\CnVclFmxMixed.pas',
   CnWideStrings in '..\..\Source\Common\CnWideStrings.pas',
   CnWinSvc in '..\..\Source\Common\CnWinSvc.pas',
+  CnXML in '..\..\Source\Common\CnXML.pas',
   CnZip in '..\..\Source\Common\CnZip.pas',
   Cn25519 in '..\..\Source\Crypto\Cn25519.pas',
   CnAES in '..\..\Source\Crypto\CnAES.pas',
