@@ -4147,6 +4147,7 @@ var
   I: Integer;
   LocalViewBox: TCnSVGRect;
   M: TCnSVGMatrix;
+  IsRoot: Boolean;
 begin
   if FCtx.Style.DisplayNone then
     Exit;
@@ -4158,9 +4159,20 @@ begin
   if (W <= 0) or (H <= 0) then
     Exit;
 
+  // 判断是否为根 <svg> 元素: 构造函数已通过 SVGCalcViewMatrix 处理了 viewBox 变换
+  // 此时 FMatrixTop = 1（来自 RenderElement 的 PushMatrix）
+  IsRoot := (FMatrixTop = 1);
+
   PushMatrix;
   try
-    if AElement.HasAttribute('viewBox') and
+    if IsRoot then
+    begin
+      // 根 <svg>：构造函数已将 FViewBox 映射到 ADestRect 并设入 FCtx.CTM，
+      // 此处仅处理 x/y 偏移（通常为 0），避免 viewBox 被双重应用
+      if (X <> 0) or (Y <> 0) then
+        SVGMatrixTranslate(FCtx.CTM, X, Y);
+    end
+    else if AElement.HasAttribute('viewBox') and
       SVGParseViewBoxValue(AElement.GetAttribute('viewBox'), LocalViewBox) then
     begin
       SVGCalcNestedViewMatrix(X, Y, W, H, LocalViewBox,
