@@ -320,6 +320,14 @@ type
   GpCachedBitmap = Pointer;
   {* GDI+ 缓存位图对象}
 
+  TGPRectF = record
+    X: Single;
+    Y: Single;
+    Width: Single;
+    Height: Single;
+  end;
+  {* GDI+ 浮点矩形，用于 GdipDrawString / GdipMeasureString 的布局和边界框 }
+
   TGPColor = Cardinal;
 
   TStatus = (
@@ -532,6 +540,37 @@ type
   TGdipDrawImageRectI = function(Graphic: GPGRAPHICS; Image: GPIMAGE; x: Integer;
     y: Integer; Width: Integer; Height: Integer): GPSTATUS; stdcall;
 
+  //---------- Font 字体 ----------
+  TGdipCreateFontFromLogfontW = function(hdc: HDC; Logfont: Pointer;
+    out Font: GPFONT): GPSTATUS; stdcall;
+
+  TGdipDeleteFont = function(Font: GPFONT): GPSTATUS; stdcall;
+
+  //---------- StringFormat 字符串格式 ----------
+  TGdipCreateStringFormat = function(FormatAttributes: Integer; Language: Word;
+    out Format: GPSTRINGFORMAT): GPSTATUS; stdcall;
+
+  TGdipDeleteStringFormat = function(Format: GPSTRINGFORMAT): GPSTATUS; stdcall;
+
+  TGdipSetStringFormatAlign = function(Format: GPSTRINGFORMAT;
+    Align: Integer): GPSTATUS; stdcall;
+
+  TGdipSetStringFormatLineAlign = function(Format: GPSTRINGFORMAT;
+    Align: Integer): GPSTATUS; stdcall;
+
+  //---------- Text 文字绘制 ----------
+  TGdipDrawString = function(Graphics: GPGRAPHICS; Str: PWideChar;
+    Length: Integer; Font: GPFONT; LayoutRect: Pointer;
+    Format: GPSTRINGFORMAT; Brush: GPBRUSH): GPSTATUS; stdcall;
+
+  TGdipMeasureString = function(Graphics: GPGRAPHICS; Str: PWideChar;
+    Length: Integer; Font: GPFONT; LayoutRect: Pointer;
+    Format: GPSTRINGFORMAT; BoundingBox: Pointer;
+    CodepointsFitted: PInteger; LinesFilled: PInteger): GPSTATUS; stdcall;
+
+  TGdipSetTextRenderingHint = function(Graphics: GPGRAPHICS;
+    Mode: Integer): GPSTATUS; stdcall;
+
   //---------- Matrix 矩阵 ----------
   TGdipCreateMatrix = function(out Matrix: GPMATRIX): GPSTATUS; stdcall;
 
@@ -630,6 +669,21 @@ var
   GdipDeleteMatrix: TGdipDeleteMatrix = nil;
   GdipSetMatrixElements: TGdipSetMatrixElements = nil;
   GdipMultiplyMatrix: TGdipMultiplyMatrix = nil;
+
+  //---------- Font 字体（非核心，允许缺失，有 GDI 回退）----------
+  GdipCreateFontFromLogfontW: TGdipCreateFontFromLogfontW = nil;
+  GdipDeleteFont: TGdipDeleteFont = nil;
+
+  //---------- StringFormat 字符串格式（非核心）----------
+  GdipCreateStringFormat: TGdipCreateStringFormat = nil;
+  GdipDeleteStringFormat: TGdipDeleteStringFormat = nil;
+  GdipSetStringFormatAlign: TGdipSetStringFormatAlign = nil;
+  GdipSetStringFormatLineAlign: TGdipSetStringFormatLineAlign = nil;
+
+  //---------- Text 文字绘制（非核心）----------
+  GdipDrawString: TGdipDrawString = nil;
+  GdipMeasureString: TGdipMeasureString = nil;
+  GdipSetTextRenderingHint: TGdipSetTextRenderingHint = nil;
 
 {$ENDIF}
 
@@ -1326,6 +1380,21 @@ initialization
     GdipDeleteMatrix := TGdipDeleteMatrix(GetProcAddress(GdiPlusHandle, 'GdipDeleteMatrix'));
     GdipSetMatrixElements := TGdipSetMatrixElements(GetProcAddress(GdiPlusHandle, 'GdipSetMatrixElements'));
     GdipMultiplyMatrix := TGdipMultiplyMatrix(GetProcAddress(GdiPlusHandle, 'GdipMultiplyMatrix'));
+
+    //---------- Font 字体（非核心，允许缺失）----------
+    GdipCreateFontFromLogfontW := TGdipCreateFontFromLogfontW(GetProcAddress(GdiPlusHandle, 'GdipCreateFontFromLogfontW'));
+    GdipDeleteFont := TGdipDeleteFont(GetProcAddress(GdiPlusHandle, 'GdipDeleteFont'));
+
+    //---------- StringFormat 字符串格式（非核心）----------
+    GdipCreateStringFormat := TGdipCreateStringFormat(GetProcAddress(GdiPlusHandle, 'GdipCreateStringFormat'));
+    GdipDeleteStringFormat := TGdipDeleteStringFormat(GetProcAddress(GdiPlusHandle, 'GdipDeleteStringFormat'));
+    GdipSetStringFormatAlign := TGdipSetStringFormatAlign(GetProcAddress(GdiPlusHandle, 'GdipSetStringFormatAlign'));
+    GdipSetStringFormatLineAlign := TGdipSetStringFormatLineAlign(GetProcAddress(GdiPlusHandle, 'GdipSetStringFormatLineAlign'));
+
+    //---------- Text 文字绘制（非核心）----------
+    GdipDrawString := TGdipDrawString(GetProcAddress(GdiPlusHandle, 'GdipDrawString'));
+    GdipMeasureString := TGdipMeasureString(GetProcAddress(GdiPlusHandle, 'GdipMeasureString'));
+    GdipSetTextRenderingHint := TGdipSetTextRenderingHint(GetProcAddress(GdiPlusHandle, 'GdipSetTextRenderingHint'));
 
     // ── 第三步：关键函数指针完整性检查 ──
     // 任何一个核心函数为 nil 说明 DLL 版本不匹配或损坏，
