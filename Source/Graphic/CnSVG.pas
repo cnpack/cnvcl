@@ -25,11 +25,16 @@ unit CnSVG;
 * 单元说明：SVG 1.1 核心子集渲染器单元
 *           通过 CnXML.pas 解析 SVG 文件的 XML 结构，利用 Windows GDI（TCanvas）
 *           将 SVG 图像渲染到位图或控件画布，并提供 TCnSVGImage 可视化组件。
+*           当 GDI+ 可用时（CnGdiPlusAvailable），自动使用 GDI+ 渲染（反锯齿、
+*           原生透明度、原生贝塞尔曲线），否则降级为纯 GDI。
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：严格遵守 Delphi 5 语法，不使用泛型、for..in、inline var、record 方法等
 * 适用平台：PWin98SE + Delphi 5.0
 * 已测平台：PWin7/10+ Delphi 5~最新
-* 修改记录：2026.06.01 V1.0
+* 修改记录：2026.06.06 V1.1
+*                集成 GDI+ 渲染：反锯齿、原生 Alpha 透明、原生贝塞尔曲线；
+*                纯 GDI 路径完整保留为降级分支
+*           2026.06.01 V1.0
 *                创建本单元骨架
 ================================================================================
 |</PRE>}
@@ -40,7 +45,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, Graphics, Math, Controls, {$IFNDEF FPC} Jpeg, {$ENDIF}
-  CnNative, CnClasses, CnCommon, CnGraphics, CnXML;
+  CnNative, CnClasses, CnCommon, CnGraphics, CnXML, CnGraphUtils;
 
 type
 
@@ -509,7 +514,9 @@ resourcestring
 type
   TCnSVGRenderer = class(TObject)
   {* SVG 渲染引擎。由 TCnSVGDocument.Render 创建，不对外暴露。
-     持有 CTM 变换栈和样式继承栈，递归遍历 DOM 树调用 GDI。}
+     持有 CTM 变换栈和样式继承栈，递归遍历 DOM 树调用 GDI。
+     当 CnGdiPlusAvailable 为 True 时尝试使用 GDI+ 渲染（反锯齿），
+     GDI+ 不可用时自动降级为纯 GDI。}
   private
     FCtx:        TCnSVGRenderContext;
     FMatrixStack: array[0..63] of TCnSVGMatrix;
@@ -520,6 +527,10 @@ type
     FViewMatrix: TCnSVGMatrix;
     FBasePath:   string;
     FSavedDC:    Integer;
+    FUseGDIP:    Boolean;
+    {* 运行时决定是否使用 GDI+ 渲染路径 }
+    FGDIPGraphics: GpGraphics;
+    {* GDI+ Graphics 对象，整个渲染周期持有，析构时释放 }
     procedure PushMatrix;
     procedure PopMatrix;
     procedure PushStyle;
@@ -529,6 +540,11 @@ type
     function CreateGDIPenHandle(AColor: TColor): HPEN;
     procedure SetupGDIPen;
     procedure SetupGDIBrush;
+    // ── GDI+ 辅助方法（仅 FUseGDIP 时使用） ──
+    function GDIPPStrokeColor: Cardinal;
+    function GDIPPFillColor: Cardinal;
+    function CreateGDIPPPen: GpPen;
+    function CreateGDIPPBrush: GpSolidFill;
     function UserToScreen(X, Y: TCnSVGFloat): TPoint;
     function UserLenToScreen(Len: TCnSVGFloat): Integer;
     function EffectiveFillAlpha: TCnSVGFloat;
@@ -2417,6 +2433,18 @@ begin
   FDefsMap      := ADefsMap;
   FBasePath     := ABasePath;
   FSavedDC      := SaveDC(ACanvas.Handle);
+  FUseGDIP      := False;
+  FGDIPGraphics := nil;
+
+  // 探测 GDI+ 可用性
+  if CnGdiPlusAvailable then
+  begin
+    if GdipCreateFromHDC(ACanvas.Handle, FGDIPGraphics) = Ok then
+    begin
+      GdipSetSmoothingMode(FGDIPGraphics, SmoothingModeAntiAlias);
+      FUseGDIP := True;
+    end;
+  end;
 
   // Initialize root style
   SVGDefaultStyle(FCtx.Style);
@@ -2433,6 +2461,11 @@ end;
 
 destructor TCnSVGRenderer.Destroy;
 begin
+  if FGDIPGraphics <> nil then
+  begin
+    GdipDeleteGraphics(FGDIPGraphics);
+    FGDIPGraphics := nil;
+  end;
   if FSavedDC <> 0 then
     RestoreDC(FCtx.Canvas.Handle, FSavedDC);
   inherited Destroy;
@@ -2716,6 +2749,83 @@ begin
   end;
   FCtx.Canvas.Brush.Color := Windows.RGB(S.FillColor.R, S.FillColor.G, S.FillColor.B);
   FCtx.Canvas.Brush.Style := bsSolid;
+end;
+
+// ── GDI+ 辅助方法 ──
+
+function TCnSVGRenderer.GDIPPStrokeColor: Cardinal;
+var
+  Alpha: Integer;
+begin
+  Alpha := Round(EffectiveStrokeAlpha * 255);
+  if Alpha < 0 then Alpha := 0;
+  if Alpha > 255 then Alpha := 255;
+  Result := MakeGDIPColor(Alpha, FCtx.Style.StrokeColor.R,
+    FCtx.Style.StrokeColor.G, FCtx.Style.StrokeColor.B);
+end;
+
+function TCnSVGRenderer.GDIPPFillColor: Cardinal;
+var
+  Alpha: Integer;
+begin
+  Alpha := Round(EffectiveFillAlpha * 255);
+  if Alpha < 0 then Alpha := 0;
+  if Alpha > 255 then Alpha := 255;
+  Result := MakeGDIPColor(Alpha, FCtx.Style.FillColor.R,
+    FCtx.Style.FillColor.G, FCtx.Style.FillColor.B);
+end;
+
+function TCnSVGRenderer.CreateGDIPPPen: GpPen;
+var
+  S: TCnSVGStyle;
+  PenWidth: Single;
+  DashVals: array[0..7] of Single;
+  I: Integer;
+begin
+  Result := nil;
+  S := FCtx.Style;
+  if S.StrokeNone then Exit;
+
+  PenWidth := UserLenToScreen(S.StrokeWidth);
+  if PenWidth < 1 then PenWidth := 1;
+
+  if GdipCreatePen1(GDIPPStrokeColor, PenWidth, 2 {UnitPixel}, Result) <> Ok then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  // LineCap
+  case S.LineCap of
+    slcRound:
+      GdipSetPenLineCap(Result, LineCapRound, LineCapRound, LineCapRound);
+    slcSquare:
+      GdipSetPenLineCap(Result, LineCapSquare, LineCapSquare, LineCapSquare);
+  end;
+
+  // LineJoin
+  case S.LineJoin of
+    sljRound:  GdipSetPenLineJoin(Result, LineJoinRound);
+    sljBevel:  GdipSetPenLineJoin(Result, LineJoinBevel);
+  end;
+  GdipSetPenMiterLimit(Result, S.MiterLimit);
+
+  // DashStyle
+  if S.DashCount > 0 then
+  begin
+    GdipSetPenDashStyle(Result, DashStyleCustom);
+    for I := 0 to S.DashCount - 1 do
+      DashVals[I] := UserLenToScreen(S.DashArray[I]);
+    GdipSetPenDashArray(Result, @DashVals[0], S.DashCount);
+  end;
+end;
+
+function TCnSVGRenderer.CreateGDIPPBrush: GpSolidFill;
+begin
+  Result := nil;
+  if FCtx.Style.FillNone then Exit;
+  if GdipCreateSolidFill(GDIPPFillColor, Result) <> Ok then
+    Result := nil;
 end;
 
 function TCnSVGRenderer.UserToScreen(X, Y: TCnSVGFloat): TPoint;
@@ -3180,6 +3290,10 @@ var
   FillPts: array[0..3] of TPoint;
   StrokePts: array[0..4] of TPoint;
   PolyCounts: array[0..0] of Integer;
+  Pen: GpPen;
+  Brush: GpSolidFill;
+  Path: GpPath;
+  R: TRect;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   X  := SVGAttrFloat(AElement, 'x', 0);
@@ -3198,56 +3312,124 @@ begin
   P2 := UserToScreen(X + W, Y + H);
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
-  if (RX > 0) or (RY > 0) then
+
+  if FUseGDIP then
   begin
-    SRX := UserLenToScreen(RX * 2);
-    SRY := UserLenToScreen(RY * 2);
-    if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
-      RenderRectAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y), SRX, SRY)
+    R := Rect(P1.X, P1.Y, P2.X, P2.Y);
+    if (RX > 0) or (RY > 0) then
+    begin
+      // 圆角矩形：用 GDI+ Path（4 段弧 + 4 段直线）构建
+      SRX := UserLenToScreen(RX * 2);
+      SRY := UserLenToScreen(RY * 2);
+      Path := nil;
+      GdipCreatePath(FillModeWinding, Path);
+      if Path <> nil then
+      begin
+        GdipAddPathArc(Path, R.Left, R.Top, SRX, SRY, 180, 90);
+        GdipAddPathArc(Path, R.Right - SRX, R.Top, SRX, SRY, 270, 90);
+        GdipAddPathArc(Path, R.Right - SRX, R.Bottom - SRY, SRX, SRY, 0, 90);
+        GdipAddPathArc(Path, R.Left, R.Bottom - SRY, SRX, SRY, 90, 90);
+        GdipClosePathFigure(Path);
+
+        if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+        begin
+          Brush := CreateGDIPPBrush;
+          if Brush <> nil then
+          begin
+            GdipFillPath(FGDIPGraphics, Brush, Path);
+            GdipDeleteBrush(Brush);
+          end;
+        end;
+        if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+        begin
+          Pen := CreateGDIPPPen;
+          if Pen <> nil then
+          begin
+            GdipDrawPath(FGDIPGraphics, Pen, Path);
+            GdipDeletePen(Pen);
+          end;
+        end;
+        GdipDeletePath(Path);
+      end;
+    end
     else
     begin
-      SetupGDIPen;
-      SetupGDIBrush;
-      FCtx.Canvas.RoundRect(P1.X, P1.Y, P2.X, P2.Y, SRX, SRY);
+      // 普通矩形
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        Brush := CreateGDIPPBrush;
+        if Brush <> nil then
+        begin
+          GdipFillRectangleI(FGDIPGraphics, Brush,
+            P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          GdipDeleteBrush(Brush);
+        end;
+      end;
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+      begin
+        Pen := CreateGDIPPPen;
+        if Pen <> nil then
+        begin
+          GdipDrawRectangle(FGDIPGraphics, Pen,
+            P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          GdipDeletePen(Pen);
+        end;
+      end;
     end;
   end
   else
   begin
-    FillPts[0] := Point(P1.X, P1.Y);
-    FillPts[1] := Point(P2.X, P1.Y);
-    FillPts[2] := Point(P2.X, P2.Y);
-    FillPts[3] := Point(P1.X, P2.Y);
-    StrokePts[0] := FillPts[0];
-    StrokePts[1] := FillPts[1];
-    StrokePts[2] := FillPts[2];
-    StrokePts[3] := FillPts[3];
-    StrokePts[4] := FillPts[0];
-    PolyCounts[0] := 4;
-
-    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    if (RX > 0) or (RY > 0) then
     begin
-      if FillAlpha < 1.0 then
-        FillPolyPolygonWithAlpha(FCtx.Canvas, FillPts, PolyCounts, 1,
-          FCtx.Style.FillColor, FillAlpha, sfrNonZero)
-      else
-      begin
-        SetupGDIBrush;
-        FCtx.Canvas.Pen.Style := psClear;
-        FCtx.Canvas.Rectangle(P1.X, P1.Y, P2.X, P2.Y);
-      end;
-    end;
-
-    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
-    begin
-      PolyCounts[0] := 5;
-      if StrokeAlpha < 1.0 then
-        StrokePolyPointsWithAlpha(FCtx.Canvas, StrokePts, PolyCounts, 1,
-          FCtx.Style.StrokeColor, StrokeAlpha)
+      SRX := UserLenToScreen(RX * 2);
+      SRY := UserLenToScreen(RY * 2);
+      if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
+        RenderRectAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y), SRX, SRY)
       else
       begin
         SetupGDIPen;
-        FCtx.Canvas.Brush.Style := bsClear;
-        Windows.Polyline(FCtx.Canvas.Handle, StrokePts[0], 5);
+        SetupGDIBrush;
+        FCtx.Canvas.RoundRect(P1.X, P1.Y, P2.X, P2.Y, SRX, SRY);
+      end;
+    end
+    else
+    begin
+      FillPts[0] := Point(P1.X, P1.Y);
+      FillPts[1] := Point(P2.X, P1.Y);
+      FillPts[2] := Point(P2.X, P2.Y);
+      FillPts[3] := Point(P1.X, P2.Y);
+      StrokePts[0] := FillPts[0];
+      StrokePts[1] := FillPts[1];
+      StrokePts[2] := FillPts[2];
+      StrokePts[3] := FillPts[3];
+      StrokePts[4] := FillPts[0];
+      PolyCounts[0] := 4;
+
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        if FillAlpha < 1.0 then
+          FillPolyPolygonWithAlpha(FCtx.Canvas, FillPts, PolyCounts, 1,
+            FCtx.Style.FillColor, FillAlpha, sfrNonZero)
+        else
+        begin
+          SetupGDIBrush;
+          FCtx.Canvas.Pen.Style := psClear;
+          FCtx.Canvas.Rectangle(P1.X, P1.Y, P2.X, P2.Y);
+        end;
+      end;
+
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+      begin
+        PolyCounts[0] := 5;
+        if StrokeAlpha < 1.0 then
+          StrokePolyPointsWithAlpha(FCtx.Canvas, StrokePts, PolyCounts, 1,
+            FCtx.Style.StrokeColor, StrokeAlpha)
+        else
+        begin
+          SetupGDIPen;
+          FCtx.Canvas.Brush.Style := bsClear;
+          Windows.Polyline(FCtx.Canvas.Handle, StrokePts[0], 5);
+        end;
       end;
     end;
   end;
@@ -3258,6 +3440,8 @@ var
   CX, CY, R: TCnSVGFloat;
   P1, P2: TPoint;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
+  Pen: GpPen;
+  Brush: GpSolidFill;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   CX := SVGAttrFloat(AElement, 'cx', 0);
@@ -3268,13 +3452,40 @@ begin
   P2 := UserToScreen(CX + R, CY + R);
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
-  if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
-    RenderEllipseAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y))
+
+  if FUseGDIP then
+  begin
+    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    begin
+      Brush := CreateGDIPPBrush;
+      if Brush <> nil then
+      begin
+        GdipFillEllipse(FGDIPGraphics, Brush,
+          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+        GdipDeleteBrush(Brush);
+      end;
+    end;
+    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+    begin
+      Pen := CreateGDIPPPen;
+      if Pen <> nil then
+      begin
+        GdipDrawEllipse(FGDIPGraphics, Pen,
+          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+        GdipDeletePen(Pen);
+      end;
+    end;
+  end
   else
   begin
-    SetupGDIPen;
-    SetupGDIBrush;
-    FCtx.Canvas.Ellipse(P1.X, P1.Y, P2.X, P2.Y);
+    if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
+      RenderEllipseAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y))
+    else
+    begin
+      SetupGDIPen;
+      SetupGDIBrush;
+      FCtx.Canvas.Ellipse(P1.X, P1.Y, P2.X, P2.Y);
+    end;
   end;
 end;
 
@@ -3283,6 +3494,8 @@ var
   CX, CY, RX, RY: TCnSVGFloat;
   P1, P2: TPoint;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
+  Pen: GpPen;
+  Brush: GpSolidFill;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   CX := SVGAttrFloat(AElement, 'cx', 0);
@@ -3294,13 +3507,40 @@ begin
   P2 := UserToScreen(CX + RX, CY + RY);
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
-  if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
-    RenderEllipseAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y))
+
+  if FUseGDIP then
+  begin
+    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    begin
+      Brush := CreateGDIPPBrush;
+      if Brush <> nil then
+      begin
+        GdipFillEllipse(FGDIPGraphics, Brush,
+          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+        GdipDeleteBrush(Brush);
+      end;
+    end;
+    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+    begin
+      Pen := CreateGDIPPPen;
+      if Pen <> nil then
+      begin
+        GdipDrawEllipse(FGDIPGraphics, Pen,
+          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+        GdipDeletePen(Pen);
+      end;
+    end;
+  end
   else
   begin
-    SetupGDIPen;
-    SetupGDIBrush;
-    FCtx.Canvas.Ellipse(P1.X, P1.Y, P2.X, P2.Y);
+    if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
+      RenderEllipseAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y))
+    else
+    begin
+      SetupGDIPen;
+      SetupGDIBrush;
+      FCtx.Canvas.Ellipse(P1.X, P1.Y, P2.X, P2.Y);
+    end;
   end;
 end;
 
@@ -3311,6 +3551,7 @@ var
   StrokePts: array[0..1] of TPoint;
   PolyCounts: array[0..0] of Integer;
   StrokeAlpha: TCnSVGFloat;
+  Pen: GpPen;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   X1 := SVGAttrFloat(AElement, 'x1', 0);
@@ -3322,18 +3563,31 @@ begin
   StrokeAlpha := EffectiveStrokeAlpha;
   if FCtx.Style.StrokeNone or (StrokeAlpha <= 0) then
     Exit;
-  StrokePts[0] := P1;
-  StrokePts[1] := P2;
-  PolyCounts[0] := 2;
-  if StrokeAlpha < 1.0 then
-    StrokePolyPointsWithAlpha(FCtx.Canvas, StrokePts, PolyCounts, 1,
-      FCtx.Style.StrokeColor, StrokeAlpha)
+
+  if FUseGDIP then
+  begin
+    Pen := CreateGDIPPPen;
+    if Pen <> nil then
+    begin
+      GdipDrawLineI(FGDIPGraphics, Pen, P1.X, P1.Y, P2.X, P2.Y);
+      GdipDeletePen(Pen);
+    end;
+  end
   else
   begin
-    SetupGDIPen;
-    FCtx.Canvas.Brush.Style := bsClear;
-    FCtx.Canvas.MoveTo(P1.X, P1.Y);
-    FCtx.Canvas.LineTo(P2.X, P2.Y);
+    StrokePts[0] := P1;
+    StrokePts[1] := P2;
+    PolyCounts[0] := 2;
+    if StrokeAlpha < 1.0 then
+      StrokePolyPointsWithAlpha(FCtx.Canvas, StrokePts, PolyCounts, 1,
+        FCtx.Style.StrokeColor, StrokeAlpha)
+    else
+    begin
+      SetupGDIPen;
+      FCtx.Canvas.Brush.Style := bsClear;
+      FCtx.Canvas.MoveTo(P1.X, P1.Y);
+      FCtx.Canvas.LineTo(P2.X, P2.Y);
+    end;
   end;
 end;
 
@@ -3347,6 +3601,7 @@ var
   V: Extended;
   PolyCounts: array[0..0] of Integer;
   StrokeAlpha: TCnSVGFloat;
+  Pen: GpPen;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   PointsStr := AElement.GetAttribute('points');
@@ -3384,15 +3639,28 @@ begin
   StrokeAlpha := EffectiveStrokeAlpha;
   if FCtx.Style.StrokeNone or (StrokeAlpha <= 0) then
     Exit;
-  PolyCounts[0] := Count;
-  if StrokeAlpha < 1.0 then
-    StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, 1,
-      FCtx.Style.StrokeColor, StrokeAlpha)
+
+  if FUseGDIP then
+  begin
+    Pen := CreateGDIPPPen;
+    if Pen <> nil then
+    begin
+      GdipDrawLinesI(FGDIPGraphics, Pen, @ScreenPts[0], Count);
+      GdipDeletePen(Pen);
+    end;
+  end
   else
   begin
-    SetupGDIPen;
-    FCtx.Canvas.Brush.Style := bsClear;
-    FCtx.Canvas.Polyline(ScreenPts);
+    PolyCounts[0] := Count;
+    if StrokeAlpha < 1.0 then
+      StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, 1,
+        FCtx.Style.StrokeColor, StrokeAlpha)
+    else
+    begin
+      SetupGDIPen;
+      FCtx.Canvas.Brush.Style := bsClear;
+      FCtx.Canvas.Polyline(ScreenPts);
+    end;
   end;
 end;
 
@@ -3409,6 +3677,9 @@ var
   FillCounts: array[0..0] of Integer;
   StrokeCounts: array[0..0] of Integer;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
+  Pen: GpPen;
+  Brush: GpSolidFill;
+  FillMode: Integer;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   PointsStr := AElement.GetAttribute('points');
@@ -3442,42 +3713,74 @@ begin
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
 
-  if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+  if FUseGDIP then
   begin
-    SetLength(FillPts, Count);
-    for I := 0 to Count - 1 do
-      FillPts[I] := ScreenPts[I];
-    FillCounts[0] := Count;
-    if FillAlpha < 1.0 then
-      FillPolyPolygonWithAlpha(FCtx.Canvas, FillPts, FillCounts, 1,
-        FCtx.Style.FillColor, FillAlpha, FCtx.Style.FillRule)
-    else
-    begin
-      SetupGDIBrush;
-      FCtx.Canvas.Pen.Style := psClear;
-      if FCtx.Style.FillRule = sfrEvenOdd then
-        SetPolyFillMode(FCtx.Canvas.Handle, ALTERNATE)
-      else
-        SetPolyFillMode(FCtx.Canvas.Handle, WINDING);
-      Windows.Polygon(FCtx.Canvas.Handle, FillPts[0], Count);
-    end;
-  end;
+    FillMode := FillModeWinding;
+    if FCtx.Style.FillRule = sfrEvenOdd then
+      FillMode := FillModeAlternate;
 
-  if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
-  begin
-    SetLength(ClosedPts, Count + 1);
-    for I := 0 to Count - 1 do
-      ClosedPts[I] := ScreenPts[I];
-    ClosedPts[Count] := ScreenPts[0];
-    StrokeCounts[0] := Count + 1;
-    if StrokeAlpha < 1.0 then
-      StrokePolyPointsWithAlpha(FCtx.Canvas, ClosedPts, StrokeCounts, 1,
-        FCtx.Style.StrokeColor, StrokeAlpha)
-    else
+    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
     begin
-      SetupGDIPen;
-      FCtx.Canvas.Brush.Style := bsClear;
-      Windows.Polyline(FCtx.Canvas.Handle, ClosedPts[0], Count + 1);
+      Brush := CreateGDIPPBrush;
+      if Brush <> nil then
+      begin
+        GdipFillPolygonI(FGDIPGraphics, Brush, @ScreenPts[0], Count, FillMode);
+        GdipDeleteBrush(Brush);
+      end;
+    end;
+    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+    begin
+      SetLength(ClosedPts, Count + 1);
+      for I := 0 to Count - 1 do
+        ClosedPts[I] := ScreenPts[I];
+      ClosedPts[Count] := ScreenPts[0];
+      Pen := CreateGDIPPPen;
+      if Pen <> nil then
+      begin
+        GdipDrawLinesI(FGDIPGraphics, Pen, @ClosedPts[0], Count + 1);
+        GdipDeletePen(Pen);
+      end;
+    end;
+  end
+  else
+  begin
+    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    begin
+      SetLength(FillPts, Count);
+      for I := 0 to Count - 1 do
+        FillPts[I] := ScreenPts[I];
+      FillCounts[0] := Count;
+      if FillAlpha < 1.0 then
+        FillPolyPolygonWithAlpha(FCtx.Canvas, FillPts, FillCounts, 1,
+          FCtx.Style.FillColor, FillAlpha, FCtx.Style.FillRule)
+      else
+      begin
+        SetupGDIBrush;
+        FCtx.Canvas.Pen.Style := psClear;
+        if FCtx.Style.FillRule = sfrEvenOdd then
+          SetPolyFillMode(FCtx.Canvas.Handle, ALTERNATE)
+        else
+          SetPolyFillMode(FCtx.Canvas.Handle, WINDING);
+        Windows.Polygon(FCtx.Canvas.Handle, FillPts[0], Count);
+      end;
+    end;
+
+    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+    begin
+      SetLength(ClosedPts, Count + 1);
+      for I := 0 to Count - 1 do
+        ClosedPts[I] := ScreenPts[I];
+      ClosedPts[Count] := ScreenPts[0];
+      StrokeCounts[0] := Count + 1;
+      if StrokeAlpha < 1.0 then
+        StrokePolyPointsWithAlpha(FCtx.Canvas, ClosedPts, StrokeCounts, 1,
+          FCtx.Style.StrokeColor, StrokeAlpha)
+      else
+      begin
+        SetupGDIPen;
+        FCtx.Canvas.Brush.Style := bsClear;
+        Windows.Polyline(FCtx.Canvas.Handle, ClosedPts[0], Count + 1);
+      end;
     end;
   end;
 end;
@@ -3661,6 +3964,20 @@ var
   ScreenPts: array of TPoint;
   PolyCounts: array of Integer;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
+
+  // GDI+ 路径渲染专用变量
+  GDIPPath: GpPath;
+  GDIPPBrush: GpSolidFill;
+  GDIPPPen: GpPen;
+  // 变换后的浮点坐标，保留亚像素精度
+  SCurX, SCurY, SStartX, SStartY: Single;
+  SX1, SY1, SX2, SY2, SX3, SY3, SX4, SY4: Single;
+  // 二次贝塞尔升级为三次的中间变量
+  QCP1X, QCP1Y, QCP2X, QCP2Y: Single;
+  // 弧线的点数组
+  ArcPts: TList;
+  ArcPt: PPoint;
+  FillMode: Integer;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   D := Trim(AElement.GetAttribute('d'));
@@ -3670,7 +3987,20 @@ begin
   SubPaths := TList.Create;
   CurSub   := nil;
   CurX := 0; CurY := 0; StartX := 0; StartY := 0;
+  SCurX := 0; SCurY := 0; SStartX := 0; SStartY := 0;
   Segs := nil;
+
+  // GDI+ 路径初始化
+  GDIPPath := nil;
+  ArcPts := nil;
+  if FUseGDIP then
+  begin
+    FillMode := FillModeWinding;
+    if FCtx.Style.FillRule = sfrEvenOdd then
+      FillMode := FillModeAlternate;
+    GdipCreatePath(FillMode, GDIPPath);
+    ArcPts := TList.Create;
+  end;
 
   try
     Segs := Parser.ParsePathData(D);
@@ -3681,149 +4011,312 @@ begin
       case Seg^.SegType of
         pstMoveTo:
         begin
-          if (CurSub <> nil) and (CurSub.Count > 0) then
-            SubPaths.Add(CurSub)
-          else if CurSub <> nil then
-            CurSub.Free;
-          CurSub := TList.Create;
-          CurX := Seg^.X; CurY := Seg^.Y;
-          StartX := CurX; StartY := CurY;
-          TX := CurX; TY := CurY;
-          SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-          New(Pt); Pt^.X := Round(TX); Pt^.Y := Round(TY);
-          CurSub.Add(Pt);
+          if not FUseGDIP then
+          begin
+            // GDI 路径：将点添加到 CurSub
+            if (CurSub <> nil) and (CurSub.Count > 0) then
+              SubPaths.Add(CurSub)
+            else if CurSub <> nil then
+              CurSub.Free;
+            CurSub := TList.Create;
+            CurX := Seg^.X; CurY := Seg^.Y;
+            StartX := CurX; StartY := CurY;
+            TX := CurX; TY := CurY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            New(Pt); Pt^.X := Round(TX); Pt^.Y := Round(TY);
+            CurSub.Add(Pt);
+          end
+          else
+          begin
+            // GDI+ 路径：开始新的 figure
+            CurX := Seg^.X; CurY := Seg^.Y;
+            StartX := CurX; StartY := CurY;
+            TX := CurX; TY := CurY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SCurX := TX; SCurY := TY;
+            SStartX := SCurX; SStartY := SCurY;
+            if GDIPPath <> nil then
+              GdipStartPathFigure(GDIPPath);
+          end;
         end;
         pstLineTo, pstHLineTo, pstVLineTo:
         begin
-          if CurSub = nil then CurSub := TList.Create;
-          CurX := Seg^.X; CurY := Seg^.Y;
-          TX := CurX; TY := CurY;
-          SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-          New(Pt); Pt^.X := Round(TX); Pt^.Y := Round(TY);
-          CurSub.Add(Pt);
+          if not FUseGDIP then
+          begin
+            if CurSub = nil then CurSub := TList.Create;
+            CurX := Seg^.X; CurY := Seg^.Y;
+            TX := CurX; TY := CurY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            New(Pt); Pt^.X := Round(TX); Pt^.Y := Round(TY);
+            CurSub.Add(Pt);
+          end
+          else
+          begin
+            CurX := Seg^.X; CurY := Seg^.Y;
+            TX := CurX; TY := CurY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX2 := TX; SY2 := TY;
+            if GDIPPath <> nil then
+              GdipAddPathLine(GDIPPath, SCurX, SCurY, SX2, SY2);
+            SCurX := SX2; SCurY := SY2;
+          end;
         end;
         pstCubicBezier, pstSmoothCubic:
         begin
-          if CurSub = nil then CurSub := TList.Create;
-          SVGSubdivideCubic(CurX, CurY, Seg^.X1, Seg^.Y1,
-            Seg^.X2, Seg^.Y2, Seg^.X, Seg^.Y, FCtx.CTM, CurSub, 0);
-          CurX := Seg^.X; CurY := Seg^.Y;
+          if not FUseGDIP then
+          begin
+            if CurSub = nil then CurSub := TList.Create;
+            SVGSubdivideCubic(CurX, CurY, Seg^.X1, Seg^.Y1,
+              Seg^.X2, Seg^.Y2, Seg^.X, Seg^.Y, FCtx.CTM, CurSub, 0);
+            CurX := Seg^.X; CurY := Seg^.Y;
+          end
+          else
+          begin
+            // GDI+ 原生三次贝塞尔，保留亚像素精度
+            TX := CurX; TY := CurY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX1 := TX; SY1 := TY;
+            TX := Seg^.X1; TY := Seg^.Y1;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX2 := TX; SY2 := TY;
+            TX := Seg^.X2; TY := Seg^.Y2;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX3 := TX; SY3 := TY;
+            TX := Seg^.X; TY := Seg^.Y;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX4 := TX; SY4 := TY;
+            if GDIPPath <> nil then
+              GdipAddPathBezier(GDIPPath, SX1, SY1, SX2, SY2, SX3, SY3, SX4, SY4);
+            CurX := Seg^.X; CurY := Seg^.Y;
+            SCurX := SX4; SCurY := SY4;
+          end;
         end;
         pstQuadBezier, pstSmoothQuad:
         begin
-          if CurSub = nil then CurSub := TList.Create;
-          SVGSubdivideQuad(CurX, CurY, Seg^.X1, Seg^.Y1,
-            Seg^.X, Seg^.Y, FCtx.CTM, CurSub, 0);
-          CurX := Seg^.X; CurY := Seg^.Y;
+          if not FUseGDIP then
+          begin
+            if CurSub = nil then CurSub := TList.Create;
+            SVGSubdivideQuad(CurX, CurY, Seg^.X1, Seg^.Y1,
+              Seg^.X, Seg^.Y, FCtx.CTM, CurSub, 0);
+            CurX := Seg^.X; CurY := Seg^.Y;
+          end
+          else
+          begin
+            // 二次贝塞尔升级为三次：CP1 = P0 + 2/3*(P1-P0), CP2 = P3 + 2/3*(P1-P3)
+            TX := CurX; TY := CurY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX1 := TX; SY1 := TY;
+            TX := Seg^.X1; TY := Seg^.Y1;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX2 := TX; SY2 := TY;
+            TX := Seg^.X; TY := Seg^.Y;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            SX4 := TX; SY4 := TY;
+            QCP1X := SX1 + 2 / 3 * (SX2 - SX1);
+            QCP1Y := SY1 + 2 / 3 * (SY2 - SY1);
+            QCP2X := SX4 + 2 / 3 * (SX2 - SX4);
+            QCP2Y := SY4 + 2 / 3 * (SY2 - SY4);
+            if GDIPPath <> nil then
+              GdipAddPathBezier(GDIPPath, SX1, SY1, QCP1X, QCP1Y, QCP2X, QCP2Y, SX4, SY4);
+            CurX := Seg^.X; CurY := Seg^.Y;
+            SCurX := SX4; SCurY := SY4;
+          end;
         end;
         pstArc:
         begin
-          if CurSub = nil then CurSub := TList.Create;
-          SVGArcToPoints(CurX, CurY, Seg^.X, Seg^.Y,
-            Seg^.RX, Seg^.RY, Seg^.XRotation,
-            Seg^.LargeArc, Seg^.Sweep, FCtx.CTM, CurSub);
-          CurX := Seg^.X; CurY := Seg^.Y;
+          if not FUseGDIP then
+          begin
+            if CurSub = nil then CurSub := TList.Create;
+            SVGArcToPoints(CurX, CurY, Seg^.X, Seg^.Y,
+              Seg^.RX, Seg^.RY, Seg^.XRotation,
+              Seg^.LargeArc, Seg^.Sweep, FCtx.CTM, CurSub);
+            CurX := Seg^.X; CurY := Seg^.Y;
+          end
+          else
+          begin
+            // 弧线：仍用离散点，以折线形式添加到 GDI+ 路径
+            ArcPts.Clear;
+            SVGArcToPoints(CurX, CurY, Seg^.X, Seg^.Y,
+              Seg^.RX, Seg^.RY, Seg^.XRotation,
+              Seg^.LargeArc, Seg^.Sweep, FCtx.CTM, ArcPts);
+            // 将离散点添加为折线段
+            if (ArcPts.Count > 0) and (GDIPPath <> nil) then
+            begin
+              // 从当前点连线到弧线的第一个点
+              ArcPt := PPoint(ArcPts[0]);
+              GdipAddPathLine(GDIPPath, SCurX, SCurY, ArcPt^.X, ArcPt^.Y);
+              // 依次连线
+              for J := 1 to ArcPts.Count - 1 do
+              begin
+                ArcPt := PPoint(ArcPts[J - 1]);
+                SX1 := ArcPt^.X; SY1 := ArcPt^.Y;
+                ArcPt := PPoint(ArcPts[J]);
+                SX2 := ArcPt^.X; SY2 := ArcPt^.Y;
+                GdipAddPathLine(GDIPPath, SX1, SY1, SX2, SY2);
+              end;
+              // 更新当前位置
+              ArcPt := PPoint(ArcPts[ArcPts.Count - 1]);
+              SCurX := ArcPt^.X; SCurY := ArcPt^.Y;
+            end;
+            // 释放弧线点
+            for J := 0 to ArcPts.Count - 1 do
+              Dispose(PPoint(ArcPts[J]));
+            ArcPts.Clear;
+            CurX := Seg^.X; CurY := Seg^.Y;
+          end;
         end;
         pstClosePath:
         begin
-          if CurSub = nil then CurSub := TList.Create;
-          // add start point to close the subpath
-          TX := StartX; TY := StartY;
-          SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-          New(Pt); Pt^.X := Round(TX); Pt^.Y := Round(TY);
-          CurSub.Add(Pt);
-          SubPaths.Add(CurSub);
-          CurSub := nil;
-          CurX := StartX; CurY := StartY;
+          if not FUseGDIP then
+          begin
+            if CurSub = nil then CurSub := TList.Create;
+            TX := StartX; TY := StartY;
+            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
+            New(Pt); Pt^.X := Round(TX); Pt^.Y := Round(TY);
+            CurSub.Add(Pt);
+            SubPaths.Add(CurSub);
+            CurSub := nil;
+            CurX := StartX; CurY := StartY;
+          end
+          else
+          begin
+            if GDIPPath <> nil then
+              GdipClosePathFigure(GDIPPath);
+            CurX := StartX; CurY := StartY;
+            SCurX := SStartX; SCurY := SStartY;
+          end;
         end;
       end;
     end;
-    // save last open subpath
-    if (CurSub <> nil) and (CurSub.Count > 0) then
-      SubPaths.Add(CurSub)
-    else if CurSub <> nil then
-      CurSub.Free;
+
+    // 保存最后一个未闭合子路径
+    if not FUseGDIP then
+    begin
+      if (CurSub <> nil) and (CurSub.Count > 0) then
+        SubPaths.Add(CurSub)
+      else if CurSub <> nil then
+        CurSub.Free;
+    end;
 
     FillAlpha := EffectiveFillAlpha;
     StrokeAlpha := EffectiveStrokeAlpha;
 
-    // --- FILL ---
-    if (not FCtx.Style.FillNone) and (FillAlpha > 0) and (SubPaths.Count > 0) then
+    // ── GDI+ 渲染 ──
+    if FUseGDIP and (GDIPPath <> nil) then
     begin
-      // Build flat ScreenPts + PolyCounts for PolyPolygon
-      TotalPts := 0;
-      for I := 0 to SubPaths.Count - 1 do
-        Inc(TotalPts, TList(SubPaths[I]).Count);
-      SetLength(ScreenPts, TotalPts);
-      SetLength(PolyCounts, SubPaths.Count);
-      K := 0;
-      for I := 0 to SubPaths.Count - 1 do
+      // FILL
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
       begin
-        SubList := TList(SubPaths[I]);
-        PolyCounts[I] := SubList.Count;
-        for J := 0 to SubList.Count - 1 do
+        GDIPPBrush := CreateGDIPPBrush;
+        if GDIPPBrush <> nil then
         begin
-          ScreenPts[K] := PPoint(SubList[J])^;
-          Inc(K);
+          GdipFillPath(FGDIPGraphics, GDIPPBrush, GDIPPath);
+          GdipDeleteBrush(GDIPPBrush);
         end;
       end;
-      if TotalPts > 0 then
+      // STROKE
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
       begin
-        if FillAlpha < 1.0 then
-          FillPolyPolygonWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, SubPaths.Count,
-            FCtx.Style.FillColor, FillAlpha, FCtx.Style.FillRule)
-        else
+        GDIPPPen := CreateGDIPPPen;
+        if GDIPPPen <> nil then
         begin
-          SetupGDIBrush;
-          FCtx.Canvas.Pen.Style := psClear;
-          if FCtx.Style.FillRule = sfrEvenOdd then
-            SetPolyFillMode(FCtx.Canvas.Handle, ALTERNATE)
-          else
-            SetPolyFillMode(FCtx.Canvas.Handle, WINDING);
-          Windows.PolyPolygon(FCtx.Canvas.Handle, ScreenPts[0],
-            PolyCounts[0], SubPaths.Count);
+          GdipDrawPath(FGDIPGraphics, GDIPPPen, GDIPPath);
+          GdipDeletePen(GDIPPPen);
         end;
       end;
-    end;
-
-    // --- STROKE ---
-    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+    end
+    else
     begin
-      TotalPts := 0;
-      for I := 0 to SubPaths.Count - 1 do
-        Inc(TotalPts, TList(SubPaths[I]).Count);
-      SetLength(ScreenPts, TotalPts);
-      SetLength(PolyCounts, SubPaths.Count);
-      K := 0;
-      for I := 0 to SubPaths.Count - 1 do
-      begin
-        SubList := TList(SubPaths[I]);
-        PolyCounts[I] := SubList.Count;
-        for J := 0 to SubList.Count - 1 do
-        begin
-          ScreenPts[K] := PPoint(SubList[J])^;
-          Inc(K);
-        end;
-      end;
+      // ── 纯 GDI 渲染（原逻辑不变） ──
 
-      if StrokeAlpha < 1.0 then
-        StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, SubPaths.Count,
-          FCtx.Style.StrokeColor, StrokeAlpha)
-      else
+      // --- FILL ---
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) and (SubPaths.Count > 0) then
       begin
-        SetupGDIPen;
-        FCtx.Canvas.Brush.Style := bsClear;
+        TotalPts := 0;
+        for I := 0 to SubPaths.Count - 1 do
+          Inc(TotalPts, TList(SubPaths[I]).Count);
+        SetLength(ScreenPts, TotalPts);
+        SetLength(PolyCounts, SubPaths.Count);
         K := 0;
         for I := 0 to SubPaths.Count - 1 do
         begin
-          if PolyCounts[I] >= 2 then
-            Windows.Polyline(FCtx.Canvas.Handle, ScreenPts[K], PolyCounts[I]);
-          Inc(K, PolyCounts[I]);
+          SubList := TList(SubPaths[I]);
+          PolyCounts[I] := SubList.Count;
+          for J := 0 to SubList.Count - 1 do
+          begin
+            ScreenPts[K] := PPoint(SubList[J])^;
+            Inc(K);
+          end;
+        end;
+        if TotalPts > 0 then
+        begin
+          if FillAlpha < 1.0 then
+            FillPolyPolygonWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, SubPaths.Count,
+              FCtx.Style.FillColor, FillAlpha, FCtx.Style.FillRule)
+          else
+          begin
+            SetupGDIBrush;
+            FCtx.Canvas.Pen.Style := psClear;
+            if FCtx.Style.FillRule = sfrEvenOdd then
+              SetPolyFillMode(FCtx.Canvas.Handle, ALTERNATE)
+            else
+              SetPolyFillMode(FCtx.Canvas.Handle, WINDING);
+            Windows.PolyPolygon(FCtx.Canvas.Handle, ScreenPts[0],
+              PolyCounts[0], SubPaths.Count);
+          end;
+        end;
+      end;
+
+      // --- STROKE ---
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+      begin
+        TotalPts := 0;
+        for I := 0 to SubPaths.Count - 1 do
+          Inc(TotalPts, TList(SubPaths[I]).Count);
+        SetLength(ScreenPts, TotalPts);
+        SetLength(PolyCounts, SubPaths.Count);
+        K := 0;
+        for I := 0 to SubPaths.Count - 1 do
+        begin
+          SubList := TList(SubPaths[I]);
+          PolyCounts[I] := SubList.Count;
+          for J := 0 to SubList.Count - 1 do
+          begin
+            ScreenPts[K] := PPoint(SubList[J])^;
+            Inc(K);
+          end;
+        end;
+
+        if StrokeAlpha < 1.0 then
+          StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, SubPaths.Count,
+            FCtx.Style.StrokeColor, StrokeAlpha)
+        else
+        begin
+          SetupGDIPen;
+          FCtx.Canvas.Brush.Style := bsClear;
+          K := 0;
+          for I := 0 to SubPaths.Count - 1 do
+          begin
+            if PolyCounts[I] >= 2 then
+              Windows.Polyline(FCtx.Canvas.Handle, ScreenPts[K], PolyCounts[I]);
+            Inc(K, PolyCounts[I]);
+          end;
         end;
       end;
     end;
 
   finally
+    // 释放 GDI+ Path
+    if GDIPPath <> nil then
+      GdipDeletePath(GDIPPath);
+    if ArcPts <> nil then
+    begin
+      for I := 0 to ArcPts.Count - 1 do
+        Dispose(PPoint(ArcPts[I]));
+      ArcPts.Free;
+    end;
+
+    // 释放 GDI 数据结构
     if Segs <> nil then
     begin
       for I := 0 to Segs.Count - 1 do
