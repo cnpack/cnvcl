@@ -2973,6 +2973,8 @@ var
   IsObjBBox: Boolean;
   Dx, Dy, LenSq, MinT, MaxT, T: TCnSVGFloat;
   NeedExtend: Boolean;
+  ColorsPtr: PGPColor;
+  P: PGPColor;
 begin
   Result := nil;
   if FCtx.Style.FillNone then Exit;
@@ -3181,16 +3183,32 @@ begin
             if Assigned(GdipSetPathGradientCenterColor) then
               GdipSetPathGradientCenterColor(Result, C1);
             Count := 0;
-            if Assigned(GdipGetPathGradientSurroundColorsCount) then
-              GdipGetPathGradientSurroundColorsCount(Result, @Count);
+            if Assigned(GdipGetPathPointCount) then
+              GdipGetPathPointCount(Path, Count);
+            if Count <= 0 then
+            begin
+              if Assigned(GdipGetPathGradientSurroundColorsCount) then
+                GdipGetPathGradientSurroundColorsCount(Result, @Count);
+            end;
             if Count <= 0 then
               Count := 1;
-            if Count > 255 then
-              Count := 255;
-            for I := 0 to Count - 1 do
-              Colors[I] := C2;
-            if Assigned(GdipSetPathGradientSurroundColors) then
-              GdipSetPathGradientSurroundColors(Result, @Colors, @Count);
+            if Count > 0 then
+            begin
+              GetMem(ColorsPtr, Count * SizeOf(Cardinal));
+              try
+                P := ColorsPtr;
+                for I := 0 to Count - 1 do
+                begin
+                  P^ := C2;
+                  Inc(P);
+                end;
+                if Assigned(GdipSetPathGradientSurroundColors) then
+                  GdipSetPathGradientSurroundColors(Result, ColorsPtr, @Count);
+              finally
+                FreeMem(ColorsPtr);
+                ColorsPtr := nil;
+              end;
+            end;
             CenterPt.X := X1; CenterPt.Y := Y1;
             if Assigned(GdipSetPathGradientCenterPoint) then
               GdipSetPathGradientCenterPoint(Result, @CenterPt);

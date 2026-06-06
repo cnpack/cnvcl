@@ -438,6 +438,12 @@ type
   TGdipGetSmoothingMode = function(Graphic: GPGRAPHICS; var Sm: TSmoothingMode):
     GPSTATUS; stdcall;
 
+  TGdipSetPixelOffsetMode = function(Graphic: GPGRAPHICS;
+    Mode: Integer): GPSTATUS; stdcall;
+
+  TGdipSetTextContrast = function(Graphic: GPGRAPHICS;
+    Contrast: Integer): GPSTATUS; stdcall;
+
   TGdipSaveGraphics = function(Graphic: GPGRAPHICS; var State: Cardinal):
     GPSTATUS; stdcall;
 
@@ -631,6 +637,17 @@ type
   TGdipSetTextRenderingHint = function(Graphics: GPGRAPHICS;
     Mode: Integer): GPSTATUS; stdcall;
 
+  //---------- FontFamily ----------
+  TGdipCreateFontFamilyFromName = function(Name: PWideChar;
+    FontCollection: Pointer; out FontFamily: Pointer): GPSTATUS; stdcall;
+
+  TGdipDeleteFontFamily = function(FontFamily: Pointer): GPSTATUS; stdcall;
+
+  //---------- Path ----------
+  TGdipAddPathString = function(Path: GPPATH; Str: PWideChar;
+    Length: Integer; Family: Pointer; EmSize: Single; Style: Integer;
+    LayoutRect: Pointer; Format: GPSTRINGFORMAT): GPSTATUS; stdcall;
+
   //---------- Matrix 矩阵 ----------
   TGdipCreateMatrix = function(out Matrix: GPMATRIX): GPSTATUS; stdcall;
 
@@ -723,6 +740,8 @@ var
   GdipDeleteGraphics: TGdipDeleteGraphics = nil;
   GdipSetSmoothingMode: TGdipSetSmoothingMode = nil;
   GdipGetSmoothingMode: TGdipGetSmoothingMode = nil;
+  GdipSetPixelOffsetMode: TGdipSetPixelOffsetMode = nil;
+  GdipSetTextContrast: TGdipSetTextContrast = nil;
   GdipSaveGraphics: TGdipSaveGraphics = nil;
   GdipRestoreGraphics: TGdipRestoreGraphics = nil;
   GdipSetWorldTransform: TGdipSetWorldTransform = nil;
@@ -833,6 +852,9 @@ var
   GdipDrawString: TGdipDrawString = nil;
   GdipMeasureString: TGdipMeasureString = nil;
   GdipSetTextRenderingHint: TGdipSetTextRenderingHint = nil;
+  GdipCreateFontFamilyFromName: TGdipCreateFontFamilyFromName = nil;
+  GdipDeleteFontFamily: TGdipDeleteFontFamily = nil;
+  GdipAddPathString: TGdipAddPathString = nil;
 
 {$ENDIF}
 
@@ -1464,6 +1486,8 @@ initialization
     GdipDeleteGraphics := TGdipDeleteGraphics(GetProcAddress(GdiPlusHandle, 'GdipDeleteGraphics'));
     GdipSetSmoothingMode := TGdipSetSmoothingMode(GetProcAddress(GdiPlusHandle, 'GdipSetSmoothingMode'));
     GdipGetSmoothingMode := TGdipGetSmoothingMode(GetProcAddress(GdiPlusHandle, 'GdipGetSmoothingMode'));
+    GdipSetPixelOffsetMode := TGdipSetPixelOffsetMode(GetProcAddress(GdiPlusHandle, 'GdipSetPixelOffsetMode'));
+    GdipSetTextContrast := TGdipSetTextContrast(GetProcAddress(GdiPlusHandle, 'GdipSetTextContrast'));
     GdipSaveGraphics := TGdipSaveGraphics(GetProcAddress(GdiPlusHandle, 'GdipSaveGraphics'));
     GdipRestoreGraphics := TGdipRestoreGraphics(GetProcAddress(GdiPlusHandle, 'GdipRestoreGraphics'));
     GdipSetWorldTransform := TGdipSetWorldTransform(GetProcAddress(GdiPlusHandle, 'GdipSetWorldTransform'));
@@ -1575,6 +1599,11 @@ initialization
     GdipDrawString := TGdipDrawString(GetProcAddress(GdiPlusHandle, 'GdipDrawString'));
     GdipMeasureString := TGdipMeasureString(GetProcAddress(GdiPlusHandle, 'GdipMeasureString'));
     GdipSetTextRenderingHint := TGdipSetTextRenderingHint(GetProcAddress(GdiPlusHandle, 'GdipSetTextRenderingHint'));
+
+    //---------- FontFamily & Path ----------
+    GdipCreateFontFamilyFromName := TGdipCreateFontFamilyFromName(GetProcAddress(GdiPlusHandle, 'GdipCreateFontFamilyFromName'));
+    GdipDeleteFontFamily := TGdipDeleteFontFamily(GetProcAddress(GdiPlusHandle, 'GdipDeleteFontFamily'));
+    GdipAddPathString := TGdipAddPathString(GetProcAddress(GdiPlusHandle, 'GdipAddPathString'));
 
     // ── 第三步：关键函数指针完整性检查 ──
     // 任何一个核心函数为 nil 说明 DLL 版本不匹配或损坏，
