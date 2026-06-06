@@ -696,6 +696,9 @@ type
   TGdipSetPathGradientSurroundColors = function(PathGradient: GPBRUSH;
     Colors: PGPColor; Count: PInteger): GPSTATUS; stdcall;
 
+  TGdipSetPathGradientPresetBlend = function(PathGradient: GPBRUSH;
+    Colors: PGPColor; Positions: PSingle; Count: Integer): GPSTATUS; stdcall;
+
   TGdipSetPathGradientCenterPoint = function(PathGradient: GPBRUSH;
     Point: Pointer): GPSTATUS; stdcall;
 
@@ -830,6 +833,7 @@ var
   GdipCreatePathGradient: TGdipCreatePathGradient = nil;
   GdipSetPathGradientCenterColor: TGdipSetPathGradientCenterColor = nil;
   GdipSetPathGradientSurroundColors: TGdipSetPathGradientSurroundColors = nil;
+  GdipSetPathGradientPresetBlend: TGdipSetPathGradientPresetBlend = nil;
   GdipSetPathGradientCenterPoint: TGdipSetPathGradientCenterPoint = nil;
   GdipGetPathGradientSurroundColorsCount: TGdipGetPathGradientSurroundColorsCount = nil;
 
@@ -1577,6 +1581,7 @@ initialization
     GdipCreatePathGradient := TGdipCreatePathGradient(GetProcAddress(GdiPlusHandle, 'GdipCreatePathGradient'));
     GdipSetPathGradientCenterColor := TGdipSetPathGradientCenterColor(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterColor'));
     GdipSetPathGradientSurroundColors := TGdipSetPathGradientSurroundColors(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientSurroundColors'));
+    GdipSetPathGradientPresetBlend := TGdipSetPathGradientPresetBlend(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientPresetBlend'));
     GdipSetPathGradientCenterPoint := TGdipSetPathGradientCenterPoint(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterPoint'));
     GdipGetPathGradientSurroundColorsCount := TGdipGetPathGradientSurroundColorsCount(GetProcAddress(GdiPlusHandle, 'GdipGetPathGradientSurroundColorsCount'));
 

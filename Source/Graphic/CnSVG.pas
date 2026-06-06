@@ -2967,8 +2967,9 @@ var
   Positions: array[0..255] of TCnSVGFloat;
   Path: GpPath;
   CenterPt: TGPRectF;
-  Count: Integer;
-  OuterColor: Cardinal;
+  Count, J: Integer;
+  CircPts: array[0..127] of Single;
+  Step, Angle: Double;
   GradUnits: string;
   IsObjBBox: Boolean;
   Dx, Dy, LenSq, MinT, MaxT, T: TCnSVGFloat;
@@ -3051,6 +3052,7 @@ begin
       end;
 
       NeedExtend := False;
+      MinT := 0; MaxT := 1;
       if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
       begin
         Dx := X2 - X1;
@@ -3058,7 +3060,6 @@ begin
         LenSq := Dx * Dx + Dy * Dy;
         if LenSq > 0 then
         begin
-          MinT := 0; MaxT := 1;
           T := ((FGradBBoxX - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
           if T < MinT then MinT := T; if T > MaxT then MaxT := T;
           T := ((FGradBBoxX + FGradBBoxW - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
@@ -3169,44 +3170,100 @@ begin
         Stops.Free;
       end;
 
-      if Assigned(GdipCreatePathGradientFromPath) then
+      Result := nil;
+      if Assigned(GdipCreatePathGradient) and (X2 > 0) then
       begin
-        // 创建圆形路径（用户坐标，世界变换处理映射）
+        J := 64;
+        FillChar(CircPts, SizeOf(CircPts), 0);
+        Step := 2 * Pi / J;
+        for I := 0 to J - 1 do
+        begin
+          Angle := I * Step;
+          CircPts[I * 2] := X1 + X2 * Cos(Angle);
+          CircPts[I * 2 + 1] := Y1 + X2 * Sin(Angle);
+        end;
+        if GdipCreatePathGradient(@CircPts, J, WrapModeClamp, Result) = Ok then
+        begin
+          if Assigned(GdipSetPathGradientPresetBlend) then
+          begin
+            Colors[0] := C1;
+            Colors[1] := C2;
+            Positions[0] := 0.0;
+            Positions[1] := 1.0;
+            GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
+          end
+          else
+          begin
+            if Assigned(GdipSetPathGradientCenterColor) then
+              GdipSetPathGradientCenterColor(Result, C1);
+            GetMem(ColorsPtr, J * SizeOf(Cardinal));
+            try
+              P := ColorsPtr;
+              for I := 0 to J - 1 do
+              begin
+                P^ := C2;
+                Inc(P);
+              end;
+              if Assigned(GdipSetPathGradientSurroundColors) then
+                GdipSetPathGradientSurroundColors(Result, ColorsPtr, @J);
+            finally
+              FreeMem(ColorsPtr);
+              ColorsPtr := nil;
+            end;
+          end;
+          CenterPt.X := X1; CenterPt.Y := Y1;
+          if Assigned(GdipSetPathGradientCenterPoint) then
+            GdipSetPathGradientCenterPoint(Result, @CenterPt);
+        end
+        else
+          Result := nil;
+      end;
+
+      // 方式B: 如果方式A失败，回退到路径方式
+      if (Result = nil) and Assigned(GdipCreatePathGradientFromPath) and (X2 > 0) then
+      begin
         Path := nil;
         GdipCreatePath(FillModeWinding, Path);
         if Path <> nil then
         begin
-          GdipAddPathEllipse(Path,
-            X1 - X2, Y1 - X2, X2 * 2, X2 * 2);
+          GdipAddPathEllipse(Path, X1 - X2, Y1 - X2, X2 * 2, X2 * 2);
           if GdipCreatePathGradientFromPath(Path, Result) = Ok then
           begin
-            if Assigned(GdipSetPathGradientCenterColor) then
-              GdipSetPathGradientCenterColor(Result, C1);
-            Count := 0;
-            if Assigned(GdipGetPathPointCount) then
-              GdipGetPathPointCount(Path, Count);
-            if Count <= 0 then
+            if Assigned(GdipSetPathGradientPresetBlend) then
             begin
+              Colors[0] := C1;
+              Colors[1] := C2;
+              Positions[0] := 0.0;
+              Positions[1] := 1.0;
+              GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
+            end
+            else
+            begin
+              if Assigned(GdipSetPathGradientCenterColor) then
+                GdipSetPathGradientCenterColor(Result, C1);
+              Count := 0;
               if Assigned(GdipGetPathGradientSurroundColorsCount) then
                 GdipGetPathGradientSurroundColorsCount(Result, @Count);
-            end;
-            if Count <= 0 then
-              Count := 1;
-            if Count > 0 then
-            begin
-              GetMem(ColorsPtr, Count * SizeOf(Cardinal));
-              try
-                P := ColorsPtr;
-                for I := 0 to Count - 1 do
-                begin
-                  P^ := C2;
-                  Inc(P);
+              if (Count <= 0) and Assigned(GdipGetPathPointCount) then
+              GdipGetPathPointCount(Path, Count);
+              if Count <= 0 then
+                Count := 64;
+              if Count > 0 then
+              begin
+                GetMem(ColorsPtr, Count * SizeOf(Cardinal));
+                try
+                  P := ColorsPtr;
+                  for I := 0 to Count - 1 do
+                  begin
+                    P^ := C2;
+                    Inc(P);
+                  end;
+                  if Assigned(GdipSetPathGradientSurroundColors) then
+                    GdipSetPathGradientSurroundColors(Result, ColorsPtr, @Count);
+                finally
+                  FreeMem(ColorsPtr);
+                  ColorsPtr := nil;
                 end;
-                if Assigned(GdipSetPathGradientSurroundColors) then
-                  GdipSetPathGradientSurroundColors(Result, ColorsPtr, @Count);
-              finally
-                FreeMem(ColorsPtr);
-                ColorsPtr := nil;
               end;
             end;
             CenterPt.X := X1; CenterPt.Y := Y1;
@@ -3311,6 +3368,7 @@ begin
       end;
 
       NeedExtend := False;
+      MinT := 0; MaxT := 1;
       if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
       begin
         Dx := X2 - X1;
@@ -3318,7 +3376,6 @@ begin
         LenSq := Dx * Dx + Dy * Dy;
         if LenSq > 0 then
         begin
-          MinT := 0; MaxT := 1;
           T := ((FGradBBoxX - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
           if T < MinT then MinT := T; if T > MaxT then MaxT := T;
           T := ((FGradBBoxX + FGradBBoxW - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
@@ -3421,7 +3478,6 @@ var
   CurX, CurY, StartX, StartY: Extended;
   QCP1X, QCP1Y, QCP2X, QCP2Y: Single;
   ArcPts: TList;
-  ArcPt: PPoint;
   J: Integer;
   CX, CY, CRX, CRY, CW, CH: TCnSVGFloat;
 begin
@@ -4048,7 +4104,6 @@ var
   Pen: GpPen;
   Brush: GpBrush;
   Path: GpPath;
-  R: TRect;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   X  := SVGAttrFloat(AElement, 'x', 0);
@@ -4868,6 +4923,7 @@ begin
   try
     Segs := Parser.ParsePathData(D);
     PathFirstSeg := True;
+    PathMinX := 0; PathMinY := 0; PathMaxX := 0; PathMaxY := 0;
 
     for I := 0 to Segs.Count - 1 do
     begin
