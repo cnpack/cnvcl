@@ -664,6 +664,9 @@ type
   TGdipSetLinePresetBlend = function(LineGradient: GPBRUSH;
     Colors: PGPColor; Positions: PSingle; Count: Integer): GPSTATUS; stdcall;
 
+  TGdipSetLineWrapMode = function(LineGradient: GPBRUSH;
+    WrapMode: Integer): GPSTATUS; stdcall;
+
   //---------- PathGradient Â·¾¶½¥±ä»­Ë¢ ----------
   TGdipCreatePathGradientFromPath = function(Path: GPPATH;
     out PathGradient: GPBRUSH): GPSTATUS; stdcall;
@@ -676,6 +679,9 @@ type
 
   TGdipSetPathGradientCenterPoint = function(PathGradient: GPBRUSH;
     Point: Pointer): GPSTATUS; stdcall;
+
+  TGdipGetPathGradientSurroundColorsCount = function(PathGradient: GPBRUSH;
+    Count: PInteger): GPSTATUS; stdcall;
 
   //---------- Clip ²Ã¼ô ----------
   TGdipSetClipPath = function(Graphics: GPGRAPHICS; Path: GPPATH;
@@ -792,6 +798,7 @@ var
   GdipSetLineColors: TGdipSetLineColors = nil;
   GdipSetLineBlend: TGdipSetLineBlend = nil;
   GdipSetLinePresetBlend: TGdipSetLinePresetBlend = nil;
+  GdipSetLineWrapMode: TGdipSetLineWrapMode = nil;
   GdipSetLineGammaCorrection: TGdipSetLineGammaCorrection = nil;
 
   //---------- PathGradient Â·¾¶½¥±ä»­Ë¢ ----------
@@ -799,6 +806,7 @@ var
   GdipSetPathGradientCenterColor: TGdipSetPathGradientCenterColor = nil;
   GdipSetPathGradientSurroundColors: TGdipSetPathGradientSurroundColors = nil;
   GdipSetPathGradientCenterPoint: TGdipSetPathGradientCenterPoint = nil;
+  GdipGetPathGradientSurroundColorsCount: TGdipGetPathGradientSurroundColorsCount = nil;
 
   //---------- Clip ²Ã¼ô ----------
   GdipSetClipPath: TGdipSetClipPath = nil;
@@ -1530,13 +1538,15 @@ initialization
     GdipSetLineColors := TGdipSetLineColors(GetProcAddress(GdiPlusHandle, 'GdipSetLineColors'));
     GdipSetLineBlend := TGdipSetLineBlend(GetProcAddress(GdiPlusHandle, 'GdipSetLineBlend'));
     GdipSetLinePresetBlend := TGdipSetLinePresetBlend(GetProcAddress(GdiPlusHandle, 'GdipSetLinePresetBlend'));
+    GdipSetLineWrapMode := TGdipSetLineWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetLineWrapMode'));
     GdipSetLineGammaCorrection := TGdipSetLineGammaCorrection(GetProcAddress(GdiPlusHandle, 'GdipSetLineGammaCorrection'));
 
     //---------- PathGradient Â·¾¶½¥±ä»­Ë¢£¨·ÇºËÐÄ£©----------
     GdipCreatePathGradientFromPath := TGdipCreatePathGradientFromPath(GetProcAddress(GdiPlusHandle, 'GdipCreatePathGradientFromPath'));
     GdipSetPathGradientCenterColor := TGdipSetPathGradientCenterColor(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterColor'));
     GdipSetPathGradientSurroundColors := TGdipSetPathGradientSurroundColors(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientSurroundColors'));
-    GdipSetPathGradientCenterPoint := TGdipSetPathGradientCenterPoint(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterPointI'));
+    GdipSetPathGradientCenterPoint := TGdipSetPathGradientCenterPoint(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterPoint'));
+    GdipGetPathGradientSurroundColorsCount := TGdipGetPathGradientSurroundColorsCount(GetProcAddress(GdiPlusHandle, 'GdipGetPathGradientSurroundColorsCount'));
 
     //---------- Clip ²Ã¼ô£¨·ÇºËÐÄ£©----------
     GdipSetClipPath := TGdipSetClipPath(GetProcAddress(GdiPlusHandle, 'GdipSetClipPath'));

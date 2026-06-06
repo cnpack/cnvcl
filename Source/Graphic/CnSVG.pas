@@ -2960,6 +2960,8 @@ var
   OuterColor: Cardinal;
   GradUnits: string;
   IsObjBBox: Boolean;
+  Dx, Dy, LenSq, MinT, MaxT, T: TCnSVGFloat;
+  NeedExtend: Boolean;
 begin
   Result := nil;
   if FCtx.Style.FillNone then Exit;
@@ -3035,15 +3037,47 @@ begin
         Stops.Free;
       end;
 
-      if Assigned(GdipCreateLineBrush) then
+      NeedExtend := False;
+      if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+      begin
+        Dx := X2 - X1;
+        Dy := Y2 - Y1;
+        LenSq := Dx * Dx + Dy * Dy;
+        if LenSq > 0 then
+        begin
+          MinT := 0; MaxT := 1;
+          T := ((FGradBBoxX - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          T := ((FGradBBoxX + FGradBBoxW - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          T := ((FGradBBoxX + FGradBBoxW - X1) * Dx + (FGradBBoxY + FGradBBoxH - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          T := ((FGradBBoxX - X1) * Dx + (FGradBBoxY + FGradBBoxH - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          NeedExtend := (MinT < 0) or (MaxT > 1);
+          if NeedExtend then
+          begin
+            GP1.X := X1 + MinT * Dx;  GP1.Y := Y1 + MinT * Dy;
+            GP2.X := X1 + MaxT * Dx;  GP2.Y := Y1 + MaxT * Dy;
+          end;
+        end;
+      end;
+      if not NeedExtend then
       begin
         GP1.X := X1; GP1.Y := Y1;
         GP2.X := X2; GP2.Y := Y2;
+      end;
+      X1 := GP1.X;  Y1 := GP1.Y;
+      X2 := GP2.X;  Y2 := GP2.Y;
+
+      if Assigned(GdipCreateLineBrush) then
+      begin
         if GdipCreateLineBrush(@GP1, @GP2, C1, C2, WrapModeTile, Result) <> Ok then
           Result := nil;
       end;
 
-      if (Result <> nil) and (Count > 2) and Assigned(GdipSetLinePresetBlend) then
+      if (Result <> nil) and Assigned(GdipSetLinePresetBlend) and
+         (NeedExtend or (Count > 2)) then
       begin
         Count := 0;
         for I := 0 to DefEl.ChildCount - 1 do
@@ -3058,6 +3092,8 @@ begin
             Positions[Count] := SVGAttrFloat(StopEl, 'offset', 0);
             if SVGAttrIsPercent(StopEl, 'offset') then
               Positions[Count] := Positions[Count] / 100;
+            if NeedExtend then
+              Positions[Count] := (Positions[Count] - MinT) / (MaxT - MinT);
             if Positions[Count] < 0 then Positions[Count] := 0;
             if Positions[Count] > 1 then Positions[Count] := 1;
             Inc(Count);
@@ -3133,10 +3169,17 @@ begin
           begin
             if Assigned(GdipSetPathGradientCenterColor) then
               GdipSetPathGradientCenterColor(Result, C1);
-            OuterColor := C2;
-            Count := 1;
+            Count := 0;
+            if Assigned(GdipGetPathGradientSurroundColorsCount) then
+              GdipGetPathGradientSurroundColorsCount(Result, @Count);
+            if Count > 0 then
+            begin
+              if Count > 255 then Count := 255;
+              for I := 0 to Count - 1 do
+                Colors[I] := C2;
             if Assigned(GdipSetPathGradientSurroundColors) then
-              GdipSetPathGradientSurroundColors(Result, @OuterColor, @Count);
+                GdipSetPathGradientSurroundColors(Result, @Colors, @Count);
+            end;
             CenterPt.X := X1; CenterPt.Y := Y1;
             if Assigned(GdipSetPathGradientCenterPoint) then
               GdipSetPathGradientCenterPoint(Result, @CenterPt);
@@ -3174,6 +3217,8 @@ var
   Positions: array[0..255] of TCnSVGFloat;
   GradUnits: string;
   IsObjBBox: Boolean;
+  Dx, Dy, LenSq, MinT, MaxT, T: TCnSVGFloat;
+  NeedExtend: Boolean;
 begin
   Result := nil;
   if FCtx.Style.StrokeNone then Exit;
@@ -3236,15 +3281,47 @@ begin
         Stops.Free;
       end;
 
-      if Assigned(GdipCreateLineBrush) then
+      NeedExtend := False;
+      if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+      begin
+        Dx := X2 - X1;
+        Dy := Y2 - Y1;
+        LenSq := Dx * Dx + Dy * Dy;
+        if LenSq > 0 then
+        begin
+          MinT := 0; MaxT := 1;
+          T := ((FGradBBoxX - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          T := ((FGradBBoxX + FGradBBoxW - X1) * Dx + (FGradBBoxY - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          T := ((FGradBBoxX + FGradBBoxW - X1) * Dx + (FGradBBoxY + FGradBBoxH - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          T := ((FGradBBoxX - X1) * Dx + (FGradBBoxY + FGradBBoxH - Y1) * Dy) / LenSq;
+          if T < MinT then MinT := T; if T > MaxT then MaxT := T;
+          NeedExtend := (MinT < 0) or (MaxT > 1);
+          if NeedExtend then
+          begin
+            GP1.X := X1 + MinT * Dx;  GP1.Y := Y1 + MinT * Dy;
+            GP2.X := X1 + MaxT * Dx;  GP2.Y := Y1 + MaxT * Dy;
+          end;
+        end;
+      end;
+      if not NeedExtend then
       begin
         GP1.X := X1; GP1.Y := Y1;
         GP2.X := X2; GP2.Y := Y2;
+      end;
+      X1 := GP1.X;  Y1 := GP1.Y;
+      X2 := GP2.X;  Y2 := GP2.Y;
+
+      if Assigned(GdipCreateLineBrush) then
+      begin
         if GdipCreateLineBrush(@GP1, @GP2, C1, C2, WrapModeTile, Result) <> Ok then
           Result := nil;
       end;
 
-      if (Result <> nil) and (Count > 2) and Assigned(GdipSetLinePresetBlend) then
+      if (Result <> nil) and Assigned(GdipSetLinePresetBlend) and
+         (NeedExtend or (Count > 2)) then
       begin
         Count := 0;
         for I := 0 to DefEl.ChildCount - 1 do
@@ -3259,6 +3336,8 @@ begin
             Positions[Count] := SVGAttrFloat(StopEl, 'offset', 0);
             if SVGAttrIsPercent(StopEl, 'offset') then
               Positions[Count] := Positions[Count] / 100;
+            if NeedExtend then
+              Positions[Count] := (Positions[Count] - MinT) / (MaxT - MinT);
             if Positions[Count] < 0 then Positions[Count] := 0;
             if Positions[Count] > 1 then Positions[Count] := 1;
             Inc(Count);
