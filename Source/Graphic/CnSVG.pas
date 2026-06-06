@@ -553,6 +553,7 @@ type
       AMaskBmp: TBitmap; SrcColor: TColor; Alpha: TCnSVGFloat);
     procedure AlphaBlendPixel(ACanvas: TCanvas; X, Y: Integer;
       SrcColor: TColor; Alpha: TCnSVGFloat);
+    {---- 以下为纯 GDI Alpha 模拟方法，GDI+ 模式下不使用 ----}
     procedure FillWithAlpha(ACanvas: TCanvas; const Pts: array of TPoint;
       FillColor: TCnSVGColor; Alpha: TCnSVGFloat);
     procedure FillPolyPolygonWithAlpha(ACanvas: TCanvas;
@@ -564,6 +565,7 @@ type
       PolyCount: Integer; StrokeColor: TCnSVGColor; Alpha: TCnSVGFloat);
     procedure RenderRectAlpha(const Bounds: TRect; RX, RY: Integer);
     procedure RenderEllipseAlpha(const Bounds: TRect);
+    {---- 以上为纯 GDI Alpha 模拟方法 ----}
     procedure RenderRect(AElement: TCnXMLElement);
     procedure RenderCircle(AElement: TCnXMLElement);
     procedure RenderEllipse(AElement: TCnXMLElement);
@@ -1066,6 +1068,10 @@ begin
     Result := V;
 end;
 
+function SVGReadNumberToken(const S: string; var P: Integer;
+  var Value: TCnSVGFloat): Boolean;
+forward;
+
 function SVGParseMiterLimit(const S: string): TCnSVGFloat;
 {* 解析 stroke-miterlimit 字符串，值 < 1.0 截断为 1.0，解析失败返回默认值 4.0。 }
 var
@@ -1090,15 +1096,14 @@ procedure SVGParseStyleAttr(El: TCnXMLElement; var Style: TCnSVGStyle;
    未能解析的属性静默忽略，不抛异常。 }
 var
   Attrs: TStringList;
-  I, J, EqPos: Integer;
+  I, J, P, EqPos: Integer;
   StyleStr, Part, Key, Val, LKey, LVal: string;
   C: TCnSVGColor;
   F: Extended;
   SWStr, SWTrimmed: string;
   DashStr: string;
-  DashParts: TStringList;
   DashIdx: Integer;
-  DashVal: Extended;
+  DashVal: TCnSVGFloat;
 begin
   if El = nil then Exit;
 
@@ -1338,31 +1343,23 @@ begin
         else
         begin
           // parse floats separated by spaces/commas into DashArray (max 8)
+          // Use SVGReadNumberToken for robust token-by-token parsing
+          // (avoids relying on TStringList line-split which fails for "4 4").
+          DashIdx := 0;
           DashStr := Val;
-          // replace commas with spaces
-          for J := 1 to Length(DashStr) do
-            if DashStr[J] = ',' then
-              DashStr[J] := ' ';
-          DashParts := TStringList.Create;
-          try
-            DashParts.Text := DashStr;
-            DashIdx := 0;
-            for J := 0 to DashParts.Count - 1 do
+          P := 1;
+          while P <= Length(DashStr) do
+          begin
+            if DashIdx >= 8 then Break;
+            if SVGReadNumberToken(DashStr, P, DashVal) then
             begin
-              if DashIdx >= 8 then Break;
-              DashStr := Trim(DashParts[J]);
-              if DashStr = '' then Continue;
-              try
-                DashVal := StrToFloat(DashStr);
-                Style.DashArray[DashIdx] := DashVal;
-                Inc(DashIdx);
-              except
-              end;
-            end;
-            Style.DashCount := DashIdx;
-          finally
-            DashParts.Free;
+              Style.DashArray[DashIdx] := DashVal;
+              Inc(DashIdx);
+            end
+            else
+              Break;
           end;
+          Style.DashCount := DashIdx;
         end;
       end
 
@@ -2442,6 +2439,9 @@ begin
     if GdipCreateFromHDC(ACanvas.Handle, FGDIPGraphics) = Ok then
     begin
       GdipSetSmoothingMode(FGDIPGraphics, SmoothingModeAntiAlias);
+      // 设置文字渲染质量：AntiAliasGridFit(3) 提供高质量反锯齿文字
+      if Assigned(GdipSetTextRenderingHint) then
+        GdipSetTextRenderingHint(FGDIPGraphics, 3);
       FUseGDIP := True;
     end;
   end;
@@ -2903,6 +2903,8 @@ begin
   ACanvas.Pixels[X, Y] := Windows.RGB(DR, DG, DB);
 end;
 
+{==== 纯 GDI Alpha 模拟方法：GDI+ 模式下不调用，仅作回退 ====}
+
 procedure TCnSVGRenderer.FillWithAlpha(ACanvas: TCanvas;
   const Pts: array of TPoint;
   FillColor: TCnSVGColor; Alpha: TCnSVGFloat);
@@ -3281,6 +3283,8 @@ begin
   end;
 end;
 
+{==== 纯 GDI Alpha 模拟方法结束 ====}
+
 procedure TCnSVGRenderer.RenderRect(AElement: TCnXMLElement);
 var
   X, Y, W, H, RX, RY: TCnSVGFloat;
@@ -3379,6 +3383,7 @@ begin
   end
   else
   begin
+    // 纯 GDI 渲染（含 Alpha 模拟）
     if (RX > 0) or (RY > 0) then
     begin
       SRX := UserLenToScreen(RX * 2);
@@ -3478,6 +3483,7 @@ begin
   end
   else
   begin
+    // 纯 GDI 渲染（含 Alpha 模拟）
     if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
       RenderEllipseAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y))
     else
@@ -3533,6 +3539,7 @@ begin
   end
   else
   begin
+    // 纯 GDI 渲染（含 Alpha 模拟）
     if (FillAlpha < 1.0) or (StrokeAlpha < 1.0) then
       RenderEllipseAlpha(Rect(P1.X, P1.Y, P2.X, P2.Y))
     else
@@ -3575,6 +3582,7 @@ begin
   end
   else
   begin
+    // 纯 GDI 渲染（含 Alpha 模拟）
     StrokePts[0] := P1;
     StrokePts[1] := P2;
     PolyCounts[0] := 2;
@@ -3651,6 +3659,7 @@ begin
   end
   else
   begin
+    // 纯 GDI 渲染（含 Alpha 模拟）
     PolyCounts[0] := Count;
     if StrokeAlpha < 1.0 then
       StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, 1,
@@ -3744,6 +3753,7 @@ begin
   end
   else
   begin
+    // 纯 GDI 渲染（含 Alpha 模拟）
     if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
     begin
       SetLength(FillPts, Count);
@@ -4227,7 +4237,7 @@ begin
     end
     else
     begin
-      // ── 纯 GDI 渲染（原逻辑不变） ──
+      // ── 纯 GDI 渲染（含 Alpha 模拟） ──
 
       // --- FILL ---
       if (not FCtx.Style.FillNone) and (FillAlpha > 0) and (SubPaths.Count > 0) then
@@ -4385,19 +4395,109 @@ var
   var
     Scr: TPoint;
     TW, TH, BX: Integer;
+    // GDI+ 文字渲染变量
+    LF: TLogFont;
+    GDIPFont: GpFont;
+    GDIPFmt: GpStringFormat;
+    GDIPBrush: GpSolidFill;
+    LayoutRect, MeasureRect, BBox: TGPRectF;
+    WStr: WideString;
   begin
     if S = '' then Exit;
     ApplyCanvasFontFromStyle(AStyle);
     Scr := UserToScreen(AX, AY);
-    TW  := FCtx.Canvas.TextWidth(S);
-    TH  := FCtx.Canvas.TextHeight(S);
-    // SVG y = baseline; GDI origin = top-left → shift up ~80% of height
-    case AStyle.TextAnchor of
-      staMiddle: BX := Scr.X - TW div 2;
-      staEnd:    BX := Scr.X - TW;
-    else         BX := Scr.X; // staStart
+
+    // GDI+ 文字渲染：需要所有文字相关函数可用
+    if FUseGDIP and Assigned(GdipCreateFontFromLogfontW) and
+       Assigned(GdipDrawString) and Assigned(GdipCreateStringFormat) then
+    begin
+      // 从 Canvas 当前字体获取 LOGFONT，创建 GDI+ 字体
+      GDIPFont := nil;
+      if GetObject(FCtx.Canvas.Font.Handle, SizeOf(LF), @LF) <> 0 then
+        GdipCreateFontFromLogfontW(FCtx.Canvas.Handle, @LF, GDIPFont);
+      if GDIPFont = nil then
+      begin
+        // 字体创建失败，回退 GDI
+        TW  := FCtx.Canvas.TextWidth(S);
+        TH  := FCtx.Canvas.TextHeight(S);
+        case AStyle.TextAnchor of
+          staMiddle: BX := Scr.X - TW div 2;
+          staEnd:    BX := Scr.X - TW;
+        else         BX := Scr.X;
+        end;
+        FCtx.Canvas.TextOut(BX, Scr.Y - Round(TH * 0.8), S);
+        Exit;
+      end;
+
+      // 创建字符串格式
+      GDIPFmt := nil;
+      GdipCreateStringFormat(0, 0, GDIPFmt);
+
+      // 创建画刷（使用填充色）
+      GDIPBrush := CreateGDIPPBrush;
+
+      try
+        // 用 GDI 测量高度（用于 baseline 定位），用 GDI+ MeasureString 测量宽度：
+        // GDI 的 Canvas.TextWidth 测的中文字符宽度偏小，按此计算的居中/右对齐
+        // 起点会让 GDI+ 渲染的实际文字偏右。改用 GDI+ 自己测的 BBox.Width。
+        WStr := S;
+        TH  := FCtx.Canvas.TextHeight(S);
+        TW  := Round(TH * Length(S) * 0.6); // 占位初值，若 GdipMeasureString 失败用此
+        if (GDIPFmt <> nil) and Assigned(GdipMeasureString) then
+        begin
+          // GDI+ 测布局矩形，文字实际宽度由 BBox.Width 给出
+          MeasureRect.X := 0; MeasureRect.Y := 0;
+          MeasureRect.Width := 100000; MeasureRect.Height := 100000;
+          if GdipMeasureString(FGDIPGraphics, PWideChar(WStr), Length(WStr),
+            GDIPFont, @MeasureRect, GDIPFmt, @BBox, nil, nil) = Ok then
+            TW := Round(BBox.Width);
+        end;
+
+        // 关键：GDI+ 的 HAlign 是相对 LayoutRect 内部对齐，不是相对画布。
+        // 因此 HAlign 永远 = Near，根据 SVG text-anchor 手动调整 LayoutRect.X，
+        // 这样文字起点就和 GDI 路径一致。
+        if GDIPFmt <> nil then
+        begin
+          GdipSetStringFormatAlign(GDIPFmt, 0); // StringAlignmentNear
+          if Assigned(GdipSetStringFormatLineAlign) then
+            GdipSetStringFormatLineAlign(GDIPFmt, 0);
+        end;
+
+        case AStyle.TextAnchor of
+          staMiddle: LayoutRect.X := Scr.X - TW div 2;
+          staEnd:    LayoutRect.X := Scr.X - TW;
+        else         LayoutRect.X := Scr.X; // staStart
+        end;
+        LayoutRect.Y      := Scr.Y - Round(TH * 0.8);
+        // LayoutRect.Width 远大于文字宽度，HAlign = Near 不会因宽度改变绘制起点。
+        // GDI+ 内部用 LayoutRect 决定是否换行裁剪，宽度大就不会换行。
+        LayoutRect.Width  := 100000;
+        LayoutRect.Height := 100000;
+
+        if GDIPBrush <> nil then
+          GdipDrawString(FGDIPGraphics, PWideChar(WStr), Length(WStr),
+            GDIPFont, @LayoutRect, GDIPFmt, GDIPBrush);
+      finally
+        if GDIPBrush <> nil then
+          GdipDeleteBrush(GDIPBrush);
+        if GDIPFmt <> nil then
+          GdipDeleteStringFormat(GDIPFmt);
+        GdipDeleteFont(GDIPFont);
+      end;
+    end
+    else
+    begin
+      // 纯 GDI 渲染
+      TW  := FCtx.Canvas.TextWidth(S);
+      TH  := FCtx.Canvas.TextHeight(S);
+      // SVG y = baseline; GDI origin = top-left → shift up ~80% of height
+      case AStyle.TextAnchor of
+        staMiddle: BX := Scr.X - TW div 2;
+        staEnd:    BX := Scr.X - TW;
+      else         BX := Scr.X; // staStart
+      end;
+      FCtx.Canvas.TextOut(BX, Scr.Y - Round(TH * 0.8), S);
     end;
-    FCtx.Canvas.TextOut(BX, Scr.Y - Round(TH * 0.8), S);
   end;
 
   function CalcAdvanceUser(const S: string): TCnSVGFloat;
@@ -4557,6 +4657,9 @@ var
   Tmp: Integer;
   NeedClip: Boolean;
   SavedDC: Integer;
+  // GDI+ 图片渲染变量
+  GDIPImage: GpImage;
+  WFileName: WideString;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then
     Exit;
@@ -4576,6 +4679,75 @@ begin
   if (FileName = '') or (not FileExists(FileName)) then
     Exit;
 
+  P1 := UserToScreen(X, Y);
+  P2 := UserToScreen(X + W, Y + H);
+  R := Rect(P1.X, P1.Y, P2.X, P2.Y);
+  if R.Left > R.Right then
+  begin
+    Tmp := R.Left;
+    R.Left := R.Right;
+    R.Right := Tmp;
+  end;
+  if R.Top > R.Bottom then
+  begin
+    Tmp := R.Top;
+    R.Top := R.Bottom;
+    R.Bottom := Tmp;
+  end;
+  BoundsRect := R;
+
+  PreserveAR := AElement.GetAttribute('preserveAspectRatio');
+  if PreserveAR = '' then
+    PreserveAR := 'xMidYMid meet';
+
+  // GDI+ 图片渲染：直接从文件加载，支持 PNG 透明通道，缩放质量更高
+  if FUseGDIP and Assigned(GdipLoadImageFromFile) and Assigned(GdipDrawImageRectI) then
+  begin
+    GDIPImage := nil;
+    WFileName := FileName;
+    if GdipLoadImageFromFile(PWideChar(WFileName), GDIPImage) = Ok then
+    begin
+      try
+        // GDI+ 不直接获取尺寸，用 TPicture 做辅助测量
+        Pic := TPicture.Create;
+        try
+          try
+            Pic.LoadFromFile(FileName);
+            ImgW := Pic.Width;
+            ImgH := Pic.Height;
+          except
+            ImgW := R.Right - R.Left;
+            ImgH := R.Bottom - R.Top;
+          end;
+        finally
+          Pic.Free;
+        end;
+
+        R := SVGCalcAlignedRect(R, ImgW, ImgH, PreserveAR, NeedClip);
+        if NeedClip then
+        begin
+          SavedDC := SaveDC(FCtx.Canvas.Handle);
+          try
+            IntersectClipRect(FCtx.Canvas.Handle, BoundsRect.Left, BoundsRect.Top,
+              BoundsRect.Right, BoundsRect.Bottom);
+            GdipDrawImageRectI(FGDIPGraphics, GDIPImage,
+              R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top);
+          finally
+            RestoreDC(FCtx.Canvas.Handle, SavedDC);
+          end;
+        end
+        else
+          GdipDrawImageRectI(FGDIPGraphics, GDIPImage,
+            R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top);
+      finally
+        GdipDisposeImage(GDIPImage);
+      end;
+      Exit;
+    end;
+    // GdipLoadImageFromFile 失败，回退 GDI
+  end;
+
+  // 纯 GDI 渲染
   Pic := TPicture.Create;
   try
     try
@@ -4586,29 +4758,9 @@ begin
     if Pic.Graphic = nil then
       Exit;
 
-    P1 := UserToScreen(X, Y);
-    P2 := UserToScreen(X + W, Y + H);
-    R := Rect(P1.X, P1.Y, P2.X, P2.Y);
-    if R.Left > R.Right then
-    begin
-      Tmp := R.Left;
-      R.Left := R.Right;
-      R.Right := Tmp;
-    end;
-    if R.Top > R.Bottom then
-    begin
-      Tmp := R.Top;
-      R.Top := R.Bottom;
-      R.Bottom := Tmp;
-    end;
-    BoundsRect := R;
-
-    PreserveAR := AElement.GetAttribute('preserveAspectRatio');
-    if PreserveAR = '' then
-      PreserveAR := 'xMidYMid meet';
     ImgW := Pic.Width;
     ImgH := Pic.Height;
-    R := SVGCalcAlignedRect(R, ImgW, ImgH, PreserveAR, NeedClip);
+    R := SVGCalcAlignedRect(BoundsRect, ImgW, ImgH, PreserveAR, NeedClip);
     if NeedClip then
     begin
       SavedDC := SaveDC(FCtx.Canvas.Handle);

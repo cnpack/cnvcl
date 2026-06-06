@@ -532,6 +532,9 @@ type
   TGdipCreateBitmapFromHBITMAP = function(hbm: HBITMAP; hpal: HPALETTE; out
     Bitmap: GPBITMAP): GPSTATUS; stdcall;
 
+  TGdipLoadImageFromFile = function(FileName: PWideChar;
+    out Image: GPIMAGE): GPSTATUS; stdcall;
+
   TGdipDisposeImage = function(Image: GPIMAGE): GPSTATUS; stdcall;
 
   TGdipDrawImageRect = function(Graphic: GPGRAPHICS; Image: GPIMAGE; x: Single;
@@ -657,8 +660,9 @@ var
   GdipFillPath: TGdipFillPath = nil;
   GdipDrawPath: TGdipDrawPath = nil;
 
-  //---------- Image/Bitmap ----------
+  //---------- Image/Bitmap（非核心，允许缺失）----------
   GdipCreateBitmapFromHBITMAP: TGdipCreateBitmapFromHBITMAP = nil;
+  GdipLoadImageFromFile: TGdipLoadImageFromFile = nil;
   GdipDisposeImage: TGdipDisposeImage = nil;
   GdipDrawImageRect: TGdipDrawImageRect = nil;
   GdipDrawImageRectI: TGdipDrawImageRectI = nil;
@@ -1368,8 +1372,9 @@ initialization
     GdipFillPath := TGdipFillPath(GetProcAddress(GdiPlusHandle, 'GdipFillPath'));
     GdipDrawPath := TGdipDrawPath(GetProcAddress(GdiPlusHandle, 'GdipDrawPath'));
 
-    //---------- Image/Bitmap ----------
+    //---------- Image/Bitmap（非核心）----------
     GdipCreateBitmapFromHBITMAP := TGdipCreateBitmapFromHBITMAP(GetProcAddress(GdiPlusHandle, 'GdipCreateBitmapFromHBITMAP'));
+    GdipLoadImageFromFile := TGdipLoadImageFromFile(GetProcAddress(GdiPlusHandle, 'GdipLoadImageFromFile'));
     GdipDisposeImage := TGdipDisposeImage(GetProcAddress(GdiPlusHandle, 'GdipDisposeImage'));
     GdipDrawImageRect := TGdipDrawImageRect(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRect'));
     GdipDrawImageRectI := TGdipDrawImageRectI(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRectI'));
@@ -1399,7 +1404,8 @@ initialization
     // ── 第三步：关键函数指针完整性检查 ──
     // 任何一个核心函数为 nil 说明 DLL 版本不匹配或损坏，
     // 此时禁用 GDI+ 整体功能，防止后续调用引发 Access Violation。
-    // GdipGetPathPointCount 等非核心函数允许缺失（注释中已标记）。
+    // GdipGetPathPointCount / GdipCreateFontFromLogfontW / GdipDrawString
+    // 等非核心函数允许缺失（注释中已标记），消费方自行回退。
     if not Assigned(GdiplusStartup) or not Assigned(GdiplusShutdown) or
        not Assigned(GdipCreateFromHDC) or not Assigned(GdipDeleteGraphics) or
        not Assigned(GdipCreatePen1) or not Assigned(GdipDeletePen) or
