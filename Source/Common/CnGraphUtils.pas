@@ -28,7 +28,12 @@ unit CnGraphUtils;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.06.05 V1.3
+* 修改记录：2026.06.06 V1.4
+*               GDI+ 声明移出 $IFNDEF SUPPORT_GDIPLUS，统一为 $IFDEF MSWINDOWS
+*               新增 CnGdiPlusAvailable 运行时标记，CnStartUpGdiPlus 成功置 True；
+*               初始化节统一两条编译路径，去掉 Assert 改静默失败；
+*               GdiPlusInit 变量由 CnGdiPlusAvailable 替代
+*           2026.06.05 V1.3
 *               大幅扩充 GDI+ 动态导入声明，新增 Pen/Brush/Path/Matrix 等
 *               SVG 渲染所需的 50 余个函数，声明移至 interface 段以便外部调用
 *           2024.06.09 V1.2
@@ -43,10 +48,6 @@ unit CnGraphUtils;
 interface
 
 {$I CnPack.inc}
-
-{$IFNDEF MSWINDOWS}
-  {$UNDEF SUPPORT_GDIPLUS}
-{$ENDIF}
 
 uses
   {$IFDEF MSWINDOWS} Windows, {$ELSE} MacTypes, ObjcBase, Types, {$ENDIF} Graphics, Math, Classes, Controls
@@ -216,13 +217,26 @@ procedure CnSetRectLocation(var Rect: TRect; const P: TPoint); overload;
 procedure CnCanvasRoundRect(const Canvas: TCanvas; const Rect: TRect; CX, CY: Integer);
 {* 在 Canvas 上绘制圆角矩形}
 
+//==============================================================================
+// GDI+ 扁平 API 统一声明（编译路径无关）
+// 高版本 Delphi（SUPPORT_GDIPLUS）和低版本 Delphi 共用此声明。
+// 高版本通过 GetModuleHandle + GetProcAddress 填充函数变量（DLL 已被
+// WinApi.GDIPAPI 静态导入自动加载）；低版本通过 LoadLibrary + GetProcAddress
+// 动态加载。运行时通过 CnGdiPlusAvailable 判断 GDI+ 是否可用。
+//==============================================================================
+
 {$IFDEF MSWINDOWS}
-{$IFNDEF SUPPORT_GDIPLUS}
 
 procedure CnStartUpGdiPlus;
-{* 由于 DLL 中不允许跟着单元来初始化/释放 GDI+，所以输出给宿主调用，初始化 GDI+}
+{* 初始化 GDI+ 令牌。成功后置 CnGdiPlusAvailable := True。
+     EXE 项目在单元初始化时自动调用；
+     DLL 项目必须在安全时机（非 DLL_PROCESS_ATTACH）手动调用。 }
+
 procedure CnShutDownGdiPlus;
-{* 由于 DLL 中不允许跟着单元来初始化/释放 GDI+，所以输出给宿主调用，释放 GDI+}
+{* 关闭 GDI+ 令牌，置 CnGdiPlusAvailable := False。 }
+
+function MakeGDIPColor(A, R, G, B: Byte): Cardinal;
+{* 构造 GDI+ ARGB 颜色值（$AARRGGBB）}
 
 const
   WINGDIPDLL = 'gdiplus.dll';
@@ -265,9 +279,6 @@ const
   DashStyleDashDot         = 3;
   DashStyleDashDotDot      = 4;
   DashStyleCustom          = 5;
-
-function MakeGDIPColor(A, R, G, B: Byte): Cardinal;
-{* 构造 GDI+ ARGB 颜色值（$AARRGGBB）}
 
 type
   GpGraphics = Pointer;
@@ -365,7 +376,7 @@ type
   TGdiplusStartupOutput = GdiplusStartupOutput;
   PGdiplusStartupOutput = ^TGdiplusStartupOutput;
 
-  // GDI+ 中所需的函数声明类型
+  // GDI+ 扁平 API 函数声明类型
 
   //---------- 初始化/关闭 ----------
   TGdiplusStartup = function(out Token: ULONG; Input: PGdiplusStartupInput;
@@ -536,7 +547,12 @@ type
     Order: Integer): GPSTATUS; stdcall;
 
 var
-  GdiPlusInit: Boolean = False;
+  CnGdiPlusAvailable: Boolean = False;
+  {* GDI+ 运行时可用性标记。
+     - SUPPORT_GDIPLUS 路径：静态链接保证 DLL 可用，CnStartUpGdiPlus 成功后为 True
+     - 动态路径：取决于 gdiplus.dll 是否存在及 CnStartUpGdiPlus 是否成功
+     - CnSVG 等消费方据此选择 GDI+ 或纯 GDI 渲染路径 }
+
   GdiPlusHandle: THandle = 0;
   StartupInput: TGDIPlusStartupInput;
   GdiplusToken: ULONG;
@@ -616,7 +632,6 @@ var
   GdipMultiplyMatrix: TGdipMultiplyMatrix = nil;
 
 {$ENDIF}
-{$ENDIF}
 
 function FontEqual(A, B: TFont): Boolean;
 {* 比较俩字体对象的各属性是否相等}
@@ -624,9 +639,6 @@ function FontEqual(A, B: TFont): Boolean;
 implementation
 
 {$IFDEF MSWINDOWS}
-{$IFNDEF SUPPORT_GDIPLUS}
-
-// GDI+ 声明已移至 interface 部分，此处仅保留实现
 
 function MakeGDIPColor(A, R, G, B: Byte): Cardinal;
 begin
@@ -634,7 +646,36 @@ begin
     (Cardinal(G) shl 8) or Cardinal(B);
 end;
 
-{$ENDIF}
+procedure CnStartUpGdiPlus;
+var
+  Status: Integer;
+begin
+  if CnGdiPlusAvailable then
+    Exit;
+  if (GdiPlusHandle = 0) or not Assigned(GdiplusStartup) then
+    Exit;
+
+  StartupInput.GdiplusVersion := 1;
+  StartupInput.DebugEventCallback := nil;
+  StartupInput.SuppressBackgroundThread := False;
+  StartupInput.SuppressExternalCodecs := False;
+
+  Status := Ord(GdiplusStartup(GdiplusToken, @StartupInput, nil));
+  if Status = Ord(Ok) then
+    CnGdiPlusAvailable := True;
+  // 失败时 CnGdiPlusAvailable 保持 False，消费方降级为纯 GDI
+end;
+
+procedure CnShutDownGdiPlus;
+begin
+  if CnGdiPlusAvailable then
+  begin
+    if Assigned(GdiplusShutdown) then
+      GdiplusShutdown(GdiplusToken);
+    GdiplusToken := 0;
+    CnGdiPlusAvailable := False;
+  end;
+end;
 
 {$ELSE}  // 非 Windows 平台补充声明实现
 
@@ -1023,7 +1064,7 @@ begin
 {$ELSE}
   if (Src.Width <> Dst.Width) or (Src.Height <> Dst.Height) then
   begin
-    if not GdiPlusInit then // 没有动态找到 GDIPlus 的支持
+    if not CnGdiPlusAvailable then // GDI+ 运行时不可用
     begin
       Rd := Rect(0, 0, Dst.Width, Dst.Height);
       Dst.Canvas.StretchDraw(Rd, Src);
@@ -1196,233 +1237,136 @@ begin
 end;
 
 {$IFDEF MSWINDOWS}
-{$IFNDEF SUPPORT_GDIPLUS}
-
-procedure CnStartUpGdiPlus;
-begin
-  if not GdiPlusInit and (GdiPlusHandle <> 0) then
-  begin
-    StartupInput.DebugEventCallback := nil;
-    StartupInput.SuppressBackgroundThread := False;
-    StartupInput.SuppressExternalCodecs   := False;
-    StartupInput.GdiplusVersion := 1;
-
-    GdiplusStartup(GdiPlusToken, @StartupInput, nil);
-
-    GdiPlusInit := True;
-  end;
-end;
-
-procedure CnShutDownGdiPlus;
-begin
-  if GdiPlusInit then
-  begin
-    GdiplusShutdown(GdiplusToken);
-
-    GdiplusToken := 0;
-    GdiPlusInit := False;
-  end;
-end;
-
-{$ENDIF}
-{$ENDIF}
-
-{$IFDEF MSWINDOWS}
-{$IFNDEF SUPPORT_GDIPLUS}
 
 initialization
+  // ── 第一步：获取 gdiplus.dll 模块句柄 ──
+  {$IFDEF SUPPORT_GDIPLUS}
+  // 高版本 Delphi：DLL 已被 WinApi.GDIPAPI 静态导入自动加载
+  GdiPlusHandle := GetModuleHandle(WINGDIPDLL);
+  {$ELSE}
+  // 低版本 Delphi：动态加载 gdiplus.dll
   GdiPlusHandle := LoadLibrary(WINGDIPDLL);
+  {$ENDIF}
+
+  // ── 第二步：填充所有函数变量（两条编译路径共用） ──
+  // 每个 GetProcAddress 结果暂存，第三步统一做完整性校验
   if GdiPlusHandle <> 0 then
   begin
     //---------- 初始化/关闭 ----------
     GdiplusStartup := TGdiplusStartup(GetProcAddress(GdiPlusHandle, 'GdiplusStartup'));
-    Assert(Assigned(GdiplusStartup), 'Load GdiplusStartup from GDI+ DLL.');
-
     GdiplusShutdown := TGdiplusShutdown(GetProcAddress(GdiPlusHandle, 'GdiplusShutdown'));
-    Assert(Assigned(GdiplusShutdown), 'Load GdiplusShutdown from GDI+ DLL.');
 
     //---------- Graphics 对象 ----------
     GdipCreateFromHDC := TGdipCreateFromHDC(GetProcAddress(GdiPlusHandle, 'GdipCreateFromHDC'));
-    Assert(Assigned(GdipCreateFromHDC), 'Load GdipCreateFromHDC from GDI+ DLL.');
-
     GdipDeleteGraphics := TGdipDeleteGraphics(GetProcAddress(GdiPlusHandle, 'GdipDeleteGraphics'));
-    Assert(Assigned(GdipDeleteGraphics), 'Load GdipDeleteGraphics from GDI+ DLL.');
-
     GdipSetSmoothingMode := TGdipSetSmoothingMode(GetProcAddress(GdiPlusHandle, 'GdipSetSmoothingMode'));
-    Assert(Assigned(GdipSetSmoothingMode), 'Load GdipSetSmoothingMode from GDI+ DLL.');
-
     GdipGetSmoothingMode := TGdipGetSmoothingMode(GetProcAddress(GdiPlusHandle, 'GdipGetSmoothingMode'));
-    Assert(Assigned(GdipGetSmoothingMode), 'Load GdipGetSmoothingMode from GDI+ DLL.');
-
     GdipSaveGraphics := TGdipSaveGraphics(GetProcAddress(GdiPlusHandle, 'GdipSaveGraphics'));
-    Assert(Assigned(GdipSaveGraphics), 'Load GdipSaveGraphics from GDI+ DLL.');
-
     GdipRestoreGraphics := TGdipRestoreGraphics(GetProcAddress(GdiPlusHandle, 'GdipRestoreGraphics'));
-    Assert(Assigned(GdipRestoreGraphics), 'Load GdipRestoreGraphics from GDI+ DLL.');
-
     GdipSetWorldTransform := TGdipSetWorldTransform(GetProcAddress(GdiPlusHandle, 'GdipSetWorldTransform'));
-    Assert(Assigned(GdipSetWorldTransform), 'Load GdipSetWorldTransform from GDI+ DLL.');
-
     GdipMultiplyWorldTransform := TGdipMultiplyWorldTransform(GetProcAddress(GdiPlusHandle, 'GdipMultiplyWorldTransform'));
-    Assert(Assigned(GdipMultiplyWorldTransform), 'Load GdipMultiplyWorldTransform from GDI+ DLL.');
-
     GdipSetClipRectI := TGdipSetClipRectI(GetProcAddress(GdiPlusHandle, 'GdipSetClipRectI'));
-    Assert(Assigned(GdipSetClipRectI), 'Load GdipSetClipRectI from GDI+ DLL.');
 
     //---------- Pen 画笔 ----------
     GdipCreatePen1 := TGdipCreatePen1(GetProcAddress(GdiPlusHandle, 'GdipCreatePen1'));
-    Assert(Assigned(GdipCreatePen1), 'Load GdipCreatePen1 from GDI+ DLL.');
-
     GdipDeletePen := TGdipDeletePen(GetProcAddress(GdiPlusHandle, 'GdipDeletePen'));
-    Assert(Assigned(GdipDeletePen), 'Load GdipDeletePen from GDI+ DLL.');
-
     GdipSetPenWidth := TGdipSetPenWidth(GetProcAddress(GdiPlusHandle, 'GdipSetPenWidth'));
-    Assert(Assigned(GdipSetPenWidth), 'Load GdipSetPenWidth from GDI+ DLL.');
-
     GdipSetPenColor := TGdipSetPenColor(GetProcAddress(GdiPlusHandle, 'GdipSetPenColor'));
-    Assert(Assigned(GdipSetPenColor), 'Load GdipSetPenColor from GDI+ DLL.');
-
     GdipSetPenLineCap := TGdipSetPenLineCap(GetProcAddress(GdiPlusHandle, 'GdipSetPenLineCap197819'));
-    Assert(Assigned(GdipSetPenLineCap), 'Load GdipSetPenLineCap from GDI+ DLL.');
-
     GdipSetPenLineJoin := TGdipSetPenLineJoin(GetProcAddress(GdiPlusHandle, 'GdipSetPenLineJoin'));
-    Assert(Assigned(GdipSetPenLineJoin), 'Load GdipSetPenLineJoin from GDI+ DLL.');
-
     GdipSetPenMiterLimit := TGdipSetPenMiterLimit(GetProcAddress(GdiPlusHandle, 'GdipSetPenMiterLimit'));
-    Assert(Assigned(GdipSetPenMiterLimit), 'Load GdipSetPenMiterLimit from GDI+ DLL.');
-
     GdipSetPenDashStyle := TGdipSetPenDashStyle(GetProcAddress(GdiPlusHandle, 'GdipSetPenDashStyle'));
-    Assert(Assigned(GdipSetPenDashStyle), 'Load GdipSetPenDashStyle from GDI+ DLL.');
-
     GdipSetPenDashArray := TGdipSetPenDashArray(GetProcAddress(GdiPlusHandle, 'GdipSetPenDashArray'));
-    Assert(Assigned(GdipSetPenDashArray), 'Load GdipSetPenDashArray from GDI+ DLL.');
-
     GdipSetPenDashOffset := TGdipSetPenDashOffset(GetProcAddress(GdiPlusHandle, 'GdipSetPenDashOffset'));
-    Assert(Assigned(GdipSetPenDashOffset), 'Load GdipSetPenDashOffset from GDI+ DLL.');
 
     //---------- Brush 画刷 ----------
     GdipCreateSolidFill := TGdipCreateSolidFill(GetProcAddress(GdiPlusHandle, 'GdipCreateSolidFill'));
-    Assert(Assigned(GdipCreateSolidFill), 'Load GdipCreateSolidFill from GDI+ DLL.');
-
     GdipDeleteBrush := TGdipDeleteBrush(GetProcAddress(GdiPlusHandle, 'GdipDeleteBrush'));
-    Assert(Assigned(GdipDeleteBrush), 'Load GdipDeleteBrush from GDI+ DLL.');
-
     GdipSetSolidFillColor := TGdipSetSolidFillColor(GetProcAddress(GdiPlusHandle, 'GdipSetSolidFillColor'));
-    Assert(Assigned(GdipSetSolidFillColor), 'Load GdipSetSolidFillColor from GDI+ DLL.');
 
     //---------- Path 路径 ----------
     GdipCreatePath := TGdipCreatePath(GetProcAddress(GdiPlusHandle, 'GdipCreatePath'));
-    Assert(Assigned(GdipCreatePath), 'Load GdipCreatePath from GDI+ DLL.');
-
     GdipDeletePath := TGdipDeletePath(GetProcAddress(GdiPlusHandle, 'GdipDeletePath'));
-    Assert(Assigned(GdipDeletePath), 'Load GdipDeletePath from GDI+ DLL.');
-
     GdipResetPath := TGdipResetPath(GetProcAddress(GdiPlusHandle, 'GdipResetPath'));
-    Assert(Assigned(GdipResetPath), 'Load GdipResetPath from GDI+ DLL.');
-
     GdipAddPathLine := TGdipAddPathLine(GetProcAddress(GdiPlusHandle, 'GdipAddPathLine'));
-    Assert(Assigned(GdipAddPathLine), 'Load GdipAddPathLine from GDI+ DLL.');
-
     GdipAddPathLineI := TGdipAddPathLineI(GetProcAddress(GdiPlusHandle, 'GdipAddPathLineI'));
-    Assert(Assigned(GdipAddPathLineI), 'Load GdipAddPathLineI from GDI+ DLL.');
-
     GdipAddPathLines := TGdipAddPathLines(GetProcAddress(GdiPlusHandle, 'GdipAddPathLine2'));
-    Assert(Assigned(GdipAddPathLines), 'Load GdipAddPathLines from GDI+ DLL.');
-
     GdipAddPathArc := TGdipAddPathArc(GetProcAddress(GdiPlusHandle, 'GdipAddPathArc'));
-    Assert(Assigned(GdipAddPathArc), 'Load GdipAddPathArc from GDI+ DLL.');
-
     GdipAddPathArcI := TGdipAddPathArcI(GetProcAddress(GdiPlusHandle, 'GdipAddPathArcI'));
-    Assert(Assigned(GdipAddPathArcI), 'Load GdipAddPathArcI from GDI+ DLL.');
-
     GdipAddPathBezier := TGdipAddPathBezier(GetProcAddress(GdiPlusHandle, 'GdipAddPathBezier'));
-    Assert(Assigned(GdipAddPathBezier), 'Load GdipAddPathBezier from GDI+ DLL.');
-
     GdipAddPathBezierI := TGdipAddPathBezierI(GetProcAddress(GdiPlusHandle, 'GdipAddPathBezierI'));
-    Assert(Assigned(GdipAddPathBezierI), 'Load GdipAddPathBezierI from GDI+ DLL.');
-
     GdipAddPathRectangle := TGdipAddPathRectangle(GetProcAddress(GdiPlusHandle, 'GdipAddPathRectangle'));
-    Assert(Assigned(GdipAddPathRectangle), 'Load GdipAddPathRectangle from GDI+ DLL.');
-
     GdipAddPathEllipse := TGdipAddPathEllipse(GetProcAddress(GdiPlusHandle, 'GdipAddPathEllipse'));
-    Assert(Assigned(GdipAddPathEllipse), 'Load GdipAddPathEllipse from GDI+ DLL.');
-
     GdipClosePathFigure := TGdipClosePathFigure(GetProcAddress(GdiPlusHandle, 'GdipClosePathFigure'));
-    Assert(Assigned(GdipClosePathFigure), 'Load GdipClosePathFigure from GDI+ DLL.');
-
     GdipStartPathFigure := TGdipStartPathFigure(GetProcAddress(GdiPlusHandle, 'GdipStartPathFigure'));
-    Assert(Assigned(GdipStartPathFigure), 'Load GdipStartPathFigure from GDI+ DLL.');
-
     GdipSetPathFillMode := TGdipSetPathFillMode(GetProcAddress(GdiPlusHandle, 'GdipSetPathFillMode'));
-    Assert(Assigned(GdipSetPathFillMode), 'Load GdipSetPathFillMode from GDI+ DLL.');
-
-    // 该函数在 Windows 7 Sp 1 上可能没有
+    // 该函数在 Windows 7 SP1 上可能没有，不强制检查
     GdipGetPathPointCount := TGdipGetPathPointCount(GetProcAddress(GdiPlusHandle, 'GdipGetPathPointCount'));
-    // Assert(Assigned(GdipGetPathPointCount), 'Load GdipGetPathPointCount from GDI+ DLL.');
 
     //---------- Graphics 绘制操作 ----------
     GdipDrawLineI := TGdipDrawLineI(GetProcAddress(GdiPlusHandle, 'GdipDrawLineI'));
-    Assert(Assigned(GdipDrawLineI), 'Load GdipDrawLineI from GDI+ DLL.');
-
     GdipDrawLinesI := TGdipDrawLinesI(GetProcAddress(GdiPlusHandle, 'GdipDrawLinesI'));
-    Assert(Assigned(GdipDrawLinesI), 'Load GdipDrawLinesI from GDI+ DLL.');
-
     GdipDrawRectangle := TGdipDrawRectangle(GetProcAddress(GdiPlusHandle, 'GdipDrawRectangle'));
-    Assert(Assigned(GdipDrawRectangle), 'Load GdipDrawRectangle from GDI+ DLL.');
-
     GdipDrawEllipse := TGdipDrawEllipse(GetProcAddress(GdiPlusHandle, 'GdipDrawEllipse'));
-    Assert(Assigned(GdipDrawEllipse), 'Load GdipDrawEllipse from GDI+ DLL.');
-
     GdipFillRectangleI := TGdipFillRectangleI(GetProcAddress(GdiPlusHandle, 'GdipFillRectangleI'));
-    Assert(Assigned(GdipFillRectangleI), 'Load GdipFillRectangleI from GDI+ DLL.');
-
     GdipFillEllipse := TGdipFillEllipse(GetProcAddress(GdiPlusHandle, 'GdipFillEllipse'));
-    Assert(Assigned(GdipFillEllipse), 'Load GdipFillEllipse from GDI+ DLL.');
-
     GdipFillPolygonI := TGdipFillPolygonI(GetProcAddress(GdiPlusHandle, 'GdipFillPolygonI'));
-    Assert(Assigned(GdipFillPolygonI), 'Load GdipFillPolygonI from GDI+ DLL.');
-
     GdipFillPath := TGdipFillPath(GetProcAddress(GdiPlusHandle, 'GdipFillPath'));
-    Assert(Assigned(GdipFillPath), 'Load GdipFillPath from GDI+ DLL.');
-
     GdipDrawPath := TGdipDrawPath(GetProcAddress(GdiPlusHandle, 'GdipDrawPath'));
-    Assert(Assigned(GdipDrawPath), 'Load GdipDrawPath from GDI+ DLL.');
 
     //---------- Image/Bitmap ----------
     GdipCreateBitmapFromHBITMAP := TGdipCreateBitmapFromHBITMAP(GetProcAddress(GdiPlusHandle, 'GdipCreateBitmapFromHBITMAP'));
-    Assert(Assigned(GdipCreateBitmapFromHBITMAP), 'Load GdipCreateBitmapFromHBITMAP from GDI+ DLL.');
-
     GdipDisposeImage := TGdipDisposeImage(GetProcAddress(GdiPlusHandle, 'GdipDisposeImage'));
-    Assert(Assigned(GdipDisposeImage), 'Load GdipDisposeImage from GDI+ DLL.');
-
     GdipDrawImageRect := TGdipDrawImageRect(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRect'));
-    Assert(Assigned(GdipDrawImageRect), 'Load GdipDrawImageRect from GDI+ DLL.');
-
     GdipDrawImageRectI := TGdipDrawImageRectI(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRectI'));
-    Assert(Assigned(GdipDrawImageRectI), 'Load GdipDrawImageRectI from GDI+ DLL.');
 
     //---------- Matrix 矩阵 ----------
     GdipCreateMatrix := TGdipCreateMatrix(GetProcAddress(GdiPlusHandle, 'GdipCreateMatrix'));
-    Assert(Assigned(GdipCreateMatrix), 'Load GdipCreateMatrix from GDI+ DLL.');
-
     GdipCreateMatrix2 := TGdipCreateMatrix2(GetProcAddress(GdiPlusHandle, 'GdipCreateMatrix2'));
-    Assert(Assigned(GdipCreateMatrix2), 'Load GdipCreateMatrix2 from GDI+ DLL.');
-
     GdipDeleteMatrix := TGdipDeleteMatrix(GetProcAddress(GdiPlusHandle, 'GdipDeleteMatrix'));
-    Assert(Assigned(GdipDeleteMatrix), 'Load GdipDeleteMatrix from GDI+ DLL.');
-
     GdipSetMatrixElements := TGdipSetMatrixElements(GetProcAddress(GdiPlusHandle, 'GdipSetMatrixElements'));
-    Assert(Assigned(GdipSetMatrixElements), 'Load GdipSetMatrixElements from GDI+ DLL.');
-
     GdipMultiplyMatrix := TGdipMultiplyMatrix(GetProcAddress(GdiPlusHandle, 'GdipMultiplyMatrix'));
-    Assert(Assigned(GdipMultiplyMatrix), 'Load GdipMultiplyMatrix from GDI+ DLL.');
+
+    // ── 第三步：关键函数指针完整性检查 ──
+    // 任何一个核心函数为 nil 说明 DLL 版本不匹配或损坏，
+    // 此时禁用 GDI+ 整体功能，防止后续调用引发 Access Violation。
+    // GdipGetPathPointCount 等非核心函数允许缺失（注释中已标记）。
+    if not Assigned(GdiplusStartup) or not Assigned(GdiplusShutdown) or
+       not Assigned(GdipCreateFromHDC) or not Assigned(GdipDeleteGraphics) or
+       not Assigned(GdipCreatePen1) or not Assigned(GdipDeletePen) or
+       not Assigned(GdipCreateSolidFill) or not Assigned(GdipDeleteBrush) or
+       not Assigned(GdipCreatePath) or not Assigned(GdipDeletePath) or
+       not Assigned(GdipDrawLineI) or not Assigned(GdipFillPath) or
+       not Assigned(GdipDrawPath) or not Assigned(GdipCreateMatrix) or
+       not Assigned(GdipDeleteMatrix) then
+    begin
+      // 置零句柄，使 CnStartUpGdiPlus 直接退出，CnGdiPlusAvailable 保持 False
+      {$IFNDEF SUPPORT_GDIPLUS}
+      FreeLibrary(GdiPlusHandle);
+      {$ENDIF}
+      GdiPlusHandle := 0;
+    end
+    else
+    begin
+      // ── 第四步：EXE 项目自动初始化 GDI+ 令牌 ──
+      if not IsLibrary then
+        CnStartUpGdiPlus;
+    end;
   end;
 
 finalization
-  if GdiPlusHandle <> 0 then
-    FreeLibrary(GdiPlusHandle);
+  if CnGdiPlusAvailable then
+    CnShutDownGdiPlus;
 
-{$ENDIF}
+  {$IFNDEF SUPPORT_GDIPLUS}
+  // 仅动态路径需要释放 DLL；静态路径由 Delphi 运行时管理
+  if GdiPlusHandle <> 0 then
+  begin
+    FreeLibrary(GdiPlusHandle);
+    GdiPlusHandle := 0;
+  end;
+  {$ENDIF}
+
 {$ENDIF}
 
 end.
