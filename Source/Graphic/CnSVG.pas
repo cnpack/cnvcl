@@ -150,6 +150,14 @@ type
     {* color 属性值，fill/stroke 值为 currentColor 时取此颜色 }
     CurrentColorSet:  Boolean;
     {* color 属性是否在本层或祖先已显式声明 }
+    // 渐变填充/描边
+    FillGradientID:   string;
+    {* fill 引用的渐变 ID（url(#id)），空串表示纯色 }
+    StrokeGradientID: string;
+    {* stroke 引用的渐变 ID（url(#id)），空串表示纯色 }
+    // 裁剪路径
+    ClipPathID:       string;
+    {* clip-path 引用的裁剪路径 ID（url(#id)），空串表示无裁剪 }
   end;
 
 //==============================================================================
@@ -531,6 +539,14 @@ type
     {* 运行时决定是否使用 GDI+ 渲染路径 }
     FGDIPGraphics: GpGraphics;
     {* GDI+ Graphics 对象，整个渲染周期持有，析构时释放 }
+    FGDIPStateStack: array[0..63] of Cardinal;
+    {* GDI+ Graphics 状态栈（GdipSaveGraphics/GdipRestoreGraphics） }
+    FGDIPStateTop: Integer;
+    {* GDI+ 状态栈顶索引 }
+    FHasClipPath: Boolean;
+    {* 当前是否已设置 GDI+ clip path }
+    FGradBBoxX, FGradBBoxY, FGradBBoxW, FGradBBoxH: TCnSVGFloat;
+    {* 渐变 objectBoundingBox 映射用的当前元素边界框 }
     procedure PushMatrix;
     procedure PopMatrix;
     procedure PushStyle;
@@ -545,6 +561,11 @@ type
     function GDIPPFillColor: Cardinal;
     function CreateGDIPPPen: GpPen;
     function CreateGDIPPBrush: GpSolidFill;
+    function CreateGDIPFillBrush: GpBrush;
+    function CreateGDIPStrokeBrush: GpBrush;
+    procedure UpdateGDIPWorldTransform;
+    procedure ApplyGDIPClipPath;
+    procedure RemoveGDIPClipPath;
     function UserToScreen(X, Y: TCnSVGFloat): TPoint;
     function UserLenToScreen(Len: TCnSVGFloat): Integer;
     function EffectiveFillAlpha: TCnSVGFloat;
@@ -1000,7 +1021,7 @@ end;
 function SVGAttrFloat(El: TCnXMLElement; const Name: string;
   Default: TCnSVGFloat): TCnSVGFloat;
 {* 从 XML 元素读取指定属性的浮点值。解析失败或属性不存在时返回 Default，不抛异常。
-   支持 px 后缀（会被去掉）。 }
+   支持 px 后缀（会被去掉），支持 % 后缀（去掉但不除以100，由调用方按需处理）。 }
 var
   S: string;
 begin
@@ -1012,11 +1033,27 @@ begin
   // strip 'px' suffix
   if (Length(S) >= 2) and (LowerCase(Copy(S, Length(S) - 1, 2)) = 'px') then
     S := Trim(Copy(S, 1, Length(S) - 2));
+  // strip '%' suffix (caller decides whether to divide by 100)
+  if (Length(S) >= 1) and (S[Length(S)] = '%') then
+    S := Trim(Copy(S, 1, Length(S) - 1));
   try
     Result := StrToFloat(S);
   except
     Result := Default;
   end;
+end;
+
+function SVGAttrIsPercent(El: TCnXMLElement; const Name: string): Boolean;
+{* 检查指定属性值是否以 % 结尾，用于渐变坐标的百分比判断。 }
+var
+  S: string;
+begin
+  Result := False;
+  if El = nil then Exit;
+  if not El.HasAttribute(Name) then Exit;
+  S := Trim(El.GetAttribute(Name));
+  if S = '' then Exit;
+  Result := S[Length(S)] = '%';
 end;
 
 procedure SVGDefaultStyle(var S: TCnSVGStyle);
@@ -1055,6 +1092,10 @@ begin
   // currentColor
   S.CurrentColor.R := 0; S.CurrentColor.G := 0; S.CurrentColor.B := 0;
   S.CurrentColorSet := False;
+  // gradient / clip
+  S.FillGradientID   := '';
+  S.StrokeGradientID := '';
+  S.ClipPathID       := '';
 end;
 
 function SVGClampOpacity(V: TCnSVGFloat): TCnSVGFloat;
@@ -1190,6 +1231,18 @@ begin
           Style.VisibilityHidden := True;
       end
 
+      else if LKey = 'clip-path' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.ClipPathID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.ClipPathID) > 0) and (Style.ClipPathID[1] = '#') then
+            Delete(Style.ClipPathID, 1, 1);
+        end
+        else
+          Style.ClipPathID := '';
+      end
+
       else if LKey = 'opacity' then
       begin
         if LVal = 'inherit' then
@@ -1209,18 +1262,32 @@ begin
           Style.FillNone    := ParentStyle.FillNone;
           Style.FillOpacity := ParentStyle.FillOpacity;
           Style.FillRule    := ParentStyle.FillRule;
+          Style.FillGradientID := ParentStyle.FillGradientID;
         end
         else if LVal = 'none' then
-          Style.FillNone := True
+        begin
+          Style.FillNone := True;
+          Style.FillGradientID := '';
+        end
         else if LVal = 'currentcolor' then
         begin
           Style.FillColor := Style.CurrentColor;
           Style.FillNone  := False;
+          Style.FillGradientID := '';
+        end
+        else if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          // fill=url(#id): 引用渐变或图案
+          Style.FillGradientID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.FillGradientID) > 0) and (Style.FillGradientID[1] = '#') then
+            Delete(Style.FillGradientID, 1, 1);
+          Style.FillNone := False;
         end
         else if SVGParseColor(Val, C) then
         begin
           Style.FillColor := C;
           Style.FillNone  := False;
+          Style.FillGradientID := '';
         end;
       end
 
@@ -1253,18 +1320,32 @@ begin
           Style.StrokeNone    := ParentStyle.StrokeNone;
           Style.StrokeOpacity := ParentStyle.StrokeOpacity;
           Style.StrokeWidth   := ParentStyle.StrokeWidth;
+          Style.StrokeGradientID := ParentStyle.StrokeGradientID;
         end
         else if LVal = 'none' then
-          Style.StrokeNone := True
+        begin
+          Style.StrokeNone := True;
+          Style.StrokeGradientID := '';
+        end
         else if LVal = 'currentcolor' then
         begin
           Style.StrokeColor := Style.CurrentColor;
           Style.StrokeNone  := False;
+          Style.StrokeGradientID := '';
+        end
+        else if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          // stroke=url(#id): 引用渐变
+          Style.StrokeGradientID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.StrokeGradientID) > 0) and (Style.StrokeGradientID[1] = '#') then
+            Delete(Style.StrokeGradientID, 1, 1);
+          Style.StrokeNone := False;
         end
         else if SVGParseColor(Val, C) then
         begin
           Style.StrokeColor := C;
           Style.StrokeNone  := False;
+          Style.StrokeGradientID := '';
         end;
       end
 
@@ -2432,6 +2513,8 @@ begin
   FSavedDC      := SaveDC(ACanvas.Handle);
   FUseGDIP      := False;
   FGDIPGraphics := nil;
+  FGDIPStateTop := -1;
+  FHasClipPath  := False;
 
   // 探测 GDI+ 可用性
   if CnGdiPlusAvailable then
@@ -2453,10 +2536,20 @@ begin
   SVGCalcViewMatrix(ADestRect, AViewBox, APreserveAspectRatio,
     FViewMatrix, NeedClip);
   if NeedClip then
+  begin
     IntersectClipRect(FCtx.Canvas.Handle, ADestRect.Left, ADestRect.Top,
       ADestRect.Right, ADestRect.Bottom);
+    // GDI+ 裁剪：同步到 GDI+ Graphics
+    if FUseGDIP and Assigned(GdipSetClipRectI) then
+      GdipSetClipRectI(FGDIPGraphics, ADestRect.Left, ADestRect.Top,
+        ADestRect.Right - ADestRect.Left, ADestRect.Bottom - ADestRect.Top,
+        CombineModeIntersect);
+  end;
   FCtx.CTM := FViewMatrix;
   FMatrixStack[0] := FCtx.CTM;
+
+  // 设置 GDI+ 世界变换为初始 CTM
+  UpdateGDIPWorldTransform;
 end;
 
 destructor TCnSVGRenderer.Destroy;
@@ -2478,6 +2571,12 @@ begin
     FMatrixStack[FMatrixTop + 1] := FCtx.CTM;
     Inc(FMatrixTop);
   end;
+  // GDI+：保存当前状态（包含世界变换和裁剪）
+  if FUseGDIP and Assigned(GdipSaveGraphics) and (FGDIPStateTop < 63) then
+  begin
+    Inc(FGDIPStateTop);
+    GdipSaveGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
+  end;
 end;
 
 procedure TCnSVGRenderer.PopMatrix;
@@ -2487,6 +2586,15 @@ begin
     FCtx.CTM := FMatrixStack[FMatrixTop];
     Dec(FMatrixTop);
   end;
+  // GDI+：恢复之前的状态（包含世界变换和裁剪）
+  if FUseGDIP and Assigned(GdipRestoreGraphics) and (FGDIPStateTop >= 0) then
+  begin
+    GdipRestoreGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
+    Dec(FGDIPStateTop);
+  end
+  else
+    UpdateGDIPWorldTransform; // 回退：仅更新世界变换
+  FHasClipPath := False; // 恢复状态后裁剪已重置
 end;
 
 procedure TCnSVGRenderer.PushStyle;
@@ -2633,6 +2741,8 @@ begin
   except
     // silently swallow any unexpected exception
   end;
+  // 同步 GDI+ 世界变换
+  UpdateGDIPWorldTransform;
 end;
 
 procedure TCnSVGRenderer.ApplyStyleAttr(AElement: TCnXMLElement);
@@ -2786,10 +2896,12 @@ begin
   S := FCtx.Style;
   if S.StrokeNone then Exit;
 
-  PenWidth := UserLenToScreen(S.StrokeWidth);
-  if PenWidth < 1 then PenWidth := 1;
+  // 使用 UnitWorld (0)：笔宽在用户坐标中，受世界变换缩放
+  // 这符合 SVG 规范：stroke-width 随变换缩放
+  PenWidth := S.StrokeWidth;
+  if PenWidth < 0.01 then PenWidth := 0.01;
 
-  if GdipCreatePen1(GDIPPStrokeColor, PenWidth, 2 {UnitPixel}, Result) <> Ok then
+  if GdipCreatePen1(GDIPPStrokeColor, PenWidth, 0 {UnitWorld}, Result) <> Ok then
   begin
     Result := nil;
     Exit;
@@ -2815,7 +2927,7 @@ begin
   begin
     GdipSetPenDashStyle(Result, DashStyleCustom);
     for I := 0 to S.DashCount - 1 do
-      DashVals[I] := UserLenToScreen(S.DashArray[I]);
+      DashVals[I] := S.DashArray[I]; // 用户坐标，受世界变换缩放
     GdipSetPenDashArray(Result, @DashVals[0], S.DashCount);
   end;
 end;
@@ -2826,6 +2938,485 @@ begin
   if FCtx.Style.FillNone then Exit;
   if GdipCreateSolidFill(GDIPPFillColor, Result) <> Ok then
     Result := nil;
+end;
+
+function TCnSVGRenderer.CreateGDIPFillBrush: GpBrush;
+var
+  DefEl: TCnXMLElement;
+  Tag: string;
+  X1, Y1, X2, Y2: TCnSVGFloat;
+  GP1, GP2: TGPRectF;
+  C1, C2: Cardinal;
+  Stops: TList;
+  I: Integer;
+  StopEl: TCnXMLElement;
+  Offset: TCnSVGFloat;
+  SC: TCnSVGColor;
+  SA: Integer;
+  Path: GpPath;
+  CenterPt: TGPRectF;
+  Count: Integer;
+  OuterColor: Cardinal;
+  GradUnits: string;
+  IsObjBBox: Boolean;
+begin
+  Result := nil;
+  if FCtx.Style.FillNone then Exit;
+
+  // 如果引用了渐变
+  if FCtx.Style.FillGradientID <> '' then
+  begin
+    DefEl := SVGFindDefNode(FDefsMap, FCtx.Style.FillGradientID);
+    if DefEl = nil then Exit;
+
+    Tag := LowerCase(DefEl.TagName);
+    if Tag = 'lineargradient' then
+    begin
+      // 解析 linearGradient 属性
+      X1 := SVGAttrFloat(DefEl, 'x1', 0);
+      Y1 := SVGAttrFloat(DefEl, 'y1', 0);
+      X2 := SVGAttrFloat(DefEl, 'x2', 1);
+      Y2 := SVGAttrFloat(DefEl, 'y2', 0);
+
+      // objectBoundingBox 模式下，[0,1] 映射到元素边界框
+      GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
+      IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if IsObjBBox then
+      begin
+        // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
+        if SVGAttrIsPercent(DefEl, 'x1') then X1 := X1 / 100;
+        if SVGAttrIsPercent(DefEl, 'y1') then Y1 := Y1 / 100;
+        if SVGAttrIsPercent(DefEl, 'x2') then X2 := X2 / 100;
+        if SVGAttrIsPercent(DefEl, 'y2') then Y2 := Y2 / 100;
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          X2 := FGradBBoxX + X2 * FGradBBoxW;
+          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+        end;
+      end;
+
+      // 获取起止颜色：从 <stop> 子元素读取
+      C1 := MakeGDIPColor(255, 255, 255, 255);
+      C2 := MakeGDIPColor(255, 0, 0, 0);
+      Stops := TList.Create;
+      try
+        for I := 0 to DefEl.ChildCount - 1 do
+        begin
+          if (DefEl.Children[I].NodeType = xntElement) and
+             (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+            Stops.Add(DefEl.Children[I]);
+        end;
+        if Stops.Count >= 2 then
+        begin
+          // 第一个 stop 的颜色
+          StopEl := TCnXMLElement(Stops[0]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+          // 最后一个 stop 的颜色
+          StopEl := TCnXMLElement(Stops[Stops.Count - 1]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+        end
+        else if Stops.Count = 1 then
+        begin
+          StopEl := TCnXMLElement(Stops[0]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+          C2 := C1;
+        end;
+      finally
+        Stops.Free;
+      end;
+
+      if Assigned(GdipCreateLineBrush) then
+      begin
+        GP1.X := X1; GP1.Y := Y1;
+        GP2.X := X2; GP2.Y := Y2;
+        if GdipCreateLineBrush(@GP1, @GP2, C1, C2, WrapModeTile, Result) <> Ok then
+          Result := nil;
+      end;
+    end
+    else if Tag = 'radialgradient' then
+    begin
+      // 解析 radialGradient：用 GDI+ PathGradient 实现
+      // 先构建一个圆形路径作为渐变形状
+      X1 := SVGAttrFloat(DefEl, 'cx', 0.5);
+      Y1 := SVGAttrFloat(DefEl, 'cy', 0.5);
+      X2 := SVGAttrFloat(DefEl, 'r', 0.5);
+
+      // objectBoundingBox 模式下，[0,1] 映射到元素边界框
+      GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
+      IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if IsObjBBox then
+      begin
+        // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
+        if SVGAttrIsPercent(DefEl, 'cx') then X1 := X1 / 100;
+        if SVGAttrIsPercent(DefEl, 'cy') then Y1 := Y1 / 100;
+        if SVGAttrIsPercent(DefEl, 'r') then X2 := X2 / 100;
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          // 半径取宽高较小者的一半作为基准
+          X2 := X2 * Min(FGradBBoxW, FGradBBoxH);
+        end;
+      end;
+
+      // 获取起止颜色
+      C1 := MakeGDIPColor(255, 255, 255, 255);  // center
+      C2 := MakeGDIPColor(255, 0, 0, 0);         // surround
+      Stops := TList.Create;
+      try
+        for I := 0 to DefEl.ChildCount - 1 do
+        begin
+          if (DefEl.Children[I].NodeType = xntElement) and
+             (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+            Stops.Add(DefEl.Children[I]);
+        end;
+        if Stops.Count >= 2 then
+        begin
+          // 第一个 stop = 中心色
+          StopEl := TCnXMLElement(Stops[0]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+          // 最后一个 stop = 外围色
+          StopEl := TCnXMLElement(Stops[Stops.Count - 1]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+        end;
+      finally
+        Stops.Free;
+      end;
+
+      if Assigned(GdipCreatePathGradientFromPath) then
+      begin
+        // 创建圆形路径（用户坐标，世界变换处理映射）
+        Path := nil;
+        GdipCreatePath(FillModeWinding, Path);
+        if Path <> nil then
+        begin
+          GdipAddPathEllipse(Path,
+            X1 - X2, Y1 - X2, X2 * 2, X2 * 2);
+          if GdipCreatePathGradientFromPath(Path, Result) = Ok then
+          begin
+            if Assigned(GdipSetPathGradientCenterColor) then
+              GdipSetPathGradientCenterColor(Result, C1);
+            OuterColor := C2;
+            Count := 1;
+            if Assigned(GdipSetPathGradientSurroundColors) then
+              GdipSetPathGradientSurroundColors(Result, @OuterColor, @Count);
+            CenterPt.X := X1; CenterPt.Y := Y1;
+            if Assigned(GdipSetPathGradientCenterPoint) then
+              GdipSetPathGradientCenterPoint(Result, @CenterPt);
+          end
+          else
+            Result := nil;
+          GdipDeletePath(Path);
+        end;
+      end;
+    end;
+
+    if Result <> nil then Exit;
+    // 渐变创建失败，回退纯色
+  end;
+
+  // 纯色画刷
+  if GdipCreateSolidFill(GDIPPFillColor, GpSolidFill(Result)) <> Ok then
+    Result := nil;
+end;
+
+function TCnSVGRenderer.CreateGDIPStrokeBrush: GpBrush;
+var
+  DefEl: TCnXMLElement;
+  Tag: string;
+  X1, Y1, X2, Y2: TCnSVGFloat;
+  GP1, GP2: TGPRectF;
+  C1, C2: Cardinal;
+  Stops: TList;
+  I: Integer;
+  StopEl: TCnXMLElement;
+  SC: TCnSVGColor;
+  SA: Integer;
+  GradUnits: string;
+  IsObjBBox: Boolean;
+begin
+  Result := nil;
+  if FCtx.Style.StrokeNone then Exit;
+
+  if FCtx.Style.StrokeGradientID <> '' then
+  begin
+    DefEl := SVGFindDefNode(FDefsMap, FCtx.Style.StrokeGradientID);
+    if DefEl = nil then Exit;
+
+    Tag := LowerCase(DefEl.TagName);
+    if Tag = 'lineargradient' then
+    begin
+      X1 := SVGAttrFloat(DefEl, 'x1', 0);
+      Y1 := SVGAttrFloat(DefEl, 'y1', 0);
+      X2 := SVGAttrFloat(DefEl, 'x2', 1);
+      Y2 := SVGAttrFloat(DefEl, 'y2', 0);
+
+      // objectBoundingBox 模式下，[0,1] 映射到元素边界框
+      GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
+      IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if IsObjBBox then
+      begin
+        // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
+        if SVGAttrIsPercent(DefEl, 'x1') then X1 := X1 / 100;
+        if SVGAttrIsPercent(DefEl, 'y1') then Y1 := Y1 / 100;
+        if SVGAttrIsPercent(DefEl, 'x2') then X2 := X2 / 100;
+        if SVGAttrIsPercent(DefEl, 'y2') then Y2 := Y2 / 100;
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          X2 := FGradBBoxX + X2 * FGradBBoxW;
+          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+        end;
+      end;
+
+      C1 := MakeGDIPColor(255, 255, 255, 255);
+      C2 := MakeGDIPColor(255, 0, 0, 0);
+      Stops := TList.Create;
+      try
+        for I := 0 to DefEl.ChildCount - 1 do
+        begin
+          if (DefEl.Children[I].NodeType = xntElement) and
+             (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+            Stops.Add(DefEl.Children[I]);
+        end;
+        if Stops.Count >= 2 then
+        begin
+          StopEl := TCnXMLElement(Stops[0]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+          StopEl := TCnXMLElement(Stops[Stops.Count - 1]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+        end;
+      finally
+        Stops.Free;
+      end;
+
+      if Assigned(GdipCreateLineBrush) then
+      begin
+        GP1.X := X1; GP1.Y := Y1;
+        GP2.X := X2; GP2.Y := Y2;
+        if GdipCreateLineBrush(@GP1, @GP2, C1, C2, WrapModeTile, Result) <> Ok then
+          Result := nil;
+      end;
+    end;
+
+    if Result <> nil then Exit;
+  end;
+
+  // 纯色画刷
+  if GdipCreateSolidFill(GDIPPStrokeColor, GpSolidFill(Result)) <> Ok then
+    Result := nil;
+end;
+
+procedure TCnSVGRenderer.UpdateGDIPWorldTransform;
+var
+  M: GpMatrix;
+  CTM: TCnSVGMatrix;
+begin
+  if (not FUseGDIP) or (FGDIPGraphics = nil) then Exit;
+  if not Assigned(GdipSetWorldTransform) then Exit;
+  if not Assigned(GdipCreateMatrix2) then Exit;
+
+  CTM := FCtx.CTM;
+  M := nil;
+  // TCnSVGMatrix: | a  c  e |   GpMatrix: | m11 m12 |
+  //               | b  d  f |             | m21 m22 |
+  //               | 0  0  1 |             | dx  dy  |
+  // m11=a, m12=b, m21=c, m22=d, dx=e, dy=f
+  if GdipCreateMatrix2(CTM.a, CTM.b, CTM.c, CTM.d, CTM.e, CTM.f, M) = Ok then
+  begin
+    GdipSetWorldTransform(FGDIPGraphics, M);
+    GdipDeleteMatrix(M);
+  end;
+end;
+
+procedure TCnSVGRenderer.ApplyGDIPClipPath;
+var
+  DefEl: TCnXMLElement;
+  ClipEl: TCnXMLElement;
+  I: Integer;
+  Tag: string;
+  Path: GpPath;
+  FillMode: Integer;
+  D: string;
+  Parser: TCnSVGPathParser;
+  Segs: TList;
+  Seg: PCnSVGPathSeg;
+  CurX, CurY, StartX, StartY: Extended;
+  QCP1X, QCP1Y, QCP2X, QCP2Y: Single;
+  ArcPts: TList;
+  ArcPt: PPoint;
+  J: Integer;
+  CX, CY, CRX, CRY, CW, CH: TCnSVGFloat;
+begin
+  if (not FUseGDIP) or (FGDIPGraphics = nil) then Exit;
+  if FCtx.Style.ClipPathID = '' then Exit;
+  if not Assigned(GdipSetClipPath) then Exit;
+
+  DefEl := SVGFindDefNode(FDefsMap, FCtx.Style.ClipPathID);
+  if DefEl = nil then Exit;
+
+  // 保存当前 GDI+ 状态
+  if Assigned(GdipSaveGraphics) then
+  begin
+    if FGDIPStateTop < 63 then
+    begin
+      Inc(FGDIPStateTop);
+      GdipSaveGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
+    end;
+  end;
+  FHasClipPath := True;
+
+  // 遍历 clipPath 的子元素，构建 GpPath（使用用户坐标，世界变换处理映射）
+  for I := 0 to DefEl.ChildCount - 1 do
+  begin
+    if DefEl.Children[I].NodeType <> xntElement then Continue;
+    ClipEl := TCnXMLElement(DefEl.Children[I]);
+    Tag := LowerCase(ClipEl.TagName);
+
+    if Tag = 'path' then
+    begin
+      D := Trim(ClipEl.GetAttribute('d'));
+      if D = '' then Continue;
+
+      FillMode := FillModeWinding;
+      if FCtx.Style.FillRule = sfrEvenOdd then
+        FillMode := FillModeAlternate;
+
+      Path := nil;
+      GdipCreatePath(FillMode, Path);
+      if Path = nil then Continue;
+
+      Parser := TCnSVGPathParser.Create;
+      ArcPts := TList.Create;
+      Segs := nil;
+      CurX := 0; CurY := 0; StartX := 0; StartY := 0;
+      try
+        Segs := Parser.ParsePathData(D);
+        for J := 0 to Segs.Count - 1 do
+        begin
+          Seg := PCnSVGPathSeg(Segs[J]);
+          case Seg^.SegType of
+            pstMoveTo:
+            begin
+              CurX := Seg^.X; CurY := Seg^.Y;
+              StartX := CurX; StartY := CurY;
+              GdipStartPathFigure(Path);
+            end;
+            pstLineTo, pstHLineTo, pstVLineTo:
+            begin
+              if Path <> nil then
+                GdipAddPathLine(Path, CurX, CurY, Seg^.X, Seg^.Y);
+              CurX := Seg^.X; CurY := Seg^.Y;
+            end;
+            pstCubicBezier, pstSmoothCubic:
+            begin
+              if Path <> nil then
+                GdipAddPathBezier(Path, CurX, CurY,
+                  Seg^.X1, Seg^.Y1, Seg^.X2, Seg^.Y2, Seg^.X, Seg^.Y);
+              CurX := Seg^.X; CurY := Seg^.Y;
+            end;
+            pstQuadBezier, pstSmoothQuad:
+            begin
+              QCP1X := CurX + 2 / 3 * (Seg^.X1 - CurX);
+              QCP1Y := CurY + 2 / 3 * (Seg^.Y1 - CurY);
+              QCP2X := Seg^.X + 2 / 3 * (Seg^.X1 - Seg^.X);
+              QCP2Y := Seg^.Y + 2 / 3 * (Seg^.Y1 - Seg^.Y);
+              if Path <> nil then
+                GdipAddPathBezier(Path, CurX, CurY,
+                  QCP1X, QCP1Y, QCP2X, QCP2Y, Seg^.X, Seg^.Y);
+              CurX := Seg^.X; CurY := Seg^.Y;
+            end;
+            pstClosePath:
+            begin
+              if Path <> nil then
+                GdipClosePathFigure(Path);
+              CurX := StartX; CurY := StartY;
+            end;
+          end;
+        end;
+      finally
+        if Segs <> nil then
+        begin
+          for J := 0 to Segs.Count - 1 do
+            Dispose(PCnSVGPathSeg(Segs[J]));
+          Segs.Free;
+        end;
+        for J := 0 to ArcPts.Count - 1 do
+          Dispose(PPoint(ArcPts[J]));
+        ArcPts.Free;
+        Parser.Free;
+      end;
+
+      // 应用 clip path
+      GdipSetClipPath(FGDIPGraphics, Path, CombineModeIntersect);
+      GdipDeletePath(Path);
+    end
+    else if (Tag = 'rect') or (Tag = 'circle') or (Tag = 'ellipse') then
+    begin
+      // 简化处理：对 rect/circle/ellipse 构建 GpPath 后裁剪
+      // 使用用户坐标，世界变换处理映射
+      Path := nil;
+      GdipCreatePath(FillModeWinding, Path);
+      if Path = nil then Continue;
+
+      if Tag = 'rect' then
+      begin
+        CX := SVGAttrFloat(ClipEl, 'x', 0);
+        CY := SVGAttrFloat(ClipEl, 'y', 0);
+        CW := SVGAttrFloat(ClipEl, 'width', 0);
+        CH := SVGAttrFloat(ClipEl, 'height', 0);
+        GdipAddPathRectangle(Path, CX, CY, CW, CH);
+      end
+      else if Tag = 'circle' then
+      begin
+        CX := SVGAttrFloat(ClipEl, 'cx', 0);
+        CY := SVGAttrFloat(ClipEl, 'cy', 0);
+        CRX := SVGAttrFloat(ClipEl, 'r', 0);
+        GdipAddPathEllipse(Path, CX - CRX, CY - CRX, CRX * 2, CRX * 2);
+      end
+      else if Tag = 'ellipse' then
+      begin
+        CX := SVGAttrFloat(ClipEl, 'cx', 0);
+        CY := SVGAttrFloat(ClipEl, 'cy', 0);
+        CRX := SVGAttrFloat(ClipEl, 'rx', 0);
+        CRY := SVGAttrFloat(ClipEl, 'ry', 0);
+        GdipAddPathEllipse(Path, CX - CRX, CY - CRY, CRX * 2, CRY * 2);
+      end;
+
+      GdipSetClipPath(FGDIPGraphics, Path, CombineModeIntersect);
+      GdipDeletePath(Path);
+    end;
+  end;
+end;
+
+procedure TCnSVGRenderer.RemoveGDIPClipPath;
+begin
+  if (not FUseGDIP) or (not FHasClipPath) then Exit;
+
+  // 恢复 GDI+ 状态（裁剪信息包含在状态中）
+  if Assigned(GdipRestoreGraphics) and (FGDIPStateTop >= 0) then
+  begin
+    GdipRestoreGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
+    Dec(FGDIPStateTop);
+  end;
+  FHasClipPath := False;
 end;
 
 function TCnSVGRenderer.UserToScreen(X, Y: TCnSVGFloat): TPoint;
@@ -3295,7 +3886,7 @@ var
   StrokePts: array[0..4] of TPoint;
   PolyCounts: array[0..0] of Integer;
   Pen: GpPen;
-  Brush: GpSolidFill;
+  Brush: GpBrush;
   Path: GpPath;
   R: TRect;
 begin
@@ -3317,27 +3908,29 @@ begin
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
 
+  // 设置渐变 objectBoundingBox 映射用的边界框
+  FGradBBoxX := X; FGradBBoxY := Y;
+  FGradBBoxW := W; FGradBBoxH := H;
+
   if FUseGDIP then
   begin
-    R := Rect(P1.X, P1.Y, P2.X, P2.Y);
+    // GDI+ 使用世界变换，直接用 SVG 用户坐标（浮点）
     if (RX > 0) or (RY > 0) then
     begin
       // 圆角矩形：用 GDI+ Path（4 段弧 + 4 段直线）构建
-      SRX := UserLenToScreen(RX * 2);
-      SRY := UserLenToScreen(RY * 2);
       Path := nil;
       GdipCreatePath(FillModeWinding, Path);
       if Path <> nil then
       begin
-        GdipAddPathArc(Path, R.Left, R.Top, SRX, SRY, 180, 90);
-        GdipAddPathArc(Path, R.Right - SRX, R.Top, SRX, SRY, 270, 90);
-        GdipAddPathArc(Path, R.Right - SRX, R.Bottom - SRY, SRX, SRY, 0, 90);
-        GdipAddPathArc(Path, R.Left, R.Bottom - SRY, SRX, SRY, 90, 90);
+        GdipAddPathArc(Path, X, Y, RX * 2, RY * 2, 180, 90);
+        GdipAddPathArc(Path, X + W - RX * 2, Y, RX * 2, RY * 2, 270, 90);
+        GdipAddPathArc(Path, X + W - RX * 2, Y + H - RY * 2, RX * 2, RY * 2, 0, 90);
+        GdipAddPathArc(Path, X, Y + H - RY * 2, RX * 2, RY * 2, 90, 90);
         GdipClosePathFigure(Path);
 
         if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
         begin
-          Brush := CreateGDIPPBrush;
+          Brush := CreateGDIPFillBrush;
           if Brush <> nil then
           begin
             GdipFillPath(FGDIPGraphics, Brush, Path);
@@ -3358,14 +3951,13 @@ begin
     end
     else
     begin
-      // 普通矩形
+      // 普通矩形：直接用用户坐标浮点
       if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
       begin
-        Brush := CreateGDIPPBrush;
+        Brush := CreateGDIPFillBrush;
         if Brush <> nil then
         begin
-          GdipFillRectangleI(FGDIPGraphics, Brush,
-            P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          GdipFillRectangle(FGDIPGraphics, Brush, X, Y, W, H);
           GdipDeleteBrush(Brush);
         end;
       end;
@@ -3374,8 +3966,7 @@ begin
         Pen := CreateGDIPPPen;
         if Pen <> nil then
         begin
-          GdipDrawRectangle(FGDIPGraphics, Pen,
-            P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          GdipDrawRectangle(FGDIPGraphics, Pen, X, Y, W, H);
           GdipDeletePen(Pen);
         end;
       end;
@@ -3446,7 +4037,7 @@ var
   P1, P2: TPoint;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
   Pen: GpPen;
-  Brush: GpSolidFill;
+  Brush: GpBrush;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   CX := SVGAttrFloat(AElement, 'cx', 0);
@@ -3458,15 +4049,20 @@ begin
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
 
+  // 设置渐变 objectBoundingBox 映射用的边界框
+  FGradBBoxX := CX - R; FGradBBoxY := CY - R;
+  FGradBBoxW := R * 2; FGradBBoxH := R * 2;
+
   if FUseGDIP then
   begin
+    // GDI+ 使用世界变换，直接用 SVG 用户坐标（浮点）
     if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
     begin
-      Brush := CreateGDIPPBrush;
+      Brush := CreateGDIPFillBrush;
       if Brush <> nil then
       begin
         GdipFillEllipse(FGDIPGraphics, Brush,
-          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          CX - R, CY - R, R * 2, R * 2);
         GdipDeleteBrush(Brush);
       end;
     end;
@@ -3476,7 +4072,7 @@ begin
       if Pen <> nil then
       begin
         GdipDrawEllipse(FGDIPGraphics, Pen,
-          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          CX - R, CY - R, R * 2, R * 2);
         GdipDeletePen(Pen);
       end;
     end;
@@ -3501,7 +4097,7 @@ var
   P1, P2: TPoint;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
   Pen: GpPen;
-  Brush: GpSolidFill;
+  Brush: GpBrush;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   CX := SVGAttrFloat(AElement, 'cx', 0);
@@ -3514,15 +4110,20 @@ begin
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
 
+  // 设置渐变 objectBoundingBox 映射用的边界框
+  FGradBBoxX := CX - RX; FGradBBoxY := CY - RY;
+  FGradBBoxW := RX * 2; FGradBBoxH := RY * 2;
+
   if FUseGDIP then
   begin
+    // GDI+ 使用世界变换，直接用 SVG 用户坐标（浮点）
     if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
     begin
-      Brush := CreateGDIPPBrush;
+      Brush := CreateGDIPFillBrush;
       if Brush <> nil then
       begin
         GdipFillEllipse(FGDIPGraphics, Brush,
-          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          CX - RX, CY - RY, RX * 2, RY * 2);
         GdipDeleteBrush(Brush);
       end;
     end;
@@ -3532,7 +4133,7 @@ begin
       if Pen <> nil then
       begin
         GdipDrawEllipse(FGDIPGraphics, Pen,
-          P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+          CX - RX, CY - RY, RX * 2, RY * 2);
         GdipDeletePen(Pen);
       end;
     end;
@@ -3573,10 +4174,14 @@ begin
 
   if FUseGDIP then
   begin
+    // GDI+ 使用世界变换，直接用 SVG 用户坐标（浮点）
     Pen := CreateGDIPPPen;
     if Pen <> nil then
     begin
-      GdipDrawLineI(FGDIPGraphics, Pen, P1.X, P1.Y, P2.X, P2.Y);
+      if Assigned(GdipDrawLine) then
+        GdipDrawLine(FGDIPGraphics, Pen, X1, Y1, X2, Y2)
+      else
+        GdipDrawLineI(FGDIPGraphics, Pen, P1.X, P1.Y, P2.X, P2.Y);
       GdipDeletePen(Pen);
     end;
   end
@@ -3610,6 +4215,7 @@ var
   PolyCounts: array[0..0] of Integer;
   StrokeAlpha: TCnSVGFloat;
   Pen: GpPen;
+  Path: GPPATH;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   PointsStr := AElement.GetAttribute('points');
@@ -3650,11 +4256,33 @@ begin
 
   if FUseGDIP then
   begin
-    Pen := CreateGDIPPPen;
-    if Pen <> nil then
+    // GDI+ 使用世界变换，直接用 SVG 用户坐标
+    // 构建 GpPath 以保留浮点精度
+    Path := nil;
+    GdipCreatePath(FillModeWinding, Path);
+    if Path <> nil then
     begin
-      GdipDrawLinesI(FGDIPGraphics, Pen, @ScreenPts[0], Count);
-      GdipDeletePen(Pen);
+      GdipStartPathFigure(Path);
+      for I := 1 to Count - 1 do
+        GdipAddPathLine(Path, Coords[(I - 1) * 2], Coords[(I - 1) * 2 + 1],
+          Coords[I * 2], Coords[I * 2 + 1]);
+      Pen := CreateGDIPPPen;
+      if Pen <> nil then
+      begin
+        GdipDrawPath(FGDIPGraphics, Pen, Path);
+        GdipDeletePen(Pen);
+      end;
+      GdipDeletePath(Path);
+    end
+    else
+    begin
+      // 回退：使用整数坐标
+      Pen := CreateGDIPPPen;
+      if Pen <> nil then
+      begin
+        GdipDrawLinesI(FGDIPGraphics, Pen, @ScreenPts[0], Count);
+        GdipDeletePen(Pen);
+      end;
     end;
   end
   else
@@ -3687,8 +4315,9 @@ var
   StrokeCounts: array[0..0] of Integer;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
   Pen: GpPen;
-  Brush: GpSolidFill;
+  Brush: GpBrush;
   FillMode: Integer;
+  Path: GpPath;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   PointsStr := AElement.GetAttribute('points');
@@ -3722,32 +4351,94 @@ begin
   FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
 
+  // 计算多边形边界框，用于渐变 objectBoundingBox 映射
+  if Count > 0 then
+  begin
+    FGradBBoxX := Coords[0]; FGradBBoxY := Coords[1];
+    FGradBBoxW := 0; FGradBBoxH := 0;
+    for I := 0 to Count - 1 do
+    begin
+      if Coords[I * 2] < FGradBBoxX then
+      begin
+        FGradBBoxW := FGradBBoxW + (FGradBBoxX - Coords[I * 2]);
+        FGradBBoxX := Coords[I * 2];
+      end;
+      if Coords[I * 2 + 1] < FGradBBoxY then
+      begin
+        FGradBBoxH := FGradBBoxH + (FGradBBoxY - Coords[I * 2 + 1]);
+        FGradBBoxY := Coords[I * 2 + 1];
+      end;
+      if Coords[I * 2] > FGradBBoxX + FGradBBoxW then
+        FGradBBoxW := Coords[I * 2] - FGradBBoxX;
+      if Coords[I * 2 + 1] > FGradBBoxY + FGradBBoxH then
+        FGradBBoxH := Coords[I * 2 + 1] - FGradBBoxY;
+    end;
+  end;
+
   if FUseGDIP then
   begin
     FillMode := FillModeWinding;
     if FCtx.Style.FillRule = sfrEvenOdd then
       FillMode := FillModeAlternate;
 
-    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    // GDI+ 使用世界变换，用 GpPath 保留浮点精度
+    Path := nil;
+    GdipCreatePath(FillMode, Path);
+    if Path <> nil then
     begin
-      Brush := CreateGDIPPBrush;
-      if Brush <> nil then
+      GdipStartPathFigure(Path);
+      for I := 1 to Count - 1 do
+        GdipAddPathLine(Path, Coords[(I - 1) * 2], Coords[(I - 1) * 2 + 1],
+          Coords[I * 2], Coords[I * 2 + 1]);
+      // 闭合：从最后一个点连到第一个点
+      GdipAddPathLine(Path, Coords[(Count - 1) * 2], Coords[(Count - 1) * 2 + 1],
+        Coords[0], Coords[1]);
+      GdipClosePathFigure(Path);
+
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
       begin
-        GdipFillPolygonI(FGDIPGraphics, Brush, @ScreenPts[0], Count, FillMode);
-        GdipDeleteBrush(Brush);
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillPath(FGDIPGraphics, Brush, Path);
+          GdipDeleteBrush(Brush);
+        end;
       end;
-    end;
-    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
-    begin
-      SetLength(ClosedPts, Count + 1);
-      for I := 0 to Count - 1 do
-        ClosedPts[I] := ScreenPts[I];
-      ClosedPts[Count] := ScreenPts[0];
-      Pen := CreateGDIPPPen;
-      if Pen <> nil then
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
       begin
-        GdipDrawLinesI(FGDIPGraphics, Pen, @ClosedPts[0], Count + 1);
-        GdipDeletePen(Pen);
+        Pen := CreateGDIPPPen;
+        if Pen <> nil then
+        begin
+          GdipDrawPath(FGDIPGraphics, Pen, Path);
+          GdipDeletePen(Pen);
+        end;
+      end;
+      GdipDeletePath(Path);
+    end
+    else
+    begin
+      // 回退：整数坐标
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillPolygonI(FGDIPGraphics, Brush, @ScreenPts[0], Count, FillMode);
+          GdipDeleteBrush(Brush);
+        end;
+      end;
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+      begin
+        SetLength(ClosedPts, Count + 1);
+        for I := 0 to Count - 1 do
+          ClosedPts[I] := ScreenPts[I];
+        ClosedPts[Count] := ScreenPts[0];
+        Pen := CreateGDIPPPen;
+        if Pen <> nil then
+        begin
+          GdipDrawLinesI(FGDIPGraphics, Pen, @ClosedPts[0], Count + 1);
+          GdipDeletePen(Pen);
+        end;
       end;
     end;
   end
@@ -3977,17 +4668,16 @@ var
 
   // GDI+ 路径渲染专用变量
   GDIPPath: GpPath;
-  GDIPPBrush: GpSolidFill;
+  GDIPBrush: GpBrush;
   GDIPPPen: GpPen;
-  // 变换后的浮点坐标，保留亚像素精度
-  SCurX, SCurY, SStartX, SStartY: Single;
-  SX1, SY1, SX2, SY2, SX3, SY3, SX4, SY4: Single;
-  // 二次贝塞尔升级为三次的中间变量
+  // 二次贝塞尔升级为三次的中间变量（用户坐标）
   QCP1X, QCP1Y, QCP2X, QCP2Y: Single;
   // 弧线的点数组
   ArcPts: TList;
   ArcPt: PPoint;
   FillMode: Integer;
+  // 单位矩阵，用于弧线不应用变换
+  IdentM: TCnSVGMatrix;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   D := Trim(AElement.GetAttribute('d'));
@@ -3997,7 +4687,6 @@ begin
   SubPaths := TList.Create;
   CurSub   := nil;
   CurX := 0; CurY := 0; StartX := 0; StartY := 0;
-  SCurX := 0; SCurY := 0; SStartX := 0; SStartY := 0;
   Segs := nil;
 
   // GDI+ 路径初始化
@@ -4010,6 +4699,9 @@ begin
       FillMode := FillModeAlternate;
     GdipCreatePath(FillMode, GDIPPath);
     ArcPts := TList.Create;
+    // 构建单位矩阵，弧线使用它以避免双重变换
+    IdentM.a := 1; IdentM.b := 0; IdentM.c := 0;
+    IdentM.d := 1; IdentM.e := 0; IdentM.f := 0;
   end;
 
   try
@@ -4038,13 +4730,9 @@ begin
           end
           else
           begin
-            // GDI+ 路径：开始新的 figure
+            // GDI+ 路径：开始新的 figure，使用用户坐标（世界变换处理映射）
             CurX := Seg^.X; CurY := Seg^.Y;
             StartX := CurX; StartY := CurY;
-            TX := CurX; TY := CurY;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SCurX := TX; SCurY := TY;
-            SStartX := SCurX; SStartY := SCurY;
             if GDIPPath <> nil then
               GdipStartPathFigure(GDIPPath);
           end;
@@ -4062,13 +4750,10 @@ begin
           end
           else
           begin
-            CurX := Seg^.X; CurY := Seg^.Y;
-            TX := CurX; TY := CurY;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX2 := TX; SY2 := TY;
+            // GDI+：用用户坐标，从当前位置连线到新点
             if GDIPPath <> nil then
-              GdipAddPathLine(GDIPPath, SCurX, SCurY, SX2, SY2);
-            SCurX := SX2; SCurY := SY2;
+              GdipAddPathLine(GDIPPath, CurX, CurY, Seg^.X, Seg^.Y);
+            CurX := Seg^.X; CurY := Seg^.Y;
           end;
         end;
         pstCubicBezier, pstSmoothCubic:
@@ -4082,23 +4767,11 @@ begin
           end
           else
           begin
-            // GDI+ 原生三次贝塞尔，保留亚像素精度
-            TX := CurX; TY := CurY;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX1 := TX; SY1 := TY;
-            TX := Seg^.X1; TY := Seg^.Y1;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX2 := TX; SY2 := TY;
-            TX := Seg^.X2; TY := Seg^.Y2;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX3 := TX; SY3 := TY;
-            TX := Seg^.X; TY := Seg^.Y;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX4 := TX; SY4 := TY;
+            // GDI+ 原生三次贝塞尔，用用户坐标
             if GDIPPath <> nil then
-              GdipAddPathBezier(GDIPPath, SX1, SY1, SX2, SY2, SX3, SY3, SX4, SY4);
+              GdipAddPathBezier(GDIPPath, CurX, CurY,
+                Seg^.X1, Seg^.Y1, Seg^.X2, Seg^.Y2, Seg^.X, Seg^.Y);
             CurX := Seg^.X; CurY := Seg^.Y;
-            SCurX := SX4; SCurY := SY4;
           end;
         end;
         pstQuadBezier, pstSmoothQuad:
@@ -4113,23 +4786,14 @@ begin
           else
           begin
             // 二次贝塞尔升级为三次：CP1 = P0 + 2/3*(P1-P0), CP2 = P3 + 2/3*(P1-P3)
-            TX := CurX; TY := CurY;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX1 := TX; SY1 := TY;
-            TX := Seg^.X1; TY := Seg^.Y1;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX2 := TX; SY2 := TY;
-            TX := Seg^.X; TY := Seg^.Y;
-            SVGMatrixTransformPoint(FCtx.CTM, TX, TY);
-            SX4 := TX; SY4 := TY;
-            QCP1X := SX1 + 2 / 3 * (SX2 - SX1);
-            QCP1Y := SY1 + 2 / 3 * (SY2 - SY1);
-            QCP2X := SX4 + 2 / 3 * (SX2 - SX4);
-            QCP2Y := SY4 + 2 / 3 * (SY2 - SY4);
+            QCP1X := CurX + 2 / 3 * (Seg^.X1 - CurX);
+            QCP1Y := CurY + 2 / 3 * (Seg^.Y1 - CurY);
+            QCP2X := Seg^.X + 2 / 3 * (Seg^.X1 - Seg^.X);
+            QCP2Y := Seg^.Y + 2 / 3 * (Seg^.Y1 - Seg^.Y);
             if GDIPPath <> nil then
-              GdipAddPathBezier(GDIPPath, SX1, SY1, QCP1X, QCP1Y, QCP2X, QCP2Y, SX4, SY4);
+              GdipAddPathBezier(GDIPPath, CurX, CurY,
+                QCP1X, QCP1Y, QCP2X, QCP2Y, Seg^.X, Seg^.Y);
             CurX := Seg^.X; CurY := Seg^.Y;
-            SCurX := SX4; SCurY := SY4;
           end;
         end;
         pstArc:
@@ -4145,33 +4809,34 @@ begin
           else
           begin
             // 弧线：仍用离散点，以折线形式添加到 GDI+ 路径
+            // 传入单位矩阵，使弧线点留在用户坐标（世界变换处理映射）
             ArcPts.Clear;
             SVGArcToPoints(CurX, CurY, Seg^.X, Seg^.Y,
               Seg^.RX, Seg^.RY, Seg^.XRotation,
-              Seg^.LargeArc, Seg^.Sweep, FCtx.CTM, ArcPts);
+              Seg^.LargeArc, Seg^.Sweep, IdentM, ArcPts);
             // 将离散点添加为折线段
             if (ArcPts.Count > 0) and (GDIPPath <> nil) then
             begin
-              // 从当前点连线到弧线的第一个点
+              // 从当前位置连线到弧线的第一个点
               ArcPt := PPoint(ArcPts[0]);
-              GdipAddPathLine(GDIPPath, SCurX, SCurY, ArcPt^.X, ArcPt^.Y);
+              GdipAddPathLine(GDIPPath, CurX, CurY, ArcPt^.X, ArcPt^.Y);
               // 依次连线
               for J := 1 to ArcPts.Count - 1 do
               begin
                 ArcPt := PPoint(ArcPts[J - 1]);
-                SX1 := ArcPt^.X; SY1 := ArcPt^.Y;
+                TX := ArcPt^.X; TY := ArcPt^.Y;
                 ArcPt := PPoint(ArcPts[J]);
-                SX2 := ArcPt^.X; SY2 := ArcPt^.Y;
-                GdipAddPathLine(GDIPPath, SX1, SY1, SX2, SY2);
+                GdipAddPathLine(GDIPPath, TX, TY, ArcPt^.X, ArcPt^.Y);
               end;
               // 更新当前位置
               ArcPt := PPoint(ArcPts[ArcPts.Count - 1]);
-              SCurX := ArcPt^.X; SCurY := ArcPt^.Y;
+              CurX := ArcPt^.X; CurY := ArcPt^.Y;
             end;
             // 释放弧线点
             for J := 0 to ArcPts.Count - 1 do
               Dispose(PPoint(ArcPts[J]));
             ArcPts.Clear;
+            // 修正当前位置为弧线终点（避免浮点累积误差）
             CurX := Seg^.X; CurY := Seg^.Y;
           end;
         end;
@@ -4193,7 +4858,6 @@ begin
             if GDIPPath <> nil then
               GdipClosePathFigure(GDIPPath);
             CurX := StartX; CurY := StartY;
-            SCurX := SStartX; SCurY := SStartY;
           end;
         end;
       end;
@@ -4211,17 +4875,21 @@ begin
     FillAlpha := EffectiveFillAlpha;
     StrokeAlpha := EffectiveStrokeAlpha;
 
+    // Path 的 objectBoundingBox 暂不支持自动映射，留 0 表示不映射
+    FGradBBoxX := 0; FGradBBoxY := 0;
+    FGradBBoxW := 0; FGradBBoxH := 0;
+
     // ── GDI+ 渲染 ──
     if FUseGDIP and (GDIPPath <> nil) then
     begin
       // FILL
       if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
       begin
-        GDIPPBrush := CreateGDIPPBrush;
-        if GDIPPBrush <> nil then
+        GDIPBrush := CreateGDIPFillBrush;
+        if GDIPBrush <> nil then
         begin
-          GdipFillPath(FGDIPGraphics, GDIPPBrush, GDIPPath);
-          GdipDeleteBrush(GDIPPBrush);
+          GdipFillPath(FGDIPGraphics, GDIPBrush, GDIPPath);
+          GdipDeleteBrush(GDIPBrush);
         end;
       end;
       // STROKE
@@ -4399,9 +5067,10 @@ var
     LF: TLogFont;
     GDIPFont: GpFont;
     GDIPFmt: GpStringFormat;
-    GDIPBrush: GpSolidFill;
+    GDIPBrush: GpBrush;
     LayoutRect, MeasureRect, BBox: TGPRectF;
     WStr: WideString;
+    SavedState: Cardinal;
   begin
     if S = '' then Exit;
     ApplyCanvasFontFromStyle(AStyle);
@@ -4433,10 +5102,21 @@ var
       GDIPFmt := nil;
       GdipCreateStringFormat(0, 0, GDIPFmt);
 
-      // 创建画刷（使用填充色）
-      GDIPBrush := CreateGDIPPBrush;
+      // 创建画刷（使用填充色，支持渐变）
+      // Text 的 objectBoundingBox 暂不支持自动映射
+      FGradBBoxX := 0; FGradBBoxY := 0;
+      FGradBBoxW := 0; FGradBBoxH := 0;
+      GDIPBrush := CreateGDIPFillBrush;
 
       try
+        // 文字使用屏幕坐标 + 已缩放字体渲染，需要暂时关闭世界变换，
+        // 否则 GDI+ 世界变换会对屏幕坐标再做一次映射导致双重变换。
+        SavedState := 0;
+        if Assigned(GdipSaveGraphics) then
+          GdipSaveGraphics(FGDIPGraphics, SavedState);
+        if Assigned(GdipResetWorldTransform) then
+          GdipResetWorldTransform(FGDIPGraphics);
+
         // 用 GDI 测量高度（用于 baseline 定位），用 GDI+ MeasureString 测量宽度：
         // GDI 的 Canvas.TextWidth 测的中文字符宽度偏小，按此计算的居中/右对齐
         // 起点会让 GDI+ 渲染的实际文字偏右。改用 GDI+ 自己测的 BBox.Width。
@@ -4477,6 +5157,12 @@ var
         if GDIPBrush <> nil then
           GdipDrawString(FGDIPGraphics, PWideChar(WStr), Length(WStr),
             GDIPFont, @LayoutRect, GDIPFmt, GDIPBrush);
+
+        // 恢复世界变换
+        if (SavedState <> 0) and Assigned(GdipRestoreGraphics) then
+          GdipRestoreGraphics(FGDIPGraphics, SavedState)
+        else
+          UpdateGDIPWorldTransform; // 后备：直接重建世界变换
       finally
         if GDIPBrush <> nil then
           GdipDeleteBrush(GDIPBrush);
@@ -4581,8 +5267,12 @@ begin
   if HasTransform then
     ApplyTransformAttr(AElement.GetAttribute('transform'));
   ApplyStyleAttr(AElement);
+  // 应用 GDI+ 裁剪路径
+  ApplyGDIPClipPath;
   for I := 0 to AElement.ChildCount - 1 do
     RenderNode(AElement.Children[I]);
+  // 移除 GDI+ 裁剪路径
+  RemoveGDIPClipPath;
   PopStyle;
   PopMatrix;
 end;
@@ -4867,6 +5557,9 @@ begin
       if AElement.HasAttribute('transform') then
         ApplyTransformAttr(AElement.GetAttribute('transform'));
 
+      // 应用 GDI+ 裁剪路径
+      ApplyGDIPClipPath;
+
       if Tag = 'svg' then
         RenderNestedSVG(AElement)
       else if Tag = 'rect' then
@@ -4903,6 +5596,8 @@ begin
         for I := 0 to AElement.ChildCount - 1 do
           RenderNode(AElement.Children[I]);
     finally
+      // 移除 GDI+ 裁剪路径（恢复之前保存的状态）
+      RemoveGDIPClipPath;
       PopMatrix;
       PopStyle;
     end;
