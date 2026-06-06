@@ -362,7 +362,7 @@ type
   end;
   {* GDI+ 浮点矩形，用于 GdipDrawString / GdipMeasureString 的布局和边界框 }
 
-  PTGPColor = ^TGPColor;
+  PGPColor = ^TGPColor;
   TGPColor = Cardinal;
 
   TStatus = (
@@ -661,6 +661,9 @@ type
   TGdipSetLineGammaCorrection = function(LineGradient: GPBRUSH;
     UseGammaCorrection: BOOL): GPSTATUS; stdcall;
 
+  TGdipSetLinePresetBlend = function(LineGradient: GPBRUSH;
+    Colors: PGPColor; Positions: PSingle; Count: Integer): GPSTATUS; stdcall;
+
   //---------- PathGradient 路径渐变画刷 ----------
   TGdipCreatePathGradientFromPath = function(Path: GPPATH;
     out PathGradient: GPBRUSH): GPSTATUS; stdcall;
@@ -669,7 +672,7 @@ type
     Color: TGPColor): GPSTATUS; stdcall;
 
   TGdipSetPathGradientSurroundColors = function(PathGradient: GPBRUSH;
-    Colors: PTGPColor; Count: PInteger): GPSTATUS; stdcall;
+    Colors: PGPColor; Count: PInteger): GPSTATUS; stdcall;
 
   TGdipSetPathGradientCenterPoint = function(PathGradient: GPBRUSH;
     Point: Pointer): GPSTATUS; stdcall;
@@ -788,6 +791,7 @@ var
   GdipCreateLineBrushFromRect: TGdipCreateLineBrushFromRect = nil;
   GdipSetLineColors: TGdipSetLineColors = nil;
   GdipSetLineBlend: TGdipSetLineBlend = nil;
+  GdipSetLinePresetBlend: TGdipSetLinePresetBlend = nil;
   GdipSetLineGammaCorrection: TGdipSetLineGammaCorrection = nil;
 
   //---------- PathGradient 路径渐变画刷 ----------
@@ -1525,6 +1529,7 @@ initialization
     GdipCreateLineBrushFromRect := TGdipCreateLineBrushFromRect(GetProcAddress(GdiPlusHandle, 'GdipCreateLineBrushFromRectI'));
     GdipSetLineColors := TGdipSetLineColors(GetProcAddress(GdiPlusHandle, 'GdipSetLineColors'));
     GdipSetLineBlend := TGdipSetLineBlend(GetProcAddress(GdiPlusHandle, 'GdipSetLineBlend'));
+    GdipSetLinePresetBlend := TGdipSetLinePresetBlend(GetProcAddress(GdiPlusHandle, 'GdipSetLinePresetBlend'));
     GdipSetLineGammaCorrection := TGdipSetLineGammaCorrection(GetProcAddress(GdiPlusHandle, 'GdipSetLineGammaCorrection'));
 
     //---------- PathGradient 路径渐变画刷（非核心）----------

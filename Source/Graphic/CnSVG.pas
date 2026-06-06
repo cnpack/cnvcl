@@ -2950,9 +2950,10 @@ var
   Stops: TList;
   I: Integer;
   StopEl: TCnXMLElement;
-  Offset: TCnSVGFloat;
   SC: TCnSVGColor;
   SA: Integer;
+  Colors: array[0..255] of Cardinal;
+  Positions: array[0..255] of TCnSVGFloat;
   Path: GpPath;
   CenterPt: TGPRectF;
   Count: Integer;
@@ -3029,6 +3030,7 @@ begin
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
           C2 := C1;
         end;
+        Count := Stops.Count;
       finally
         Stops.Free;
       end;
@@ -3039,6 +3041,29 @@ begin
         GP2.X := X2; GP2.Y := Y2;
         if GdipCreateLineBrush(@GP1, @GP2, C1, C2, WrapModeTile, Result) <> Ok then
           Result := nil;
+      end;
+
+      if (Result <> nil) and (Count > 2) and Assigned(GdipSetLinePresetBlend) then
+      begin
+        Count := 0;
+        for I := 0 to DefEl.ChildCount - 1 do
+        begin
+          if (DefEl.Children[I].NodeType = xntElement) and
+             (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+          begin
+            StopEl := TCnXMLElement(DefEl.Children[I]);
+            SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+            SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+            Colors[Count] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+            Positions[Count] := SVGAttrFloat(StopEl, 'offset', 0);
+            if SVGAttrIsPercent(StopEl, 'offset') then
+              Positions[Count] := Positions[Count] / 100;
+            if Positions[Count] < 0 then Positions[Count] := 0;
+            if Positions[Count] > 1 then Positions[Count] := 1;
+            Inc(Count);
+          end;
+        end;
+        GdipSetLinePresetBlend(Result, @Colors, @Positions, Count);
       end;
     end
     else if Tag = 'radialgradient' then
@@ -3144,6 +3169,9 @@ var
   StopEl: TCnXMLElement;
   SC: TCnSVGColor;
   SA: Integer;
+  Count: Integer;
+  Colors: array[0..255] of Cardinal;
+  Positions: array[0..255] of TCnSVGFloat;
   GradUnits: string;
   IsObjBBox: Boolean;
 begin
@@ -3203,6 +3231,7 @@ begin
           SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
           C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
         end;
+        Count := Stops.Count;
       finally
         Stops.Free;
       end;
@@ -3213,6 +3242,29 @@ begin
         GP2.X := X2; GP2.Y := Y2;
         if GdipCreateLineBrush(@GP1, @GP2, C1, C2, WrapModeTile, Result) <> Ok then
           Result := nil;
+      end;
+
+      if (Result <> nil) and (Count > 2) and Assigned(GdipSetLinePresetBlend) then
+      begin
+        Count := 0;
+        for I := 0 to DefEl.ChildCount - 1 do
+        begin
+          if (DefEl.Children[I].NodeType = xntElement) and
+             (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+          begin
+            StopEl := TCnXMLElement(DefEl.Children[I]);
+            SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+            SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+            Colors[Count] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+            Positions[Count] := SVGAttrFloat(StopEl, 'offset', 0);
+            if SVGAttrIsPercent(StopEl, 'offset') then
+              Positions[Count] := Positions[Count] / 100;
+            if Positions[Count] < 0 then Positions[Count] := 0;
+            if Positions[Count] > 1 then Positions[Count] := 1;
+            Inc(Count);
+          end;
+        end;
+        GdipSetLinePresetBlend(Result, @Colors, @Positions, Count);
       end;
     end;
 
