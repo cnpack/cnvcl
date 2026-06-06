@@ -492,6 +492,8 @@ type
   TGdipSetPenDashOffset = function(Pen: GPPEN; DashOffset: Single):
     GPSTATUS; stdcall;
 
+  TGdipSetPenBrushFill = function(Pen: GPPEN; Brush: GPBRUSH): GPSTATUS; stdcall;
+
   //---------- Brush »­Ë¢ ----------
   TGdipCreateSolidFill = function(Color: TGPColor;
     out Brush: GPSOLIDFILL): GPSTATUS; stdcall;
@@ -740,6 +742,7 @@ var
   GdipSetPenDashStyle: TGdipSetPenDashStyle = nil;
   GdipSetPenDashArray: TGdipSetPenDashArray = nil;
   GdipSetPenDashOffset: TGdipSetPenDashOffset = nil;
+  GdipSetPenBrushFill: TGdipSetPenBrushFill = nil;
 
   //---------- Brush »­Ë¢ ----------
   GdipCreateSolidFill: TGdipCreateSolidFill = nil;
@@ -1479,6 +1482,7 @@ initialization
     GdipSetPenDashStyle := TGdipSetPenDashStyle(GetProcAddress(GdiPlusHandle, 'GdipSetPenDashStyle'));
     GdipSetPenDashArray := TGdipSetPenDashArray(GetProcAddress(GdiPlusHandle, 'GdipSetPenDashArray'));
     GdipSetPenDashOffset := TGdipSetPenDashOffset(GetProcAddress(GdiPlusHandle, 'GdipSetPenDashOffset'));
+    GdipSetPenBrushFill := TGdipSetPenBrushFill(GetProcAddress(GdiPlusHandle, 'GdipSetPenBrushFill'));
 
     //---------- Brush »­Ë¢ ----------
     GdipCreateSolidFill := TGdipCreateSolidFill(GetProcAddress(GdiPlusHandle, 'GdipCreateSolidFill'));

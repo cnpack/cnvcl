@@ -2891,6 +2891,7 @@ var
   PenWidth: Single;
   DashVals: array[0..7] of Single;
   I: Integer;
+  StrokeBrush: GpBrush;
 begin
   Result := nil;
   S := FCtx.Style;
@@ -2905,6 +2906,16 @@ begin
   begin
     Result := nil;
     Exit;
+  end;
+
+  if (S.StrokeGradientID <> '') and Assigned(GdipSetPenBrushFill) then
+  begin
+    StrokeBrush := CreateGDIPStrokeBrush;
+    if StrokeBrush <> nil then
+    begin
+      GdipSetPenBrushFill(Result, StrokeBrush);
+      GdipDeleteBrush(StrokeBrush);
+    end;
   end;
 
   // LineCap
