@@ -3237,8 +3237,8 @@ begin
         begin
           if Assigned(GdipSetPathGradientPresetBlend) then
           begin
-            Colors[0] := C1;
-            Colors[1] := C2;
+            Colors[0] := C2;
+            Colors[1] := C1;
             Positions[0] := 0.0;
             Positions[1] := 1.0;
             GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
@@ -3282,8 +3282,8 @@ begin
           begin
             if Assigned(GdipSetPathGradientPresetBlend) then
             begin
-              Colors[0] := C1;
-              Colors[1] := C2;
+              Colors[0] := C2;
+              Colors[1] := C1;
               Positions[0] := 0.0;
               Positions[1] := 1.0;
               GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
@@ -5387,6 +5387,7 @@ var
     LayoutRect, MeasureRect, BBox: TGPRectF;
     WStr: WideString;
     SavedState: Cardinal;
+    AngleDeg: Double;
   begin
     if S = '' then Exit;
     ApplyCanvasFontFromStyle(AStyle);
@@ -5430,6 +5431,7 @@ var
         SavedState := 0;
         if Assigned(GdipSaveGraphics) then
           GdipSaveGraphics(FGDIPGraphics, SavedState);
+          // translate(Scr) * rotate(Angle)
         if Assigned(GdipResetWorldTransform) then
           GdipResetWorldTransform(FGDIPGraphics);
 
@@ -5459,14 +5461,34 @@ var
             GdipSetStringFormatLineAlign(GDIPFmt, 0);
         end;
 
-        case AStyle.TextAnchor of
-          staMiddle: LayoutRect.X := Scr.X - TW div 2;
-          staEnd:    LayoutRect.X := Scr.X - TW;
-        else         LayoutRect.X := Scr.X; // staStart
+        // 从 CTM 提取旋转角
+        AngleDeg := ArcTan2(FCtx.CTM.b, FCtx.CTM.a) * 180 / Pi;
+        if Abs(AngleDeg) > 0.01 then
+        begin
+          if Assigned(GdipTranslateWorldTransform) then
+            GdipTranslateWorldTransform(FGDIPGraphics, Scr.X, Scr.Y, MatrixOrderAppend);
+          if Assigned(GdipRotateWorldTransform) then
+            GdipRotateWorldTransform(FGDIPGraphics, AngleDeg, MatrixOrderAppend);
         end;
-        LayoutRect.Y      := Scr.Y - Round(TH * 0.8);
-        // LayoutRect.Width 远大于文字宽度，HAlign = Near 不会因宽度改变绘制起点。
-        // GDI+ 内部用 LayoutRect 决定是否换行裁剪，宽度大就不会换行。
+
+        if Abs(AngleDeg) > 0.01 then
+        begin
+          case AStyle.TextAnchor of
+            staMiddle: LayoutRect.X := -(TW div 2);
+            staEnd:    LayoutRect.X := -TW;
+          else         LayoutRect.X := 0;
+          end;
+          LayoutRect.Y := -Round(TH * 0.8);
+        end
+        else
+        begin
+          case AStyle.TextAnchor of
+            staMiddle: LayoutRect.X := Scr.X - TW div 2;
+            staEnd:    LayoutRect.X := Scr.X - TW;
+          else         LayoutRect.X := Scr.X;
+          end;
+          LayoutRect.Y := Scr.Y - Round(TH * 0.8);
+        end;
         LayoutRect.Width  := 100000;
         LayoutRect.Height := 100000;
 
@@ -5903,11 +5925,21 @@ var
   V1, V2: TCnSVGFloat;
   RadiusX, RadiusY: Integer;
   RG: TGPRect;
-  SrcData, TmpData: TGDIPBitmapData;
+  SrcData, TmpData, OutData: TGDIPBitmapData;
   BW, BH: Cardinal;
   X, Y, Cnt, PixelIdx: Integer;
   SumR, SumG, SumB, SumA: Integer;
-  SrcRow, DstRow: PARGBArray;
+  SrcRow, DstRow, OutRow: PARGBArray;
+  SrcBmp, Tmp2Bmp, ResultBmp, BmpCopy: GpImage;
+  ResultGC: GpGraphics;
+  InName, ResultName: string;
+  FilterResults: TStringList;
+  J: Integer;
+  LockOk: Boolean;
+  Op: string;
+  K1, K2, K3, K4: Double;
+  M: array[0..19] of Double;
+  FC: TCnSVGColor;
 
   procedure DispatchRender;
   begin
@@ -6186,7 +6218,30 @@ begin
   FGDIPGraphics := SavedGC;
   UpdateGDIPWorldTransform;
 
-  // --- Apply feGaussianBlur ---
+  // save original source for SourceGraphic/SourceAlpha references
+  SrcBmp := nil;
+  if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, SrcBmp) = Ok then
+  begin
+    RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+    if (GdipBitmapLockBits(Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok)
+      and (GdipBitmapLockBits(SrcBmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, TmpData) = Ok) then
+    begin
+      for Y := 0 to SrcData.Height - 1 do
+        System.Move(PAnsiChar(SrcData.Scan0)[Y * SrcData.Stride],
+                    PAnsiChar(TmpData.Scan0)[Y * TmpData.Stride],
+                    SrcData.Width * 4);
+      GdipBitmapUnlockBits(SrcBmp, TmpData);
+      GdipBitmapUnlockBits(Bmp, SrcData);
+    end
+    else
+    begin
+      GdipDisposeImage(SrcBmp);
+      SrcBmp := nil;
+    end;
+  end;
+  FilterResults := TStringList.Create;
+
+  // --- Filter chain processing ---
   if FilterEl <> nil then
   begin
     I := 0;
@@ -6232,15 +6287,12 @@ begin
             begin
               BW := SrcData.Width;
               BH := SrcData.Height;
-
               for Pass := 0 to 2 do
               begin
-                // --- Horizontal: SrcData -> TmpData ---
                 for Y := 0 to BH - 1 do
                 begin
                   SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
                   DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
-                  // initialize sliding window: pixels [0, Min(RadiusX, BW-1)]
                   SumR := 0; SumG := 0; SumB := 0; SumA := 0;
                   Cnt := RadiusX + 1;
                   if Cnt > BW then Cnt := BW;
@@ -6255,8 +6307,6 @@ begin
                     DstRow[X].G := SumG div Cnt;
                     DstRow[X].R := SumR div Cnt;
                     DstRow[X].A := SumA div Cnt;
-
-                    // remove pixel at left edge of current window
                     PixelIdx := X - RadiusX;
                     if PixelIdx >= 0 then
                     begin
@@ -6264,7 +6314,6 @@ begin
                       Dec(SumR, SrcRow[PixelIdx].R); Dec(SumA, SrcRow[PixelIdx].A);
                       Dec(Cnt);
                     end;
-                    // add pixel after right edge of current window
                     PixelIdx := X + RadiusX + 1;
                     if PixelIdx < BW then
                     begin
@@ -6274,10 +6323,8 @@ begin
                     end;
                   end;
                 end;
-                // --- Vertical: TmpData -> SrcData ---
                 for X := 0 to BW - 1 do
                 begin
-                  // initialize sliding window: pixels [0, Min(RadiusY, BH-1)]
                   SumR := 0; SumG := 0; SumB := 0; SumA := 0;
                   Cnt := RadiusY + 1;
                   if Cnt > BH then Cnt := BH;
@@ -6294,8 +6341,6 @@ begin
                     DstRow[X].G := SumG div Cnt;
                     DstRow[X].R := SumR div Cnt;
                     DstRow[X].A := SumA div Cnt;
-
-                    // remove pixel at top edge of current window
                     PixelIdx := Y - RadiusY;
                     if PixelIdx >= 0 then
                     begin
@@ -6304,7 +6349,6 @@ begin
                       Dec(SumR, SrcRow[X].R); Dec(SumA, SrcRow[X].A);
                       Dec(Cnt);
                     end;
-                    // add pixel below bottom edge of current window
                     PixelIdx := Y + RadiusY + 1;
                     if PixelIdx < BH then
                     begin
@@ -6316,23 +6360,760 @@ begin
                   end;
                 end;
               end;
-              // copy final result from TmpBmp back to Bmp (3 passes end in TmpBmp)
-              for Y := 0 to BH - 1 do
-                System.Move(PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride)^,
-                            PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride)^,
-                            BW * 4);
               GdipBitmapUnlockBits(TmpBmp, TmpData);
               GdipBitmapUnlockBits(Bmp, SrcData);
             end;
             GdipDisposeImage(TmpBmp);
           end;
         end;
+      end
+      else if Tag = 'feoffset' then
+      begin
+        V1 := SVGAttrFloat(Child, 'dx', 0);
+        V2 := SVGAttrFloat(Child, 'dy', 0);
+        if (V1 <> 0) or (V2 <> 0) then
+        begin
+          RadiusX := Round(V1);
+          RadiusY := Round(V2);
+          if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+          begin
+            RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+            if (GdipBitmapLockBits(Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok)
+              and (GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, TmpData) = Ok) then
+            begin
+              BW := SrcData.Width;
+              BH := SrcData.Height;
+              for Y := 0 to BH - 1 do
+              begin
+                DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                for X := 0 to BW - 1 do
+                begin
+                  PixelIdx := Y - RadiusY;
+                  if (PixelIdx >= 0) and (PixelIdx < Integer(BH)) then
+                  begin
+                    Cnt := X - RadiusX;
+                    if (Cnt >= 0) and (Cnt < Integer(BW)) then
+                    begin
+                      SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + PixelIdx * SrcData.Stride);
+                      DstRow[X] := SrcRow[Cnt];
+                    end
+                    else
+                    begin
+                      DstRow[X].B := 0; DstRow[X].G := 0;
+                      DstRow[X].R := 0; DstRow[X].A := 0;
+                    end;
+                  end
+                  else
+                  begin
+                    DstRow[X].B := 0; DstRow[X].G := 0;
+                    DstRow[X].R := 0; DstRow[X].A := 0;
+                  end;
+                end;
+              end;
+              GdipBitmapUnlockBits(TmpBmp, TmpData);
+              GdipBitmapUnlockBits(Bmp, SrcData);
+            end;
+            GdipDisposeImage(Bmp);
+            Bmp := TmpBmp;
+          end;
+        end;
+      end
+      else if Tag = 'fedropshadow' then
+      begin
+        // parse stdDeviation first into V1/V2, then save to RadiusX/RadiusY
+        StdDevStr := Trim(Child.GetAttribute('stdDeviation'));
+        if StdDevStr <> '' then
+        begin
+          try
+            Space := Pos(' ', StdDevStr);
+            if Space > 0 then
+            begin
+              V1 := StrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)));
+              V2 := StrToFloat(Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space)));
+            end
+            else
+            begin
+              V1 := StrToFloat(StdDevStr);
+              V2 := V1;
+            end;
+          except
+            V1 := 2; V2 := 2;
+          end;
+        end
+        else
+        begin
+          V1 := 2; V2 := 2;
+        end;
+        RadiusX := Round(V1); RadiusY := Round(V2);
+
+        // now read dx/dy into V1/V2 for offset step
+        V1 := SVGAttrFloat(Child, 'dx', 2);
+        V2 := SVGAttrFloat(Child, 'dy', 2);
+
+        // Step 1: Offset copy Bmp -> Tmp2Bmp (original, saved for composite)
+        if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, Tmp2Bmp) = Ok then
+        begin
+          RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+          if (GdipBitmapLockBits(Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok)
+            and (GdipBitmapLockBits(Tmp2Bmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, TmpData) = Ok) then
+          begin
+            BW := SrcData.Width; BH := SrcData.Height;
+            for Y := 0 to BH - 1 do
+            begin
+              DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+              for X := 0 to BW - 1 do
+              begin
+                PixelIdx := Y - Round(V2);
+                if (PixelIdx >= 0) and (PixelIdx < Integer(BH)) then
+                begin
+                  Cnt := X - Round(V1);
+                  if (Cnt >= 0) and (Cnt < Integer(BW)) then
+                  begin
+                    SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + PixelIdx * SrcData.Stride);
+                    DstRow[X] := SrcRow[Cnt];
+                  end
+                  else
+                  begin
+                    DstRow[X].B := 0; DstRow[X].G := 0;
+                    DstRow[X].R := 0; DstRow[X].A := 0;
+                  end;
+                end
+                else
+                begin
+                  DstRow[X].B := 0; DstRow[X].G := 0;
+                  DstRow[X].R := 0; DstRow[X].A := 0;
+                end;
+              end;
+            end;
+            GdipBitmapUnlockBits(Tmp2Bmp, TmpData);
+            GdipBitmapUnlockBits(Bmp, SrcData);
+          end;
+
+          // Step 2: Copy Tmp2Bmp -> TmpBmp (shadow copy to blur)
+          if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+          begin
+            if GdipGetImageGraphicsContext(TmpBmp, ResultGC) = Ok then
+            begin
+              GdipDrawImageRectI(ResultGC, Tmp2Bmp, 0, 0, SW, SH);
+              GdipDeleteGraphics(ResultGC);
+            end;
+
+            // Blur TmpBmp -> ResultBmp (shadow)
+            if RadiusX < 1 then RadiusX := 1;
+            if RadiusY < 1 then RadiusY := 1;
+
+            if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, ResultBmp) = Ok then
+            begin
+              RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+              if (GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeRW, PixelFormat32bppARGB, SrcData) = Ok)
+                and (GdipBitmapLockBits(ResultBmp, @RG, ImageLockModeRW, PixelFormat32bppARGB, TmpData) = Ok) then
+              begin
+                BW := SrcData.Width; BH := SrcData.Height;
+                for Pass := 0 to 2 do
+                begin
+                  for Y := 0 to BH - 1 do
+                  begin
+                    SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                    DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                    SumR := 0; SumG := 0; SumB := 0; SumA := 0;
+                    Cnt := RadiusX + 1; if Cnt > BW then Cnt := BW;
+                    for PixelIdx := 0 to Cnt - 1 do
+                    begin
+                      Inc(SumB, SrcRow[PixelIdx].B); Inc(SumG, SrcRow[PixelIdx].G);
+                      Inc(SumR, SrcRow[PixelIdx].R); Inc(SumA, SrcRow[PixelIdx].A);
+                    end;
+                    for X := 0 to BW - 1 do
+                    begin
+                      DstRow[X].B := SumB div Cnt; DstRow[X].G := SumG div Cnt;
+                      DstRow[X].R := SumR div Cnt; DstRow[X].A := SumA div Cnt;
+                      PixelIdx := X - RadiusX;
+                      if PixelIdx >= 0 then
+                      begin
+                        Dec(SumB, SrcRow[PixelIdx].B); Dec(SumG, SrcRow[PixelIdx].G);
+                        Dec(SumR, SrcRow[PixelIdx].R); Dec(SumA, SrcRow[PixelIdx].A);
+                        Dec(Cnt);
+                      end;
+                      PixelIdx := X + RadiusX + 1;
+                      if PixelIdx < BW then
+                      begin
+                        Inc(SumB, SrcRow[PixelIdx].B); Inc(SumG, SrcRow[PixelIdx].G);
+                        Inc(SumR, SrcRow[PixelIdx].R); Inc(SumA, SrcRow[PixelIdx].A);
+                        Inc(Cnt);
+                      end;
+                    end;
+                  end;
+                  for X := 0 to BW - 1 do
+                  begin
+                    SumR := 0; SumG := 0; SumB := 0; SumA := 0;
+                    Cnt := RadiusY + 1; if Cnt > BH then Cnt := BH;
+                    for PixelIdx := 0 to Cnt - 1 do
+                    begin
+                      SrcRow := PARGBArray(PAnsiChar(TmpData.Scan0) + PixelIdx * TmpData.Stride);
+                      Inc(SumB, SrcRow[X].B); Inc(SumG, SrcRow[X].G);
+                      Inc(SumR, SrcRow[X].R); Inc(SumA, SrcRow[X].A);
+                    end;
+                    for Y := 0 to BH - 1 do
+                    begin
+                      DstRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                      DstRow[X].B := SumB div Cnt; DstRow[X].G := SumG div Cnt;
+                      DstRow[X].R := SumR div Cnt; DstRow[X].A := SumA div Cnt;
+                      PixelIdx := Y - RadiusY;
+                      if PixelIdx >= 0 then
+                      begin
+                        SrcRow := PARGBArray(PAnsiChar(TmpData.Scan0) + PixelIdx * TmpData.Stride);
+                        Dec(SumB, SrcRow[X].B); Dec(SumG, SrcRow[X].G);
+                        Dec(SumR, SrcRow[X].R); Dec(SumA, SrcRow[X].A);
+                        Dec(Cnt);
+                      end;
+                      PixelIdx := Y + RadiusY + 1;
+                      if PixelIdx < BH then
+                      begin
+                        SrcRow := PARGBArray(PAnsiChar(TmpData.Scan0) + PixelIdx * TmpData.Stride);
+                        Inc(SumB, SrcRow[X].B); Inc(SumG, SrcRow[X].G);
+                        Inc(SumR, SrcRow[X].R); Inc(SumA, SrcRow[X].A);
+                        Inc(Cnt);
+                      end;
+                    end;
+                  end;
+                end;
+                // copy final result from SrcData (TmpBmp) to TmpData (ResultBmp)
+                for Y := 0 to BH - 1 do
+                  System.Move(PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride)^,
+                              PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride)^,
+                              BW * 4);
+                GdipBitmapUnlockBits(ResultBmp, TmpData);
+                GdipBitmapUnlockBits(TmpBmp, SrcData);
+              end;
+            end;
+
+            // Step 3: Colorize ResultBmp (shadow) with flood-color/flood-opacity
+            V1 := SVGAttrFloat(Child, 'flood-opacity', 1);
+            if V1 > 1 then V1 := 1;
+            if V1 < 0 then V1 := 0;
+            if GdipBitmapLockBits(ResultBmp, @RG, ImageLockModeRW, PixelFormat32bppARGB, SrcData) = Ok then
+            begin
+              for Y := 0 to SrcData.Height - 1 do
+              begin
+                DstRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                for X := 0 to SrcData.Width - 1 do
+                begin
+                  DstRow[X].R := Round(DstRow[X].R * V1);
+                  DstRow[X].G := Round(DstRow[X].G * V1);
+                  DstRow[X].B := Round(DstRow[X].B * V1);
+                  DstRow[X].A := Round(DstRow[X].A * V1);
+                end;
+              end;
+              GdipBitmapUnlockBits(ResultBmp, SrcData);
+            end;
+
+            // Step 4: Composite: shadow (ResultBmp) then original (TmpBmp) -> new bitmap
+            GdipDeleteGraphics(BmpGC);
+            GdipDisposeImage(Bmp);
+            if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, Bmp) = Ok then
+            begin
+              if GdipGetImageGraphicsContext(Bmp, BmpGC) = Ok then
+              begin
+                GdipDrawImageRectI(BmpGC, ResultBmp, 0, 0, SW, SH);
+                if SrcBmp <> nil then
+                  GdipDrawImageRectI(BmpGC, SrcBmp, 0, 0, SW, SH)
+                else
+                  GdipDrawImageRectI(BmpGC, Tmp2Bmp, 0, 0, SW, SH);
+              end;
+            end;
+            GdipDisposeImage(ResultBmp);
+            GdipDisposeImage(TmpBmp);
+            GdipDisposeImage(Tmp2Bmp);
+          end
+          else
+          begin
+            GdipDisposeImage(TmpBmp);
+            GdipDisposeImage(Tmp2Bmp);
+          end;
+        end
+        else
+          GdipDisposeImage(Tmp2Bmp);
+      end
+      else if Tag = 'feflood' then
+      begin
+        // feFlood: fill Bmp with flood-color / flood-opacity
+        if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+        begin
+          V1 := SVGAttrFloat(Child, 'flood-opacity', 1);
+          if V1 > 1 then V1 := 1;
+          if V1 < 0 then V1 := 0;
+          if not SVGParseColor(Child.GetAttribute('flood-color'), FC) then
+          begin
+            FC.R := 0; FC.G := 0; FC.B := 0;
+          end;
+          RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+          if GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, TmpData) = Ok then
+          begin
+            for Y := 0 to TmpData.Height - 1 do
+            begin
+              DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+              for X := 0 to TmpData.Width - 1 do
+              begin
+                DstRow[X].R := Round(FC.R * V1);
+                DstRow[X].G := Round(FC.G * V1);
+                DstRow[X].B := Round(FC.B * V1);
+                DstRow[X].A := Round(255 * V1);
+              end;
+            end;
+            GdipBitmapUnlockBits(TmpBmp, TmpData);
+          end;
+          GdipDisposeImage(Bmp);
+          Bmp := TmpBmp;
+        end;
+      end
+      else if Tag = 'femerge' then
+      begin
+        // feMerge: layer all feMergeNode inputs using GdipDrawImageRectI
+        if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, ResultBmp) = Ok then
+        begin
+          if GdipGetImageGraphicsContext(ResultBmp, ResultGC) = Ok then
+          begin
+            // helper to draw a named input onto result
+            J := 0;
+            while J < Child.ChildCount do
+            begin
+              if not (Child.Children[J] is TCnXMLElement) then begin Inc(J); Continue; end;
+              if LowerCase(TCnXMLElement(Child.Children[J]).TagName) <> 'femergenode' then begin Inc(J); Continue; end;
+              InName := LowerCase(TCnXMLElement(Child.Children[J]).GetAttribute('in'));
+              if InName = '' then InName := 'SourceGraphic';
+
+              Tmp2Bmp := nil;
+              if InName = 'SourceGraphic' then
+                Tmp2Bmp := SrcBmp
+              else if InName = 'SourceAlpha' then
+              begin
+                if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+                begin
+                  if GdipBitmapLockBits(SrcBmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok then
+                  begin
+                    if GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, TmpData) = Ok then
+                    begin
+                      for Y := 0 to SrcData.Height - 1 do
+                      begin
+                        SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                        DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                        for X := 0 to SrcData.Width - 1 do
+                        begin
+                          DstRow[X].R := SrcRow[X].A;
+                          DstRow[X].G := SrcRow[X].A;
+                          DstRow[X].B := SrcRow[X].A;
+                          DstRow[X].A := 255;
+                        end;
+                      end;
+                      GdipBitmapUnlockBits(TmpBmp, TmpData);
+                    end;
+                    GdipBitmapUnlockBits(SrcBmp, SrcData);
+                  end;
+                  Tmp2Bmp := TmpBmp;
+                end;
+              end
+              else
+              begin
+                Cnt := FilterResults.IndexOf(InName);
+                if Cnt >= 0 then Tmp2Bmp := GpImage(FilterResults.Objects[Cnt])
+                else Tmp2Bmp := Bmp;
+              end;
+
+              if Tmp2Bmp <> nil then
+              begin
+                // Manual OVER compositing: layer onto ResultBmp via LockBits
+                RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+                if (GdipBitmapLockBits(Tmp2Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok)
+                  and (GdipBitmapLockBits(ResultBmp, @RG, ImageLockModeRW, PixelFormat32bppARGB, OutData) = Ok) then
+                begin
+                  BW := SrcData.Width; BH := SrcData.Height;
+                  for Y := 0 to BH - 1 do
+                  begin
+                    SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                    DstRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                    for X := 0 to BW - 1 do
+                    begin
+                      if SrcRow[X].A = 255 then
+                        DstRow[X] := SrcRow[X]   // fully opaque: replace
+                      else if SrcRow[X].A > 0 then
+                      begin
+                        // OVER: C = (Src * SA + Dst * DA * (1-SA)) / A'
+                        // A' = SA + DA * (1 - SA)
+                        SumA := SrcRow[X].A + (DstRow[X].A * (255 - SrcRow[X].A)) div 255;
+                        if SumA > 0 then
+                        begin
+                          DstRow[X].R := (SrcRow[X].R * SrcRow[X].A
+                            + DstRow[X].R * DstRow[X].A * (255 - SrcRow[X].A) div 255) div SumA;
+                          DstRow[X].G := (SrcRow[X].G * SrcRow[X].A
+                            + DstRow[X].G * DstRow[X].A * (255 - SrcRow[X].A) div 255) div SumA;
+                          DstRow[X].B := (SrcRow[X].B * SrcRow[X].A
+                            + DstRow[X].B * DstRow[X].A * (255 - SrcRow[X].A) div 255) div SumA;
+                          DstRow[X].A := SumA;
+                        end;
+                      end;
+                      // SrcRow[X].A = 0: skip (keep destination)
+                    end;
+                  end;
+                  GdipBitmapUnlockBits(ResultBmp, OutData);
+                  GdipBitmapUnlockBits(Tmp2Bmp, SrcData);
+                end;
+              end;
+
+              if (InName = 'SourceAlpha') and (TmpBmp <> nil) then
+              begin
+                GdipDisposeImage(TmpBmp);
+                TmpBmp := nil;
+              end;
+
+              Inc(J);
+            end;
+            GdipDeleteGraphics(ResultGC);
+            GdipDisposeImage(Bmp);
+            Bmp := ResultBmp;
+          end
+          else
+            GdipDisposeImage(ResultBmp);
+        end;
+      end
+      else if Tag = 'fecomposite' then
+      begin
+        Op := LowerCase(Child.GetAttribute('operator'));
+        if Op = '' then Op := 'over';
+        InName := LowerCase(Child.GetAttribute('in'));
+        if InName = '' then InName := 'SourceGraphic';
+        ResultName := LowerCase(Child.GetAttribute('in2'));
+        if ResultName = '' then ResultName := 'SourceGraphic';
+
+        Tmp2Bmp := nil;
+        if (InName = 'SourceGraphic') or (InName = 'SourceAlpha') then
+          Tmp2Bmp := SrcBmp
+        else
+        begin
+          J := FilterResults.IndexOf(InName);
+          if J >= 0 then Tmp2Bmp := GpImage(FilterResults.Objects[J]);
+        end;
+        if Tmp2Bmp = nil then Tmp2Bmp := Bmp;
+
+        ResultBmp := nil;
+        if (ResultName = 'SourceGraphic') or (ResultName = 'SourceAlpha') then
+          ResultBmp := SrcBmp
+        else
+        begin
+          J := FilterResults.IndexOf(ResultName);
+          if J >= 0 then ResultBmp := GpImage(FilterResults.Objects[J]);
+        end;
+        if ResultBmp = nil then ResultBmp := Bmp;
+
+        if (Tmp2Bmp <> nil) and (ResultBmp <> nil) then
+        begin
+          if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+          begin
+            RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+            BmpCopy := nil;
+            // avoid double-lock when in and in2 reference the same bitmap
+            if Tmp2Bmp = ResultBmp then
+            begin
+              if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, BmpCopy) = Ok then
+              begin
+                if GdipGetImageGraphicsContext(BmpCopy, ResultGC) = Ok then
+                begin
+                  GdipDrawImageRectI(ResultGC, Tmp2Bmp, 0, 0, SW, SH);
+                  GdipDeleteGraphics(ResultGC);
+                  ResultBmp := BmpCopy;
+                end
+                else
+                begin
+                  GdipDisposeImage(BmpCopy);
+                  BmpCopy := nil;
+                end;
+              end;
+            end;
+            LockOk := False;
+            if GdipBitmapLockBits(Tmp2Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok then
+            begin
+              if GdipBitmapLockBits(ResultBmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, TmpData) = Ok then
+              begin
+                if GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, OutData) = Ok then
+                  LockOk := True
+                else
+                begin
+                  GdipBitmapUnlockBits(ResultBmp, TmpData);
+                  GdipBitmapUnlockBits(Tmp2Bmp, SrcData);
+                end;
+              end
+              else
+                GdipBitmapUnlockBits(Tmp2Bmp, SrcData);
+            end;
+            if LockOk then
+            begin
+              BW := SrcData.Width; BH := SrcData.Height;
+              if Op = 'over' then
+              begin
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  OutRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    if SrcRow[X].A = 255 then
+                      OutRow[X] := SrcRow[X]
+                    else if SrcRow[X].A = 0 then
+                      OutRow[X] := DstRow[X]
+                    else
+                    begin
+                      OutRow[X].R := (SrcRow[X].R * SrcRow[X].A + DstRow[X].R * (255 - SrcRow[X].A)) div 255;
+                      OutRow[X].G := (SrcRow[X].G * SrcRow[X].A + DstRow[X].G * (255 - SrcRow[X].A)) div 255;
+                      OutRow[X].B := (SrcRow[X].B * SrcRow[X].A + DstRow[X].B * (255 - SrcRow[X].A)) div 255;
+                      OutRow[X].A := SrcRow[X].A + DstRow[X].A * (255 - SrcRow[X].A) div 255;
+                    end;
+                  end;
+                end;
+              end
+              else if Op = 'in' then
+              begin
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  OutRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    OutRow[X].R := SrcRow[X].R * DstRow[X].A div 255;
+                    OutRow[X].G := SrcRow[X].G * DstRow[X].A div 255;
+                    OutRow[X].B := SrcRow[X].B * DstRow[X].A div 255;
+                    OutRow[X].A := SrcRow[X].A * DstRow[X].A div 255;
+                  end;
+                end;
+              end
+              else if Op = 'out' then
+              begin
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  OutRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    OutRow[X].R := SrcRow[X].R * (255 - DstRow[X].A) div 255;
+                    OutRow[X].G := SrcRow[X].G * (255 - DstRow[X].A) div 255;
+                    OutRow[X].B := SrcRow[X].B * (255 - DstRow[X].A) div 255;
+                    OutRow[X].A := SrcRow[X].A * (255 - DstRow[X].A) div 255;
+                  end;
+                end;
+              end
+              else if Op = 'atop' then
+              begin
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  OutRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    OutRow[X].R := (SrcRow[X].R * DstRow[X].A + DstRow[X].R * (255 - SrcRow[X].A)) div 255;
+                    OutRow[X].G := (SrcRow[X].G * DstRow[X].A + DstRow[X].G * (255 - SrcRow[X].A)) div 255;
+                    OutRow[X].B := (SrcRow[X].B * DstRow[X].A + DstRow[X].B * (255 - SrcRow[X].A)) div 255;
+                    OutRow[X].A := DstRow[X].A;
+                  end;
+                end;
+              end
+              else if Op = 'xor' then
+              begin
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  OutRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    OutRow[X].R := (SrcRow[X].R * (255 - DstRow[X].A) + DstRow[X].R * (255 - SrcRow[X].A)) div 255;
+                    OutRow[X].G := (SrcRow[X].G * (255 - DstRow[X].A) + DstRow[X].G * (255 - SrcRow[X].A)) div 255;
+                    OutRow[X].B := (SrcRow[X].B * (255 - DstRow[X].A) + DstRow[X].B * (255 - SrcRow[X].A)) div 255;
+                    OutRow[X].A := (SrcRow[X].A * (255 - DstRow[X].A) + DstRow[X].A * (255 - SrcRow[X].A)) div 255;
+                  end;
+                end;
+              end
+              else if Op = 'arithmetic' then
+              begin
+                K1 := SVGAttrFloat(Child, 'k1', 0);
+                K2 := SVGAttrFloat(Child, 'k2', 0);
+                K3 := SVGAttrFloat(Child, 'k3', 0);
+                K4 := SVGAttrFloat(Child, 'k4', 0);
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  OutRow := PARGBArray(PAnsiChar(OutData.Scan0) + Y * OutData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    OutRow[X].R := Round(K1 * SrcRow[X].R * DstRow[X].R / 255 + K2 * SrcRow[X].R + K3 * DstRow[X].R + K4);
+                    OutRow[X].G := Round(K1 * SrcRow[X].G * DstRow[X].G / 255 + K2 * SrcRow[X].G + K3 * DstRow[X].G + K4);
+                    OutRow[X].B := Round(K1 * SrcRow[X].B * DstRow[X].B / 255 + K2 * SrcRow[X].B + K3 * DstRow[X].B + K4);
+                    OutRow[X].A := Round(K1 * SrcRow[X].A * DstRow[X].A / 255 + K2 * SrcRow[X].A + K3 * DstRow[X].A + K4);
+                    if OutRow[X].R > 255 then OutRow[X].R := 255 else if OutRow[X].R < 0 then OutRow[X].R := 0;
+                    if OutRow[X].G > 255 then OutRow[X].G := 255 else if OutRow[X].G < 0 then OutRow[X].G := 0;
+                    if OutRow[X].B > 255 then OutRow[X].B := 255 else if OutRow[X].B < 0 then OutRow[X].B := 0;
+                    if OutRow[X].A > 255 then OutRow[X].A := 255 else if OutRow[X].A < 0 then OutRow[X].A := 0;
+                  end;
+                end;
+              end;
+              GdipBitmapUnlockBits(TmpBmp, OutData);
+              GdipBitmapUnlockBits(ResultBmp, TmpData);
+              GdipBitmapUnlockBits(Tmp2Bmp, SrcData);
+            GdipDisposeImage(Bmp);
+            Bmp := TmpBmp;
+            end
+            else
+              GdipDisposeImage(TmpBmp);
+            if BmpCopy <> nil then GdipDisposeImage(BmpCopy);
+          end;
+        end;
+      end
+      else if Tag = 'fecolormatrix' then
+      begin
+        InName := LowerCase(Child.GetAttribute('in'));
+        if InName = 'SourceGraphic' then
+          Tmp2Bmp := SrcBmp
+        else if InName <> '' then
+        begin
+          J := FilterResults.IndexOf(InName);
+          if J >= 0 then Tmp2Bmp := GpImage(FilterResults.Objects[J])
+          else Tmp2Bmp := Bmp;
+        end
+        else
+          Tmp2Bmp := Bmp;
+
+        if Tmp2Bmp <> nil then
+        begin
+          if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+          begin
+            RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+            if (GdipBitmapLockBits(Tmp2Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, SrcData) = Ok)
+              and (GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeWrite, PixelFormat32bppARGB, TmpData) = Ok) then
+            begin
+              BW := SrcData.Width; BH := SrcData.Height;
+              ResultName := LowerCase(Child.GetAttribute('type'));
+              if ResultName = '' then ResultName := 'matrix';
+
+              if ResultName = 'matrix' then
+              begin
+                for J := 0 to 19 do M[J] := 0;
+                M[0] := 1; M[5] := 1; M[10] := 1; M[15] := 1;
+                // values: 20 comma/space-separated numbers
+                StdDevStr := Trim(Child.GetAttribute('values'));
+                if StdDevStr <> '' then
+                begin
+                  for J := 0 to 19 do
+                  begin
+                    StdDevStr := Trim(StdDevStr);
+                    Space := Pos(' ', StdDevStr);
+                    if Space = 0 then Space := Pos(',', StdDevStr);
+                    if Space = 0 then
+                    begin
+                      if StdDevStr <> '' then begin M[J] := StrToFloat(StdDevStr); Break; end
+                      else Break;
+                    end;
+                    M[J] := StrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)));
+                    StdDevStr := Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space));
+                  end;
+                end;
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    DstRow[X].R := Round(M[0] * SrcRow[X].R + M[1] * SrcRow[X].G + M[2] * SrcRow[X].B + M[3] * SrcRow[X].A + M[4] * 255);
+                    DstRow[X].G := Round(M[5] * SrcRow[X].R + M[6] * SrcRow[X].G + M[7] * SrcRow[X].B + M[8] * SrcRow[X].A + M[9] * 255);
+                    DstRow[X].B := Round(M[10] * SrcRow[X].R + M[11] * SrcRow[X].G + M[12] * SrcRow[X].B + M[13] * SrcRow[X].A + M[14] * 255);
+                    DstRow[X].A := Round(M[15] * SrcRow[X].R + M[16] * SrcRow[X].G + M[17] * SrcRow[X].B + M[18] * SrcRow[X].A + M[19] * 255);
+                    if DstRow[X].R > 255 then DstRow[X].R := 255 else if DstRow[X].R < 0 then DstRow[X].R := 0;
+                    if DstRow[X].G > 255 then DstRow[X].G := 255 else if DstRow[X].G < 0 then DstRow[X].G := 0;
+                    if DstRow[X].B > 255 then DstRow[X].B := 255 else if DstRow[X].B < 0 then DstRow[X].B := 0;
+                    if DstRow[X].A > 255 then DstRow[X].A := 255 else if DstRow[X].A < 0 then DstRow[X].A := 0;
+                  end;
+                end;
+              end
+              else if ResultName = 'saturate' then
+              begin
+                V1 := SVGAttrFloat(Child, 'values', 1);
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    DstRow[X].R := Round((0.213 + 0.787 * V1) * SrcRow[X].R + (0.715 - 0.715 * V1) * SrcRow[X].G + (0.072 - 0.072 * V1) * SrcRow[X].B);
+                    DstRow[X].G := Round((0.213 - 0.213 * V1) * SrcRow[X].R + (0.715 + 0.285 * V1) * SrcRow[X].G + (0.072 - 0.072 * V1) * SrcRow[X].B);
+                    DstRow[X].B := Round((0.213 - 0.213 * V1) * SrcRow[X].R + (0.715 - 0.715 * V1) * SrcRow[X].G + (0.072 + 0.928 * V1) * SrcRow[X].B);
+                    DstRow[X].A := SrcRow[X].A;
+                    if DstRow[X].R > 255 then DstRow[X].R := 255 else if DstRow[X].R < 0 then DstRow[X].R := 0;
+                    if DstRow[X].G > 255 then DstRow[X].G := 255 else if DstRow[X].G < 0 then DstRow[X].G := 0;
+                    if DstRow[X].B > 255 then DstRow[X].B := 255 else if DstRow[X].B < 0 then DstRow[X].B := 0;
+                  end;
+                end;
+              end
+              else if ResultName = 'huerotate' then
+              begin
+                V1 := SVGAttrFloat(Child, 'values', 0) * Pi / 180;
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    DstRow[X].R := Round((0.213 + Cos(V1) * 0.787 - Sin(V1) * 0.213) * SrcRow[X].R
+                      + (0.715 - Cos(V1) * 0.715 + Sin(V1) * 0.715) * SrcRow[X].G
+                      + (0.072 - Cos(V1) * 0.072 - Sin(V1) * 0.928) * SrcRow[X].B);
+                    DstRow[X].G := Round((0.213 - Cos(V1) * 0.213 + Sin(V1) * 0.143) * SrcRow[X].R
+                      + (0.715 + Cos(V1) * 0.285 + Sin(V1) * 0.140) * SrcRow[X].G
+                      + (0.072 - Cos(V1) * 0.072 - Sin(V1) * 0.283) * SrcRow[X].B);
+                    DstRow[X].B := Round((0.213 - Cos(V1) * 0.213 - Sin(V1) * 0.787) * SrcRow[X].R
+                      + (0.715 - Cos(V1) * 0.715 + Sin(V1) * 0.715) * SrcRow[X].G
+                      + (0.072 + Cos(V1) * 0.928 + Sin(V1) * 0.072) * SrcRow[X].B);
+                    DstRow[X].A := SrcRow[X].A;
+                    if DstRow[X].R > 255 then DstRow[X].R := 255 else if DstRow[X].R < 0 then DstRow[X].R := 0;
+                    if DstRow[X].G > 255 then DstRow[X].G := 255 else if DstRow[X].G < 0 then DstRow[X].G := 0;
+                    if DstRow[X].B > 255 then DstRow[X].B := 255 else if DstRow[X].B < 0 then DstRow[X].B := 0;
+                  end;
+                end;
+              end
+              else if ResultName = 'luminancetoalpha' then
+              begin
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  for X := 0 to BW - 1 do
+                  begin
+                    DstRow[X].A := Round(0.213 * SrcRow[X].R + 0.715 * SrcRow[X].G + 0.072 * SrcRow[X].B);
+                    DstRow[X].R := 0; DstRow[X].G := 0; DstRow[X].B := 0;
+                  end;
+                end;
+              end;
+              GdipBitmapUnlockBits(TmpBmp, TmpData);
+              GdipBitmapUnlockBits(Tmp2Bmp, SrcData);
+            end;
+            GdipDisposeImage(Bmp);
+            Bmp := TmpBmp;
+          end;
+        end;
       end;
+
+      // save named result for later reference
+      ResultName := LowerCase(Child.GetAttribute('result'));
+      if ResultName <> '' then
+      begin
+        J := FilterResults.IndexOf(ResultName);
+        if J >= 0 then FilterResults.Objects[J] := TObject(Bmp)
+        else FilterResults.AddObject(ResultName, TObject(Bmp));
+      end;
+
       Inc(I);
     end;
   end;
 
-  // draw filtered result back to main canvas
+  // save result for deferred drawing
   FFilterPendingBmp := Bmp;
   FFilterPendingSX := SX;
   FFilterPendingSY := SY;
@@ -6340,7 +7121,9 @@ begin
   FFilterPendingSH := SH;
 
   GdipDeleteGraphics(BmpGC);
-  // Bmp ownership transferred to FFilterPendingBmp; caller disposes after drawing
+
+  if SrcBmp <> nil then GdipDisposeImage(SrcBmp);
+  FilterResults.Free;
 end;
 
 procedure TCnSVGRenderer.RenderElement(AElement: TCnXMLElement);
