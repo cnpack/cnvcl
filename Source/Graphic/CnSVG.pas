@@ -158,6 +158,8 @@ type
     // 裁剪路径
     ClipPathID:       string;
     {* clip-path 引用的裁剪路径 ID（url(#id)），空串表示无裁剪 }
+    FilterID:         string;
+    {* filter 的 ID 形如 url(#id) }
   end;
 
 //==============================================================================
@@ -519,6 +521,30 @@ resourcestring
 // TCnSVGRenderer 内部渲染引擎（仅在 implementation 中声明）
 //==============================================================================
 
+//==============================================================================
+// SVG ColorMatrix utils
+//==============================================================================
+
+type
+  TFilterPrimType = (
+    fptGaussianBlur,
+    fptOffset,
+    fptMerge,
+    fptMergeNode,
+    fptFlood,
+    fptDropShadow
+  );
+
+  PFilterPrim = ^TFilterPrim;
+  TFilterPrim = record
+    PrimType: TFilterPrimType;
+    In1, In2, Result: string;
+    StdDevX, StdDevY: Double;
+    Dx, Dy: Double;
+    FloodColor: Cardinal;
+    FloodOpacity: Double;
+  end;
+
 type
   TCnSVGRenderer = class(TObject)
   {* SVG 渲染引擎。由 TCnSVGDocument.Render 创建，不对外暴露。
@@ -545,6 +571,9 @@ type
     {* GDI+ 状态栈顶索引 }
     FHasClipPath: Boolean;
     {* 当前是否已设置 GDI+ clip path }
+    FProcessingFilter: Boolean;
+    FFilterPendingBmp: GpImage;
+    FFilterPendingSX, FFilterPendingSY, FFilterPendingSW, FFilterPendingSH: Integer;
     FGradBBoxX, FGradBBoxY, FGradBBoxW, FGradBBoxH: TCnSVGFloat;
     {* 渐变 objectBoundingBox 映射用的当前元素边界框 }
     procedure PushMatrix;
@@ -602,6 +631,7 @@ type
     procedure RenderSwitch(AElement: TCnXMLElement);
     procedure RenderAnchor(AElement: TCnXMLElement);
     procedure RenderNestedSVG(AElement: TCnXMLElement);
+    procedure RenderFilteredElement(AElement: TCnXMLElement);
     procedure RenderElement(AElement: TCnXMLElement);
   public
     constructor Create(ACanvas: TCanvas; const ADestRect: TRect;
@@ -614,6 +644,14 @@ type
 //==============================================================================
 // 矩阵运算实现
 //==============================================================================
+
+type
+  PARGB = ^TARGB;
+  TARGB = packed record
+    B, G, R, A: Byte;
+  end;
+  TARGBArray = array[0..0] of TARGB;
+  PARGBArray = ^TARGBArray;
 
 procedure SVGMatrixIdentity(var M: TCnSVGMatrix);
 begin
@@ -1096,6 +1134,7 @@ begin
   S.FillGradientID   := '';
   S.StrokeGradientID := '';
   S.ClipPathID       := '';
+  S.FilterID         := '';
 end;
 
 function SVGClampOpacity(V: TCnSVGFloat): TCnSVGFloat;
@@ -1243,6 +1282,17 @@ begin
           Style.ClipPathID := '';
       end
 
+      else if LKey = 'filter' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.FilterID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.FilterID) > 0) and (Style.FilterID[1] = '#') then
+            Delete(Style.FilterID, 1, 1);
+        end
+        else
+          Style.FilterID := '';
+      end
       else if LKey = 'opacity' then
       begin
         if LVal = 'inherit' then
@@ -2515,6 +2565,7 @@ begin
   FGDIPGraphics := nil;
   FGDIPStateTop := -1;
   FHasClipPath  := False;
+  FProcessingFilter := False;
 
   // 探测 GDI+ 可用性
   if CnGdiPlusAvailable then
@@ -5528,6 +5579,7 @@ procedure TCnSVGRenderer.RenderGroup(AElement: TCnXMLElement);
 var
   I: Integer;
   HasTransform: Boolean;
+  MX: GpMatrix;
 begin
   if FCtx.Style.DisplayNone then Exit;
   HasTransform := AElement.HasAttribute('transform');
@@ -5536,6 +5588,37 @@ begin
   if HasTransform then
     ApplyTransformAttr(AElement.GetAttribute('transform'));
   ApplyStyleAttr(AElement);
+
+  // filter check for groups
+  if (FCtx.Style.FilterID <> '') and not FProcessingFilter then
+  begin
+    FProcessingFilter := True;
+    try
+      RenderFilteredElement(AElement);
+    finally
+      FProcessingFilter := False;
+    end;
+    PopStyle;
+    PopMatrix;
+    // deferred draw after PopMatrix restores GDI+ state
+    if FFilterPendingBmp <> nil then
+    begin
+      try
+        GdipCreateMatrix2(1, 0, 0, 1,
+          FFilterPendingSX, FFilterPendingSY, MX);
+        GdipSetWorldTransform(FGDIPGraphics, MX);
+        GdipDeleteMatrix(MX);
+        GdipDrawImageRect(FGDIPGraphics, FFilterPendingBmp,
+          0, 0, FFilterPendingSW, FFilterPendingSH);
+        UpdateGDIPWorldTransform;
+      finally
+        GdipDisposeImage(FFilterPendingBmp);
+        FFilterPendingBmp := nil;
+      end;
+    end;
+    Exit;
+  end;
+
   // 应用 GDI+ 裁剪路径
   ApplyGDIPClipPath;
   for I := 0 to AElement.ChildCount - 1 do
@@ -5803,10 +5886,468 @@ begin
   end;
 end;
 
+procedure TCnSVGRenderer.RenderFilteredElement(AElement: TCnXMLElement);
+var
+  Tag: string;
+  FilterEl, Child: TCnXMLElement;
+  FBX, FBY, FBW, FBH: TCnSVGFloat;
+  FX, FY, FW, FH: TCnSVGFloat;
+  SavedFilterID: string;
+  SavedGC: GpGraphics;
+  Bmp, TmpBmp: GpImage;
+  BmpGC: GpGraphics;
+  SW, SH, SX, SY: Integer;
+  FilterUnits: string;
+  I, Space, Pass: Integer;
+  StdDevStr: string;
+  V1, V2: TCnSVGFloat;
+  RadiusX, RadiusY: Integer;
+  RG: TGPRect;
+  SrcData, TmpData: TGDIPBitmapData;
+  BW, BH: Cardinal;
+  X, Y, Cnt, PixelIdx: Integer;
+  SumR, SumG, SumB, SumA: Integer;
+  SrcRow, DstRow: PARGBArray;
+
+  procedure DispatchRender;
+  begin
+    Tag := LowerCase(AElement.TagName);
+    if Tag = 'rect' then RenderRect(AElement)
+    else if Tag = 'circle' then RenderCircle(AElement)
+    else if Tag = 'ellipse' then RenderEllipse(AElement)
+    else if Tag = 'line' then RenderLine(AElement)
+    else if Tag = 'polyline' then RenderPolyline(AElement)
+    else if Tag = 'polygon' then RenderPolygon(AElement)
+    else if Tag = 'path' then RenderPath(AElement)
+    else if Tag = 'text' then RenderText(AElement)
+    else if Tag = 'use' then RenderUse(AElement)
+    else if Tag = 'image' then RenderImage(AElement)
+    else if Tag = 'switch' then RenderSwitch(AElement)
+    else if Tag = 'a' then RenderAnchor(AElement)
+    else if Tag = 'svg' then RenderNestedSVG(AElement)
+    else if Tag = 'g' then RenderGroup(AElement)
+    else if Tag = 'group' then RenderGroup(AElement)
+    else if Tag = 'symbol' then begin end
+    else
+      RenderGroup(AElement);
+  end;
+
+  function GetElemFloat(const Attr: string; Def: TCnSVGFloat): TCnSVGFloat;
+  var
+    Pct: Boolean;
+  begin
+    Pct := SVGAttrIsPercent(AElement, Attr);
+    Result := SVGAttrFloat(AElement, Attr, Def);
+    if Pct then Result := Result / 100;
+  end;
+
+  procedure ComputeBBox;
+  var
+    CX, CY, R, RX, RY: TCnSVGFloat;
+    X1, Y1, X2, Y2: TCnSVGFloat;
+    PathMinX, PathMinY, PathMaxX, PathMaxY: TCnSVGFloat;
+    Parser: TCnSVGPathParser;
+    Segs: TList;
+    Seg: PCnSVGPathSeg;
+    J: Integer;
+    D: string;
+  begin
+    Tag := LowerCase(AElement.TagName);
+    if Tag = 'rect' then
+    begin
+      FBX := GetElemFloat('x', 0);
+      FBY := GetElemFloat('y', 0);
+      FBW := GetElemFloat('width', 0);
+      FBH := GetElemFloat('height', 0);
+    end
+    else if Tag = 'circle' then
+    begin
+      CX := GetElemFloat('cx', 0);
+      CY := GetElemFloat('cy', 0);
+      R  := GetElemFloat('r', 0);
+      FBX := CX - R; FBY := CY - R;
+      FBW := 2 * R;  FBH := 2 * R;
+    end
+    else if Tag = 'ellipse' then
+    begin
+      CX := GetElemFloat('cx', 0);
+      CY := GetElemFloat('cy', 0);
+      RX := GetElemFloat('rx', 0);
+      RY := GetElemFloat('ry', 0);
+      FBX := CX - RX; FBY := CY - RY;
+      FBW := 2 * RX;  FBH := 2 * RY;
+    end
+    else if Tag = 'line' then
+    begin
+      X1 := GetElemFloat('x1', 0); Y1 := GetElemFloat('y1', 0);
+      X2 := GetElemFloat('x2', 0); Y2 := GetElemFloat('y2', 0);
+      if X1 < X2 then FBX := X1 else FBX := X2;
+      if Y1 < Y2 then FBY := Y1 else FBY := Y2;
+      FBW := Abs(X2 - X1); FBH := Abs(Y2 - Y1);
+    end
+    else if Tag = 'text' then
+    begin
+      FBX := GetElemFloat('x', 0);
+      FBY := GetElemFloat('y', 0) - SVGAttrFloat(AElement, 'font-size', 16);
+      FBW := Max(50, Length(Trim(AElement.Text)) * Round(SVGAttrFloat(AElement, 'font-size', 16)) * 65 div 100);
+      FBH := Max(20, Round(SVGAttrFloat(AElement, 'font-size', 16) * 1.4));
+    end
+    else if Tag = 'path' then
+    begin
+      FBX := 0; FBY := 0; FBW := 100; FBH := 100;
+      D := AElement.GetAttribute('d');
+      if D <> '' then
+      begin
+        Parser := TCnSVGPathParser.Create;
+        try
+          Segs := Parser.ParsePathData(D);
+          if Segs <> nil then
+          begin
+            PathMinX := 1e10; PathMinY := 1e10;
+            PathMaxX := -1e10; PathMaxY := -1e10;
+            for J := 0 to Segs.Count - 1 do
+            begin
+              Seg := PCnSVGPathSeg(Segs[J]);
+              case Seg^.SegType of
+                pstMoveTo, pstLineTo, pstHLineTo, pstVLineTo:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                  end;
+                pstCubicBezier:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                    if Seg^.X1 < PathMinX then PathMinX := Seg^.X1;
+                    if Seg^.Y1 < PathMinY then PathMinY := Seg^.Y1;
+                    if Seg^.X1 > PathMaxX then PathMaxX := Seg^.X1;
+                    if Seg^.Y1 > PathMaxY then PathMaxY := Seg^.Y1;
+                    if Seg^.X2 < PathMinX then PathMinX := Seg^.X2;
+                    if Seg^.Y2 < PathMinY then PathMinY := Seg^.Y2;
+                    if Seg^.X2 > PathMaxX then PathMaxX := Seg^.X2;
+                    if Seg^.Y2 > PathMaxY then PathMaxY := Seg^.Y2;
+                  end;
+                pstSmoothCubic:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                    if Seg^.X2 < PathMinX then PathMinX := Seg^.X2;
+                    if Seg^.Y2 < PathMinY then PathMinY := Seg^.Y2;
+                    if Seg^.X2 > PathMaxX then PathMaxX := Seg^.X2;
+                    if Seg^.Y2 > PathMaxY then PathMaxY := Seg^.Y2;
+                  end;
+                pstQuadBezier:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                    if Seg^.X1 < PathMinX then PathMinX := Seg^.X1;
+                    if Seg^.Y1 < PathMinY then PathMinY := Seg^.Y1;
+                    if Seg^.X1 > PathMaxX then PathMaxX := Seg^.X1;
+                    if Seg^.Y1 > PathMaxY then PathMaxY := Seg^.Y1;
+                  end;
+                pstSmoothQuad, pstArc:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                  end;
+              end;
+            end;
+            if PathMaxX >= PathMinX then
+            begin
+              FBX := PathMinX; FBY := PathMinY;
+              FBW := PathMaxX - PathMinX;
+              FBH := PathMaxY - PathMinY;
+            end;
+            for J := 0 to Segs.Count - 1 do
+              Dispose(PCnSVGPathSeg(Segs[J]));
+            Segs.Free;
+          end;
+        finally
+          Parser.Free;
+        end;
+      end;
+    end
+    else if Tag = 'g' then
+    begin
+      FBX := 0; FBY := 0;
+      FBW := SVGAttrFloat(AElement, 'width', 100);
+      FBH := SVGAttrFloat(AElement, 'height', 100);
+    end
+    else
+    begin
+      FBX := 0; FBY := 0;
+      FBW := 100; FBH := 100;
+    end;
+    if FBW < 1 then FBW := 1;
+    if FBH < 1 then FBH := 1;
+  end;
+
+  function GetFilterFloat(const Name: string; Default: TCnSVGFloat): TCnSVGFloat;
+  begin
+    Result := SVGAttrFloat(FilterEl, Name, Default);
+    if SVGAttrIsPercent(FilterEl, Name) then
+      Result := Result / 100;
+  end;
+
+begin
+  FFilterPendingBmp := nil;
+  if not Assigned(GdipCreateBitmapFromScan0) then
+  begin
+    // GDI+ not available, render without filter
+    FCtx.Style.FilterID := '';
+    DispatchRender;
+    Exit;
+  end;
+
+  FilterEl := SVGFindDefNode(FDefsMap, FCtx.Style.FilterID);
+  if FilterEl = nil then
+  begin
+    FCtx.Style.FilterID := '';
+    DispatchRender;
+    Exit;
+  end;
+
+  FilterUnits := LowerCase(FilterEl.GetAttribute('filterUnits'));
+  ComputeBBox;
+
+  // parse filter bounds in fractions of bbox
+  FX := GetFilterFloat('x', -0.1);
+  FY := GetFilterFloat('y', -0.1);
+  FW := GetFilterFloat('width', 1.2);
+  FH := GetFilterFloat('height', 1.2);
+
+  if FilterUnits = 'userspaceonuse' then
+  begin
+    FX := FX; FY := FY; FW := FW; FH := FH;
+  end
+  else
+  begin
+    FX := FBX + FX * FBW;
+    FY := FBY + FY * FBH;
+    FW := FW * FBW;
+    FH := FH * FBH;
+  end;
+
+  // screen-space size
+  SW := Round(FW * FCtx.CTM.a + FH * FCtx.CTM.c);
+  SH := Round(FW * FCtx.CTM.b + FH * FCtx.CTM.d);
+  if SW < 1 then SW := 1;
+  if SH < 1 then SH := 1;
+
+  // screen-space origin of filter region
+  SX := Round(FX * FCtx.CTM.a + FY * FCtx.CTM.c + FCtx.CTM.e);
+  SY := Round(FX * FCtx.CTM.b + FY * FCtx.CTM.d + FCtx.CTM.f);
+
+  // create offscreen bitmap
+  if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, Bmp) <> Ok then
+  begin
+    FCtx.Style.FilterID := '';
+    DispatchRender;
+    Exit;
+  end;
+  if GdipGetImageGraphicsContext(Bmp, BmpGC) <> Ok then
+  begin
+    GdipDisposeImage(Bmp);
+    FCtx.Style.FilterID := '';
+    DispatchRender;
+    Exit;
+  end;
+
+  GdipSetSmoothingMode(BmpGC, SmoothingModeAntiAlias);
+  GdipSetTextRenderingHint(BmpGC, 4);
+
+  // render to offscreen
+  SavedGC := FGDIPGraphics;
+  FGDIPGraphics := BmpGC;
+
+  // push matrix and shift CTM so UpdateGDIPWorldTransform sets the correct
+  // transform on the offscreen GC: user (fx,fy) → bitmap (0,0)
+  PushMatrix;
+  FCtx.CTM.e := -FX * FCtx.CTM.a - FY * FCtx.CTM.c;
+  FCtx.CTM.f := -FX * FCtx.CTM.b - FY * FCtx.CTM.d;
+  UpdateGDIPWorldTransform;
+
+  SavedFilterID := FCtx.Style.FilterID;
+  FCtx.Style.FilterID := '';
+  DispatchRender;
+
+  FCtx.Style.FilterID := SavedFilterID;
+  PopMatrix;
+  FGDIPGraphics := SavedGC;
+  UpdateGDIPWorldTransform;
+
+  // --- Apply feGaussianBlur ---
+  if FilterEl <> nil then
+  begin
+    I := 0;
+    while I < FilterEl.ChildCount do
+    begin
+      if not (FilterEl.Children[I] is TCnXMLElement) then begin Inc(I); Continue; end;
+      Child := TCnXMLElement(FilterEl.Children[I]);
+      Tag := LowerCase(Child.TagName);
+
+      if Tag = 'fegaussianblur' then
+      begin
+        StdDevStr := Trim(Child.GetAttribute('stdDeviation'));
+        if StdDevStr <> '' then
+        begin
+          try
+            Space := Pos(' ', StdDevStr);
+            if Space > 0 then
+            begin
+              V1 := StrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)));
+              V2 := StrToFloat(Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space)));
+            end
+            else
+            begin
+              V1 := StrToFloat(StdDevStr);
+              V2 := V1;
+            end;
+          except
+            V1 := 0; V2 := 0;
+          end;
+          RadiusX := Round(V1);
+          RadiusY := Round(V2);
+          if (RadiusX <= 0) and (RadiusY <= 0) then Continue;
+          if RadiusX < 1 then RadiusX := 1;
+          if RadiusY < 1 then RadiusY := 1;
+
+          // Multi-pass box blur approximation
+          RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+
+          if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
+          begin
+            if (GdipBitmapLockBits(Bmp, @RG, ImageLockModeRW, PixelFormat32bppARGB, SrcData) = Ok)
+              and (GdipBitmapLockBits(TmpBmp, @RG, ImageLockModeRW, PixelFormat32bppARGB, TmpData) = Ok) then
+            begin
+              BW := SrcData.Width;
+              BH := SrcData.Height;
+
+              for Pass := 0 to 2 do
+              begin
+                // --- Horizontal: SrcData -> TmpData ---
+                for Y := 0 to BH - 1 do
+                begin
+                  SrcRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                  DstRow := PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride);
+                  // initialize sliding window: pixels [0, Min(RadiusX, BW-1)]
+                  SumR := 0; SumG := 0; SumB := 0; SumA := 0;
+                  Cnt := RadiusX + 1;
+                  if Cnt > BW then Cnt := BW;
+                  for PixelIdx := 0 to Cnt - 1 do
+                  begin
+                    Inc(SumB, SrcRow[PixelIdx].B); Inc(SumG, SrcRow[PixelIdx].G);
+                    Inc(SumR, SrcRow[PixelIdx].R); Inc(SumA, SrcRow[PixelIdx].A);
+                  end;
+                  for X := 0 to BW - 1 do
+                  begin
+                    DstRow[X].B := SumB div Cnt;
+                    DstRow[X].G := SumG div Cnt;
+                    DstRow[X].R := SumR div Cnt;
+                    DstRow[X].A := SumA div Cnt;
+
+                    // remove pixel at left edge of current window
+                    PixelIdx := X - RadiusX;
+                    if PixelIdx >= 0 then
+                    begin
+                      Dec(SumB, SrcRow[PixelIdx].B); Dec(SumG, SrcRow[PixelIdx].G);
+                      Dec(SumR, SrcRow[PixelIdx].R); Dec(SumA, SrcRow[PixelIdx].A);
+                      Dec(Cnt);
+                    end;
+                    // add pixel after right edge of current window
+                    PixelIdx := X + RadiusX + 1;
+                    if PixelIdx < BW then
+                    begin
+                      Inc(SumB, SrcRow[PixelIdx].B); Inc(SumG, SrcRow[PixelIdx].G);
+                      Inc(SumR, SrcRow[PixelIdx].R); Inc(SumA, SrcRow[PixelIdx].A);
+                      Inc(Cnt);
+                    end;
+                  end;
+                end;
+                // --- Vertical: TmpData -> SrcData ---
+                for X := 0 to BW - 1 do
+                begin
+                  // initialize sliding window: pixels [0, Min(RadiusY, BH-1)]
+                  SumR := 0; SumG := 0; SumB := 0; SumA := 0;
+                  Cnt := RadiusY + 1;
+                  if Cnt > BH then Cnt := BH;
+                  for PixelIdx := 0 to Cnt - 1 do
+                  begin
+                    SrcRow := PARGBArray(PAnsiChar(TmpData.Scan0) + PixelIdx * TmpData.Stride);
+                    Inc(SumB, SrcRow[X].B); Inc(SumG, SrcRow[X].G);
+                    Inc(SumR, SrcRow[X].R); Inc(SumA, SrcRow[X].A);
+                  end;
+                  for Y := 0 to BH - 1 do
+                  begin
+                    DstRow := PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride);
+                    DstRow[X].B := SumB div Cnt;
+                    DstRow[X].G := SumG div Cnt;
+                    DstRow[X].R := SumR div Cnt;
+                    DstRow[X].A := SumA div Cnt;
+
+                    // remove pixel at top edge of current window
+                    PixelIdx := Y - RadiusY;
+                    if PixelIdx >= 0 then
+                    begin
+                      SrcRow := PARGBArray(PAnsiChar(TmpData.Scan0) + PixelIdx * TmpData.Stride);
+                      Dec(SumB, SrcRow[X].B); Dec(SumG, SrcRow[X].G);
+                      Dec(SumR, SrcRow[X].R); Dec(SumA, SrcRow[X].A);
+                      Dec(Cnt);
+                    end;
+                    // add pixel below bottom edge of current window
+                    PixelIdx := Y + RadiusY + 1;
+                    if PixelIdx < BH then
+                    begin
+                      SrcRow := PARGBArray(PAnsiChar(TmpData.Scan0) + PixelIdx * TmpData.Stride);
+                      Inc(SumB, SrcRow[X].B); Inc(SumG, SrcRow[X].G);
+                      Inc(SumR, SrcRow[X].R); Inc(SumA, SrcRow[X].A);
+                      Inc(Cnt);
+                    end;
+                  end;
+                end;
+              end;
+              // copy final result from TmpBmp back to Bmp (3 passes end in TmpBmp)
+              for Y := 0 to BH - 1 do
+                System.Move(PARGBArray(PAnsiChar(TmpData.Scan0) + Y * TmpData.Stride)^,
+                            PARGBArray(PAnsiChar(SrcData.Scan0) + Y * SrcData.Stride)^,
+                            BW * 4);
+              GdipBitmapUnlockBits(TmpBmp, TmpData);
+              GdipBitmapUnlockBits(Bmp, SrcData);
+            end;
+            GdipDisposeImage(TmpBmp);
+          end;
+        end;
+      end;
+      Inc(I);
+    end;
+  end;
+
+  // draw filtered result back to main canvas
+  FFilterPendingBmp := Bmp;
+  FFilterPendingSX := SX;
+  FFilterPendingSY := SY;
+  FFilterPendingSW := SW;
+  FFilterPendingSH := SH;
+
+  GdipDeleteGraphics(BmpGC);
+  // Bmp ownership transferred to FFilterPendingBmp; caller disposes after drawing
+end;
+
 procedure TCnSVGRenderer.RenderElement(AElement: TCnXMLElement);
 var
   Tag: string;
   I: Integer;
+  MX: GpMatrix;
 begin
   if AElement = nil then
     Exit;
@@ -5826,49 +6367,80 @@ begin
       if AElement.HasAttribute('transform') then
         ApplyTransformAttr(AElement.GetAttribute('transform'));
 
-      // 应用 GDI+ 裁剪路径
-      ApplyGDIPClipPath;
-
-      if Tag = 'svg' then
-        RenderNestedSVG(AElement)
-      else if Tag = 'rect' then
-        RenderRect(AElement)
-      else if Tag = 'circle' then
-        RenderCircle(AElement)
-      else if Tag = 'ellipse' then
-        RenderEllipse(AElement)
-      else if Tag = 'line' then
-        RenderLine(AElement)
-      else if Tag = 'polyline' then
-        RenderPolyline(AElement)
-      else if Tag = 'polygon' then
-        RenderPolygon(AElement)
-      else if Tag = 'path' then
-        RenderPath(AElement)
-      else if Tag = 'text' then
-        RenderText(AElement)
-      else if Tag = 'use' then
-        RenderUse(AElement)
-      else if Tag = 'defs' then
-        RenderDefs(AElement)
-      else if Tag = 'image' then
-        RenderImage(AElement)
-      else if Tag = 'switch' then
-        RenderSwitch(AElement)
-      else if Tag = 'a' then
-        RenderAnchor(AElement)
-      else if Tag = 'symbol' then
+      // filter check (non-group)
+      if (FCtx.Style.FilterID <> '') and not FProcessingFilter then
       begin
-        // symbol 仅定义，不直接渲染
+        FProcessingFilter := True;
+        try
+          RenderFilteredElement(AElement);
+        finally
+          FProcessingFilter := False;
+        end;
+        // Don't Exit; fall through to finally for PopMatrix/PopStyle,
+        // then deferred draw runs with restored GDI+ state
       end
       else
-        for I := 0 to AElement.ChildCount - 1 do
-          RenderNode(AElement.Children[I]);
+      begin
+        // normal rendering
+        ApplyGDIPClipPath;
+
+        if Tag = 'svg' then
+          RenderNestedSVG(AElement)
+        else if Tag = 'rect' then
+          RenderRect(AElement)
+        else if Tag = 'circle' then
+          RenderCircle(AElement)
+        else if Tag = 'ellipse' then
+          RenderEllipse(AElement)
+        else if Tag = 'line' then
+          RenderLine(AElement)
+        else if Tag = 'polyline' then
+          RenderPolyline(AElement)
+        else if Tag = 'polygon' then
+          RenderPolygon(AElement)
+        else if Tag = 'path' then
+          RenderPath(AElement)
+        else if Tag = 'text' then
+          RenderText(AElement)
+        else if Tag = 'use' then
+          RenderUse(AElement)
+        else if Tag = 'defs' then
+          RenderDefs(AElement)
+        else if Tag = 'image' then
+          RenderImage(AElement)
+        else if Tag = 'switch' then
+          RenderSwitch(AElement)
+        else if Tag = 'a' then
+          RenderAnchor(AElement)
+        else if Tag = 'symbol' then
+        begin
+          // symbol 仅定义，不直接渲染
+        end
+        else
+          for I := 0 to AElement.ChildCount - 1 do
+            RenderNode(AElement.Children[I]);
+      end;
     finally
       // 移除 GDI+ 裁剪路径（恢复之前保存的状态）
       RemoveGDIPClipPath;
       PopMatrix;
       PopStyle;
+      // deferred draw after GDI+ state (world transform, clip) is fully restored
+      if FFilterPendingBmp <> nil then
+      begin
+        try
+          GdipCreateMatrix2(1, 0, 0, 1,
+            FFilterPendingSX, FFilterPendingSY, MX);
+          GdipSetWorldTransform(FGDIPGraphics, MX);
+          GdipDeleteMatrix(MX);
+          GdipDrawImageRect(FGDIPGraphics, FFilterPendingBmp,
+            0, 0, FFilterPendingSW, FFilterPendingSH);
+          UpdateGDIPWorldTransform;
+        finally
+          GdipDisposeImage(FFilterPendingBmp);
+          FFilterPendingBmp := nil;
+        end;
+      end;
     end;
   end
   else

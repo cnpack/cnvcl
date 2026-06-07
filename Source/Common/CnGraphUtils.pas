@@ -250,6 +250,11 @@ const
   SmoothingModeAntiAlias   = 4;
   SmoothingModeHighQualityGDI = 5;
 
+  PixelFormat32bppARGB = $0026200A;
+  ImageLockModeRead    = 1;
+  ImageLockModeWrite   = 2;
+  ImageLockModeRW      = 3;
+
   // FillMode 枚举值
   FillModeAlternate   = 0;  // 奇偶填充，对应 GDI 的 ALTERNATE
   FillModeWinding     = 1;  // 缠绕填充，对应 GDI 的 WINDING
@@ -361,6 +366,23 @@ type
     Height: Single;
   end;
   {* GDI+ 浮点矩形，用于 GdipDrawString / GdipMeasureString 的布局和边界框 }
+  PGPRect = ^TGPRect;
+  TGPRect = record
+    X: Integer;
+    Y: Integer;
+    Width: Integer;
+    Height: Integer;
+  end;
+
+  PGDIPBitmapData = ^TGDIPBitmapData;
+  TGDIPBitmapData = record
+    Width: Cardinal;
+    Height: Cardinal;
+    Stride: Integer;
+    PixelFormat: Integer;
+    Scan0: Pointer;
+    Reserved: Pointer;
+  end;
 
   PGPColor = ^TGPColor;
   TGPColor = Cardinal;
@@ -606,7 +628,19 @@ type
   TGdipDrawImageRectI = function(Graphic: GPGRAPHICS; Image: GPIMAGE; x: Integer;
     y: Integer; Width: Integer; Height: Integer): GPSTATUS; stdcall;
 
-  //---------- Font 字体 ----------
+  TGdipCreateBitmapFromScan0 = function(Width, Height, Stride: Integer;
+    PixelFormat: Integer; Scan0: Pointer; out Bitmap: GPIMAGE): GPSTATUS; stdcall;
+
+  TGdipBitmapLockBits = function(Bitmap: GPIMAGE; Rect: PGPRect;
+    Flags, Format: Integer; out Data: TGDIPBitmapData): GPSTATUS; stdcall;
+
+  TGdipBitmapUnlockBits = function(Bitmap: GPIMAGE;
+    var Data: TGDIPBitmapData): GPSTATUS; stdcall;
+
+  TGdipGetImageGraphicsContext = function(Image: GPIMAGE;
+    out Graphics: GPGRAPHICS): GPSTATUS; stdcall;
+
+  //---------- Font ----------
   TGdipCreateFontFromLogfontW = function(hdc: HDC; Logfont: Pointer;
     out Font: GPFONT): GPSTATUS; stdcall;
 
@@ -811,6 +845,10 @@ var
   GdipDisposeImage: TGdipDisposeImage = nil;
   GdipDrawImageRect: TGdipDrawImageRect = nil;
   GdipDrawImageRectI: TGdipDrawImageRectI = nil;
+  GdipCreateBitmapFromScan0: TGdipCreateBitmapFromScan0 = nil;
+  GdipBitmapLockBits: TGdipBitmapLockBits = nil;
+  GdipBitmapUnlockBits: TGdipBitmapUnlockBits = nil;
+  GdipGetImageGraphicsContext: TGdipGetImageGraphicsContext = nil;
 
   //---------- Matrix 矩阵 ----------
   GdipCreateMatrix: TGdipCreateMatrix = nil;
@@ -1559,6 +1597,10 @@ initialization
     GdipDisposeImage := TGdipDisposeImage(GetProcAddress(GdiPlusHandle, 'GdipDisposeImage'));
     GdipDrawImageRect := TGdipDrawImageRect(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRect'));
     GdipDrawImageRectI := TGdipDrawImageRectI(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRectI'));
+    GdipCreateBitmapFromScan0 := TGdipCreateBitmapFromScan0(GetProcAddress(GdiPlusHandle, 'GdipCreateBitmapFromScan0'));
+    GdipBitmapLockBits := TGdipBitmapLockBits(GetProcAddress(GdiPlusHandle, 'GdipBitmapLockBits'));
+    GdipBitmapUnlockBits := TGdipBitmapUnlockBits(GetProcAddress(GdiPlusHandle, 'GdipBitmapUnlockBits'));
+    GdipGetImageGraphicsContext := TGdipGetImageGraphicsContext(GetProcAddress(GdiPlusHandle, 'GdipGetImageGraphicsContext'));
 
     //---------- Matrix 矩阵 ----------
     GdipCreateMatrix := TGdipCreateMatrix(GetProcAddress(GdiPlusHandle, 'GdipCreateMatrix'));
