@@ -1,11 +1,11 @@
 object FormSVGDemo: TFormSVGDemo
-  Left = 257
-  Height = 578
-  Top = 122
-  Width = 618
+  Left = 219
+  Height = 785
+  Top = 30
+  Width = 883
   Caption = 'SVG 绘制'
-  ClientHeight = 578
-  ClientWidth = 618
+  ClientHeight = 785
+  ClientWidth = 883
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -15,9 +15,9 @@ object FormSVGDemo: TFormSVGDemo
   OnCreate = FormCreate
   object imgResult: TImage
     Left = 12
-    Height = 450
+    Height = 657
     Top = 84
-    Width = 586
+    Width = 851
     Anchors = [akTop, akLeft, akRight, akBottom]
     Stretch = True
   end
@@ -48,6 +48,7 @@ object FormSVGDemo: TFormSVGDemo
       '128x128'
       '256x256'
       '512x512'
+      '768x768'
     )
     Style = csDropDownList
     TabOrder = 2

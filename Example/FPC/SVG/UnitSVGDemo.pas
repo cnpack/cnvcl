@@ -33,7 +33,7 @@ uses
 
 procedure TFormSVGDemo.FormCreate(Sender: TObject);
 begin
-  cmbSize.ItemIndex := 1; // 默认选中 128x128
+  cmbSize.ItemIndex := 3;
 end;
 
 procedure TFormSVGDemo.btnBrowseClick(Sender: TObject);

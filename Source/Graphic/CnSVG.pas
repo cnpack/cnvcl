@@ -3006,7 +3006,7 @@ function TCnSVGRenderer.CreateGDIPFillBrush: GpBrush;
 var
   DefEl: TCnXMLElement;
   Tag: string;
-  X1, Y1, X2, Y2: TCnSVGFloat;
+  X1, Y1, X2, Y2, RX, RY: TCnSVGFloat;
   GP1, GP2: TGPRectF;
   C1, C2: Cardinal;
   Stops: TList;
@@ -3178,6 +3178,8 @@ begin
       // objectBoundingBox 模式下，[0,1] 映射到元素边界框
       GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
       IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      RX := X2;
+      RY := X2;
       if IsObjBBox then
       begin
         // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
@@ -3188,9 +3190,15 @@ begin
         begin
           X1 := FGradBBoxX + X1 * FGradBBoxW;
           Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          // 半径取宽高较小者的一半作为基准
-          X2 := X2 * Min(FGradBBoxW, FGradBBoxH);
+          // objectBoundingBox 下径向渐变应拉伸填满 bbox，用椭圆半径
+          RX := X2 * FGradBBoxW;
+          RY := X2 * FGradBBoxH;
         end;
+      end
+      else
+      begin
+        RX := X2;
+        RY := X2;
       end;
 
       // 获取起止颜色
@@ -3230,8 +3238,8 @@ begin
         for I := 0 to J - 1 do
         begin
           Angle := I * Step;
-          CircPts[I * 2] := X1 + X2 * Cos(Angle);
-          CircPts[I * 2 + 1] := Y1 + X2 * Sin(Angle);
+          CircPts[I * 2] := X1 + RX * Cos(Angle);
+          CircPts[I * 2 + 1] := Y1 + RY * Sin(Angle);
         end;
         if GdipCreatePathGradient(@CircPts, J, WrapModeClamp, Result) = Ok then
         begin
@@ -3277,7 +3285,7 @@ begin
         GdipCreatePath(FillModeWinding, Path);
         if Path <> nil then
         begin
-          GdipAddPathEllipse(Path, X1 - X2, Y1 - X2, X2 * 2, X2 * 2);
+          GdipAddPathEllipse(Path, X1 - RX, Y1 - RY, RX * 2, RY * 2);
           if GdipCreatePathGradientFromPath(Path, Result) = Ok then
           begin
             if Assigned(GdipSetPathGradientPresetBlend) then
@@ -5465,10 +5473,12 @@ var
         AngleDeg := ArcTan2(FCtx.CTM.b, FCtx.CTM.a) * 180 / Pi;
         if Abs(AngleDeg) > 0.01 then
         begin
-          if Assigned(GdipTranslateWorldTransform) then
-            GdipTranslateWorldTransform(FGDIPGraphics, Scr.X, Scr.Y, MatrixOrderAppend);
+          // GDI+ 行向量约定：M = R * T（先旋转再平移）
+          // 使局部原点 (0,0) 映射到屏幕坐标 (Scr.X, Scr.Y) 而非被旋转偏移
           if Assigned(GdipRotateWorldTransform) then
             GdipRotateWorldTransform(FGDIPGraphics, AngleDeg, MatrixOrderAppend);
+          if Assigned(GdipTranslateWorldTransform) then
+            GdipTranslateWorldTransform(FGDIPGraphics, Scr.X, Scr.Y, MatrixOrderAppend);
         end;
 
         if Abs(AngleDeg) > 0.01 then
