@@ -5420,8 +5420,12 @@ var
         LayoutRect.Height := 100000;
 
         if GDIPBrush <> nil then
+        begin
+          if Assigned(GdipSetTextRenderingHint) then
+            GdipSetTextRenderingHint(FGDIPGraphics, 4);
           GdipDrawString(FGDIPGraphics, PWideChar(WStr), Length(WStr),
             GDIPFont, @LayoutRect, GDIPFmt, GDIPBrush);
+        end;
 
         // ª÷∏¥ ¿ΩÁ±‰ªª
         if (SavedState <> 0) and Assigned(GdipRestoreGraphics) then
