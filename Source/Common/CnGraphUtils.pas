@@ -250,6 +250,13 @@ const
   SmoothingModeAntiAlias   = 4;
   SmoothingModeHighQualityGDI = 5;
 
+  // PixelOffsetMode
+  PixelOffsetModeInvalid     = -1;
+  PixelOffsetModeDefault     = 0;
+  PixelOffsetModeHighSpeed   = 1;
+  PixelOffsetModeHighQuality = 2;
+  PixelOffsetModeHalf        = 3;
+
   PixelFormat32bppARGB = $0026200A;
   ImageLockModeRead    = 1;
   ImageLockModeWrite   = 2;
@@ -646,6 +653,9 @@ type
 
   TGdipDeleteFont = function(Font: GPFONT): GPSTATUS; stdcall;
 
+  TGdipGraphicsClear = function(Graphics: GPGRAPHICS;
+    Color: Cardinal): GPSTATUS; stdcall;
+
   //---------- StringFormat 字符串格式 ----------
   TGdipCreateStringFormat = function(FormatAttributes: Integer; Language: Word;
     out Format: GPSTRINGFORMAT): GPSTATUS; stdcall;
@@ -757,6 +767,13 @@ type
   TGdipRestoreGraphics2 = function(Graphics: GPGRAPHICS; State: Cardinal):
     GPSTATUS; stdcall;
 
+  //---------- Texture Brush ----------
+  TGdipCreateTexture = function(Image: GPIMAGE; WrapMode: Integer;
+    out Texture: GPBRUSH): GPSTATUS; stdcall;
+
+  TGdipSetTextureWrapMode = function(Texture: GPBRUSH;
+    WrapMode: Integer): GPSTATUS; stdcall;
+
 var
   CnGdiPlusAvailable: Boolean = False;
   {* GDI+ 运行时可用性标记。
@@ -849,6 +866,7 @@ var
   GdipBitmapLockBits: TGdipBitmapLockBits = nil;
   GdipBitmapUnlockBits: TGdipBitmapUnlockBits = nil;
   GdipGetImageGraphicsContext: TGdipGetImageGraphicsContext = nil;
+  GdipGraphicsClear: TGdipGraphicsClear = nil;
 
   //---------- Matrix 矩阵 ----------
   GdipCreateMatrix: TGdipCreateMatrix = nil;
@@ -874,6 +892,10 @@ var
   GdipSetPathGradientPresetBlend: TGdipSetPathGradientPresetBlend = nil;
   GdipSetPathGradientCenterPoint: TGdipSetPathGradientCenterPoint = nil;
   GdipGetPathGradientSurroundColorsCount: TGdipGetPathGradientSurroundColorsCount = nil;
+
+  //---------- Texture Brush ----------
+  GdipCreateTexture: TGdipCreateTexture = nil;
+  GdipSetTextureWrapMode: TGdipSetTextureWrapMode = nil;
 
   //---------- Clip 裁剪 ----------
   GdipSetClipPath: TGdipSetClipPath = nil;
@@ -1601,6 +1623,7 @@ initialization
     GdipBitmapLockBits := TGdipBitmapLockBits(GetProcAddress(GdiPlusHandle, 'GdipBitmapLockBits'));
     GdipBitmapUnlockBits := TGdipBitmapUnlockBits(GetProcAddress(GdiPlusHandle, 'GdipBitmapUnlockBits'));
     GdipGetImageGraphicsContext := TGdipGetImageGraphicsContext(GetProcAddress(GdiPlusHandle, 'GdipGetImageGraphicsContext'));
+    GdipGraphicsClear := TGdipGraphicsClear(GetProcAddress(GdiPlusHandle, 'GdipGraphicsClear'));
 
     //---------- Matrix 矩阵 ----------
     GdipCreateMatrix := TGdipCreateMatrix(GetProcAddress(GdiPlusHandle, 'GdipCreateMatrix'));
@@ -1626,6 +1649,10 @@ initialization
     GdipSetPathGradientPresetBlend := TGdipSetPathGradientPresetBlend(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientPresetBlend'));
     GdipSetPathGradientCenterPoint := TGdipSetPathGradientCenterPoint(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterPoint'));
     GdipGetPathGradientSurroundColorsCount := TGdipGetPathGradientSurroundColorsCount(GetProcAddress(GdiPlusHandle, 'GdipGetPathGradientSurroundColorsCount'));
+
+    //---------- Texture Brush ----------
+    GdipCreateTexture := TGdipCreateTexture(GetProcAddress(GdiPlusHandle, 'GdipCreateTexture'));
+    GdipSetTextureWrapMode := TGdipSetTextureWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetTextureWrapMode'));
 
     //---------- Clip 裁剪（非核心）----------
     GdipSetClipPath := TGdipSetClipPath(GetProcAddress(GdiPlusHandle, 'GdipSetClipPath'));
