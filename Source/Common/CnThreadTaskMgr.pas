@@ -193,7 +193,14 @@ begin
   end;
   // 自动退出时进行处理，强制退出时由监视线程处理
   if FMgr <> nil then
-    FMgr.FThreads.Remove(Self);
+  begin
+    with FMgr.FThreads.LockList do
+    try
+      Remove(Self);
+    finally
+      FMgr.FThreads.UnlockList;
+    end;
+  end;
 end;
 
 { TCnMonitorThread }
