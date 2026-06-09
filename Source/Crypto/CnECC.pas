@@ -6612,8 +6612,8 @@ begin
     if PublicKey.X.IsNegative or PublicKey.Y.IsNegative then
       Exit;
 
-    if (BigNumberCompare(PublicKey.X, Ecc.FFiniteFieldSize) >= 0) or
-       (BigNumberCompare(PublicKey.Y, Ecc.FFiniteFieldSize) >= 0) then
+    if (BigNumberCompare(PublicKey.X, Ecc.FiniteFieldSize) >= 0) or
+       (BigNumberCompare(PublicKey.Y, Ecc.FiniteFieldSize) >= 0) then
       Exit;
 
     if not Ecc.IsPointOnCurve(PublicKey) then
