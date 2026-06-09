@@ -1342,7 +1342,7 @@ begin
   try
     GP := TGPGraphics.Create(Dst.Canvas.Handle);
     if Smooth then
-      GP.SetSmoothingMode(SmoothingModeAntiAlias);
+      GP.SetSmoothingMode(SmoothingMode.SmoothingModeAntiAlias);
 
     Bmp := TGPBitmap.Create(Src.Handle, Src.Palette);
     GP.DrawImage(Bmp, 0, 0, Dst.Width + 1, Dst.Height + 1);
