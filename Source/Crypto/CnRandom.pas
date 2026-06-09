@@ -379,7 +379,8 @@ begin
   if ByteLen > 0 then
   begin
     SetLength(Result, ByteLen);
-    CnRandomFillBytes2(PAnsiChar(@Result[0]), ByteLen);
+    if not CnRandomFillBytes2(PAnsiChar(@Result[0]), ByteLen) then
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
   end;
 end;
 

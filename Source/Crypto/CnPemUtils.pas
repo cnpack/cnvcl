@@ -453,8 +453,7 @@ begin
         // 修复：原代码使用 LCG 伪随机数+时间种子，可预测，存在 Bleichenbacher 攻击风险
         if F > 0 then
         begin
-          SetLength(RandBuf, F);
-          CnRandomBytes(F);  // 调用 CnRandomBytes 生成安全随机字节
+          RandBuf := CnRandomBytes(F);  // 调用 CnRandomBytes 生成安全随机字节
           for I := 0 to F - 1 do
           begin
             if RandBuf[I] = 0 then
