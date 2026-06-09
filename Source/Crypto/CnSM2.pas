@@ -1276,6 +1276,14 @@ begin
 
     P2 := TCnEccPoint.Create;
     P2.Assign(PublicKey);
+
+    // 校验点以避免攻击
+    if not CheckEccPublicKey(SM2, TCnEccPublicKey(P2)) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     SM2.MultiplePoint(K, P2); // 计算出 K * PublicKey 得到 X2 Y2
 
     SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
@@ -1431,6 +1439,13 @@ begin
     if P2.IsZero then
     begin
       _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
+      Exit;
+    end;
+
+    // 校验点以避免攻击
+    if not CheckEccPublicKey(SM2, TCnEccPublicKey(P2)) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
     end;
 
@@ -2005,6 +2020,13 @@ begin
     end;
 
     if BigNumberCompare(InSignature.S, SM2.Order) >= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    // 校验点以避免攻击
+    if not CheckEccPublicKey(SM2, PublicKey) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;

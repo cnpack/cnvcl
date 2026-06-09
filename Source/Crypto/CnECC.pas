@@ -2260,7 +2260,7 @@ function CnInt64PolynomialEccPointsEqual(P1: TCnInt64PolynomialEccPoint;
 // ============================= 其他辅助函数 ==================================
 
 function CheckEccPublicKey(Ecc: TCnEcc; PublicKey: TCnEccPublicKey): Boolean;
-{* 检验给定曲线的 PublicKey 是否合法。
+{* 检验给定曲线的 PublicKey 是否合法，包括不能是无穷远点，必须在曲线上，阶得是椭圆曲线的阶的子群。
 
    参数：
      Ecc: TCnEcc                          - 用于校验的椭圆曲线实例
@@ -6609,13 +6609,20 @@ begin
   begin
     if PublicKey.IsZero then
       Exit;
+    if PublicKey.X.IsNegative or PublicKey.Y.IsNegative then
+      Exit;
+
+    if (BigNumberCompare(PublicKey.X, Ecc.FFiniteFieldSize) >= 0) or
+       (BigNumberCompare(PublicKey.Y, Ecc.FFiniteFieldSize) >= 0) then
+      Exit;
+
     if not Ecc.IsPointOnCurve(PublicKey) then
       Exit;
 
     P := TCnEccPoint.Create;
     try
       P.Assign(PublicKey);
-      Ecc.MultiplePoint(Ecc.Order, P);
+      Ecc.NormalMultiplePoint(Ecc.Order, P); // 必须调确定版，不能调其他随机化 Order 的版本！
       Result := P.IsZero;
     finally
       P.Free;

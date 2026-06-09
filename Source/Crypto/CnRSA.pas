@@ -899,12 +899,14 @@ function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
 {* 用 RSA 公钥与签名值文件以 PKCS1 模式验证指定文件，也即用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过。
+   注意：当签名存在杂凑时（也就是并非直接签原文），签名中会携带杂凑类型，
+   此时我们内部会进行杂凑类型自动判断，此时 SignType 只需传非 rsdtNone 的其他杂凑值即可。
 
    参数：
      const InFileName: string             - 待验证签名的文件名
      const InSignFileName: string         - 签名内容的文件名
      PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
-     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+     SignType: TCnRSASignDigestType       - 签名的杂凑摘要类型，当签名存在杂凑时可自动判断
 
    返回值：Boolean                        - 返回验证签名是否成功
 }
@@ -925,12 +927,14 @@ function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 公钥与签名值内存流以 PKCS1 模式验证指定内存流，返回验证是否通过。
+   注意：当签名存在杂凑时（也就是并非直接签原文），签名中会携带杂凑类型，
+   此时我们内部会进行杂凑类型自动判断，此时 SignType 只需传非 rsdtNone 的其他杂凑值即可。
 
    参数：
      InStream: TMemoryStream              - 待验证签名的内存流
      InSignStream: TMemoryStream          - 签名内容内存流
      PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
-     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+     SignType: TCnRSASignDigestType       - 签名的杂凑摘要类型，当签名存在杂凑时可自动判断
 
    返回值：Boolean                        - 返回验证签名是否成功
 }
@@ -950,12 +954,14 @@ function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
 function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 公钥与签名字节数组以 PKCS1 模式验证指定字节数组，返回验证是否通过。
+   注意：当签名存在杂凑时（也就是并非直接签原文），签名中会携带杂凑类型，
+   此时我们内部会进行杂凑类型自动判断，此时 SignType 只需传非 rsdtNone 的其他杂凑值即可。
 
    参数：
      InData: TBytes                       - 待验证签名的字节数组
      InSignBytes: TBytes                  - 签名内容字节数组
      PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
-     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+     SignType: TCnRSASignDigestType       - 签名的杂凑摘要类型，当签名存在杂凑时可自动判断
 
    返回值：Boolean                        - 返回验证签名是否成功
 }
