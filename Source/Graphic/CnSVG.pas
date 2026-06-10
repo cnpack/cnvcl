@@ -576,6 +576,7 @@ type
     FFilterPendingSX, FFilterPendingSY, FFilterPendingSW, FFilterPendingSH: Integer;
     FGradBBoxX, FGradBBoxY, FGradBBoxW, FGradBBoxH: TCnSVGFloat;
     {* 渐变 objectBoundingBox 映射用的当前元素边界框 }
+    FPatternBmp: GpImage;
     procedure PushMatrix;
     procedure PopMatrix;
     procedure PushStyle;
@@ -2612,6 +2613,11 @@ begin
     GdipDeleteGraphics(FGDIPGraphics);
     FGDIPGraphics := nil;
   end;
+  if FPatternBmp <> nil then
+  begin
+    GdipDisposeImage(FPatternBmp);
+    FPatternBmp := nil;
+  end;
   if FSavedDC <> 0 then
     RestoreDC(FCtx.Canvas.Handle, FSavedDC);
   inherited Destroy;
@@ -3029,6 +3035,13 @@ var
   NeedExtend: Boolean;
   ColorsPtr: PGPColor;
   P: PGPColor;
+  TileBmp: GpImage;
+  TileGC, SavedGC: GpGraphics;
+  TileW, TileH: Integer;
+  PX, PY, PW, PH: TCnSVGFloat;
+  PT0, PT1: TPoint;
+  PatUnits, ContentUnits: string;
+  OldFillGradID, OldStrokeGradID: string;
 begin
   Result := nil;
   if FCtx.Style.FillNone then Exit;
@@ -3336,6 +3349,103 @@ begin
           GdipDeletePath(Path);
         end;
       end;
+    end
+    else if Tag = 'pattern' then
+    begin
+      PX := SVGAttrFloat(DefEl, 'x', 0);
+      PY := SVGAttrFloat(DefEl, 'y', 0);
+      PW := SVGAttrFloat(DefEl, 'width', 0);
+      PH := SVGAttrFloat(DefEl, 'height', 0);
+      if (PW <= 0) or (PH <= 0) then Exit;
+
+      PatUnits := LowerCase(DefEl.GetAttribute('patternUnits'));
+      if PatUnits = 'objectboundingbox' then
+      begin
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          PX := FGradBBoxX + PX * FGradBBoxW;
+          PY := FGradBBoxY + PY * FGradBBoxH;
+          PW := PW * FGradBBoxW;
+          PH := PH * FGradBBoxH;
+        end;
+      end;
+
+      PT0 := UserToScreen(PX, PY);
+      PT1 := UserToScreen(PX + PW, PY + PH);
+      TileW := Abs(PT1.X - PT0.X);
+      TileH := Abs(PT1.Y - PT0.Y);
+      if (TileW <= 0) or (TileH <= 0) then
+        Exit;
+
+      if not Assigned(GdipCreateTexture) then
+        Exit;
+
+      TileBmp := nil;
+      if GdipCreateBitmapFromScan0(TileW, TileH, 0, PixelFormat32bppARGB, nil, TileBmp) <> Ok then
+        Exit;
+
+      TileGC := nil;
+      if GdipGetImageGraphicsContext(TileBmp, TileGC) <> Ok then
+      begin
+        GdipDisposeImage(TileBmp);
+        Exit;
+      end;
+
+      if Assigned(GdipGraphicsClear) then
+        GdipGraphicsClear(TileGC, 0);
+      GdipSetSmoothingMode(TileGC, SmoothingModeAntiAlias);
+      if Assigned(GdipSetTextRenderingHint) then
+        GdipSetTextRenderingHint(TileGC, 4);
+
+      OldFillGradID := FCtx.Style.FillGradientID;
+      OldStrokeGradID := FCtx.Style.StrokeGradientID;
+      FCtx.Style.FillGradientID := '';
+      FCtx.Style.StrokeGradientID := '';
+
+      SavedGC := FGDIPGraphics;
+      FGDIPGraphics := TileGC;
+
+      PushMatrix;
+      FCtx.CTM.e := -PX * FCtx.CTM.a - PY * FCtx.CTM.c;
+      FCtx.CTM.f := -PX * FCtx.CTM.b - PY * FCtx.CTM.d;
+      if DefEl.HasAttribute('patternTransform') then
+        ApplyTransformAttr(DefEl.GetAttribute('patternTransform'));
+      UpdateGDIPWorldTransform;
+
+      ContentUnits := LowerCase(DefEl.GetAttribute('patternContentUnits'));
+      if ContentUnits = 'objectboundingbox' then
+      begin
+        // CTM already maps objectBoundingBox coords correctly
+          UpdateGDIPWorldTransform;
+      end;
+
+      for I := 0 to DefEl.ChildCount - 1 do
+      begin
+        if DefEl.Children[I].NodeType = xntElement then
+          RenderElement(TCnXMLElement(DefEl.Children[I]));
+      end;
+
+      FCtx.Style.FillGradientID := OldFillGradID;
+      FCtx.Style.StrokeGradientID := OldStrokeGradID;
+
+      PopMatrix;
+      FGDIPGraphics := SavedGC;
+      UpdateGDIPWorldTransform;
+
+      GdipDeleteGraphics(TileGC);
+
+      if GdipCreateTexture(TileBmp, WrapModeTile, Result) = Ok then
+      begin
+        if Assigned(GdipSetTextureWrapMode) then
+          GdipSetTextureWrapMode(Result, WrapModeTile);
+        if FPatternBmp <> nil then
+          GdipDisposeImage(FPatternBmp);
+        FPatternBmp := TileBmp;
+        TileBmp := nil;
+      end;
+
+      if TileBmp <> nil then
+        GdipDisposeImage(TileBmp);
     end;
 
     if Result <> nil then Exit;
@@ -3366,6 +3476,13 @@ var
   IsObjBBox: Boolean;
   Dx, Dy, LenSq, MinT, MaxT, T: TCnSVGFloat;
   NeedExtend: Boolean;
+  TileBmp: GpImage;
+  TileGC, SavedGC: GpGraphics;
+  TileW, TileH: Integer;
+  PX, PY, PW, PH: TCnSVGFloat;
+  PT0, PT1: TPoint;
+  PatUnits, ContentUnits: string;
+  OldFillGradID, OldStrokeGradID: string;
 begin
   Result := nil;
   if FCtx.Style.StrokeNone then Exit;
@@ -3492,6 +3609,102 @@ begin
         end;
         GdipSetLinePresetBlend(Result, @Colors, @Positions, Count);
       end;
+    end
+    else if Tag = 'pattern' then
+    begin
+      PX := SVGAttrFloat(DefEl, 'x', 0);
+      PY := SVGAttrFloat(DefEl, 'y', 0);
+      PW := SVGAttrFloat(DefEl, 'width', 0);
+      PH := SVGAttrFloat(DefEl, 'height', 0);
+      if (PW <= 0) or (PH <= 0) then Exit;
+
+      PatUnits := LowerCase(DefEl.GetAttribute('patternUnits'));
+      if PatUnits = 'objectboundingbox' then
+      begin
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          PX := FGradBBoxX + PX * FGradBBoxW;
+          PY := FGradBBoxY + PY * FGradBBoxH;
+          PW := PW * FGradBBoxW;
+          PH := PH * FGradBBoxH;
+        end;
+      end;
+
+      PT0 := UserToScreen(PX, PY);
+      PT1 := UserToScreen(PX + PW, PY + PH);
+      TileW := Abs(PT1.X - PT0.X);
+      TileH := Abs(PT1.Y - PT0.Y);
+      if (TileW <= 0) or (TileH <= 0) then Exit;
+
+      if not Assigned(GdipCreateTexture) then Exit;
+
+      TileBmp := nil;
+      if GdipCreateBitmapFromScan0(TileW, TileH, 0, PixelFormat32bppARGB, nil, TileBmp) <> Ok then
+        Exit;
+
+      TileGC := nil;
+      if GdipGetImageGraphicsContext(TileBmp, TileGC) <> Ok then
+      begin
+        GdipDisposeImage(TileBmp);
+        Exit;
+      end;
+
+      if Assigned(GdipGraphicsClear) then
+        GdipGraphicsClear(TileGC, 0);
+      GdipSetSmoothingMode(TileGC, SmoothingModeAntiAlias);
+      if Assigned(GdipSetTextRenderingHint) then
+        GdipSetTextRenderingHint(TileGC, 4);
+
+      SavedGC := FGDIPGraphics;
+      FGDIPGraphics := TileGC;
+
+      PushMatrix;
+      FCtx.CTM.e := -PX * FCtx.CTM.a - PY * FCtx.CTM.c;
+      FCtx.CTM.f := -PX * FCtx.CTM.b - PY * FCtx.CTM.d;
+      if DefEl.HasAttribute('patternTransform') then
+        ApplyTransformAttr(DefEl.GetAttribute('patternTransform'));
+      UpdateGDIPWorldTransform;
+
+      ContentUnits := LowerCase(DefEl.GetAttribute('patternContentUnits'));
+      if ContentUnits = 'objectboundingbox' then
+      begin
+        // CTM already maps objectBoundingBox coords correctly
+          UpdateGDIPWorldTransform;
+      end;
+
+      OldFillGradID := FCtx.Style.FillGradientID;
+      OldStrokeGradID := FCtx.Style.StrokeGradientID;
+      FCtx.Style.FillGradientID := '';
+      FCtx.Style.StrokeGradientID := '';
+
+      for I := 0 to DefEl.ChildCount - 1 do
+      begin
+        if DefEl.Children[I].NodeType = xntElement then
+          RenderElement(TCnXMLElement(DefEl.Children[I]));
+      end;
+
+      FCtx.Style.FillGradientID := OldFillGradID;
+      FCtx.Style.StrokeGradientID := OldStrokeGradID;
+
+      PopMatrix;
+      FGDIPGraphics := SavedGC;
+      UpdateGDIPWorldTransform;
+
+      GdipDeleteGraphics(TileGC);
+      TileGC := nil;
+
+      if GdipCreateTexture(TileBmp, WrapModeTile, Result) = Ok then
+      begin
+        if Assigned(GdipSetTextureWrapMode) then
+          GdipSetTextureWrapMode(Result, WrapModeTile);
+        if FPatternBmp <> nil then
+          GdipDisposeImage(FPatternBmp);
+        FPatternBmp := TileBmp;
+        TileBmp := nil;
+      end;
+
+      if TileBmp <> nil then
+        GdipDisposeImage(TileBmp);
     end;
 
     if Result <> nil then Exit;
