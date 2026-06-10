@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <!-- #1: Basic checkerboard pattern -->
+    <pattern id="checker" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="10" height="10" fill="#ccc"/>
+      <rect x="10" y="10" width="10" height="10" fill="#ccc"/>
+      <rect x="10" y="0" width="10" height="10" fill="#fff"/>
+      <rect x="0" y="10" width="10" height="10" fill="#fff"/>
+    </pattern>
+
+    <!-- #2: Diagonal stripes with patternTransform -->
+    <pattern id="stripes" width="30" height="30" patternUnits="userSpaceOnUse"
+             patternTransform="rotate(45)">
+      <rect width="30" height="30" fill="#ffd700"/>
+      <rect x="0" y="0" width="15" height="30" fill="#ff6347" opacity="0.6"/>
+    </pattern>
+
+    <!-- #3: Circles in objectBoundingBox -->
+    <pattern id="circles" width="0.3" height="0.3"
+             patternUnits="objectBoundingBox">
+      <circle cx="15%" cy="15%" r="10%" fill="#00bfff"/>
+      <circle cx="85%" cy="85%" r="10%" fill="#ff69b4"/>
+    </pattern>
+
+    <!-- #4: Dots with offset and scale -->
+    <pattern id="dots" x="5" y="5" width="25" height="25"
+             patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="4" fill="#333"/>
+    </pattern>
+
+    <!-- #5: Nested pattern with text -->
+    <pattern id="textpat" width="80" height="40" patternUnits="userSpaceOnUse">
+      <rect width="80" height="40" fill="#f0f8ff"/>
+      <text x="5" y="25" font-size="12" fill="#4682b4" font-family="sans-serif">SVG</text>
+    </pattern>
+
+    <!-- #6: patternContentUnits="objectBoundingBox" -->
+    <pattern id="bbox_content" width="0.5" height="0.5"
+             patternUnits="objectBoundingBox"
+             patternContentUnits="objectBoundingBox">
+      <rect x="0.1" y="0.1" width="0.8" height="0.8"
+            rx="0.2" ry="0.2" fill="none" stroke="#2e8b57" stroke-width="0.05"/>
+      <circle cx="0.5" cy="0.5" r="0.2" fill="#2e8b57"/>
+    </pattern>
+
+    <!-- #7: Combined pattern with gradient -->
+    <pattern id="gradpat" width="40" height="40" patternUnits="userSpaceOnUse">
+      <rect width="40" height="40" fill="url(#grad1)"/>
+      <line x1="0" y1="0" x2="40" y2="40" stroke="#fff" stroke-width="2"/>
+      <line x1="40" y1="0" x2="0" y2="40" stroke="#fff" stroke-width="2"/>
+    </pattern>
+    <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff4500"/>
+      <stop offset="100%" stop-color="#ffd700"/>
+    </linearGradient>
+
+    <!-- #8: Crosshatch with patternTransform scale -->
+    <pattern id="crosshatch" width="10" height="10" patternUnits="userSpaceOnUse"
+             patternTransform="scale(2)">
+      <path d="M0 0L10 10M10 0L0 10" stroke="#8a2be2" stroke-width="1.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold"
+        font-family="sans-serif">SVG Pattern 测试</text>
+
+  <!-- Row 1: Basic patterns on rect -->
+  <text x="10" y="65" font-size="12" fill="#666" font-family="sans-serif">#1 Checker (userSpaceOnUse)</text>
+  <rect x="10" y="75" width="140" height="100" rx="8" fill="url(#checker)" stroke="#333"/>
+
+  <text x="170" y="65" font-size="12" fill="#666" font-family="sans-serif">#2 Stripes + rotate(45)</text>
+  <rect x="170" y="75" width="140" height="100" rx="8" fill="url(#stripes)" stroke="#333"/>
+
+  <text x="330" y="65" font-size="12" fill="#666" font-family="sans-serif">#3 Circles (objBBox)</text>
+  <rect x="330" y="75" width="140" height="100" rx="8" fill="url(#circles)" stroke="#333"/>
+
+  <text x="490" y="65" font-size="12" fill="#666" font-family="sans-serif">#4 Dots (offset 5,5)</text>
+  <rect x="490" y="75" width="140" height="100" rx="8" fill="url(#dots)" stroke="#333"/>
+
+  <text x="650" y="65" font-size="12" fill="#666" font-family="sans-serif">#5 Text pattern</text>
+  <rect x="650" y="75" width="140" height="100" rx="8" fill="url(#textpat)" stroke="#333"/>
+
+  <!-- Row 2: Different shapes with patterns -->
+  <text x="10" y="210" font-size="12" fill="#666" font-family="sans-serif">Circle w/ checker</text>
+  <circle cx="80" cy="280" r="60" fill="url(#checker)" stroke="#333"/>
+
+  <text x="170" y="210" font-size="12" fill="#666" font-family="sans-serif">Ellipse w/ stripes</text>
+  <ellipse cx="240" cy="280" rx="70" ry="50" fill="url(#stripes)" stroke="#333"/>
+
+  <text x="330" y="210" font-size="12" fill="#666" font-family="sans-serif">Polygon w/ dots</text>
+  <polygon points="400,240 440,310 370,310" fill="url(#dots)" stroke="#333"/>
+
+  <text x="490" y="210" font-size="12" fill="#666" font-family="sans-serif">Path w/ circles</text>
+  <path d="M530 240 Q560 300 590 260 Q620 320 650 260"
+        fill="none" stroke="url(#circles)" stroke-width="20" stroke-linecap="round"/>
+
+  <!-- Row 3: Special patterns -->
+  <text x="10" y="370" font-size="12" fill="#666" font-family="sans-serif">#6 objBBox content</text>
+  <rect x="10" y="380" width="180" height="100" rx="8" fill="url(#bbox_content)" stroke="#333"/>
+
+  <text x="210" y="370" font-size="12" fill="#666" font-family="sans-serif">#7 Gradient pattern</text>
+  <rect x="210" y="380" width="180" height="100" rx="8" fill="url(#gradpat)" stroke="#333"/>
+
+  <text x="410" y="370" font-size="12" fill="#666" font-family="sans-serif">#8 Crosshatch scale(2)</text>
+  <rect x="410" y="380" width="180" height="100" rx="8" fill="url(#crosshatch)" stroke="#333"/>
+
+  <text x="610" y="370" font-size="12" fill="#666" font-family="sans-serif">Check on circle</text>
+  <circle cx="690" cy="430" r="50" fill="url(#checker)" stroke="#333"/>
+
+  <!-- Row 4: Same bbox-content pattern on different-size rects -->
+  <text x="10" y="510" font-size="12" fill="#666" font-family="sans-serif">Same pattern, different sizes:</text>
+
+  <rect x="10" y="520" width="100" height="60" fill="url(#bbox_content)" stroke="#333"/>
+  <rect x="130" y="520" width="200" height="60" fill="url(#bbox_content)" stroke="#333"/>
+  <rect x="350" y="520" width="300" height="60" fill="url(#bbox_content)" stroke="#333"/>
+
+  <!-- Row 5: patternTransform scale on same pattern -->
+  <text x="10" y="615" font-size="12" fill="#666" font-family="sans-serif">patternTransform scale(1,2) / stretch</text>
+  <rect x="10" y="625" width="180" height="80" fill="url(#checker)" stroke="#333"/>
+
+  <defs>
+    <pattern id="checker_stretch" width="20" height="20" patternUnits="userSpaceOnUse"
+             patternTransform="scale(1,2)">
+      <rect x="0" y="0" width="10" height="10" fill="#ccc"/>
+      <rect x="10" y="10" width="10" height="10" fill="#ccc"/>
+      <rect x="10" y="0" width="10" height="10" fill="#fff"/>
+      <rect x="0" y="10" width="10" height="10" fill="#fff"/>
+    </pattern>
+  </defs>
+  <rect x="210" y="625" width="180" height="80" fill="url(#checker_stretch)" stroke="#333"/>
+
+  <defs>
+    <pattern id="checker_trans" width="20" height="20" patternUnits="userSpaceOnUse"
+             patternTransform="translate(10,10)">
+      <rect x="0" y="0" width="10" height="10" fill="#ccc"/>
+      <rect x="10" y="10" width="10" height="10" fill="#ccc"/>
+      <rect x="10" y="0" width="10" height="10" fill="#fff"/>
+      <rect x="0" y="10" width="10" height="10" fill="#fff"/>
+    </pattern>
+  </defs>
+  <rect x="410" y="625" width="180" height="80" fill="url(#checker_trans)" stroke="#333"/>
+  <text x="410" y="615" font-size="12" fill="#666" font-family="sans-serif">translate(10,10) offset</text>
+</svg>
