@@ -1663,11 +1663,13 @@ begin
   if (ADefsMap = nil) or (AID = '') then
     Exit;
   for I := 0 to ADefsMap.Count - 1 do
-    if ADefsMap[I] = AID then
+  begin
+    if SameText(ADefsMap[I], AID) then
     begin
       Result := TCnXMLElement(ADefsMap.Objects[I]);
       Exit;
     end;
+  end;
 end;
 
 procedure SVGParsePreserveAspectRatio(const S: string; var IsNone, IsSlice: Boolean;
@@ -3539,6 +3541,8 @@ var
   ArcPts: TList;
   J: Integer;
   CX, CY, CRX, CRY, CW, CH: TCnSVGFloat;
+  HRef, RefID: string;
+  TargetEl: TCnXMLElement;
 begin
   if (not FUseGDIP) or (FGDIPGraphics = nil) then Exit;
   if FCtx.Style.ClipPathID = '' then Exit;
@@ -3565,10 +3569,45 @@ begin
     ClipEl := TCnXMLElement(DefEl.Children[I]);
     Tag := LowerCase(ClipEl.TagName);
 
-    if Tag = 'path' then
+    // <use> 重定向：解析引用，改为处理被引用元素
+    if Tag = 'use' then
     begin
-      D := Trim(ClipEl.GetAttribute('d'));
-      if D = '' then Continue;
+      if ClipEl.HasAttribute('href') then
+        HRef := Trim(ClipEl.GetAttribute('href'))
+      else
+        HRef := Trim(ClipEl.GetAttribute('xlink:href'));
+      if (HRef <> '') and (HRef[1] = '#') then
+      begin
+        RefID := Copy(HRef, 2, Length(HRef) - 1);
+        TargetEl := SVGFindDefNode(FDefsMap, RefID);
+        if TargetEl <> nil then
+        begin
+          ClipEl := TargetEl;
+          Tag := LowerCase(TargetEl.TagName);
+        end
+        else
+        begin
+        end;
+      end;
+    end;
+    // <polygon>/<polyline> 重定向：转换 points→d 后交由 <path> 分支处理
+    if (Tag = 'path') or (Tag = 'polygon') or (Tag = 'polyline') then
+    begin
+      if Tag = 'path' then
+        D := Trim(ClipEl.GetAttribute('d'))
+      else
+      begin
+        D := Trim(ClipEl.GetAttribute('points'));
+        if D <> '' then
+        begin
+          if Tag = 'polygon' then
+            D := 'M ' + D + ' Z'
+          else
+            D := 'M ' + D;
+        end;
+      end;
+      if D = '' then
+        Continue;
 
       FillMode := FillModeWinding;
       if FCtx.Style.FillRule = sfrEvenOdd then
