@@ -5924,12 +5924,13 @@ begin
   Y := SVGAttrFloat(AElement, 'y', 0);
   W := SVGAttrFloat(AElement, 'width', 0);
   H := SVGAttrFloat(AElement, 'height', 0);
-  if (W <= 0) or (H <= 0) then
-    Exit;
 
   // 判断是否为根 <svg> 元素: 构造函数已通过 SVGCalcViewMatrix 处理了 viewBox 变换
   // 此时 FMatrixTop = 1（来自 RenderElement 的 PushMatrix）
+  // 根 <svg> 不需要 width/height 属性即可渲染（viewport 由 ADestRect 决定）
   IsRoot := (FMatrixTop = 1);
+  if (not IsRoot) and ((W <= 0) or (H <= 0)) then
+    Exit;
 
   PushMatrix;
   try
