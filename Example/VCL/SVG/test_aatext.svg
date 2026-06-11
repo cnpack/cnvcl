@@ -3,27 +3,27 @@
   <!-- 背景 -->
   <rect x="0" y="0" width="800" height="600" fill="#1a1a2e"/>
 
-  <!-- 大标�?- 红色 -->
-  <text x="400" y="60" font-family="Arial" font-size="48" fill="#e94560" text-anchor="middle" font-weight="bold">GDI+ 文字抗锯齿测�?/text>
+  <!-- 大标题 - 红色 -->
+  <text x="400" y="60" font-family="Arial" font-size="48" fill="#e94560" text-anchor="middle" font-weight="bold">GDI+ 文字抗锯齿测试</text>
 
   <!-- 中等标题 - 渐变色彩文字 -->
-  <text x="400" y="120" font-family="Arial" font-size="32" fill="#0f3460" text-anchor="middle">深蓝色文�?Dark Blue</text>
+  <text x="400" y="120" font-family="Arial" font-size="32" fill="#0f3460" text-anchor="middle">深蓝色文字 Dark Blue</text>
   <text x="400" y="165" font-family="Arial" font-size="32" fill="#16213e" text-anchor="middle">更深蓝色 Deeper Blue</text>
-  <text x="400" y="210" font-family="Arial" font-size="28" fill="#e94560" text-anchor="middle">鲜红�?Bright Red</text>
+  <text x="400" y="210" font-family="Arial" font-size="28" fill="#e94560" text-anchor="middle">鲜红色 Bright Red</text>
 
   <!-- 三种对齐方式演示 -->
-  <text x="400" y="260" font-family="Arial" font-size="24" fill="#00d2ff" text-anchor="start">左对齐文�?(start)</text>
+  <text x="400" y="260" font-family="Arial" font-size="24" fill="#00d2ff" text-anchor="start">左对齐文字 (start)</text>
   <text x="400" y="295" font-family="Arial" font-size="24" fill="#7b2ff7" text-anchor="middle">居中对齐文字 (middle)</text>
-  <text x="400" y="330" font-family="Arial" font-size="24" fill="#ff6b6b" text-anchor="end">右对齐文�?(end)</text>
+  <text x="400" y="330" font-family="Arial" font-size="24" fill="#ff6b6b" text-anchor="end">右对齐文字 (end)</text>
 
   <!-- 不同字号对比 -->
-  <text x="50" y="380" font-family="Arial" font-size="12" fill="#a8e6cf">12px 小字号文�?Small</text>
+  <text x="50" y="380" font-family="Arial" font-size="12" fill="#a8e6cf">12px 小字号文字 Small</text>
   <text x="50" y="405" font-family="Arial" font-size="16" fill="#dcedc1">16px 中小字号 Medium-Small</text>
   <text x="50" y="435" font-family="Arial" font-size="20" fill="#ffd3b6">20px 中等字号 Medium</text>
-  <text x="50" y="470" font-family="Arial" font-size="28" fill="#ffaaa5">28px 大字�?Large</text>
+  <text x="50" y="470" font-family="Arial" font-size="28" fill="#ffaaa5">28px 大字号 Large</text>
   <text x="50" y="510" font-family="Arial" font-size="36" fill="#ff8b94">36px 超大字号 XL</text>
 
-  <!-- 彩虹色文�?-->
+  <!-- 彩虹色文字 -->
   <text x="450" y="390" font-family="Arial" font-size="22" fill="#ff0000">Red 红色</text>
   <text x="450" y="420" font-family="Arial" font-size="22" fill="#ff8800">Orange 橙色</text>
   <text x="450" y="450" font-family="Arial" font-size="22" fill="#ffff00">Yellow 黄色</text>
@@ -31,7 +31,7 @@
   <text x="450" y="510" font-family="Arial" font-size="22" fill="#0066ff">Blue 蓝色</text>
   <text x="450" y="540" font-family="Arial" font-size="22" fill="#8800ff">Violet 紫色</text>
 
-  <!-- 斜体和粗体测�?-->
+  <!-- 斜体和粗体测试 -->
   <text x="400" y="570" font-family="Arial" font-size="20" fill="#f0e68c" text-anchor="middle" font-style="italic">斜体文字 Italic Style 测试</text>
 
   <!-- 参考线 -->

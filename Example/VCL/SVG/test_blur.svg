@@ -11,15 +11,15 @@
     </filter>
   </defs>
 
-  <!-- 无模糊参�?-->
+  <!-- 无模糊参考 -->
   <rect x="50" y="50" width="150" height="100" rx="10" fill="#4A90D9" stroke="#333" stroke-width="2"/>
-  <text x="125" y="100" text-anchor="middle" fill="#000" font-size="16">无模�?/text>
+  <text x="125" y="100" text-anchor="middle" fill="#000" font-size="16">无模糊</text>
 
-  <!-- 小模�?-->
+  <!-- 小模糊 -->
   <rect x="300" y="50" width="150" height="100" rx="10" fill="#4A90D9" stroke="#333" stroke-width="2" filter="url(#blur-small)"/>
   <text x="375" y="100" text-anchor="middle" fill="#000" font-size="16">blur 3</text>
 
-  <!-- 大模�?-->
+  <!-- 大模糊 -->
   <rect x="550" y="50" width="150" height="100" rx="10" fill="#E74C3C" stroke="#333" stroke-width="2" filter="url(#blur-large)"/>
   <text x="625" y="100" text-anchor="middle" fill="#000" font-size="16">blur 8</text>
 
@@ -27,17 +27,17 @@
   <ellipse cx="200" cy="280" rx="100" ry="60" fill="#2ECC71" stroke="#333" stroke-width="2" filter="url(#blur-xy)"/>
   <text x="200" y="315" text-anchor="middle" fill="#000" font-size="16">blur 2 10</text>
 
-  <!-- �?blur-small -->
+  <!-- 圆 blur-small -->
   <circle cx="500" cy="280" r="80" fill="#F39C12" stroke="#333" stroke-width="2" filter="url(#blur-large)"/>
-  <text x="500" y="315" text-anchor="middle" fill="#000" font-size="16">�?blur 8</text>
+  <text x="500" y="315" text-anchor="middle" fill="#000" font-size="16">圆 blur 8</text>
 
-  <!-- 文本无模糊参�?-->
-  <text x="80" y="420" fill="#000" font-size="28" font-family="sans-serif">无模糊文�?/text>
+  <!-- 文本无模糊参考 -->
+  <text x="80" y="420" fill="#000" font-size="28" font-family="sans-serif">无模糊文本</text>
 
-  <!-- 文本带模�?-->
+  <!-- 文本带模糊 -->
   <text x="80" y="480" fill="#000" font-size="28" font-family="sans-serif" font-weight="bold" filter="url(#blur-small)">模糊文本 blur 3</text>
 
-  <!-- 路径带模�?-->
+  <!-- 路径带模糊 -->
   <path d="M 550 400 L 650 450 L 600 520 L 500 500 Z" fill="#9B59B6" stroke="#333" stroke-width="2" filter="url(#blur-small)"/>
   <text x="570" y="510" text-anchor="middle" fill="#000" font-size="14">路径 blur</text>
 </svg>

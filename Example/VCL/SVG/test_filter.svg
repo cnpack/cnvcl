@@ -95,7 +95,7 @@
   <rect width="900" height="700" fill="#f0f0f0"/>
   <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#333">SVG Filter 测试</text>
 
-  <!-- �?�? blur, offset, dropshadow -->
+  <!-- 第1行: blur, offset, dropshadow -->
   <rect x="30" y="60" width="150" height="90" rx="12" fill="#4a90d9" filter="url(#blur)"/>
   <text x="105" y="170" text-anchor="middle" font-size="12" fill="#666">1. feGaussianBlur</text>
 
@@ -107,9 +107,9 @@
 
   <!-- feFlood 示例 - 在矩形上应用 -->
   <rect x="610" y="60" width="150" height="90" rx="12" fill="#d0021b" filter="url(#flood)"/>
-  <text x="685" y="170" text-anchor="middle" font-size="12" fill="#666">4. feFlood (覆盖�?</text>
+  <text x="685" y="170" text-anchor="middle" font-size="12" fill="#666">4. feFlood (覆盖色)</text>
 
-  <!-- �?�? merge, composite over, composite in -->
+  <!-- 第2行: merge, composite over, composite in -->
   <rect x="30" y="220" width="150" height="90" rx="12" fill="#50e3c2" filter="url(#merge)"/>
   <text x="105" y="330" text-anchor="middle" font-size="12" fill="#666">5. feMerge (shadow)</text>
 
@@ -122,7 +122,7 @@
   <rect x="610" y="220" width="150" height="90" rx="12" fill="#9013fe" filter="url(#composite_arith)"/>
   <text x="685" y="330" text-anchor="middle" font-size="12" fill="#666">8. feComposite (arith)</text>
 
-  <!-- �?�? colorMatrix 系列 -->
+  <!-- 第3行: colorMatrix 系列 -->
   <rect x="30" y="380" width="150" height="90" rx="12" fill="#f8e71c" filter="url(#grayscale)"/>
   <text x="105" y="490" text-anchor="middle" font-size="12" fill="#666">9. feColorMatrix (灰度)</text>
 
@@ -132,12 +132,12 @@
   <rect x="420" y="380" width="150" height="90" rx="12" fill="#7ed321" filter="url(#huerotate)"/>
   <text x="495" y="490" text-anchor="middle" font-size="12" fill="#666">11. feColorMatrix (色相180°)</text>
 
-  <!-- luminanceToAlpha: 原始在下�?-->
+  <!-- luminanceToAlpha: 原始在下面 -->
   <rect x="610" y="380" width="150" height="90" rx="12" fill="#f5a623"/>
   <rect x="610" y="380" width="150" height="90" rx="12" fill="#000" filter="url(#luma2alpha)"/>
   <text x="685" y="490" text-anchor="middle" font-size="12" fill="#666">12. lumaToAlpha</text>
 
-  <!-- �?�? 复合滤镜 -->
+  <!-- 第4行: 复合滤镜 -->
   <rect x="30" y="540" width="150" height="90" rx="12" fill="#bd10e0" filter="url(#shadow_tinted)"/>
   <text x="105" y="650" text-anchor="middle" font-size="12" fill="#666">13. shadow + tint</text>
 
@@ -148,9 +148,9 @@
   <text x="495" y="650" text-anchor="middle" font-size="12" fill="#666">15. dropShadow 默认</text>
 
   <!-- 文字说明 -->
-  <text x="685" y="565" font-size="12" fill="#333" font-weight="bold">图例�?/text>
+  <text x="685" y="565" font-size="12" fill="#333" font-weight="bold">图例：</text>
   <rect x="610" y="575" width="12" height="12" rx="2" fill="#4a90d9"/>
-  <text x="628" y="586" font-size="11" fill="#666">有底�?= 原始形状</text>
+  <text x="628" y="586" font-size="11" fill="#666">有底色 = 原始形状</text>
   <rect x="610" y="595" width="12" height="12" rx="2" fill="none" stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>
-  <text x="628" y="606" font-size="11" fill="#666">虚线�?= filter 区域</text>
+  <text x="628" y="606" font-size="11" fill="#666">虚线框 = filter 区域</text>
 </svg>

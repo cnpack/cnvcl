@@ -126,6 +126,7 @@ type
     FUseSingleLF: Boolean;
     FLoadFormat: TCnWideListFormat;
     FWriteBOM: Boolean;
+    FHasBOM: Boolean;
     function GetName(Index: Integer): WideString;
     function GetValue(const Name: WideString): WideString;
     procedure SetValue(const Name, Value: WideString);
@@ -170,6 +171,8 @@ type
     {* LoadFromStream 时识别出的格式}
     property WriteBOM: Boolean read FWriteBOM write FWriteBOM;
     {* 是否写 BOM 头}
+    property HasBOM: Boolean read FHasBOM;
+    {* 上一次加载是否有 BOM 头}
   end;
 
   TCnWideCharDisplayWideLengthCalculator = function(AWChar: WideChar): Boolean;
@@ -914,6 +917,7 @@ begin
 {$ENDIF}
       SetTextStr(S);
       FLoadFormat := wlfUtf8;
+      FHasBOM := True;
       Exit;
     end;
   end;
@@ -928,6 +932,7 @@ begin
         Move(Bytes[2], S[1], Size);
       SetTextStr(S);
       FLoadFormat := wlfUnicode;
+      FHasBOM := True;
       Exit;
     end;
     if (Bytes[0] = $FE) and (Bytes[1] = $FF) then
@@ -947,6 +952,7 @@ begin
       end;
       SetTextStr(S);
       FLoadFormat := wlfUnicode;
+      FHasBOM := True;
       Exit;
     end;
   end;
@@ -970,6 +976,7 @@ begin
     {$ENDIF}
 {$ENDIF}
         SetTextStr(S);
+        FHasBOM := False;
         if Encoding = cfeUtf8 then
           FLoadFormat := wlfUtf8
         else
@@ -981,6 +988,7 @@ begin
         if Size > 0 then
           Move(Bytes[0], S[1], Size);
         SetTextStr(S);
+        FHasBOM := False;
         FLoadFormat := wlfUnicode;
       end;
     cfeUtf16BE:
@@ -998,6 +1006,7 @@ begin
           end;
         end;
         SetTextStr(S);
+        FHasBOM := False;
         FLoadFormat := wlfUnicode;
       end;
     cfeAnsi:
@@ -1005,6 +1014,7 @@ begin
         SetLength(SA, Size);
         Move(Bytes[0], SA[1], Size);
         SetTextStr({$IFDEF UNICODE}string{$ENDIF}(SA));
+        FHasBOM := False;
         FLoadFormat := wlfAnsi;
       end;
   end;
