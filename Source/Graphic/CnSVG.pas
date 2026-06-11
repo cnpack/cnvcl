@@ -3413,9 +3413,10 @@ begin
       UpdateGDIPWorldTransform;
 
       ContentUnits := LowerCase(DefEl.GetAttribute('patternContentUnits'));
-      if ContentUnits = 'objectboundingbox' then
+      if (ContentUnits = 'objectboundingbox') and (FGradBBoxW > 0) and (FGradBBoxH > 0) then
       begin
-        // CTM already maps objectBoundingBox coords correctly
+        SVGMatrixTranslate(FCtx.CTM, FGradBBoxX, FGradBBoxY);
+        SVGMatrixScale(FCtx.CTM, FGradBBoxW, FGradBBoxH);
           UpdateGDIPWorldTransform;
       end;
 
@@ -3666,9 +3667,10 @@ begin
       UpdateGDIPWorldTransform;
 
       ContentUnits := LowerCase(DefEl.GetAttribute('patternContentUnits'));
-      if ContentUnits = 'objectboundingbox' then
+      if (ContentUnits = 'objectboundingbox') and (FGradBBoxW > 0) and (FGradBBoxH > 0) then
       begin
-        // CTM already maps objectBoundingBox coords correctly
+        SVGMatrixTranslate(FCtx.CTM, FGradBBoxX, FGradBBoxY);
+        SVGMatrixScale(FCtx.CTM, FGradBBoxW, FGradBBoxH);
           UpdateGDIPWorldTransform;
       end;
 
