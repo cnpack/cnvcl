@@ -39,7 +39,9 @@ unit CnWideStrings;
 * 开发平台：WinXP SP3 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.08.06 V1.3
+* 修改记录：2026.06.11 V1.4
+*               加载时优化对无 BOM 文件内容的编码检测
+*           2025.08.06 V1.3
 *               Ansi 转换为 Utf8 支持 FPC
 *           2024.08.01 V1.3
 *               允许外界指定宽字符的显示宽度计算回调，以满足部分自定义绘制情形
@@ -558,7 +560,7 @@ function WideCompareText(const S1, S2: WideString): Integer;
 // =============================================================================
 
 type
-  TCnFileEncoding = (cfeUnknown, cfeUtf8, cfeUtf8Bom, cfeUtf16LE, cfeUtf16BE, cfeAnsi);
+  TCnFileEncoding = (cfeUnknown, cfeUtf8, cfeUtf8Bom, cfeUtf16LE, cfeUtf16BE, cfeAnsi, cfeAscii);
   {* 文件编码类型。
 
      cfeUnknown                           - 未知编码
@@ -567,6 +569,7 @@ type
      cfeUtf16LE                           - UTF-16 Little Endian
      cfeUtf16BE                           - UTF-16 Big Endian
      cfeAnsi                              - 系统代码页编码（非 Unicode）
+     cfeAscii                             - 纯 ASCII（7 位）
   }
 
 function CnDetectFileEncoding(const Bytes: TBytes): TCnFileEncoding;
@@ -590,6 +593,17 @@ function CnIsValidUtf8(const Bytes: TBytes): Boolean;
      const Bytes: TBytes                  - 待检测的字节数组
 
    返回值：Boolean                        - True 表示合法 UTF-8 序列
+}
+
+function CnIsValidUtf16(const Bytes: TBytes; IsBigEndian: Boolean): Boolean;
+{* 检查字节数组是否为合法的 UTF-16 序列。验证代理对（Surrogate Pair）合法性。
+   用于无 BOM 时的 UTF-16 辅助检测。
+
+   参数
+     const Bytes: TBytes                  - 待检查的字节数组
+     IsBigEndian: Boolean                 - True 为大端序（UTF-16 BE），False 为小端序（UTF-16 LE）
+
+   返回值：Boolean                        - True 表示合法 UTF-16 序列
 }
 
 function CnStripBomBytes(const Bytes: TBytes): TBytes;
@@ -863,17 +877,30 @@ procedure TCnWideStringList.LoadFromStream(Stream: TStream);
 var
   Size, Len: Integer;
   S: WideString;
-  HeaderStr, SA: AnsiString;
+  SA: AnsiString;
+  Bytes: TBytes;
+  Encoding: TCnFileEncoding;
+  PB: PByteArray;
+  I: Integer;
+  B: Byte;
 begin
   Size := Stream.Size - Stream.Position;
+  if Size = 0 then
+  begin
+    Clear;
+    Exit;
+  end;
+
+  SetLength(Bytes, Size);
+  Stream.Read(Bytes[0], Size);
+
+  // BOM detection
   if Size >= 3 then
   begin
-    SetLength(HeaderStr, 3);
-    Stream.Read(Pointer(HeaderStr)^, 3);
-    if HeaderStr = #$EF#$BB#$BF then // UTF-8 BOM
+    if (Bytes[0] = $EF) and (Bytes[1] = $BB) and (Bytes[2] = $BF) then
     begin
       SetLength(SA, Size - 3);
-      Stream.Read(Pointer(SA)^, Size - 3);
+      Move(Bytes[3], SA[1], Size - 3);
 {$IFDEF MSWINDOWS}
       Len := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, nil, 0);
       SetLength(S, Len);
@@ -886,33 +913,101 @@ begin
   {$ENDIF}
 {$ENDIF}
       SetTextStr(S);
-
       FLoadFormat := wlfUtf8;
       Exit;
     end;
-    Stream.Position := Stream.Position - 3;  
   end;
 
   if Size >= 2 then
   begin
-    SetLength(HeaderStr, 2);
-    Stream.Read(Pointer(HeaderStr)^, 2);
-    if HeaderStr = #$FF#$FE then // UTF-16 BOM
+    if (Bytes[0] = $FF) and (Bytes[1] = $FE) then
     begin
-      SetLength(S, (Size - 2) div SizeOf(WideChar));
-      Stream.Read(Pointer(S)^, (Size - 2) div SizeOf(WideChar) * SizeOf(WideChar));
+      Dec(Size, 2);
+      SetLength(S, Size div 2);
+      if Size > 0 then
+        Move(Bytes[2], S[1], Size);
       SetTextStr(S);
-
       FLoadFormat := wlfUnicode;
       Exit;
     end;
-    Stream.Position := Stream.Position - 2;  
+    if (Bytes[0] = $FE) and (Bytes[1] = $FF) then
+    begin
+      Dec(Size, 2);
+      SetLength(S, Size div 2);
+      if Size > 0 then
+      begin
+        Move(Bytes[2], S[1], Size);
+        PB := PByteArray(PWideChar(S));
+        for I := 0 to (Size div 2) - 1 do
+        begin
+          B := PB^[I * 2];
+          PB^[I * 2] := PB^[I * 2 + 1];
+          PB^[I * 2 + 1] := B;
+        end;
+      end;
+      SetTextStr(S);
+      FLoadFormat := wlfUnicode;
+      Exit;
+    end;
   end;
-      
-  SetString(SA, nil, Size);
-  Stream.Read(Pointer(SA)^, Size);
-  SetTextStr({$IFDEF UNICODE}string{$ENDIF}(SA));
-  FLoadFormat := wlfAnsi;
+
+  // No BOM, use encoding detection
+  Encoding := CnDetectFileEncoding(Bytes);
+  case Encoding of
+    cfeAscii, cfeUtf8:
+      begin
+        SetLength(SA, Size);
+        Move(Bytes[0], SA[1], Size);
+{$IFDEF MSWINDOWS}
+        Len := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, nil, 0);
+        SetLength(S, Len);
+        MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, PWideChar(S), Len);
+{$ELSE}
+    {$IFDEF FPC}
+        S := CnUtf8DecodeToWideString(SA);
+    {$ELSE}
+        S := UTF8ToWideString(SA);
+    {$ENDIF}
+{$ENDIF}
+        SetTextStr(S);
+        if Encoding = cfeUtf8 then
+          FLoadFormat := wlfUtf8
+        else
+          FLoadFormat := wlfAnsi;
+      end;
+    cfeUtf16LE:
+      begin
+        SetLength(S, Size div 2);
+        if Size > 0 then
+          Move(Bytes[0], S[1], Size);
+        SetTextStr(S);
+        FLoadFormat := wlfUnicode;
+      end;
+    cfeUtf16BE:
+      begin
+        SetLength(S, Size div 2);
+        if Size > 0 then
+        begin
+          Move(Bytes[0], S[1], Size);
+          PB := PByteArray(PWideChar(S));
+          for I := 0 to (Size div 2) - 1 do
+          begin
+            B := PB^[I * 2];
+            PB^[I * 2] := PB^[I * 2 + 1];
+            PB^[I * 2 + 1] := B;
+          end;
+        end;
+        SetTextStr(S);
+        FLoadFormat := wlfUnicode;
+      end;
+    cfeAnsi:
+      begin
+        SetLength(SA, Size);
+        Move(Bytes[0], SA[1], Size);
+        SetTextStr({$IFDEF UNICODE}string{$ENDIF}(SA));
+        FLoadFormat := wlfAnsi;
+      end;
+  end;
 end;
 
 procedure TCnWideStringList.Put(Index: Integer; const S: WideString);
@@ -2068,12 +2163,17 @@ end;
 // ===================== TCnFileEncoding 相关实现 ==============================
 
 function CnDetectFileEncoding(const Bytes: TBytes): TCnFileEncoding;
+var
+  I, Len, MaxScan, TotBytes: Integer;
+  NullEven, NullOdd, TotalEven, TotalOdd: Integer;
+  Big: Boolean;
 begin
   Result := cfeUnknown;
-  if Length(Bytes) = 0 then Exit;
+  Len := Length(Bytes);
+  if Len = 0 then Exit;
 
   // 检查 BOM
-  if Length(Bytes) >= 3 then
+  if Len >= 3 then
   begin
     if (Bytes[0] = $EF) and (Bytes[1] = $BB) and (Bytes[2] = $BF) then
     begin
@@ -2082,7 +2182,7 @@ begin
     end;
   end;
 
-  if Length(Bytes) >= 2 then
+  if Len >= 2 then
   begin
     if (Bytes[0] = $FF) and (Bytes[1] = $FE) then
     begin
@@ -2096,7 +2196,76 @@ begin
     end;
   end;
 
-  // 无 BOM，启发式检测 UTF-8
+  // Step 2: Pure ASCII check
+  Big := False;
+  for I := 0 to Len - 1 do
+  begin
+    if Bytes[I] >= $80 then
+    begin
+      Big := True;  // mark non-ASCII found
+      Break;
+    end;
+  end;
+  if not Big then
+  begin
+    Result := cfeAscii;
+    Exit;
+  end;
+
+  // Step 3: UTF-16 detection without BOM via null-byte pattern
+  if Len >= 4 then
+  begin
+    NullEven := 0;
+    NullOdd := 0;
+    TotalEven := 0;
+    TotalOdd := 0;
+    if Len > 4096 then
+      MaxScan := 4096
+    else
+      MaxScan := Len;
+
+    for I := 0 to MaxScan - 1 do
+    begin
+      if I and 1 = 0 then
+        Inc(TotalEven)
+      else
+        Inc(TotalOdd);
+
+      if Bytes[I] = 0 then
+      begin
+        if I and 1 = 0 then
+          Inc(NullEven)
+        else
+          Inc(NullOdd);
+      end;
+    end;
+
+    TotBytes := TotalEven + TotalOdd;
+    // At least 5% null bytes indicates potential UTF-16
+    if (NullEven + NullOdd) > (TotBytes div 20) then
+    begin
+      // UTF-16BE: nulls overwhelmingly at even positions
+      if (NullEven > TotalEven * 9 div 10) and (NullOdd < TotalOdd div 10) then
+      begin
+        if CnIsValidUtf16(Bytes, True) then
+        begin
+          Result := cfeUtf16BE;
+          Exit;
+        end;
+      end;
+      // UTF-16LE: nulls overwhelmingly at odd positions
+      if (NullOdd > TotalOdd * 9 div 10) and (NullEven < TotalEven div 10) then
+      begin
+        if CnIsValidUtf16(Bytes, False) then
+        begin
+          Result := cfeUtf16LE;
+          Exit;
+        end;
+      end;
+    end;
+  end;
+
+  // Step 4: UTF-8 structural validation
   if CnIsValidUtf8(Bytes) then
     Result := cfeUtf8
   else
@@ -2111,12 +2280,17 @@ begin
   Result := True;
   Len := Length(Bytes);
   I := 0;
+  Remain := 0;
+
   while I < Len do
   begin
     B := Bytes[I];
     if B and $80 = 0 then
+    begin
       // 单字节: 0xxxxxxx
-      Inc(I)
+      Inc(I);
+      Remain := 0;
+    end
     else if B and $E0 = $C0 then
     begin
       // 双字节: 110xxxxx 10xxxxxx
@@ -2161,6 +2335,50 @@ begin
       Exit;
     end;
   end;
+end;
+
+function CnIsValidUtf16(const Bytes: TBytes; IsBigEndian: Boolean): Boolean;
+var
+  I, Len: Integer;
+  W: Word;
+begin
+  Result := False;
+  Len := Length(Bytes);
+  if (Len < 2) or (Len and 1 <> 0) then
+    Exit;
+
+  I := 0;
+  while I < Len do
+  begin
+    if IsBigEndian then
+      W := (Bytes[I] shl 8) or Bytes[I + 1]
+    else
+      W := Bytes[I] or (Bytes[I + 1] shl 8);
+
+    // Orphaned low surrogate (0xDC00-0xDFFF) is invalid
+    if (W >= $DC00) and (W <= $DFFF) then
+      Exit;
+
+    // High surrogate (0xD800-0xDBFF) must be followed by low surrogate
+    if (W >= $D800) and (W <= $DBFF) then
+    begin
+      Inc(I, 2);
+      if I >= Len then
+        Exit;  // truncated surrogate pair
+
+      if IsBigEndian then
+        W := (Bytes[I] shl 8) or Bytes[I + 1]
+      else
+        W := Bytes[I] or (Bytes[I + 1] shl 8);
+
+      if (W < $DC00) or (W > $DFFF) then
+        Exit;  // high surrogate not followed by low surrogate
+    end;
+
+    Inc(I, 2);
+  end;
+
+  Result := True;
 end;
 
 function CnStripBomBytes(const Bytes: TBytes): TBytes;
