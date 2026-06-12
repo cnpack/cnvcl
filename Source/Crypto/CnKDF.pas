@@ -56,8 +56,8 @@ type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
   {* CnGetDeriveKey 中使用的杂凑方法}
 
-  TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1);
-  {* PBKDF1 规定的三种杂凑方法，其中 MD2 我们不支持}
+  TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1, cpdfSha256);
+  {* PBKDF1 规定的几种杂凑方法，其中 MD2 我们不支持}
 
   TCnPBKDF2KeyHash = (cpdfSha1Hmac, cpdfSha256Hmac);
   {* PBKDF2 规定的两种杂凑方法}
@@ -376,11 +376,12 @@ begin
 end;
 
 function CnPBKDF1Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
-  KeyHash: TCnPBKDF1KeyHash = cpdfMd5): TBytes;
+  KeyHash: TCnPBKDF1KeyHash): TBytes;
 var
   I: Integer;
   Md5Dig, TM: TCnMD5Digest;
   Sha1Dig, TS: TCnSHA1Digest;
+  Sha256Dig, TS256: TCnSHA256Digest;
 begin
   Result := nil;
   if (Password = nil) or (Count <= 0) or (DerivedKeyByteLength <= 0) then
@@ -423,13 +424,31 @@ begin
 
         Move(Sha1Dig[0], Result[0], DerivedKeyByteLength);
       end;
+    cpdfSha256:
+      begin
+        if DerivedKeyByteLength > SizeOf(TCnSHA256Digest) then
+          raise ECnKDFException.Create(SCnErrorKDFKeyTooLong);
+
+        SetLength(Result, DerivedKeyByteLength);
+        Sha256Dig := SHA256Bytes(ConcatBytes(Password, Salt));  // Got T1
+        if Count > 1 then
+        begin
+          for I := 2 to Count do
+          begin
+            TS256 := Sha256Dig;
+            Sha256Dig := SHA256Buffer(TS256[0], SizeOf(TCnSHA256Digest)); // Got T_c
+          end;
+        end;
+
+        Move(Sha256Dig[0], Result[0], DerivedKeyByteLength);
+      end;
     else
       raise ECnKDFException.Create(SCnErrorKDFHashNOTSupport);
   end;
 end;
 
 function CnPBKDF2Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
-  KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): TBytes;
+  KeyHash: TCnPBKDF2KeyHash): TBytes;
 var
   HLen, D, I, J, K: Integer;
   Sha1Dig1, Sha1Dig, T1: TCnSHA1Digest;
