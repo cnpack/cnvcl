@@ -971,7 +971,7 @@ begin
 
   V^[A] := V^[A] + (M[Sigma[I][E]] xor U256[Sigma[I][E + 1]]) + V^[B];
   V^[D] := ROTRight256(V^[D] xor V^[A], 16);
-  V^[C] := V^[C] + V[D];
+  V^[C] := V^[C] + V^[D];
   V^[B] := ROTRight256(V^[B] xor V^[C], 12);
   V^[A] := V^[A] + (M[Sigma[I][E + 1]] xor U256[Sigma[I][E]]) + V^[B];
   V^[D] := ROTRight256(V^[D] xor V^[A], 8);
@@ -989,7 +989,7 @@ begin
 
   V^[A] := V^[A] + (M[Sigma[I][E]] xor U512[Sigma[I][E + 1]]) + V^[B];
   V^[D] := ROTRight512(V^[D] xor V^[A], 32);
-  V^[C] := V^[C] + V[D];
+  V^[C] := V^[C] + V^[D];
   V^[B] := ROTRight512(V^[B] xor V^[C], 25);
   V^[A] := V^[A] + (M[Sigma[I][E + 1]] xor U512[Sigma[I][E]]) + V^[B];
   V^[D] := ROTRight512(V^[D] xor V^[A], 16);

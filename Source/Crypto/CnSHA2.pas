@@ -2795,86 +2795,38 @@ end;
 
 // 比较两个 SHA224 杂凑值是否相等
 function SHA224Match(const D1, D2: TCnSHA224Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 28) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA224Digest));
 end;
 
 // 比较两个 SHA256 杂凑值是否相等
 function SHA256Match(const D1, D2: TCnSHA256Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 32) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA256Digest));
 end;
 
 // 比较两个 SHA384 杂凑值是否相等
 function SHA384Match(const D1, D2: TCnSHA384Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 48) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA384Digest));
 end;
 
 // 比较两个 SHA512 杂凑值是否相等
 function SHA512Match(const D1, D2: TCnSHA512Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 64) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA512Digest));
 end;
 
 // 比较两个 SHA512_224 杂凑值是否相等
 function SHA512_224Match(const D1, D2: TCnSHA512_224Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 28) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA512_224Digest));
 end;
 
 // 比较两个 SHA512_256 杂凑值是否相等
 function SHA512_256Match(const D1, D2: TCnSHA512_256Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 32) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA512_256Digest));
 end;
 
 // SHA224 杂凑值转 string
