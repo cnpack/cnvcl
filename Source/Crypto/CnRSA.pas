@@ -1342,7 +1342,7 @@ end;
 function Int64RSACrypt(Data: TUInt64; Product: TUInt64; Exponent: TUInt64;
   out Res: TUInt64): Boolean;
 begin
-  Res := MontgomeryPowerMod(Data, Exponent, Product);
+  Res := PowerMod(Data, Exponent, Product);
   Result := True;
 end;
 
@@ -1371,10 +1371,6 @@ begin
   Succ := False;
   repeat
     PrimeKey1 := CnGenerateUInt32Prime(HighBitSet);
-
-    N := Trunc(Random * 100); // 以调整 CnGenerateUInt32Prime 内部的随机数发生器
-    Sleep(N);
-
     PrimeKey2 := CnGenerateUInt32Prime(HighBitSet);
 
     if PrimeKey1 = PrimeKey2 then // 俩素数不能相等

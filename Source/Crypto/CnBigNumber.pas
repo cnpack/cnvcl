@@ -5691,7 +5691,7 @@ var
   L, D: TCnBigNumberElement;
 begin
   if W = 0 then
-    raise EDivByZero.Create(SDivByZero);;
+    raise EDivByZero.Create(SDivByZero);
 
   Result := 0;
   if Num.FTop = 0 then

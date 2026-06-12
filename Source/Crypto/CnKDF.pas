@@ -774,7 +774,9 @@ begin
       chkSha3_256:  Move(Sha3256T[0], T[0], HashLen);
       chkSm3:       Move(Sm3T[0], T[0], HashLen);
     end;
-    Move(Info^, T[HashLen], InfoByteLen);
+
+    if InfoByteLen > 0 then
+      Move(Info^, T[HashLen], InfoByteLen);
     T[HashLen + InfoByteLen] := I + 1;
 
     // º∆À„‘”¥’ T2 ∏Èªÿ T1

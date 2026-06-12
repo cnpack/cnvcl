@@ -3181,8 +3181,8 @@ var
 begin
   // 计算 (Y^2 - X^3 - A*X - B) mod p 是否等于 0，应用分配律
   // 也就是计算(Y^2 mod p - X^3 mod p - A*X mod p - B mod p) mod p
-  Y2 := MontgomeryPowerMod(P.Y, 2, FFiniteFieldSize);
-  X3 := MontgomeryPowerMod(P.X, 3, FFiniteFieldSize);
+  Y2 := PowerMod(P.Y, 2, FFiniteFieldSize);
+  X3 := PowerMod(P.X, 3, FFiniteFieldSize);
   AX := Int64MultipleMod(FCoefficientA, P.X, FFiniteFieldSize);
   B := FCoefficientB mod FFiniteFieldSize;
 
@@ -3444,7 +3444,7 @@ begin
   // 解方程求 Y： (y^2 - (Plain^3 + A * Plain + B)) mod p = 0
   // 注意 Plain 如果太大，计算过程中会溢出，不好处理，只能用分配律。
   // (Y^2 mod p - Plain ^ 3 mod p - A * Plain mod p - B mod p) mod p = 0;
-  X3 := MontgomeryPowerMod(Plain, 3, FFiniteFieldSize);
+  X3 := PowerMod(Plain, 3, FFiniteFieldSize);
   AX := Int64MultipleMod(FCoefficientA, Plain, FFiniteFieldSize);
   B := FCoefficientB mod FFiniteFieldSize;
 
@@ -3464,7 +3464,7 @@ begin
   case FSizePrimeType of
   pt4U3:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
     begin
-      Y := MontgomeryPowerMod(G, FSizeUFactor + 1, FFiniteFieldSize);
+      Y := PowerMod(G, FSizeUFactor + 1, FFiniteFieldSize);
       Z := Int64MultipleMod(Y, Y, FFiniteFieldSize);
       if Z = G then
       begin
@@ -3475,10 +3475,10 @@ begin
     end;
   pt8U5:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
     begin
-      Z := MontgomeryPowerMod(G, 2 * FSizeUFactor + 1, FFiniteFieldSize);
+      Z := PowerMod(G, 2 * FSizeUFactor + 1, FFiniteFieldSize);
       if Z = 1 then
       begin
-        Y := MontgomeryPowerMod(G, FSizeUFactor + 1, FFiniteFieldSize);
+        Y := PowerMod(G, FSizeUFactor + 1, FFiniteFieldSize);
         OutPoint.X := Plain;
         OutPoint.Y := Y;
         Result := True;
@@ -3490,8 +3490,8 @@ begin
         begin
           // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
           Y := (Int64MultipleMod(G, 2, FFiniteFieldSize) *
-            MontgomeryPowerMod(4, FSizeUFactor, FFiniteFieldSize) *
-            MontgomeryPowerMod(G, FSizeUFactor, FFiniteFieldSize)) mod FFiniteFieldSize;
+            PowerMod(4, FSizeUFactor, FFiniteFieldSize) *
+            PowerMod(G, FSizeUFactor, FFiniteFieldSize)) mod FFiniteFieldSize;
           OutPoint.X := Plain;
           OutPoint.Y := Y;
           Result := True;
@@ -3689,9 +3689,9 @@ begin
   end;
 
   // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
-  C := MontgomeryPowerMod(Z, Q, P);
-  R := MontgomeryPowerMod(X, (Q + 1) div 2, P);
-  T := MontgomeryPowerMod(X, Q, P);
+  C := PowerMod(Z, Q, P);
+  R := PowerMod(X, (Q + 1) div 2, P);
+  T := PowerMod(X, Q, P);
   M := S;
 
   while True do
@@ -3701,11 +3701,11 @@ begin
 
     for I := 1 to M - 1 do
     begin
-      if MontgomeryPowerMod(T, 1 shl I, P) = 1 then
+      if PowerMod(T, 1 shl I, P) = 1 then
         Break;
     end;
 
-    B := MontgomeryPowerMod(C, 1 shl (M - I - 1), P);
+    B := PowerMod(C, 1 shl (M - I - 1), P);
     M := I; // M 每回都会减小，算法收敛
 
     R := Int64MultipleMod(R, B, P);

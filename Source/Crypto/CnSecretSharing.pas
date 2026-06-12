@@ -688,7 +688,7 @@ begin
 
     for I := 2 to MaxInt do
     begin
-      if MontgomeryPowerMod(I, Q, Prime) = 1 then
+      if PowerMod(I, Q, Prime) = 1 then
       begin
         Generator := I;
         Result := True;
@@ -747,7 +747,7 @@ begin
     // 生成系数的验证值
     OutCommitments.Clear;
     for I := 1 to Threshold do
-      OutCommitments.Add(MontgomeryPowerMod(Generator, Poly[I - 1], Prime));
+      OutCommitments.Add(PowerMod(Generator, Poly[I - 1], Prime));
 
     Result := True;
     _CnSetLastError(ECN_SECRET_OK);
@@ -763,7 +763,7 @@ var
   L, R, T: Int64;
 begin
   // 验证某分片是否正确，先计算 Generator^InShare mod Prime
-  L := MontgomeryPowerMod(Generator, InShare, Prime);
+  L := PowerMod(Generator, InShare, Prime);
 
   // 再计算多项的积，每项序数 I，是 Commitments[I]^(InOrder^I) mod Prime
   R := 1;

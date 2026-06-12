@@ -422,9 +422,9 @@ begin
   begin
     // MontgomeryPowerMod 会把负的 Int64 作为正的无符号 UInt64，但这里各系数都为正，可以使用
     if IsReverse then
-      GN := MontgomeryPowerMod(CN_G_INV, (CN_P - 1) div (M shl 1), CN_P)
+      GN := PowerMod(CN_G_INV, (CN_P - 1) div (M shl 1), CN_P)
     else
-      GN := MontgomeryPowerMod(CN_G, (CN_P - 1) div (M shl 1) , CN_P);
+      GN := PowerMod(CN_G, (CN_P - 1) div (M shl 1) , CN_P);
 
     J := 0;
     R := M shl 1;
