@@ -136,7 +136,7 @@ var
 implementation
 
 uses
-  CnPrime, CnPolynomial, CnContainers;
+  CnPrime, CnMath, CnPolynomial, CnContainers;
 
 {$R *.lfm}
 

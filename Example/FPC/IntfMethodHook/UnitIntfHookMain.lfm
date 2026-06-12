@@ -4,7 +4,7 @@ object IntfHookForm: TIntfHookForm
   Top = 120
   Width = 724
   BorderStyle = bsDialog
-  Caption = 'CnIntfHook Example - Interface Method Hook Demo'
+  Caption = 'CnIntfMethodHook Example - Interface Method Hook Demo'
   ClientHeight = 522
   ClientWidth = 724
   Color = clBtnFace

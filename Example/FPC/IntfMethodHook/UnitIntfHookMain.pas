@@ -30,7 +30,7 @@ interface
 
 uses
   LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnMethodHook, CnIntfHook, ComCtrls, Types, Windows;
+  StdCtrls, CnMethodHook, CnIntfMethodHook, ComCtrls, Types, Windows;
 
 type
 
@@ -236,7 +236,7 @@ type
   TCalcAddFunc = function(Self: TObject; A, B: Integer): Integer; stdcall;
 
 var
-  HookAdd: TCnIntfHook = nil;
+  HookAdd: TCnIntfMethodHook = nil;
 
 function MyAdd(Self: TObject; A, B: Integer): Integer; stdcall;
 var
@@ -265,7 +265,7 @@ type
   TCalcGetNameFunc = function(Self: TObject): string;
 
 var
-  HookGetName: TCnIntfHook = nil;
+  HookGetName: TCnIntfMethodHook = nil;
 
 function MyGetName(Self: TObject): string;
 begin
@@ -279,7 +279,7 @@ type
   TCalcSetValueProc = procedure(Self: TObject; const AValue: Integer);
 
 var
-  HookSetValue: TCnIntfHook = nil;
+  HookSetValue: TCnIntfMethodHook = nil;
 
 procedure MySetValue(Self: TObject; const AValue: Integer);
 begin
@@ -376,11 +376,11 @@ begin
   end;
 
   // 挂钩 Add（slot 3，stdcall）
-  HookAdd := TCnIntfHook.Create(GCalc, 3, @MyAdd);
+  HookAdd := TCnIntfMethodHook.Create(GCalc, 3, @MyAdd);
   // 挂钩 GetName（slot 4，默认调用约定）
-  HookGetName := TCnIntfHook.Create(GCalc, 4, @MyGetName);
+  HookGetName := TCnIntfMethodHook.Create(GCalc, 4, @MyGetName);
   // 挂钩 SetValue（slot 5，默认调用约定）
-  HookSetValue := TCnIntfHook.Create(GCalc, 5, @MySetValue);
+  HookSetValue := TCnIntfMethodHook.Create(GCalc, 5, @MySetValue);
 
   mmoLog.Lines.Add('=== 通过 MethodIndex 挂钩成功 ===');
   mmoLog.Lines.Add('  HookAdd.RealMethodAddr     = $' +
