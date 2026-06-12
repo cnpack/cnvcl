@@ -687,7 +687,7 @@ begin
 {$ELSE} // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC8Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
+    Result := InternalCRC8Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
@@ -865,7 +865,7 @@ begin
 {$ELSE} // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC16Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
+    Result := InternalCRC16Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
@@ -1042,7 +1042,7 @@ begin
 {$ELSE} // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC32Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
+    Result := InternalCRC32Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
@@ -1234,7 +1234,7 @@ begin
   // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC64Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
+    Result := InternalCRC64Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;

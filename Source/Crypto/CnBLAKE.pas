@@ -1974,7 +1974,7 @@ function BLAKE224Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
 var
   Dig: TCnBLAKEGeneralDigest;
 begin
-  InternalBLAKEStream(Stream, 4096 * 1024, Dig, btBLAKE224, CallBack);
+  InternalBLAKEStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE224, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnBLAKE224Digest));
 end;
 
@@ -1984,7 +1984,7 @@ function BLAKE256Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
 var
   Dig: TCnBLAKEGeneralDigest;
 begin
-  InternalBLAKEStream(Stream, 4096 * 1024, Dig, btBLAKE256, CallBack);
+  InternalBLAKEStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE256, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnBLAKE256Digest));
 end;
 
@@ -1994,7 +1994,7 @@ function BLAKE384Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
 var
   Dig: TCnBLAKEGeneralDigest;
 begin
-  InternalBLAKEStream(Stream, 4096 * 1024, Dig, btBLAKE384, CallBack);
+  InternalBLAKEStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE384, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnBLAKE384Digest));
 end;
 
@@ -2004,7 +2004,7 @@ function BLAKE512Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
 var
   Dig: TCnBLAKEGeneralDigest;
 begin
-  InternalBLAKEStream(Stream, 4096 * 1024, Dig, btBLAKE512, CallBack);
+  InternalBLAKEStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE512, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnBLAKE512Digest));
 end;
 
@@ -2031,7 +2031,7 @@ begin
   end;
   Rec.Lo := Info.nFileSizeLow;
   Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
   Result := True; // 非 Windows 平台返回 True，表示不 Mapping
@@ -2123,7 +2123,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalBLAKEStream(Stream, 4096 * 1024, Result, BLAKEType, CallBack);
+      InternalBLAKEStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, BLAKEType, CallBack);
     finally
       Stream.Free;
     end;

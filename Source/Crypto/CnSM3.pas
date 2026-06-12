@@ -279,9 +279,6 @@ const
     $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A
   );
 
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
   HMAC_SM3_BLOCK_SIZE_BYTE = 64;
   HMAC_SM3_OUTPUT_LENGTH_BYTE = 32;
 
@@ -754,7 +751,7 @@ var
     end;
     Rec.Lo := Info.nFileSizeLow;
     Rec.Hi := Info.nFileSizeHigh;
-    Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+    Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
     IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
     Result := True; // 非 Windows 平台返回 True，表示不 Mapping
@@ -768,7 +765,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalSM3Stream(Stream, 4096 * 1024, Result, CallBack);
+      InternalSM3Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, CallBack);
     finally
       Stream.Free;
     end;
@@ -821,7 +818,7 @@ end;
 function SM3Stream(Stream: TStream;
   CallBack: TCnSM3CalcProgressFunc): TCnSM3Digest;
 begin
-  InternalSM3Stream(Stream, 4096 * 1024, Result, CallBack);
+  InternalSM3Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, CallBack);
 end;
 
 function SM3Print(const Digest: TCnSM3Digest): string;

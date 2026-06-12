@@ -306,7 +306,6 @@ type
   TCnUInt64Array = array[0..(MaxInt div SizeOf(TUInt64) - 1)] of TUInt64;
   {* 静态 64 位无符号整数数组}
 
-type
   TCnMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
   {* 内存固定块尺寸的数组排序比较函数原型}
 
@@ -344,6 +343,12 @@ const
   {* 最大的 64 位无符号数}
   CN_MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
   {* 64 位无符号数范围内最大的 64 位有符号数}
+
+  CN_CRYPTO_MAX_FILE_SIZE_MAPPING           = 512 * 1024 * 1024;
+  {* 密码库中用来判断是走 Stream 还是 Mapping 的文件大小阈值}
+
+  CN_CRYPTO_STREAM_BUF_SIZE                 = 4096 * 1024;
+  {* 密码库中文件 Stream 的统一缓冲区大小}
 
 {*
   对于 D567 等不支持 UInt64 的编译器，虽然可以用 Int64 代替 UInt64 进行加减、存储

@@ -1258,9 +1258,6 @@ type
   TSHA2Type = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512, stSHA2_512_224, stSHA2_512_256);
 
 const
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
   KEYS256: array[0..63] of Cardinal = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
     $3956C25B, $59F111F1, $923F82A4, $AB1C5ED5, $D807AA98, $12835B01, $243185BE,
     $550C7DC3, $72BE5D74, $80DEB1FE, $9BDC06A7, $C19BF174, $E49B69C1, $EFBE4786,
@@ -2457,7 +2454,7 @@ function SHA224Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
 var
   Dig: TCnSHA2GeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_224, CallBack);
+  InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, stSHA2_224, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA224Digest));
 end;
 
@@ -2467,7 +2464,7 @@ function SHA256Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
 var
   Dig: TCnSHA2GeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_256, CallBack);
+  InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, stSHA2_256, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA256Digest));
 end;
 
@@ -2477,7 +2474,7 @@ function SHA384Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
 var
   Dig: TCnSHA2GeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_384, CallBack);
+  InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, stSHA2_384, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA384Digest));
 end;
 
@@ -2487,7 +2484,7 @@ function SHA512Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
 var
   Dig: TCnSHA2GeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_512, CallBack);
+  InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, stSHA2_512, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA512Digest));
 end;
 
@@ -2497,7 +2494,7 @@ function SHA512_224Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
 var
   Dig: TCnSHA2GeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_512_224, CallBack);
+  InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, stSHA2_512_224, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA512_224Digest));
 end;
 
@@ -2507,7 +2504,7 @@ function SHA512_256Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
 var
   Dig: TCnSHA2GeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_512_256, CallBack);
+  InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, stSHA2_512_256, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA512_256Digest));
 end;
 
@@ -2534,7 +2531,7 @@ begin
   end;
   Rec.Lo := Info.nFileSizeLow;
   Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
   Result := True; // 非 Windows 平台返回 True，表示不 Mapping
@@ -2646,7 +2643,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalSHAStream(Stream, 4096 * 1024, Result, SHA2Type, CallBack);
+      InternalSHAStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, SHA2Type, CallBack);
     finally
       Stream.Free;
     end;

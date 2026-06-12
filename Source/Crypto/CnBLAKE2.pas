@@ -528,9 +528,6 @@ resourcestring
   SCnErrorBlake2InvalidDigestSize = 'Invalid Digest Length';
 
 const
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
   BLAKE2S_IV: array[0..7] of Cardinal = (
     $6A09E667, $BB67AE85, $3C6EF372, $A54FF53A,
     $510E527F, $9B05688C, $1F83D9AB, $5BE0CD19
@@ -1408,7 +1405,7 @@ begin
   if (DigestLength <= 0) or (DigestLength > CN_BLAKE2S_OUTBYTES) then
     raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
 
-  InternalBLAKE2Stream(Stream, Key, DigestLength, 4096 * 1024, Dig, btBLAKE2S, CallBack);
+  InternalBLAKE2Stream(Stream, Key, DigestLength, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE2S, CallBack);
   Move(Dig[0], Result[0], DigestLength);
 end;
 
@@ -1420,7 +1417,7 @@ begin
   if (DigestLength <= 0) or (DigestLength > CN_BLAKE2B_OUTBYTES) then
     raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
 
-  InternalBLAKE2Stream(Stream, Key, DigestLength, 4096 * 1024, Dig, btBLAKE2B, CallBack);
+  InternalBLAKE2Stream(Stream, Key, DigestLength, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE2B, CallBack);
   Move(Dig[0], Result[0], DigestLength);
 end;
 
@@ -1447,7 +1444,7 @@ begin
   end;
   Rec.Lo := Info.nFileSizeLow;
   Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
   Result := True; // 非 Windows 平台返回 True，表示不 Mapping
@@ -1532,7 +1529,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalBLAKE2Stream(Stream, Key, DigestLength, 4096 * 1024, Result, BLAKE2Type, CallBack);
+      InternalBLAKE2Stream(Stream, Key, DigestLength, CN_CRYPTO_STREAM_BUF_SIZE, Result, BLAKE2Type, CallBack);
     finally
       Stream.Free;
     end;

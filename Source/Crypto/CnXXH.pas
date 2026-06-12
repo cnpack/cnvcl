@@ -427,9 +427,6 @@ function XXH64DigestToStr(const Digest: TCnXXH64Digest): string;
 implementation
 
 const
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
   CN_XXH32_BLOCK_SIZE  = 16;
   CN_XXH64_BLOCK_SIZE  = 32;
 
@@ -1039,7 +1036,7 @@ function XXH32Stream(Stream: TStream; Seed: Cardinal; CallBack: TCnXXHCalcProgre
 var
   Dig: TCnXXHGeneralDigest;
 begin
-  InternalXXHStream(Stream, 4096 * 1024, Seed, Dig, xtXXH32, CallBack);
+  InternalXXHStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Seed, Dig, xtXXH32, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnXXH32Digest));
 end;
 
@@ -1049,7 +1046,7 @@ function XXH64Stream(Stream: TStream; Seed: TUInt64; CallBack: TCnXXHCalcProgres
 var
   Dig: TCnXXHGeneralDigest;
 begin
-  InternalXXHStream(Stream, 4096 * 1024, Seed, Dig, xtXXH64, CallBack);
+  InternalXXHStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Seed, Dig, xtXXH64, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnXXH64Digest));
 end;
 
@@ -1076,7 +1073,7 @@ begin
   end;
   Rec.Lo := Info.nFileSizeLow;
   Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
   Result := True; // 非 Windows 平台返回 True，表示不 Mapping
@@ -1148,7 +1145,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalXXHStream(Stream, 4096 * 1024, Seed, Result, XXHType, CallBack);
+      InternalXXHStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Seed, Result, XXHType, CallBack);
     finally
       Stream.Free;
     end;

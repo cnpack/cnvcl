@@ -37,7 +37,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.29 V3.5
+* 修改记录：2026.06.12 V3.6
+*               OAEP 增加 SHA2 杂凑的支持。
+*           2026.01.29 V3.5
 *               隐藏 PKCS1 的 Padding 错误以防范 Bleichenbacher 攻击。
 *           2026.01.05 V3.4
 *               增加 RSA 的 PSS 模式的签名与验证函数并增加几种杂凑支持。
@@ -2767,7 +2769,7 @@ begin
     end
     else if PaddingMode in [cpmOAEP_SHA256, cpmOAEP_SHA384, cpmOAEP_SHA512] then
     begin
-      // OAEP 公钥加密，使用 SHA2 系列哈希
+      // OAEP 公钥加密，使用 SHA2 系列杂凑
       Stream.Size := Product.GetBytesCount;
       if not AddOaepMgfPadding(Stream.Memory, Stream.Size, PlainData, DataByteLen,
         nil, 0, OAEPModeToDigestType(PaddingMode)) then
@@ -2937,7 +2939,7 @@ begin
     end
     else if PaddingMode in [cpmOAEP_SHA256, cpmOAEP_SHA384, cpmOAEP_SHA512] then
     begin
-      // OAEP 解密，使用 SHA2 系列哈希
+      // OAEP 解密，使用 SHA2 系列杂凑
       Result := RemoveOaepMgfPadding(OutBuf, OutLen, @ResBuf[0], Length(ResBuf),
         nil, 0, OAEPModeToDigestType(PaddingMode));
 

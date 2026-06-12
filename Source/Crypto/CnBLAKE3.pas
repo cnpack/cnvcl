@@ -405,9 +405,6 @@ const
   BLAKE3_FLAG_DERIVE_KEY_MATERIAL = $40;
   {* DeriveKey ²ÄÁÏ¹þÏ£±êÖ¾}
 
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
 function ROR32(A, B: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (A shr B) or (A shl (32 - B));
@@ -1041,7 +1038,7 @@ begin
     BLAKE3Init(Context, PAnsiChar(@Key[0]), Length(Key))
   else
     BLAKE3Init(Context);
-  InternalBLAKE3Stream(Stream, 4096 * 1024, Context, CallBack);
+  InternalBLAKE3Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Context, CallBack);
   BLAKE3Final(Context, Result);
 end;
 
@@ -1068,7 +1065,7 @@ begin
   end;
   Rec.Lo := Info.nFileSizeLow;
   Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
   Result := True;
@@ -1096,7 +1093,7 @@ begin
   begin
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalBLAKE3Stream(Stream, 4096 * 1024, Context, CallBack);
+      InternalBLAKE3Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Context, CallBack);
     finally
       Stream.Free;
     end;

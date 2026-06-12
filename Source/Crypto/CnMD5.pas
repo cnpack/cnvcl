@@ -303,9 +303,6 @@ function MD5HmacBytes(const Key: TBytes; const Data: TBytes): TCnMD5Digest;
 implementation
 
 const
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
   HMAC_MD5_BLOCK_SIZE_BYTE = 64;
   HMAC_MD5_OUTPUT_LENGTH_BYTE = 16;
 
@@ -754,7 +751,7 @@ var
     end;
     Rec.Lo := Info.nFileSizeLow;
     Rec.Hi := Info.nFileSizeHigh;
-    Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+    Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
     IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
     Result := True; // 非 Windows 平台返回 True，表示不 Mapping
@@ -768,7 +765,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalMD5Stream(Stream, 4096 * 1024, Result, CallBack);
+      InternalMD5Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, CallBack);
     finally
       Stream.Free;
     end;
@@ -822,7 +819,7 @@ end;
 function MD5Stream(Stream: TStream;
   CallBack: TCnMD5CalcProgressFunc): TCnMD5Digest;
 begin
-  InternalMD5Stream(Stream, 4096 * 1024, Result, CallBack);
+  InternalMD5Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, CallBack);
 end;
 
 // 以十六进制格式输出 MD5 杂凑值
