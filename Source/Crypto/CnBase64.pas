@@ -337,7 +337,7 @@ var
 //------------------------------------------------------------------------------
 
   { 不包含在 Base64 里面的字符直接给零，反正也取不到}
-  DecodeTable64: array[#0..#255] of Byte =
+  DecodeTable64: array[0..255] of Byte =
   (
     Byte('='), 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
     00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
@@ -600,10 +600,10 @@ begin
 
   for I := 0 to Times - 1 do
   begin
-    X1 := DecodeTable64[Data[1 + I shl 2]];
-    X2 := DecodeTable64[Data[2 + I shl 2]];
-    X3 := DecodeTable64[Data[3 + I shl 2]];
-    X4 := DecodeTable64[Data[4 + I shl 2]];
+    X1 := DecodeTable64[Byte(Data[1 + I shl 2])];
+    X2 := DecodeTable64[Byte(Data[2 + I shl 2])];
+    X3 := DecodeTable64[Byte(Data[3 + I shl 2])];
+    X4 := DecodeTable64[Byte(Data[4 + I shl 2])];
     X1 := Byte(X1 shl 2);
     XT := Byte(X2 shr 4);
     X1 := Byte(X1 or XT);
