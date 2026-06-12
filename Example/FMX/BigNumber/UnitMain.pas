@@ -460,7 +460,7 @@ begin
   Res := BigNumberNew;
   if BigNumberRandBytes(Res, SizeOf(Cardinal)) then
   begin
-    AWord := Res.D^;
+    AWord := Res.GetWord;
     ShowNumbers;
   end;
   BigNumberFree(Res);

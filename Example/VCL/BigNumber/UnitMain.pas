@@ -518,7 +518,7 @@ begin
   Res := BigNumberNew;
   if BigNumberRandBytes(Res, SizeOf(DWORD)) then
   begin
-    AWord := Res.D^;
+    AWord := Res.GetWord;
     ShowNumbers;
   end;
   BigNumberFree(Res);

@@ -40,7 +40,9 @@ unit CnBigNumber;
 *           注：D5/D6/CB5/CB6 下曾经遇上编译器 Bug 无法修复，
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时，现在暂时绕过了。
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.04.24 V3.0
+* 修改记录：2026.06.12 V3.1
+*               将一些公共域隐藏以增强安全性
+*           2025.04.24 V3.0
 *               加入 Lucas U V 序列的计算及 BPSW 素数判定算法
 *           2025.04.07 V2.9
 *               加入几个列表新方法、乘法阶的计算，调整随机调用为非初始化版本以提速
@@ -146,11 +148,13 @@ type
 {$IFDEF DEBUG}
     FIsFromPool: Boolean;
 {$ENDIF}
-    function GetDecString: string;
-    function GetHexString: string;
-    function GetDebugDump: string;
-  public
-    D: PCnBigNumberElement;
+    FNeg: Integer;
+    // 1 为负，0 为正
+    FTop: Integer;
+    // Top 表示数字上限，也即有 Top 个有效 UInt32/UInt64，D[Top - 1] 是最高位有效数所在的 UInt32/UInt64
+    FDMax: Integer;
+    // D 数组已分配的存储上限，单位是 UInt32/UInt64 个，大于或等于 Top，不参与运算
+    FD: PCnBigNumberElement;
     // 一个 array[0..Top-1] of UInt32/UInt64 数组，元素越往后越代表高位，元素内部依赖 CPU 字节序。
     // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数，
     // 大端则每个元素内部倒序再全部从高到低读字节，才符合可读的要求，具体也没条件测
@@ -158,15 +162,10 @@ type
     // 另外元素内部的字节在读取写入时使用了拆字节拼接，因而抹平了 CPU 的大小端区别
     // 这样对应的 Binary 内存区域从低地址到高地址每个字节都符合网络或阅读习惯，无论 CPU 的大小端是啥
 
-    Top: Integer;
-    // Top 表示数字上限，也即有 Top 个有效 UInt32/UInt64，D[Top - 1] 是最高位有效数所在的 UInt32/UInt64
-
-    DMax: Integer;
-    // D 数组已分配的存储上限，单位是 UInt32/UInt64 个，大于或等于 Top，不参与运算
-
-    Neg: Integer;
-    // 1 为负，0 为正
-
+    function GetDecString: string;
+    function GetHexString: string;
+    function GetDebugDump: string;
+  public
     constructor Create; virtual;
     {* 构造函数}
 
@@ -3054,10 +3053,10 @@ begin
   if Num = nil then
     Exit;
 
-  Num.Top := 0;
-  Num.Neg := 0;
-  Num.DMax := 0;
-  Num.D := nil;
+  Num.FTop := 0;
+  Num.FNeg := 0;
+  Num.FDMax := 0;
+  Num.FD := nil;
 end;
 
 procedure BigNumberFree(Num: TCnBigNumber);
@@ -3067,7 +3066,7 @@ end;
 
 function BigNumberIsZero(Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (Num.Top = 0);
+  Result := (Num.FTop = 0);
 end;
 
 function BigNumberSetZero(Num: TCnBigNumber): Boolean;
@@ -3077,12 +3076,12 @@ end;
 
 function BigNumberIsOne(Num: TCnBigNumber): Boolean;
 begin
-  Result := (Num.Neg = 0) and BigNumberAbsIsWord(Num, 1);
+  Result := (Num.FNeg = 0) and BigNumberAbsIsWord(Num, 1);
 end;
 
 function BigNumberIsNegOne(Num: TCnBigNumber): Boolean;
 begin
-  Result := (Num.Neg = 1) and BigNumberAbsIsWord(Num, 1);
+  Result := (Num.FNeg = 1) and BigNumberAbsIsWord(Num, 1);
 end;
 
 function BigNumberSetOne(Num: TCnBigNumber): Boolean;
@@ -3092,7 +3091,7 @@ end;
 
 function BigNumberIsOdd(Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  if (Num.Top > 0) and ((PCnBigNumberElementArray(Num.D)^[0] and 1) <> 0) then
+  if (Num.FTop > 0) and ((PCnBigNumberElementArray(Num.FD)^[0] and 1) <> 0) then
     Result := True
   else
     Result := False;
@@ -3100,7 +3099,7 @@ end;
 
 function BigNumberIsEven(Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  if (Num.Top = 0) or ((PCnBigNumberElementArray(Num.D)^[0] and 1) = 0) then
+  if (Num.FTop = 0) or ((PCnBigNumberElementArray(Num.FD)^[0] and 1) = 0) then
     Result := True
   else
     Result := False;
@@ -3166,8 +3165,8 @@ begin
   if BigNumberIsZero(Num) then
     Exit;
 
-  I := Num.Top - 1;
-  Result := ((I * BN_BITS2) + BigNumberGetWordBitsCount(PCnBigNumberElementArray(Num.D)^[I]));
+  I := Num.FTop - 1;
+  Result := ((I * BN_BITS2) + BigNumberGetWordBitsCount(PCnBigNumberElementArray(Num.FD)^[I]));
 end;
 
 function BigNumberGetBytesCount(Num: TCnBigNumber): Integer;
@@ -3177,7 +3176,7 @@ end;
 
 function BigNumberGetWordsCount(Num: TCnBigNumber): Integer;
 begin
-  Result := Num.Top;
+  Result := Num.FTop;
 end;
 
 function BigNumberGetTenPrecision(Num: TCnBigNumber): Integer;
@@ -3268,13 +3267,13 @@ begin
   FillChar(A^, SizeOf(TCnBigNumberElement) * Words, 0);
 
   // 查查是否要复制之前的值
-  B := Num.D;
+  B := Num.FD;
   if B <> nil then
   begin
-    if Num.Top > Words then
+    if Num.FTop > Words then
       CopyTop := Words
     else
-      CopyTop := Num.Top;
+      CopyTop := Num.FTop;
 
     TmpA := A;
     I :=  CopyTop shr 2;
@@ -3326,16 +3325,16 @@ var
   P: PCnBigNumberElement;
 begin
   Result := nil;
-  if Words > Num.DMax then
+  if Words > Num.FDMax then
   begin
     P := BigNumberExpandInternal(Num, Words);
     if P = nil then
       Exit;
 
-    if Num.D <> nil then
-      FreeMemory(Num.D);
-    Num.D := P;
-    Num.DMax := Words;
+    if Num.FD <> nil then
+      FreeMemory(Num.FD);
+    Num.FD := P;
+    Num.FDMax := Words;
 
     Result := Num;
   end;
@@ -3343,7 +3342,7 @@ end;
 
 function BigNumberWordExpand(Num: TCnBigNumber; Words: Integer): TCnBigNumber;
 begin
-  if Words <= Num.DMax then
+  if Words <= Num.FDMax then
     Result := Num
   else
     Result := BigNumberExpand2(Num, Words);
@@ -3351,7 +3350,7 @@ end;
 
 function BigNumberExpandBits(Num: TCnBigNumber; Bits: Integer): TCnBigNumber;
 begin
-  if ((Bits + BN_BITS2 - 1) div BN_BITS2) <= Num.DMax then
+  if ((Bits + BN_BITS2 - 1) div BN_BITS2) <= Num.FDMax then
     Result := Num
   else
     Result := BigNumberExpand2(Num, (Bits + BN_BITS2 - 1) div BN_BITS2);
@@ -3362,10 +3361,10 @@ begin
   if Num = nil then
     Exit;
 
-  if Num.D <> nil then
-    FillChar(Num.D^, Num.DMax * SizeOf(TCnBigNumberElement), 0);
-  Num.Top := 0;
-  Num.Neg := 0;
+  if Num.FD <> nil then
+    FillChar(Num.FD^, Num.FDMax * SizeOf(TCnBigNumberElement), 0);
+  Num.FTop := 0;
+  Num.FNeg := 0;
 end;
 
 // 64 位下也只返回 32 位的
@@ -3377,18 +3376,18 @@ var
   T: TCnBigNumberElement;
 {$ENDIF}
 begin
-  if Num.Top > 1 then
+  if Num.FTop > 1 then
     Result := MAX32
-  else if Num.Top = 1 then
+  else if Num.FTop = 1 then
   begin
 {$IFDEF BN_DATA_USE_64}
-    T := PCnBigNumberElementArray(Num.D)^[0];
+    T := PCnBigNumberElementArray(Num.FD)^[0];
     if T > MAX32 then
       Result := MAX32
     else
       Result := Cardinal(T);
 {$ELSE}
-    Result := PCnBigNumberElementArray(Num.D)^[0];
+    Result := PCnBigNumberElementArray(Num.FD)^[0];
 {$ENDIF}
   end
   else
@@ -3401,12 +3400,12 @@ begin
   Result := False;
   if BigNumberExpandBits(Num, SizeOf(Cardinal) * 8) = nil then
     Exit;
-  Num.Neg := 0;
-  PCnBigNumberElementArray(Num.D)^[0] := W;
+  Num.FNeg := 0;
+  PCnBigNumberElementArray(Num.FD)^[0] := W;
   if W <> 0 then
-    Num.Top := 1
+    Num.FTop := 1
   else
-    Num.Top := 0;
+    Num.FTop := 0;
   Result := True;
 end;
 
@@ -3418,24 +3417,24 @@ var
   T: TCnBigNumberElement;
 {$ENDIF}
 begin
-  if Num.Top > 1 then
+  if Num.FTop > 1 then
     Result := BN_MASK2S
-  else if Num.Top = 1 then
+  else if Num.FTop = 1 then
   begin
 {$IFDEF BN_DATA_USE_64}
-    T := PCnBigNumberElementArray(Num.D)^[0];
+    T := PCnBigNumberElementArray(Num.FD)^[0];
     if T > MAX_INT_32 then        // UInt64 超出了 Integer 的范围，返回 Max Integer
       Result := MAX_INT_32
     else
       Result := Integer(T);
 
-    if Num.Neg <> 0 then // 负则求反加一
+    if Num.FNeg <> 0 then // 负则求反加一
       Result := (not Result) + 1;
 {$ELSE}
-    Result := Integer(PCnBigNumberElementArray(Num.D)^[0]);
+    Result := Integer(PCnBigNumberElementArray(Num.FD)^[0]);
     if Result < 0 then        // UInt32 最高位有值，说明已经超出了 Integer 的范围，返回 Max Integer
       Result := BN_MASK2S
-    else if Num.Neg <> 0 then // 负则求反加一
+    else if Num.FNeg <> 0 then // 负则求反加一
       Result := (not Result) + 1;
 {$ENDIF}
   end
@@ -3457,28 +3456,28 @@ end;
 
 function BigNumberGetInt64(Num: TCnBigNumber): Int64;
 begin
-  if Num.Top > 2 then
+  if Num.FTop > 2 then
     Result := BN_MASK3S
-  else if Num.Top = 2 then
+  else if Num.FTop = 2 then
   begin
 {$IFDEF BN_DATA_USE_64}
     Result := BN_MASK3S;
 {$ELSE}
-    Result := PInt64Array(Num.D)^[0];
+    Result := PInt64Array(Num.FD)^[0];
     if Result < 0 then        // UInt64 最高位有值，说明已经超出了 Int64 的范围，返回 Max Int64
       Result := BN_MASK3S
-    else if Num.Neg <> 0 then // 负则求反加一
+    else if Num.FNeg <> 0 then // 负则求反加一
       Result := (not Result) + 1;
 {$ENDIF}
   end
-  else if Num.Top = 1 then
+  else if Num.FTop = 1 then
   begin
 {$IFDEF BN_DATA_USE_64}
-    Result := Int64(PCnBigNumberElementArray(Num.D)^[0]); // UInt64 转为 Int64 如果是负的，表示超界了
+    Result := Int64(PCnBigNumberElementArray(Num.FD)^[0]); // UInt64 转为 Int64 如果是负的，表示超界了
     if Result < 0 then
       Result := BN_MASK3S;
 {$ELSE}
-    Result := Int64(PCnBigNumberElementArray(Num.D)^[0]);
+    Result := Int64(PCnBigNumberElementArray(Num.FD)^[0]);
 {$ENDIF}
   end
   else
@@ -3493,35 +3492,35 @@ begin
 
   if W >= 0 then
   begin
-    Num.Neg := 0;
-    PInt64Array(Num.D)^[0] := W;
+    Num.FNeg := 0;
+    PInt64Array(Num.FD)^[0] := W;
     if W = 0 then
-      Num.Top := 0
+      Num.FTop := 0
     else
     begin
 {$IFDEF BN_DATA_USE_64}
-      Num.Top := 1;
+      Num.FTop := 1;
 {$ELSE}
       if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
-        Num.Top := 1
+        Num.FTop := 1
       else
-        Num.Top := 2;
+        Num.FTop := 2;
 {$ENDIF}
     end;
   end
   else // W < 0
   begin
-    Num.Neg := 1;
+    Num.FNeg := 1;
     W := (not W) + 1;
-    PInt64Array(Num.D)^[0] := W;
+    PInt64Array(Num.FD)^[0] := W;
 
 {$IFDEF BN_DATA_USE_64}
-    Num.Top := 1;
+    Num.FTop := 1;
 {$ELSE}
     if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
-      Num.Top := 1
+      Num.FTop := 1
     else
-      Num.Top := 2;
+      Num.FTop := 2;
 {$ENDIF}
   end;
   Result := True;
@@ -3529,22 +3528,22 @@ end;
 
 function BigNumberGetUInt64UsingInt64(Num: TCnBigNumber): TUInt64;
 begin
-  if Num.Top > 2 then
+  if Num.FTop > 2 then
     Result := TUInt64(BN_MASK3U)
-  else if Num.Top = 2 then
+  else if Num.FTop = 2 then
   begin
 {$IFDEF BN_DATA_USE_64}
     Result := TUInt64(BN_MASK3U);
 {$ELSE}
   {$IFDEF SUPPORT_UINT64}
-    Result := TUInt64(PInt64Array(Num.D)^[0]);
+    Result := TUInt64(PInt64Array(Num.FD)^[0]);
   {$ELSE}
-    Result := PInt64Array(Num.D)^[0]; // 在 D5/6 下 Int64转 Int64 出现 C3517 错误！！！
+    Result := PInt64Array(Num.FD)^[0]; // 在 D5/6 下 Int64转 Int64 出现 C3517 错误！！！
   {$ENDIF}
 {$ENDIF}
   end
-  else if Num.Top = 1 then
-    Result := TUInt64(PCnBigNumberElementArray(Num.D)^[0])
+  else if Num.FTop = 1 then
+    Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
   else
     Result := 0;
 end;
@@ -3555,19 +3554,19 @@ begin
   if BigNumberExpandBits(Num, SizeOf(Int64) * 8) = nil then
     Exit;
 
-  Num.Neg := 0;
-  PInt64Array(Num.D)^[0] := Int64(W);
+  Num.FNeg := 0;
+  PInt64Array(Num.FD)^[0] := Int64(W);
   if W = 0 then
-    Num.Top := 0
+    Num.FTop := 0
   else
   begin
 {$IFDEF BN_DATA_USE_64}
-    Num.Top := 1;
+    Num.FTop := 1;
 {$ELSE}
     if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
-      Num.Top := 1
+      Num.FTop := 1
     else
-      Num.Top := 2;
+      Num.FTop := 2;
 {$ENDIF}
   end;
 
@@ -3578,18 +3577,18 @@ end;
 
 function BigNumberGetUInt64(Num: TCnBigNumber): UInt64;
 begin
-  if Num.Top > 2 then
+  if Num.FTop > 2 then
     Result := UInt64(BN_MASK3U)
-  else if Num.Top = 2 then
+  else if Num.FTop = 2 then
   begin
 {$IFDEF BN_DATA_USE_64}
     Result := UInt64(BN_MASK3U);
 {$ELSE}
-    Result := PUInt64Array(Num.D)^[0];
+    Result := PUInt64Array(Num.FD)^[0];
 {$ENDIF}
   end
-  else if Num.Top = 1 then // 无论 32 还是 64 都能这样转换
-    Result := UInt64(PCnBigNumberElementArray(Num.D)^[0])
+  else if Num.FTop = 1 then // 无论 32 还是 64 都能这样转换
+    Result := UInt64(PCnBigNumberElementArray(Num.FD)^[0])
   else
     Result := 0;
 end;
@@ -3600,20 +3599,20 @@ begin
   if BigNumberExpandBits(Num, SizeOf(UInt64) * 8) = nil then
     Exit;
 
-  Num.Neg := 0;
-  PUInt64Array(Num.D)^[0] := W;
+  Num.FNeg := 0;
+  PUInt64Array(Num.FD)^[0] := W;
 
   if W = 0 then
-    Num.Top := 0
+    Num.FTop := 0
   else
   begin
 {$IFDEF BN_DATA_USE_64}
-    Num.Top := 1;
+    Num.FTop := 1;
 {$ELSE}
     if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 UInt64 高 32 位是 0
-      Num.Top := 1
+      Num.FTop := 1
     else
-      Num.Top := 2;
+      Num.FTop := 2;
 {$ENDIF}
   end;  
 
@@ -3626,33 +3625,33 @@ end;
 procedure BigNumberCorrectTop(Num: TCnBigNumber);
 var
   Ftl: PCnBigNumberElement;
-  Top: Integer;
+  FTop: Integer;
 begin
  if (Num = nil) then
     Exit;
 
-  if Num.D = nil then
+  if Num.FD = nil then
   begin
-    Num.Top := 0;
+    Num.FTop := 0;
     Exit;
   end
-  else if Num.Top = 0 then
+  else if Num.FTop = 0 then
     Exit;
 
-  Top := Num.Top;
-  if (Top < 0) or (Top > Num.DMax) then
-    Top := Num.DMax;
+  FTop := Num.FTop;
+  if (FTop < 0) or (FTop > Num.FDMax) then
+    FTop := Num.FDMax;
 
-  Ftl := @(PCnBigNumberElementArray(Num.D)^[Top - 1]);
-  while Top > 0 do
+  Ftl := @(PCnBigNumberElementArray(Num.FD)^[FTop - 1]);
+  while FTop > 0 do
   begin
     if Ftl^ <> 0 then
       Break;
 
     Ftl := PCnBigNumberElement(TCnIntAddress(Ftl) - SizeOf(TCnBigNumberElement));
-    Dec(Top);
+    Dec(FTop);
   end;
-  Num.Top := Top;
+  Num.FTop := FTop;
 end;
 
 function BigNumberToBinary(Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: Integer): Integer;
@@ -3679,7 +3678,7 @@ begin
   while I > 0 do
   begin
     Dec(I);
-    L := PCnBigNumberElementArray(Num.D)^[I div BN_BYTES];
+    L := PCnBigNumberElementArray(Num.FD)^[I div BN_BYTES];
     Buf^ := AnsiChar(Chr(L shr (8 * (I mod BN_BYTES)) and $FF));
 
     Buf := PAnsiChar(TCnIntAddress(Buf) + 1);
@@ -3775,7 +3774,7 @@ begin
   N := ByteLen;
   if N = 0 then
   begin
-    Res.Top := 0;
+    Res.FTop := 0;
     Exit;
   end;
 
@@ -3788,8 +3787,8 @@ begin
     Exit;
   end;
 
-  Res.Top := I;
-  Res.Neg := 0;
+  Res.FTop := I;
+  Res.FNeg := 0;
   while N > 0 do
   begin
     L := (L shl 8) or Ord(Buf^);
@@ -3798,7 +3797,7 @@ begin
     if M = 0 then
     begin
       Dec(I);
-      PCnBigNumberElementArray(Res.D)^[I] := L; // D 的 I 则是越处理越往低地址走
+      PCnBigNumberElementArray(Res.FD)^[I] := L; // D 的 I 则是越处理越往低地址走
       L := 0;
       M := BN_BYTES - 1;
     end
@@ -3855,24 +3854,24 @@ begin
   if BigNumberIsZero(Num) then
     Exit;
   if Negative then
-    Num.Neg := 1
+    Num.FNeg := 1
   else
-    Num.Neg := 0;
+    Num.FNeg := 0;
 end;
 
 function BigNumberIsNegative(Num: TCnBigNumber): Boolean;
 begin
-  Result := Num.Neg <> 0;
+  Result := Num.FNeg <> 0;
 end;
 
 procedure BigNumberNegate(Num: TCnBigNumber);
 begin
   if BigNumberIsZero(Num) then
     Exit;
-  if Num.Neg <> 0 then
-    Num.Neg := 0
+  if Num.FNeg <> 0 then
+    Num.FNeg := 0
   else
-    Num.Neg := 1;
+    Num.FNeg := 1;
 end;
 
 function BigNumberClearBit(Num: TCnBigNumber; N: Integer): Boolean;
@@ -3886,10 +3885,10 @@ begin
   I := N div BN_BITS2;
   J := N mod BN_BITS2;
 
-  if Num.Top <= I then
+  if Num.FTop <= I then
     Exit;
 
-  PCnBigNumberElementArray(Num.D)^[I] := PCnBigNumberElementArray(Num.D)^[I] and
+  PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] and
     TCnBigNumberElement(not (1 shl J));
 
   BigNumberCorrectTop(Num);
@@ -3916,7 +3915,7 @@ begin
   I := Count div BN_BITS2;
   J := Count mod BN_BITS2;
 
-  if Num.Top <= I then
+  if Num.FTop <= I then
   begin
     Result := True;
     Exit;
@@ -3924,13 +3923,13 @@ begin
 
   if J > 0 then // 要多保留最高一个 LongWord 中的 0 到 J - 1 位，共 J 位，J 最多 31/63
   begin
-    Num.Top := I + 1;
+    Num.FTop := I + 1;
     B := 1 shl J;         // 0000100000 如果 J 是 31/63 也不会溢出
     B := B - 1;           // 0000011111
-    PCnBigNumberElementArray(Num.D)^[I] := PCnBigNumberElementArray(Num.D)^[I] and B;
+    PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] and B;
   end
   else
-    Num.Top := I; // 如果 J 为 0，无需多最高一个 LongWord 了
+    Num.FTop := I; // 如果 J 为 0，无需多最高一个 LongWord 了
 
   BigNumberCorrectTop(Num);
   Result := True;
@@ -3947,18 +3946,18 @@ begin
   I := N div BN_BITS2;
   J := N mod BN_BITS2;
 
-  if Num.Top <= I then
+  if Num.FTop <= I then
   begin
     if BigNumberWordExpand(Num, I + 1) = nil then
       Exit;
 
-    for K := Num.Top to I do
-      PCnBigNumberElementArray(Num.D)^[K] := 0;
+    for K := Num.FTop to I do
+      PCnBigNumberElementArray(Num.FD)^[K] := 0;
 
-    Num.Top := I + 1;
+    Num.FTop := I + 1;
   end;
 
-  PCnBigNumberElementArray(Num.D)^[I] := PCnBigNumberElementArray(Num.D)^[I] or
+  PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] or
     TCnBigNumberElement(1 shl J);
   Result := True;
 end;
@@ -3974,10 +3973,10 @@ begin
   I := N div BN_BITS2;
   J := N mod BN_BITS2;
 
-  if Num.Top <= I then
+  if Num.FTop <= I then
     Exit;
 
-  if (TCnBigNumberElement(PCnBigNumberElementArray(Num.D)^[I] shr J) and TCnBigNumberElement(1)) <> 0 then
+  if (TCnBigNumberElement(PCnBigNumberElementArray(Num.FD)^[I] shr J) and TCnBigNumberElement(1)) <> 0 then
     Result := True;
 end;
 
@@ -4013,16 +4012,16 @@ begin
     Exit;
   end;
 
-  if Num1.Neg <> Num2.Neg then
+  if Num1.FNeg <> Num2.FNeg then
   begin
-    if Num1.Neg <> 0 then
+    if Num1.FNeg <> 0 then
       Result := -1
     else
       Result := 1;
     Exit;
   end;
 
-  if Num1.Neg = 0 then
+  if Num1.FNeg = 0 then
   begin
     Gt := 1;
     Lt := -1;
@@ -4033,21 +4032,21 @@ begin
     Lt := 1;
   end;
 
-  if Num1.Top > Num2.Top then
+  if Num1.FTop > Num2.FTop then
   begin
     Result := Gt;
     Exit;
   end
-  else if Num1.Top < Num2.Top then
+  else if Num1.FTop < Num2.FTop then
   begin
     Result := Lt;
     Exit;
   end;
 
-  for I := Num1.Top - 1 downto 0 do
+  for I := Num1.FTop - 1 downto 0 do
   begin
-    T1 := PCnBigNumberElementArray(Num1.D)^[I];
-    T2 := PCnBigNumberElementArray(Num2.D)^[I];
+    T1 := PCnBigNumberElementArray(Num1.FD)^[I];
+    T2 := PCnBigNumberElementArray(Num2.FD)^[I];
     if T1 > T2 then
     begin
       Result := Gt;
@@ -4093,14 +4092,14 @@ var
   I: Integer;
   T1, T2: TCnBigNumberElement;
 begin
-  Result := Num1.Top - Num2.Top;
+  Result := Num1.FTop - Num2.FTop;
   if Result <> 0 then
     Exit;
 
-  for I := Num1.Top - 1 downto 0 do
+  for I := Num1.FTop - 1 downto 0 do
   begin
-    T1 := PCnBigNumberElementArray(Num1.D)^[I];
-    T2 := PCnBigNumberElementArray(Num2.D)^[I];
+    T1 := PCnBigNumberElementArray(Num1.FD)^[I];
+    T2 := PCnBigNumberElementArray(Num2.FD)^[I];
     if T1 > T2 then
     begin
       Result := 1;
@@ -4130,10 +4129,10 @@ begin
   if BigNumberWordExpand(Num, (BytesCount + BN_BYTES - 1) div BN_BYTES) <> nil then
   begin
     // 改用非重复初始化的快速版本，不知道有无副作用？
-    Result := CnRandomFillBytes2(PAnsiChar(Num.D), BytesCount);
+    Result := CnRandomFillBytes2(PAnsiChar(Num.FD), BytesCount);
     if Result then
     begin
-      Num.Top := (BytesCount + BN_BYTES - 1) div BN_BYTES;
+      Num.FTop := (BytesCount + BN_BYTES - 1) div BN_BYTES;
       BigNumberCorrectTop(Num);
     end;
   end;
@@ -4176,7 +4175,7 @@ var
   N, C, I, TryCount: Integer;
 begin
   Result := False;
-  if (Range = nil) or (Num = nil) or (Range.Neg <> 0) or BigNumberIsZero(Range) then
+  if (Range = nil) or (Num = nil) or (Range.FNeg <> 0) or BigNumberIsZero(Range) then
     Exit;
 
   N := BigNumberGetBitsCount(Range);
@@ -4234,16 +4233,16 @@ begin
     Exit;
   end;
 
-  if BigNumberWordExpand(Dest, Source.Top) = nil then
+  if BigNumberWordExpand(Dest, Source.FTop) = nil then
   begin
     Result := nil;
     Exit;
   end;
 
-  A := PCnBigNumberElementArray(Dest.D);
-  B := PCnBigNumberElementArray(Source.D);
+  A := PCnBigNumberElementArray(Dest.FD);
+  B := PCnBigNumberElementArray(Source.FD);
 
-  for I := (Source.Top shr 2) downto 1 do
+  for I := (Source.FTop shr 2) downto 1 do
   begin
     A0 := B^[0];
     A1 := B^[1];
@@ -4258,7 +4257,7 @@ begin
     B := PCnBigNumberElementArray(TCnIntAddress(B) + 4 * SizeOf(TCnBigNumberElement));
   end;
 
-  case Source.Top and 3 of
+  case Source.FTop and 3 of
   3:
     begin
       A[2] := B[2];
@@ -4280,8 +4279,8 @@ begin
     end;
   end;
 
-  Dest.Top := Source.Top;
-  Dest.Neg := Source.Neg;
+  Dest.FTop := Source.FTop;
+  Dest.FNeg := Source.FNeg;
   Result := Dest;
 end;
 
@@ -4310,15 +4309,15 @@ begin
       Exit;
     end;
 
-    A := PCnBigNumberElementArray(Dest.D);
-    B := PCnBigNumberElementArray(Source.D);
+    A := PCnBigNumberElementArray(Dest.FD);
+    B := PCnBigNumberElementArray(Source.FD);
 
     Result := Dest;
     for I := 0 to WordCount - 1 do // 从 Source 的 0 到 WordCount - 1 赋值给 Dst 的 0 到 WordCount - 1
       A^[I] := B^[I];
 
-    Dest.Top := WordCount;
-    Dest.Neg := Source.Neg;
+    Dest.FTop := WordCount;
+    Dest.FNeg := Source.FNeg;
   end;
 end;
 
@@ -4347,36 +4346,36 @@ begin
       Exit;
     end;
 
-    A := PCnBigNumberElementArray(Dest.D);
-    B := PCnBigNumberElementArray(Source.D);
+    A := PCnBigNumberElementArray(Dest.FD);
+    B := PCnBigNumberElementArray(Source.FD);
 
     Result := Dest;
     for I := 0 to WordCount - 1 do // 从 Src 的 Top - WordCount 到 Top - 1 赋值给 Dst 的 0 到 WordCount - 1
-      A^[I] := B^[Source.Top - WordCount + I];
+      A^[I] := B^[Source.FTop - WordCount + I];
 
-    Dest.Top := WordCount;
-    Dest.Neg := Source.Neg;
+    Dest.FTop := WordCount;
+    Dest.FNeg := Source.FNeg;
   end;
 end;
 
 function BigNumberGetLow32(Num: TCnBigNumber): Cardinal;
 begin
   Result := 0;
-  if Num.DMax > 0 then
-    Result := Cardinal(Num.D^);
+  if Num.FDMax > 0 then
+    Result := Cardinal(Num.FD^);
 end;
 
 function BigNumberGetLow64(Num: TCnBigNumber): TUInt64;
 begin
   Result := 0;
 {$IFDEF BN_DATA_USE_64}
-  if Num.DMax > 0 then
-    Result := TUInt64(Num.D^);
+  if Num.FDMax > 0 then
+    Result := TUInt64(Num.FD^);
 {$ELSE}
-  if Num.DMax = 1 then
-    Result := TUInt64(Num.D^)
-  else if Num.DMax >= 2 then
-    Result := TUInt64(PCnBigNumberElementArray(Num.D)^[0]) + (TUInt64(PCnBigNumberElementArray(Num.D)^[1]) shl 32);
+  if Num.FDMax = 1 then
+    Result := TUInt64(Num.FD^)
+  else if Num.FDMax >= 2 then
+    Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0]) + (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
 {$ENDIF}
 end;
 
@@ -4385,20 +4384,20 @@ var
   TmpD: PCnBigNumberElement;
   TmpTop, TmpDMax, TmpNeg: Integer;
 begin
-  TmpD := Num1.D;
-  TmpTop := Num1.Top;
-  TmpDMax := Num1.DMax;
-  TmpNeg := Num1.Neg;
+  TmpD := Num1.FD;
+  TmpTop := Num1.FTop;
+  TmpDMax := Num1.FDMax;
+  TmpNeg := Num1.FNeg;
 
-  Num1.D := Num2.D;
-  Num1.Top := Num2.Top;
-  Num1.DMax := Num2.DMax;
-  Num1.Neg := Num2.Neg;
+  Num1.FD := Num2.FD;
+  Num1.FTop := Num2.FTop;
+  Num1.FDMax := Num2.FDMax;
+  Num1.FNeg := Num2.FNeg;
 
-  Num2.D := TmpD;
-  Num2.Top := TmpTop;
-  Num2.DMax := TmpDMax;
-  Num2.Neg := TmpNeg;
+  Num2.FD := TmpD;
+  Num2.FTop := TmpTop;
+  Num2.FDMax := TmpDMax;
+  Num2.FNeg := TmpNeg;
 end;
 
 procedure BigNumberSwapBit(Num: TCnBigNumber; BitIndex1, BitIndex2: Integer);
@@ -4874,24 +4873,24 @@ begin
 
   A := Num1;
   B := Num2;
-  if A.Top < B.Top then
+  if A.FTop < B.FTop then
   begin
     Tmp := A;
     A := B;
     B := Tmp;
   end;
 
-  Max := A.Top;
-  Min := B.Top;
+  Max := A.FTop;
+  Min := B.FTop;
   Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
 
-  Res.Top := Max;
-  AP := PCnBigNumberElement(A.D);
-  BP := PCnBigNumberElement(B.D);
-  RP := PCnBigNumberElement(Res.D);
+  Res.FTop := Max;
+  AP := PCnBigNumberElement(A.FD);
+  BP := PCnBigNumberElement(B.FD);
+  RP := PCnBigNumberElement(Res.FD);
 
   BigNumberAndWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), PCnBigNumberElementArray(BP), Min);
 
@@ -4915,24 +4914,24 @@ begin
 
   A := Num1;
   B := Num2;
-  if A.Top < B.Top then
+  if A.FTop < B.FTop then
   begin
     Tmp := A;
     A := B;
     B := Tmp;
   end;
 
-  Max := A.Top;
-  Min := B.Top;
+  Max := A.FTop;
+  Min := B.FTop;
   Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
 
-  Res.Top := Max;
-  AP := PCnBigNumberElement(A.D);
-  BP := PCnBigNumberElement(B.D);
-  RP := PCnBigNumberElement(Res.D);
+  Res.FTop := Max;
+  AP := PCnBigNumberElement(A.FD);
+  BP := PCnBigNumberElement(B.FD);
+  RP := PCnBigNumberElement(Res.FD);
 
   BigNumberOrWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), PCnBigNumberElementArray(BP), Min);
 
@@ -4956,24 +4955,24 @@ begin
 
   A := Num1;
   B := Num2;
-  if A.Top < B.Top then
+  if A.FTop < B.FTop then
   begin
     Tmp := A;
     A := B;
     B := Tmp;
   end;
 
-  Max := A.Top;
-  Min := B.Top;
+  Max := A.FTop;
+  Min := B.FTop;
   Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
 
-  Res.Top := Max;
-  AP := PCnBigNumberElement(A.D);
-  BP := PCnBigNumberElement(B.D);
-  RP := PCnBigNumberElement(Res.D);
+  Res.FTop := Max;
+  AP := PCnBigNumberElement(A.FD);
+  BP := PCnBigNumberElement(B.FD);
+  RP := PCnBigNumberElement(Res.FD);
 
   BigNumberXorWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), PCnBigNumberElementArray(BP), Min);
 
@@ -4998,24 +4997,24 @@ begin
 
   A := Num1;
   B := Num2;
-  if A.Top < B.Top then
+  if A.FTop < B.FTop then
   begin
     Tmp := A;
     A := B;
     B := Tmp;
   end;
 
-  Max := A.Top;
-  Min := B.Top;
+  Max := A.FTop;
+  Min := B.FTop;
   Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max + 1) = nil then
     Exit;
 
-  Res.Top := Max;
-  AP := PCnBigNumberElement(A.D);
-  BP := PCnBigNumberElement(B.D);
-  RP := PCnBigNumberElement(Res.D);
+  Res.FTop := Max;
+  AP := PCnBigNumberElement(A.FD);
+  BP := PCnBigNumberElement(B.FD);
+  RP := PCnBigNumberElement(Res.FD);
 
   Carry := BigNumberAddWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), PCnBigNumberElementArray(BP), Min);
 
@@ -5044,7 +5043,7 @@ begin
     if Carry <> 0 then
     begin
       RP^ := 1;
-      Inc(Res.Top);
+      Inc(Res.FTop);
     end;
   end;
 
@@ -5059,7 +5058,7 @@ begin
     end;
   end;
 
-  Res.Neg := 0;
+  Res.FNeg := 0;
   Result := True;
 end;
 
@@ -5072,8 +5071,8 @@ var
 begin
   Result := False;
 
-  Max := Num1.Top;
-  Min := Num2.Top;
+  Max := Num1.FTop;
+  Min := Num2.FTop;
   Dif := Max - Min;
 
   if Dif < 0 then
@@ -5082,9 +5081,9 @@ begin
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
 
-  AP := PCnBigNumberElement(Num1.D);
-  BP := PCnBigNumberElement(Num2.D);
-  RP := PCnBigNumberElement(Res.D);
+  AP := PCnBigNumberElement(Num1.FD);
+  BP := PCnBigNumberElement(Num2.FD);
+  RP := PCnBigNumberElement(Res.FD);
 
   Carry := 0;
   for I := Min downto 1 do
@@ -5162,8 +5161,8 @@ begin
     end;
   end;
 
-  Res.Top := Max;
-  Res.Neg := 0;
+  Res.FTop := Max;
+  Res.FNeg := 0;
   BigNumberCorrectTop(Res);
   Result := True;
 end;
@@ -5176,11 +5175,11 @@ var
 begin
   Result := False;
 
-  Neg := Num1.Neg;
+  Neg := Num1.FNeg;
   A := Num1;
   B := Num2;
 
-  if Neg <> Num2.Neg then // One is negative
+  if Neg <> Num2.FNeg then // One is negative
   begin
     if Neg <> 0 then
     begin
@@ -5194,20 +5193,20 @@ begin
     begin
       if not BigNumberUnsignedSub(Res, B, A) then
         Exit;
-      Res.Neg := 1;
+      Res.FNeg := 1;
     end
     else
     begin
       if not BigNumberUnsignedSub(Res, A, B) then
         Exit;
-      Res.Neg := 0;
+      Res.FNeg := 0;
     end;
     Result := True;
     Exit;
   end;
 
   Result := BigNumberUnsignedAdd(Res, A, B);
-  Res.Neg := Neg;
+  Res.FNeg := Neg;
 end;
 
 function BigNumberSub(Res: TCnBigNumber; Num1: TCnBigNumber;
@@ -5222,9 +5221,9 @@ begin
   A := Num1;
   B := Num2;
 
-  if A.Neg <> 0 then
+  if A.FNeg <> 0 then
   begin
-    if B.Neg <> 0 then
+    if B.FNeg <> 0 then
     begin
       Tmp := A;
       A := B;
@@ -5238,7 +5237,7 @@ begin
   end
   else
   begin
-    if B.Neg <> 0 then // A Positive B Negative
+    if B.FNeg <> 0 then // A Positive B Negative
     begin
       Add := 1;
       Neg := 0;
@@ -5250,15 +5249,15 @@ begin
     if not BigNumberUnsignedAdd(Res, A, B) then
       Exit;
 
-    Res.Neg := Neg;
+    Res.FNeg := Neg;
     Result := True;
     Exit;
   end;
 
-  if A.Top > B.Top then
-    Max := A.Top
+  if A.FTop > B.FTop then
+    Max := A.FTop
   else
-    Max := B.Top;
+    Max := B.FTop;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
@@ -5267,13 +5266,13 @@ begin
   begin
     if not BigNumberUnsignedSub(Res, B, A) then
       Exit;
-    Res.Neg := 1;
+    Res.FNeg := 1;
   end
   else
   begin
     if not BigNumberUnsignedSub(Res, A, B) then
       Exit;
-    Res.Neg := 0;
+    Res.FNeg := 0;
   end;
   Result := True;
 end;
@@ -5288,22 +5287,22 @@ begin
 
   if Res <> Num then
   begin
-    Res.Neg := Num.Neg;
-    if BigNumberWordExpand(Res, Num.Top + 1) = nil then
+    Res.FNeg := Num.FNeg;
+    if BigNumberWordExpand(Res, Num.FTop + 1) = nil then
       Exit;
 
-    Res.Top := Num.Top;
+    Res.FTop := Num.FTop;
   end
   else
   begin
-    if BigNumberWordExpand(Res, Num.Top + 1) = nil then
+    if BigNumberWordExpand(Res, Num.FTop + 1) = nil then
       Exit;
   end;
 
-  AP := Num.D;
-  RP := Res.D;
+  AP := Num.FD;
+  RP := Res.FD;
   C := 0;
-  for I := 0 to Num.Top - 1 do
+  for I := 0 to Num.FTop - 1 do
   begin
     T := AP^;
     AP := PCnBigNumberElement(TCnIntAddress(AP) + SizeOf(TCnBigNumberElement));
@@ -5319,7 +5318,7 @@ begin
   if C <> 0 then
   begin
     RP^ := 1;
-    Inc(Res.Top);
+    Inc(Res.FTop);
   end;
   Result := True;
 end;
@@ -5338,8 +5337,8 @@ begin
     Exit;
   end;
 
-  I := Num.Top;
-  AP := Num.D;
+  I := Num.FTop;
+  AP := Num.FD;
 
   if PCnBigNumberElementArray(AP)^[I - 1] = 1 then
     J := I - 1
@@ -5350,10 +5349,10 @@ begin
   begin
     if BigNumberWordExpand(Res, J) = nil then
       Exit;
-    Res.Neg := Num.Neg;
+    Res.FNeg := Num.FNeg;
   end;
 
-  RP := Res.D;
+  RP := Res.FD;
   Dec(I);
   T := PCnBigNumberElementArray(AP)^[I];
 
@@ -5378,7 +5377,7 @@ begin
       C := 0;
   end;
 
-  Res.Top := J;
+  Res.FTop := J;
   Result := True;
 end;
 
@@ -5396,27 +5395,27 @@ begin
   end;
 
   Result := False;
-  Res.Neg := Num.Neg;
+  Res.FNeg := Num.FNeg;
   NW := N div BN_BITS2;
 
-  if BigNumberWordExpand(Res, Num.Top + NW + 1) = nil then
+  if BigNumberWordExpand(Res, Num.FTop + NW + 1) = nil then
     Exit;
 
   LB := N mod BN_BITS2;
   RB := BN_BITS2 - LB;
 
-  F := PCnBigNumberElementArray(Num.D);
-  T := PCnBigNumberElementArray(Res.D);
+  F := PCnBigNumberElementArray(Num.FD);
+  T := PCnBigNumberElementArray(Res.FD);
 
-  T^[Num.Top + NW] := 0;
+  T^[Num.FTop + NW] := 0;
   if LB = 0 then
   begin
-    for I := Num.Top - 1 downto 0 do
+    for I := Num.FTop - 1 downto 0 do
       T^[NW + I] := F^[I];
   end
   else
   begin
-    for I := Num.Top - 1 downto 0 do
+    for I := Num.FTop - 1 downto 0 do
     begin
       L := F^[I];
       T^[NW + I + 1] := T^[NW + I + 1] or ((L shr RB) and BN_MASK2);
@@ -5425,7 +5424,7 @@ begin
   end;
 
   FillChar(Pointer(T)^, NW * SizeOf(TCnBigNumberElement), 0);
-  Res.Top := Num.Top + NW + 1;
+  Res.FTop := Num.FTop + NW + 1;
   BigNumberCorrectTop(Res);
   Result := True;
 end;
@@ -5448,7 +5447,7 @@ begin
   RB := N mod BN_BITS2;
   LB := BN_BITS2 - RB;
 
-  if (NW >= Num.Top) or (Num.Top = 0) then
+  if (NW >= Num.FTop) or (Num.FTop = 0) then
   begin
     BigNumberSetZero(Res);
     Result := True;
@@ -5458,7 +5457,7 @@ begin
   I := (BigNumberGetBitsCount(Num) - N + (BN_BITS2 - 1)) div BN_BITS2;
   if Res <> Num then
   begin
-    Res.Neg := Num.Neg;
+    Res.FNeg := Num.FNeg;
     if BigNumberWordExpand(Res, I) = nil then
       Exit;
   end
@@ -5471,10 +5470,10 @@ begin
     end;
   end;
 
-  F := PCnBigNumberElementArray(TCnIntAddress(Num.D) + NW * SizeOf(TCnBigNumberElement));
-  T := PCnBigNumberElementArray(Res.D);
-  J := Num.Top - NW;
-  Res.Top := I;
+  F := PCnBigNumberElementArray(TCnIntAddress(Num.FD) + NW * SizeOf(TCnBigNumberElement));
+  T := PCnBigNumberElementArray(Res.FD);
+  J := Num.FTop - NW;
+  Res.FTop := I;
 
   if RB = 0 then
   begin
@@ -5512,7 +5511,7 @@ end;
 function BigNumberIsWord(Num: TCnBigNumber; W: TCnBigNumberElement): Boolean;
 begin
   Result := False;
-  if (W = 0) or (Num.Neg = 0) then
+  if (W = 0) or (Num.FNeg = 0) then
     if BigNumberAbsIsWord(Num, W) then
       Result := True;
 end;
@@ -5521,9 +5520,9 @@ end;
 function BigNumberAbsIsWord(Num: TCnBigNumber; W: TCnBigNumberElement): Boolean;
 begin
   Result := True;
-  if (W = 0) and (Num.Top = 0) then
+  if (W = 0) and (Num.FTop = 0) then
     Exit;
-  if (Num.Top = 1) and (PCnBigNumberElementArray(Num.D)^[0] = W) then // UInt64 和 Cardinal 都适用
+  if (Num.FTop = 1) and (PCnBigNumberElementArray(Num.FD)^[0] = W) then // UInt64 和 Cardinal 都适用
     Exit;
   Result := False;
 end;
@@ -5547,20 +5546,20 @@ begin
     Exit;
   end;
 
-  if Num.Neg <> 0 then // 负就用减法
+  if Num.FNeg <> 0 then // 负就用减法
   begin
-    Num.Neg := 0;
+    Num.FNeg := 0;
     Result := BigNumberSubWord(Num, W);
     if not BigNumberIsZero(Num) then
-      Num.Neg := 1 - Num.Neg;
+      Num.FNeg := 1 - Num.FNeg;
     Exit;
   end;
 
   I := 0;
-  while (W <> 0) and (I < Num.Top) do
+  while (W <> 0) and (I < Num.FTop) do
   begin
-    L := (PCnBigNumberElementArray(Num.D)^[I] + W) and BN_MASK2;
-    PCnBigNumberElementArray(Num.D)^[I] := L;
+    L := (PCnBigNumberElementArray(Num.FD)^[I] + W) and BN_MASK2;
+    PCnBigNumberElementArray(Num.FD)^[I] := L;
     if W > L then // 结果比加数小，说明溢出或者进位了，把进位置给 W，继续加
       W := 1
     else
@@ -5568,12 +5567,12 @@ begin
     Inc(I);
   end;
 
-  if (W <> 0) and (I = Num.Top) then // 如果进位竟然超过了最高位
+  if (W <> 0) and (I = Num.FTop) then // 如果进位竟然超过了最高位
   begin
-    if BigNumberWordExpand(Num, Num.Top + 1) = nil then
+    if BigNumberWordExpand(Num, Num.FTop + 1) = nil then
       Exit;
-    Inc(Num.Top);
-    PCnBigNumberElementArray(Num.D)^[I] := W;
+    Inc(Num.FTop);
+    PCnBigNumberElementArray(Num.FD)^[I] := W;
   end;
   Result := True;
 end;
@@ -5596,18 +5595,18 @@ begin
     Exit;
   end;
 
-  if Num.Neg <> 0 then
+  if Num.FNeg <> 0 then
   begin
-    Num.Neg := 0;
+    Num.FNeg := 0;
     Result := BigNumberAddWord(Num, W);
-    Num.Neg := 1;
+    Num.FNeg := 1;
     Exit;
   end;
 
-  if (Num.Top = 1) and (PCnBigNumberElementArray(Num.D)^[0] < W) then // 不够减
+  if (Num.FTop = 1) and (PCnBigNumberElementArray(Num.FD)^[0] < W) then // 不够减
   begin
-    PCnBigNumberElementArray(Num.D)^[0] := W - PCnBigNumberElementArray(Num.D)^[0];
-    Num.Neg := 1;
+    PCnBigNumberElementArray(Num.FD)^[0] := W - PCnBigNumberElementArray(Num.FD)^[0];
+    Num.FNeg := 1;
     Result := True;
     Exit;
   end;
@@ -5615,21 +5614,21 @@ begin
   I := 0;
   while True do
   begin
-    if PCnBigNumberElementArray(Num.D)^[I] >= W then // 够减直接减
+    if PCnBigNumberElementArray(Num.FD)^[I] >= W then // 够减直接减
     begin
-      PCnBigNumberElementArray(Num.D)^[I] := PCnBigNumberElementArray(Num.D)^[I] - W;
+      PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] - W;
       Break;
     end
     else
     begin
-      PCnBigNumberElementArray(Num.D)^[I] := (PCnBigNumberElementArray(Num.D)^[I] - W) and BN_MASK2;
+      PCnBigNumberElementArray(Num.FD)^[I] := (PCnBigNumberElementArray(Num.FD)^[I] - W) and BN_MASK2;
       Inc(I);
       W := 1;  // 不够减有借位
     end;
   end;
 
-  if (PCnBigNumberElementArray(Num.D)^[I] = 0) and (I = Num.Top - 1) then
-    Dec(Num.Top);
+  if (PCnBigNumberElementArray(Num.FD)^[I] = 0) and (I = Num.FTop - 1) then
+    Dec(Num.FTop);
   Result := True;
 end;
 
@@ -5639,19 +5638,19 @@ var
 begin
   Result := False;
 
-  if Num.Top <> 0 then
+  if Num.FTop <> 0 then
   begin
     if W = 0 then
       BigNumberSetZero(Num)
     else
     begin
-      L := BigNumberMulWords(PCnBigNumberElementArray(Num.D), PCnBigNumberElementArray(Num.D), Num.Top, W);
+      L := BigNumberMulWords(PCnBigNumberElementArray(Num.FD), PCnBigNumberElementArray(Num.FD), Num.FTop, W);
       if L <> 0 then
       begin
-        if BigNumberWordExpand(Num, Num.Top + 1) = nil then
+        if BigNumberWordExpand(Num, Num.FTop + 1) = nil then
           Exit;
-        PCnBigNumberElementArray(Num.D)^[Num.Top] := L;
-        Inc(Num.Top);
+        PCnBigNumberElementArray(Num.FD)^[Num.FTop] := L;
+        Inc(Num.FTop);
       end;
     end;
   end;
@@ -5674,14 +5673,14 @@ begin
 {$ENDIF}
 
   Result := 0;
-  for I := Num.Top - 1 downto 0 do
+  for I := Num.FTop - 1 downto 0 do
   begin
 {$IFDEF BN_DATA_USE_64}
-    Result := ((Result shl BN_BITS4) or ((PCnBigNumberElementArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
-    Result := ((Result shl BN_BITS4) or (PCnBigNumberElementArray(Num.D)^[I] and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or ((PCnBigNumberElementArray(Num.FD)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or (PCnBigNumberElementArray(Num.FD)^[I] and BN_MASK2l)) mod W;
 {$ELSE}
     // 32 位下扩展过去做 UInt64 求余，逐级把上一级的余数作为下一级的高 64 位和下一级拼一块再除求余
-    Result := UInt64Mod((TUInt64(Result) shl BN_BITS2) or TUInt64(PCnBigNumberElementArray(Num.D)^[I]), W);
+    Result := UInt64Mod((TUInt64(Result) shl BN_BITS2) or TUInt64(PCnBigNumberElementArray(Num.FD)^[I]), W);
 {$ENDIF}
   end;
 end;
@@ -5695,7 +5694,7 @@ begin
     raise EDivByZero.Create(SDivByZero);;
 
   Result := 0;
-  if Num.Top = 0 then
+  if Num.FTop = 0 then
     Exit;
 
   J := BN_BITS2 - BigNumberGetWordBitsCount(W);
@@ -5707,9 +5706,9 @@ begin
     Exit;
   end;
 
-  for I := Num.Top - 1 downto 0 do
+  for I := Num.FTop - 1 downto 0 do
   begin
-    L := PCnBigNumberElementArray(Num.D)^[I];
+    L := PCnBigNumberElementArray(Num.FD)^[I];
 {$IFDEF BN_DATA_USE_64}
     D := InternalDivWords64(Result, L, W); // W 保证了最高位为 1，结果才是 64 位
 {$ELSE}
@@ -5717,46 +5716,46 @@ begin
 {$ENDIF}
     Result := (L - ((D * W) and BN_MASK2)) and BN_MASK2;
 
-    PCnBigNumberElementArray(Num.D)^[I] := D;
+    PCnBigNumberElementArray(Num.FD)^[I] := D;
   end;
 
-  if (Num.Top > 0) and (PCnBigNumberElementArray(Num.D)^[Num.Top - 1] = 0) then
-    Dec(Num.Top);
+  if (Num.FTop > 0) and (PCnBigNumberElementArray(Num.FD)^[Num.FTop - 1] = 0) then
+    Dec(Num.FTop);
   Result := Result shr J;
 end;
 
 procedure BigNumberAndWord(Num: TCnBigNumber; W: TCnBigNumberElement);
 begin
-  if Num.Top >= 1 then
+  if Num.FTop >= 1 then
   begin
-    PCnBigNumberElementArray(Num.D)^[0] := PCnBigNumberElementArray(Num.D)^[0] and W;
-    if PCnBigNumberElementArray(Num.D)^[0] <> 0 then // 32/64 位以上的都是 0
-      Num.Top := 1
+    PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] and W;
+    if PCnBigNumberElementArray(Num.FD)^[0] <> 0 then // 32/64 位以上的都是 0
+      Num.FTop := 1
     else
-      Num.Top := 0;
+      Num.FTop := 0;
   end;
 end;
 
 procedure BigNumberOrWord(Num: TCnBigNumber; W: TCnBigNumberElement);
 begin
-  if Num.Top > 0 then
-    PCnBigNumberElementArray(Num.D)^[0] := PCnBigNumberElementArray(Num.D)^[0] and W
+  if Num.FTop > 0 then
+    PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] and W
   else
     Num.SetWord(W);
 end;
 
 procedure BigNumberXorWord(Num: TCnBigNumber; W: TCnBigNumberElement);
 begin
-  if Num.Top > 0 then // 32/64 位以上的 xor 0，都不变
-    PCnBigNumberElementArray(Num.D)^[0] := PCnBigNumberElementArray(Num.D)^[0] xor W
+  if Num.FTop > 0 then // 32/64 位以上的 xor 0，都不变
+    PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] xor W
   else
     Num.SetWord(W); // 0 异或 W 等于 W
 end;
 
 function BigNumberAndWordTo(Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumberElement;
 begin
-  if Num.Top >= 1 then
-    Result := PCnBigNumberElementArray(Num.D)^[0] and W
+  if Num.FTop >= 1 then
+    Result := PCnBigNumberElementArray(Num.FD)^[0] and W
   else
     Result := 0;
 end;
@@ -5777,12 +5776,12 @@ begin
     Result := '-';
 
   Z := 0;
-  for I := Num.Top - 1 downto 0 do
+  for I := Num.FTop - 1 downto 0 do
   begin
     J := BN_BITS2 - 4;
     while J >= 0 do
     begin
-      V := ((PCnBigNumberElementArray(Num.D)^[I]) shr Cardinal(J)) and $0F;
+      V := ((PCnBigNumberElementArray(Num.FD)^[I]) shr Cardinal(J)) and $0F;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[V + 1];
@@ -5808,12 +5807,12 @@ begin
   end;
 
   Z := 0;
-  for I := Num.Top - 1 downto 0 do
+  for I := Num.FTop - 1 downto 0 do
   begin
     J := BN_BITS2 - 8;
     while J >= 0 do
     begin
-      V := ((PCnBigNumberElementArray(Num.D)^[I]) shr Cardinal(J)) and $FF;
+      V := ((PCnBigNumberElementArray(Num.FD)^[I]) shr Cardinal(J)) and $FF;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[(V shr 4) + 1];
@@ -5890,7 +5889,7 @@ begin
       Dec(M);
       if M <= 0 then
       begin
-        PCnBigNumberElementArray(Res.D)^[H] := L;
+        PCnBigNumberElementArray(Res.FD)^[H] := L;
         Inc(H);
         Break;
       end;
@@ -5898,9 +5897,9 @@ begin
     Dec(J, BN_BYTES * 2);
   end;
 
-  Res.Top := H;
+  Res.FTop := H;
   BigNumberCorrectTop(Res);
-  Res.Neg := Neg;
+  Res.FNeg := Neg;
   Result := True;
 end;
 
@@ -6059,7 +6058,7 @@ begin
   end;
 
   BigNumberCorrectTop(Res);
-  Res.Neg := Neg;
+  Res.FNeg := Neg;
   Result := True;
 end;
 
@@ -6119,12 +6118,12 @@ begin
       if B <= 64 then
       begin
 {$IFDEF BN_DATA_USE_64}
-        M := PUInt64Array(Num.D)^[0];
+        M := PUInt64Array(Num.FD)^[0];
 {$ELSE}
         if B >= 32 then
-          M := PInt64Array(Num.D)^[0]
+          M := PInt64Array(Num.FD)^[0]
         else
-          M := PCnLongWord32Array(Num.D)^[0];
+          M := PCnLongWord32Array(Num.FD)^[0];
 {$ENDIF}
 
         if B < 64 then   // 10 字节扩展精度有 64 位有效数字，要求最高位为 1
@@ -6135,9 +6134,9 @@ begin
         // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
         K := (B - 1) div 64;
 {$IFDEF SUPPORT_UINT64}
-        T := TUInt64(PInt64Array(Num.D)^[K]);
+        T := TUInt64(PInt64Array(Num.FD)^[K]);
 {$ELSE}
-        T := PInt64Array(Num.D)^[K];
+        T := PInt64Array(Num.FD)^[K];
 {$ENDIF}
         // T 拿到最高的 64 位 Element
         K := B mod 64;
@@ -6150,9 +6149,9 @@ begin
         begin
           K := ((B - 1) div 64) - 1;
 {$IFDEF SUPPORT_UINT64}
-          T := TUInt64(PInt64Array(Num.D)^[K]);
+          T := TUInt64(PInt64Array(Num.FD)^[K]);
 {$ELSE}
-          T := PInt64Array(Num.D)^[K];
+          T := PInt64Array(Num.FD)^[K];
 {$ENDIF}
           // T 拿到次高的 64 位 Element
           K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
@@ -6172,12 +6171,12 @@ begin
       if B <= 64 then
       begin
 {$IFDEF BN_DATA_USE_64}
-        M := PUInt64Array(Num.D)^[0];
+        M := PUInt64Array(Num.FD)^[0];
 {$ELSE}
         if B >= 32 then
-          M := PInt64Array(Num.D)^[0]
+          M := PInt64Array(Num.FD)^[0]
         else
-          M := PCnLongWord32Array(Num.D)^[0];
+          M := PCnLongWord32Array(Num.FD)^[0];
 {$ENDIF}
 
         if B < 53 then
@@ -6191,9 +6190,9 @@ begin
         // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
         K := (B - 1) div 64;
 {$IFDEF SUPPORT_UINT64}
-        T := TUInt64(PInt64Array(Num.D)^[K]);
+        T := TUInt64(PInt64Array(Num.FD)^[K]);
 {$ELSE}
-        T := PInt64Array(Num.D)^[K];
+        T := PInt64Array(Num.FD)^[K];
 {$ENDIF}
         // T 拿到最高的 64 位 Element
         K := B mod 64;
@@ -6206,9 +6205,9 @@ begin
         begin
           K := ((B - 1) div 64) - 1;
 {$IFDEF SUPPORT_UINT64}
-          T := TUInt64(PInt64Array(Num.D)^[K]);
+          T := TUInt64(PInt64Array(Num.FD)^[K]);
 {$ELSE}
-          T := PInt64Array(Num.D)^[K];
+          T := PInt64Array(Num.FD)^[K];
 {$ENDIF}
           // T 拿到次高的 64 位 Element
           K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
@@ -6284,11 +6283,11 @@ var
   IsFromPool: Boolean;
 begin
   Result := False;
-  AL := Num.Top;
+  AL := Num.FTop;
   if AL <= 0 then
   begin
-    Res.Top := 0;
-    Res.Neg := 0;
+    Res.FTop := 0;
+    Res.FNeg := 0;
     Result := True;
     Exit;
   end;
@@ -6316,24 +6315,24 @@ begin
 
     if AL = 4 then
     begin
-      BigNumberSqrNormal(RR.D, Num.D, 4, @(T[0]));
+      BigNumberSqrNormal(RR.FD, Num.FD, 4, @(T[0]));
     end
     else if AL = 8 then
     begin
-      BigNumberSqrNormal(RR.D, Num.D, 8, @(T[0]));
+      BigNumberSqrNormal(RR.FD, Num.FD, 8, @(T[0]));
     end
     else
     begin
       if BigNumberWordExpand(Tmp, Max) = nil then
         Exit;
-      BigNumberSqrNormal(RR.D, Num.D, AL, Tmp.D);
+      BigNumberSqrNormal(RR.FD, Num.FD, AL, Tmp.FD);
     end;
 
-    RR.Neg := 0;
-    if PCnBigNumberElementArray(Num.D)^[AL - 1] = (PCnBigNumberElementArray(Num.D)^[AL - 1] and BN_MASK2l) then
-      RR.Top := Max - 1
+    RR.FNeg := 0;
+    if PCnBigNumberElementArray(Num.FD)^[AL - 1] = (PCnBigNumberElementArray(Num.FD)^[AL - 1] and BN_MASK2l) then
+      RR.FTop := Max - 1
     else
-      RR.Top := Max;
+      RR.FTop := Max;
 
     if RR <> Res then
       BigNumberCopy(Res, RR);
@@ -6706,13 +6705,13 @@ end;
 function BigNumberMul(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 var
-  Top, AL, BL: Integer;
+  FTop, AL, BL: Integer;
   RR: TCnBigNumber;
   IsFromPool: Boolean;
 begin
   Result := False;
-  AL := Num1.Top;
-  BL := Num2.Top;
+  AL := Num1.FTop;
+  BL := Num2.FTop;
 
   if (AL = 0) or (BL = 0) then
   begin
@@ -6723,7 +6722,7 @@ begin
 
   if (AL < BN_MUL_KARATSUBA) and (BL < BN_MUL_KARATSUBA) then // 小的、直接乘
   begin
-    Top := AL + BL;
+    FTop := AL + BL;
 
     RR := nil;
     IsFromPool := False;
@@ -6739,15 +6738,15 @@ begin
       else
         RR := Res;
 
-      if Num1.Neg <> Num2.Neg then
-        RR.Neg := 1
+      if Num1.FNeg <> Num2.FNeg then
+        RR.FNeg := 1
       else
-        RR.Neg := 0;
+        RR.FNeg := 0;
 
-      if BigNumberWordExpand(RR, Top) = nil then
+      if BigNumberWordExpand(RR, FTop) = nil then
         Exit;
-      RR.Top := Top;
-      BigNumberMulNormal(RR.D, Num1.D, AL, Num2.D, BL);
+      RR.FTop := FTop;
+      BigNumberMulNormal(RR.FD, Num1.FD, AL, Num2.FD, BL);
 
       if RR <> Res then
         BigNumberCopy(Res, RR);
@@ -6831,7 +6830,7 @@ var
 {$ENDIF}
 begin
   Result := False;
-  if (Num.Top > 0) and (PCnBigNumberElementArray(Num.D)^[Num.Top - 1] = 0) then
+  if (Num.FTop > 0) and (PCnBigNumberElementArray(Num.FD)^[Num.FTop - 1] = 0) then
     Exit;
 
   if BigNumberIsZero(Divisor) then
@@ -6870,63 +6869,63 @@ begin
     if not BigNumberShiftLeft(SDiv, Divisor, NormShift) then
       Exit;
 
-    SDiv.Neg := 0;
+    SDiv.FNeg := 0;
     // 把被除数同样左移，并再左移一个字
     NormShift := NormShift + BN_BITS2;
     if not BigNumberShiftLeft(SNum, Num, NormShift) then
       Exit;
 
-    SNum.Neg := 0;
-    DivN := SDiv.Top;
-    NumN := SNum.Top;
+    SNum.FNeg := 0;
+    DivN := SDiv.FTop;
+    NumN := SNum.FTop;
     Loop := NumN - DivN;
 
     WNum := FLocalBigNumberPool.Obtain;
-    BackupNeg := WNum.Neg;
-    BackupD := WNum.D;
-    BackupTop := WNum.Top;
-    BackupDMax := WNum.DMax;
+    BackupNeg := WNum.FNeg;
+    BackupD := WNum.FD;
+    BackupTop := WNum.FTop;
+    BackupDMax := WNum.FDMax;
 
     // 注意 WNum 需要使用外部的 D，把池子里拿出来的东西先备份
-    WNum.Neg := 0;
-    WNum.D := PCnBigNumberElement(TCnIntAddress(SNum.D) + Loop * SizeOf(TCnBigNumberElement));
-    WNum.Top := DivN;
-    WNum.DMax := SNum.DMax - Loop;
+    WNum.FNeg := 0;
+    WNum.FD := PCnBigNumberElement(TCnIntAddress(SNum.FD) + Loop * SizeOf(TCnBigNumberElement));
+    WNum.FTop := DivN;
+    WNum.FDMax := SNum.FDMax - Loop;
 
-    D0 := PCnBigNumberElementArray(SDiv.D)^[DivN - 1];
+    D0 := PCnBigNumberElementArray(SDiv.FD)^[DivN - 1];
     if DivN = 1 then
       D1 := 0
     else
-      D1 := PCnBigNumberElementArray(SDiv.D)^[DivN - 2];
+      D1 := PCnBigNumberElementArray(SDiv.FD)^[DivN - 2];
     // D0 D1 是 SDiv 的最高俩 UInt32/UInt64
 
-    WNump := PCnBigNumberElement(TCnIntAddress(SNum.D) + (NumN - 1) * SizeOf(TCnBigNumberElement));
+    WNump := PCnBigNumberElement(TCnIntAddress(SNum.FD) + (NumN - 1) * SizeOf(TCnBigNumberElement));
 
-    if Num.Neg <> Divisor.Neg then
-      SRes.Neg := 1
+    if Num.FNeg <> Divisor.FNeg then
+      SRes.FNeg := 1
     else
-      SRes.Neg := 0;
+      SRes.FNeg := 0;
 
     if BigNumberWordExpand(SRes, Loop + 1) = nil then
       Exit;
 
-    SRes.Top := Loop;
-    Resp := PCnBigNumberElement(TCnIntAddress(SRes.D) + (Loop - 1) * SizeOf(TCnBigNumberElement));
+    SRes.FTop := Loop;
+    Resp := PCnBigNumberElement(TCnIntAddress(SRes.FD) + (Loop - 1) * SizeOf(TCnBigNumberElement));
 
     if BigNumberWordExpand(Tmp, DivN + 1) = nil then
       Exit;
 
     if BigNumberUnsignedCompare(WNum, SDiv) >= 0 then
     begin
-      BigNumberSubWords(PCnBigNumberElementArray(WNum.D), PCnBigNumberElementArray(WNum.D),
-        PCnBigNumberElementArray(SDiv.D), DivN);
+      BigNumberSubWords(PCnBigNumberElementArray(WNum.FD), PCnBigNumberElementArray(WNum.FD),
+        PCnBigNumberElementArray(SDiv.FD), DivN);
       Resp^ := 1;
     end
     else
-      Dec(SRes.Top);
+      Dec(SRes.FTop);
 
-    if SRes.Top = 0 then
-      SRes.Neg := 0
+    if SRes.FTop = 0 then
+      SRes.FNeg := 0
     else
       Resp := PCnBigNumberElement(TCnIntAddress(Resp) - SizeOf(TCnBigNumberElement));
 
@@ -6971,16 +6970,16 @@ begin
         end;
       end;
 
-      L0 := BigNumberMulWords(PCnBigNumberElementArray(Tmp.D), PCnBigNumberElementArray(SDiv.D), DivN, Q);
-      PCnBigNumberElementArray(Tmp.D)^[DivN] := L0;
-      WNum.D := PCnBigNumberElement(TCnIntAddress(WNum.D) - SizeOf(TCnBigNumberElement));
+      L0 := BigNumberMulWords(PCnBigNumberElementArray(Tmp.FD), PCnBigNumberElementArray(SDiv.FD), DivN, Q);
+      PCnBigNumberElementArray(Tmp.FD)^[DivN] := L0;
+      WNum.FD := PCnBigNumberElement(TCnIntAddress(WNum.FD) - SizeOf(TCnBigNumberElement));
 
-      if BigNumberSubWords(PCnBigNumberElementArray(WNum.D), PCnBigNumberElementArray(WNum.D),
-        PCnBigNumberElementArray(Tmp.D), DivN + 1) <> 0 then
+      if BigNumberSubWords(PCnBigNumberElementArray(WNum.FD), PCnBigNumberElementArray(WNum.FD),
+        PCnBigNumberElementArray(Tmp.FD), DivN + 1) <> 0 then
       begin
         Dec(Q);
-        if BigNumberAddWords(PCnBigNumberElementArray(WNum.D), PCnBigNumberElementArray(WNum.D),
-          PCnBigNumberElementArray(SDiv.D), DivN) <> 0 then
+        if BigNumberAddWords(PCnBigNumberElementArray(WNum.FD), PCnBigNumberElementArray(WNum.FD),
+          PCnBigNumberElementArray(SDiv.FD), DivN) <> 0 then
           WNump^ := WNump^ + 1;
       end;
 
@@ -6990,13 +6989,13 @@ begin
     end;
 
     BigNumberCorrectTop(SNum);
-    Neg := Num.Neg;
+    Neg := Num.FNeg;
 
     if Remain <> nil then // 需要余数时
     begin
       BigNumberShiftRight(Remain, SNum, NormShift);
       if not BigNumberIsZero(Remain) then
-        Remain.Neg := Neg;
+        Remain.FNeg := Neg;
     end;
 
     Result := True;
@@ -7005,10 +7004,10 @@ begin
     FLocalBigNumberPool.Recycle(SNum);
     FLocalBigNumberPool.Recycle(SDiv);
     // 恢复 WNum 内容并扔回池子里
-    WNum.Neg := BackupNeg;
-    WNum.D := BackupD;
-    WNum.Top := BackupTop;
-    WNum.DMax := BackupDMax;
+    WNum.FNeg := BackupNeg;
+    WNum.FD := BackupD;
+    WNum.FTop := BackupTop;
+    WNum.FDMax := BackupDMax;
     FLocalBigNumberPool.Recycle(WNum);
   end;
 end;
@@ -7077,11 +7076,11 @@ begin
     Exit;
 
   Result := True;
-  if Remain.Neg = 0 then
+  if Remain.FNeg = 0 then
     Exit;
 
   // 现在 -|Divisor| < Remain < 0，所以需要 Remain := Remain + |Divisor|
-  if Divisor.Neg <> 0 then
+  if Divisor.FNeg <> 0 then
     Result := BigNumberSub(Remain, Remain, Divisor)
   else
     Result := BigNumberAdd(Remain, Remain, Divisor);
@@ -7347,8 +7346,8 @@ begin
     if BigNumberCopy(B, Num2) = nil then
       Exit;
 
-    A.Neg := 0;
-    B.Neg := 0;
+    A.FNeg := 0;
+    B.FNeg := 0;
     if BigNumberCompare(A, B) < 0 then
     begin
       T := A;
@@ -10154,15 +10153,15 @@ begin
   if Num = nil then
     Exit;
 
-  Result := Format('Neg %d. DMax %d. Top %d.', [Num.Neg, Num.DMax, Num.Top]);
-  if (Num.D <> nil) and (Num.Top > 0) then
+  Result := Format('Neg %d. DMax %d. Top %d.', [Num.FNeg, Num.FDMax, Num.FTop]);
+  if (Num.FD <> nil) and (Num.FTop > 0) then
   begin
-    for I := 0 to Num.Top - 1 do
+    for I := 0 to Num.FTop - 1 do
     begin
 {$IFDEF BN_DATA_USE_64}
-      Result := Result + Format(' $%16.16x', [PCnBigNumberElementArray(Num.D)^[I]]);
+      Result := Result + Format(' $%16.16x', [PCnBigNumberElementArray(Num.FD)^[I]]);
 {$ELSE}
-      Result := Result + Format(' $%8.8x', [PCnBigNumberElementArray(Num.D)^[I]]);
+      Result := Result + Format(' $%8.8x', [PCnBigNumberElementArray(Num.FD)^[I]]);
 {$ENDIF}
     end;
   end;
@@ -10171,16 +10170,16 @@ end;
 // 将大数内部信息原封不动 Dump 至 Mem 所指的内存区
 function BigNumberRawDump(Num: TCnBigNumber; Mem: Pointer): Integer;
 begin
-  if Num.D = nil then
+  if Num.FD = nil then
   begin
     Result := 0;
     Exit;
   end
   else
-    Result := Num.Top * SizeOf(TCnBigNumberElement);
+    Result := Num.FTop * SizeOf(TCnBigNumberElement);
 
   if Mem <> nil then
-    Move(Num.D^, Mem^, Num.Top * SizeOf(TCnBigNumberElement));
+    Move(Num.FD^, Mem^, Num.FTop * SizeOf(TCnBigNumberElement));
 end;
 
 function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
@@ -10413,10 +10412,10 @@ end;
 constructor TCnBigNumber.Create;
 begin
   inherited;
-  Top := 0;
-  Neg := 0;
-  DMax := 0;
-  D := nil;
+  FTop := 0;
+  FNeg := 0;
+  FDMax := 0;
+  FD := nil;
 end;
 
 destructor TCnBigNumber.Destroy;
@@ -10426,10 +10425,10 @@ begin
     raise ECnBigNumberException.Create(SCnErrorBigNumberFreeFromPool);
 {$ENDIF}
 
-  if D <> nil then
-    FreeMemory(D);
+  if fD <> nil then
+    FreeMemory(fD);
 
-  D := nil;
+  FD := nil;
   inherited;
 end;
 
@@ -10738,8 +10737,8 @@ var
 begin
   // 把 32 位的内容全不管溢出地加起来，哪怕元素是 64 位也只加其低 32 位
   Result := 0;
-  for I := 0 to Top - 1 do
-    Result := Result + Integer(PCnBigNumberElementArray(D)^[I]);
+  for I := 0 to FTop - 1 do
+    Result := Result + Integer(PCnBigNumberElementArray(FD)^[I]);
 end;
 
 class function TCnBigNumber.FromFloat(F: Extended): TCnBigNumber;
