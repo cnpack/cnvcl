@@ -368,6 +368,34 @@ function cn_base64url_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap
    返回值：TCnResult                        - 错误码，CN_OK 表示成功，不合法输入返回 CN_E_INVALID_ARG
 }
 
+function cn_base32_encode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
+  TCnSize; var out_len: TCnSize): TCnResult; cdecl;
+{* 将数据进行 Base32 编码。
+
+   参数：
+     in_ptr: PByte                          - 输入数据指针
+     in_len: TCnSize                        - 输入数据字节长度
+     out_ptr: PByte                         - 输出缓冲区。如 DLL 是 Unicode 编译，则此处输出双字节字符串内容，否则为单字节字符串内容
+     cap: TCnSize                           - 输出缓冲区容量，单位字节
+     out_len: TCnSize                       - 实际输出字节长度
+
+   返回值：TCnResult                        - 错误码，CN_OK 表示成功
+}
+
+function cn_base32_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
+  TCnSize; var out_len: TCnSize): TCnResult; cdecl;
+{* 解码 Base32 字符串为二进制数据。
+
+   参数：
+     in_ptr: PByte                          - 输入 Base64 数据指针。如 DLL 是 Unicode 编译，则此处需要双字节字符串内容，否则为单字节字符串内容
+     in_len: TCnSize                        - 输入字节长度
+     out_ptr: PByte                         - 输出二进制缓冲区
+     cap: TCnSize                           - 输出缓冲区容量，单位字节
+     out_len: TCnSize                       - 实际输出字节长度
+
+   返回值：TCnResult                        - 错误码，CN_OK 表示成功，不合法输入返回 CN_E_INVALID_ARG
+}
+
 function cn_otp_hotp(seed: PByte; seed_len: TCnSize; counter: TUInt64; digits:
   TInt32; out_code_ascii: PByte; cap: TCnSize; var out_len: TCnSize): TCnResult; cdecl;
 {* 生成 HOTP 一次性密码。

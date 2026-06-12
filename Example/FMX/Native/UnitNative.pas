@@ -386,7 +386,7 @@ begin
 
   A := AnsiToBytes('123');
   B := AnsiToBytes('123');
-  if ConstTimeBytesEqual(A, B) then
+  if ConstTimeCompareBytes(A, B) then
     mmoRes.Lines.Add('2 Bytes Equal');
 end;
 

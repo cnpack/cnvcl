@@ -7,7 +7,7 @@ interface
 uses
   SysUtils, Classes, System.Types, System.UITypes,
   FMX.Controls, FMX.Forms, FMX.Dialogs, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF}
-  FMX.ExtCtrls, FMX.Edit, FMX.Memo, FMX.Types,
+  FMX.StdCtrls, FMX.ExtCtrls, FMX.Edit, FMX.Memo, FMX.Types,
   CnQRCode, CnQRImage, FMX.Layouts, FMX.Objects;
 
 type
