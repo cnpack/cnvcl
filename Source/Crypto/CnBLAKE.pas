@@ -2240,58 +2240,26 @@ end;
 
 // 比较两个 BLAKE224 杂凑值是否相等
 function BLAKE224Match(const D1, D2: TCnBLAKE224Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 28) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnBLAKE224Digest));
 end;
 
 // 比较两个 BLAKE256 杂凑值是否相等
 function BLAKE256Match(const D1, D2: TCnBLAKE256Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 32) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnBLAKE256Digest));
 end;
 
 // 比较两个 BLAKE384 杂凑值是否相等
 function BLAKE384Match(const D1, D2: TCnBLAKE384Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 48) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnBLAKE384Digest));
 end;
 
 // 比较两个 BLAKE512 杂凑值是否相等
 function BLAKE512Match(const D1, D2: TCnBLAKE512Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 64) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnBLAKE512Digest));
 end;
 
 // BLAKE224 杂凑值转 string

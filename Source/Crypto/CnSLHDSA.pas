@@ -1591,7 +1591,7 @@ begin
     begin
       // Last layer: compare with PKRoot
       Result := (Length(ComputedRoot) = Length(PKRoot))
-            and CompareMem(@ComputedRoot[0], @PKRoot[0], Length(PKRoot));
+            and ConstTimeCompareMem(@ComputedRoot[0], @PKRoot[0], Length(PKRoot));
       if not Result then
         Exit;
     end

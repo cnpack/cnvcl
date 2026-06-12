@@ -1624,35 +1624,19 @@ begin
 end;
 
 function BLAKE2SMatch(const D1, D2: TCnBLAKE2SDigest; DigestLength: Integer): Boolean;
-var
-  I: Integer;
 begin
   if (DigestLength <= 0) or (DigestLength > CN_BLAKE2S_OUTBYTES) then
     raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
 
-  I := 0;
-  Result := True;
-  while Result and (I < DigestLength) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], DigestLength);
 end;
 
 function BLAKE2BMatch(const D1, D2: TCnBLAKE2BDigest; DigestLength: Integer): Boolean;
-var
-  I: Integer;
 begin
   if (DigestLength <= 0) or (DigestLength > CN_BLAKE2B_OUTBYTES) then
     raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
 
-  I := 0;
-  Result := True;
-  while Result and (I < DigestLength) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], DigestLength);
 end;
 
 function BLAKE2SDigestToStr(const Digest: TCnBLAKE2SDigest; DigestLength: Integer): string;

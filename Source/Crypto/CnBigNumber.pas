@@ -4842,10 +4842,7 @@ end;
 function InternalDivWords(H: Cardinal; L: Cardinal; D: Cardinal): Cardinal;
 begin
   if D = 0 then
-  begin
-    Result := BN_MASK2;
-    Exit;
-  end;
+    raise EDivByZero.Create(SDivByZero);
 
 {$IFDEF SUPPORT_UINT64}
   Result := Cardinal(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
@@ -8219,7 +8216,7 @@ begin
     BigNumberFindFactors(PrimeSubOne, Factors);
     Factors.RemoveDuplicated;
 
-    Num := FLocalBigNumberPool.Obtain;;
+    Num := FLocalBigNumberPool.Obtain;
     Res.SetZero;
     for I := 2 to MaxInt do // 不查太大的大数
     begin

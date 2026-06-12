@@ -509,8 +509,8 @@ begin
     repeat
       if not BigNumberRandRange(K, DSAParameter.Q) then Exit;
 
-      if K.IsZero then
-        K.SetOne;
+      if K.IsZero then // 如果随机数取到全 0 则重试
+        Continue;
 
       // r = (g^k mod p) mod q
       if not BigNumberPowerMod(OutSignature.R, DSAParameter.G, K, DSAParameter.P) then Exit;
