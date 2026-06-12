@@ -167,9 +167,11 @@ type
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
   {* RSA 密钥文件格式。注意它和 CnECC 中的 TCnEccKeyType 名字重复，使用时要注意}
 
-  TCnRSAPaddingMode = (cpmPKCS1, cpmOAEP);
-  {* RSA 加密的填充模式，PKCS1 适合加解密，包括三种填充类型，
-    OAEP 只适用于公钥加密，默认使用 SHA1 作为掩码生成杂凑算法}
+  TCnRSAPaddingMode = (cpmPKCS1, cpmOAEP, cpmOAEP_SHA256, cpmOAEP_SHA384,
+    cpmOAEP_SHA512);
+  {* RSA 加密的填充模式。其中，PKCS1 适合加解密，包括三种填充子类型。
+    OAEP 只适用于公钥加密，默认使用 SHA1 作为掩码生成杂凑算法也即 cpmOAEP，
+    后续增加了其他 SHA256 等杂凑的 OAEP 模式}
 
   TCnRSAPrivateKey = class(TPersistent)
   {* RSA 私钥}
@@ -970,8 +972,9 @@ function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
 
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
   DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0): Boolean;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 对 Data 里 DataLen 的数据进行 OAEP 填充，内容放到 ToBuf 的 ToByteLen 里，返回填充是否成功。
-   默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToByteLen 一般是 RSA 的素数积的字节数。
+   内部使用 SHA1 对 DigestBuf 内容进行杂凑，ToByteLen 一般是 RSA 的密钥的积的字节数。
 
    参数：
      ToBuf: PByte                         - 待容纳填充后的数据的数据块地址
@@ -986,9 +989,48 @@ function AddOaepSha1MgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByt
 
 function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData: PByte;
   DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0): Boolean;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，内容放到 ToBuf 的 OutByteLen 里，返回检查是否成功。
    ToBuf 能容纳的实际长度不能太短，如成功，OutByteLen 返回明文数据长度
-   默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataByteLen 要求是 RSA 的密钥的积的字节数。
+   内部使用 SHA1 对 DigestBuf 内容进行杂凑，DataByteLen 要求是 RSA 的密钥的积的字节数。
+
+   参数：
+     ToBuf: PByte                         - 容纳返回的明文数据的数据块的地址
+     out OutByteLen: Integer              - 如去除填充成功，返回明文数据长度
+     EnData: PByte                        - 待进行 OAEP 验证的数据块地址
+     DataByteLen: Integer                 - 待进行 OAEP 验证的数据块字节长度
+     DigestParam: PByte                   - 额外进行杂凑拼接的数据块地址
+     ParamByteLen: Integer                - 额外进行杂凑拼接的数据块字节长度
+
+   返回值：Boolean                        - 返回去除填充是否成功
+}
+
+function AddOaepMgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0;
+  DigestType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用指定杂凑算法对 Data 里 DataLen 的数据进行 OAEP 填充，
+   内容放到 ToBuf 的 ToByteLen 里，返回填充是否成功。
+   ToByteLen 一般是 RSA 的密钥的积的字节数。
+
+   参数：
+     ToBuf: PByte                         - 待容纳填充后的数据的数据块地址
+     ToByteLen: Integer                   - 待容纳填充后的数据的数据块字节长度，需足够大
+     PlainData: PByte                     - 待进行 OAEP 填充的数据块地址
+     DataByteLen: Integer                 - 待进行 OAEP 填充的数据块字节长度
+     DigestParam: PByte                   - 额外进行杂凑拼接的数据块地址
+     ParamByteLen: Integer                - 额外进行杂凑拼接的数据块字节长度
+     DigestType: TCnRSASignDigestTyp      - 指定的杂凑算法类型
+
+   返回值：Boolean                        - 返回填充是否成功
+}
+
+function RemoveOaepMgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData: PByte;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0;
+  DigestType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用指定杂凑算法对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，
+   内容放到 ToBuf 的 OutByteLen 里，返回检查是否成功。
+   ToBuf 能容纳的实际长度不能太短，如成功，OutByteLen 返回明文数据长度。
+   DataByteLen 要求是 RSA 的密钥的积的字节数。
 
    参数：
      ToBuf: PByte                         - 容纳返回的明文数据的数据块的地址
@@ -2678,6 +2720,18 @@ begin
   end;
 end;
 
+function OAEPModeToDigestType(Mode: TCnRSAPaddingMode): TCnRSASignDigestType;
+begin
+  case Mode of
+    cpmOAEP:         Result := rsdtSHA1;
+    cpmOAEP_SHA256:  Result := rsdtSHA256;
+    cpmOAEP_SHA384:  Result := rsdtSHA384;
+    cpmOAEP_SHA512:  Result := rsdtSHA512;
+  else
+    Result := rsdtSHA1;
+  end;
+end;
+
 // 将一片内存区域按指定的 Padding 模式与类型填充后进行 RSA 加解密计算
 function RSAPaddingCrypt(PaddingType, BlockSize: Integer; PlainData: Pointer;
   DataByteLen: Integer; OutBuf: Pointer; Exponent, Product: TCnBigNumber;
@@ -2706,6 +2760,17 @@ begin
       // OAEP 公钥加密，仅公钥的控制在调用者
       Stream.Size := Product.GetBytesCount;
       if not AddOaepSha1MgfPadding(Stream.Memory, Stream.Size, PlainData, DataByteLen) then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+    end
+    else if PaddingMode in [cpmOAEP_SHA256, cpmOAEP_SHA384, cpmOAEP_SHA512] then
+    begin
+      // OAEP 公钥加密，使用 SHA2 系列哈希
+      Stream.Size := Product.GetBytesCount;
+      if not AddOaepMgfPadding(Stream.Memory, Stream.Size, PlainData, DataByteLen,
+        nil, 0, OAEPModeToDigestType(PaddingMode)) then
       begin
         _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
@@ -2864,6 +2929,17 @@ begin
     begin
       // OAEP 解密，仅私钥的控制在调用者
       Result := RemoveOaepSha1MgfPadding(OutBuf, OutLen, @ResBuf[0], Length(ResBuf));
+
+      if Result then
+        _CnSetLastError(ECN_RSA_OK)
+      else
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    end
+    else if PaddingMode in [cpmOAEP_SHA256, cpmOAEP_SHA384, cpmOAEP_SHA512] then
+    begin
+      // OAEP 解密，使用 SHA2 系列哈希
+      Result := RemoveOaepMgfPadding(OutBuf, OutLen, @ResBuf[0], Length(ResBuf),
+        nil, 0, OAEPModeToDigestType(PaddingMode));
 
       if Result then
         _CnSetLastError(ECN_RSA_OK)
@@ -4723,6 +4799,100 @@ begin
   Result := True;
 end;
 
+// 通用的 MGF1 掩码生成函数，通过 SignType 指定哈希算法
+function Pkcs1MGF(Seed: Pointer; SeedLen: Integer; OutMask: Pointer;
+  MaskLen: Integer; SignType: TCnRSASignDigestType): Boolean;
+var
+  I, OutLen, MdLen: Integer;
+  Cnt: array[0..3] of Byte;
+  Buf: TBytes;
+  Md5Dig: TCnMD5Digest;
+  Sha1Dig: TCnSHA1Digest;
+  Sha224Dig: TCnSHA224Digest;
+  Sha256Dig: TCnSHA256Digest;
+  Sha384Dig: TCnSHA384Digest;
+  Sha512Dig: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
+begin
+  Result := False;
+  OutLen := 0;
+  if (Seed = nil) or (SeedLen <= 0) then
+    Exit;
+  if (OutMask = nil) or (MaskLen <= 0) then
+    Exit;
+
+  case SignType of
+    rsdtMD5: MdLen := SizeOf(TCnMD5Digest);
+    rsdtSHA1: MdLen := SizeOf(TCnSHA1Digest);
+    rsdtSHA224: MdLen := SizeOf(TCnSHA224Digest);
+    rsdtSHA256: MdLen := SizeOf(TCnSHA256Digest);
+    rsdtSHA384: MdLen := SizeOf(TCnSHA384Digest);
+    rsdtSHA512: MdLen := SizeOf(TCnSHA512Digest);
+    rsdtSM3: MdLen := SizeOf(TCnSM3Digest);
+  else
+    Exit;
+  end;
+
+  I := 0;
+  SetLength(Buf, SeedLen + SizeOf(Cnt));
+  while OutLen < MaskLen do
+  begin
+    Cnt[0] := (I shr 24) and $FF;
+    Cnt[1] := (I shr 16) and $FF;
+    Cnt[2] := (I shr 8) and $FF;
+    Cnt[3] := I and $FF;
+    Move(PAnsiChar(Seed)^, Buf[0], SeedLen);
+    Move(Cnt[0], Buf[SeedLen], SizeOf(Cnt));
+
+    case SignType of
+      rsdtMD5:
+        Md5Dig := MD5Buffer(Buf[0], Length(Buf));
+      rsdtSHA1:
+        Sha1Dig := SHA1Buffer(Buf[0], Length(Buf));
+      rsdtSHA224:
+        Sha224Dig := SHA224Buffer(Buf[0], Length(Buf));
+      rsdtSHA256:
+        Sha256Dig := SHA256Buffer(Buf[0], Length(Buf));
+      rsdtSHA384:
+        Sha384Dig := SHA384Buffer(Buf[0], Length(Buf));
+      rsdtSHA512:
+        Sha512Dig := SHA512Buffer(Buf[0], Length(Buf));
+      rsdtSM3:
+        Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
+    end;
+
+    if OutLen + MdLen <= MaskLen then
+    begin
+      case SignType of
+        rsdtMD5: Move(Md5Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+        rsdtSHA1: Move(Sha1Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+        rsdtSHA224: Move(Sha224Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+        rsdtSHA256: Move(Sha256Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+        rsdtSHA384: Move(Sha384Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+        rsdtSHA512: Move(Sha512Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+        rsdtSM3: Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+      end;
+      Inc(OutLen, MdLen);
+    end
+    else
+    begin
+      case SignType of
+        rsdtMD5: Move(Md5Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+        rsdtSHA1: Move(Sha1Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+        rsdtSHA224: Move(Sha224Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+        rsdtSHA256: Move(Sha256Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+        rsdtSHA384: Move(Sha384Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+        rsdtSHA512: Move(Sha512Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+        rsdtSM3: Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+      end;
+      OutLen := MaskLen;
+    end;
+    Inc(I);
+  end;
+  SetLength(Buf, 0);
+  Result := True;
+end;
+
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
   DataByteLen: Integer; DigestParam: PByte; ParamByteLen: Integer): Boolean;
 var
@@ -4790,7 +4960,105 @@ begin
 
   SetLength(DBMask, 0);
   Result := True;
-  // 最后加密消息 = 00 || maskedSeed || maskedDB
+  // 加密后的信息 = 00 || maskedSeed || maskedDB
+end;
+
+function AddOaepMgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
+  DataByteLen: Integer; DigestParam: PByte; ParamByteLen: Integer;
+  DigestType: TCnRSASignDigestType): Boolean;
+var
+  EmLen, MdLen, I: Integer;
+  Md5Dig: TCnMD5Digest;
+  Sha1Dig: TCnSHA1Digest;
+  Sha224Dig: TCnSHA224Digest;
+  Sha256Dig: TCnSHA256Digest;
+  Sha384Dig: TCnSHA384Digest;
+  Sha512Dig: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
+  DB, Seed: PByteArray;
+  DBMask: TBytes;
+  SeedMask: TBytes;
+begin
+  Result := False;
+  EmLen:= ToByteLen - 1;
+
+  case DigestType of
+    rsdtMD5: MdLen := SizeOf(TCnMD5Digest);
+    rsdtSHA1: MdLen := SizeOf(TCnSHA1Digest);
+    rsdtSHA224: MdLen := SizeOf(TCnSHA224Digest);
+    rsdtSHA256: MdLen := SizeOf(TCnSHA256Digest);
+    rsdtSHA384: MdLen := SizeOf(TCnSHA384Digest);
+    rsdtSHA512: MdLen := SizeOf(TCnSHA512Digest);
+    rsdtSM3: MdLen := SizeOf(TCnSM3Digest);
+  else
+    Exit;
+  end;
+
+  if (DataByteLen > EmLen - 2 * MdLen - 1) or (EmLen < 2 * MdLen + 1) then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  ToBuf^ := 0;
+  Seed := PByteArray(TCnIntAddress(ToBuf) + 1);
+  DB := PByteArray(TCnIntAddress(ToBuf) + MdLen + 1);
+
+  // 00 | MdLen 位 Seed | DB
+  // 其中 DB := ParamHash || PS || 0x01 || Data，长度 EmLen - MdLen
+  // 后面需要 XOR 一次成为 MaskDB
+  SetLength(SeedMask, MdLen);
+  case DigestType of
+    rsdtMD5: begin Md5Dig := MD5Buffer(DigestParam^, ParamByteLen); Move(Md5Dig[0], SeedMask[0], MdLen); end;
+    rsdtSHA1: begin Sha1Dig := SHA1Buffer(DigestParam^, ParamByteLen); Move(Sha1Dig[0], SeedMask[0], MdLen); end;
+    rsdtSHA224: begin Sha224Dig := SHA224Buffer(DigestParam^, ParamByteLen); Move(Sha224Dig[0], SeedMask[0], MdLen); end;
+    rsdtSHA256: begin Sha256Dig := SHA256Buffer(DigestParam^, ParamByteLen); Move(Sha256Dig[0], SeedMask[0], MdLen); end;
+    rsdtSHA384: begin Sha384Dig := SHA384Buffer(DigestParam^, ParamByteLen); Move(Sha384Dig[0], SeedMask[0], MdLen); end;
+    rsdtSHA512: begin Sha512Dig := SHA512Buffer(DigestParam^, ParamByteLen); Move(Sha512Dig[0], SeedMask[0], MdLen); end;
+    rsdtSM3: begin Sm3Dig := SM3Buffer(DigestParam^, ParamByteLen); Move(Sm3Dig[0], SeedMask[0], MdLen); end;
+  end;
+  Move(SeedMask[0], DB^, MdLen);
+
+  // To 把 DB 的前 MdLen 字节填充好，填充到尾部全为 0
+  FillChar(PByte(TCnIntAddress(DB) + MdLen)^, EmLen - DataByteLen - 2 * MdLen - 1, 0);
+  DB^[EmLen - DataByteLen - MdLen - 1] := 1;
+
+  // 明文拷贝
+  Move(PlainData^, PByte(TCnIntAddress(DB) + EmLen - DataByteLen - MdLen)^, DataByteLen);
+
+  // To[1] 开始的 MdLen 个字节随机一下
+  if not CnRandomFillBytes(PAnsiChar(Seed), MdLen) then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  SetLength(DBMask, EmLen - MdLen);
+
+  // 用 Seed 做 MGF 运算，准备对 DB 做 XOR
+  if not Pkcs1MGF(Seed, MdLen, @DBMask[0], EmLen - MdLen, DigestType) then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  for I := 0 to EmLen - MdLen - 1 do
+    DB^[I] := DB^[I] xor DBMask[I];        // 得到 Masked DB
+
+  // XOR 完后的 Masked DB 再做 MGF 运算，准备对 Seed 做 XOR
+  if not Pkcs1MGF(DB, EmLen - MdLen, @SeedMask[0], MdLen, DigestType) then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  for I := 0 to MdLen - 1 do
+    Seed^[I] := Seed^[I] xor SeedMask[I];  // 得到 Masked Seed
+
+  SetLength(DBMask, 0);
+  SetLength(SeedMask, 0);
+  Result := True;
+  // 加密后的信息 = 00 || maskedSeed || maskedDB
 end;
 
 function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData: PByte;
@@ -4886,6 +5154,131 @@ begin
 //        Exit;
 //      end;
 
+      Move(DB[MStart], ToBuf^, DBLen - MStart);
+      OutByteLen := DBLen - MStart; // 返回明文数据长度
+      Result := True;
+    end;
+  finally
+    SetLength(DB, 0);
+  end;
+end;
+
+function RemoveOaepMgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData: PByte;
+  DataByteLen: Integer; DigestParam: PByte; ParamByteLen: Integer;
+  DigestType: TCnRSASignDigestType): Boolean;
+var
+  I, MdLen, DBLen, MStart: Integer;
+  MaskedDB, MaskedSeed: PByteArray;
+  Md5Dig: TCnMD5Digest;
+  Sha1Dig: TCnSHA1Digest;
+  Sha224Dig: TCnSHA224Digest;
+  Sha256Dig: TCnSHA256Digest;
+  Sha384Dig: TCnSHA384Digest;
+  Sha512Dig: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
+  Seed: TBytes;
+  ParamHash: TBytes;
+  DB: TBytes;
+begin
+  Result := False;
+  if (EnData = nil) or (ToBuf = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  if EnData^ <> 0 then  // 首字节必须为 0
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  case DigestType of
+    rsdtMD5: MdLen := SizeOf(TCnMD5Digest);
+    rsdtSHA1: MdLen := SizeOf(TCnSHA1Digest);
+    rsdtSHA224: MdLen := SizeOf(TCnSHA224Digest);
+    rsdtSHA256: MdLen := SizeOf(TCnSHA256Digest);
+    rsdtSHA384: MdLen := SizeOf(TCnSHA384Digest);
+    rsdtSHA512: MdLen := SizeOf(TCnSHA512Digest);
+    rsdtSM3: MdLen := SizeOf(TCnSM3Digest);
+  else
+    Exit;
+  end;
+
+  DBLen := DataByteLen - MdLen - 1;
+  if DBLen <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  // 找出数据中的前 MdLen 个 MaskedSeed 以及后面长 DBLen 的 MaskedDB
+  MaskedSeed := PByteArray(TCnIntAddress(EnData) + 1);
+  MaskedDB := PByteArray(TCnIntAddress(EnData) + MdLen + 1);
+
+  SetLength(ParamHash, MdLen);
+  case DigestType of
+    rsdtMD5: begin Md5Dig := MD5Buffer(DigestParam^, ParamByteLen); Move(Md5Dig[0], ParamHash[0], MdLen); end;
+    rsdtSHA1: begin Sha1Dig := SHA1Buffer(DigestParam^, ParamByteLen); Move(Sha1Dig[0], ParamHash[0], MdLen); end;
+    rsdtSHA224: begin Sha224Dig := SHA224Buffer(DigestParam^, ParamByteLen); Move(Sha224Dig[0], ParamHash[0], MdLen); end;
+    rsdtSHA256: begin Sha256Dig := SHA256Buffer(DigestParam^, ParamByteLen); Move(Sha256Dig[0], ParamHash[0], MdLen); end;
+    rsdtSHA384: begin Sha384Dig := SHA384Buffer(DigestParam^, ParamByteLen); Move(Sha384Dig[0], ParamHash[0], MdLen); end;
+    rsdtSHA512: begin Sha512Dig := SHA512Buffer(DigestParam^, ParamByteLen); Move(Sha512Dig[0], ParamHash[0], MdLen); end;
+    rsdtSM3: begin Sm3Dig := SM3Buffer(DigestParam^, ParamByteLen); Move(Sm3Dig[0], ParamHash[0], MdLen); end;
+  end;
+
+  // 使用 MaskedDB 做运算
+  SetLength(Seed, MdLen);
+  if not Pkcs1MGF(@MaskedDB[0], DBLen, @Seed[0], MdLen, DigestType) then
+  begin
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
+    Exit;
+  end;
+
+  for I := 0 to MdLen - 1 do
+    Seed[I] := Seed[I] xor MaskedSeed^[I];  // 得到 Seed
+
+  SetLength(DB, DBLen);
+  try
+    if not Pkcs1MGF(@Seed[0], MdLen, @DB[0], DBLen, DigestType) then
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
+    end;
+
+    for I := 0 to DBLen - 1 do
+      DB[I] := DB[I] xor MaskedDB^[I];  // 得到 DB
+
+    // 检查 DB 的前 MdLen 个字节应该等于 ParamHash，进行常量时间比较
+    if not ConstTimeCompareMem(@DB[0], @ParamHash[0], MdLen) then
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
+    end;
+
+    // 通过后从 DB[MdLen] 开始找 0 和 1，找到 1 之后到尾的就是原始信息
+    MStart := -1;
+    for I := MdLen to DBLen - 1 do
+    begin
+      if DB[I] <> 0 then
+      begin
+        if DB[I] <> 1 then
+        begin
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+          Exit;
+        end
+        else // 0 后的第一个 1
+        begin
+          // 记录好位置 I + 1
+          MStart := I + 1;
+          Break;
+        end;
+      end; // 0 继续找
+    end;
+
+    // DB[MStart] 到 DB[DBLen - 1] 就是明文
+    if (MStart > 0) and (MStart < DBLen) then
+    begin
       Move(DB[MStart], ToBuf^, DBLen - MStart);
       OutByteLen := DBLen - MStart; // 返回明文数据长度
       Result := True;
