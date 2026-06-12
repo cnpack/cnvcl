@@ -15711,6 +15711,27 @@ begin
   Salt := HexToAnsiStr('123456');
   Res := CnPBKDF1(Pass, Salt, 1000, 16, cpdfMd5);
   Result := DataToHex(@Res[1], Length(Res)) = '090583F4EA468E822CDC7A8C7C785E1B';
+
+  // Test with SHA1
+  R := CnPBKDF1Bytes(P, S, 1000, 16, cpdfSha1);
+  Result := DataToHex(@R[0], Length(R)) = '8DDB155AA2FDB861D4BFD0C909918CD2';
+  if not Result then Exit;
+
+  Pass := '123456';
+  Salt := HexToAnsiStr('123456');
+  Res := CnPBKDF1(Pass, Salt, 1000, 16, cpdfSha1);
+  Result := DataToHex(@Res[1], Length(Res)) = '8DDB155AA2FDB861D4BFD0C909918CD2';
+  if not Result then Exit;
+
+  // Test with SHA256
+  R := CnPBKDF1Bytes(P, S, 1000, 16, cpdfSha256);
+  Result := DataToHex(@R[0], Length(R)) = '8E50F14399A954BBC3411B79C1E338AB';
+  if not Result then Exit;
+
+  Pass := '123456';
+  Salt := HexToAnsiStr('123456');
+  Res := CnPBKDF1(Pass, Salt, 1000, 16, cpdfSha256);
+  Result := DataToHex(@Res[1], Length(Res)) = '8E50F14399A954BBC3411B79C1E338AB';
 end;
 
 function TestKDFPB2: Boolean;
@@ -15728,6 +15749,16 @@ begin
   Salt := HexToAnsiStr('123456');
   Res := CnPBKDF2(Pass, Salt, 1000, 32, cpdfSha256Hmac);
   Result := DataToHex(@Res[1], Length(Res)) = '87410D487A6414E9ADB9D078CBA7E28BFCB0C3767F1BD4C1A628010FF91DDD1A';
+
+  // Test with SHA1 HMAC
+  R := CnPBKDF2Bytes(P, S, 1000, 32, cpdfSha1Hmac);
+  Result := DataToHex(@R[0], Length(R)) = 'F34D9B1CD191A93140FBEF78DB1770D1886549E46CB4AA55A624F6BEBAD4371A';
+  if not Result then Exit;
+
+  Pass := '123456';
+  Salt := HexToAnsiStr('123456');
+  Res := CnPBKDF2(Pass, Salt, 1000, 32, cpdfSha1Hmac);
+  Result := DataToHex(@Res[1], Length(Res)) = 'F34D9B1CD191A93140FBEF78DB1770D1886549E46CB4AA55A624F6BEBAD4371A';
 end;
 
 function TestKDFPB2InvalidIteration: Boolean;
