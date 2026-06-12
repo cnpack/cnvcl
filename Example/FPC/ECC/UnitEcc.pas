@@ -963,7 +963,7 @@ begin
   // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
   if A mod P = 0 then
     Result := 0
-  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+  else if PowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
     Result := 1
   else
     Result := -1;
@@ -2549,8 +2549,8 @@ begin
 
   Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 966);
   D1 := Ecc.Generator;
-  D1.X := MontgomeryPowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
-  D1.Y := MontgomeryPowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.X := PowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.Y := PowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
 
   D2 := Ecc.Generator;
   Ecc.MultiplePoint(Ecc.FiniteFieldSize, D2);
@@ -2558,8 +2558,8 @@ begin
   Ecc.PointAddPoint(D1, D2, D1);  // D1 得到 (x^(q^2), y^(q^2) + q * (x, y) 要验证它等于 t * (x^q, y^q)
 
   D2 := Ecc.Generator;
-  D2.X := MontgomeryPowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
-  D2.Y := MontgomeryPowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.X := PowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.Y := PowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
 
   D3 := D2;
   // D2 得到 (x^q, y^q) 用 D3 累加验证多少等于 D1
@@ -2589,8 +2589,8 @@ begin
 
   Ecc := TCnInt64Ecc.Create(12, 199, 73, 21, 21, 61);
   D1 := Ecc.Generator;
-  D1.X := MontgomeryPowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
-  D1.Y := MontgomeryPowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.X := PowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.Y := PowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
 
   D2 := Ecc.Generator;
   Ecc.MultiplePoint(Ecc.FiniteFieldSize, D2);
@@ -2598,8 +2598,8 @@ begin
   Ecc.PointAddPoint(D1, D2, D1);  // D1 得到 (x^(q^2), y^(q^2) + q * (x, y) 要验证它等于 t * (x^q, y^q)
 
   D2 := Ecc.Generator;
-  D2.X := MontgomeryPowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
-  D2.Y := MontgomeryPowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.X := PowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.Y := PowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
 
   D3 := D2;
   // D2 得到 (x^q, y^q) 用 D3 累加验证多少等于 D1

@@ -365,7 +365,7 @@ begin
   A := StrToUInt64((edtMonA.Text));
   B := StrToUInt64((edtMonB.Text));
   C := StrToUInt64((edtMonC.Text));
-  R := MontgomeryPowerMod(A, B, C);
+  R := PowerMod(A, B, C);
   edtMonRes.Text := UInt64ToStr(R);
 end;
 
@@ -506,7 +506,7 @@ begin
   Prime := StrToUInt64(edtDHPrime.Text);
   Root := StrToUInt64(edtDHRoot.Text);
   Xa := StrToUInt64(edtDHXa.Text);
-  Ya := MontgomeryPowerMod(Root, Xa, Prime);
+  Ya := PowerMod(Root, Xa, Prime);
   edtDHYa.Text := UInt64ToStr(Ya);
 end;
 
@@ -517,7 +517,7 @@ begin
   Prime := StrToUInt64(edtDHPrime.Text);
   Root := StrToUInt64(edtDHRoot.Text);
   Xb := StrToUInt64(edtDHXb.Text);
-  Yb := MontgomeryPowerMod(Root, Xb, Prime);
+  Yb := PowerMod(Root, Xb, Prime);
   edtDHYb.Text := UInt64ToStr(Yb);
 end;
 
@@ -528,7 +528,7 @@ begin
   Prime := StrToUInt64(edtDHPrime.Text);
   Xa := StrToUInt64(edtDHXa.Text);
   Yb := StrToUInt64(edtDHYb.Text);
-  Key := MontgomeryPowerMod(Yb, Xa, Prime);
+  Key := PowerMod(Yb, Xa, Prime);
   edtAKey.Text := UInt64ToStr(Key);
 end;
 
@@ -539,7 +539,7 @@ begin
   Prime := StrToUInt64(edtDHPrime.Text);
   Xb := StrToUInt64(edtDHXb.Text);
   Ya := StrToUInt64(edtDHYa.Text);
-  Key := MontgomeryPowerMod(Ya, Xb, Prime);
+  Key := PowerMod(Ya, Xb, Prime);
   edtBKey.Text := UInt64ToStr(Key);
 end;
 
@@ -676,7 +676,7 @@ begin
   R := CnInt64BigStepGiantStep(8723, 3623, 65537);
   ShowMessage(IntToStr(R));
 
-  if MontgomeryPowerMod(A, R, M) = B then
+  if PowerMod(A, R, M) = B then
     ShowMessage('Verify OK')
   else
     ShowMessage('Verify Fail');

@@ -141,7 +141,7 @@ begin
 
   PubKey.N := PrivKey.P * PrivKey.Q; // 77，N^2 为 5929
   PubKey.G := 5652;  // 要验证 5652^2310 mod 5929 是否等于 1，确定等于
-                     // IntToStr( MontgomeryPowerMod(5652, 2310, 5929));
+                     // IntToStr( PowerMod(5652, 2310, 5929));
 
   // 如果 G 用 N + 1 为 78，会咋样？先要求阶，再确定 G 针对 N^2 的阶能否被 N 整除，
   // 先求 78 的多少次方 mod 5929 为 1，得到 9 次方
@@ -152,7 +152,7 @@ begin
   // (3928 - 1) / 77 = 51 得到 K
   // 再计算 K 对 N 的逆元，得到 74
   // PrivKey.Mu := 74;
-  K := MontgomeryPowerMod(PubKey.G, PrivKey.Lambda, PubKey.N * PubKey.N) - 1;
+  K := PowerMod(PubKey.G, PrivKey.Lambda, PubKey.N * PubKey.N) - 1;
   K := K div PubKey.N;
   PrivKey.Mu := CnInt64ModularInverse2(K, PubKey.N); // 得到 74
 
@@ -165,13 +165,13 @@ begin
 
   N2 := PubKey.N * PubKey.N;
 
-  T1 := MontgomeryPowerMod(PubKey.G, M, N2);
-  T2 := MontgomeryPowerMod(R, PubKey.N, N2);
+  T1 := PowerMod(PubKey.G, M, N2);
+  T2 := PowerMod(R, PubKey.N, N2);
   Enc := Int64NonNegativeMulMod(T1, T2, N2);
   ShowMessage(IntToStr(M) + ' Encrypt To ' + IntToStr(Enc)); // 得到密文 4624（如果 R 是 23 的话）
 
   // 私钥解密的明文还原过程：明文 = (((密文^Lambda mod N^2) - 1)/N) * Mu) mod N
-  T1 := MontgomeryPowerMod(Enc, PrivKey.Lambda, PubKey.N * PubKey.N);
+  T1 := PowerMod(Enc, PrivKey.Lambda, PubKey.N * PubKey.N);
   T1 := (T1 - 1) div PubKey.N; // 如果这里不整除，说明出了问题
 
   R := Int64NonNegativeMulMod(T1, PrivKey.Mu, PubKey.N);
@@ -393,7 +393,7 @@ begin
   PubKey.N := 7 * 11;
   PubKey.G := PubKey.N + 1; // 78
 
-//  K := MontgomeryPowerMod(PubKey.G, PrivKey.Lambda, PubKey.N * PubKey.N) - 1;
+//  K := PowerMod(PubKey.G, PrivKey.Lambda, PubKey.N * PubKey.N) - 1;
 //  K := K div PubKey.N;
 //  PrivKey.Mu := CnInt64ModularInverse2(K, PubKey.N); // K 算到 30 等于 Lambda，也得到 18
 //  if PrivKey.Mu <> 0 then
@@ -406,18 +406,18 @@ begin
   begin
     // 加密
 {$IFDEF SUPPORT_UINT64}
-    T1 := MontgomeryPowerMod(PubKey.G, UInt64(Data), N2);
+    T1 := PowerMod(PubKey.G, UInt64(Data), N2);
 {$ELSE}
-    T1 := MontgomeryPowerMod(PubKey.G, Data, N2);
+    T1 := PowerMod(PubKey.G, Data, N2);
 {$ENDIF}
-    T2 := MontgomeryPowerMod(I, PubKey.N, N2);
+    T2 := PowerMod(I, PubKey.N, N2);
     En := UInt64NonNegativeMulMod(T1, T2, N2); // 得到密文
 
     // 解密
 {$IFDEF SUPPORT_UINT64}
-    T1 := MontgomeryPowerMod(UInt64(En), PrivKey.Lambda, N2);
+    T1 := PowerMod(UInt64(En), PrivKey.Lambda, N2);
 {$ELSE}
-    T1 := MontgomeryPowerMod(En, PrivKey.Lambda, N2);
+    T1 := PowerMod(En, PrivKey.Lambda, N2);
 {$ENDIF}
 
     T1 := UInt64Div(T1 - 1, PubKey.N); // 这里按 G 的设定，能整除
@@ -442,7 +442,7 @@ begin
   PubKey.N := 3 * 5;
   PubKey.G := PubKey.N + 1; // 15
 
-//  K := MontgomeryPowerMod(PubKey.G, PrivKey.Lambda, PubKey.N * PubKey.N) - 1;
+//  K := PowerMod(PubKey.G, PrivKey.Lambda, PubKey.N * PubKey.N) - 1;
 //  K := K div PubKey.N;
 //  PrivKey.Mu := CnInt64ModularInverse2(K, PubKey.N); // K 算到 4 等于 Lambda，也得到 4
 //  if PrivKey.Mu <> 0 then
@@ -455,18 +455,18 @@ begin
   begin
     // 加密
 {$IFDEF SUPPORT_UINT64}
-    T1 := MontgomeryPowerMod(PubKey.G, UInt64(Data), N2);
+    T1 := PowerMod(PubKey.G, UInt64(Data), N2);
 {$ELSE}
-    T1 := MontgomeryPowerMod(PubKey.G, Data, N2);
+    T1 := PowerMod(PubKey.G, Data, N2);
 {$ENDIF}
-    T2 := MontgomeryPowerMod(I, PubKey.N, N2);
+    T2 := PowerMod(I, PubKey.N, N2);
     En := UInt64NonNegativeMulMod(T1, T2, N2); // 得到密文
 
     // 解密
 {$IFDEF SUPPORT_UINT64}
-    T1 := MontgomeryPowerMod(UInt64(En), PrivKey.Lambda, N2);
+    T1 := PowerMod(UInt64(En), PrivKey.Lambda, N2);
 {$ELSE}
-    T1 := MontgomeryPowerMod(En, PrivKey.Lambda, N2);
+    T1 := PowerMod(En, PrivKey.Lambda, N2);
 {$ENDIF}
 
     if UInt64Mod(T1 - 1, PubKey.N) <> 0 then // 随机数 I 和 N 不互质时会出错
