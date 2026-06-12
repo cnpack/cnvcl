@@ -3155,8 +3155,8 @@ var
   // Euclidean 算法多项式
   PolyR2: array of Integer;
   PolyT0: array of Integer;
-  DegR0, DegR1, DegR2: Integer;
-  DegT0, DegT1, DegT2: Integer;
+  DegR0, DegR1: Integer;
+  DegT0, DegT1: Integer;
   TempVal, TempDeg: Integer;
   // Forney 用
   Sigma, Omega: array of Integer;

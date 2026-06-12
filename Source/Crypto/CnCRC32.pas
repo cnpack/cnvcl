@@ -574,42 +574,61 @@ end;
 {$IFNDEF MSWINDOWS}
 
 function InternalCRC8Stream(Stream: TStream; const BufSize: Cardinal;
-  var CRC: Byte): Boolean;
+  var CRC: Byte; StartPos: Int64; ByteLength: Int64): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
   Size: Int64;
   ReadBytes: Cardinal;
-  TotalBytes: Int64;
+  Count: Int64;
   SavePos: Int64;
 begin
   Result := False;
   Size := Stream.Size;
   if Size = 0 then
     Exit;
+  if StartPos >= Size then
+    Exit;
 
   SavePos := Stream.Position;
-  TotalBytes := 0;
-
-  if Size < BufSize then
-    BufLen := Size
-  else
-    BufLen := BufSize;
-
-  GetMem(Buf, BufLen);
   try
-    Stream.Position := 0;
-    repeat
-      ReadBytes := Stream.Read(Buf^, BufLen);
-      if ReadBytes <> 0 then
+    if ByteLength > 0 then
+      Count := ByteLength
+    else
+      Count := Size - StartPos;
+
+    if Count <= 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    if Count > BufSize then
+      BufLen := BufSize
+    else
+      BufLen := Count;
+
+    GetMem(Buf, BufLen);
+    try
+      Stream.Position := StartPos;
+      CRC := not CRC;
+      while Count > 0 do
       begin
-        Inc(TotalBytes, ReadBytes);
+        if Count > BufLen then
+          ReadBytes := Stream.Read(Buf^, BufLen)
+        else
+          ReadBytes := Stream.Read(Buf^, Count);
+        if ReadBytes = 0 then
+          Break;
         CRC := DoCrc8Calc(CRC, Buf^, ReadBytes);
+        Dec(Count, ReadBytes);
       end;
-    until (ReadBytes = 0) or (TotalBytes = Size);
-    Result := True;
+      CRC := not CRC;
+      Result := True;
+    finally
+      FreeMem(Buf, BufLen);
+    end;
   finally
-    FreeMem(Buf, BufLen);
     Stream.Position := SavePos;
   end;
 end;
@@ -617,8 +636,8 @@ end;
 {$ENDIF}
 
 // 计算文件 CRC8 值，参数分别为：文件名、CRC8 值、起始地址、计算长度
-function FileCRC8(const FileName: string; var CRC: Byte; StartPos: Int64 = 0;
-  ByteLength: Int64 = 0): Boolean;
+function FileCRC8(const FileName: string; var CRC: Byte;
+  StartPos, ByteLength: Int64): Boolean;
 var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
@@ -668,7 +687,7 @@ begin
 {$ELSE} // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC8Stream(Stream, 4096 * 1024, CRC);
+    Result := InternalCRC8Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
@@ -733,42 +752,61 @@ end;
 {$IFNDEF MSWINDOWS}
 
 function InternalCRC16Stream(Stream: TStream; const BufSize: Cardinal;
-  var CRC: Word): Boolean;
+  var CRC: Word; StartPos: Int64; ByteLength: Int64): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
   Size: Int64;
   ReadBytes: Cardinal;
-  TotalBytes: Int64;
+  Count: Int64;
   SavePos: Int64;
 begin
   Result := False;
   Size := Stream.Size;
   if Size = 0 then
     Exit;
+  if StartPos >= Size then
+    Exit;
 
   SavePos := Stream.Position;
-  TotalBytes := 0;
-
-  if Size < BufSize then
-    BufLen := Size
-  else
-    BufLen := BufSize;
-
-  GetMem(Buf, BufLen);
   try
-    Stream.Position := 0;
-    repeat
-      ReadBytes := Stream.Read(Buf^, BufLen);
-      if ReadBytes <> 0 then
+    if ByteLength > 0 then
+      Count := ByteLength
+    else
+      Count := Size - StartPos;
+
+    if Count <= 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    if Count > BufSize then
+      BufLen := BufSize
+    else
+      BufLen := Count;
+
+    GetMem(Buf, BufLen);
+    try
+      Stream.Position := StartPos;
+      CRC := not CRC;
+      while Count > 0 do
       begin
-        Inc(TotalBytes, ReadBytes);
+        if Count > BufLen then
+          ReadBytes := Stream.Read(Buf^, BufLen)
+        else
+          ReadBytes := Stream.Read(Buf^, Count);
+        if ReadBytes = 0 then
+          Break;
         CRC := DoCrc16Calc(CRC, Buf^, ReadBytes);
+        Dec(Count, ReadBytes);
       end;
-    until (ReadBytes = 0) or (TotalBytes = Size);
-    Result := True;
+      CRC := not CRC;
+      Result := True;
+    finally
+      FreeMem(Buf, BufLen);
+    end;
   finally
-    FreeMem(Buf, BufLen);
     Stream.Position := SavePos;
   end;
 end;
@@ -776,8 +814,8 @@ end;
 {$ENDIF}
 
 // 计算文件 CRC16 值，参数分别为：文件名、CRC16 值、起始地址、计算长度
-function FileCRC16(const FileName: string; var CRC: Word; StartPos: Int64 = 0;
-  ByteLength: Int64 = 0): Boolean;
+function FileCRC16(const FileName: string; var CRC: Word;
+  StartPos, ByteLength: Int64): Boolean;
 var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
@@ -827,7 +865,7 @@ begin
 {$ELSE} // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC16Stream(Stream, 4096 * 1024, CRC);
+    Result := InternalCRC16Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
@@ -891,42 +929,61 @@ end;
 {$IFNDEF MSWINDOWS}
 
 function InternalCRC32Stream(Stream: TStream; const BufSize: Cardinal;
-  var CRC: Cardinal): Boolean;
+  var CRC: Cardinal; StartPos: Int64; ByteLength: Int64): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
   Size: Int64;
   ReadBytes: Cardinal;
-  TotalBytes: Int64;
+  Count: Int64;
   SavePos: Int64;
 begin
   Result := False;
   Size := Stream.Size;
   if Size = 0 then
     Exit;
+  if StartPos >= Size then
+    Exit;
 
   SavePos := Stream.Position;
-  TotalBytes := 0;
-
-  if Size < BufSize then
-    BufLen := Size
-  else
-    BufLen := BufSize;
-
-  GetMem(Buf, BufLen);
   try
-    Stream.Position := 0;
-    repeat
-      ReadBytes := Stream.Read(Buf^, BufLen);
-      if ReadBytes <> 0 then
+    if ByteLength > 0 then
+      Count := ByteLength
+    else
+      Count := Size - StartPos;
+
+    if Count <= 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    if Count > BufSize then
+      BufLen := BufSize
+    else
+      BufLen := Count;
+
+    GetMem(Buf, BufLen);
+    try
+      Stream.Position := StartPos;
+      CRC := not CRC;
+      while Count > 0 do
       begin
-        Inc(TotalBytes, ReadBytes);
+        if Count > BufLen then
+          ReadBytes := Stream.Read(Buf^, BufLen)
+        else
+          ReadBytes := Stream.Read(Buf^, Count);
+        if ReadBytes = 0 then
+          Break;
         CRC := DoCrc32Calc(CRC, Buf^, ReadBytes);
+        Dec(Count, ReadBytes);
       end;
-    until (ReadBytes = 0) or (TotalBytes = Size);
-    Result := True;
+      CRC := not CRC;
+      Result := True;
+    finally
+      FreeMem(Buf, BufLen);
+    end;
   finally
-    FreeMem(Buf, BufLen);
     Stream.Position := SavePos;
   end;
 end;
@@ -934,8 +991,8 @@ end;
 {$ENDIF}
 
 // 计算文件 CRC32 值，参数分别为：文件名、CRC32 值、起始地址、计算长度
-function FileCRC32(const FileName: string; var CRC: Cardinal; StartPos: Int64 = 0;
-  ByteLength: Int64 = 0): Boolean;
+function FileCRC32(const FileName: string; var CRC: Cardinal;
+  StartPos, ByteLength: Int64): Boolean;
 var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
@@ -985,7 +1042,7 @@ begin
 {$ELSE} // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC32Stream(Stream, 4096 * 1024, CRC);
+    Result := InternalCRC32Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
@@ -1063,42 +1120,61 @@ end;
 {$IFNDEF MSWINDOWS}
 
 function InternalCRC64Stream(Stream: TStream; const BufSize: Cardinal;
-  var CRC: Int64): Boolean;
+  var CRC: Int64; StartPos: Int64; ByteLength: Int64): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
   Size: Int64;
   ReadBytes: Cardinal;
-  TotalBytes: Int64;
+  Count: Int64;
   SavePos: Int64;
 begin
   Result := False;
   Size := Stream.Size;
   if Size = 0 then
     Exit;
+  if StartPos >= Size then
+    Exit;
 
   SavePos := Stream.Position;
-  TotalBytes := 0;
-
-  if Size < BufSize then
-    BufLen := Size
-  else
-    BufLen := BufSize;
-
-  GetMem(Buf, BufLen);
   try
-    Stream.Position := 0;
-    repeat
-      ReadBytes := Stream.Read(Buf^, BufLen);
-      if ReadBytes <> 0 then
+    if ByteLength > 0 then
+      Count := ByteLength
+    else
+      Count := Size - StartPos;
+
+    if Count <= 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    if Count > BufSize then
+      BufLen := BufSize
+    else
+      BufLen := Count;
+
+    GetMem(Buf, BufLen);
+    try
+      Stream.Position := StartPos;
+      CRC := not CRC;
+      while Count > 0 do
       begin
-        Inc(TotalBytes, ReadBytes);
+        if Count > BufLen then
+          ReadBytes := Stream.Read(Buf^, BufLen)
+        else
+          ReadBytes := Stream.Read(Buf^, Count);
+        if ReadBytes = 0 then
+          Break;
         CRC := DoCrc64Calc(CRC, Buf^, ReadBytes);
+        Dec(Count, ReadBytes);
       end;
-    until (ReadBytes = 0) or (TotalBytes = Size);
-    Result := True;
+      CRC := not CRC;
+      Result := True;
+    finally
+      FreeMem(Buf, BufLen);
+    end;
   finally
-    FreeMem(Buf, BufLen);
     Stream.Position := SavePos;
   end;
 end;
@@ -1106,8 +1182,8 @@ end;
 {$ENDIF}
 
 // 计算文件 CRC64 值，参数分别为：文件名、CRC64 值、起始地址、计算长度
-function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
-  ByteLength: Int64 = 0): Boolean;
+function FileCRC64(const FileName: string; var CRC: Int64;
+  StartPos, ByteLength: Int64): Boolean;
 var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
@@ -1158,7 +1234,7 @@ begin
   // 非 Windows 平台直接用文件流
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := InternalCRC64Stream(Stream, 4096 * 1024, CRC);
+    Result := InternalCRC64Stream(Stream, 4096 * 1024, CRC, StartPos, ByteLength);
   finally
     Stream.Free;
   end;
