@@ -42,7 +42,9 @@ unit CnPrime;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.04.24 V1.8
+* 修改记录：2026.06.12 V1.9
+*               彻底弃用 Random 库函数，全改用安全随机数
+*           2025.04.24 V1.8
 *               增加 Lucas U 序列的计算，和原来 V 序列的独立，并增加 BPSW 素性检测
 *           2022.06.04 V1.7
 *               增加负模逆元与蒙哥马利约简以及基于此实现的快速模乘算法，能快一些
@@ -1695,8 +1697,7 @@ end;
 function CnInt64IsPrime(N: TUInt64): Boolean;
 var
   I: Integer;
-  R: Real;
-  T, X, A, RA: TUInt64;
+  T, X, A: TUInt64;
 begin
   Result := False;
   if UInt64Compare(N, 1) < 0 then
@@ -1726,18 +1727,7 @@ begin
 
   for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
   begin
-    R := CnRandomFloat;
-
-    // A := Trunc(Random * (N - 1)) + 1; 但 N - 1作为 Int64 可能小于 0，要拆分
-    if UInt64Compare(N - 1, CN_MAX_SIGNED_INT64_IN_TUINT64) <= 0 then // if N - 1 > 0 ?
-      A := Trunc(Random * (N - 1)) + 1
-    else
-    begin
-      // Int64(N - 1) < 0，拆成 MAX_SIGNED_INT64_IN_TUINT64 以及 N - MAX_SIGNED_INT64_IN_TUINT64 - 1
-      RA := Trunc(R * CN_MAX_SIGNED_INT64_IN_TUINT64);
-      RA := RA + Trunc(R * (N - CN_MAX_SIGNED_INT64_IN_TUINT64 - 1));
-      A := RA + 1; // 大于 Int64 上限 Trunc 会出浮点错，改成分别 Trunc 后相加
-    end;
+    A := RandomUInt64LessThan(N - 1) + 1;
     if FermatCheckComposite(A, N, X, T) then
       Exit;
   end;
@@ -1922,8 +1912,7 @@ begin
 
   for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
   begin
-    Randomize;
-    A := Trunc(Random * (N - 1)) + 1;
+    A := RandomUInt64LessThan(N - 1) + 1;
     if FermatCheckComposite64(A, N, X, T) then
       Exit;
   end;
@@ -1933,13 +1922,9 @@ end;
 // 生成一个随机的 64 位无符号素数
 function CnGenerateUInt64Prime: NativeUInt;
 begin
-  Randomize;
-  Result := Trunc(Random * High(NativeUInt) - 1) + 1;
+  Result := RandomUInt64;
   while not CnUInt64IsPrime(Result) do
-  begin
-    Randomize;
-    Result := Trunc(Random * High(NativeUInt) - 1) + 1;
-  end;
+    Result := RandomUInt64;
 end;
 
 {$ENDIF}
@@ -2280,7 +2265,7 @@ var
 begin
   I := 1;
   K := 2;
-  X0 := Trunc(Random * (X - 1)) + 1;
+  X0 := RandomUInt32LessThan(X - 1) + 1;
   Y := X0;
 
   while True do
@@ -2361,7 +2346,7 @@ begin
   P := Num;
   while P >= Num do
   begin
-    C := Trunc(Random * (Num - 1)) + 1; // rand()%(n-1)+1
+    C := RandomUInt32LessThan(Num - 1) + 1;
     P := PollardRho32(P, C);
   end;
 
