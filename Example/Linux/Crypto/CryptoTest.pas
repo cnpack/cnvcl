@@ -593,6 +593,7 @@ function TestRSALongStream1: Boolean;
 function TestRSALongStream2: Boolean;
 function TestRSAVerifyCorruptedSignature: Boolean;
 function TestRSADecryptInvalidPadding: Boolean;
+function TestRSAOAEP: Boolean;
 
 // ================================ KDF ========================================
 
@@ -2274,6 +2275,7 @@ begin
   MyAssert(TestRSALongStream2, 'TestRSALongStream2');
   MyAssert(TestRSAVerifyCorruptedSignature, 'TestRSAVerifyCorruptedSignature');
   MyAssert(TestRSADecryptInvalidPadding, 'TestRSADecryptInvalidPadding');
+  MyAssert(TestRSAOAEP, 'TestRSAOAEP');
 
 // ================================ KDF ========================================
 
@@ -13674,57 +13676,113 @@ end;
 // ================================ FNV ========================================
 
 function TestFNV1: Boolean;
+const
+  TestStrs: array[0..2] of AnsiString = ('', 'a', 'foobar');
+  // FNV-1 32-bit from test_fnv.c (fnv1_32_vector, LE hex)
+  Exp32: array[0..2] of string = ('C59D1C81', '7E5D0C05', '62B2F031');
+  // FNV-1 64-bit from test_fnv.c (fnv1_64_vector, LE hex)
+  Exp64: array[0..2] of string = ('25232284E49CF2CB', 'BEB701864CBD63AF', 'C2A9DDA465870D34');
 var
-  S: AnsiString;
-  R32: TCnFNVHash32;
-  R64: TCnFNVHash64;
-  R128: TCnFNVHash128;
-  R256: TCnFNVHash256;
-  R512: TCnFNVHash512;
-  R1024: TCnFNVHash1024;
+  I: Integer;
+  H32: TCnFNVHash32;
+  H64: TCnFNVHash64;
 begin
-  S := 'CnPack Test';
-  R32 := FNV1Hash32(@S[1], Length(S));
-  R64 := FNV1Hash64(@S[1], Length(S));
-  R128 := FNV1Hash128(@S[1], Length(S));
-  R256 := FNV1Hash256(@S[1], Length(S));
-  R512 := FNV1Hash512(@S[1], Length(S));
-  R1024 := FNV1Hash1024(@S[1], Length(S));
+  Result := True;
+  for I := 0 to 2 do
+  begin
+    H32 := FNV1Hash32(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H32[0], SizeOf(H32)) = Exp32[I];
+    if not Result then Exit;
 
-  Result  := (DataToHex(@R32[0], SizeOf(TCnFNVHash32)) = '6C942797')
-    and (DataToHex(@R64[0], SizeOf(TCnFNVHash64)) = 'ED78DF90BF4705F7')
-    and (DataToHex(@R128[0], SizeOf(TCnFNVHash128)) = '9FDD06116E58550841478B690F1987DF')
-    and (DataToHex(@R256[0], SizeOf(TCnFNVHash256)) = 'D41B9B05355E0B5605A530EC0883AAD4DB43EEA7B7BF7DC168E67C776B2BB1E7')
-    and (DataToHex(@R512[0], SizeOf(TCnFNVHash512)) = '000093BF8B221FDB9305331987CA9405EE207CD80D000000000000000000000000000000000000000000000011FF0EDB280FED457327DA3AC36257CB3335312E')
-    and (DataToHex(@R1024[0], SizeOf(TCnFNVHash1024)) = '3FA9D253E52AE80105B382C80A01E27A53D7BC1D201EFB47B38F4D6E465488F81C0F43E9072F908DBCA3A30000000000000000000000000000000000000000000'
-      + '0000000000000000000000000000000000253EB20F42A7228AF9022D9F35ECE5BB71E40FCD8717B80D164AB921709996E5C4397605870150BFF1F2AA31D53D9');
+    H64 := FNV1Hash64(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H64[0], SizeOf(H64)) = Exp64[I];
+    if not Result then Exit;
+  end;
 end;
 
 function TestFNV1a: Boolean;
+const
+  TestStrs: array[0..3] of AnsiString = ('', 'a', 'foobar',
+    'Hello!'#1#255#237);
+  // FNV-1a 32-bit from RFC 9923 ¡ì8.3 Test32 (uint32_t LE hex)
+  Exp32: array[0..3] of string = ('C59D1C81', '2C290CE4', '68F99CBF', '81389DFD');
+  // FNV-1a 64-bit from RFC 9923 ¡ì8.3 Test64 (uint64_t LE hex)
+  Exp64: array[0..3] of string = ('25232284E49CF2CB', '8CEC01864CDC63AF',
+    'E86739F771419485', 'A16FEE9470EA51BD');
+  // FNV-1a 128-bit from RFC (C BE byte arrays reversed to LE hex)
+  Exp128: array[0..3] of string = ('8DC595627521B8624201BB072E27626C',
+    '64894A4E702B9178AF8C1A6F69CB28D2',
+    '186F44BA97350D6FBF643C7962163E34',
+    '19140DD1FECA1A5B161C050B602C2074');
+  // FNV-1a 256-bit from RFC (C BE byte arrays reversed to LE hex)
+  Exp256: array[0..3] of string = ('3505EECAC8B42310B3BBB6476853B1C8CC76E5C484C3982D3650C5AABC8D26DD',
+    '7C63116871B283614F4966729BA9E64DFABD330A1D75DC28EC0353F3B03F3263',
+    '2834AF8410A9A13B755BE35AAD3D4532DC89382DC0810F4FADAD6C302FEA55B0',
+    'B167456472262E34876A1AB0A5C9809B650FA803C420EF98CF38652C40445A0C');
+  // FNV-1a 512-bit from RFC 9923 C byte arrays (reversed to LE hex)
+  Exp512: array[0..3] of string = (
+    'D99FFE4AAC2A98AC4BE3565F41362018CEE7DB42C99BA72EF692C1348AF648E9' +
+    '210D000000000000000000C959D087ACAC9099300FE5A1DC16441F17B1B06DB8',
+    '88FF277BD82CE13F648A6ABD96B128532295A394A8BA9182D8E75BAF2C53C290' +
+    '6F9811000000000000000007EC2643D6856F6D693D3E49DED75AFCC82D993AE4',
+    '8877BE64C329D7CEA9A11C33816E2B02FD470E28766B39A5FE300811200E70B9' +
+    'AF9641EE589FF94B0000008ECDCCCAAD53EDC0F6350B5FD069D96F9C8D73ECB0',
+    '3577281ECBEA714EBBF07BE8BFD4DF7920F27BB4F62FF4D2D680928947C2A6F7' +
+    '4862C403FEEAC21E72BDB6F5152BA880B8FBC4E58F613819DD04BCB9EC00DF4F');
+  // FNV-1a 1024-bit from RFC 9923 C byte arrays (reversed to LE hex)
+  Exp1024: array[0..3] of string = (
+    'B390EE716CB1F4AF213BA9C6C98CDE6B55AE05C06C255F550A51342780736EEB' +
+    'D7C6040000000000000000000000000000000000000000000000000000000000' +
+    '000000000000000000000000000000000000000000D9219ADA7436DA4EF33B6C' +
+    'A1ADFD2342FC294BB72810595A6DE5324DCC8E75767A5F000000000000000000',
+    'AA95F6AE2C2577DE3DB37014E9542048785ACFC8A5098D6406AD21CCBC1D491A' +
+    'D85C680700000000000000000000000000000000000000000000000000000000' +
+    '000000000000000000000000000000000000000000570EF572A3245BF8723382' +
+    '1B0DF3AEFD87CA95FF90347D719F1B22DF53E6BC9FC1D7980000000000000000',
+    'B098ECAC4B557A8488089007470E2AC97F3B2F2219F83799B37E545E821E9EA4' +
+    'B808EF18F41ED170420000000000000000000000000000000000000000000000' +
+    '000000000000000000000000000000000000000000AED585B9D072456C162737' +
+    'F2CD2BA2977158196B7FF791DB4A02FDC912D32387D03A64AEA75F1731060000',
+    '23DE69CCD027020C3A08050247E7E869DDDEEE23D9B04B51D1C5BC99AF50CC67' +
+    '7E6044C1987B2243CE87CAF70000000000000000000000000000000000000000' +
+    '00000000000000000000000000000000000000000099F2C8DC2FF4555D388D4E' +
+    '2435ADFC6FD9C16B97CAF64A30922AEDA1B4311E4393A4E826DEA925AF47F7F6');
 var
-  S: AnsiString;
-  R32: TCnFNVHash32;
-  R64: TCnFNVHash64;
-  R128: TCnFNVHash128;
-  R256: TCnFNVHash256;
-  R512: TCnFNVHash512;
-  R1024: TCnFNVHash1024;
+  I: Integer;
+  H32: TCnFNVHash32;
+  H64: TCnFNVHash64;
+  H128: TCnFNVHash128;
+  H256: TCnFNVHash256;
+  H512: TCnFNVHash512;
+  H1024: TCnFNVHash1024;
 begin
-  S := 'CnPack Test';
-  R32 := FNV1aHash32(@S[1], Length(S));
-  R64 := FNV1aHash64(@S[1], Length(S));
-  R128 := FNV1aHash128(@S[1], Length(S));
-  R256 := FNV1aHash256(@S[1], Length(S));
-  R512 := FNV1aHash512(@S[1], Length(S));
-  R1024 := FNV1aHash1024(@S[1], Length(S));
+  Result := True;
+  for I := 0 to 3 do
+  begin
+    H32 := FNV1aHash32(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H32[0], SizeOf(H32)) = Exp32[I];
+    if not Result then Exit;
 
-  Result := (DataToHex(@R32[0], SizeOf(TCnFNVHash32)) = '70BC2FDB')
-    and (DataToHex(@R64[0], SizeOf(TCnFNVHash64)) = '0B2F2A33D0684C7B')
-    and (DataToHex(@R128[0], SizeOf(TCnFNVHash128)) = 'ACE1FE5B039B0404E1E97664DCAFA2D3')
-    and (DataToHex(@R256[0], SizeOf(TCnFNVHash256)) = '9612F703060D51E09F686AEC0883AAD4DB43EEB1051F744B884B4FB9DAC7314B')
-    and (DataToHex(@R512[0], SizeOf(TCnFNVHash512)) =   '000093BF8B221FDB9337A00C1232AFFB766F227EF3000000000000000000000000000000000000000000000011FF0EDB280FED4B9760B10B4FA20363B8261786')
-    and (DataToHex(@R1024[0], SizeOf(TCnFNVHash1024)) = '3FA9D253E52AE80105B382C80A01E27A53D7BC1D201EFB47B38F4D6E465489CAD8F2E23BEDE6954C0B8699000000000000000000000000000000000000000000'
-      + '00000000000000000000000000000000000253EB20F42A7228AF9022D9F35ECE5BB71E40FCD8717B80D164AB921709996E5C43B515A262332A46CD9B163889E1');
+    H64 := FNV1aHash64(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H64[0], SizeOf(H64)) = Exp64[I];
+    if not Result then Exit;
+
+    H128 := FNV1aHash128(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H128[0], SizeOf(H128)) = Exp128[I];
+    if not Result then Exit;
+
+    H256 := FNV1aHash256(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H256[0], SizeOf(H256)) = Exp256[I];
+    if not Result then Exit;
+
+    H512 := FNV1aHash512(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H512[0], SizeOf(H512)) = Exp512[I];
+    if not Result then Exit;
+
+    H1024 := FNV1aHash1024(PAnsiChar(TestStrs[I]), Length(TestStrs[I]));
+    Result := DataToHex(@H1024[0], SizeOf(H1024)) = Exp1024[I];
+    if not Result then Exit;
+  end;
 end;
 
 // ================================ FEC ========================================
@@ -15689,6 +15747,76 @@ begin
     DeStream.Free;
     EnStream.Free;
     InStream.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
+end;
+
+function TestRSAOAEP: Boolean;
+const
+  KEY =
+    '-----BEGIN RSA PRIVATE KEY-----' + #13#10 +
+    'MIIEowIBAAKCAQEAxOiG2ZD8KB6njUiPJeLD8JmP+9QGqxpIQ9o94LPrAqxXFDpt' + #13#10 +
+    'zpgAw3rQfvcAZaoZkgCFOYFWXtPVk0Oy7/NZ27SGQO4hKvlIAFjrcqVvoXJey6SC' + #13#10 +
+    'EB/Q169ePoy3voG49ZXXlvSrfaf2cuPbosnS2vk3C18492AazmY1jCRbQVxDXQcF' + #13#10 +
+    'jv0/YE3bSozydNvIvPyaFFPdWjJxSr5Hja4QbE+TR+DVRGtA/tGkLafR6rNrp6BL' + #13#10 +
+    'rKXFkoCq0seXhKLvmKF7y/fy+NXT+RI34e7dz+PVMu7RYRZIIipAMumL+QvQxCp0' + #13#10 +
+    'Cm1Ant48m4es2gI0/yVmD++YBmlHcFbPAtR9awIDAQABAoIBAGO4dwKcIHeY/rXY' + #13#10 +
+    'd1Zyf1TMEFUyzaW9i7eBQTEZLP2PlhISfSXRaSGWgxyprrPN72E3jkDPNZSUp2cL' + #13#10 +
+    'NAW9MlbIF+2uK3H+CO7UGXlYOy6CI2vyhkPwOO3iTFJVJYD/ZVJKboJuqqLaez84' + #13#10 +
+    'EjVhDL4E1FGYCduN+kVpEdlFWEnCsnjW/YoxvNZ0BDHMJE8wTHWfULiIdEq4pjxT' + #13#10 +
+    'DqiJ98SP124OYqx89nC0GZQ0V+byE5vWlm66v5jQmRvmhySMXmLM7AM91Zummurb' + #13#10 +
+    'QtS8oGA2TzHyXEQ/CoKLrGyg+5nF6foOifgx0zDBWRzvhvGeMHr9IsxKR44q9NM2' + #13#10 +
+    'W5OZqcECgYEA6Dem/SqUcilNSIgST8s/2A6S03JBp799eDnmbZUVs50LxWtRaGuX' + #13#10 +
+    'ks+FlZJLrtzROm+jTQ7eBJjQzALomnNKADaf7pzjigBHMmxFnisad8iCHnAlK3zr' + #13#10 +
+    'vL8gvgFL5S1myvdCn2ENjY4zdJ+iPsXrkionR6d8sGMIKGy1mV5cuBECgYEA2RMh' + #13#10 +
+    'QpYuKH2xzSpLsTb4q6ocaQMIMPuXq8HF8wbMSQN4eD8HKKPyvewUlO/horZujVxg' + #13#10 +
+    'oZXbgy5KDqE5gJGm6HKIctGsqVFxKZFw8IiZ5LAgBInaPr8CbiBVDyw4n2p2ZApE' + #13#10 +
+    'fxn81juQR56H9ngih2z9w/+qNZ1nywgr3up6ebsCgYBwhWb5DYTYvIKiPq0A1S+e' + #13#10 +
+    'dZFXu+lsazFU7Flnh/H4EoT9qD7OJjRQAxZrn3Pky0Lm2el7EVUrTRD/iflDvdGB' + #13#10 +
+    'wPZGHOd0myXknOou9hvhJttF/HlGVUW1M7ed2er4pcNFXgJ+T/zNNrZgMGnhmO3I' + #13#10 +
+    '6XwXEGUu4w206Ngl9L9gwQKBgCwPO/L99IR3br1L1m0z0SlWr8mIugLnLhPIktsP' + #13#10 +
+    'CCvRroQJlvRiwoRWBJ9uSQfzq2C53Usu1Y08uf9aLgewiIYpqRRVBoyfYS6kvJ21' + #13#10 +
+    'vDa0oOsK5+dQcbfUjC82NI/21ezcQKbjqXP6RwCiZspZ+/gs4R0FKZEUT9rf37ex' + #13#10 +
+    'NAa9AoGBAMLCrQutRbpESFd2YCUnVpR/XZVPwPzyGJEO2XIjNQGJRbkL/SCw3iOq' + #13#10 +
+    '4mHXBJbd2/v/arJ6KOOiPMvgmyjHjCAIeC0INMCyyFbeO0YuF9xdKQmX+12V4oZU' + #13#10 +
+    'n5pVIVJmV56F7+wjcOWpvBZJKjm1fRHi7B9/eQc7J5GZDQu3oksp' + #13#10 +
+    '-----END RSA PRIVATE KEY-----';
+var
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+  Plain, En, De: TBytes;
+begin
+  Result := False;
+
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+
+  try
+    CnRSALoadKeysFromPemStr(KEY, Priv, Pub);
+
+    Plain := AnsiToBytes('Hello OAEP!');
+
+    En := CnRSAEncryptBytes(Plain, Pub, cpmOAEP);
+    De := CnRSADecryptBytes(En, Priv, cpmOAEP);
+    Result := CompareBytes(De, Plain);
+    if not Result then Exit;
+
+    En := CnRSAEncryptBytes(Plain, Pub, cpmOAEP_SHA256);
+    De := CnRSADecryptBytes(En, Priv, cpmOAEP_SHA256);
+    Result := CompareBytes(De, Plain);
+    if not Result then Exit;
+
+    En := CnRSAEncryptBytes(Plain, Pub, cpmOAEP_SHA384);
+    De := CnRSADecryptBytes(En, Priv, cpmOAEP_SHA384);
+    Result := CompareBytes(De, Plain);
+    if not Result then Exit;
+
+    En := CnRSAEncryptBytes(Plain, Pub, cpmOAEP_SHA512);
+    De := CnRSADecryptBytes(En, Priv, cpmOAEP_SHA512);
+    Result := CompareBytes(De, Plain);
+    if not Result then Exit;
+  finally
     Pub.Free;
     Priv.Free;
   end;

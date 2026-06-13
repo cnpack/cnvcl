@@ -26,6 +26,7 @@ unit CnFNV;
 * 单元作者：CnPack 开发组（master@cnpack.org)
 * 备    注：本单元实现了一种简易的可变长度的杂凑算法 FNV，它有两个变种 FNV-1 和 FNV-1a，
 *           均以特定素数与偏移量逐字节运算而来。算法创造者们为 Fowler-Noll-Vo
+*           注意按 RFC9923 要求，结果需要按需倒序，且不含 FNV-0 这种淘汰了的算法。
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -485,6 +486,8 @@ begin
   try
     FNV1(cft32, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
   finally
     R.Free;
   end;
@@ -498,6 +501,8 @@ begin
   try
     FNV1(cft64, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
   finally
     R.Free;
   end;
@@ -511,6 +516,8 @@ begin
   try
     FNV1(cft128, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
   finally
     R.Free;
   end;
@@ -524,6 +531,8 @@ begin
   try
     FNV1(cft256, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
   finally
     R.Free;
   end;
@@ -537,6 +546,8 @@ begin
   try
     FNV1(cft512, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
   finally
     R.Free;
   end;
@@ -550,6 +561,8 @@ begin
   try
     FNV1(cft1024, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
   finally
     R.Free;
   end;
@@ -563,6 +576,8 @@ begin
   try
     FNV1a(cft32, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
   finally
     R.Free;
   end;
@@ -576,6 +591,8 @@ begin
   try
     FNV1a(cft64, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
   finally
     R.Free;
   end;
@@ -589,6 +606,8 @@ begin
   try
     FNV1a(cft128, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
   finally
     R.Free;
   end;
@@ -602,6 +621,8 @@ begin
   try
     FNV1a(cft256, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
   finally
     R.Free;
   end;
@@ -615,6 +636,8 @@ begin
   try
     FNV1a(cft512, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
   finally
     R.Free;
   end;
@@ -628,6 +651,8 @@ begin
   try
     FNV1a(cft1024, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
   finally
     R.Free;
   end;
