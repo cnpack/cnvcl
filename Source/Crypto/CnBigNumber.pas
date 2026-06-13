@@ -1445,6 +1445,7 @@ function BigNumberClearBit(Num: TCnBigNumber; N: Integer): Boolean;
 
 function BigNumberKeepLowBits(Num: TCnBigNumber; Count: Integer): Boolean;
 {* 给一个大数对象只保留第 0 到 Count - 1 个 Bit 位，高位清零，返回成功与否。
+   Count 如果传 0 表示全不保留，此时大数置 0，也返回成功。
 
    参数：
      Num: TCnBigNumber                    - 待计算的大数对象
@@ -3924,8 +3925,8 @@ begin
   if J > 0 then // 要多保留最高一个 LongWord 中的 0 到 J - 1 位，共 J 位，J 最多 31/63
   begin
     Num.FTop := I + 1;
-    B := 1 shl J;         // 0000100000 如果 J 是 31/63 也不会溢出
-    B := B - 1;           // 0000011111
+    B := TCnBigNumberElement(1) shl J;         // 0000100000 如果 J 是 31/63 也不会溢出
+    B := B - 1;                                // 0000011111
     PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] and B;
   end
   else

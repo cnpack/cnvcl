@@ -170,6 +170,7 @@ function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
+function TestBigNumberKeepLowBits: Boolean;
 
 // ================================ Bits =======================================
 
@@ -1851,6 +1852,7 @@ begin
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
   MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
+  MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
 
 // ================================ Bits =======================================
 
@@ -4782,6 +4784,71 @@ begin
   finally
     BigNumberFree(Range);
     BigNumberFree(Num);
+  end;
+end;
+
+function TestBigNumberKeepLowBits: Boolean;
+var
+  T: TCnBigNumber;
+begin
+  Result := False;
+  T := BigNumberNew;
+  try
+    T.SetHex('FF');
+    Result := not BigNumberKeepLowBits(T, -1);
+    if not Result then Exit;
+
+    T.SetHex('FF');
+    Result := BigNumberKeepLowBits(T, 0);
+    if not Result then Exit;
+    Result := T.IsZero;
+    if not Result then Exit;
+
+    T.SetHex('AB');
+    Result := BigNumberKeepLowBits(T, 100);
+    if not Result then Exit;
+    Result := T.ToHex = 'AB';
+    if not Result then Exit;
+
+    T.SetHex('FFFFFFFFFFFFFFFF');
+    Result := BigNumberKeepLowBits(T, 32);
+    if not Result then Exit;
+    Result := T.ToHex = 'FFFFFFFF';
+    if not Result then Exit;
+
+    T.SetHex('FFFFFFFFFFFFFFFF');
+    Result := BigNumberKeepLowBits(T, 1);
+    if not Result then Exit;
+    Result := T.ToHex = '01';
+    if not Result then Exit;
+
+    T.SetHex('FFFFFFFFFFFFFFFF');
+    Result := BigNumberKeepLowBits(T, 31);
+    if not Result then Exit;
+    Result := T.ToHex = '7FFFFFFF';
+    if not Result then Exit;
+
+{$IFDEF CPU64BITS}
+    T.SetHex('FFFFFFFFFFFFFFFF');
+    Result := BigNumberKeepLowBits(T, 33);
+    if not Result then Exit;
+    Result := T.ToHex = '01FFFFFFFF';
+    if not Result then Exit;
+
+    T.SetHex('FFFFFFFFFFFFFFFF');
+    Result := BigNumberKeepLowBits(T, 63);
+    if not Result then Exit;
+    Result := T.ToHex = '7FFFFFFFFFFFFFFF';
+    if not Result then Exit;
+{$ENDIF}
+
+    T.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    Result := BigNumberKeepLowBits(T, 96);
+    if not Result then Exit;
+    Result := T.ToHex = 'FFFFFFFFFFFFFFFFFFFFFFFF';
+    if not Result then Exit;
+  finally
+    BigNumberFree(T);
   end;
 end;
 
