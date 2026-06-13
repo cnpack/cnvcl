@@ -4801,7 +4801,7 @@ begin
   Result := True;
 end;
 
-// 通用的 MGF1 掩码生成函数，通过 SignType 指定哈希算法
+// 通用的 MGF1 掩码生成函数，通过 SignType 指定杂凑算法
 function Pkcs1MGF(Seed: Pointer; SeedLen: Integer; OutMask: Pointer;
   MaskLen: Integer; SignType: TCnRSASignDigestType): Boolean;
 var
