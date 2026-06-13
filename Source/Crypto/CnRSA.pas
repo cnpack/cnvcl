@@ -3033,7 +3033,7 @@ begin
   else
   begin
     SetLength(Result, PrivateKey.GetBytesCount);
-    if CnRSADecryptData(@EnData[0], Length(EnData), @Result[0], OutLen, PrivateKey) then
+    if CnRSADecryptData(@EnData[0], Length(EnData), @Result[0], OutLen, PrivateKey, PaddingMode) then
       SetLength(Result, OutLen)
     else
       SetLength(Result, 0);
