@@ -5206,6 +5206,9 @@ begin
   Result := False;
   if (Ecc <> nil) and (SelfPrivateKey <> nil) and not BigNumberIsNegative(SelfPrivateKey) then
   begin
+    if not CheckEccPublicKey(Ecc, OtherPublicKey) then // 对方公钥必须是椭圆曲线上的点，防止经典的无效曲线攻击
+      Exit;
+
     SharedSecretKey.Assign(OtherPublicKey);
     Ecc.MultiplePoint(SelfPrivateKey, SharedSecretKey);
     Result := True;
