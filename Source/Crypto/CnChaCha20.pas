@@ -35,7 +35,9 @@ unit CnChaCha20;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.07.30 V1.1
+* 修改记录：2026.06.15 V1.2
+*               将部分参数由 var 改为 const
+*           2023.07.30 V1.1
 *               根据草案实现 XChaCha20，包括 HChaCha20 的 Key 生成算法
 *           2022.07.19 V1.0
 *               创建单元
@@ -93,64 +95,64 @@ type
   TCnChaChaState = array[0..CN_CHACHA_STATE_SIZE - 1] of Cardinal;
   {* ChaCha20 算法的状态块}
 
-procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+procedure ChaCha20Block(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
 {* 进行一次 ChaCha20 块运算，包括 20 轮的子运算，外部指定 12 字节的 Nonce 与一个四字节计数器。
 
    参数：
-     var Key: TCnChaChaKey                - ChaCha20 密码
-     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - ChaCha20 密码
+     const Nonce: TCnChaChaNonce          - 一次性随机数据 Nonce
      Counter: TCnChaChaCounter            - 计数器
      var OutState: TCnChaChaState         - 状态块
 
    返回值：（无）
 }
 
-procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
+procedure HChaCha20SubKey(const Key: TCnChaChaKey; const Nonce: TCnHChaChaNonce;
   var OutSubKey: TCnHChaChaSubKey);
 {* 进行一次 HChaCha20 块运算，包括 20 轮的子运算，输出 SubKey，
    外部指定 16 字节的 Nonce，实际上是 Nonce 前四字节作为计数器，后 12 字节为 ChaCha20 的 Nonce。
 
    参数：
-     var Key: TCnChaChaKey                - HChaCha20 密码
-     var Nonce: TCnHChaChaNonce           - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - HChaCha20 密码
+     const Nonce: TCnHChaChaNonce         - 一次性随机数据 Nonce
      var OutSubKey: TCnHChaChaSubKey      - 子状态块
 
    返回值：（无）
 }
 
-function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20EncryptBytes(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   const Data: TBytes): TBytes;
 {* 对字节数组进行 ChaCha20 加密，内部使用的计数器初始值默认为 1。
 
    参数：
-     var Key: TCnChaChaKey                - ChaCha20 密码
-     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - ChaCha20 密码
+     const Nonce: TCnChaChaNonce          - 一次性随机数据 Nonce
      const Data: TBytes                   - 待加密的明文字节数组
 
    返回值：TBytes                         - 返回密文字节数组
 }
 
-function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20DecryptBytes(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   const EnData: TBytes): TBytes;
 {* 对字节数组进行 ChaCha20 解密，内部使用的计数器初始值默认为 1。
 
    参数：
-     var Key: TCnChaChaKey                - ChaCha20 密码
-     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - ChaCha20 密码
+     const Nonce: TCnChaChaNonce          - 一次性随机数据 Nonce
      const EnData: TBytes                 - 待解密的密文字节数组
 
    返回值：TBytes                         - 返回明文字节数组
 }
 
-function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20EncryptData(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 {* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，内部使用的计数器为 1。
    密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
 
    参数：
-     var Key: TCnChaChaKey                - ChaCha20 密码
-     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - ChaCha20 密码
+     const Nonce: TCnChaChaNonce          - 一次性随机数据 Nonce
      Data: Pointer                        - 待加密的明文数据块地址
      DataByteLength: Integer              - 待加密的明文数据块字节长度
      Output: Pointer                      - 密文输出区域的地址
@@ -158,14 +160,14 @@ function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
    返回值：Boolean                        - 返回加密是否成功
 }
 
-function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20DecryptData(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 {* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，内部使用的计数器为 1。
    明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
 
    参数：
-     var Key: TCnChaChaKey                - ChaCha20 密码
-     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - ChaCha20 密码
+     const Nonce: TCnChaChaNonce          - 一次性随机数据 Nonce
      EnData: Pointer                      - 待解密的密文数据块地址
      DataByteLength: Integer              - 待解密的密文数据块字节长度
      Output: Pointer                      - 明文输出区域的地址
@@ -173,38 +175,38 @@ function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
    返回值：Boolean                        - 返回解密是否成功
 }
 
-function XChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20EncryptBytes(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   Data: TBytes): TBytes;
 {* 对字节数组进行 XChaCha20 加密，内部使用的计数器初始值默认为 1。
 
    参数：
-     var Key: TCnChaChaKey                - XChaCha20 密码
-     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - XChaCha20 密码
+     const Nonce: TCnXChaChaNonce         - 一次性随机数据 Nonce
      Data: TBytes                         - 待加密的明文字节数组
 
    返回值：TBytes                         - 返回密文字节数组
 }
 
-function XChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20DecryptBytes(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   EnData: TBytes): TBytes;
 {* 对字节数组进行 XChaCha20 解密，内部使用的计数器初始值默认为 1。
 
    参数：
-     var Key: TCnChaChaKey                - XChaCha20 密码
-     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - XChaCha20 密码
+     const Nonce: TCnXChaChaNonce         - 一次性随机数据 Nonce
      EnData: TBytes                       - 待解密的密文字节数组
 
    返回值：TBytes                         - 返回明文字节数组
 }
 
-function XChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20EncryptData(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 {* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，内部使用的计数器初始值默认为 1。
    密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
 
    参数：
-     var Key: TCnChaChaKey                - XChaCha20 密码
-     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - XChaCha20 密码
+     const Nonce: TCnXChaChaNonce         - 一次性随机数据 Nonce
      Data: Pointer                        - 待加密的明文数据块地址
      DataByteLength: Integer              - 待加密的明文数据块字节长度
      Output: Pointer                      - 密文输出区域的地址
@@ -212,14 +214,14 @@ function XChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
    返回值：Boolean                        - 返回加密是否成功
 }
 
-function XChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20DecryptData(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 {* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，内部使用的计数器初始值默认为 1。
    明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
 
    参数：
-     var Key: TCnChaChaKey                - XChaCha20 密码
-     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     const Key: TCnChaChaKey              - XChaCha20 密码
+     const Nonce: TCnXChaChaNonce         - 一次性随机数据 Nonce
      EnData: Pointer                      - 待解密的密文数据块地址
      DataByteLength: Integer              - 待解密的密文数据块字节长度
      Output: Pointer                      - 明文输出区域的地址
@@ -278,8 +280,8 @@ begin
   QuarterRound(State[A], State[B], State[C], State[D]);
 end;
 
-procedure BuildState(var State: TCnChaChaState; var Key: TCnChaChaKey;
-  var Nonce: TCnChaChaNonce; Counter: TCnChaChaCounter);
+procedure BuildState(var State: TCnChaChaState; const Key: TCnChaChaKey;
+  const Nonce: TCnChaChaNonce; Counter: TCnChaChaCounter);
 begin
   State[0] := CHACHA20_CONST0;
   State[1] := CHACHA20_CONST1;
@@ -315,7 +317,7 @@ begin
   QuarterRoundState(State, 3, 4, 9, 14);
 end;
 
-procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+procedure ChaCha20Block(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
 var
   I: Integer;
@@ -331,7 +333,7 @@ begin
     OutState[I] := OutState[I] + State[I];
 end;
 
-procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
+procedure HChaCha20SubKey(const Key: TCnChaChaKey; const Nonce: TCnHChaChaNonce;
   var OutSubKey: TCnHChaChaSubKey);
 var
   I: Integer;
@@ -352,7 +354,7 @@ begin
     WriteUInt32LE(State[12 + I], @OutSubKey[(4 + I) * 4]);
 end;
 
-function ChaCha20Data(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce; Data: Pointer;
+function ChaCha20Data(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce; Data: Pointer;
   DataByteLength: Integer; Output: Pointer; BlockCounter: TCnChaChaCounter = 1): Boolean;
 var
   I, J, L, B: Integer;
@@ -405,7 +407,7 @@ begin
   Result := True;
 end;
 
-function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20EncryptBytes(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   const Data: TBytes): TBytes;
 var
   L: Integer;
@@ -423,7 +425,7 @@ begin
   end;
 end;
 
-function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20DecryptBytes(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   const EnData: TBytes): TBytes;
 var
   L: Integer;
@@ -441,19 +443,19 @@ begin
   end;
 end;
 
-function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20EncryptData(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 begin
   Result := ChaCha20Data(Key, Nonce, Data, DataByteLength, Output);
 end;
 
-function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+function ChaCha20DecryptData(const Key: TCnChaChaKey; const Nonce: TCnChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 begin
   Result := ChaCha20Data(Key, Nonce, EnData, DataByteLength, Output);
 end;
 
-function XChaCha20Data(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20Data(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer; BlockCounter: TCnChaChaCounter = 1): Boolean;
 var
   SubKey: TCnHChaChaSubKey;
@@ -474,7 +476,7 @@ begin
   Result := ChaCha20Data(XKey, N, Data, DataByteLength, Output, BlockCounter);
 end;
 
-function XChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20EncryptBytes(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   Data: TBytes): TBytes;
 var
   L: Integer;
@@ -492,7 +494,7 @@ begin
   end;
 end;
 
-function XChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20DecryptBytes(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   EnData: TBytes): TBytes;
 var
   L: Integer;
@@ -510,13 +512,13 @@ begin
   end;
 end;
 
-function XChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20EncryptData(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 begin
   Result := XChaCha20Data(Key, Nonce, Data, DataByteLength, Output);
 end;
 
-function XChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
+function XChaCha20DecryptData(const Key: TCnChaChaKey; const Nonce: TCnXChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 begin
   Result := XChaCha20Data(Key, Nonce, EnData, DataByteLength, Output);
