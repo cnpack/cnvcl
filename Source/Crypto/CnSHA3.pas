@@ -2777,6 +2777,10 @@ begin
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA3_256HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3GeneralDigest);
@@ -2790,6 +2794,10 @@ begin
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA3_384HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3GeneralDigest);
@@ -2803,6 +2811,10 @@ begin
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA3_512HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3GeneralDigest);
@@ -2816,6 +2828,10 @@ begin
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA3_224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;

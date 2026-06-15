@@ -2328,6 +2328,10 @@ begin
   BLAKE224Update(Context, @(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
   BLAKE224Update(Context, @(TmpBuf[0]), Len);
   BLAKE224Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE256HmacInit(var Context: TCnBLAKE256Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2372,6 +2376,10 @@ begin
   BLAKE256Update(Context, @(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
   BLAKE256Update(Context, @(TmpBuf[0]), Len);
   BLAKE256Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -2454,6 +2462,10 @@ begin
   BLAKE384Update(Context, @(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
   BLAKE384Update(Context, @(TmpBuf[0]), Len);
   BLAKE384Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE384Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -2517,6 +2529,10 @@ begin
   BLAKE512Update(Context, @(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
   BLAKE512Update(Context, @(TmpBuf[0]), Len);
   BLAKE512Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;

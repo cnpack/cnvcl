@@ -2904,6 +2904,10 @@ begin
   SHA224Update(Context, @(Context.Opad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
   SHA224Update(Context, @(TmpBuf[0]), Len);
   SHA224Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA256HmacInit(var Context: TCnSHA256Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2948,6 +2952,10 @@ begin
   SHA256Update(Context, @(Context.Opad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
   SHA256Update(Context, @(TmpBuf[0]), Len);
   SHA256Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -3030,6 +3038,10 @@ begin
   SHA384Update(Context, @(Context.Opad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
   SHA384Update(Context, @(TmpBuf[0]), Len);
   SHA384Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA384Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -3093,6 +3105,10 @@ begin
   SHA512Update(Context, @(Context.Opad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
   SHA512Update(Context, @(TmpBuf[0]), Len);
   SHA512Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;

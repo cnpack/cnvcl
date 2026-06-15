@@ -730,6 +730,10 @@ begin
   SHA1Update(Context, @(Context.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
   SHA1Update(Context, @(TmpBuf[0]), Len);
   SHA1Final(Context, Output);
+
+  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
+  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
+  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
