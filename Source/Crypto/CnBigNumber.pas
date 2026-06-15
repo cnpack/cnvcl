@@ -176,7 +176,7 @@ type
     {* 初始化为全 0，并不为 D 分配内存}
 
     procedure Clear;
-    {* 将自身数据空间填 0，并不释放 D 内存}
+    {* 安全地将自身数据空间填 0，并不释放 D 内存}
 
     function IsZero: Boolean;
     {* 返回大数是否为 0。
@@ -1079,7 +1079,8 @@ procedure BigNumberInit(Num: TCnBigNumber);
 }
 
 procedure BigNumberClear(Num: TCnBigNumber);
-  {* 清除一个大数对象，并将其数据空间填 0，不释放其内部的内存。
+{* 安全清除一个大数对象的数值，并将其数据空间填 0，但不释放其内部的内存。
+   一般用于密钥释放前的敏感数据清除操作。
 
    参数：
      Num: TCnBigNumber                    - 待清除的大数对象
@@ -3363,7 +3364,7 @@ begin
     Exit;
 
   if Num.FD <> nil then
-    FillChar(Num.FD^, Num.FDMax * SizeOf(TCnBigNumberElement), 0);
+    MemorySafeZero(Num.FD, Num.FDMax * SizeOf(TCnBigNumberElement));
   Num.FTop := 0;
   Num.FNeg := 0;
 end;

@@ -2519,14 +2519,19 @@ destructor TCnRSAPrivateKey.Destroy;
 begin
   if FUseCRT then
   begin
+    FQInv.Clear;
     FQInv.Free;
+    FDQ1.Clear;
     FDQ1.Free;
+    FDP1.Clear;
     FDP1.Free;
   end;
 
   FPrivKeyExponent.Free;
   FPrivKeyProduct.Free;
+  FPrimeKey2.Clear;
   FPrimeKey2.Free;
+  FPrimeKey1.Clear;
   FPrimeKey1.Free;
   inherited;
 end;

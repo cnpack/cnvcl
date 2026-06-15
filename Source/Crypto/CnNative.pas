@@ -1388,7 +1388,7 @@ procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
    返回值：（无）
 }
 
-function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean;
+function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 安全地将内存块填充为零，确保不被编译器的死存储优化消除。
    用于擦除密钥、私钥等敏感数据，防止残留于栈或堆中。
    返回值用于函数内部防止编译器优化，调用者可无需处理返回值。
@@ -3102,6 +3102,7 @@ var
   I: Integer;
   VolatileSink: Byte;
 begin
+  Result := False;
   if (Buffer = nil) or (ByteLength <= 0) then
     Exit;
 

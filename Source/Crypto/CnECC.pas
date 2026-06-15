@@ -556,8 +556,12 @@ type
   TCnEccPublicKey = class(TCnEccPoint);
   {* 椭圆曲线的公钥，G 点计算 k 次后的点坐标}
 
-  TCnEccPrivateKey = class(TCnBigNumber);
+  TCnEccPrivateKey = class(TCnBigNumber)
   {* 椭圆曲线的私钥，计算次数 k 次}
+  public
+    destructor Destroy; override;
+    {* 析构函数，内部强行调用安全清除内部数据的机制}
+  end;
 
   TCnEccSignature = class(TPersistent)
   {* 椭圆曲线的签名，两个大数 R S}
@@ -10154,6 +10158,14 @@ end;
 function TCnEcc3Point.ToString: string;
 begin
   Result := CnEcc3PointToHex(Self);
+end;
+
+{ TCnEccPrivateKey }
+
+destructor TCnEccPrivateKey.Destroy;
+begin
+  Clear;
+  inherited;
 end;
 
 { TCnEccSignature }
