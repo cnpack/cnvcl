@@ -3063,6 +3063,8 @@ begin
   // 后 32 字节作为 Hash 的入口参数，除了未来被 Hash 外不参与计算因而可以不用倒序
   if OutHashPrefix <> nil then
     OutHashPrefix.SetBinary(@Dig[CN_25519_BLOCK_BYTESIZE], CN_25519_BLOCK_BYTESIZE);
+
+  MemorySafeZero(@Dig[0], SizeOf(TCnSHA512Digest));
 end;
 
 // 根据随机私钥，生成公钥与 Ed448 签名使用的 Hash 种子
@@ -4949,6 +4951,7 @@ begin
 
     Result := True;
   finally
+    MemorySafeZero(@Dig[0], SizeOf(TCnSHA512Digest));
     Stream.Free;
     FBigNumberPool.Recycle(HP);
     FBigNumberPool.Recycle(K);

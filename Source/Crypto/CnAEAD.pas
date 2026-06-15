@@ -1600,6 +1600,7 @@ begin
 
   // 再和开始的内容异或得到最终 Tag
   MemoryXor(@OutTag[0], @Y0[0], SizeOf(TCnGHash128Tag), @OutTag[0]);
+  MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
 end;
 
 // 根据 Key、Iv、明文和附加数据，计算 GCM 加密密文与认证结果
@@ -1708,7 +1709,9 @@ begin
 
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
   if (not Result) and (OldPlain <> nil) and (OrigEnByteLength > 0) then
-    FillChar(OldPlain^, OrigEnByteLength, 0);
+    MemorySafeZero(OldPlain, OrigEnByteLength);
+
+  MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
 end;
 
 function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag;
@@ -2509,7 +2512,7 @@ begin
   // 比对 Tag 是否相同
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
   if (not Result) and (OldPlain <> nil) and (OrigEnByteLength > 0) then
-    FillChar(OldPlain^, OrigEnByteLength, 0);
+    MemorySafeZero(OldPlain, OrigEnByteLength);
 end;
 
 function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
@@ -2734,6 +2737,9 @@ begin
 
   // 最后得到结果
   Poly1305Final(Poly1305Context, OutTag);
+
+  MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
+  MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));
 end;
 
 function ChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
@@ -2800,7 +2806,10 @@ begin
   // 当且仅当计算出的 Tag 和传入 Tag 相同才通过
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
   if (not Result) and (OutPlainData <> nil) and (OrigEnByteLength > 0) then
-    FillChar(OutPlainData^, OrigEnByteLength, 0);
+    MemorySafeZero(OutPlainData, OrigEnByteLength);
+
+  MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
+  MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));
 end;
 
 // ================== ChaCha20_Poly1305 字节数组加解密函数 =====================

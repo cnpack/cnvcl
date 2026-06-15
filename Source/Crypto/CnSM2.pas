@@ -2277,7 +2277,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    if not SM2.IsPointOnCurve(InRA) then // 验证传过来的 RA 是否满足方程
+    if not CheckEccPublicKey(SM2, TCnEccPublicKey(InRA)) then // 验证传过来的 RA 是否满足方程
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
@@ -2374,7 +2374,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    if not SM2.IsPointOnCurve(InRB) then // 验证传过来的 RB 是否满足方程
+    if not CheckEccPublicKey(SM2, TCnEccPublicKey(InRB)) then // 验证传过来的 RB 是否满足方程
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;

@@ -489,8 +489,6 @@ begin
   Fill := 64 - Left;
 
   Context.Total[0] := Context.Total[0] + ByteLength;
-  Context.Total[0] := Context.Total[0] and $FFFFFFFF;
-
   if Context.Total[0] < ByteLength then
     Context.Total[1] := Context.Total[1] + 1;
 
