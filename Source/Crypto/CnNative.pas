@@ -1388,6 +1388,18 @@ procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
    返回值：（无）
 }
 
+function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean;
+{* 安全地将内存块填充为零，确保不被编译器的死存储优化消除。
+   用于擦除密钥、私钥等敏感数据，防止残留于栈或堆中。
+   返回值用于函数内部防止编译器优化，调用者可无需处理返回值。
+
+   参数：
+     Buffer: Pointer                      - 待清零的内存块地址
+     ByteLength: Integer                  - 待清零的字节长度
+
+   返回值：Boolean                        - 是否安全擦除完毕
+}
+
 function UInt8ToBinStr(V: Byte): string;
 {* 将一 8 位无符号整数转换为二进制字符串。
 
@@ -3028,6 +3040,80 @@ begin
       Dec(MemByteLen);
     end;
   end;
+end;
+
+procedure InternalQuickSort(Mem: Pointer; L, R: Integer; ElementByteSize: Integer;
+  CompareProc: TCnMemSortCompareProc);
+var
+  I, J, P: Integer;
+begin
+  repeat
+    I := L;
+    J := R;
+    P := (L + R) shr 1;
+    repeat
+      while CompareProc(Pointer(TCnIntAddress(Mem) + I * ElementByteSize),
+        Pointer(TCnIntAddress(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
+        Inc(I);
+      while CompareProc(Pointer(TCnIntAddress(Mem) + J * ElementByteSize),
+        Pointer(TCnIntAddress(Mem) + P * ElementByteSize), ElementByteSize) > 0 do
+        Dec(J);
+
+      if I <= J then
+      begin
+        MemorySwap(Pointer(TCnIntAddress(Mem) + I * ElementByteSize),
+          Pointer(TCnIntAddress(Mem) + J * ElementByteSize), ElementByteSize);
+
+        if P = I then
+          P := J
+        else if P = J then
+          P := I;
+        Inc(I);
+        Dec(J);
+      end;
+    until I > J;
+
+    if L < J then
+      InternalQuickSort(Mem, L, J, ElementByteSize, CompareProc);
+    L := I;
+  until I >= R;
+end;
+
+function DefaultCompareProc(P1, P2: Pointer; ElementByteSize: Integer): Integer;
+begin
+  Result := MemoryCompare(P1, P2, ElementByteSize);
+end;
+
+procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer; CompareProc: TCnMemSortCompareProc);
+begin
+  if (Mem <> nil) and (ElementCount > 0) and (ElementCount > 0) then
+  begin
+    if Assigned(CompareProc) then
+      InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, CompareProc)
+    else
+      InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, DefaultCompareProc);
+  end;
+end;
+
+function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean;
+var
+  P: PByte;
+  I: Integer;
+  VolatileSink: Byte;
+begin
+  if (Buffer = nil) or (ByteLength <= 0) then
+    Exit;
+
+  P := PByte(Buffer);
+  for I := 0 to ByteLength - 1 do
+  begin
+    P^ := 0;
+    Inc(P);
+  end;
+
+  VolatileSink := PByte(Buffer)^;
+  Result := VolatileSink = 0;
 end;
 
 function UInt8ToBinStr(V: Byte): string;
@@ -5388,60 +5474,6 @@ begin
   end
   else
     Result := 0;
-end;
-
-procedure InternalQuickSort(Mem: Pointer; L, R: Integer; ElementByteSize: Integer;
-  CompareProc: TCnMemSortCompareProc);
-var
-  I, J, P: Integer;
-begin
-  repeat
-    I := L;
-    J := R;
-    P := (L + R) shr 1;
-    repeat
-      while CompareProc(Pointer(TCnIntAddress(Mem) + I * ElementByteSize),
-        Pointer(TCnIntAddress(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
-        Inc(I);
-      while CompareProc(Pointer(TCnIntAddress(Mem) + J * ElementByteSize),
-        Pointer(TCnIntAddress(Mem) + P * ElementByteSize), ElementByteSize) > 0 do
-        Dec(J);
-
-      if I <= J then
-      begin
-        MemorySwap(Pointer(TCnIntAddress(Mem) + I * ElementByteSize),
-          Pointer(TCnIntAddress(Mem) + J * ElementByteSize), ElementByteSize);
-
-        if P = I then
-          P := J
-        else if P = J then
-          P := I;
-        Inc(I);
-        Dec(J);
-      end;
-    until I > J;
-
-    if L < J then
-      InternalQuickSort(Mem, L, J, ElementByteSize, CompareProc);
-    L := I;
-  until I >= R;
-end;
-
-function DefaultCompareProc(P1, P2: Pointer; ElementByteSize: Integer): Integer;
-begin
-  Result := MemoryCompare(P1, P2, ElementByteSize);
-end;
-
-procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
-  ElementCount: Integer; CompareProc: TCnMemSortCompareProc);
-begin
-  if (Mem <> nil) and (ElementCount > 0) and (ElementCount > 0) then
-  begin
-    if Assigned(CompareProc) then
-      InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, CompareProc)
-    else
-      InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, DefaultCompareProc);
-  end;
 end;
 
 {$IFDEF COMPILER5}
