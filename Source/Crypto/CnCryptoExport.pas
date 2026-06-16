@@ -1482,9 +1482,13 @@ begin
   finally
     Stream.Free;
     Dom.Free;
+    HP.Clear;
     HP.Free;
+    K.Clear;
     K.Free;
+    S.Clear;
     S.Free;
+    R.Clear;
     R.Free;
     E.Free;
     Sig.Free;
@@ -4696,6 +4700,7 @@ begin
     Result := CN_OK;
   finally
     E.Free;
+    K.Clear;
     K.Free;
   end;
 end;

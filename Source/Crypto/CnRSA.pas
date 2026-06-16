@@ -1779,8 +1779,11 @@ begin
     Result := True;
     _CnSetLastError(ECN_RSA_OK);
   finally
+    M.Clear;
     M.Free;
+    P.Clear;
     P.Free;
+    T.Clear;
     T.Free;
   end;
 end;
@@ -2637,7 +2640,9 @@ begin
         _CnSetLastError(ECN_RSA_OK);
       end;
     finally
+      D.Clear;
       D.Free;
+      R.Clear;
       R.Free;
     end;
   end
@@ -2977,7 +2982,9 @@ begin
     end;
   finally
     Stream.Free;
+    Res.Clear;
     Res.Free;
+    Data.Clear;
     Data.Free;
   end;
 end;

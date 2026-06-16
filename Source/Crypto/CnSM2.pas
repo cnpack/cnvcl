@@ -1104,6 +1104,7 @@ begin
     Point.Z := R.Z;
   finally
     SetLength(Naf, 0);
+    M.Clear;
     M.Free;
     E.Free;
     R.Free;
