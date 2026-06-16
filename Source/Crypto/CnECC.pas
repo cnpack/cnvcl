@@ -1695,7 +1695,9 @@ function CnEccFastSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
 
 function CnInt64EccGenerateParams(out FiniteFieldSize: Int64; out CoefficientA: Int64;
   out CoefficientB: Int64; out GX: Int64; out GY: Int64; out Order: Int64): Boolean;
-{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以完整实现，只能先生成系数很小的。
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数。
+   注意，该机制难以完整实现，只能先靠系统随机库生成系数很小的，也不涉及密码应用。
 
    参数：
      out FiniteFieldSize: Int64           - 生成的魏尔斯特拉斯椭圆曲线方程的有限域上界
@@ -3176,10 +3178,7 @@ procedure TCnInt64Ecc.Encrypt(var PlainPoint: TCnInt64EccPoint;
   OutDataPoint2: TCnInt64EccPoint; RandomKey: Int64);
 begin
   if RandomKey = 0 then
-  begin
-    Randomize;
-    RandomKey := Trunc(Random * (FOrder - 1)) + 1; // 比 0 大但比基点阶小的随机数
-  end;
+    RandomKey := RandomInt64LessThan(FOrder); // 比 0 大但比基点阶小的随机数
 
   if RandomKey mod FOrder = 0 then
     raise ECnEccException.CreateFmt(SCnErrorEccRandomkeyDForOrder, [RandomKey]);
@@ -3197,8 +3196,7 @@ end;
 procedure TCnInt64Ecc.GenerateKeys(out PrivateKey: TCnInt64PrivateKey;
   out PublicKey: TCnInt64PublicKey);
 begin
-  Randomize;
-  PrivateKey := Trunc(Random * (FOrder - 1)) + 1; // 比 0 大但比基点阶小的随机数
+  PrivateKey := RandomInt64LessThan(FOrder);      // 比 0 大但比基点阶小的随机数
   PublicKey := FGenerator;
   MultiplePoint(PrivateKey, PublicKey);           // 基点乘 PrivateKey 次
 end;
