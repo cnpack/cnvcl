@@ -241,6 +241,7 @@ var
   B: Boolean;
 {$ELSE}
   F: TFileStream;
+  BytesRead: Integer;
 {$IFDEF LINUX}
   R: Integer;
 {$ENDIF}
@@ -313,7 +314,18 @@ begin
   F := nil;
   try
     F := TFileStream.Create(DEV_FILE, fmOpenRead);
-    Result := F.Read(Buf^, BufByteLen) = BufByteLen;
+    Result := True;
+    while BufByteLen > 0 do
+    begin
+      BytesRead := F.Read(Buf^, BufByteLen);
+      if BytesRead <= 0 then
+      begin
+        Result := False;
+        Break;
+      end;
+      Dec(BufByteLen, BytesRead);
+      Inc(Buf, BytesRead);
+    end;
   finally
     F.Free;
   end;
@@ -324,6 +336,7 @@ function CnRandomFillBytes2(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
 {$IFNDEF MSWINDOWS}
 var
   F: TFileStream;
+  BytesRead: Integer;
 {$IFDEF LINUX}
   R: Integer;
 {$ENDIF}
@@ -367,7 +380,18 @@ begin
   F := nil;
   try
     F := TFileStream.Create(DEV_FILE, fmOpenRead);
-    Result := F.Read(Buf^, BufByteLen) = BufByteLen;
+    Result := True;
+    while BufByteLen > 0 do
+    begin
+      BytesRead := F.Read(Buf^, BufByteLen);
+      if BytesRead <= 0 then
+      begin
+        Result := False;
+        Break;
+      end;
+      Dec(BufByteLen, BytesRead);
+      Inc(Buf, BytesRead);
+    end;
   finally
     F.Free;
   end;
