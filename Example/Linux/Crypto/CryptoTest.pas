@@ -15857,7 +15857,7 @@ begin
     EnStream.Write(B, 1);
 
     EnStream.Position := 0;
-    Result := not CnRSADecryptLongStream(EnStream, DeStream, Priv);
+    Result := CnRSADecryptLongStream(EnStream, DeStream, Priv); // 失败也伪装成功以防攻击
   finally
     DeStream.Free;
     EnStream.Free;
