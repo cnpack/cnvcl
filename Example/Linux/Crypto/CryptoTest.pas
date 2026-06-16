@@ -560,6 +560,7 @@ function TestSM2KeyExchangeExample256: Boolean;
 function TestSM2Collaborative3KeyGen: Boolean;
 function TestSM2Collaborative3Sign: Boolean;
 function TestSM2VerifyCorruptedSignature: Boolean;
+function TestSM2SchnorrProveCheck: Boolean;
 
 // ================================ SM3 ========================================
 
@@ -2242,6 +2243,7 @@ begin
   MyAssert(TestSM2Collaborative3KeyGen, 'TestSM2Collaborative3KeyGen');
   MyAssert(TestSM2Collaborative3Sign, 'TestSM2Collaborative3Sign');
   MyAssert(TestSM2VerifyCorruptedSignature, 'TestSM2VerifyCorruptedSignature');
+  MyAssert(TestSM2SchnorrProveCheck, 'TestSM2SchnorrProveCheck');
 
 // ================================ SM3 ========================================
 
@@ -14445,6 +14447,52 @@ begin
     PrivC.Free;
     PrivB.Free;
     PrivA.Free;
+  end;
+end;
+
+function TestSM2SchnorrProveCheck: Boolean;
+var
+  Priv: TCnSM2PrivateKey;
+  Pub: TCnSM2PublicKey;
+  Z: TCnBigNumber;
+  OutR: TCnEccPoint;
+  SM2: TCnSM2;
+begin
+  Priv := nil;
+  Pub := nil;
+  Z := nil;
+  OutR := nil;
+  SM2 := nil;
+  try
+    Priv := TCnSM2PrivateKey.Create;
+    Pub := TCnSM2PublicKey.Create;
+    Z := TCnBigNumber.Create;
+    OutR := TCnEccPoint.Create;
+    SM2 := TCnSM2.Create;
+
+    Result := CnSM2GenerateKeys(Priv, Pub, SM2);
+    if not Result then Exit;
+
+    // Prove: generate Schnorr proof (OutR, Z)
+    Result := CnSM2SchnorrProve(Priv, Pub, OutR, Z, SM2);
+    if not Result then Exit;
+
+    // Check: verify the proof passes
+    Result := CnSM2SchnorrCheck(Pub, OutR, Z, SM2);
+    if not Result then Exit;
+
+    // Tamper with Z and verify Check fails
+    BigNumberAdd(Z, Z, Z);
+    Result := not CnSM2SchnorrCheck(Pub, OutR, Z, SM2);
+    if not Result then Exit;
+
+    Result := True;
+  finally
+    SM2.Free;
+    OutR.Free;
+    Z.Free;
+    Pub.Free;
+    Priv.Free;
   end;
 end;
 

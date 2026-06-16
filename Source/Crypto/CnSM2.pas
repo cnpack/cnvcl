@@ -2487,6 +2487,10 @@ begin
     end;
 
     OutR.Assign(SM2.Generator);
+
+    // R 可能大于曲线的阶，需要 mod 一下
+    if BigNumberCompare(R, SM2.Order) > 0 then
+      BigNumberMod(R, R, SM2.Order);
     SM2.MultiplePoint(R, OutR);
 
     Stream := TMemoryStream.Create;
