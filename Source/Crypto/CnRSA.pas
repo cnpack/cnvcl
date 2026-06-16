@@ -2386,12 +2386,13 @@ end;
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean;
 var
-  M1, M2, V1, V2: TCnBigNumber;
+  M1, M2, H, V1, V2: TCnBigNumber;
 begin
   if PrivateKey.UseCRT then
   begin
     M1 := nil;
     M2 := nil;
+    H := nil;
     V1 := nil;
     V2 := nil;
 
@@ -2409,18 +2410,18 @@ begin
       BigNumberMontgomeryPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2);
       // m2 = c^dQ mod q
 
-      // “‘œ¬∏¥”√ m1
-      BigNumberSubMod(M1, M1, M2, PrivateKey.FPrimeKey1);
-      // m1 := m1 - m2 mod p
+      H := TCnBigNumber.Create;
+      BigNumberSubMod(H, M1, M2, PrivateKey.FPrimeKey1);
+      // H := m1 - m2 mod p
 
-      BigNumberDirectMulMod(M1, PrivateKey.FQInv, M1, PrivateKey.FPrimeKey1);
-      // m1 := qInv * m1 mod p
+      BigNumberDirectMulMod(H, PrivateKey.FQInv, H, PrivateKey.FPrimeKey1);
+      // H := qInv * H mod p
 
-      BigNumberMul(M1, M1, PrivateKey.FPrimeKey2);
-      // m1 := m1 * q
+      BigNumberMul(H, H, PrivateKey.FPrimeKey2);
+      // H := m1 * q
 
-      BigNumberAdd(Res, M2, M1);
-      // m = m2 + m1
+      BigNumberAdd(Res, M2, H);
+      // m = m2 + H
 
       // CRT fault attack protection: verify m mod p == M1, m mod q == M2
       V1 := TCnBigNumber.Create;
@@ -2438,6 +2439,8 @@ begin
     finally
       V2.Free;
       V1.Free;
+      H.Clear;
+      H.Free;
       M2.Clear;
       M2.Free;
       M1.Clear;
