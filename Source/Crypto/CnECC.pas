@@ -805,6 +805,7 @@ type
 
        返回值：（无）
     }
+
     procedure JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); virtual;
     {* 使用雅可比坐标系进行点乘，避免取模逆元导致的开销。
 
@@ -824,6 +825,7 @@ type
 
        返回值：（无）
     }
+
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P，内部用仿射坐标点乘进行加速。
 
@@ -892,6 +894,7 @@ type
 
        返回值：（无）
     }
+
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上。
 

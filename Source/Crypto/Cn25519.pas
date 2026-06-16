@@ -2372,21 +2372,20 @@ var
   F25519Field64One: TCn25519Field64 = (1, 0, 0, 0, 0);
   F25519Field64NegOne: TCn25519Field64 = (2251799813685228, 2251799813685247, 2251799813685247, 2251799813685247, 2251799813685247);
 
-procedure ConditionalSwapPoint(Swap: Boolean; A, B: TCnEccPoint);
+procedure ConditionalSwapPoint(CanSwap: Boolean; A, B: TCnEccPoint);
 begin
-  if Swap then
-  begin
-    BigNumberSwap(A.X, B.X);
-    BigNumberSwap(A.Y, B.Y);
-  end;
+  BigNumberConstTimeConditionalSwap(CanSwap, A.X, B.X);
+  BigNumberConstTimeConditionalSwap(CanSwap, A.Y, B.Y);
 end;
 
-procedure ConditionalSwapField64Point(Swap: Boolean; var A, B: TCn25519Field64EccPoint);
+procedure ConditionalSwapField64Point(CanSwap: Boolean; var A, B: TCn25519Field64EccPoint);
+var
+  I: Integer;
 begin
-  if Swap then
+  for I := 0 to 4 do
   begin
-    Cn25519Field64Swap(A.X, B.X);
-    Cn25519Field64Swap(A.Y, B.Y);
+    ConstTimeConditionalSwap64(CanSwap, A.X[I], B.X[I]);
+    ConstTimeConditionalSwap64(CanSwap, A.Y[I], B.Y[I]);
   end;
 end;
 
@@ -3495,7 +3494,7 @@ begin
     MontgomeryLadderPointXDouble(X0, P);
 
     C := K.GetBitsCount;
-    for I := C - 2 downto 0 do // 内部先不考虑 Time Constant 执行时间固定的要求
+    for I := C - 2 downto 0 do // 内部执行时间固定
     begin
       ConditionalSwapPoint(K.IsBitSet(I + 1) <> K.IsBitSet(I), X0, X1); // 换
 

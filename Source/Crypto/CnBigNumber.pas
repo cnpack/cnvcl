@@ -1712,14 +1712,26 @@ function BigNumberEqual(Num1: TCnBigNumber; Num2: Int64): Boolean; overload;
 }
 
 function BigNumberConstTimeEqual(Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 常量时间比较两个大数是否相等，执行时间不依赖数据内容，防止计时侧信道攻击。
+{* 固定时间比较两个大数是否相等，执行时间不依赖数据内容，防止计时侧信道攻击。
    用于签名验证、密钥比较等安全敏感场景。
 
-   参数
+   参数：
      Num1: TCnBigNumber                   - 待比较的大数其一
      Num2: TCnBigNumber                   - 待比较的大数其二
 
    返回值：Boolean                        - 是否相等
+}
+
+procedure BigNumberConstTimeConditionalSwap(CanSwap: Boolean; Num1: TCnBigNumber; Num2: TCnBigNumber);
+{* 固定时间根据条件决定是否交换两个大数的值，执行时间不依赖数据内容，防止计时侧信道攻击。
+   用于签名验证、密钥比较等安全敏感场景。
+
+   参数：
+     CanSwap: Boolean                     - 控制是否交换
+     Num1: TCnBigNumber                   - 待交换的大数其一
+     Num2: TCnBigNumber                   - 待交换的大数其二
+
+   返回值：（无）
 }
 
 function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
@@ -4047,6 +4059,36 @@ begin
   end;
 
   Result := (Diff = 0) and (NegDiff = 0);
+end;
+
+procedure BigNumberConstTimeConditionalSwap(CanSwap: Boolean; Num1: TCnBigNumber; Num2: TCnBigNumber);
+var
+  P1, P2: TUInt64;
+  T1, T2: Cardinal;
+begin
+  P1 := TUInt64(Pointer(Num1.FD));
+  P2 := TUInt64(Pointer(Num2.FD));
+  ConstTimeConditionalSwap64(CanSwap, P1, P2);
+  Num1.FD := PCnBigNumberElement(Pointer(P1));
+  Num2.FD := PCnBigNumberElement(Pointer(P2));
+
+  T1 := Cardinal(Num1.FTop);
+  T2 := Cardinal(Num2.FTop);
+  ConstTimeConditionalSwap32(CanSwap, T1, T2);
+  Num1.FTop := Integer(T1);
+  Num2.FTop := Integer(T2);
+
+  T1 := Cardinal(Num1.FDMax);
+  T2 := Cardinal(Num2.FDMax);
+  ConstTimeConditionalSwap32(CanSwap, T1, T2);
+  Num1.FDMax := Integer(T1);
+  Num2.FDMax := Integer(T2);
+
+  T1 := Cardinal(Num1.FNeg);
+  T2 := Cardinal(Num2.FNeg);
+  ConstTimeConditionalSwap32(CanSwap, T1, T2);
+  Num1.FNeg := Integer(T1);
+  Num2.FNeg := Integer(T2);
 end;
 
 function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
