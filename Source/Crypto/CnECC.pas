@@ -4198,6 +4198,7 @@ end;
 procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer);
 var
   R: Cardinal;
+  Discriminant, T: TCnBigNumber;
 begin
   FGenerator.X.SetHex(GX);
   FGenerator.Y.SetHex(GY);
@@ -4207,7 +4208,36 @@ begin
   FOrder.SetHex(Order);
   FCoFactor := H;
 
-  // TODO: 要确保 4*a^3+27*b^2 <> 0
+  // 确保 4*a^3+27*b^2 <> 0
+  Discriminant := TCnBigNumber.Create;
+  T := TCnBigNumber.Create;
+  try
+    // a^3 = a * a * a (mod p)
+    BigNumberMul(Discriminant, FCoefficientA, FCoefficientA);
+    BigNumberMod(Discriminant, Discriminant, FFiniteFieldSize);
+    BigNumberMul(Discriminant, Discriminant, FCoefficientA);
+    BigNumberMod(Discriminant, Discriminant, FFiniteFieldSize);
+
+    // 4 * a^3 (mod p)
+    BigNumberMulWordNonNegativeMod(Discriminant, Discriminant, 4, FFiniteFieldSize);
+
+    // b^2 (mod p)
+    BigNumberSqr(T, FCoefficientB);
+    BigNumberMod(T, T, FFiniteFieldSize);
+
+    // 27 * b^2 (mod p)
+    BigNumberMulWordNonNegativeMod(T, T, 27, FFiniteFieldSize);
+
+    // 4*a^3 + 27*b^2 (mod p)
+    BigNumberAdd(Discriminant, Discriminant, T);
+    BigNumberMod(Discriminant, Discriminant, FFiniteFieldSize);
+
+    if BigNumberIsZero(Discriminant) then
+      raise ECnEccException.Create(SCnErrorEcc4A327B2);
+  finally
+    T.Free;
+    Discriminant.Free;
+  end;
 
 //  由调用者保证有限域边界为素数
 //  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
@@ -4517,6 +4547,7 @@ function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 var
   X, Y, Z, U, R, T, X3: TCnBigNumber;
+  P: TCnEccPoint;
 begin
   Result := False;
   if Plain.IsNegative then
@@ -4631,6 +4662,22 @@ begin
 {$ENDIF}
         end;
     end;
+
+    // 对于余因子 > 1 的曲线，要验证 n * P = 0，防止小子群攻击
+    // 如果 n * P <> 0，说明会有 FCoFactor 的因数 * P = 0，这小子群就太明显了，2/4/8
+    if Result and (FCoFactor > 1) then
+    begin
+      P := TCnEccPoint.Create;
+      try
+        P.Assign(OutPoint);
+        MultiplePoint(FOrder, P);
+        if not P.IsZero then
+          Result := False;
+      finally
+        P.Free;
+      end;
+    end;
+
   finally
     FEccBigNumberPool.Recycle(X);
     FEccBigNumberPool.Recycle(Y);
