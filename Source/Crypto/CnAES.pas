@@ -2591,6 +2591,11 @@ function AESDecryptCtrBytesFromHex(const HexStr: AnsiString; Key: TBytes; Nonce:
    返回值：TBytes                         - 返回明文字节数组
 }
 
+var
+  CnAESPreloadDummy: Byte = 0;  // 用于躲避 AES 的 T-table 缓存的侧信道攻击
+  // 加密前所有 4 个 T-表 × 256 条目 = 1024 次读取，覆盖全部 64 条 cache line（16 行/表 × 4 表）。
+  // 之后任何 data-dependent 查找都不会触发 cache miss，消除时间差。
+
 implementation
 
 resourcestring
@@ -2882,7 +2887,19 @@ procedure EncryptAES128(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
+  I: Integer;
+  Dummy: Byte;
 begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
@@ -3073,7 +3090,20 @@ procedure EncryptAES192(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
+  I: Integer;
+  Dummy: Byte;
 begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
+
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
@@ -3298,7 +3328,20 @@ procedure EncryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey2
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
+  I: Integer;
+  Dummy: Byte;
 begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
+
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
@@ -3801,7 +3844,20 @@ procedure DecryptAES128(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
+  I: Integer;
+  Dummy: Byte;
 begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
+
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[40];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[41];
@@ -3992,7 +4048,20 @@ procedure DecryptAES192(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
+  I: Integer;
+  Dummy: Byte;
 begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
+
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[48];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[49];
@@ -4217,7 +4286,20 @@ procedure DecryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey2
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
+  I: Integer;
+  Dummy: Byte;
 begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
+
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[56];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[57];

@@ -4675,7 +4675,6 @@ begin
     T2.Free;
     T1.Clear;
     T1.Free;
-
     if C then
       SM9.Free;
   end;
