@@ -63,6 +63,9 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    procedure Clear;
+    {* 安全清除内容，分子分母值也会变为 0，一般用于析构前的敏感数据清除}
+
     function IsInt: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     {* 是否整数，也就是判断分母是否是正负 1。
 
@@ -839,6 +842,12 @@ begin
   FDenominator.Free;
   FNumerator.Free;
   inherited;
+end;
+
+procedure TCnBigRational.Clear;
+begin
+  FDenominator.Clear;
+  FNumerator.Clear;
 end;
 
 procedure TCnBigRational.Divide(Value: Int64);

@@ -100,6 +100,9 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    procedure Clear;
+    {* 安全清除内容，值也会变为 0}
+
     procedure SetZero;
     {* 设置成 0}
     procedure SetOne;
@@ -417,6 +420,9 @@ type
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
+    procedure Clear;
+    {* 安全清除内容，值也会变为 0}
 
     procedure SetZero;
     {* 设置成 0}
@@ -1621,8 +1627,8 @@ procedure BigDecimalClear(Num: TCnBigDecimal);
 begin
   if Num <> nil then
   begin
+    Num.FValue.Clear;
     Num.FScale := 0;
-    Num.FValue.SetZero;
   end;
 end;
 
@@ -2673,6 +2679,12 @@ begin
   inherited;
 end;
 
+procedure TCnBigDecimal.Clear;
+begin
+  FValue.Clear;
+  FScale := 0;
+end;
+
 procedure TCnBigDecimal.DivWord(W: Cardinal; DivPrecision: Integer);
 var
   T: TCnBigDecimal;
@@ -2938,7 +2950,7 @@ procedure BigBinaryClear(Num: TCnBigBinary);
 begin
   if Num <> nil then
   begin
-    Num.FValue.SetZero;
+    Num.FValue.Clear;
     Num.FScale := 0;
   end;
 end;
@@ -3889,6 +3901,12 @@ destructor TCnBigBinary.Destroy;
 begin
   FValue.Free;
   inherited;
+end;
+
+procedure TCnBigBinary.Clear;
+begin
+  FValue.Clear;
+  FScale := 0;
 end;
 
 procedure TCnBigBinary.DivWord(W: Cardinal; DivPrecision: Integer);

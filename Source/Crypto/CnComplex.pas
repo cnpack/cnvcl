@@ -80,6 +80,9 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    procedure Clear;
+    {* 安全清除内容，实部虚部也均设置为 0}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大整数复数转换成字符串。
 
@@ -99,31 +102,13 @@ type
     }
 
     procedure SetZero;
-    {* 将大整数复数设置为 0，返回是否设置成功。
-
-       参数：
-         （无）
-
-       返回值：Boolean                    - 返回是否设置成功
-    }
+    {* 将大整数复数设置为 0}
 
     procedure SetOne;
-    {* 将大整数复数设置为 0，返回是否设置成功。
-
-       参数：
-         （无）
-
-       返回值：Boolean                    - 返回是否设置成功
-    }
+    {* 将大整数复数设置为 1}
 
     procedure SetI;
-    {* 将大整数复数设置为 i，返回是否设置成功。
-
-       参数：
-         （无）
-
-       返回值：Boolean                    - 返回是否设置成功
-    }
+    {* 将大整数复数设置为 i}
 
     function IsOne: Boolean;
     {* 返回大整数复数是否为 1。
@@ -364,6 +349,9 @@ type
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
+    procedure Clear;
+    {* 安全清除内容，实部虚部也均设置为 0}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大浮点复数转换为字符串。
@@ -2164,6 +2152,12 @@ begin
   inherited;
 end;
 
+procedure TCnBigComplex.Clear;
+begin
+  FI.Clear;
+  FR.Clear;
+end;
+
 function TCnBigComplex.IsNegOne: Boolean;
 begin
   Result := BigComplexIsNegOne(Self);
@@ -2834,6 +2828,12 @@ begin
   FI.Free;
   FR.Free;
   inherited;
+end;
+
+procedure TCnBigComplexDecimal.Clear;
+begin
+  FI.Clear;
+  FR.Clear;
 end;
 
 function TCnBigComplexDecimal.AbsoluteValue(Res: TCnBigDecimal;
