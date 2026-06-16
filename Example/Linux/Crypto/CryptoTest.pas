@@ -1727,10 +1727,19 @@ end;
 procedure TestCrypto;
 begin
 {$IFDEF CPU64BITS}
-  MyWriteln('*** CPU 64 Bits ***');
+  // Delphi 的 64 位 CPU 定义
+  MyWriteln('*** CPU 64 Bits with CPU64BITS ***');
 {$ELSE}
+  {$IFDEF CPU64}
+  // FPC 的 64 位 CPU 定义
+  MyWriteln('*** CPU 64 Bits with CPU64 ***');
+  {$ELSE}
   MyWriteln('*** CPU 32 Bits ***');
+  {$ENDIF}
 {$ENDIF}
+
+  // 顺便打印指针长度
+  MyWriteln('*** Pointer Size: ' + IntToStr(SizeOf(Pointer)));
 
 {$IFDEF CPUARM}
   MyWriteln('*** ARM ***');
