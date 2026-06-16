@@ -1291,6 +1291,13 @@ begin
     P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
     T := CnSM2KDFBytes(KDFB, DataByteLen);
 
+    // 加密时万一此步出现全 0，会导致密文等于明文，所以要出错
+    if (T = nil) or MemoryCheckZero(@T[0], Length(T)) then
+    begin
+      _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
     M := PAnsiChar(PlainData);
     for I := 1 to DataByteLen do
       T[I - 1] := Byte(T[I - 1]) xor Byte(M[I - 1]);         // T 里是 C2，但先不能写
@@ -1455,6 +1462,8 @@ begin
     P2.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
     P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
     T := CnSM2KDFBytes(KDFB, MLen);
+
+    // 解密时无需判断万一此步 T 出现全 0 的情况
 
     if SequenceType = cstC1C3C2 then
     begin

@@ -70,8 +70,10 @@ type
 
 function CnGetDeriveKey(const Password: AnsiString; const Salt: AnsiString;
   OutKey: PAnsiChar; KeyLength: Cardinal; KeyHash: TCnKeyDeriveHash = ckdMd5): Boolean;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 类似于 Openssl 中的 BytesToKey，用密码和盐与指定的杂凑算法生成加密 Key，
    目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节。
+   因强度不够已不推荐使用。
 
    参数：
      const Password: AnsiString           - 明文密码
@@ -85,8 +87,10 @@ function CnGetDeriveKey(const Password: AnsiString; const Salt: AnsiString;
 
 function CnPBKDF1(const Password: AnsiString; const Salt: AnsiString; Count: Integer;
   DerivedKeyByteLength: Integer; KeyHash: TCnPBKDF1KeyHash = cpdfMd5): AnsiString;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* Password Based KDF 1 实现，简单的固定杂凑迭代，只支持 MD5 和 SHA1，参数与返回值均为 AnsiString。
    DerivedKeyByteLength 是所需的密钥字节数，长度固定。
+   因强度不够已不推荐使用。
 
    参数：
      const Password: AnsiString           - 明文密码

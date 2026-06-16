@@ -1618,6 +1618,8 @@ var
   Tag: TCnGCM128Tag;
   OrigEnByteLength: Integer;
   OldPlain: Pointer;
+  TempBuf: Pointer;         // 临时缓冲区，先验证 Tag 后再拷贝到输出
+  TempPlain: Pointer;       // 临时缓冲区的游标指针
 begin
   OrigEnByteLength := EnByteLength;
   if Key = nil then
@@ -1628,6 +1630,20 @@ begin
     AADByteLength := 0;
 
   OldPlain := PlainData;
+
+  // 分配临时缓冲区，解密结果先写入此处，避免未认证数据暴露在输出缓冲区
+  TempBuf := nil;
+  if EnByteLength > 0 then
+  begin
+    TempBuf := GetMemory(EnByteLength);
+    if TempBuf = nil then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  TempPlain := TempBuf;
+
   AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
   // 计算 Enc(Key, 128 个 0)，得到 H
@@ -1672,12 +1688,12 @@ begin
     // 和密文异或，C 得到异或后的结果，完整块
     MemoryXor(EnData, @C[0], SizeOf(TCn128BitsBuffer), @C[0]);
 
-    // 存起明文
-    Move(C[0], PlainData^, SizeOf(TCn128BitsBuffer));
+    // 存起明文到临时缓冲区
+    Move(C[0], TempPlain^, SizeOf(TCn128BitsBuffer));
 
     // 准备下一步
     EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
-    PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
+    TempPlain := Pointer(TCnNativeUInt(TempPlain) + CN_AEAD_BLOCK);
     Dec(EnByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -1694,11 +1710,11 @@ begin
     // 对 Y 加密 C 暂时得到本块的加密结果
     AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
 
-    // 和明文异或，C 得到异或后的结果，但长度只有 EnByteLength
+    // 和密文异或，C 得到异或后的结果，但长度只有 EnByteLength
     MemoryXor(EnData, @C[0], EnByteLength, @C[0]);
 
-    // 存起密文，完毕
-    Move(C[0], PlainData^, EnByteLength);
+    // 存起明文到临时缓冲区，完毕
+    Move(C[0], TempPlain^, EnByteLength);
   end;
 
   // 算出最终 GHash 的 Tag
@@ -1707,9 +1723,24 @@ begin
   // 再和开始的内容异或得到最终 Tag
   MemoryXor(@Tag[0], @Y0[0], SizeOf(TCnGHash128Tag), @Tag[0]);
 
+  // 先验证 Tag，通过后才将明文复制到输出缓冲区
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
-  if (not Result) and (OldPlain <> nil) and (OrigEnByteLength > 0) then
-    MemorySafeZero(OldPlain, OrigEnByteLength);
+  if Result then
+  begin
+    // Tag 验证通过，将临时缓冲区中的明文复制到输出
+    if (OldPlain <> nil) and (OrigEnByteLength > 0) then
+      Move(TempBuf^, OldPlain^, OrigEnByteLength);
+  end
+  else
+  begin
+    // Tag 验证失败，擦除临时缓冲区中的明文
+    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
+      MemorySafeZero(TempBuf, OrigEnByteLength);
+  end;
+
+  // 释放临时缓冲区
+  if TempBuf <> nil then
+    FreeMemory(TempBuf);
 
   MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
 end;
@@ -2340,6 +2371,8 @@ var
   Tag: TCnCCM128Tag;
   OrigEnByteLength: Integer;
   OldPlain: Pointer;
+  TempBuf: Pointer;         // 临时缓冲区，先验证 Tag 后再拷贝到输出
+  TempPlain: Pointer;       // 临时缓冲区的游标指针
 begin
   OrigEnByteLength := EnByteLength;
   if Key = nil then
@@ -2352,6 +2385,21 @@ begin
     AADByteLength := 0;
 
   OldPlain := PlainData;
+
+  // 分配临时缓冲区，解密结果先写入此处，避免未认证数据暴露在输出缓冲区
+  TempBuf := nil;
+  TempPlain := nil;
+  if EnByteLength > 0 then
+  begin
+    TempBuf := GetMemory(EnByteLength);
+    if TempBuf = nil then
+    begin
+      Result := False;
+      Exit;
+    end;
+    TempPlain := TempBuf;
+  end;
+
   FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
   FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
 
@@ -2454,7 +2502,7 @@ begin
   end;
 
   // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
-  // 并且开始加密块并异或解密
+  // 并且开始加密块并异或解密（结果写入临时缓冲区）
   while EnByteLength >= CN_AEAD_BLOCK do
   begin
     Move(EnData^, A0[0], CN_AEAD_BLOCK); // 密文放 A0
@@ -2466,16 +2514,16 @@ begin
 
     // 得到本块的加密结果，放 SX 中
     AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
-    // 并与密文异或得到明文
-    MemoryXor(@SX[0], @A0[0], CN_AEAD_BLOCK, PlainData);
+    // 并与密文异或得到明文，写入临时缓冲区
+    MemoryXor(@SX[0], @A0[0], CN_AEAD_BLOCK, TempPlain);
 
     // 后续块（也可能是最后一块）明文和 CX 异或，再 CMAC 之，结果放回 CX
-    MemoryXor(PlainData, @CX[0], CN_AEAD_BLOCK, @CX[0]);
+    MemoryXor(TempPlain, @CX[0], CN_AEAD_BLOCK, @CX[0]);
     AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
     // 递增准备处理后面的
     EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
-    PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
+    TempPlain := Pointer(TCnNativeUInt(TempPlain) + CN_AEAD_BLOCK);
     Dec(EnByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -2498,8 +2546,8 @@ begin
     MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
     AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
-    // 存下最后一块明文
-    Move(A0[0], PlainData^, EnByteLength);
+    // 存下最后一块明文到临时缓冲区
+    Move(A0[0], TempPlain^, EnByteLength);
   end;
 
   // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
@@ -2509,10 +2557,24 @@ begin
   FillChar(Tag[0], SizeOf(TCnCCM128Tag), 0);
   Move(CX[0], Tag[0], CN_CCM_M_LEN);
 
-  // 比对 Tag 是否相同
+  // 先验证 Tag，通过后才将明文复制到输出缓冲区
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
-  if (not Result) and (OldPlain <> nil) and (OrigEnByteLength > 0) then
-    MemorySafeZero(OldPlain, OrigEnByteLength);
+  if Result then
+  begin
+    // Tag 验证通过，将临时缓冲区中的明文复制到输出
+    if (OldPlain <> nil) and (OrigEnByteLength > 0) then
+      Move(TempBuf^, OldPlain^, OrigEnByteLength);
+  end
+  else
+  begin
+    // Tag 验证失败，擦除临时缓冲区中的明文
+    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
+      MemorySafeZero(TempBuf, OrigEnByteLength);
+  end;
+
+  // 释放临时缓冲区
+  if TempBuf <> nil then
+    FreeMemory(TempBuf);
 end;
 
 function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
@@ -2756,8 +2818,11 @@ var
   PadLen: Integer;
   Zeros: array[0..15] of Byte;
   OrigEnByteLength: Integer;
+  OldOutPlain: Pointer;
+  TempBuf: Pointer;         // 临时缓冲区，先验证 Tag 后再拷贝到输出
 begin
   OrigEnByteLength := EnByteLength;
+  OldOutPlain := OutPlainData;
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
 
@@ -2766,7 +2831,21 @@ begin
   // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
   Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
 
-  ChaCha20DecryptData(ChaChaKey, Nonce, EnData, EnByteLength, OutPlainData);
+  // 分配临时缓冲区，解密结果先写入此处，避免未认证数据暴露在输出缓冲区
+  TempBuf := nil;
+  if EnByteLength > 0 then
+  begin
+    TempBuf := GetMemory(EnByteLength);
+    if TempBuf = nil then
+    begin
+      MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
+      MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  ChaCha20DecryptData(ChaChaKey, Nonce, EnData, EnByteLength, TempBuf);
 
   // 开始分块计算 Poly1305
   Poly1305Init(Poly1305Context, Poly1305Key);
@@ -2803,10 +2882,24 @@ begin
   // 最后得到结果
   Poly1305Final(Poly1305Context, Tag);
 
-  // 当且仅当计算出的 Tag 和传入 Tag 相同才通过
+  // 先验证 Tag，通过后才将明文复制到输出缓冲区
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
-  if (not Result) and (OutPlainData <> nil) and (OrigEnByteLength > 0) then
-    MemorySafeZero(OutPlainData, OrigEnByteLength);
+  if Result then
+  begin
+    // Tag 验证通过，将临时缓冲区中的明文复制到输出
+    if (OldOutPlain <> nil) and (OrigEnByteLength > 0) then
+      Move(TempBuf^, OldOutPlain^, OrigEnByteLength);
+  end
+  else
+  begin
+    // Tag 验证失败，擦除临时缓冲区中的明文
+    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
+      MemorySafeZero(TempBuf, OrigEnByteLength);
+  end;
+
+  // 释放临时缓冲区
+  if TempBuf <> nil then
+    FreeMemory(TempBuf);
 
   MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
   MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));

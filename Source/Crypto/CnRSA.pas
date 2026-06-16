@@ -2386,12 +2386,14 @@ end;
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean;
 var
-  M1, M2: TCnBigNumber;
+  M1, M2, V1, V2: TCnBigNumber;
 begin
   if PrivateKey.UseCRT then
   begin
     M1 := nil;
     M2 := nil;
+    V1 := nil;
+    V2 := nil;
 
     // m1 = c^dP mod p
     // m2 = c^dQ mod q
@@ -2420,9 +2422,25 @@ begin
       BigNumberAdd(Res, M2, M1);
       // m = m2 + m1
 
+      // CRT fault attack protection: verify m mod p == M1, m mod q == M2
+      V1 := TCnBigNumber.Create;
+      V2 := TCnBigNumber.Create;
+      BigNumberMod(V1, Res, PrivateKey.FPrimeKey1);
+      BigNumberMod(V2, Res, PrivateKey.FPrimeKey2);
+      if not (BigNumberConstTimeEqual(V1, M1) and BigNumberConstTimeEqual(V2, M2)) then
+      begin
+        Res.Clear;
+        Result := False;
+        Exit;
+      end;
+
       Result := True;
     finally
+      V2.Free;
+      V1.Free;
+      M2.Clear;
       M2.Free;
+      M1.Clear;
       M1.Free;
     end;
   end
@@ -2529,6 +2547,7 @@ begin
 
   FPrivKeyExponent.Free;
   FPrivKeyProduct.Free;
+
   FPrimeKey2.Clear;
   FPrimeKey2.Free;
   FPrimeKey1.Clear;

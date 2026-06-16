@@ -1400,6 +1400,16 @@ function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean; {$IFDEF 
    返回值：Boolean                        - 是否安全擦除完毕
 }
 
+function MemoryCheckZero(Buffer: Pointer; ByteLength: Integer): Boolean;
+{* 检查内存块内容是否全零。
+
+   参数：
+     Buffer: Pointer                      - 待检查的内存块地址
+     ByteLength: Integer                  - 待检查的字节长度
+
+   返回值：Boolean                        - 是否内容全零
+}
+
 function UInt8ToBinStr(V: Byte): string;
 {* 将一 8 位无符号整数转换为二进制字符串。
 
@@ -3115,6 +3125,26 @@ begin
 
   VolatileSink := PByte(Buffer)^;
   Result := VolatileSink = 0;
+end;
+
+function MemoryCheckZero(Buffer: Pointer; ByteLength: Integer): Boolean;
+var
+  P: PByte;
+  I: Integer;
+begin
+  Result := False;
+  if (Buffer = nil) or (ByteLength <= 0) then
+    Exit;
+
+  P := PByte(Buffer);
+  for I := 0 to ByteLength - 1 do
+  begin
+    if P^ <> 0 then
+      Exit;
+    Inc(P);
+  end;
+
+  Result := True;
 end;
 
 function UInt8ToBinStr(V: Byte): string;
