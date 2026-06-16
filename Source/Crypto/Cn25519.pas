@@ -2871,7 +2871,7 @@ begin
     Ed448.MultiplePoint(T, M);      // T 乘公钥点
     Ed448.PointAddPoint(R, M, R);   // 点加
 
-    Result := CnEccPointsEqual(L, R);
+    Result := CnEccPointsConstTimeEqual(L, R);
   finally
     M.Free;
     FBigNumberPool.Recycle(T);
@@ -3964,7 +3964,7 @@ begin
   try
     P.Assign(FGenerator);
     MultiplePoint(PrivateKey, P);
-    Result := CnEccPointsEqual(P, PublicKey);
+    Result := CnEccPointsConstTimeEqual(P, PublicKey);
   finally
     P.Free;
   end;
@@ -4326,7 +4326,7 @@ begin
     P.Assign(FGenerator);
     MultiplePoint(K, P);                         // 基点乘 K 次
 
-    Result := CnEccPointsEqual(P, PublicKey);
+    Result := CnEccPointsConstTimeEqual(P, PublicKey);
   finally
     FBigNumberPool.Recycle(K);
     P.Free;
@@ -5019,7 +5019,7 @@ begin
     Ed25519.MultiplePoint(T, M);      // T 乘公钥点
     Ed25519.PointAddPoint(R, M, R);   // 点加
 
-    Result := CnEccPointsEqual(L, R);
+    Result := CnEccPointsConstTimeEqual(L, R);
   finally
     M.Free;
     FBigNumberPool.Recycle(T);
@@ -5910,7 +5910,7 @@ begin
   try
     P.Assign(FGenerator);
     MultiplePoint(PrivateKey, P);
-    Result := CnEccPointsEqual(P, PublicKey);
+    Result := CnEccPointsConstTimeEqual(P, PublicKey);
   finally
     P.Free;
   end;
@@ -6259,7 +6259,7 @@ begin
     P.Assign(FGenerator);
     MultiplePoint(K, P);                         // 基点乘 K 次
 
-    Result := CnEccPointsEqual(P, PublicKey);
+    Result := CnEccPointsConstTimeEqual(P, PublicKey);
   finally
     FBigNumberPool.Recycle(K);
     P.Free;

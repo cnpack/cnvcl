@@ -1168,7 +1168,7 @@ begin
     Pub.Assign(SM2.Generator);
     SM2.MultiplePoint(PrivateKey, Pub);
 
-    Result := CnEccPointsEqual(Pub, PublicKey);
+    Result := CnEccPointsConstTimeEqual(Pub, PublicKey);
     _CnSetLastError(ECN_SM2_OK);
   finally
     Pub.Free;
@@ -2569,7 +2569,7 @@ begin
     SM2.MultiplePoint(C, P2);
     SM2.PointAddPoint(P2, InR, P2);
 
-    Result := CnEccPointsEqual(P1, P2);
+    Result := CnEccPointsConstTimeEqual(P1, P2);
     _CnSetLastError(ECN_SM2_OK);
   finally
     P2.Free;

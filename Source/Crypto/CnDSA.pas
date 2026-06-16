@@ -487,7 +487,7 @@ begin
   T := TCnBigNumber.Create;
   try
     if BigNumberPowerMod(T, DSAParameter.G, PrivateKey, DSAParameter.P) then
-      Result := BigNumberEqual(T, PublicKey);
+      Result := BigNumberConstTimeEqual(T, PublicKey);
   finally
     T.Free;
   end;
@@ -584,7 +584,7 @@ begin
     if not BigNumberMod(W, W, DSAParameter.Q) then Exit;
 
     // 结果比对 W 和 R
-    Result := BigNumberEqual(W, Signature.R);
+    Result := BigNumberConstTimeEqual(W, Signature.R);
   finally
     P2.Free;
     P1.Free;

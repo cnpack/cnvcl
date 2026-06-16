@@ -1755,6 +1755,16 @@ function CnEccPointsEqual(P1: TCnEccPoint; P2: TCnEccPoint): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
+function CnEccPointsConstTimeEqual(P1: TCnEccPoint; P2: TCnEccPoint): Boolean;
+{* 使用固定时间判断两个 TCnEccPoint 点是否相等。
+
+   参数：
+     P1: TCnEccPoint                      - 待比较的坐标点一
+     P2: TCnEccPoint                      - 待比较的坐标点二
+
+   返回值：Boolean                        - 返回是否相等
+}
+
 function CnPolynomialEccPointToString(P: TCnPolynomialEccPoint): string;
 {* 将一个 TCnPolynomialEccPoint 多项式坐标点转换为字符串。
 
@@ -2805,7 +2815,21 @@ begin
   if P1 = P2 then
     Result := True
   else
-    Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0);
+    Result := BigNumberEqual(P1.X, P2.X) and (BigNumberEqual(P1.Y, P2.Y));
+end;
+
+function CnEccPointsConstTimeEqual(P1: TCnEccPoint; P2: TCnEccPoint): Boolean;
+var
+  B1, B2: Boolean;
+begin
+  if P1 = P2 then
+    Result := True
+  else
+  begin
+    B1 := BigNumberConstTimeEqual(P1.X, P2.X);
+    B2 := BigNumberConstTimeEqual(P1.Y, P2.Y);
+    Result := B1 and B2;
+  end;
 end;
 
 function CnInt64EccPointsEqual(var P1, P2: TCnInt64EccPoint): Boolean;
@@ -5335,7 +5359,7 @@ begin
   try
     P.Assign(Ecc.Generator);
     Ecc.MultiplePoint(PrivateKey, P);
-    Result := CnEccPointsEqual(P, PublicKey);
+    Result := CnEccPointsConstTimeEqual(P, PublicKey);
   finally
     P.Free;
   end;
