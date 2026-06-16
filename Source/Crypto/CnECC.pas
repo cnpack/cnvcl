@@ -2932,7 +2932,7 @@ end;
 procedure TCnInt64Ecc.AffineMultiplePoint(K: Int64;
   var Point: TCnInt64Ecc3Point);
 var
-  E, R: TCnInt64Ecc3Point;
+  E, R, Q: TCnInt64Ecc3Point;
 begin
   if K < 0 then
   begin
@@ -2958,8 +2958,9 @@ begin
 
     while K <> 0 do
     begin
+      AffinePointAddPoint(R, E, Q);
       if (K and 1) <> 0 then
-        AffinePointAddPoint(R, E, R);
+        R := Q;
 
       AffinePointAddPoint(E, E, E);
       K := K shr 1;
@@ -3221,7 +3222,7 @@ end;
 procedure TCnInt64Ecc.JacobianMultiplePoint(K: Int64;
   var Point: TCnInt64Ecc3Point);
 var
-  E, R: TCnInt64Ecc3Point;
+  E, R, Q: TCnInt64Ecc3Point;
 begin
   if K < 0 then
   begin
@@ -3246,8 +3247,9 @@ begin
 
     while K <> 0 do
     begin
+      JacobianPointAddPoint(R, E, Q);
       if (K and 1) <> 0 then
-        JacobianPointAddPoint(R, E, R);
+        R := Q;
 
       JacobianPointAddPoint(E, E, E);
       K := K shr 1;
@@ -3420,7 +3422,7 @@ end;
 
 procedure TCnInt64Ecc.MultiplePoint(K: Int64; var Point: TCnInt64EccPoint);
 var
-  E, R: TCnInt64EccPoint;
+  E, R, Q: TCnInt64EccPoint;
 begin
   if K < 0 then
   begin
@@ -3443,8 +3445,9 @@ begin
 
     while K <> 0 do
     begin
+      PointAddPoint(R, E, Q);    // Q = R + E，始终执行
       if (K and 1) <> 0 then
-        PointAddPoint(R, E, R);
+        R := Q;                  // 位为 1 时更新结果
 
       PointAddPoint(E, E, E);
       K := K shr 1;
@@ -4519,19 +4522,21 @@ begin
   try
     BK := FEccBigNumberPool.Obtain;
     BigNumberCopy(BK, K);
+
     if (BigNumberCompare(FOrder, CnBigNumberZero) > 0) and (not BigNumberIsNegative(BK)) then
     begin
       BigNumberMod(BK, BK, FOrder);
       Rnd := FEccBigNumberPool.Obtain;
       Tmp := FEccBigNumberPool.Obtain;
 
-      // 盲化，乘数增加 16 位随机的价的倍数，最终值会抵消，但运算随机化了能更抗攻击，尤其是 NAF 部分
-      if BigNumberRandBits(Rnd, 16) then
+      // 盲化，乘数增加 64 位随机的价的倍数，最终值会抵消，但运算随机化了能更抗攻击，尤其是 NAF 部分
+      if BigNumberRandBits(Rnd, 64) then
       begin
         BigNumberMul(Tmp, Rnd, FOrder);
         BigNumberAdd(BK, BK, Tmp);
       end;
     end;
+
     CnEccPointToEcc3Point(Point, P3);
     AffineMultiplePoint(BK, P3);
     CnAffinePointToEccPoint(P3, Point, FFiniteFieldSize);

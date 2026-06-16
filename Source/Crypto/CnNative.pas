@@ -2038,6 +2038,50 @@ function ConstTimeConditionalSelect64(Condition: Boolean; A: TUInt64; B: TUInt64
    返回值：TUInt64                        - 返回选择的 64 位整数
 }
 
+procedure ConstTimeConditionalAssign8(CanAssign: Boolean; Source: Byte; var Dest: Byte);
+{* 针对两个单字节变量执行时间固定的赋值，CanAssign 为 True 时执行 Dest := Source，否则什么都不做。
+
+   参数：
+     CanAssign: Boolean                   - 是否选择 A 也就是参数一
+     Source: Byte                         - 待赋值的 8 位整数源值
+     var Dest: Byte                       - 待赋值的 8 位整数目标变量
+
+   返回值：（无）
+}
+
+procedure ConstTimeConditionalAssign16(CanAssign: Boolean; Source: Word; var Dest: Word);
+{* 针对两个双字节变量执行时间固定的赋值，CanAssign 为 True 时执行 Dest := Source，否则什么都不做。
+
+   参数：
+     CanAssign: Boolean                   - 是否选择 A 也就是参数一
+     Source: Word                         - 待赋值的 16 位整数源值
+     var Dest: Word                       - 待赋值的 16 位整数目标变量
+
+   返回值：（无）
+}
+
+procedure ConstTimeConditionalAssign32(CanAssign: Boolean; Source: Cardinal; var Dest: Cardinal);
+{* 针对两个四字节变量执行时间固定的赋值，CanAssign 为 True 时执行 Dest := Source，否则什么都不做。
+
+   参数：
+     CanAssign: Boolean                   - 是否选择 A 也就是参数一
+     Source: Cardinal                     - 待赋值的 32 位整数源值
+     var Dest: Cardinal                   - 待赋值的 32 位整数目标变量
+
+   返回值：（无）
+}
+
+procedure ConstTimeConditionalAssign64(CanAssign: Boolean; Source: TUInt64; var Dest: TUInt64);
+{* 针对两个八字节变量执行时间固定的赋值，CanAssign 为 True 时执行 Dest := Source，否则什么都不做。
+
+   参数：
+     CanAssign: Boolean                   - 是否选择 A 也就是参数一
+     Source: TUInt64                      - 待赋值的 64 位整数源值
+     var Dest: TUInt64                    - 待赋值的 64 位整数目标变量
+
+   返回值：（无）
+}
+
 // ================ 以上是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
 {$IFDEF MSWINDOWS}
@@ -4059,6 +4103,38 @@ function ConstTimeConditionalSelect64(Condition: Boolean; A, B: TUInt64): TUInt6
 begin
   ConstTimeConditionalSwap64(Condition, A, B);
   Result := B;
+end;
+
+procedure ConstTimeConditionalAssign8(CanAssign: Boolean; Source: Byte; var Dest: Byte);
+var
+  Mask: Byte;
+begin
+  Mask := ConstTimeExpandBoolean8(CanAssign);
+  Dest := (Dest and (not Mask)) or (Source and Mask);
+end;
+
+procedure ConstTimeConditionalAssign16(CanAssign: Boolean; Source: Word; var Dest: Word);
+var
+  Mask: Word;
+begin
+  Mask := ConstTimeExpandBoolean16(CanAssign);
+  Dest := (Dest and (not Mask)) or (Source and Mask);
+end;
+
+procedure ConstTimeConditionalAssign32(CanAssign: Boolean; Source: Cardinal; var Dest: Cardinal);
+var
+  Mask: Cardinal;
+begin
+  Mask := ConstTimeExpandBoolean32(CanAssign);
+  Dest := (Dest and (not Mask)) or (Source and Mask);
+end;
+
+procedure ConstTimeConditionalAssign64(CanAssign: Boolean; Source: TUInt64; var Dest: TUInt64);
+var
+  Mask: TUInt64;
+begin
+  Mask := ConstTimeExpandBoolean64(CanAssign);
+  Dest := (Dest and (not Mask)) or (Source and Mask);
 end;
 
 {$IFDEF MSWINDOWS}
