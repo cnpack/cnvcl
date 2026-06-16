@@ -3227,17 +3227,10 @@ begin
       BytesRead := InStream.Read(InBuf[0], BlockSize);
       if BytesRead > 0 then
       begin
-        if not CnRSADecryptRawData(@InBuf[0], BytesRead, @OutBuf[0], BytesDec, PrivateKey) then
-          Exit; // 如果失败，内部设置了错误码
-
-        // 分块的解密内容删除 Padding，此处复用 InBuf 与 BytesDec
-        if not RemovePKCS1Padding(@OutBuf[0], BytesDec, @InBuf[0], BytesDec) then
-        begin
-          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        if not CnRSADecryptData(@InBuf[0], BytesRead, @OutBuf[0], BytesDec, PrivateKey, cpmPKCS1) then
           Exit;
-        end;
 
-        OutStream.Write(InBuf[0], BytesDec);
+        OutStream.Write(OutBuf[0], BytesDec);
         Inc(TotalBytes, BytesRead);
       end
       else // 总长度整数块后读出为 0 表示结束
@@ -3341,17 +3334,10 @@ begin
       BytesRead := InStream.Read(InBuf[0], BlockSize);
       if BytesRead > 0 then
       begin
-        if not CnRSADecryptRawData(@InBuf[0], BytesRead, @OutBuf[0], BytesDec, PublicKey) then
-          Exit; // 如果失败，内部设置了错误码
-
-        // 分块的解密内容删除 Padding，此处复用 InBuf 与 BytesDec
-        if not RemovePKCS1Padding(@OutBuf[0], BytesDec, @InBuf[0], BytesDec) then
-        begin
-          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        if not CnRSADecryptData(@InBuf[0], BytesRead, @OutBuf[0], BytesDec, PublicKey) then
           Exit;
-        end;
 
-        OutStream.Write(InBuf[0], BytesDec);
+        OutStream.Write(OutBuf[0], BytesDec);
         Inc(TotalBytes, BytesRead);
       end
       else // 总长度整数块后读出为 0 表示结束
