@@ -2366,7 +2366,7 @@ end;
 function RSACrypt(Data: TCnBigNumber; Product: TCnBigNumber; Exponent: TCnBigNumber;
   Res: TCnBigNumber): Boolean;
 begin
-  Result := BigNumberMontgomeryPowerMod(Res, Data, Exponent, Product);
+  Result := BigNumberPowerMod(Res, Data, Exponent, Product);
   if not Result then
     _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
 end;
@@ -2406,11 +2406,11 @@ begin
 
     try
       M1 := TCnBigNumber.Create;
-      BigNumberMontgomeryPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1);
+      BigNumberPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1);
       // m1 = c^dP mod p
 
       M2 := TCnBigNumber.Create;
-      BigNumberMontgomeryPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2);
+      BigNumberPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2);
       // m2 = c^dQ mod q
 
       H := TCnBigNumber.Create;
@@ -4561,7 +4561,7 @@ function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber
   OutPublicKey: TCnBigNumber): Boolean;
 begin
   // OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
-  Result := BigNumberMontgomeryPowerMod(OutPublicKey, Root, SelfPrivateKey, Prime);
+  Result := BigNumberPowerMod(OutPublicKey, Root, SelfPrivateKey, Prime);
 end;
 
 // 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
@@ -4569,7 +4569,7 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
   SecretKey: TCnBigNumber): Boolean;
 begin
   // SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
-  Result := BigNumberMontgomeryPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
+  Result := BigNumberPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
 end;
 
 // 生成基于离散对数的变色龙杂凑函数所需的素数与其最小原根，实际等同于 Diffie-Hellman
@@ -4594,7 +4594,7 @@ begin
     BigNumberDirectMulMod(T, InRandom, T, Prime);
 
     BigNumberAddMod(T, InData, T, Prime);
-    Result := BigNumberMontgomeryPowerMod(OutHash, Root, T, Prime);
+    Result := BigNumberPowerMod(OutHash, Root, T, Prime);
   finally
     T.Free;
   end;

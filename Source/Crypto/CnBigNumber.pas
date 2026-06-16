@@ -35,6 +35,10 @@ unit CnBigNumber;
 *           数组越往后越代表大整数的高位，数组元素内部的值依赖于 CPU 的大小端序。
 *           因而在小端 CPU 上，大整数对象的值严格等于该数组按字节倒序所表达的数。
 *
+*           另外，大数的核心模幂运算面临一个选择难题：固定时间的蒙哥马利阶梯实现，
+*           其效率较通用的滑动窗口慢约一半以上，但后者虽快，却又不抗侧信道攻击，
+*           故此我们默认采用安全的前者，但可以通过定义 FAST_POWERMOD 条件切换到后者。
+*
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：Win32/Win64/MACOS D5~Delphi 最新版。
 *           注：D5/D6/CB5/CB6 下曾经遇上编译器 Bug 无法修复，
@@ -101,6 +105,11 @@ interface
   // BN_DATA_USE_64 表示在 64 位下，内部使用 64 位元素进行存储计算以提高效率，待测试
   // 如不定义，默认使用 32 位元素，较稳定
 {$ENDIF}
+
+// 核心模幂运算面临一个选择难题：固定时间的蒙哥马利阶梯实现，效率较通用的滑动窗口
+// 慢约一半以上，但后者虽快又不抗侧信道攻击，故此默认采用后者，但可以通过定义下面
+// 一行来切换到前者。
+// {$DEFINE FAST_POWERMOD}
 
 uses
   Classes, SysUtils, Math, SysConst, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF},
@@ -2331,20 +2340,9 @@ function BigNumberPowerWordMod(Res: TCnBigNumber; A: TCnBigNumber;
 
 function BigNumberPowerMod(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
   C: TCnBigNumber): Boolean;
-{* 滑动窗口法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十。
-
-   参数：
-     Res: TCnBigNumber                    - 用来容纳结果的大数对象
-     A: TCnBigNumber                      - 乘数一
-     B: TCnBigNumber                      - 乘数二
-     C: TCnBigNumber                      - 模数
-
-   返回值：Boolean                        - 返回是否计算成功
-}
-
-function BigNumberMontgomeryPowerMod(Res: TCnBigNumber; A: TCnBigNumber;
-  B: TCnBigNumber; C: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用。
+{* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一。
+   该函数有蒙哥马利阶梯法与滑动窗口法两个版本，前者抗侧信道攻击但性能慢约一半，
+   因而默认我们使用前者，用户如果有高性能需要，可通过定义 FAST_POWERMOD 编译后者。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -7756,7 +7754,9 @@ begin
   end;
 end;
 
-// 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一
+{$IFDEF FAST_POWERMOD}
+
+// 滑动窗口快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，效率较高但不抗侧信道攻击
 function BigNumberPowerMod(Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 var
   I, J, Bits, WStart, WEnd, Window, WValue, Start: Integer;
@@ -7887,63 +7887,80 @@ begin
   end;
 end;
 
-// 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一
-function BigNumberMontgomeryPowerMod(Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+{$ELSE}
+
+// 固定时间快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，效率较滑动窗口慢约 50%
+function BigNumberPowerMod(Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 var
-  T, AA, BB: TCnBigNumber;
+  Bits, I: Integer;
+  R0, R1: TCnBigNumber;
 begin
   Result := False;
-  if B.IsZero then
+  if (Res = A) or (Res = B) or (Res = C) then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
+
+  Bits := BigNumberGetBitsCount(B);
+
+  if Bits = 0 then
   begin
-    Res.SetOne;
+    if BigNumberAbsIsWord(C, 1) then
+      BigNumberSetZero(Res)
+    else
+      BigNumberSetOne(Res);
     Result := True;
     Exit;
   end;
 
-  if (Res = A) or (Res = B) or (Res = C) then
-    raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
-
-  AA := nil;
-  BB := nil;
-  T := nil;
+  R0 := nil;
+  R1 := nil;
 
   try
-    AA := FLocalBigNumberPool.Obtain;
-    BB := FLocalBigNumberPool.Obtain;
-    T := FLocalBigNumberPool.Obtain;
+    R0 := FLocalBigNumberPool.Obtain;
+    R1 := FLocalBigNumberPool.Obtain;
 
-    if not T.SetOne then
+    if not BigNumberNonNegativeMod(R1, A, C) then
       Exit;
 
-    if not BigNumberMod(AA, A, C) then
-      Exit;
-
-    if BigNumberCopy(BB, B) = nil then
-      Exit;
-
-    while not BB.IsOne do
+    if BigNumberIsZero(R1) then
     begin
-      if BigNumberIsBitSet(BB, 0) then
-      begin
-        if not BigNumberDirectMulMod(T, AA, T, C) then
-          Exit;
-      end;
-      if not BigNumberDirectMulMod(AA, AA, AA, C) then
+      if not BigNumberSetZero(Res) then
         Exit;
-
-      if not BigNumberShiftRightOne(BB, BB) then
-        Exit;
+      Result := True;
+      Exit;
     end;
 
-    if not BigNumberDirectMulMod(Res, AA, T, C) then
+    if not BigNumberSetOne(R0) then
       Exit;
+
+    for I := Bits - 1 downto 0 do
+    begin
+      if BigNumberIsBitSet(B, I) then
+      begin
+        if not BigNumberDirectMulMod(R0, R0, R1, C) then
+          Exit;
+        if not BigNumberDirectMulMod(R1, R1, R1, C) then
+          Exit;
+      end
+      else
+      begin
+        if not BigNumberDirectMulMod(R1, R0, R1, C) then
+          Exit;
+        if not BigNumberDirectMulMod(R0, R0, R0, C) then
+          Exit;
+      end;
+    end;
+
+    if BigNumberCopy(Res, R0) = nil then
+      Exit;
+
+    Result := True;
   finally
-    FLocalBigNumberPool.Recycle(T);
-    FLocalBigNumberPool.Recycle(AA);
-    FLocalBigNumberPool.Recycle(BB);
+    FLocalBigNumberPool.Recycle(R0);
+    FLocalBigNumberPool.Recycle(R1);
   end;
-  Result := True;
 end;
+
+{$ENDIF}
 
 function BigNumberPowerPowerMod(Res: TCnBigNumber; A, B, C, N: TCnBigNumber): Boolean;
 var
@@ -8283,7 +8300,7 @@ begin
     for I := 0 to Factors.Count - 1 do
     begin
       BigNumberDiv(T, Remain, SubOne, Factors[I]);
-      BigNumberMontgomeryPowerMod(Res, R, T, Prime);
+      BigNumberPowerMod(Res, R, T, Prime);
       if Res.IsOne then
         Exit;
     end;
@@ -8688,7 +8705,7 @@ begin
       BigNumberCopy(R, P);
       BigNumberSubWord(R, 1);
       BigNumberShiftRightOne(R, R);
-      BigNumberMontgomeryPowerMod(Res, A, R, P);
+      BigNumberPowerMod(Res, A, R, P);
 
       if Res.IsOne then // 欧拉判别法
         Result := 1
@@ -8746,9 +8763,9 @@ begin
 
     BigNumberAdd(N, Q, CnBigNumberOne);
     BigNumberShiftRight(N, N, 1);
-    BigNumberMontgomeryPowerMod(C, Z, Q, P);
-    BigNumberMontgomeryPowerMod(R, A, N, P);
-    BigNumberMontgomeryPowerMod(T, A, Q, P);
+    BigNumberPowerMod(C, Z, Q, P);
+    BigNumberPowerMod(R, A, N, P);
+    BigNumberPowerMod(T, A, Q, P);
     M := S;
 
     while True do
@@ -8761,14 +8778,14 @@ begin
       begin
         U.SetOne;
         BigNumberShiftLeft(U, U, I);
-        BigNumberMontgomeryPowerMod(N, T, U, P);
+        BigNumberPowerMod(N, T, U, P);
         if N.IsOne then
           Break;
       end;
 
       U.SetOne;
       BigNumberShiftLeft(U, U, M - I - 1);
-      BigNumberMontgomeryPowerMod(B, C, U, P);
+      BigNumberPowerMod(B, C, U, P);
       M := I;
       BigNumberDirectMulMod(R, R, B, P);
 
@@ -8932,7 +8949,7 @@ begin
         begin
           // 结果是 g^(u+1) mod p
           BigNumberAddWord(U, 1);
-          BigNumberMontgomeryPowerMod(Y, A, U, Prime);
+          BigNumberPowerMod(Y, A, U, Prime);
           // 但解可能逆运算平方回去 mod Prime 后得到 -A 不符合原要求因而需要验算
 
           BigNumberDirectMulMod(Z, Y, Y, Prime);
@@ -8952,7 +8969,7 @@ begin
         begin
           BigNumberMulWord(U, 2);
           BigNumberAddWord(U, 1);
-          BigNumberMontgomeryPowerMod(Z, A, U, Prime);
+          BigNumberPowerMod(Z, A, U, Prime);
 
           R := FLocalBigNumberPool.Obtain;
           BigNumberMod(R, Z, Prime);
@@ -8962,7 +8979,7 @@ begin
             // 结果是 g^(u+1) mod p
             BigNumberCopy(U, OldU);
             BigNumberAddWord(U, 1);
-            BigNumberMontgomeryPowerMod(Y, A, U, Prime);
+            BigNumberPowerMod(Y, A, U, Prime);
 
             BigNumberCopy(Res, Y);
             Result := True;
@@ -8984,7 +9001,7 @@ begin
               BigNumberMulWord(X, 4);
 
               T := FLocalBigNumberPool.Obtain;
-              BigNumberMontgomeryPowerMod(T, X, OldU, Prime); // T: (4g)^u mod p
+              BigNumberPowerMod(T, X, OldU, Prime); // T: (4g)^u mod p
               BigNumberMulMod(Y, R, T, Prime);
 
               BigNumberCopy(Res, Y);

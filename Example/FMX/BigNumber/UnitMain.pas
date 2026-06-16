@@ -582,8 +582,7 @@ begin
   Res := BigNumberNew;
   if BigNumberPowerMod(Res, Num1, Num3, Num2) then
     ShowMessage('BigNumberPowerMod ' + Res.ToDec);
-  if BigNumberMontgomeryPowerMod(Res, Num1, Num3, Num2) then
-    ShowMessage('BigNumberPowerMod ' + Res.ToDec);
+
 //  BigNumberCopy(Num2, Res);
 //  ShowNumbers;
   BigNumberFree(Res);
@@ -782,7 +781,7 @@ begin
 
   T2 := CnGetTickCount;
   for I := 1 to 1 do
-    BigNumberMontgomeryPowerMod(R, A, B, C);
+    BigNumberPowerMod(R, A, B, C);
   T2 := CnGetTickCount - T2;
 
   ShowMessage(R.ToDec);

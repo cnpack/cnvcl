@@ -4597,7 +4597,7 @@ begin
         begin
           // 结果是 g^(u+1) mod p
           BigNumberAddWord(U, 1);
-          BigNumberMontgomeryPowerMod(Y, X, U, FFiniteFieldSize);
+          BigNumberPowerMod(Y, X, U, FFiniteFieldSize);
           BigNumberDirectMulMod(Z, Y, Y, FFiniteFieldSize);
           if BigNumberCompare(Z, X) = 0 then
           begin
@@ -4611,7 +4611,7 @@ begin
         begin
           BigNumberMulWord(U, 2);
           BigNumberAddWord(U, 1);
-          BigNumberMontgomeryPowerMod(Z, X, U, FFiniteFieldSize);
+          BigNumberPowerMod(Z, X, U, FFiniteFieldSize);
           R := FEccBigNumberPool.Obtain;
           BigNumberMod(R, Z, FFiniteFieldSize);
 
@@ -4620,7 +4620,7 @@ begin
             // 结果是 g^(u+1) mod p
             BigNumberCopy(U, FSizeUFactor);
             BigNumberAddWord(U, 1);
-            BigNumberMontgomeryPowerMod(Y, X, U, FFiniteFieldSize);
+            BigNumberPowerMod(Y, X, U, FFiniteFieldSize);
 
             BigNumberCopy(OutPoint.X, Plain);
             BigNumberCopy(OutPoint.Y, Y);
@@ -4641,7 +4641,7 @@ begin
               BigNumberCopy(X, X3);
               BigNumberMulWord(X, 4);
               T := FEccBigNumberPool.Obtain;
-              BigNumberMontgomeryPowerMod(T, X, FSizeUFactor, FFiniteFieldSize); // T: (4g)^u mod p
+              BigNumberPowerMod(T, X, FSizeUFactor, FFiniteFieldSize); // T: (4g)^u mod p
               BigNumberDirectMulMod(Y, R, T, FFiniteFieldSize);
 
               BigNumberCopy(OutPoint.X, Plain);
