@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 480" width="700" height="480">
+  <defs>
+    <!-- #15: Arrow marker (auto orient) -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#333"/>
+    </marker>
+
+    <!-- #16: Circle marker -->
+    <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FF4500"/>
+    </marker>
+
+    <!-- #17: Diamond marker -->
+    <marker id="diamond" viewBox="0 0 12 12" refX="6" refY="6"
+            markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 6 0 L 12 6 L 6 12 L 0 6 Z" fill="#4169E1"/>
+    </marker>
+
+    <!-- #18: Start/End different markers -->
+    <marker id="start_arrow" viewBox="0 0 10 10" refX="0" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 10 0 L 0 5 L 10 10 Z" fill="#228B22"/>
+    </marker>
+    <marker id="end_arrow" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#B22222"/>
+    </marker>
+
+    <!-- #19: Marker with strokeWidth units -->
+    <marker id="big_dot" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="4" markerHeight="4" orient="auto"
+            markerUnits="strokeWidth">
+      <circle cx="5" cy="5" r="5" fill="#9932CC"/>
+    </marker>
+
+    <!-- #20: Fixed angle orient marker -->
+    <marker id="orient_fixed" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="8" markerHeight="8" orient="90">
+      <path d="M 0 2 L 5 0 L 10 2 L 5 10 Z" fill="#FF8C00"/>
+    </marker>
+
+    <!-- gradient for combined test -->
+    <linearGradient id="spread_reflect" x1="0%" y1="0%" x2="25%" y2="0%"
+                    spreadMethod="reflect">
+      <stop offset="0%" stop-color="#00CED1"/>
+      <stop offset="100%" stop-color="#9370DB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="30" text-anchor="middle" font-size="22" font-weight="bold" fill="#333"
+        font-family="sans-serif">SVG Test: Marker</text>
+
+  <!-- ===== Row 1: Markers on Line ===== -->
+  <text x="10" y="60" font-size="13" font-weight="bold" fill="#555">Marker on Line</text>
+
+  <text x="10" y="78" font-size="11" fill="#888">Line with start/end arrows</text>
+  <line x1="10" y1="90" x2="250" y2="90" stroke="#333" stroke-width="2"
+        marker-start="url(#start_arrow)" marker-end="url(#arrow)"/>
+
+  <text x="280" y="78" font-size="11" fill="#888">Line with dot markers</text>
+  <line x1="280" y1="90" x2="520" y2="90" stroke="#666" stroke-width="2"
+        marker-start="url(#dot)" marker-end="url(#dot)"/>
+
+  <!-- ===== Row 2: Markers on Polyline ===== -->
+  <text x="10" y="120" font-size="13" font-weight="bold" fill="#555">Marker on Polyline</text>
+
+  <text x="10" y="138" font-size="11" fill="#888">Polyline with start/mid/end markers</text>
+  <polyline points="10,160 80,140 160,170 240,145 320,160" fill="none"
+            stroke="#4169E1" stroke-width="2"
+            marker-start="url(#start_arrow)"
+            marker-mid="url(#diamond)"
+            marker-end="url(#end_arrow)"/>
+
+  <text x="360" y="138" font-size="11" fill="#888">Polyline with dot mid markers</text>
+  <polyline points="360,160 420,140 480,170 540,145 600,160" fill="none"
+            stroke="#FF4500" stroke-width="2"
+            marker-start="url(#dot)"
+            marker-mid="url(#dot)"
+            marker-end="url(#arrow)"/>
+
+  <!-- ===== Row 3: Markers on Polygon ===== -->
+  <text x="10" y="200" font-size="13" font-weight="bold" fill="#555">Marker on Polygon</text>
+
+  <text x="10" y="218" font-size="11" fill="#888">Polygon with diamond markers</text>
+  <polygon points="80,250 140,230 200,250 180,290 100,290" fill="none"
+           stroke="#9932CC" stroke-width="2"
+           marker-start="url(#diamond)"
+           marker-mid="url(#diamond)"
+           marker-end="url(#diamond)"/>
+
+  <!-- ===== Row 4: Markers on Path ===== -->
+  <text x="260" y="200" font-size="13" font-weight="bold" fill="#555">Marker on Path</text>
+
+  <text x="260" y="218" font-size="11" fill="#888">Path with arrow markers</text>
+  <path d="M 260 260 C 300 230 340 230 380 260 S 440 290 480 260"
+        fill="none" stroke="#228B22" stroke-width="2"
+        marker-start="url(#start_arrow)" marker-mid="url(#dot)" marker-end="url(#end_arrow)"/>
+
+  <!-- ===== Row 5: strokeWidth markerUnits + fixed orient ===== -->
+  <text x="10" y="320" font-size="13" font-weight="bold" fill="#555">markerUnits / orient</text>
+
+  <text x="10" y="338" font-size="11" fill="#888">strokeWidth markerUnits (thick vs thin line)</text>
+  <line x1="10" y1="360" x2="200" y2="360" stroke="#9932CC" stroke-width="2"
+        marker-start="url(#big_dot)" marker-end="url(#big_dot)"/>
+  <line x1="10" y1="390" x2="200" y2="390" stroke="#9932CC" stroke-width="6"
+        marker-start="url(#big_dot)" marker-end="url(#big_dot)"/>
+
+  <text x="260" y="338" font-size="11" fill="#888">orient=90 (fixed angle)</text>
+  <polyline points="260,370 350,350 440,370 530,350" fill="none"
+            stroke="#FF8C00" stroke-width="2"
+            marker-start="url(#orient_fixed)" marker-mid="url(#orient_fixed)"
+            marker-end="url(#orient_fixed)"/>
+
+  <text x="570" y="338" font-size="11" fill="#888">marker shorthand (all three)</text>
+  <polyline points="570,370 630,350 690,370 750,350" fill="none"
+            stroke="#333" stroke-width="2"
+            marker="url(#dot)"/>
+
+  <!-- ===== Combined: Markers + gradient stroke ===== -->
+  <text x="10" y="430" font-size="11" fill="#888">Markers + gradient stroke</text>
+  <polyline points="10,460 90,440 170,460 250,440 330,460" fill="none"
+            stroke="url(#spread_reflect)" stroke-width="4"
+            marker-start="url(#diamond)" marker-mid="url(#diamond)" marker-end="url(#arrow)"/>
+
+  <!-- Footer -->
+  <line x1="10" y1="475" x2="690" y2="475" stroke="#CCC" stroke-width="1"/>
+  <text x="350" y="490" text-anchor="middle" font-size="10" fill="#999"
+        font-family="sans-serif">CnSVG - Marker(start/mid/end, orient, markerUnits, shorthand)</text>
+</svg>

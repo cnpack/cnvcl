@@ -89,6 +89,7 @@ type
   TCnSVGTextAnchor = (staStart, staMiddle, staEnd);
   {* SVG 文字锚点：start（左对齐）/ middle（居中）/ end（右对齐） }
 
+  TCnSVGSpreadMethod = (smsPad, smsRepeat, smsReflect);
 //==============================================================================
 // 样式记录
 //==============================================================================
@@ -160,6 +161,16 @@ type
     {* clip-path 引用的裁剪路径 ID（url(#id)），空串表示无裁剪 }
     FilterID:         string;
     {* filter 的 ID 形如 url(#id) }
+    // mask
+    MaskID:           string;
+    {* mask  ID via url(#id) }
+    // markers
+    MarkerStartID:    string;
+    {* marker-start  ID via url(#id) }
+    MarkerMidID:      string;
+    {* marker-mid  ID via url(#id) }
+    MarkerEndID:      string;
+    {* marker-end  ID via url(#id) }
   end;
 
 //==============================================================================
@@ -572,6 +583,7 @@ type
     FHasClipPath: Boolean;
     {* 当前是否已设置 GDI+ clip path }
     FProcessingFilter: Boolean;
+    FProcessingMask: Boolean;
     FFilterPendingBmp: GpImage;
     FFilterPendingSX, FFilterPendingSY, FFilterPendingSW, FFilterPendingSH: Integer;
     FGradBBoxX, FGradBBoxY, FGradBBoxW, FGradBBoxH: TCnSVGFloat;
@@ -633,6 +645,9 @@ type
     procedure RenderAnchor(AElement: TCnXMLElement);
     procedure RenderNestedSVG(AElement: TCnXMLElement);
     procedure RenderFilteredElement(AElement: TCnXMLElement);
+    procedure RenderMaskedElement(AElement: TCnXMLElement);
+    procedure RenderMarkerAt(const MarkerID: string; X, Y, Angle: TCnSVGFloat);
+    procedure RenderMarkers(AElement: TCnXMLElement);
     procedure RenderElement(AElement: TCnXMLElement);
   public
     constructor Create(ACanvas: TCanvas; const ADestRect: TRect;
@@ -1136,6 +1151,10 @@ begin
   S.StrokeGradientID := '';
   S.ClipPathID       := '';
   S.FilterID         := '';
+  S.MaskID           := '';
+  S.MarkerStartID    := '';
+  S.MarkerMidID      := '';
+  S.MarkerEndID      := '';
 end;
 
 function SVGClampOpacity(V: TCnSVGFloat): TCnSVGFloat;
@@ -1294,6 +1313,73 @@ begin
         else
           Style.FilterID := '';
       end
+
+      else if LKey = 'mask' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.MaskID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.MaskID) > 0) and (Style.MaskID[1] = '#') then
+            Delete(Style.MaskID, 1, 1);
+        end
+        else
+          Style.MaskID := '';
+      end
+
+      else if LKey = 'marker-start' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.MarkerStartID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.MarkerStartID) > 0) and (Style.MarkerStartID[1] = '#') then
+            Delete(Style.MarkerStartID, 1, 1);
+        end
+        else
+          Style.MarkerStartID := '';
+      end
+
+      else if LKey = 'marker-mid' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.MarkerMidID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.MarkerMidID) > 0) and (Style.MarkerMidID[1] = '#') then
+            Delete(Style.MarkerMidID, 1, 1);
+        end
+        else
+          Style.MarkerMidID := '';
+      end
+
+      else if LKey = 'marker-end' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.MarkerEndID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.MarkerEndID) > 0) and (Style.MarkerEndID[1] = '#') then
+            Delete(Style.MarkerEndID, 1, 1);
+        end
+        else
+          Style.MarkerEndID := '';
+      end
+
+      else if LKey = 'marker' then
+      begin
+        if (Length(LVal) > 5) and (Copy(LVal, 1, 4) = 'url(') and (LVal[Length(LVal)] = ')') then
+        begin
+          Style.MarkerStartID := Copy(LVal, 5, Length(LVal) - 5);
+          if (Length(Style.MarkerStartID) > 0) and (Style.MarkerStartID[1] = '#') then
+            Delete(Style.MarkerStartID, 1, 1);
+          Style.MarkerMidID := Style.MarkerStartID;
+          Style.MarkerEndID := Style.MarkerStartID;
+        end
+        else
+        begin
+          Style.MarkerStartID := '';
+          Style.MarkerMidID := '';
+          Style.MarkerEndID := '';
+        end;
+      end
+
       else if LKey = 'opacity' then
       begin
         if LVal = 'inherit' then
@@ -2804,6 +2890,80 @@ begin
   UpdateGDIPWorldTransform;
 end;
 
+procedure ApplyTransformToMatrix(const ATransform: string; var M: TCnSVGMatrix);
+var
+  I, Start, FuncStart: Integer;
+  FuncName: string;
+  ParamStr: string;
+  Params: array[0..5] of Extended;
+  ParamCount: Integer;
+  Tmp: TCnSVGMatrix;
+  FuncLower: string;
+begin
+  I := 1;
+  while I <= Length(ATransform) do
+  begin
+    while (I <= Length(ATransform)) and (ATransform[I] in [' ', #9, #10, #13, ',']) do Inc(I);
+    if I > Length(ATransform) then Break;
+    FuncStart := I;
+    while (I <= Length(ATransform)) and (ATransform[I] in ['a'..'z', 'A'..'Z', '-']) do Inc(I);
+    FuncName := Trim(Copy(ATransform, FuncStart, I - FuncStart));
+    if FuncName = '' then begin Inc(I); Continue; end;
+    FuncLower := LowerCase(FuncName);
+    while (I <= Length(ATransform)) and (ATransform[I] <> '(') do Inc(I);
+    if I > Length(ATransform) then Break;
+    Inc(I);
+    Start := I;
+    while (I <= Length(ATransform)) and (ATransform[I] <> ')') do Inc(I);
+    ParamStr := Copy(ATransform, Start, I - Start);
+    if I <= Length(ATransform) then Inc(I);
+    FillChar(Params, SizeOf(Params), 0);
+    ParamCount := 0;
+    SVGParseTransformParams(ParamStr, Params, ParamCount);
+    if FuncLower = 'translate' then
+    begin
+      if ParamCount >= 2 then
+        SVGMatrixTranslate(M, Params[0], Params[1])
+      else if ParamCount >= 1 then
+        SVGMatrixTranslate(M, Params[0], 0);
+    end
+    else if FuncLower = 'scale' then
+    begin
+      if ParamCount >= 2 then
+        SVGMatrixScale(M, Params[0], Params[1])
+      else if ParamCount >= 1 then
+        SVGMatrixScale(M, Params[0], Params[0]);
+    end
+    else if FuncLower = 'rotate' then
+    begin
+      if ParamCount >= 3 then
+        SVGMatrixRotate(M, Params[0], Params[1], Params[2])
+      else if ParamCount >= 1 then
+        SVGMatrixRotate(M, Params[0], 0, 0);
+    end
+    else if FuncLower = 'matrix' then
+    begin
+      if ParamCount >= 6 then
+      begin
+        SVGMatrixIdentity(Tmp);
+        Tmp.a := Params[0]; Tmp.b := Params[1]; Tmp.c := Params[2];
+        Tmp.d := Params[3]; Tmp.e := Params[4]; Tmp.f := Params[5];
+        SVGMatrixMultiply(M, M, Tmp);
+      end;
+    end
+    else if FuncLower = 'skewx' then
+    begin
+      if ParamCount >= 1 then
+        SVGMatrixSkewX(M, Params[0]);
+    end
+    else if FuncLower = 'skewy' then
+    begin
+      if ParamCount >= 1 then
+        SVGMatrixSkewY(M, Params[0]);
+    end;
+  end;
+end;
+
 procedure TCnSVGRenderer.ApplyStyleAttr(AElement: TCnXMLElement);
 var
   ParentStyle: TCnSVGStyle;
@@ -3015,6 +3175,7 @@ var
   DefEl: TCnXMLElement;
   Tag: string;
   X1, Y1, X2, Y2, RX, RY: TCnSVGFloat;
+  FX, FY: TCnSVGFloat;
   GP1, GP2: TGPRectF;
   C1, C2: Cardinal;
   Stops: TList;
@@ -3042,6 +3203,14 @@ var
   PT0, PT1: TPoint;
   PatUnits, ContentUnits: string;
   OldFillGradID, OldStrokeGradID: string;
+  SpreadMethod: TCnSVGSpreadMethod;
+  GTAttr: string;
+  GT: TCnSVGMatrix;
+  GTGot: Boolean;
+  GradX1, GradY1, GradX2, GradY2: TCnSVGFloat;
+  GradCX, GradCY, GradFX, GradFY, GradR: TCnSVGFloat;
+  FocalPt: TGPRectF;
+  ScaleFactor: TCnSVGFloat;
 begin
   Result := nil;
   if FCtx.Style.FillNone then Exit;
@@ -3080,7 +3249,36 @@ begin
         end;
       end;
 
-      // 获取起止颜色：从 <stop> 子元素读取
+      // gradientTransform: parse and apply to gradient coordinates
+      GTAttr := DefEl.GetAttribute('gradientTransform');
+      GTGot := False;
+      if GTAttr <> '' then
+      begin
+        SVGMatrixIdentity(GT);
+        try
+          ApplyTransformToMatrix(GTAttr, GT);
+          GTGot := True;
+        except
+          GTGot := False;
+        end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, X2, Y2);
+      end;
+
+      // spreadMethod
+      SpreadMethod := smsPad;
+      if DefEl.HasAttribute('spreadMethod') then
+      begin
+        if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'repeat' then
+          SpreadMethod := smsRepeat
+        else if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'reflect' then
+          SpreadMethod := smsReflect;
+      end;
+
+      // 找 <stop> 
       C1 := MakeGDIPColor(255, 255, 255, 255);
       C2 := MakeGDIPColor(255, 0, 0, 0);
       Stops := TList.Create;
@@ -3119,7 +3317,7 @@ begin
 
       NeedExtend := False;
       MinT := 0; MaxT := 1;
-      if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+      if (SpreadMethod = smsPad) and (FGradBBoxW > 0) and (FGradBBoxH > 0) then
       begin
         Dx := X2 - X1;
         Dy := Y2 - Y1;
@@ -3156,6 +3354,14 @@ begin
           Result := nil;
       end;
 
+      if Result <> nil then
+      begin
+        if (SpreadMethod = smsRepeat) and Assigned(GdipSetLineWrapMode) then
+          GdipSetLineWrapMode(Result, WrapModeTile)
+        else if (SpreadMethod = smsReflect) and Assigned(GdipSetLineWrapMode) then
+          GdipSetLineWrapMode(Result, WrapModeTileFlipX);
+      end;
+
       if (Result <> nil) and Assigned(GdipSetLinePresetBlend) and
          (NeedExtend or (Count > 2)) then
       begin
@@ -3189,6 +3395,8 @@ begin
       X1 := SVGAttrFloat(DefEl, 'cx', 0.5);
       Y1 := SVGAttrFloat(DefEl, 'cy', 0.5);
       X2 := SVGAttrFloat(DefEl, 'r', 0.5);
+      FX := SVGAttrFloat(DefEl, 'fx', X1);
+      FY := SVGAttrFloat(DefEl, 'fy', Y1);
 
       // objectBoundingBox 模式下，[0,1] 映射到元素边界框
       GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
@@ -3201,24 +3409,56 @@ begin
         if SVGAttrIsPercent(DefEl, 'cx') then X1 := X1 / 100;
         if SVGAttrIsPercent(DefEl, 'cy') then Y1 := Y1 / 100;
         if SVGAttrIsPercent(DefEl, 'r') then X2 := X2 / 100;
+        if SVGAttrIsPercent(DefEl, 'fx') then FX := FX / 100;
+        if SVGAttrIsPercent(DefEl, 'fy') then FY := FY / 100;
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
           X1 := FGradBBoxX + X1 * FGradBBoxW;
           Y1 := FGradBBoxY + Y1 * FGradBBoxH;
           // objectBoundingBox 下径向渐变应拉伸填满 bbox，用椭圆半径
+          FX := FGradBBoxX + FX * FGradBBoxW;
+          FY := FGradBBoxY + FY * FGradBBoxH;
           RX := X2 * FGradBBoxW;
           RY := X2 * FGradBBoxH;
         end;
-      end
-      else
-      begin
-        RX := X2;
-        RY := X2;
       end;
 
-      // 获取起止颜色
-      C1 := MakeGDIPColor(255, 255, 255, 255);  // center
-      C2 := MakeGDIPColor(255, 0, 0, 0);         // surround
+      // gradientTransform
+      GTAttr := DefEl.GetAttribute('gradientTransform');
+      GTGot := False;
+      if GTAttr <> '' then
+      begin
+        SVGMatrixIdentity(GT);
+        try
+          ApplyTransformToMatrix(GTAttr, GT);
+          GTGot := True;
+        except
+          GTGot := False;
+        end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, FX, FY);
+        ScaleFactor := Sqrt(GT.a * GT.a + GT.b * GT.b);
+        RX := RX * ScaleFactor;
+        ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
+        RY := RY * ScaleFactor;
+      end;
+
+      // spreadMethod
+      SpreadMethod := smsPad;
+      if DefEl.HasAttribute('spreadMethod') then
+      begin
+        if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'repeat' then
+          SpreadMethod := smsRepeat
+        else if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'reflect' then
+          SpreadMethod := smsReflect;
+      end;
+
+      // collect stops
+      C1 := MakeGDIPColor(255, 255, 255, 255);
+      C2 := MakeGDIPColor(255, 0, 0, 0);
       Stops := TList.Create;
       try
         for I := 0 to DefEl.ChildCount - 1 do
@@ -3227,15 +3467,14 @@ begin
              (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
             Stops.Add(DefEl.Children[I]);
         end;
-        if Stops.Count >= 2 then
+        Count := Stops.Count;
+        if Count >= 2 then
         begin
-          // 第一个 stop = 中心色
           StopEl := TCnXMLElement(Stops[0]);
           SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
           SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
-          // 最后一个 stop = 外围色
-          StopEl := TCnXMLElement(Stops[Stops.Count - 1]);
+          StopEl := TCnXMLElement(Stops[Count - 1]);
           SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
           SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
           C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
@@ -3258,50 +3497,46 @@ begin
         end;
         if GdipCreatePathGradient(@CircPts, J, WrapModeClamp, Result) = Ok then
         begin
-          if Assigned(GdipSetPathGradientPresetBlend) then
+          // multi-stop support via GdipSetPathGradientPresetBlend
+          if (Count >= 2) and Assigned(GdipSetPathGradientPresetBlend) then
           begin
-            Colors[0] := C2;
-            Colors[1] := C1;
-            Positions[0] := 0.0;
-            Positions[1] := 1.0;
-            GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
+            J := 0;
+            for I := 0 to DefEl.ChildCount - 1 do
+            begin
+              if (DefEl.Children[I].NodeType = xntElement) and
+                 (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+              begin
+                StopEl := TCnXMLElement(DefEl.Children[I]);
+                SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+                SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                // PathGradient: position 0 = surround (outer), position 1 = center (inner)
+                // SVG: first stop = center, last stop = outer, so reverse
+                Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+                Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
+                if SVGAttrIsPercent(StopEl, 'offset') then
+                  Positions[J] := Positions[J] / 100;
+                Inc(J);
+              end;
+            end;
+            if J >= 2 then
+            begin
+              // reverse: SVG offset 0 = center → PathGradient position 1.0
+              for I := 0 to J - 1 do
+                Positions[I] := 1.0 - Positions[I];
+              // swap color order to match reversed positions
+              for I := 0 to (J div 2) - 1 do
+              begin
+                C1 := Colors[I];
+                Colors[I] := Colors[J - 1 - I];
+                Colors[J - 1 - I] := C1;
+                T := Positions[I];
+                Positions[I] := Positions[J - 1 - I];
+                Positions[J - 1 - I] := T;
+              end;
+              GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, J);
+            end;
           end
           else
-          begin
-            if Assigned(GdipSetPathGradientCenterColor) then
-              GdipSetPathGradientCenterColor(Result, C1);
-            GetMem(ColorsPtr, J * SizeOf(Cardinal));
-            try
-              P := ColorsPtr;
-              for I := 0 to J - 1 do
-              begin
-                P^ := C2;
-                Inc(P);
-              end;
-              if Assigned(GdipSetPathGradientSurroundColors) then
-                GdipSetPathGradientSurroundColors(Result, ColorsPtr, @J);
-            finally
-              FreeMem(ColorsPtr);
-              ColorsPtr := nil;
-            end;
-          end;
-          CenterPt.X := X1; CenterPt.Y := Y1;
-          if Assigned(GdipSetPathGradientCenterPoint) then
-            GdipSetPathGradientCenterPoint(Result, @CenterPt);
-        end
-        else
-          Result := nil;
-      end;
-
-      // 方式B: 如果方式A失败，回退到路径方式
-      if (Result = nil) and Assigned(GdipCreatePathGradientFromPath) and (X2 > 0) then
-      begin
-        Path := nil;
-        GdipCreatePath(FillModeWinding, Path);
-        if Path <> nil then
-        begin
-          GdipAddPathEllipse(Path, X1 - RX, Y1 - RY, RX * 2, RY * 2);
-          if GdipCreatePathGradientFromPath(Path, Result) = Ok then
           begin
             if Assigned(GdipSetPathGradientPresetBlend) then
             begin
@@ -3315,34 +3550,129 @@ begin
             begin
               if Assigned(GdipSetPathGradientCenterColor) then
                 GdipSetPathGradientCenterColor(Result, C1);
-              Count := 0;
-              if Assigned(GdipGetPathGradientSurroundColorsCount) then
-                GdipGetPathGradientSurroundColorsCount(Result, @Count);
-              if (Count <= 0) and Assigned(GdipGetPathPointCount) then
-              GdipGetPathPointCount(Path, Count);
-              if Count <= 0 then
-                Count := 64;
-              if Count > 0 then
+              GetMem(ColorsPtr, 64 * SizeOf(Cardinal));
+              try
+                P := ColorsPtr;
+                for I := 0 to 63 do
+                begin
+                  P^ := C2;
+                  Inc(P);
+                end;
+                J := 64;
+                if Assigned(GdipSetPathGradientSurroundColors) then
+                  GdipSetPathGradientSurroundColors(Result, ColorsPtr, @J);
+              finally
+                FreeMem(ColorsPtr);
+                ColorsPtr := nil;
+              end;
+            end;
+          end;
+          // set focal point (fx, fy) as center point
+          FocalPt.X := FX; FocalPt.Y := FY;
+          if Assigned(GdipSetPathGradientCenterPoint) then
+            GdipSetPathGradientCenterPoint(Result, @FocalPt);
+          // apply spreadMethod
+          if (SpreadMethod = smsRepeat) and Assigned(GdipSetPathGradientWrapMode) then
+            GdipSetPathGradientWrapMode(Result, WrapModeTile)
+          else if (SpreadMethod = smsReflect) and Assigned(GdipSetPathGradientWrapMode) then
+            GdipSetPathGradientWrapMode(Result, WrapModeTileFlipX);
+        end
+        else
+          Result := nil;
+      end;
+
+      // fallback B: if method A failed, try path-based approach
+      if (Result = nil) and Assigned(GdipCreatePathGradientFromPath) and (X2 > 0) then
+      begin
+        Path := nil;
+        GdipCreatePath(FillModeWinding, Path);
+        if Path <> nil then
+        begin
+          GdipAddPathEllipse(Path, X1 - RX, Y1 - RY, RX * 2, RY * 2);
+          if GdipCreatePathGradientFromPath(Path, Result) = Ok then
+          begin
+            // multi-stop or fallback 2-stop
+            if (Count >= 2) and Assigned(GdipSetPathGradientPresetBlend) then
+            begin
+              J := 0;
+              for I := 0 to DefEl.ChildCount - 1 do
               begin
-                GetMem(ColorsPtr, Count * SizeOf(Cardinal));
-                try
-                  P := ColorsPtr;
-                  for I := 0 to Count - 1 do
-                  begin
-                    P^ := C2;
-                    Inc(P);
+                if (DefEl.Children[I].NodeType = xntElement) and
+                   (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+                begin
+                  StopEl := TCnXMLElement(DefEl.Children[I]);
+                  SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+                  SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                  Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+                  Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
+                  if SVGAttrIsPercent(StopEl, 'offset') then
+                    Positions[J] := Positions[J] / 100;
+                  Inc(J);
+                end;
+              end;
+              if J >= 2 then
+              begin
+                for I := 0 to J - 1 do
+                  Positions[I] := 1.0 - Positions[I];
+                for I := 0 to (J div 2) - 1 do
+                begin
+                  C1 := Colors[I];
+                  Colors[I] := Colors[J - 1 - I];
+                  Colors[J - 1 - I] := C1;
+                  T := Positions[I];
+                  Positions[I] := Positions[J - 1 - I];
+                  Positions[J - 1 - I] := T;
+                end;
+                GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, J);
+              end;
+            end
+            else
+            begin
+              if Assigned(GdipSetPathGradientPresetBlend) then
+              begin
+                Colors[0] := C2;
+                Colors[1] := C1;
+                Positions[0] := 0.0;
+                Positions[1] := 1.0;
+                GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
+              end
+              else
+              begin
+                if Assigned(GdipSetPathGradientCenterColor) then
+                  GdipSetPathGradientCenterColor(Result, C1);
+                Count := 0;
+                if Assigned(GdipGetPathGradientSurroundColorsCount) then
+                  GdipGetPathGradientSurroundColorsCount(Result, @Count);
+                if (Count <= 0) and Assigned(GdipGetPathPointCount) then
+                  GdipGetPathPointCount(Path, Count);
+                if Count <= 0 then
+                  Count := 64;
+                if Count > 0 then
+                begin
+                  GetMem(ColorsPtr, Count * SizeOf(Cardinal));
+                  try
+                    P := ColorsPtr;
+                    for I := 0 to Count - 1 do
+                    begin
+                      P^ := C2;
+                      Inc(P);
+                    end;
+                    if Assigned(GdipSetPathGradientSurroundColors) then
+                      GdipSetPathGradientSurroundColors(Result, ColorsPtr, @Count);
+                  finally
+                    FreeMem(ColorsPtr);
+                    ColorsPtr := nil;
                   end;
-                  if Assigned(GdipSetPathGradientSurroundColors) then
-                    GdipSetPathGradientSurroundColors(Result, ColorsPtr, @Count);
-                finally
-                  FreeMem(ColorsPtr);
-                  ColorsPtr := nil;
                 end;
               end;
             end;
-            CenterPt.X := X1; CenterPt.Y := Y1;
+            FocalPt.X := FX; FocalPt.Y := FY;
             if Assigned(GdipSetPathGradientCenterPoint) then
-              GdipSetPathGradientCenterPoint(Result, @CenterPt);
+              GdipSetPathGradientCenterPoint(Result, @FocalPt);
+            if (SpreadMethod = smsRepeat) and Assigned(GdipSetPathGradientWrapMode) then
+              GdipSetPathGradientWrapMode(Result, WrapModeTile)
+            else if (SpreadMethod = smsReflect) and Assigned(GdipSetPathGradientWrapMode) then
+              GdipSetPathGradientWrapMode(Result, WrapModeTileFlipX);
           end
           else
             Result := nil;
@@ -3462,7 +3792,8 @@ function TCnSVGRenderer.CreateGDIPStrokeBrush: GpBrush;
 var
   DefEl: TCnXMLElement;
   Tag: string;
-  X1, Y1, X2, Y2: TCnSVGFloat;
+  X1, Y1, X2, Y2, RX, RY: TCnSVGFloat;
+  FX, FY: TCnSVGFloat;
   GP1, GP2: TGPRectF;
   C1, C2: Cardinal;
   Stops: TList;
@@ -3484,6 +3815,19 @@ var
   PT0, PT1: TPoint;
   PatUnits, ContentUnits: string;
   OldFillGradID, OldStrokeGradID: string;
+  SpreadMethod: TCnSVGSpreadMethod;
+  GTAttr: string;
+  GT: TCnSVGMatrix;
+  GTGot: Boolean;
+  ScaleFactor: TCnSVGFloat;
+  CenterPt: TGPRectF;
+  FocalPt: TGPRectF;
+  J: Integer;
+  CircPts: array[0..127] of Single;
+  Step, Angle: Double;
+  ColorsPtr: PGPColor;
+  P: PGPColor;
+  Path: GpPath;
 begin
   Result := nil;
   if FCtx.Style.StrokeNone then Exit;
@@ -3520,6 +3864,33 @@ begin
         end;
       end;
 
+      GTAttr := DefEl.GetAttribute('gradientTransform');
+      GTGot := False;
+      if GTAttr <> '' then
+      begin
+        SVGMatrixIdentity(GT);
+        try
+          ApplyTransformToMatrix(GTAttr, GT);
+          GTGot := True;
+        except
+          GTGot := False;
+        end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, X2, Y2);
+      end;
+
+      SpreadMethod := smsPad;
+      if DefEl.HasAttribute('spreadMethod') then
+      begin
+        if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'repeat' then
+          SpreadMethod := smsRepeat
+        else if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'reflect' then
+          SpreadMethod := smsReflect;
+      end;
+
       C1 := MakeGDIPColor(255, 255, 255, 255);
       C2 := MakeGDIPColor(255, 0, 0, 0);
       Stops := TList.Create;
@@ -3548,7 +3919,7 @@ begin
 
       NeedExtend := False;
       MinT := 0; MaxT := 1;
-      if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+      if (SpreadMethod = smsPad) and (FGradBBoxW > 0) and (FGradBBoxH > 0) then
       begin
         Dx := X2 - X1;
         Dy := Y2 - Y1;
@@ -3585,6 +3956,14 @@ begin
           Result := nil;
       end;
 
+      if Result <> nil then
+      begin
+        if (SpreadMethod = smsRepeat) and Assigned(GdipSetLineWrapMode) then
+          GdipSetLineWrapMode(Result, WrapModeTile)
+        else if (SpreadMethod = smsReflect) and Assigned(GdipSetLineWrapMode) then
+          GdipSetLineWrapMode(Result, WrapModeTileFlipX);
+      end;
+
       if (Result <> nil) and Assigned(GdipSetLinePresetBlend) and
          (NeedExtend or (Count > 2)) then
       begin
@@ -3609,6 +3988,280 @@ begin
           end;
         end;
         GdipSetLinePresetBlend(Result, @Colors, @Positions, Count);
+      end;
+    end
+    else if Tag = 'radialgradient' then
+    begin
+      X1 := SVGAttrFloat(DefEl, 'cx', 0.5);
+      Y1 := SVGAttrFloat(DefEl, 'cy', 0.5);
+      X2 := SVGAttrFloat(DefEl, 'r', 0.5);
+      FX := SVGAttrFloat(DefEl, 'fx', X1);
+      FY := SVGAttrFloat(DefEl, 'fy', Y1);
+
+      GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
+      IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      RX := X2; RY := X2;
+      if IsObjBBox then
+      begin
+        if SVGAttrIsPercent(DefEl, 'cx') then X1 := X1 / 100;
+        if SVGAttrIsPercent(DefEl, 'cy') then Y1 := Y1 / 100;
+        if SVGAttrIsPercent(DefEl, 'r') then X2 := X2 / 100;
+        if SVGAttrIsPercent(DefEl, 'fx') then FX := FX / 100;
+        if SVGAttrIsPercent(DefEl, 'fy') then FY := FY / 100;
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          FX := FGradBBoxX + FX * FGradBBoxW;
+          FY := FGradBBoxY + FY * FGradBBoxH;
+          RX := X2 * FGradBBoxW;
+          RY := X2 * FGradBBoxH;
+        end;
+      end;
+
+      GTAttr := DefEl.GetAttribute('gradientTransform');
+      GTGot := False;
+      if GTAttr <> '' then
+      begin
+        SVGMatrixIdentity(GT);
+        try
+          ApplyTransformToMatrix(GTAttr, GT);
+          GTGot := True;
+        except
+          GTGot := False;
+        end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, FX, FY);
+        ScaleFactor := Sqrt(GT.a * GT.a + GT.b * GT.b);
+        RX := RX * ScaleFactor;
+        ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
+        RY := RY * ScaleFactor;
+      end;
+
+      SpreadMethod := smsPad;
+      if DefEl.HasAttribute('spreadMethod') then
+      begin
+        if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'repeat' then
+          SpreadMethod := smsRepeat
+        else if LowerCase(DefEl.GetAttribute('spreadMethod')) = 'reflect' then
+          SpreadMethod := smsReflect;
+      end;
+
+      C1 := MakeGDIPColor(255, 255, 255, 255);
+      C2 := MakeGDIPColor(255, 0, 0, 0);
+      Stops := TList.Create;
+      try
+        for I := 0 to DefEl.ChildCount - 1 do
+        begin
+          if (DefEl.Children[I].NodeType = xntElement) and
+             (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+            Stops.Add(DefEl.Children[I]);
+        end;
+        Count := Stops.Count;
+        if Count >= 2 then
+        begin
+          StopEl := TCnXMLElement(Stops[0]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+          StopEl := TCnXMLElement(Stops[Count - 1]);
+          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+        end;
+      finally
+        Stops.Free;
+      end;
+
+      Result := nil;
+      if Assigned(GdipCreatePathGradient) and (X2 > 0) then
+      begin
+        J := 64;
+        FillChar(CircPts, SizeOf(CircPts), 0);
+        Step := 2 * Pi / J;
+        for I := 0 to J - 1 do
+        begin
+          Angle := I * Step;
+          CircPts[I * 2] := X1 + RX * Cos(Angle);
+          CircPts[I * 2 + 1] := Y1 + RY * Sin(Angle);
+        end;
+        if GdipCreatePathGradient(@CircPts, J, WrapModeClamp, Result) = Ok then
+        begin
+          if (Count >= 2) and Assigned(GdipSetPathGradientPresetBlend) then
+          begin
+            J := 0;
+            for I := 0 to DefEl.ChildCount - 1 do
+            begin
+              if (DefEl.Children[I].NodeType = xntElement) and
+                 (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+              begin
+                StopEl := TCnXMLElement(DefEl.Children[I]);
+                SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+                SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+                Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
+                if SVGAttrIsPercent(StopEl, 'offset') then
+                  Positions[J] := Positions[J] / 100;
+                Inc(J);
+              end;
+            end;
+            if J >= 2 then
+            begin
+              for I := 0 to J - 1 do
+                Positions[I] := 1.0 - Positions[I];
+              for I := 0 to (J div 2) - 1 do
+              begin
+                C1 := Colors[I];
+                Colors[I] := Colors[J - 1 - I];
+                Colors[J - 1 - I] := C1;
+                T := Positions[I];
+                Positions[I] := Positions[J - 1 - I];
+                Positions[J - 1 - I] := T;
+              end;
+              GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, J);
+            end;
+          end
+          else
+          begin
+            if Assigned(GdipSetPathGradientPresetBlend) then
+            begin
+              Colors[0] := C2;
+              Colors[1] := C1;
+              Positions[0] := 0.0;
+              Positions[1] := 1.0;
+              GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
+            end
+            else
+            begin
+              if Assigned(GdipSetPathGradientCenterColor) then
+                GdipSetPathGradientCenterColor(Result, C1);
+              GetMem(ColorsPtr, 64 * SizeOf(Cardinal));
+              try
+                P := ColorsPtr;
+                for I := 0 to 63 do
+                begin
+                  P^ := C2;
+                  Inc(P);
+                end;
+                J := 64;
+                if Assigned(GdipSetPathGradientSurroundColors) then
+                  GdipSetPathGradientSurroundColors(Result, ColorsPtr, @J);
+              finally
+                FreeMem(ColorsPtr);
+                ColorsPtr := nil;
+              end;
+            end;
+          end;
+          FocalPt.X := FX; FocalPt.Y := FY;
+          if Assigned(GdipSetPathGradientCenterPoint) then
+            GdipSetPathGradientCenterPoint(Result, @FocalPt);
+          if (SpreadMethod = smsRepeat) and Assigned(GdipSetPathGradientWrapMode) then
+            GdipSetPathGradientWrapMode(Result, WrapModeTile)
+          else if (SpreadMethod = smsReflect) and Assigned(GdipSetPathGradientWrapMode) then
+            GdipSetPathGradientWrapMode(Result, WrapModeTileFlipX);
+        end
+        else
+          Result := nil;
+      end;
+
+      if (Result = nil) and Assigned(GdipCreatePathGradientFromPath) and (X2 > 0) then
+      begin
+        Path := nil;
+        GdipCreatePath(FillModeWinding, Path);
+        if Path <> nil then
+        begin
+          GdipAddPathEllipse(Path, X1 - RX, Y1 - RY, RX * 2, RY * 2);
+          if GdipCreatePathGradientFromPath(Path, Result) = Ok then
+          begin
+            if (Count >= 2) and Assigned(GdipSetPathGradientPresetBlend) then
+            begin
+              J := 0;
+              for I := 0 to DefEl.ChildCount - 1 do
+              begin
+                if (DefEl.Children[I].NodeType = xntElement) and
+                   (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
+                begin
+                  StopEl := TCnXMLElement(DefEl.Children[I]);
+                  SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
+                  SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                  Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
+                  Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
+                  if SVGAttrIsPercent(StopEl, 'offset') then
+                    Positions[J] := Positions[J] / 100;
+                  Inc(J);
+                end;
+              end;
+              if J >= 2 then
+              begin
+                for I := 0 to J - 1 do
+                  Positions[I] := 1.0 - Positions[I];
+                for I := 0 to (J div 2) - 1 do
+                begin
+                  C1 := Colors[I];
+                  Colors[I] := Colors[J - 1 - I];
+                  Colors[J - 1 - I] := C1;
+                  T := Positions[I];
+                  Positions[I] := Positions[J - 1 - I];
+                  Positions[J - 1 - I] := T;
+                end;
+                GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, J);
+              end;
+            end
+            else
+            begin
+              if Assigned(GdipSetPathGradientPresetBlend) then
+              begin
+                Colors[0] := C2;
+                Colors[1] := C1;
+                Positions[0] := 0.0;
+                Positions[1] := 1.0;
+                GdipSetPathGradientPresetBlend(Result, @Colors, @Positions, 2);
+              end
+              else
+              begin
+                if Assigned(GdipSetPathGradientCenterColor) then
+                  GdipSetPathGradientCenterColor(Result, C1);
+                Count := 0;
+                if Assigned(GdipGetPathGradientSurroundColorsCount) then
+                  GdipGetPathGradientSurroundColorsCount(Result, @Count);
+                if (Count <= 0) and Assigned(GdipGetPathPointCount) then
+                  GdipGetPathPointCount(Path, Count);
+                if Count <= 0 then
+                  Count := 64;
+                if Count > 0 then
+                begin
+                  GetMem(ColorsPtr, Count * SizeOf(Cardinal));
+                  try
+                    P := ColorsPtr;
+                    for I := 0 to Count - 1 do
+                    begin
+                      P^ := C2;
+                      Inc(P);
+                    end;
+                    if Assigned(GdipSetPathGradientSurroundColors) then
+                      GdipSetPathGradientSurroundColors(Result, ColorsPtr, @Count);
+                  finally
+                    FreeMem(ColorsPtr);
+                    ColorsPtr := nil;
+                  end;
+                end;
+              end;
+            end;
+            FocalPt.X := FX; FocalPt.Y := FY;
+            if Assigned(GdipSetPathGradientCenterPoint) then
+              GdipSetPathGradientCenterPoint(Result, @FocalPt);
+            if (SpreadMethod = smsRepeat) and Assigned(GdipSetPathGradientWrapMode) then
+              GdipSetPathGradientWrapMode(Result, WrapModeTile)
+            else if (SpreadMethod = smsReflect) and Assigned(GdipSetPathGradientWrapMode) then
+              GdipSetPathGradientWrapMode(Result, WrapModeTileFlipX);
+          end
+          else
+            Result := nil;
+          GdipDeletePath(Path);
+        end;
       end;
     end
     else if Tag = 'pattern' then
@@ -4730,6 +5383,7 @@ begin
       FCtx.Canvas.LineTo(P2.X, P2.Y);
     end;
   end;
+  RenderMarkers(AElement);
 end;
 
 procedure TCnSVGRenderer.RenderPolyline(AElement: TCnXMLElement);
@@ -4827,6 +5481,7 @@ begin
       FCtx.Canvas.Polyline(ScreenPts);
     end;
   end;
+  RenderMarkers(AElement);
 end;
 
 procedure TCnSVGRenderer.RenderPolygon(AElement: TCnXMLElement);
@@ -5012,6 +5667,7 @@ begin
       end;
     end;
   end;
+  RenderMarkers(AElement);
 end;
 
 
@@ -5589,6 +6245,7 @@ begin
     SubPaths.Free;
     Parser.Free;
   end;
+  RenderMarkers(AElement);
 end;
 
 procedure TCnSVGRenderer.RenderText(AElement: TCnXMLElement);
@@ -5861,6 +6518,363 @@ begin
   end;
 end;
 
+procedure TCnSVGRenderer.RenderMaskedElement(AElement: TCnXMLElement);
+var
+  Tag: string;
+  MaskEl: TCnXMLElement;
+  SavedGC: GpGraphics;
+  SavedMaskID: string;
+  SavedMaskProcessing: Boolean;
+  Bmp, MaskBmp: GpImage;
+  BmpGC, MaskGC: GpGraphics;
+  SW, SH, SX, SY: Integer;
+  FBX, FBY, FBW, FBH: TCnSVGFloat;
+  MX, MY, MW, MH: TCnSVGFloat;
+  MaskUnits, MaskContentUnits: string;
+  RG: TGPRect;
+  ElData, MaskData: TGDIPBitmapData;
+  X, Y: Integer;
+  ElRow, MaskRow: PARGBArray;
+  CX, CY, R, RRX, RRY: TCnSVGFloat;
+  X1, Y1, X2, Y2: TCnSVGFloat;
+  PathMinX, PathMinY, PathMaxX, PathMaxY: TCnSVGFloat;
+  Parser: TCnSVGPathParser;
+  Segs: TList;
+  Seg: PCnSVGPathSeg;
+  J: Integer;
+  D: string;
+  MX2: GpMatrix;
+
+  procedure DispatchRender;
+  var
+    K: Integer;
+  begin
+    Tag := LowerCase(AElement.TagName);
+    if Tag = 'rect' then RenderRect(AElement)
+    else if Tag = 'circle' then RenderCircle(AElement)
+    else if Tag = 'ellipse' then RenderEllipse(AElement)
+    else if Tag = 'line' then RenderLine(AElement)
+    else if Tag = 'polyline' then RenderPolyline(AElement)
+    else if Tag = 'polygon' then RenderPolygon(AElement)
+    else if Tag = 'path' then RenderPath(AElement)
+    else if Tag = 'text' then RenderText(AElement)
+    else if Tag = 'use' then RenderUse(AElement)
+    else if Tag = 'image' then RenderImage(AElement)
+    else if Tag = 'switch' then RenderSwitch(AElement)
+    else if Tag = 'a' then RenderAnchor(AElement)
+    else if Tag = 'svg' then RenderNestedSVG(AElement)
+    else
+    begin
+      for K := 0 to AElement.ChildCount - 1 do
+        RenderNode(AElement.Children[K]);
+    end;
+  end;
+
+  function GetElemFloat(const Attr: string; Def: TCnSVGFloat): TCnSVGFloat;
+  var
+    Pct: Boolean;
+  begin
+    Pct := SVGAttrIsPercent(AElement, Attr);
+    Result := SVGAttrFloat(AElement, Attr, Def);
+    if Pct then Result := Result / 100;
+  end;
+
+  procedure ComputeBBox;
+  var
+    K: Integer;
+  begin
+    Tag := LowerCase(AElement.TagName);
+    if Tag = 'rect' then
+    begin
+      FBX := GetElemFloat('x', 0);
+      FBY := GetElemFloat('y', 0);
+      FBW := GetElemFloat('width', 0);
+      FBH := GetElemFloat('height', 0);
+    end
+    else if Tag = 'circle' then
+    begin
+      CX := GetElemFloat('cx', 0);
+      CY := GetElemFloat('cy', 0);
+      R  := GetElemFloat('r', 0);
+      FBX := CX - R; FBY := CY - R;
+      FBW := 2 * R;  FBH := 2 * R;
+    end
+    else if Tag = 'ellipse' then
+    begin
+      CX := GetElemFloat('cx', 0);
+      CY := GetElemFloat('cy', 0);
+      RRX := GetElemFloat('rx', 0);
+      RRY := GetElemFloat('ry', 0);
+      FBX := CX - RRX; FBY := CY - RRY;
+      FBW := 2 * RRX;  FBH := 2 * RRY;
+    end
+    else if Tag = 'line' then
+    begin
+      X1 := GetElemFloat('x1', 0); Y1 := GetElemFloat('y1', 0);
+      X2 := GetElemFloat('x2', 0); Y2 := GetElemFloat('y2', 0);
+      if X1 < X2 then FBX := X1 else FBX := X2;
+      if Y1 < Y2 then FBY := Y1 else FBY := Y2;
+      FBW := Abs(X2 - X1); FBH := Abs(Y2 - Y1);
+    end
+    else if Tag = 'text' then
+    begin
+      FBX := GetElemFloat('x', 0);
+      FBY := GetElemFloat('y', 0) - SVGAttrFloat(AElement, 'font-size', 16);
+      FBW := Max(50, Length(Trim(AElement.Text)) * Round(SVGAttrFloat(AElement, 'font-size', 16)) * 65 div 100);
+      FBH := Max(20, Round(SVGAttrFloat(AElement, 'font-size', 16) * 1.4));
+    end
+    else if Tag = 'path' then
+    begin
+      FBX := 0; FBY := 0; FBW := 100; FBH := 100;
+      D := AElement.GetAttribute('d');
+      if D <> '' then
+      begin
+        Parser := TCnSVGPathParser.Create;
+        try
+          Segs := Parser.ParsePathData(D);
+          try
+            PathMinX := 1E30; PathMinY := 1E30;
+            PathMaxX := -1E30; PathMaxY := -1E30;
+            for K := 0 to Segs.Count - 1 do
+            begin
+              Seg := PCnSVGPathSeg(Segs[K]);
+              case Seg^.SegType of
+                pstMoveTo, pstLineTo, pstHLineTo, pstVLineTo:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                  end;
+                pstCubicBezier:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                    if Seg^.X1 < PathMinX then PathMinX := Seg^.X1;
+                    if Seg^.Y1 < PathMinY then PathMinY := Seg^.Y1;
+                    if Seg^.X2 < PathMinX then PathMinX := Seg^.X2;
+                    if Seg^.Y2 < PathMinY then PathMinY := Seg^.Y2;
+                  end;
+                pstQuadBezier:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                    if Seg^.X1 < PathMinX then PathMinX := Seg^.X1;
+                    if Seg^.Y1 < PathMinY then PathMinY := Seg^.Y1;
+                  end;
+                pstSmoothCubic:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                    if Seg^.X2 < PathMinX then PathMinX := Seg^.X2;
+                    if Seg^.Y2 < PathMinY then PathMinY := Seg^.Y2;
+                  end;
+                pstSmoothQuad, pstArc:
+                  begin
+                    if Seg^.X < PathMinX then PathMinX := Seg^.X;
+                    if Seg^.Y < PathMinY then PathMinY := Seg^.Y;
+                    if Seg^.X > PathMaxX then PathMaxX := Seg^.X;
+                    if Seg^.Y > PathMaxY then PathMaxY := Seg^.Y;
+                  end;
+              end;
+            end;
+            if PathMaxX >= PathMinX then
+            begin
+              FBX := PathMinX; FBY := PathMinY;
+              FBW := PathMaxX - PathMinX;
+              FBH := PathMaxY - PathMinY;
+            end;
+          finally
+            for K := 0 to Segs.Count - 1 do
+              Dispose(PCnSVGPathSeg(Segs[K]));
+            Segs.Free;
+          end;
+        finally
+          Parser.Free;
+        end;
+      end;
+    end
+    else
+    begin
+      FBX := 0; FBY := 0; FBW := 100; FBH := 100;
+    end;
+    if FBW < 1 then FBW := 1;
+    if FBH < 1 then FBH := 1;
+  end;
+
+begin
+  if not Assigned(GdipCreateBitmapFromScan0) then
+  begin
+    FCtx.Style.MaskID := '';
+    DispatchRender;
+    Exit;
+  end;
+
+  MaskEl := SVGFindDefNode(FDefsMap, FCtx.Style.MaskID);
+  if MaskEl = nil then
+  begin
+    FCtx.Style.MaskID := '';
+    DispatchRender;
+    Exit;
+  end;
+
+  ComputeBBox;
+
+  MaskUnits := LowerCase(MaskEl.GetAttribute('maskUnits'));
+  if (MaskUnits = '') or (MaskUnits = 'objectboundingbox') then
+  begin
+    MX := FBX - FBW * 0.1;
+    MY := FBY - FBH * 0.1;
+    MW := FBW * 1.2;
+    MH := FBH * 1.2;
+  end
+  else
+  begin
+    MX := SVGAttrFloat(MaskEl, 'x', -0.1);
+    MY := SVGAttrFloat(MaskEl, 'y', -0.1);
+    MW := SVGAttrFloat(MaskEl, 'width', 1.2);
+    MH := SVGAttrFloat(MaskEl, 'height', 1.2);
+    if (MaskUnits = '') or (MaskUnits = 'objectboundingbox') then
+    begin
+      MX := FBX + MX * FBW;
+      MY := FBY + MY * FBH;
+      MW := MW * FBW;
+      MH := MH * FBH;
+    end;
+  end;
+
+  SW := Round(MW * FCtx.CTM.a + MH * FCtx.CTM.c);
+  SH := Round(MW * FCtx.CTM.b + MH * FCtx.CTM.d);
+  if SW < 1 then SW := 1;
+  if SH < 1 then SH := 1;
+  SX := Round(MX * FCtx.CTM.a + MY * FCtx.CTM.c + FCtx.CTM.e);
+  SY := Round(MX * FCtx.CTM.b + MY * FCtx.CTM.d + FCtx.CTM.f);
+
+  if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, Bmp) <> Ok then
+  begin
+    FCtx.Style.MaskID := '';
+    DispatchRender;
+    Exit;
+  end;
+  if GdipGetImageGraphicsContext(Bmp, BmpGC) <> Ok then
+  begin
+    GdipDisposeImage(Bmp);
+    FCtx.Style.MaskID := '';
+    DispatchRender;
+    Exit;
+  end;
+
+  GdipSetSmoothingMode(BmpGC, SmoothingModeAntiAlias);
+  GdipSetTextRenderingHint(BmpGC, 4);
+
+  SavedGC := FGDIPGraphics;
+  FGDIPGraphics := BmpGC;
+  PushMatrix;
+  FCtx.CTM.e := -MX * FCtx.CTM.a - MY * FCtx.CTM.c;
+  FCtx.CTM.f := -MX * FCtx.CTM.b - MY * FCtx.CTM.d;
+  UpdateGDIPWorldTransform;
+
+  SavedMaskID := FCtx.Style.MaskID;
+  FCtx.Style.MaskID := '';
+  DispatchRender;
+  FCtx.Style.MaskID := SavedMaskID;
+
+  PopMatrix;
+  FGDIPGraphics := SavedGC;
+  UpdateGDIPWorldTransform;
+  GdipDeleteGraphics(BmpGC);
+
+  if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, MaskBmp) <> Ok then
+  begin
+    GdipDisposeImage(Bmp);
+    FCtx.Style.MaskID := '';
+    Exit;
+  end;
+  if GdipGetImageGraphicsContext(MaskBmp, MaskGC) <> Ok then
+  begin
+    GdipDisposeImage(MaskBmp);
+    GdipDisposeImage(Bmp);
+    FCtx.Style.MaskID := '';
+    Exit;
+  end;
+
+  GdipSetSmoothingMode(MaskGC, SmoothingModeAntiAlias);
+  FGDIPGraphics := MaskGC;
+  PushMatrix;
+  FCtx.CTM.e := -MX * FCtx.CTM.a - MY * FCtx.CTM.c;
+  FCtx.CTM.f := -MX * FCtx.CTM.b - MY * FCtx.CTM.d;
+  UpdateGDIPWorldTransform;
+
+  MaskContentUnits := LowerCase(MaskEl.GetAttribute('maskContentUnits'));
+  if MaskContentUnits = 'objectboundingbox' then
+  begin
+    SVGMatrixTranslate(FCtx.CTM, FBX, FBY);
+    if (FBW > 0) and (FBH > 0) then
+      SVGMatrixScale(FCtx.CTM, FBW, FBH);
+  end;
+
+  if MaskEl.HasAttribute('transform') then
+    ApplyTransformAttr(MaskEl.GetAttribute('transform'));
+
+  SavedMaskProcessing := FProcessingMask;
+  FProcessingMask := True;
+  try
+    for J := 0 to MaskEl.ChildCount - 1 do
+      RenderNode(MaskEl.Children[J]);
+  finally
+    FProcessingMask := SavedMaskProcessing;
+  end;
+
+  PopMatrix;
+  FGDIPGraphics := SavedGC;
+  UpdateGDIPWorldTransform;
+  GdipDeleteGraphics(MaskGC);
+
+  RG.X := 0; RG.Y := 0; RG.Width := SW; RG.Height := SH;
+  FillChar(ElData, SizeOf(ElData), 0);
+  FillChar(MaskData, SizeOf(MaskData), 0);
+  if (GdipBitmapLockBits(Bmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, ElData) = Ok)
+    and (GdipBitmapLockBits(MaskBmp, @RG, ImageLockModeRead, PixelFormat32bppARGB, MaskData) = Ok) then
+  begin
+    for Y := 0 to ElData.Height - 1 do
+    begin
+      ElRow := PARGBArray(PAnsiChar(ElData.Scan0) + Y * ElData.Stride);
+      MaskRow := PARGBArray(PAnsiChar(MaskData.Scan0) + Y * MaskData.Stride);
+      for X := 0 to ElData.Width - 1 do
+      begin
+        ElRow[X].A := Round((MaskRow[X].R * 0.299 + MaskRow[X].G * 0.587 +
+          MaskRow[X].B * 0.114) * MaskRow[X].A / 255);
+        if ElRow[X].A > 255 then ElRow[X].A := 255;
+      end;
+    end;
+    GdipBitmapUnlockBits(MaskBmp, MaskData);
+    GdipBitmapUnlockBits(Bmp, ElData);
+  end
+  else
+  begin
+    if MaskData.Scan0 <> nil then
+      GdipBitmapUnlockBits(MaskBmp, MaskData);
+    if ElData.Scan0 <> nil then
+      GdipBitmapUnlockBits(Bmp, ElData);
+  end;
+
+  GdipDisposeImage(MaskBmp);
+
+  GdipCreateMatrix2(1, 0, 0, 1, SX, SY, MX2);
+  GdipSetWorldTransform(FGDIPGraphics, MX2);
+  GdipDeleteMatrix(MX2);
+  GdipDrawImageRect(FGDIPGraphics, Bmp, 0, 0, SW, SH);
+  UpdateGDIPWorldTransform;
+
+  GdipDisposeImage(Bmp);
+end;
+
 procedure TCnSVGRenderer.RenderGroup(AElement: TCnXMLElement);
 var
   I: Integer;
@@ -5902,6 +6916,20 @@ begin
         FFilterPendingBmp := nil;
       end;
     end;
+    Exit;
+  end;
+
+  // mask check for groups
+  if (FCtx.Style.MaskID <> '') and not FProcessingMask then
+  begin
+    FProcessingMask := True;
+    try
+      RenderMaskedElement(AElement);
+    finally
+      FProcessingMask := False;
+    end;
+    PopStyle;
+    PopMatrix;
     Exit;
   end;
 
@@ -7391,6 +8419,347 @@ begin
   FilterResults.Free;
 end;
 
+procedure TCnSVGRenderer.RenderMarkerAt(const MarkerID: string;
+  X, Y, Angle: TCnSVGFloat);
+var
+  MarkerEl: TCnXMLElement;
+  RefX, RefY, MW, MH: TCnSVGFloat;
+  VBR: TCnSVGRect;
+  MarkerUnits: string;
+  StrokeWidth: TCnSVGFloat;
+  ScaleX, ScaleY: TCnSVGFloat;
+  OldClip: Boolean;
+  I: Integer;
+  RotAngle: TCnSVGFloat;
+  SavedMarkerStart, SavedMarkerMid, SavedMarkerEnd: string;
+begin
+  if MarkerID = '' then Exit;
+  MarkerEl := SVGFindDefNode(FDefsMap, MarkerID);
+  if MarkerEl = nil then Exit;
+
+  RefX := SVGAttrFloat(MarkerEl, 'refX', 0);
+  RefY := SVGAttrFloat(MarkerEl, 'refY', 0);
+  MW := SVGAttrFloat(MarkerEl, 'markerWidth', 3);
+  MH := SVGAttrFloat(MarkerEl, 'markerHeight', 3);
+
+  MarkerUnits := LowerCase(MarkerEl.GetAttribute('markerUnits'));
+  if (MarkerUnits = '') or (MarkerUnits = 'strokeWidth') then
+  begin
+    StrokeWidth := FCtx.Style.StrokeWidth;
+    if StrokeWidth <= 0 then StrokeWidth := 1;
+    MW := MW * StrokeWidth;
+    MH := MH * StrokeWidth;
+  end;
+
+  if MarkerEl.HasAttribute('viewBox') then
+  begin
+    if SVGParseViewBoxValue(MarkerEl.GetAttribute('viewBox'), VBR) then
+    begin
+      if (VBR.Width > 0) and (VBR.Height > 0) then
+      begin
+        ScaleX := MW / VBR.Width;
+        ScaleY := MH / VBR.Height;
+        if ScaleX < ScaleY then ScaleY := ScaleX else ScaleX := ScaleY;
+      end
+      else
+      begin
+        ScaleX := 1; ScaleY := 1;
+      end;
+    end
+    else
+    begin
+      ScaleX := 1; ScaleY := 1;
+    end;
+  end
+  else
+  begin
+    ScaleX := 1; ScaleY := 1;
+  end;
+
+  RotAngle := Angle;
+  if LowerCase(MarkerEl.GetAttribute('orient')) = 'auto' then
+    RotAngle := Angle * 180 / Pi
+  else if MarkerEl.HasAttribute('orient') then
+    RotAngle := SVGAttrFloat(MarkerEl, 'orient', 0)
+  else
+    RotAngle := 0;
+
+  PushMatrix;
+  PushStyle;
+  try
+    SVGMatrixTranslate(FCtx.CTM, X, Y);
+    if RotAngle <> 0 then
+      SVGMatrixRotate(FCtx.CTM, RotAngle, 0, 0);
+    SVGMatrixScale(FCtx.CTM, ScaleX, ScaleY);
+    SVGMatrixTranslate(FCtx.CTM, -RefX, -RefY);
+    UpdateGDIPWorldTransform;
+
+    ApplyStyleAttr(MarkerEl);
+
+    SavedMarkerStart := FCtx.Style.MarkerStartID;
+    SavedMarkerMid := FCtx.Style.MarkerMidID;
+    SavedMarkerEnd := FCtx.Style.MarkerEndID;
+    FCtx.Style.MarkerStartID := '';
+    FCtx.Style.MarkerMidID := '';
+    FCtx.Style.MarkerEndID := '';
+
+    OldClip := FHasClipPath;
+    FHasClipPath := False;
+
+    for I := 0 to MarkerEl.ChildCount - 1 do
+      RenderNode(MarkerEl.Children[I]);
+
+    FCtx.Style.MarkerStartID := SavedMarkerStart;
+    FCtx.Style.MarkerMidID := SavedMarkerMid;
+    FCtx.Style.MarkerEndID := SavedMarkerEnd;
+    FHasClipPath := OldClip;
+  finally
+    PopStyle;
+    PopMatrix;
+    UpdateGDIPWorldTransform;
+  end;
+end;
+
+procedure TCnSVGRenderer.RenderMarkers(AElement: TCnXMLElement);
+var
+  Tag: string;
+  I, Count: Integer;
+  Coords: array of TCnSVGFloat;
+  PointsStr, NumStr: string;
+  V: Extended;
+  J: Integer;
+  X1, Y1, X2, Y2, DX, DY, Angle: TCnSVGFloat;
+  D: string;
+  Parser: TCnSVGPathParser;
+  Segs: TList;
+  Seg: PCnSVGPathSeg;
+  CurX, CurY, PrevX, PrevY, StartX, StartY: TCnSVGFloat;
+  VertX, VertY, VertAngle: TCnSVGFloat;
+  MarkerStart, MarkerMid, MarkerEnd: string;
+  HasMarker: Boolean;
+begin
+  MarkerStart := FCtx.Style.MarkerStartID;
+  MarkerMid := FCtx.Style.MarkerMidID;
+  MarkerEnd := FCtx.Style.MarkerEndID;
+  HasMarker := (MarkerStart <> '') or (MarkerMid <> '') or (MarkerEnd <> '');
+  if not HasMarker then Exit;
+
+  Tag := LowerCase(AElement.TagName);
+
+  if (Tag = 'line') then
+  begin
+    X1 := SVGAttrFloat(AElement, 'x1', 0);
+    Y1 := SVGAttrFloat(AElement, 'y1', 0);
+    X2 := SVGAttrFloat(AElement, 'x2', 0);
+    Y2 := SVGAttrFloat(AElement, 'y2', 0);
+    DX := X2 - X1; DY := Y2 - Y1;
+    if (DX = 0) and (DY = 0) then Angle := 0
+    else Angle := ArcTan2(DY, DX);
+    if MarkerStart <> '' then
+      RenderMarkerAt(MarkerStart, X1, Y1, Angle);
+    if MarkerEnd <> '' then
+      RenderMarkerAt(MarkerEnd, X2, Y2, Angle);
+    Exit;
+  end;
+
+  if (Tag = 'polyline') or (Tag = 'polygon') then
+  begin
+    PointsStr := AElement.GetAttribute('points');
+    if Trim(PointsStr) = '' then Exit;
+    for I := 1 to Length(PointsStr) do
+      if PointsStr[I] in [',', #9, #10, #13] then
+        PointsStr[I] := ' ';
+    SetLength(Coords, 0);
+    I := 1;
+    while I <= Length(PointsStr) do
+    begin
+      while (I <= Length(PointsStr)) and (PointsStr[I] = ' ') do Inc(I);
+      if I > Length(PointsStr) then Break;
+      J := I;
+      if PointsStr[J] in ['+', '-'] then Inc(J);
+      while (J <= Length(PointsStr)) and (PointsStr[J] in ['0'..'9', '.', 'e', 'E', '+', '-']) do Inc(J);
+      NumStr := Copy(PointsStr, I, J - I);
+      I := J;
+      if NumStr = '' then Continue;
+      try
+        V := StrToFloat(NumStr);
+        SetLength(Coords, Length(Coords) + 1);
+        Coords[High(Coords)] := V;
+      except end;
+    end;
+    Count := Length(Coords) div 2;
+    if Count < 2 then Exit;
+
+    if MarkerStart <> '' then
+    begin
+      DX := Coords[2] - Coords[0];
+      DY := Coords[3] - Coords[1];
+      if (DX = 0) and (DY = 0) then Angle := 0
+      else Angle := ArcTan2(DY, DX);
+      RenderMarkerAt(MarkerStart, Coords[0], Coords[1], Angle);
+    end;
+
+    if MarkerMid <> '' then
+    begin
+      for I := 1 to Count - 2 do
+      begin
+        DX := Coords[(I + 1) * 2] - Coords[(I - 1) * 2];
+        DY := Coords[(I + 1) * 2 + 1] - Coords[(I - 1) * 2 + 1];
+        if (DX = 0) and (DY = 0) then Angle := 0
+        else Angle := ArcTan2(DY, DX);
+        RenderMarkerAt(MarkerMid, Coords[I * 2], Coords[I * 2 + 1], Angle);
+      end;
+    end;
+
+    if MarkerEnd <> '' then
+    begin
+      if Tag = 'polygon' then
+      begin
+        DX := Coords[0] - Coords[(Count - 1) * 2];
+        DY := Coords[1] - Coords[(Count - 1) * 2 + 1];
+      end
+      else
+      begin
+        DX := Coords[(Count - 1) * 2] - Coords[(Count - 2) * 2];
+        DY := Coords[(Count - 1) * 2 + 1] - Coords[(Count - 2) * 2 + 1];
+      end;
+      if (DX = 0) and (DY = 0) then Angle := 0
+      else Angle := ArcTan2(DY, DX);
+      RenderMarkerAt(MarkerEnd, Coords[(Count - 1) * 2], Coords[(Count - 1) * 2 + 1], Angle);
+    end;
+
+    Exit;
+  end;
+
+  if Tag = 'path' then
+  begin
+    D := Trim(AElement.GetAttribute('d'));
+    if D = '' then Exit;
+    Parser := TCnSVGPathParser.Create;
+    try
+      Segs := Parser.ParsePathData(D);
+      try
+        CurX := 0; CurY := 0; PrevX := 0; PrevY := 0;
+        StartX := 0; StartY := 0;
+        for I := 0 to Segs.Count - 1 do
+        begin
+          Seg := PCnSVGPathSeg(Segs[I]);
+          case Seg^.SegType of
+            pstMoveTo:
+              begin
+                if (MarkerStart <> '') and (I = 0) then
+                begin
+                  DX := Seg^.X - CurX; DY := Seg^.Y - CurY;
+                  if (DX = 0) and (DY = 0) then Angle := 0
+                  else Angle := ArcTan2(DY, DX);
+                  RenderMarkerAt(MarkerStart, Seg^.X, Seg^.Y, Angle);
+                end;
+                PrevX := CurX; PrevY := CurY;
+                CurX := Seg^.X; CurY := Seg^.Y;
+                StartX := CurX; StartY := CurY;
+              end;
+            pstLineTo, pstHLineTo, pstVLineTo:
+              begin
+                VertX := Seg^.X; VertY := Seg^.Y;
+                DX := VertX - CurX; DY := VertY - CurY;
+                if (DX = 0) and (DY = 0) then Angle := 0
+                else Angle := ArcTan2(DY, DX);
+                if (MarkerMid <> '') and (I > 0) and (I < Segs.Count - 1) then
+                  RenderMarkerAt(MarkerMid, VertX, VertY, Angle);
+                if (MarkerEnd <> '') and (I = Segs.Count - 1) then
+                  RenderMarkerAt(MarkerEnd, VertX, VertY, Angle);
+                PrevX := CurX; PrevY := CurY;
+                CurX := VertX; CurY := VertY;
+              end;
+            pstCubicBezier:
+              begin
+                VertX := Seg^.X; VertY := Seg^.Y;
+                DX := Seg^.X2 - Seg^.X; DY := Seg^.Y2 - Seg^.Y;
+                if (DX = 0) and (DY = 0) then
+                begin
+                  DX := Seg^.X - CurX; DY := Seg^.Y - CurY;
+                  if (DX = 0) and (DY = 0) then Angle := 0
+                  else Angle := ArcTan2(DY, DX);
+                end
+                else
+                  Angle := ArcTan2(DY, DX);
+                if (MarkerMid <> '') and (I > 0) and (I < Segs.Count - 1) then
+                  RenderMarkerAt(MarkerMid, VertX, VertY, Angle);
+                if (MarkerEnd <> '') and (I = Segs.Count - 1) then
+                  RenderMarkerAt(MarkerEnd, VertX, VertY, Angle);
+                PrevX := CurX; PrevY := CurY;
+                CurX := VertX; CurY := VertY;
+              end;
+            pstQuadBezier:
+              begin
+                VertX := Seg^.X; VertY := Seg^.Y;
+                DX := Seg^.X1 - Seg^.X; DY := Seg^.Y1 - Seg^.Y;
+                if (DX = 0) and (DY = 0) then
+                begin
+                  DX := Seg^.X - CurX; DY := Seg^.Y - CurY;
+                  if (DX = 0) and (DY = 0) then Angle := 0
+                  else Angle := ArcTan2(DY, DX);
+                end
+                else
+                  Angle := ArcTan2(DY, DX);
+                if (MarkerMid <> '') and (I > 0) and (I < Segs.Count - 1) then
+                  RenderMarkerAt(MarkerMid, VertX, VertY, Angle);
+                if (MarkerEnd <> '') and (I = Segs.Count - 1) then
+                  RenderMarkerAt(MarkerEnd, VertX, VertY, Angle);
+                PrevX := CurX; PrevY := CurY;
+                CurX := VertX; CurY := VertY;
+              end;
+            pstArc:
+              begin
+                VertX := Seg^.X; VertY := Seg^.Y;
+                DX := Seg^.X - CurX; DY := Seg^.Y - CurY;
+                if (DX = 0) and (DY = 0) then Angle := 0
+                else Angle := ArcTan2(DY, DX);
+                if (MarkerMid <> '') and (I > 0) and (I < Segs.Count - 1) then
+                  RenderMarkerAt(MarkerMid, VertX, VertY, Angle);
+                if (MarkerEnd <> '') and (I = Segs.Count - 1) then
+                  RenderMarkerAt(MarkerEnd, VertX, VertY, Angle);
+                PrevX := CurX; PrevY := CurY;
+                CurX := VertX; CurY := VertY;
+              end;
+            pstSmoothCubic, pstSmoothQuad:
+              begin
+                VertX := Seg^.X; VertY := Seg^.Y;
+                DX := Seg^.X - CurX; DY := Seg^.Y - CurY;
+                if (DX = 0) and (DY = 0) then Angle := 0
+                else Angle := ArcTan2(DY, DX);
+                if (MarkerMid <> '') and (I > 0) and (I < Segs.Count - 1) then
+                  RenderMarkerAt(MarkerMid, VertX, VertY, Angle);
+                if (MarkerEnd <> '') and (I = Segs.Count - 1) then
+                  RenderMarkerAt(MarkerEnd, VertX, VertY, Angle);
+                PrevX := CurX; PrevY := CurY;
+                CurX := VertX; CurY := VertY;
+              end;
+            pstClosePath:
+              begin
+                VertX := StartX; VertY := StartY;
+                DX := StartX - CurX; DY := StartY - CurY;
+                if (DX = 0) and (DY = 0) then Angle := 0
+                else Angle := ArcTan2(DY, DX);
+                if (MarkerEnd <> '') and (I = Segs.Count - 1) then
+                  RenderMarkerAt(MarkerEnd, VertX, VertY, Angle);
+                PrevX := CurX; PrevY := CurY;
+                CurX := StartX; CurY := StartY;
+              end;
+          end;
+        end;
+      finally
+        for I := 0 to Segs.Count - 1 do
+          Dispose(PCnSVGPathSeg(Segs[I]));
+        Segs.Free;
+      end;
+    finally
+      Parser.Free;
+    end;
+    Exit;
+  end;
+end;
+
 procedure TCnSVGRenderer.RenderElement(AElement: TCnXMLElement);
 var
   Tag: string;
@@ -7424,8 +8793,15 @@ begin
         finally
           FProcessingFilter := False;
         end;
-        // Don't Exit; fall through to finally for PopMatrix/PopStyle,
-        // then deferred draw runs with restored GDI+ state
+      end
+      else if (FCtx.Style.MaskID <> '') and not FProcessingMask then
+      begin
+        FProcessingMask := True;
+        try
+          RenderMaskedElement(AElement);
+        finally
+          FProcessingMask := False;
+        end;
       end
       else
       begin
