@@ -774,6 +774,10 @@ type
   TGdipSetTextureWrapMode = function(Texture: GPBRUSH;
     WrapMode: Integer): GPSTATUS; stdcall;
 
+  //---------- PathGradient WrapMode ----------
+  TGdipSetPathGradientWrapMode = function(PathGradient: GPBRUSH;
+    WrapMode: Integer): GPSTATUS; stdcall;
+
 var
   CnGdiPlusAvailable: Boolean = False;
   {* GDI+ 运行时可用性标记。
@@ -896,6 +900,9 @@ var
   //---------- Texture Brush ----------
   GdipCreateTexture: TGdipCreateTexture = nil;
   GdipSetTextureWrapMode: TGdipSetTextureWrapMode = nil;
+
+  //---------- PathGradient WrapMode ----------
+  GdipSetPathGradientWrapMode: TGdipSetPathGradientWrapMode = nil;
 
   //---------- Clip 裁剪 ----------
   GdipSetClipPath: TGdipSetClipPath = nil;
@@ -1653,6 +1660,9 @@ initialization
     //---------- Texture Brush ----------
     GdipCreateTexture := TGdipCreateTexture(GetProcAddress(GdiPlusHandle, 'GdipCreateTexture'));
     GdipSetTextureWrapMode := TGdipSetTextureWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetTextureWrapMode'));
+
+    //---------- PathGradient WrapMode ----------
+    GdipSetPathGradientWrapMode := TGdipSetPathGradientWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientWrapMode'));
 
     //---------- Clip 裁剪（非核心）----------
     GdipSetClipPath := TGdipSetClipPath(GetProcAddress(GdiPlusHandle, 'GdipSetClipPath'));
