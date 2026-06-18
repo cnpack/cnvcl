@@ -602,11 +602,20 @@ function CnIsValidUtf16(const Bytes: TBytes; IsBigEndian: Boolean): Boolean;
 {* 检查字节数组是否为合法的 UTF-16 序列。验证代理对（Surrogate Pair）合法性。
    用于无 BOM 时的 UTF-16 辅助检测。
 
-   参数
+   参数：
      const Bytes: TBytes                  - 待检查的字节数组
      IsBigEndian: Boolean                 - True 为大端序（UTF-16 BE），False 为小端序（UTF-16 LE）
 
    返回值：Boolean                        - True 表示合法 UTF-16 序列
+}
+
+function CnIsValidAscii(const Str: string): Boolean;
+{* 检查一个字符串是否是纯 ASCII 码，注意空字符串也返回 True。
+
+   参数：
+     const Str: string                    - 待检查的字符串
+
+   返回值：Boolean                        - True 表示字符全为 ASCII
 }
 
 function CnStripBomBytes(const Bytes: TBytes): TBytes;
@@ -2389,6 +2398,24 @@ begin
   end;
 
   Result := True;
+end;
+
+function CnIsValidAscii(const Str: string): Boolean;
+var
+  I: Integer;
+begin
+  Result := True;
+  if Length(Str) <= 0 then
+    Exit;
+
+  for I := 1 to Length(Str) do
+  begin
+    if Ord(Str[I]) >= $80 then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
 end;
 
 function CnStripBomBytes(const Bytes: TBytes): TBytes;
