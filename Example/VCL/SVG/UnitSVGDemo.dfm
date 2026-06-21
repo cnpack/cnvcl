@@ -1,8 +1,8 @@
 object FormSVGDemo: TFormSVGDemo
   Left = 214
   Top = 0
-  Width = 881
-  Height = 724
+  Width = 947
+  Height = 804
   Caption = 'SVG »æÖÆ'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,8 +18,8 @@ object FormSVGDemo: TFormSVGDemo
   object imgResult: TImage
     Left = 12
     Top = 84
-    Width = 849
-    Height = 596
+    Width = 915
+    Height = 676
     Anchors = [akLeft, akTop, akRight, akBottom]
     Stretch = True
   end

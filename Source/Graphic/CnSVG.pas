@@ -3240,13 +3240,6 @@ begin
         if SVGAttrIsPercent(DefEl, 'y1') then Y1 := Y1 / 100;
         if SVGAttrIsPercent(DefEl, 'x2') then X2 := X2 / 100;
         if SVGAttrIsPercent(DefEl, 'y2') then Y2 := Y2 / 100;
-        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
-        begin
-          X1 := FGradBBoxX + X1 * FGradBBoxW;
-          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          X2 := FGradBBoxX + X2 * FGradBBoxW;
-          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
-        end;
       end;
 
       // gradientTransform: parse and apply to gradient coordinates
@@ -3266,6 +3259,16 @@ begin
       begin
         SVGMatrixTransformPoint(GT, X1, Y1);
         SVGMatrixTransformPoint(GT, X2, Y2);
+      end;
+      if IsObjBBox then
+      begin
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          X2 := FGradBBoxX + X2 * FGradBBoxW;
+          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+        end;
       end;
 
       // spreadMethod
@@ -3385,6 +3388,12 @@ begin
             Inc(Count);
           end;
         end;
+        if (Count > 0) and (Positions[Count - 1] < 0.999) then
+        begin
+          Colors[Count] := Colors[Count - 1];
+          Positions[Count] := 1.0;
+          Inc(Count);
+        end;
         GdipSetLinePresetBlend(Result, @Colors, @Positions, Count);
       end;
     end
@@ -3411,16 +3420,6 @@ begin
         if SVGAttrIsPercent(DefEl, 'r') then X2 := X2 / 100;
         if SVGAttrIsPercent(DefEl, 'fx') then FX := FX / 100;
         if SVGAttrIsPercent(DefEl, 'fy') then FY := FY / 100;
-        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
-        begin
-          X1 := FGradBBoxX + X1 * FGradBBoxW;
-          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          // objectBoundingBox 下径向渐变应拉伸填满 bbox，用椭圆半径
-          FX := FGradBBoxX + FX * FGradBBoxW;
-          FY := FGradBBoxY + FY * FGradBBoxH;
-          RX := X2 * FGradBBoxW;
-          RY := X2 * FGradBBoxH;
-        end;
       end;
 
       // gradientTransform
@@ -3444,6 +3443,19 @@ begin
         RX := RX * ScaleFactor;
         ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
         RY := RY * ScaleFactor;
+      end;
+      if IsObjBBox then
+      begin
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          // objectBoundingBox 下径向渐变应拉伸填满 bbox，用椭圆半径
+          FX := FGradBBoxX + FX * FGradBBoxW;
+          FY := FGradBBoxY + FY * FGradBBoxH;
+          RX := X2 * FGradBBoxW;
+          RY := X2 * FGradBBoxH;
+        end;
       end;
 
       // spreadMethod
@@ -3855,13 +3867,6 @@ begin
         if SVGAttrIsPercent(DefEl, 'y1') then Y1 := Y1 / 100;
         if SVGAttrIsPercent(DefEl, 'x2') then X2 := X2 / 100;
         if SVGAttrIsPercent(DefEl, 'y2') then Y2 := Y2 / 100;
-        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
-        begin
-          X1 := FGradBBoxX + X1 * FGradBBoxW;
-          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          X2 := FGradBBoxX + X2 * FGradBBoxW;
-          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
-        end;
       end;
 
       GTAttr := DefEl.GetAttribute('gradientTransform');
@@ -3880,6 +3885,16 @@ begin
       begin
         SVGMatrixTransformPoint(GT, X1, Y1);
         SVGMatrixTransformPoint(GT, X2, Y2);
+      end;
+      if IsObjBBox then
+      begin
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          X2 := FGradBBoxX + X2 * FGradBBoxW;
+          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+        end;
       end;
 
       SpreadMethod := smsPad;
@@ -3987,6 +4002,12 @@ begin
             Inc(Count);
           end;
         end;
+        if (Count > 0) and (Positions[Count - 1] < 0.999) then
+        begin
+          Colors[Count] := Colors[Count - 1];
+          Positions[Count] := 1.0;
+          Inc(Count);
+        end;
         GdipSetLinePresetBlend(Result, @Colors, @Positions, Count);
       end;
     end
@@ -4008,15 +4029,6 @@ begin
         if SVGAttrIsPercent(DefEl, 'r') then X2 := X2 / 100;
         if SVGAttrIsPercent(DefEl, 'fx') then FX := FX / 100;
         if SVGAttrIsPercent(DefEl, 'fy') then FY := FY / 100;
-        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
-        begin
-          X1 := FGradBBoxX + X1 * FGradBBoxW;
-          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          FX := FGradBBoxX + FX * FGradBBoxW;
-          FY := FGradBBoxY + FY * FGradBBoxH;
-          RX := X2 * FGradBBoxW;
-          RY := X2 * FGradBBoxH;
-        end;
       end;
 
       GTAttr := DefEl.GetAttribute('gradientTransform');
@@ -4039,6 +4051,18 @@ begin
         RX := RX * ScaleFactor;
         ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
         RY := RY * ScaleFactor;
+      end;
+      if IsObjBBox then
+      begin
+        if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
+        begin
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          FX := FGradBBoxX + FX * FGradBBoxW;
+          FY := FGradBBoxY + FY * FGradBBoxH;
+          RX := X2 * FGradBBoxW;
+          RY := X2 * FGradBBoxH;
+        end;
       end;
 
       SpreadMethod := smsPad;
