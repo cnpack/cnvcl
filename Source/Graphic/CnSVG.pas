@@ -3264,10 +3264,25 @@ begin
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
-          X1 := FGradBBoxX + X1 * FGradBBoxW;
-          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          X2 := FGradBBoxX + X2 * FGradBBoxW;
-          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+          if GTGot then
+          begin
+            Dx := X2 - X1;
+            Dy := Y2 - Y1;
+          end;
+          if GTGot and (Abs(Dx) > 1e-10) and (Abs(Dy) > 1e-10) then
+          begin
+            X1 := FGradBBoxX + X1 * FGradBBoxH;
+            Y1 := FGradBBoxY + Y1 * FGradBBoxW;
+            X2 := FGradBBoxX + X2 * FGradBBoxH;
+            Y2 := FGradBBoxY + Y2 * FGradBBoxW;
+          end
+          else
+          begin
+            X1 := FGradBBoxX + X1 * FGradBBoxW;
+            Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+            X2 := FGradBBoxX + X2 * FGradBBoxW;
+            Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+          end;
         end;
       end;
 
@@ -3890,10 +3905,25 @@ begin
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
-          X1 := FGradBBoxX + X1 * FGradBBoxW;
-          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-          X2 := FGradBBoxX + X2 * FGradBBoxW;
-          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+          if GTGot then
+          begin
+            Dx := X2 - X1;
+            Dy := Y2 - Y1;
+          end;
+          if GTGot and (Abs(Dx) > 1e-10) and (Abs(Dy) > 1e-10) then
+          begin
+            X1 := FGradBBoxX + X1 * FGradBBoxH;
+            Y1 := FGradBBoxY + Y1 * FGradBBoxW;
+            X2 := FGradBBoxX + X2 * FGradBBoxH;
+            Y2 := FGradBBoxY + Y2 * FGradBBoxW;
+          end
+          else
+          begin
+            X1 := FGradBBoxX + X1 * FGradBBoxW;
+            Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+            X2 := FGradBBoxX + X2 * FGradBBoxW;
+            Y2 := FGradBBoxY + Y2 * FGradBBoxH;
+          end;
         end;
       end;
 

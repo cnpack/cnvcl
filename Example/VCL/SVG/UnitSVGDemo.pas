@@ -31,7 +31,7 @@ uses
 
 procedure TFormSVGDemo.FormCreate(Sender: TObject);
 begin
-  cmbSize.ItemIndex := 3;
+  cmbSize.ItemIndex := 4;
 end;
 
 procedure TFormSVGDemo.btnBrowseClick(Sender: TObject);
