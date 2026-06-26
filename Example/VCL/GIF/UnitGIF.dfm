@@ -1,8 +1,8 @@
 object frmGIFDemo: TfrmGIFDemo
   Left = 341
   Top = 168
-  Width = 604
-  Height = 452
+  Width = 830
+  Height = 581
   Caption = 'GIF бнЪО'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,8 +19,8 @@ object frmGIFDemo: TfrmGIFDemo
   object pbDisplay: TPaintBox
     Left = 200
     Top = 8
-    Width = 372
-    Height = 404
+    Width = 598
+    Height = 533
     Anchors = [akLeft, akTop, akRight, akBottom]
     OnPaint = pbDisplayPaint
   end

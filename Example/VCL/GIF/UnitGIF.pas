@@ -80,6 +80,8 @@ begin
 end;
 
 procedure TfrmGIFDemo.pbDisplayPaint(Sender: TObject);
+const
+  S = '请点击"加载 GIF"按钮';
 var
   R: TRect;
 begin
@@ -92,17 +94,12 @@ begin
   if FGIF.Empty then
   begin
     with pbDisplay.Canvas do
-    begin
-      Font.Name := 'Tahoma';
-      Font.Size := 14;
-      TextOut((Width - TextWidth('请点击"加载 GIF"按钮')) div 2,
-              (Height - TextHeight('请点击"加载 GIF"按钮')) div 2,
-              '请点击"加载 GIF"按钮');
-    end;
+      TextOut((pbDisplay.Width - TextWidth(S)) div 2,
+        (pbDisplay.Height - TextHeight(S)) div 2, 'S);
     Exit;
   end;
 
-  R := Bounds(0, 0, pbDisplay.Width, pbDisplay.Height);
+  R := Bounds(0, 0, FGIF.Width, FGIF.Height);
   FGIF.Draw(pbDisplay.Canvas, R);
 end;
 

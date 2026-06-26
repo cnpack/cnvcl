@@ -41,27 +41,6 @@ interface
 uses
   Windows, SysUtils, Classes, Graphics, Contnrs, CnNative;
 
-const
-  // 块标识
-  GIF_EXT_INTRODUCER    = $21;
-  GIF_IMAGE_DESCRIPTOR  = $2C;
-  GIF_TRAILER           = $3B;
-
-  // 扩展标签
-  GIF_EXT_GRAPHIC_CTRL  = $F9;
-  GIF_EXT_COMMENT       = $FE;
-  GIF_EXT_PLAIN_TEXT    = $01;
-  GIF_EXT_APPLICATION   = $FF;
-
-  // 销毁方式
-  GIF_DISPOSAL_UNSPEC   = 0;
-  GIF_DISPOSAL_LEAVE    = 1;
-  GIF_DISPOSAL_BG       = 2;
-  GIF_DISPOSAL_PREV     = 3;
-
-  // 最大 LZW 码
-  GIF_MAX_CODES = 4096;
-
 type
   PCnGIFColor = ^TCnGIFColor;
   TCnGIFColor = packed record
@@ -70,19 +49,9 @@ type
 
   TCnGIFColors = array of TCnGIFColor;
 
-  TCnGIFDisposal = (gdUnspecified, gdLeave, gdBackground, gdPrevious);
-
-  PCnGIFPixels = ^TCnGIFPixels;
-  TCnGIFPixels = array[0..0] of Byte;
-
-  PCnGIFQuad = ^TCnGIFQuad;
-  TCnGIFQuad = packed record
-    B, G, R, A: Byte;
-  end;
-
-  //============================================================================
-  // TCnGIFFrame
-  //============================================================================
+//============================================================================
+// TCnGIFFrame
+//============================================================================
 
   TCnGIFFrame = class
   private
@@ -191,7 +160,9 @@ type
     procedure EncodeLZW(InData: PByteArray; InSize: Integer; OutStm: TStream;
       MinCodeSize: Integer);
 
-    // 帧访问
+    // 隔行扫描
+    procedure Deinterlace(Frame: TCnGIFFrame);
+
     procedure SetCurrentFrame(Value: Integer);
     function  GetFrameCount: Integer;
     function  GetFrame(Index: Integer): TCnGIFFrame;
@@ -233,7 +204,35 @@ const
   GIF87a: array[0..5] of AnsiChar = 'GIF87a';
   GIF89a: array[0..5] of AnsiChar = 'GIF89a';
 
+  // 块标识
+  GIF_EXT_INTRODUCER    = $21;
+  GIF_IMAGE_DESCRIPTOR  = $2C;
+  GIF_TRAILER           = $3B;
+
+  // 扩展标签
+  GIF_EXT_GRAPHIC_CTRL  = $F9;
+  GIF_EXT_COMMENT       = $FE;
+  GIF_EXT_PLAIN_TEXT    = $01;
+  GIF_EXT_APPLICATION   = $FF;
+
+  // 销毁方式
+  GIF_DISPOSAL_UNSPEC   = 0;
+  GIF_DISPOSAL_LEAVE    = 1;
+  GIF_DISPOSAL_BG       = 2;
+  GIF_DISPOSAL_PREV     = 3;
+
+  // 最大 LZW 码
+  GIF_MAX_CODES = 4096;
+
 type
+  PCnGIFQuad = ^TCnGIFQuad;
+  TCnGIFQuad = packed record
+    B, G, R, A: Byte;
+  end;
+
+  PQuadArray = ^TQuadArray;
+  TQuadArray = array[0..0] of TCnGIFQuad;
+
   TDecEntry = packed record
     Prefix: Word;
     Suffix: Byte;
@@ -308,6 +307,8 @@ begin
   FRenderedFrame := -1;
   FLoopCount := 0;
   FHasPendingGCE := False;
+  FreeComposite;
+  FreeDIB;
 end;
 
 //==============================================================================
@@ -594,21 +595,24 @@ begin
           Frame.FRawData.Size := 0;
           ReadSubBlocks(Stream, Frame.FRawData);
 
-  // LZW 解码
-  Temp := TMemoryStream.Create;
-  try
-    DecodeLZW(Frame.FRawData.Memory, Frame.FRawData.Size,
-              Temp, LZWCodeSize, Frame.FWidth * Frame.FHeight);
+          // LZW 解码
+          Temp := TMemoryStream.Create;
+          try
+            DecodeLZW(Frame.FRawData.Memory, Frame.FRawData.Size,
+                      Temp, LZWCodeSize, Frame.FWidth * Frame.FHeight);
 
-    Frame.AllocatePixels(Frame.FWidth * Frame.FHeight);
-    if Temp.Size > 0 then
-      if Temp.Size < Frame.FWidth * Frame.FHeight then
-        Move(Temp.Memory^, Frame.FPixels^, Temp.Size)
-      else
-        Move(Temp.Memory^, Frame.FPixels^, Frame.FWidth * Frame.FHeight);
-  finally
-    Temp.Free;
-  end;
+            Frame.AllocatePixels(Frame.FWidth * Frame.FHeight);
+            if Temp.Size > 0 then
+              if Temp.Size < Frame.FWidth * Frame.FHeight then
+                Move(Temp.Memory^, Frame.FPixels^, Temp.Size)
+              else
+                Move(Temp.Memory^, Frame.FPixels^, Frame.FWidth * Frame.FHeight);
+
+            if Frame.FInterlaced then
+              Deinterlace(Frame);
+          finally
+            Temp.Free;
+          end;
 
           FFrames.Add(Frame);
         end;
@@ -647,6 +651,7 @@ var
   Stack: array[0..GIF_MAX_CODES] of Byte;
   SP: Integer;
   I: Integer;
+  FirstChar: Byte;
 
   function GetCode: Integer;
   var
@@ -680,6 +685,7 @@ begin
   BitBuf    := 0;
   BitCnt    := 0;
   OutCnt    := 0;
+  FirstChar := 0;
 
   FillChar(Table, SizeOf(Table), 0);
   for I := 0 to 255 do
@@ -691,53 +697,68 @@ begin
   // 读第一个码
   Code := GetCode;
   if Code = EOICode then Exit;
-  if Code = ClearCode then
+  while Code = ClearCode do
     Code := GetCode;
+  if Code >= NextCode then
+    Code := 0;
 
   OldCode := Code;
-  OutStm.Write(Table[Code].Suffix, 1);
+  FirstChar := Table[Code].Suffix;
+  OutStm.Write(FirstChar, 1);
   Inc(OutCnt);
 
   while OutCnt < PixelCount do
   begin
     Code := GetCode;
 
+    if Code = EOICode then
+      Break;
     if Code = ClearCode then
     begin
       CodeSize := MinCodeSize + 1;
       CodeMask := (1 shl CodeSize) - 1;
       NextCode := ClearCode + 2;
-      OldCode  := -1;
+      FillChar(Table, SizeOf(Table), 0);
+      for I := 0 to 255 do
+      begin
+        Table[I].Prefix := 0;
+        Table[I].Suffix := Byte(I);
+      end;
+
+      Code := GetCode;
+      if Code = EOICode then Break;
+      while Code = ClearCode do
+        Code := GetCode;
+      if Code >= NextCode then
+        Code := 0;
+
+      OldCode := Code;
+      FirstChar := Table[Code].Suffix;
+      OutStm.Write(FirstChar, 1);
+      Inc(OutCnt);
       Continue;
     end;
 
-    if Code = EOICode then
-      Break;
+    if Code > NextCode then
+      Code := NextCode;
 
+    SP := 0;
     if Code = NextCode then
     begin
-      // KWI 特例
-      SP := 0;
-      Stack[SP] := Table[OldCode].Suffix;  Inc(SP);
+      Stack[SP] := FirstChar;  Inc(SP);
       I := OldCode;
-      while I > 255 do
-      begin
-        Stack[SP] := Table[I].Suffix;  Inc(SP);
-        I := Table[I].Prefix;
-      end;
-      Stack[SP] := Byte(I);  Inc(SP);
     end
     else
-    begin
-      SP := 0;
       I := Code;
-      while I > 255 do
-      begin
-        Stack[SP] := Table[I].Suffix;  Inc(SP);
-        I := Table[I].Prefix;
-      end;
-      Stack[SP] := Byte(I);  Inc(SP);
+
+    while I > 255 do
+    begin
+      if SP >= GIF_MAX_CODES then Break;
+      Stack[SP] := Table[I].Suffix;  Inc(SP);
+      I := Table[I].Prefix;
     end;
+    Stack[SP] := Byte(I);  Inc(SP);
+    FirstChar := Byte(I);
 
     // 输出栈
     while SP > 0 do
@@ -749,22 +770,11 @@ begin
     end;
     if OutCnt >= PixelCount then Break;
 
-    // 添加新条目到表
+    // 添加新的表项
     if NextCode < GIF_MAX_CODES then
     begin
-      if (Code = NextCode) and (OldCode >= 0) then
-      begin
-        Table[NextCode].Prefix := OldCode;
-        Table[NextCode].Suffix := Table[OldCode].Suffix;
-      end
-      else if OldCode >= 0 then
-      begin
-        Table[NextCode].Prefix := OldCode;
-        I := Code;
-        while I > 255 do
-          I := Table[I].Prefix;
-        Table[NextCode].Suffix := Byte(I);
-      end;
+      Table[NextCode].Prefix := OldCode;
+      Table[NextCode].Suffix := FirstChar;
       Inc(NextCode);
 
       if (NextCode > CodeMask) and (CodeSize < 12) then
@@ -779,16 +789,76 @@ begin
 end;
 
 //==============================================================================
+// 隔行扫描解码
+//==============================================================================
+
+procedure TCnGIFImage.Deinterlace(Frame: TCnGIFFrame);
+var
+  Src: PByteArray;
+  Dst: PByteArray;
+  RowSize: Integer;
+  H: Integer;
+  SrcRow: Integer;
+  DstRow: Integer;
+begin
+  H := Frame.FHeight;
+  RowSize := Frame.FWidth;
+  if (H <= 1) or (RowSize <= 0) then
+    Exit;
+
+  GetMem(Src, H * RowSize);
+  try
+    Move(Frame.FPixels^, Src^, H * RowSize);
+    Dst := Frame.FPixels;
+    SrcRow := 0;
+
+    // Pass 1: rows 0, 8, 16, ...
+    DstRow := 0;
+    while DstRow < H do
+    begin
+      Move(Src^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+      Inc(SrcRow);
+      Inc(DstRow, 8);
+    end;
+
+    // Pass 2: rows 4, 12, 20, ...
+    DstRow := 4;
+    while DstRow < H do
+    begin
+      Move(Src^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+      Inc(SrcRow);
+      Inc(DstRow, 8);
+    end;
+
+    // Pass 3: rows 2, 6, 10, 14, ...
+    DstRow := 2;
+    while DstRow < H do
+    begin
+      Move(Src^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+      Inc(SrcRow);
+      Inc(DstRow, 4);
+    end;
+
+    // Pass 4: rows 1, 3, 5, 7, ...
+    DstRow := 1;
+    while DstRow < H do
+    begin
+      Move(Src^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+      Inc(SrcRow);
+      Inc(DstRow, 2);
+    end;
+  finally
+    FreeMem(Src);
+  end;
+end;
+
+//==============================================================================
 // 帧合成
 //==============================================================================
 
-type
-  PQuadArray = ^TQuadArray;
-  TQuadArray = array[0..0] of TCnGIFQuad;
-
 procedure TCnGIFImage.CompositeFrames(LastFrame: Integer);
 var
-  K, X, Y: Integer;
+  K, X, Y, I: Integer;
   Frame: TCnGIFFrame;
   Pal: TCnGIFColors;
   PalLen: Integer;
@@ -796,7 +866,7 @@ var
   Pix: PByteArray;
   BufW: Integer;
   SavedArea: PByteArray;
-  SavedW, SavedH: Integer;
+  SavedW, SavedH, ClearWidth: Integer;
 begin
   if (FLogicalScreenWidth <= 0) or (FLogicalScreenHeight <= 0) then
     Exit;
@@ -805,7 +875,6 @@ begin
   BufW := FCompWidth;
 
   // 清为背景色
-  FillChar(FCompositeBuf^, BufW * FLogicalScreenHeight * 4, 0);
   if FHasGlobalPalette and (FBackgroundColorIndex < Length(FGlobalPalette)) then
   begin
     for Y := 0 to FLogicalScreenHeight - 1 do
@@ -816,6 +885,20 @@ begin
         Q^[X].B := FGlobalPalette[FBackgroundColorIndex].B;
         Q^[X].G := FGlobalPalette[FBackgroundColorIndex].G;
         Q^[X].R := FGlobalPalette[FBackgroundColorIndex].R;
+        Q^[X].A := 255;
+      end;
+    end;
+  end
+  else
+  begin
+    for Y := 0 to FLogicalScreenHeight - 1 do
+    begin
+      Q := Pointer(TCnNativeInt(FCompositeBuf) + Y * BufW * 4);
+      for X := 0 to FLogicalScreenWidth - 1 do
+      begin
+        Q^[X].B := 0;
+        Q^[X].G := 0;
+        Q^[X].R := 0;
         Q^[X].A := 255;
       end;
     end;
@@ -855,9 +938,15 @@ begin
         begin
           if Y >= FLogicalScreenHeight then
             Break;
-          FillChar(FCompositeBuf^[Y * BufW * 4 +
-            TCnGIFFrame(FFrames[K - 1]).FLeft * 4],
-            TCnGIFFrame(FFrames[K - 1]).FWidth * 4, 0);
+          if TCnGIFFrame(FFrames[K - 1]).FLeft < FLogicalScreenWidth then
+          begin
+            ClearWidth := TCnGIFFrame(FFrames[K - 1]).FWidth;
+            if TCnGIFFrame(FFrames[K - 1]).FLeft + ClearWidth > FLogicalScreenWidth then
+              ClearWidth := FLogicalScreenWidth - TCnGIFFrame(FFrames[K - 1]).FLeft;
+            FillChar(FCompositeBuf^[Y * BufW * 4 +
+              TCnGIFFrame(FFrames[K - 1]).FLeft * 4],
+              ClearWidth * 4, 0);
+          end;
         end;
       end
       else if TCnGIFFrame(FFrames[K - 1]).FDisposal = GIF_DISPOSAL_PREV then
@@ -868,10 +957,16 @@ begin
           for Y := 0 to SavedH - 1 do
           begin
             if (TCnGIFFrame(FFrames[K - 1]).FTop + Y >= FLogicalScreenHeight) then Break;
-            Move(SavedArea^[Y * SavedW * 4],
-                 FCompositeBuf^[(TCnGIFFrame(FFrames[K - 1]).FTop + Y) * BufW * 4 +
-                   TCnGIFFrame(FFrames[K - 1]).FLeft * 4],
-                 SavedW * 4);
+            if TCnGIFFrame(FFrames[K - 1]).FLeft < FLogicalScreenWidth then
+            begin
+              ClearWidth := SavedW;
+              if TCnGIFFrame(FFrames[K - 1]).FLeft + ClearWidth > FLogicalScreenWidth then
+                ClearWidth := FLogicalScreenWidth - TCnGIFFrame(FFrames[K - 1]).FLeft;
+              Move(SavedArea^[Y * SavedW * 4],
+                   FCompositeBuf^[(TCnGIFFrame(FFrames[K - 1]).FTop + Y) * BufW * 4 +
+                     TCnGIFFrame(FFrames[K - 1]).FLeft * 4],
+                   ClearWidth * 4);
+            end;
           end;
         end;
       end;
@@ -890,8 +985,13 @@ begin
         // 简化：保存当前帧区域到 SavedArea
         if (Frame.FTop + Y < FLogicalScreenHeight) and
            (Frame.FLeft < FLogicalScreenWidth) then
+        begin
+          ClearWidth := SavedW;
+          if Frame.FLeft + ClearWidth > FLogicalScreenWidth then
+            ClearWidth := FLogicalScreenWidth - Frame.FLeft;
           Move(FCompositeBuf^[(Frame.FTop + Y) * BufW * 4 + Frame.FLeft * 4],
-               SavedArea^[Y * SavedW * 4], SavedW * 4);
+               SavedArea^[Y * SavedW * 4], ClearWidth * 4);
+        end;
       end;
     end;
 
@@ -909,11 +1009,14 @@ begin
         if (Frame.FTransparentIndex < 0) or
            (Integer(Pix[X]) <> Frame.FTransparentIndex) then
         begin
-          if Integer(Pix[X]) < PalLen then
+          I := Integer(Pix[X]);
+          if I >= PalLen then
+            I := 0;
+          if I < PalLen then
           begin
-            Q^[X].B := Pal[Pix[X]].B;
-            Q^[X].G := Pal[Pix[X]].G;
-            Q^[X].R := Pal[Pix[X]].R;
+            Q^[X].B := Pal[I].B;
+            Q^[X].G := Pal[I].G;
+            Q^[X].R := Pal[I].R;
             Q^[X].A := 255;
           end;
         end;
@@ -1127,7 +1230,20 @@ begin
   if FHasGlobalPalette then
     WriteColorTable(Stream, FGlobalPalette, Length(FGlobalPalette));
 
-  // 帧
+  // NETSCAPE 2.0 Application Extension (循环播放)
+  if (FFrames.Count > 1) and (FLoopCount > 0) then
+  begin
+    WriteByte(Stream, GIF_EXT_INTRODUCER);
+    WriteByte(Stream, GIF_EXT_APPLICATION);
+    WriteByte(Stream, 11);
+    Stream.Write(PAnsiChar('NETSCAPE2.0')^, 11);
+    WriteByte(Stream, 3);
+    WriteByte(Stream, 1);
+    WriteWord(Stream, FLoopCount);
+    WriteByte(Stream, 0);
+  end;
+
+  // ?
   for I := 0 to FFrames.Count - 1 do
   begin
     Frame := TCnGIFFrame(FFrames[I]);
