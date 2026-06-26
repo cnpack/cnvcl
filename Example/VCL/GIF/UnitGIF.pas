@@ -95,7 +95,7 @@ begin
   begin
     with pbDisplay.Canvas do
       TextOut((pbDisplay.Width - TextWidth(S)) div 2,
-        (pbDisplay.Height - TextHeight(S)) div 2, 'S);
+        (pbDisplay.Height - TextHeight(S)) div 2, S);
     Exit;
   end;
 

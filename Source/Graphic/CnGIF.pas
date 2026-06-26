@@ -116,6 +116,7 @@ type
     FCompHeight: Integer;
     FRenderedFrame: Integer;
     FDIB: HBITMAP;
+    FDIBBits: Pointer;
     FDIBW: Integer;
     FDIBH: Integer;
 
@@ -281,6 +282,7 @@ begin
   FCurrentFrame := 0;
   FRenderedFrame := -1;
   FDIB := 0;
+  FDIBBits := nil;
   FCompositeBuf := nil;
   FCompWidth := 0;
   FCompHeight := 0;
@@ -350,6 +352,7 @@ begin
     DeleteObject(FDIB);
     FDIB := 0;
   end;
+  FDIBBits := nil;
   FDIBW := 0;
   FDIBH := 0;
 end;
@@ -358,9 +361,8 @@ procedure TCnGIFImage.EnsureDIB(W, H: Integer);
 var
   BMI: TBitmapInfo;
   DC: HDC;
-  Bits: Pointer;
 begin
-  if (FDIB <> 0) and (FDIBW >= W) and (FDIBH >= H) then
+  if (FDIB <> 0) and (FDIBW = W) and (FDIBH = H) then
     Exit;
   FreeDIB;
 
@@ -374,7 +376,7 @@ begin
 
   DC := GetDC(0);
   try
-    FDIB := CreateDIBSection(DC, BMI, DIB_RGB_COLORS, Bits, 0, 0);
+    FDIB := CreateDIBSection(DC, BMI, DIB_RGB_COLORS, FDIBBits, 0, 0);
   finally
     ReleaseDC(0, DC);
   end;
@@ -1033,9 +1035,6 @@ end;
 //==============================================================================
 
 procedure TCnGIFImage.EnsureRendered(FrameIdx: Integer);
-var
-  BMI: TBitmapInfo;
-  DC: HDC;
 begin
   if (FrameIdx < 0) or (FrameIdx >= FFrames.Count) then
     Exit;
@@ -1048,22 +1047,9 @@ begin
     Exit;
 
   EnsureDIB(FCompWidth, FCompHeight);
-  if FDIB = 0 then Exit;
+  if (FDIB = 0) or (FDIBBits = nil) then Exit;
 
-  FillChar(BMI, SizeOf(BMI), 0);
-  BMI.bmiHeader.biSize := SizeOf(BMI.bmiHeader);
-  BMI.bmiHeader.biWidth  := FCompWidth;
-  BMI.bmiHeader.biHeight := -FCompHeight;
-  BMI.bmiHeader.biPlanes := 1;
-  BMI.bmiHeader.biBitCount := 32;
-  BMI.bmiHeader.biCompression := BI_RGB;
-
-  DC := GetDC(0);
-  try
-    SetDIBits(DC, FDIB, 0, FCompHeight, FCompositeBuf, BMI, DIB_RGB_COLORS);
-  finally
-    ReleaseDC(0, DC);
-  end;
+  Move(FCompositeBuf^, FDIBBits^, FCompWidth * FCompHeight * 4);
 
   FRenderedFrame := FrameIdx;
 end;
