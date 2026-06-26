@@ -187,6 +187,11 @@ type
     procedure Clear;
     procedure Draw(ACanvas: TCanvas; const Rect: TRect); override;
 
+    procedure LoadFromClipboardFormat(AFormat: Word; AData: THandle;
+      APalette: HPALETTE); override;
+    procedure SaveToClipboardFormat(var Format: Word; var Data: THandle;
+      var APalette: HPALETTE); override;
+
     property CurrentFrame: Integer read FCurrentFrame write SetCurrentFrame;
     property FrameCount: Integer read GetFrameCount;
     property Frames[Index: Integer]: TCnGIFFrame read GetFrame;
@@ -1522,6 +1527,35 @@ end;
 function TCnGIFImage.GetFrame(Index: Integer): TCnGIFFrame;
 begin
   Result := TCnGIFFrame(FFrames[Index]);
+end;
+
+procedure TCnGIFImage.LoadFromClipboardFormat(AFormat: Word; AData: THandle;
+  APalette: HPALETTE);
+var
+  Bmp: TBitmap;
+begin
+  Bmp := TBitmap.Create;
+  try
+    Bmp.LoadFromClipboardFormat(AFormat, AData, APalette);
+    Assign(Bmp);
+  finally
+    Bmp.Free;
+  end;
+  Changed(Self);
+end;
+
+procedure TCnGIFImage.SaveToClipboardFormat(var Format: Word;
+  var Data: THandle; var APalette: HPALETTE);
+var
+  Bmp: TBitmap;
+begin
+  Bmp := TBitmap.Create;
+  try
+    AssignTo(Bmp);
+    Bmp.SaveToClipboardFormat(Format, Data, APalette);
+  finally
+    Bmp.Free;
+  end;
 end;
 
 procedure RegisterCnGIF;
