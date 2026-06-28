@@ -168,6 +168,13 @@ type
     function  GetFrameCount: Integer;
     function  GetFrame(Index: Integer): TCnGIFFrame;
 
+    // 单帧 GIF 保存辅助
+    procedure QuantizeBitmap(Src: TBitmap; var Palette: TCnGIFColors;
+      Indices: PByteArray);
+    procedure QuantizeComposite(var Palette: TCnGIFColors; Indices: PByteArray);
+    procedure WriteSingleFrameGIF(Stream: TStream; W, H: Integer;
+      const Palette: TCnGIFColors; Indices: PByteArray);
+
   protected
     function GetEmpty: Boolean; override;
     function GetHeight: Integer; override;
@@ -184,6 +191,10 @@ type
 
     procedure LoadFromStream(Stream: TStream); override;
     procedure SaveToStream(Stream: TStream); override;
+    procedure SaveBitmapToGIFStream(Stream: TStream; Src: TBitmap);
+    procedure SaveBitmapToGIFFile(const FileName: string; Src: TBitmap);
+    procedure SaveCurrentFrameToGIFStream(Stream: TStream);
+    procedure SaveCurrentFrameToGIFFile(const FileName: string);
     procedure Clear;
     procedure Draw(ACanvas: TCanvas; const Rect: TRect); override;
 
@@ -242,6 +253,27 @@ type
   TDecEntry = packed record
     Prefix: Word;
     Suffix: Byte;
+  end;
+
+  PCnQuantHashEntry = ^TCnQuantHashEntry;
+  TCnQuantHashEntry = packed record
+    Used: Boolean;
+    B, G, R: Byte;
+    Count: Cardinal;
+    PalIdx: Byte;
+  end;
+
+  TCnQuantColor = packed record
+    B, G, R: Byte;
+    Count: Cardinal;
+  end;
+
+  TCnQuantBucket = record
+    StartIdx: Integer;
+    Num: Integer;
+    TotalCount: Cardinal;
+    RngB, RngG, RngR: Integer;
+    SplitChan: Integer;
   end;
 
 {$R-}
@@ -1483,8 +1515,13 @@ begin
         begin
           if CodeSize < 12 then
           begin
-            Inc(CodeSize);
-            CodeMask := (1 shl CodeSize) - 1;
+            // 解码器比编码器少一个字典表项（首个码不添加表项），
+            // 因此编码器需延迟一个表项再增加码长，以保持编解码同步。
+            if NextCode > CodeMask + 1 then
+            begin
+              Inc(CodeSize);
+              CodeMask := (1 shl CodeSize) - 1;
+            end;
           end
           else
           begin
@@ -1508,6 +1545,683 @@ begin
   WriteCode(CurPrefix);
   WriteCode(EOICode);
   FlushBits;
+end;
+
+//==============================================================================
+// 单帧 GIF 保存（位图 -> GIF）
+//==============================================================================
+
+procedure TCnGIFImage.QuantizeBitmap(Src: TBitmap; var Palette: TCnGIFColors;
+  Indices: PByteArray);
+const
+  QHASH_SIZE = 1 shl 16;
+  QHASH_MASK = (1 shl 16) - 1;
+  QMAX = 256;
+var
+  W, H, X, Y, I, K: Integer;
+  Row: PByteArray;
+  Bv, Gv, Rv: Byte;
+  Key, HIdx: Cardinal;
+  Hash: array of TCnQuantHashEntry;
+  UniqueCount: Integer;
+  Colors: array of TCnQuantColor;
+  Buckets: array of TCnQuantBucket;
+  BestIdx, BestRange, Range: Integer;
+  Mid, Chan: Integer;
+  NewBkt: TCnQuantBucket;
+  PalLen: Integer;
+  TC: Cardinal;
+  SB, SG, SR: Int64;
+  BestDist, BestI, Dist: Integer;
+  dB, dG, dR: Integer;
+  PalCount: Integer;
+
+  procedure ComputeBox(var Bkt: TCnQuantBucket);
+  var
+    MnB, MxB, MnG, MxG, MnR, MxR: Byte;
+    II: Integer;
+  begin
+    if Bkt.Num <= 0 then
+    begin
+      Bkt.RngB := 0; Bkt.RngG := 0; Bkt.RngR := 0; Bkt.SplitChan := 0;
+      Exit;
+    end;
+    MnB := 255; MxB := 0; MnG := 255; MxG := 0; MnR := 255; MxR := 0;
+    for II := Bkt.StartIdx to Bkt.StartIdx + Bkt.Num - 1 do
+    begin
+      if Colors[II].B < MnB then MnB := Colors[II].B;
+      if Colors[II].B > MxB then MxB := Colors[II].B;
+      if Colors[II].G < MnG then MnG := Colors[II].G;
+      if Colors[II].G > MxG then MxG := Colors[II].G;
+      if Colors[II].R < MnR then MnR := Colors[II].R;
+      if Colors[II].R > MxR then MxR := Colors[II].R;
+    end;
+    Bkt.RngB := MxB - MnB;
+    Bkt.RngG := MxG - MnG;
+    Bkt.RngR := MxR - MnR;
+    if (Bkt.RngB >= Bkt.RngG) and (Bkt.RngB >= Bkt.RngR) then
+      Bkt.SplitChan := 0
+    else if Bkt.RngG >= Bkt.RngR then
+      Bkt.SplitChan := 1
+    else
+      Bkt.SplitChan := 2;
+  end;
+
+  function ChanVal(const C: TCnQuantColor; Ch: Integer): Byte;
+  begin
+    case Ch of
+      0: Result := C.B;
+      1: Result := C.G;
+    else
+      Result := C.R;
+    end;
+  end;
+
+  procedure QSort(Lo, Hi: Integer; Ch: Integer);
+  var
+    II, JJ: Integer;
+    Pivot: Byte;
+    Tmp: TCnQuantColor;
+  begin
+    if Lo >= Hi then Exit;
+    Pivot := ChanVal(Colors[(Lo + Hi) div 2], Ch);
+    II := Lo; JJ := Hi;
+    while II <= JJ do
+    begin
+      while ChanVal(Colors[II], Ch) < Pivot do Inc(II);
+      while ChanVal(Colors[JJ], Ch) > Pivot do Dec(JJ);
+      if II <= JJ then
+      begin
+        Tmp := Colors[II]; Colors[II] := Colors[JJ]; Colors[JJ] := Tmp;
+        Inc(II); Dec(JJ);
+      end;
+    end;
+    if Lo < JJ then QSort(Lo, JJ, Ch);
+    if II < Hi then QSort(II, Hi, Ch);
+  end;
+
+begin
+  W := Src.Width;
+  H := Src.Height;
+  if (W <= 0) or (H <= 0) then
+  begin
+    SetLength(Palette, 0);
+    Exit;
+  end;
+
+  // 收集唯一颜色及其出现次数
+  SetLength(Hash, QHASH_SIZE);
+  FillChar(Hash[0], SizeOf(TCnQuantHashEntry) * QHASH_SIZE, 0);
+  UniqueCount := 0;
+
+  for Y := 0 to H - 1 do
+  begin
+    Row := Src.ScanLine[Y];
+    for X := 0 to W - 1 do
+    begin
+      Bv := Row^[X * 3];
+      Gv := Row^[X * 3 + 1];
+      Rv := Row^[X * 3 + 2];
+      Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
+      HIdx := Key and QHASH_MASK;
+      while Hash[HIdx].Used do
+      begin
+        if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
+        begin
+          Inc(Hash[HIdx].Count);
+          Break;
+        end;
+        HIdx := (HIdx + 1) and QHASH_MASK;
+      end;
+      if not Hash[HIdx].Used then
+      begin
+        if UniqueCount < QHASH_SIZE - 1 then
+        begin
+          Hash[HIdx].Used := True;
+          Hash[HIdx].B := Bv;
+          Hash[HIdx].G := Gv;
+          Hash[HIdx].R := Rv;
+          Hash[HIdx].Count := 1;
+          Inc(UniqueCount);
+        end;
+      end;
+    end;
+  end;
+
+  // 拷贝到线性颜色表
+  SetLength(Colors, UniqueCount);
+  K := 0;
+  for I := 0 to QHASH_SIZE - 1 do
+    if Hash[I].Used then
+    begin
+      Colors[K].B := Hash[I].B;
+      Colors[K].G := Hash[I].G;
+      Colors[K].R := Hash[I].R;
+      Colors[K].Count := Hash[I].Count;
+      Inc(K);
+      if K >= UniqueCount then Break;
+    end;
+
+  if UniqueCount <= QMAX then
+  begin
+    // 唯一色不超过 256，直接作为调色板
+    PalCount := UniqueCount;
+    if PalCount < 2 then PalCount := 2;
+    SetLength(Palette, PalCount);
+    for I := 0 to UniqueCount - 1 do
+    begin
+      Palette[I].B := Colors[I].B;
+      Palette[I].G := Colors[I].G;
+      Palette[I].R := Colors[I].R;
+    end;
+    for I := UniqueCount to PalCount - 1 do
+    begin
+      Palette[I].B := 0;
+      Palette[I].G := 0;
+      Palette[I].R := 0;
+    end;
+
+    // 记录每个颜色在调色板中的索引
+    for I := 0 to UniqueCount - 1 do
+    begin
+      Key := (Cardinal(Colors[I].B) shl 16) or (Cardinal(Colors[I].G) shl 8) or Cardinal(Colors[I].R);
+      HIdx := Key and QHASH_MASK;
+      while Hash[HIdx].Used do
+      begin
+        if (Hash[HIdx].B = Colors[I].B) and (Hash[HIdx].G = Colors[I].G) and (Hash[HIdx].R = Colors[I].R) then
+        begin
+          Hash[HIdx].PalIdx := I;
+          Break;
+        end;
+        HIdx := (HIdx + 1) and QHASH_MASK;
+      end;
+    end;
+
+    // 生成索引图
+    for Y := 0 to H - 1 do
+    begin
+      Row := Src.ScanLine[Y];
+      for X := 0 to W - 1 do
+      begin
+        Bv := Row^[X * 3];
+        Gv := Row^[X * 3 + 1];
+        Rv := Row^[X * 3 + 2];
+        Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
+        HIdx := Key and QHASH_MASK;
+        while Hash[HIdx].Used do
+        begin
+          if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
+          begin
+            Indices^[Y * W + X] := Hash[HIdx].PalIdx;
+            Break;
+          end;
+          HIdx := (HIdx + 1) and QHASH_MASK;
+        end;
+        if not Hash[HIdx].Used then
+          Indices^[Y * W + X] := 0;
+      end;
+    end;
+  end
+  else
+  begin
+    // 中位切分法量化到 256 色
+    SetLength(Buckets, 1);
+    Buckets[0].StartIdx := 0;
+    Buckets[0].Num := UniqueCount;
+    Buckets[0].TotalCount := 0;
+    for I := 0 to UniqueCount - 1 do
+      Inc(Buckets[0].TotalCount, Colors[I].Count);
+    ComputeBox(Buckets[0]);
+
+    while Length(Buckets) < QMAX do
+    begin
+      BestIdx := -1;
+      BestRange := 0;
+      for I := 0 to High(Buckets) do
+      begin
+        if Buckets[I].Num > 1 then
+        begin
+          Range := Buckets[I].RngB;
+          if Buckets[I].RngG > Range then Range := Buckets[I].RngG;
+          if Buckets[I].RngR > Range then Range := Buckets[I].RngR;
+          if Range > BestRange then
+          begin
+            BestRange := Range;
+            BestIdx := I;
+          end;
+        end;
+      end;
+      if BestIdx < 0 then Break;
+
+      Chan := Buckets[BestIdx].SplitChan;
+      QSort(Buckets[BestIdx].StartIdx,
+            Buckets[BestIdx].StartIdx + Buckets[BestIdx].Num - 1, Chan);
+
+      Mid := Buckets[BestIdx].StartIdx + Buckets[BestIdx].Num div 2;
+
+      NewBkt.StartIdx := Mid;
+      NewBkt.Num := Buckets[BestIdx].StartIdx + Buckets[BestIdx].Num - Mid;
+      NewBkt.TotalCount := 0;
+      for I := NewBkt.StartIdx to NewBkt.StartIdx + NewBkt.Num - 1 do
+        Inc(NewBkt.TotalCount, Colors[I].Count);
+      ComputeBox(NewBkt);
+
+      Buckets[BestIdx].Num := Mid - Buckets[BestIdx].StartIdx;
+      Buckets[BestIdx].TotalCount := 0;
+      for I := Buckets[BestIdx].StartIdx to Buckets[BestIdx].StartIdx + Buckets[BestIdx].Num - 1 do
+        Inc(Buckets[BestIdx].TotalCount, Colors[I].Count);
+      ComputeBox(Buckets[BestIdx]);
+
+      SetLength(Buckets, Length(Buckets) + 1);
+      Buckets[High(Buckets)] := NewBkt;
+    end;
+
+    // 每个桶取加权平均色作为调色板项
+    SetLength(Palette, Length(Buckets));
+    for I := 0 to High(Buckets) do
+    begin
+      TC := 0;
+      SB := 0; SG := 0; SR := 0;
+      for K := Buckets[I].StartIdx to Buckets[I].StartIdx + Buckets[I].Num - 1 do
+      begin
+        Inc(SB, Int64(Colors[K].B) * Colors[K].Count);
+        Inc(SG, Int64(Colors[K].G) * Colors[K].Count);
+        Inc(SR, Int64(Colors[K].R) * Colors[K].Count);
+        Inc(TC, Colors[K].Count);
+      end;
+      if TC > 0 then
+      begin
+        Palette[I].B := SB div TC;
+        Palette[I].G := SG div TC;
+        Palette[I].R := SR div TC;
+      end
+      else
+      begin
+        Palette[I].B := 0;
+        Palette[I].G := 0;
+        Palette[I].R := 0;
+      end;
+    end;
+
+    // 最近邻映射生成索引图
+    PalLen := Length(Palette);
+    for Y := 0 to H - 1 do
+    begin
+      Row := Src.ScanLine[Y];
+      for X := 0 to W - 1 do
+      begin
+        Bv := Row^[X * 3];
+        Gv := Row^[X * 3 + 1];
+        Rv := Row^[X * 3 + 2];
+        BestDist := MaxInt;
+        BestI := 0;
+        for I := 0 to PalLen - 1 do
+        begin
+          dB := Bv - Palette[I].B;
+          dG := Gv - Palette[I].G;
+          dR := Rv - Palette[I].R;
+          Dist := dB * dB + dG * dG + dR * dR;
+          if Dist < BestDist then
+          begin
+            BestDist := Dist;
+            BestI := I;
+            if BestDist = 0 then Break;
+          end;
+        end;
+        Indices^[Y * W + X] := BestI;
+      end;
+    end;
+  end;
+end;
+
+procedure TCnGIFImage.QuantizeComposite(var Palette: TCnGIFColors;
+  Indices: PByteArray);
+const
+  QHASH_SIZE = 1 shl 16;
+  QHASH_MASK = (1 shl 16) - 1;
+var
+  W, H, X, Y, I: Integer;
+  Q: PQuadArray;
+  Bv, Gv, Rv: Byte;
+  Key, HIdx: Cardinal;
+  Hash: array of TCnQuantHashEntry;
+  UniqueCount, PalCount: Integer;
+begin
+  W := FCompWidth;
+  H := FCompHeight;
+  if (W <= 0) or (H <= 0) or (FCompositeBuf = nil) then
+  begin
+    SetLength(Palette, 0);
+    Exit;
+  end;
+
+  SetLength(Hash, QHASH_SIZE);
+  FillChar(Hash[0], SizeOf(TCnQuantHashEntry) * QHASH_SIZE, 0);
+  UniqueCount := 0;
+
+  // 第一遍：收集唯一色并分配调色板索引
+  for Y := 0 to H - 1 do
+  begin
+    Q := Pointer(TCnNativeInt(FCompositeBuf) + Y * W * 4);
+    for X := 0 to W - 1 do
+    begin
+      Bv := Q^[X].B;
+      Gv := Q^[X].G;
+      Rv := Q^[X].R;
+      Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
+      HIdx := Key and QHASH_MASK;
+      while Hash[HIdx].Used do
+      begin
+        if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
+          Break;
+        HIdx := (HIdx + 1) and QHASH_MASK;
+      end;
+      if not Hash[HIdx].Used then
+      begin
+        Hash[HIdx].Used := True;
+        Hash[HIdx].B := Bv;
+        Hash[HIdx].G := Gv;
+        Hash[HIdx].R := Rv;
+        Hash[HIdx].Count := 1;
+        Hash[HIdx].PalIdx := UniqueCount;
+        Inc(UniqueCount);
+        if UniqueCount >= 256 then Break;
+      end
+      else
+        Inc(Hash[HIdx].Count);
+    end;
+    if UniqueCount >= 256 then Break;
+  end;
+
+  PalCount := UniqueCount;
+  if PalCount < 2 then PalCount := 2;
+  SetLength(Palette, PalCount);
+
+  // 从哈希表填充调色板
+  for I := 0 to QHASH_SIZE - 1 do
+    if Hash[I].Used then
+    begin
+      Palette[Hash[I].PalIdx].B := Hash[I].B;
+      Palette[Hash[I].PalIdx].G := Hash[I].G;
+      Palette[Hash[I].PalIdx].R := Hash[I].R;
+    end;
+  for I := UniqueCount to PalCount - 1 do
+  begin
+    Palette[I].B := 0;
+    Palette[I].G := 0;
+    Palette[I].R := 0;
+  end;
+
+  // 第二遍：生成索引图
+  for Y := 0 to H - 1 do
+  begin
+    Q := Pointer(TCnNativeInt(FCompositeBuf) + Y * W * 4);
+    for X := 0 to W - 1 do
+    begin
+      Bv := Q^[X].B;
+      Gv := Q^[X].G;
+      Rv := Q^[X].R;
+      Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
+      HIdx := Key and QHASH_MASK;
+      while Hash[HIdx].Used do
+      begin
+        if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
+        begin
+          Indices^[Y * W + X] := Hash[HIdx].PalIdx;
+          Break;
+        end;
+        HIdx := (HIdx + 1) and QHASH_MASK;
+      end;
+      if not Hash[HIdx].Used then
+        Indices^[Y * W + X] := 0;
+    end;
+  end;
+end;
+
+procedure TCnGIFImage.WriteSingleFrameGIF(Stream: TStream; W, H: Integer;
+  const Palette: TCnGIFColors; Indices: PByteArray);
+var
+  Pkd: Byte;
+  PalSz, P, I, MinCodeSize: Integer;
+  EncStm: TMemoryStream;
+begin
+  PalSz := Length(Palette);
+  if PalSz < 2 then PalSz := 2;
+
+  // 计算调色板尺寸（2 的幂，范围 2..256）
+  P := 1;
+  while (1 shl P) < PalSz do Inc(P);
+
+  // Header
+  Stream.Write(GIF89a, 6);
+
+  // Logical Screen Descriptor
+  WriteWord(Stream, W);
+  WriteWord(Stream, H);
+  Pkd := $80 or $70 or ((P - 1) and $07);  // 全局色表、色分辨率 7、无排序
+  WriteByte(Stream, Pkd);
+  WriteByte(Stream, 0);  // 背景色索引
+  WriteByte(Stream, 0);  // 像素宽高比
+
+  // Global Color Table（共 2^P 项，不足补 0）
+  for I := 0 to (1 shl P) - 1 do
+  begin
+    if I < Length(Palette) then
+      Stream.Write(Palette[I], 3)
+    else
+    begin
+      WriteByte(Stream, 0);
+      WriteByte(Stream, 0);
+      WriteByte(Stream, 0);
+    end;
+  end;
+
+  // Image Descriptor
+  WriteByte(Stream, GIF_IMAGE_DESCRIPTOR);
+  WriteWord(Stream, 0);  // Left
+  WriteWord(Stream, 0);  // Top
+  WriteWord(Stream, W);
+  WriteWord(Stream, H);
+  WriteByte(Stream, 0);  // 无局部色表、无隔行
+
+  // LZW 最小码长
+  PalSz := 1 shl P;
+  if PalSz <= 2 then MinCodeSize := 2
+  else if PalSz <= 4 then MinCodeSize := 3
+  else if PalSz <= 8 then MinCodeSize := 4
+  else if PalSz <= 16 then MinCodeSize := 5
+  else if PalSz <= 32 then MinCodeSize := 6
+  else if PalSz <= 64 then MinCodeSize := 7
+  else MinCodeSize := 8;
+
+  WriteByte(Stream, MinCodeSize);
+
+  // LZW 编码并以子块写入
+  EncStm := TMemoryStream.Create;
+  try
+    EncodeLZW(Indices, W * H, EncStm, MinCodeSize);
+    EmitSubBlocks(Stream, EncStm.Memory, EncStm.Size);
+  finally
+    EncStm.Free;
+  end;
+
+  // Trailer
+  WriteByte(Stream, GIF_TRAILER);
+end;
+
+procedure TCnGIFImage.SaveBitmapToGIFStream(Stream: TStream; Src: TBitmap);
+var
+  Bmp: TBitmap;
+  W, H: Integer;
+  Palette: TCnGIFColors;
+  IdxBuf: PByteArray;
+begin
+  if (Src = nil) or Src.Empty then
+    Exit;
+
+  Bmp := TBitmap.Create;
+  try
+    Bmp.Assign(Src);
+    Bmp.HandleType := bmDIB;
+    Bmp.PixelFormat := pf24bit;
+    W := Bmp.Width;
+    H := Bmp.Height;
+    if (W <= 0) or (H <= 0) then
+      Exit;
+
+    GetMem(IdxBuf, W * H);
+    try
+      QuantizeBitmap(Bmp, Palette, IdxBuf);
+      if Length(Palette) = 0 then
+        Exit;
+      WriteSingleFrameGIF(Stream, W, H, Palette, IdxBuf);
+    finally
+      FreeMem(IdxBuf);
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+procedure TCnGIFImage.SaveBitmapToGIFFile(const FileName: string; Src: TBitmap);
+var
+  Stm: TFileStream;
+begin
+  Stm := TFileStream.Create(FileName, fmCreate);
+  try
+    SaveBitmapToGIFStream(Stm, Src);
+  finally
+    Stm.Free;
+  end;
+end;
+
+procedure TCnGIFImage.SaveCurrentFrameToGIFStream(Stream: TStream);
+var
+  Frame: TCnGIFFrame;
+  W, H, PalSz, P, I, MinCodeSize: Integer;
+  Palette: TCnGIFColors;
+  Pkd: Byte;
+  EncStm: TMemoryStream;
+begin
+  if GetEmpty then
+    Exit;
+  if (FCurrentFrame < 0) or (FCurrentFrame >= FFrames.Count) then
+    Exit;
+
+  Frame := TCnGIFFrame(FFrames[FCurrentFrame]);
+  W := Frame.FWidth;
+  H := Frame.FHeight;
+  if (W <= 0) or (H <= 0) then
+    Exit;
+
+  // 使用帧的原始调色板（局部优先，否则全局）
+  if Frame.FHasLocalPalette then
+    Palette := Frame.FLocalPalette
+  else
+    Palette := FGlobalPalette;
+  PalSz := Length(Palette);
+  if PalSz = 0 then
+    Exit;
+
+  // 计算调色板尺寸（2 的幂，范围 2..256）
+  P := 1;
+  while (1 shl P) < PalSz do
+    Inc(P);
+  if P < 1 then
+    P := 1;
+
+  // Header
+  Stream.Write(GIF89a, 6);
+
+  // Logical Screen Descriptor（用帧尺寸作为逻辑屏幕尺寸）
+  WriteWord(Stream, W);
+  WriteWord(Stream, H);
+  Pkd := $80 or $70 or ((P - 1) and $07);
+  WriteByte(Stream, Pkd);
+  WriteByte(Stream, 0);  // 背景色索引
+  WriteByte(Stream, 0);  // 像素宽高比
+
+  // Global Color Table
+  for I := 0 to (1 shl P) - 1 do
+  begin
+    if I < PalSz then
+      Stream.Write(Palette[I], 3)
+    else
+    begin
+      WriteByte(Stream, 0);
+      WriteByte(Stream, 0);
+      WriteByte(Stream, 0);
+    end;
+  end;
+
+  // Graphic Control Extension（如有透明色或延迟）
+  if (Frame.FTransparentIndex >= 0) or (Frame.FDelay > 0) then
+  begin
+    WriteByte(Stream, GIF_EXT_INTRODUCER);
+    WriteByte(Stream, GIF_EXT_GRAPHIC_CTRL);
+    WriteByte(Stream, 4);
+    Pkd := (Frame.FDisposal and $07) shl 2;
+    if Frame.FTransparentIndex >= 0 then
+      Pkd := Pkd or $01;
+    WriteByte(Stream, Pkd);
+    WriteWord(Stream, Frame.FDelay);
+    if Frame.FTransparentIndex >= 0 then
+      WriteByte(Stream, Frame.FTransparentIndex)
+    else
+      WriteByte(Stream, 0);
+    WriteByte(Stream, 0);
+  end;
+
+  // Image Descriptor
+  WriteByte(Stream, GIF_IMAGE_DESCRIPTOR);
+  WriteWord(Stream, 0);
+  WriteWord(Stream, 0);
+  WriteWord(Stream, W);
+  WriteWord(Stream, H);
+  WriteByte(Stream, 0);  // 无局部色表、无隔行
+
+  // LZW 最小码长
+  PalSz := 1 shl P;
+  if PalSz <= 2 then MinCodeSize := 2
+  else if PalSz <= 4 then MinCodeSize := 3
+  else if PalSz <= 8 then MinCodeSize := 4
+  else if PalSz <= 16 then MinCodeSize := 5
+  else if PalSz <= 32 then MinCodeSize := 6
+  else if PalSz <= 64 then MinCodeSize := 7
+  else MinCodeSize := 8;
+
+  WriteByte(Stream, MinCodeSize);
+
+  // 优先使用帧的原始 LZW 数据，避免重新编码引入错误
+  if Frame.FRawData.Size > 0 then
+  begin
+    EmitSubBlocks(Stream, Frame.FRawData.Memory, Frame.FRawData.Size);
+  end
+  else
+  begin
+    EncStm := TMemoryStream.Create;
+    try
+      EncodeLZW(Frame.FPixels, W * H, EncStm, MinCodeSize);
+      EmitSubBlocks(Stream, EncStm.Memory, EncStm.Size);
+    finally
+      EncStm.Free;
+    end;
+  end;
+
+  // Trailer
+  WriteByte(Stream, GIF_TRAILER);
+end;
+
+procedure TCnGIFImage.SaveCurrentFrameToGIFFile(const FileName: string);
+var
+  Stm: TFileStream;
+begin
+  Stm := TFileStream.Create(FileName, fmCreate);
+  try
+    SaveCurrentFrameToGIFStream(Stm);
+  finally
+    Stm.Free;
+  end;
 end;
 
 procedure TCnGIFImage.SetCurrentFrame(Value: Integer);

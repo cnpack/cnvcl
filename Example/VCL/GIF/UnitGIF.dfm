@@ -90,10 +90,26 @@ object frmGIFDemo: TfrmGIFDemo
     TabOrder = 3
     OnClick = btnPlayPauseClick
   end
+  object btnSaveFrame: TButton
+    Left = 12
+    Top = 228
+    Width = 177
+    Height = 33
+    Caption = '保存为单帧 GIF'
+    Enabled = False
+    TabOrder = 4
+    OnClick = btnSaveFrameClick
+  end
   object dlgOpen: TOpenDialog
     Filter = 'GIF 文件(*.gif)|*.gif|所有文件(*.*)|*.*'
-    Left = 72
-    Top = 240
+    Left = 24
+    Top = 296
+  end
+  object dlgSave: TSaveDialog
+    DefaultExt = 'gif'
+    Filter = 'GIF 文件(*.gif)|*.gif'
+    Left = 120
+    Top = 296
   end
   object tmrAnimation: TTimer
     Enabled = False

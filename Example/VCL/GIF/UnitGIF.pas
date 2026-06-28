@@ -14,10 +14,12 @@ type
     btnPrevFrame: TButton;
     btnNextFrame: TButton;
     btnPlayPause: TButton;
+    btnSaveFrame: TButton;
     lblInfo: TLabel;
     lblFrame: TLabel;
     tmrAnimation: TTimer;
     lblFileName: TLabel;
+    dlgSave: TSaveDialog;
     procedure btnLoadClick(Sender: TObject);
     procedure pbDisplayPaint(Sender: TObject);
     procedure btnPrevFrameClick(Sender: TObject);
@@ -27,6 +29,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure pbDisplayResize(Sender: TObject);
+    procedure btnSaveFrameClick(Sender: TObject);
   private
     FGIF: TCnGIFImage;
     FPlaying: Boolean;
@@ -49,6 +52,8 @@ begin
   FGIF := TCnGIFImage.Create;
   FPlaying := False;
   dlgOpen.Filter := 'GIF 文件(*.gif)|*.gif|所有文件(*.*)|*.*';
+  dlgSave.Filter := 'GIF 文件(*.gif)|*.gif';
+  dlgSave.DefaultExt := 'gif';
 end;
 
 procedure TfrmGIFDemo.FormDestroy(Sender: TObject);
@@ -73,6 +78,7 @@ begin
     btnPrevFrame.Enabled := FGIF.FrameCount > 1;
     btnNextFrame.Enabled := FGIF.FrameCount > 1;
     btnPlayPause.Enabled := FGIF.FrameCount > 1;
+    btnSaveFrame.Enabled := not FGIF.Empty;
   except
     on E: Exception do
       ShowMessage('加载失败: ' + E.Message);
@@ -195,6 +201,26 @@ end;
 procedure TfrmGIFDemo.pbDisplayResize(Sender: TObject);
 begin
   pbDisplay.Invalidate;
+end;
+
+procedure TfrmGIFDemo.btnSaveFrameClick(Sender: TObject);
+begin
+  if FGIF.Empty then
+  begin
+    ShowMessage('请先加载 GIF');
+    Exit;
+  end;
+
+  if not dlgSave.Execute then
+    Exit;
+
+  try
+    FGIF.SaveCurrentFrameToGIFFile(dlgSave.FileName);
+    ShowMessage('已保存: ' + dlgSave.FileName);
+  except
+    on E: Exception do
+      ShowMessage('保存失败: ' + E.Message);
+  end;
 end;
 
 end.
