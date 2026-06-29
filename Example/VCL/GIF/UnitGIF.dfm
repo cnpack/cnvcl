@@ -100,6 +100,15 @@ object frmGIFDemo: TfrmGIFDemo
     TabOrder = 4
     OnClick = btnSaveFrameClick
   end
+  object btnSavePaintBox: TButton
+    Left = 12
+    Top = 276
+    Width = 177
+    Height = 33
+    Caption = '保存 PaintBox 内容为 GIF'
+    TabOrder = 5
+    OnClick = btnSavePaintBoxClick
+  end
   object dlgOpen: TOpenDialog
     Filter = 'GIF 文件(*.gif)|*.gif|所有文件(*.*)|*.*'
     Left = 24

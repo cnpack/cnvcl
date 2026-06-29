@@ -1456,17 +1456,8 @@ var
   end;
 
   procedure InitTable;
-  var
-    I: Integer;
   begin
     FillChar(HT, SizeOf(HT), 0);
-    for I := 0 to 255 do
-    begin
-      HT[I].Used := True;
-      HT[I].Prefix := 0;
-      HT[I].Suffix := Byte(I);
-      HT[I].Code := I;
-    end;
   end;
 
 begin

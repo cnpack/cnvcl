@@ -15,6 +15,7 @@ type
     btnNextFrame: TButton;
     btnPlayPause: TButton;
     btnSaveFrame: TButton;
+    btnSavePaintBox: TButton;
     lblInfo: TLabel;
     lblFrame: TLabel;
     tmrAnimation: TTimer;
@@ -30,6 +31,7 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure pbDisplayResize(Sender: TObject);
     procedure btnSaveFrameClick(Sender: TObject);
+    procedure btnSavePaintBoxClick(Sender: TObject);
   private
     FGIF: TCnGIFImage;
     FPlaying: Boolean;
@@ -220,6 +222,54 @@ begin
   except
     on E: Exception do
       ShowMessage('±£¥Ê ß∞‹: ' + E.Message);
+  end;
+end;
+
+procedure TfrmGIFDemo.btnSavePaintBoxClick(Sender: TObject);
+var
+  Bmp: TBitmap;
+  DC: HDC;
+begin
+  if not dlgSave.Execute then
+    Exit;
+
+  // Ensure the PaintBox content is up to date
+  pbDisplay.Repaint;
+
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := pbDisplay.Width;
+    Bmp.Height := pbDisplay.Height;
+    if (Bmp.Width <= 0) or (Bmp.Height <= 0) then
+    begin
+      ShowMessage('PaintBox size is invalid.');
+      Exit;
+    end;
+
+    // Capture the PaintBox pixels from the parent window's DC
+    DC := GetDC(pbDisplay.Parent.Handle);
+    try
+      if not BitBlt(Bmp.Canvas.Handle, 0, 0, Bmp.Width, Bmp.Height,
+        DC, pbDisplay.Left, pbDisplay.Top, SRCCOPY) then
+      begin
+        ShowMessage('BitBlt Failed to Capture PaintBox Pixels.');
+        Exit;
+      end;
+    finally
+      if ReleaseDC(pbDisplay.Parent.Handle, DC) = 0 then
+        ShowMessage('ReleaseDC Failed.');
+    end;
+
+    try
+      FGIF.SaveBitmapToGIFFile(dlgSave.FileName, Bmp);
+      ShowMessage('Saved: ' + dlgSave.FileName);
+    except
+      on E: Exception do
+        ShowMessage('Save failed: ' + E.Message);
+    end;
+  finally
+    Bmp.Free;
   end;
 end;
 
