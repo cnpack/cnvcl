@@ -2054,11 +2054,23 @@ begin
 
   Bmp := TBitmap.Create;
   try
+  {$IFDEF FPC}
+    // LCL: HandleType/PixelFormat setters recreate the bitmap handle and
+    // discard existing pixel data, so we must set format BEFORE copying.
+    Bmp.PixelFormat := pf24bit;
+    Bmp.HandleType := bmDIB;
+    W := Src.Width;
+    H := Src.Height;
+    Bmp.Width := W;
+    Bmp.Height := H;
+    Bmp.Canvas.Draw(0, 0, Src);
+  {$ELSE}
     Bmp.Assign(Src);
     Bmp.HandleType := bmDIB;
     Bmp.PixelFormat := pf24bit;
     W := Bmp.Width;
     H := Bmp.Height;
+  {$ENDIF}
     if (W <= 0) or (H <= 0) then
       Exit;
 
