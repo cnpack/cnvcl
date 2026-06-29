@@ -197,13 +197,13 @@ type
     procedure SaveCurrentFrameToGIFFile(const FileName: string);
     procedure SaveCompositedFrameToGIFStream(Stream: TStream);
     procedure SaveCompositedFrameToGIFFile(const FileName: string);
-    procedure Clear;
+    procedure Clear; {$IFDEF FPC} override; {$ENDIF}
     procedure Draw(ACanvas: TCanvas; const Rect: TRect); override;
 
     procedure LoadFromClipboardFormat(AFormat: Word; AData: THandle;
-      APalette: HPALETTE); override;
+      APalette: HPALETTE); {$IFNDEF FPC} override; {$ENDIF}
     procedure SaveToClipboardFormat(var Format: Word; var Data: THandle;
-      var APalette: HPALETTE); override;
+      var APalette: HPALETTE); {$IFNDEF FPC} override; {$ENDIF}
 
     property CurrentFrame: Integer read FCurrentFrame write SetCurrentFrame;
     property FrameCount: Integer read GetFrameCount;
@@ -2285,7 +2285,7 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.LoadFromClipboardFormat(AFormat, AData, APalette);
+    Bmp.LoadFromClipboardFormat(AFormat {$IFNDEF FPC}, AData, APalette {$ENDIF});
     Assign(Bmp);
   finally
     Bmp.Free;
@@ -2301,7 +2301,7 @@ begin
   Bmp := TBitmap.Create;
   try
     AssignTo(Bmp);
-    Bmp.SaveToClipboardFormat(Format, Data, APalette);
+    Bmp.SaveToClipboardFormat(Format {$IFNDEF FPC}, Data, APalette {$ENDIF});
   finally
     Bmp.Free;
   end;

@@ -1,9 +1,11 @@
 unit UnitGIF;
 
+{$MODE Delphi}
+
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, CnGIF;
 
 type
@@ -45,7 +47,7 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.lfm}
 
 { TfrmGIFDemo }
 
@@ -53,8 +55,8 @@ procedure TfrmGIFDemo.FormCreate(Sender: TObject);
 begin
   FGIF := TCnGIFImage.Create;
   FPlaying := False;
-  dlgOpen.Filter := 'GIF ÎÄ¼þ(*.gif)|*.gif|ËùÓÐÎÄ¼þ(*.*)|*.*';
-  dlgSave.Filter := 'GIF ÎÄ¼þ(*.gif)|*.gif';
+  dlgOpen.Filter := 'GIF æ–‡ä»¶(*.gif)|*.gif|æ‰€æœ‰æ–‡ä»¶(*.*)|*.*';
+  dlgSave.Filter := 'GIF æ–‡ä»¶(*.gif)|*.gif';
   dlgSave.DefaultExt := 'gif';
 end;
 
@@ -73,7 +75,7 @@ begin
     FGIF.LoadFromFile(FFileName);
     FGIF.CurrentFrame := 0;
     FPlaying := False;
-    btnPlayPause.Caption := '²¥·Å';
+    btnPlayPause.Caption := 'æ’­æ”¾';
     tmrAnimation.Enabled := False;
     UpdateInfo;
     pbDisplay.Invalidate;
@@ -83,13 +85,13 @@ begin
     btnSaveFrame.Enabled := not FGIF.Empty;
   except
     on E: Exception do
-      ShowMessage('¼ÓÔØÊ§°Ü: ' + E.Message);
+      ShowMessage('åŠ è½½å¤±è´¥: ' + E.Message);
   end;
 end;
 
 procedure TfrmGIFDemo.pbDisplayPaint(Sender: TObject);
 const
-  S = 'Çëµã»÷"¼ÓÔØ GIF"°´Å¥';
+  S = 'è¯·ç‚¹å‡»"åŠ è½½ GIF"æŒ‰é’®';
 var
   R: TRect;
 begin
@@ -117,7 +119,7 @@ begin
   if FPlaying then
   begin
     FPlaying := False;
-    btnPlayPause.Caption := '²¥·Å';
+    btnPlayPause.Caption := 'æ’­æ”¾';
     tmrAnimation.Enabled := False;
   end;
   if FGIF.CurrentFrame > 0 then
@@ -134,7 +136,7 @@ begin
   if FPlaying then
   begin
     FPlaying := False;
-    btnPlayPause.Caption := '²¥·Å';
+    btnPlayPause.Caption := 'æ’­æ”¾';
     tmrAnimation.Enabled := False;
   end;
   if FGIF.CurrentFrame < FGIF.FrameCount - 1 then
@@ -152,7 +154,7 @@ begin
   FPlaying := not FPlaying;
   if FPlaying then
   begin
-    btnPlayPause.Caption := 'ÔÝÍ£';
+    btnPlayPause.Caption := 'æš‚åœ';
     tmrAnimation.Interval := FGIF.Frames[FGIF.CurrentFrame].Delay * 10;
     if tmrAnimation.Interval < 50 then
       tmrAnimation.Interval := 100;
@@ -160,7 +162,7 @@ begin
   end
   else
   begin
-    btnPlayPause.Caption := '²¥·Å';
+    btnPlayPause.Caption := 'æ’­æ”¾';
     tmrAnimation.Enabled := False;
   end;
 end;
@@ -193,9 +195,9 @@ begin
   end;
 
   lblFileName.Caption := ExtractFileName(FFileName);
-  lblInfo.Caption := Format('%d x %d  Ö¡Êý: %d  Ñ­»·: %d',
+  lblInfo.Caption := Format('%d x %d  å¸§æ•°: %d  å¾ªçŽ¯: %d',
     [FGIF.Width, FGIF.Height, FGIF.FrameCount, FGIF.AnimationLoopCount]);
-  lblFrame.Caption := Format('Ö¡: %d / %d  ÑÓ³Ù: %dms',
+  lblFrame.Caption := Format('å¸§: %d / %d  å»¶è¿Ÿ: %dms',
     [FGIF.CurrentFrame + 1, FGIF.FrameCount,
      FGIF.Frames[FGIF.CurrentFrame].Delay * 10]);
 end;
@@ -209,7 +211,7 @@ procedure TfrmGIFDemo.btnSaveFrameClick(Sender: TObject);
 begin
   if FGIF.Empty then
   begin
-    ShowMessage('ÇëÏÈ¼ÓÔØ GIF');
+    ShowMessage('è¯·å…ˆåŠ è½½ GIF');
     Exit;
   end;
 
@@ -218,10 +220,10 @@ begin
 
   try
     FGIF.SaveCompositedFrameToGIFFile(dlgSave.FileName);
-    ShowMessage('ÒÑ±£´æ: ' + dlgSave.FileName);
+    ShowMessage('å·²ä¿å­˜: ' + dlgSave.FileName);
   except
     on E: Exception do
-      ShowMessage('±£´æÊ§°Ü: ' + E.Message);
+      ShowMessage('ä¿å­˜å¤±è´¥: ' + E.Message);
   end;
 end;
 
