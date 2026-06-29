@@ -195,6 +195,8 @@ type
     procedure SaveBitmapToGIFFile(const FileName: string; Src: TBitmap);
     procedure SaveCurrentFrameToGIFStream(Stream: TStream);
     procedure SaveCurrentFrameToGIFFile(const FileName: string);
+    procedure SaveCompositedFrameToGIFStream(Stream: TStream);
+    procedure SaveCompositedFrameToGIFFile(const FileName: string);
     procedure Clear;
     procedure Draw(ACanvas: TCanvas; const Rect: TRect); override;
 
@@ -2210,6 +2212,48 @@ begin
   Stm := TFileStream.Create(FileName, fmCreate);
   try
     SaveCurrentFrameToGIFStream(Stm);
+  finally
+    Stm.Free;
+  end;
+end;
+
+procedure TCnGIFImage.SaveCompositedFrameToGIFStream(Stream: TStream);
+var
+  W, H: Integer;
+  Palette: TCnGIFColors;
+  IdxBuf: PByteArray;
+begin
+  if GetEmpty then
+    Exit;
+  if (FCurrentFrame < 0) or (FCurrentFrame >= FFrames.Count) then
+    Exit;
+
+  // Composite all frames up to current frame into FCompositeBuf
+  EnsureRendered(FCurrentFrame);
+  if (FCompositeBuf = nil) or (FCompWidth <= 0) or (FCompHeight <= 0) then
+    Exit;
+
+  W := FCompWidth;
+  H := FCompHeight;
+
+  GetMem(IdxBuf, W * H);
+  try
+    QuantizeComposite(Palette, IdxBuf);
+    if Length(Palette) = 0 then
+      Exit;
+    WriteSingleFrameGIF(Stream, W, H, Palette, IdxBuf);
+  finally
+    FreeMem(IdxBuf);
+  end;
+end;
+
+procedure TCnGIFImage.SaveCompositedFrameToGIFFile(const FileName: string);
+var
+  Stm: TFileStream;
+begin
+  Stm := TFileStream.Create(FileName, fmCreate);
+  try
+    SaveCompositedFrameToGIFStream(Stm);
   finally
     Stm.Free;
   end;
