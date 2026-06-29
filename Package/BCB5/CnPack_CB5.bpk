@@ -128,6 +128,7 @@
       ..\..\Source\Graphic\CnEdit.obj 
       ..\..\Source\Graphic\CnErrorProvider.obj 
       ..\..\Source\Graphic\CnGauge.obj 
+      ..\..\Source\Graphic\CnGIF.obj 
       ..\..\Source\Graphic\CnGraphConsts.obj 
       ..\..\Source\Graphic\CnGraphics.obj 
       ..\..\Source\Graphic\CnHexEditor.obj 

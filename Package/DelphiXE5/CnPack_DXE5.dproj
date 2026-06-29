@@ -268,6 +268,7 @@
         <DCCReference Include="..\..\Source\Graphic\CnEdit.pas"/>
         <DCCReference Include="..\..\Source\Graphic\CnErrorProvider.pas"/>
         <DCCReference Include="..\..\Source\Graphic\CnGauge.pas"/>
+        <DCCReference Include="..\..\Source\Graphic\CnGIF.pas"/>
         <DCCReference Include="..\..\Source\Graphic\CnGraphConsts.pas"/>
         <DCCReference Include="..\..\Source\Graphic\CnGraphics.pas"/>
         <DCCReference Include="..\..\Source\Graphic\CnHexEditor.pas"/>

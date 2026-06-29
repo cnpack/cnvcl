@@ -195,6 +195,7 @@ contains
   CnEdit in '..\..\Source\Graphic\CnEdit.pas',
   CnErrorProvider in '..\..\Source\Graphic\CnErrorProvider.pas',
   CnGauge in '..\..\Source\Graphic\CnGauge.pas',
+  CnGIF in '..\..\Source\Graphic\CnGIF.pas',
   CnGraphConsts in '..\..\Source\Graphic\CnGraphConsts.pas',
   CnGraphics in '..\..\Source\Graphic\CnGraphics.pas',
   CnHexEditor in '..\..\Source\Graphic\CnHexEditor.pas',
