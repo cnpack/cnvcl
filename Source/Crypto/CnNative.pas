@@ -218,6 +218,11 @@ type
   TCnWord16Array = array [0..0] of Word;
   {* 16 位无符号整数数组}
 
+  PSmallIntArray = ^TSmallIntArray;
+  {* 16 位有符号整数数组指针}
+  TSmallIntArray = array [0..0] of SmallInt;
+  {* 16 位有符号整数数组}
+
 {$IFDEF POSIX64}
   TCnLongWord32 = Cardinal;
   {* 统一定义 32 位无符号 LongWord，因为 Linux64/MacOS64 或 POSIX64 下面 LongWord 竟然是 64 位无符号数}
