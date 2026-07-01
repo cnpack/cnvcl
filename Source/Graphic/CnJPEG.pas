@@ -354,6 +354,7 @@ type
     procedure BuildEncLookup(const Bits: array of Byte;
       const HuffVal: array of Byte; NumVals: Integer;
       var EncCode: array of Cardinal; var EncSize: array of Byte);
+    procedure WriteWord(W: Word);
     procedure WriteSOI;
     procedure WriteAPP0;
     procedure WriteDQT;
@@ -2503,12 +2504,18 @@ begin
     FACEncCode[1], FACEncSize[1]);
 end;
 
+procedure TCnJPEGEncoder.WriteWord(W: Word);
+begin
+  W := UInt16ToBigEndian(W);
+  FStream.Write(W, 2);
+end;
+
 procedure TCnJPEGEncoder.WriteSOI;
 var
   W: Word;
 begin
   W := CN_JPEG_SOI;
-  FStream.Write(W, 2);
+  WriteWord(W);
 end;
 
 procedure TCnJPEGEncoder.WriteAPP0;
@@ -2518,19 +2525,19 @@ var
   Ident: array[0..4] of AnsiChar;
 begin
   W := CN_JPEG_APP0;
-  FStream.Write(W, 2);
+  WriteWord(W);
   W := 16;  // 段长度
-  FStream.Write(W, 2);
+  WriteWord(W);
   Ident := 'JFIF';
   FStream.Write(Ident[0], 5);  // "JFIF\0"
   W := $0101;  // 版本 1.1
-  FStream.Write(W, 2);
+  WriteWord(W);
   B := 0;  // 密度单位（无单位）
   FStream.Write(B, 1);
   W := 1;  // X 密度
-  FStream.Write(W, 2);
+  WriteWord(W);
   W := 1;  // Y 密度
-  FStream.Write(W, 2);
+  WriteWord(W);
   B := 0;  // 缩略图宽度
   FStream.Write(B, 1);
   B := 0;  // 缩略图高度
@@ -2547,9 +2554,9 @@ begin
   begin
     if FGrayscale and (T = 1) then Break;  // 灰度模式只写亮度表
     W := CN_JPEG_DQT;
-    FStream.Write(W, 2);
+    WriteWord(W);
     W := 2 + 1 + 64;  // 段长度
-    FStream.Write(W, 2);
+    WriteWord(W);
     B := T;  // 精度=0 (8bit), 表 ID=T
     FStream.Write(B, 1);
     // 按 ZigZag 顺序写入量化表
@@ -2567,18 +2574,18 @@ var
   B: Byte;
 begin
   W := CN_JPEG_SOF0;
-  FStream.Write(W, 2);
+  WriteWord(W);
   if FGrayscale then
     W := 2 + 1 + 2 + 2 + 1 + 1 * 3  // 1 分量
   else
     W := 2 + 1 + 2 + 2 + 1 + 3 * 3;  // 3 分量
-  FStream.Write(W, 2);
+  WriteWord(W);
   B := 8;  // 样本精度
   FStream.Write(B, 1);
   W := FHeight;
-  FStream.Write(W, 2);
+  WriteWord(W);
   W := FWidth;
-  FStream.Write(W, 2);
+  WriteWord(W);
   if FGrayscale then
   begin
     B := 1;  // 分量数
@@ -2615,18 +2622,18 @@ var
   B: Byte;
 begin
   W := CN_JPEG_SOF2;
-  FStream.Write(W, 2);
+  WriteWord(W);
   if FGrayscale then
     W := 2 + 1 + 2 + 2 + 1 + 1 * 3  // 1 分量
   else
     W := 2 + 1 + 2 + 2 + 1 + 3 * 3;  // 3 分量
-  FStream.Write(W, 2);
+  WriteWord(W);
   B := 8;  // 样本精度
   FStream.Write(B, 1);
   W := FHeight;
-  FStream.Write(W, 2);
+  WriteWord(W);
   W := FWidth;
-  FStream.Write(W, 2);
+  WriteWord(W);
   if FGrayscale then
   begin
     B := 1;  // 分量数
@@ -2671,9 +2678,9 @@ begin
     for I := 1 to 16 do
       Inc(Total, FDCTables[T].Bits[I]);
     W := CN_JPEG_DHT;
-    FStream.Write(W, 2);
+    WriteWord(W);
     W := 2 + 1 + 16 + Total;
-    FStream.Write(W, 2);
+    WriteWord(W);
     B := T;  // DC 表, ID=T
     FStream.Write(B, 1);
     for I := 1 to 16 do
@@ -2692,9 +2699,9 @@ begin
     for I := 1 to 16 do
       Inc(Total, FACTables[T].Bits[I]);
     W := CN_JPEG_DHT;
-    FStream.Write(W, 2);
+    WriteWord(W);
     W := 2 + 1 + 16 + Total;
-    FStream.Write(W, 2);
+    WriteWord(W);
     B := $10 or T;  // AC 表, ID=T
     FStream.Write(B, 1);
     for I := 1 to 16 do
@@ -2718,12 +2725,12 @@ var
   B: Byte;
 begin
   W := CN_JPEG_SOS;
-  FStream.Write(W, 2);
+  WriteWord(W);
   if FGrayscale then
     W := 2 + 1 + 1 * 2 + 3
   else
     W := 2 + 1 + 3 * 2 + 3;
-  FStream.Write(W, 2);
+  WriteWord(W);
 
   if FGrayscale then
   begin
@@ -2749,7 +2756,7 @@ var
   W: Word;
 begin
   W := CN_JPEG_EOI;
-  FStream.Write(W, 2);
+  WriteWord(W);
 end;
 
 procedure TCnJPEGEncoder.WriteSOSForScan(Ss, Se, Ah, Al: Byte;
@@ -2759,9 +2766,9 @@ var
   B, DCTbl, ACTbl: Byte;
 begin
   W := CN_JPEG_SOS;
-  FStream.Write(W, 2);
+  WriteWord(W);
   W := 2 + 1 + 1 * 2 + 3;
-  FStream.Write(W, 2);
+  WriteWord(W);
   B := 1;
   FStream.Write(B, 1);
   B := CompIdx + 1;
@@ -2785,9 +2792,9 @@ var
   DCTbl, ACTbl: Byte;
 begin
   W := CN_JPEG_SOS;
-  FStream.Write(W, 2);
+  WriteWord(W);
   W := 2 + 1 + NumComps * 2 + 3;
-  FStream.Write(W, 2);
+  WriteWord(W);
   B := NumComps;
   FStream.Write(B, 1);
   for I := 0 to NumComps - 1 do

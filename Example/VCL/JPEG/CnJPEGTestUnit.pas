@@ -146,9 +146,8 @@ begin
   // Test: segment length = 16, data = 14 bytes
   MS := TMemoryStream.Create;
   try
-    B := $FF; MS.Write(B, 1);
-    B := $E0; MS.Write(B, 1);  // APP0
-    W := 16; MS.Write(W, 2);    // length = 16
+    W := UInt16ToBigEndian($FFE0); MS.Write(W, 2);  // APP0 marker
+    W := UInt16ToBigEndian(16);   MS.Write(W, 2);  // length = 16
     for I := 0 to 13 do
     begin
       B := I;
@@ -309,13 +308,12 @@ var
   JPEG: TCnJPEGImage;
   MS: TMemoryStream;
   W: Word;
-  B: Byte;
 begin
   // Create minimal JPEG: SOI + EOI
   MS := TMemoryStream.Create;
   try
-    W := $FFD8; MS.Write(W, 2);  // SOI
-    W := $FFD9; MS.Write(W, 2);  // EOI
+    W := UInt16ToBigEndian($FFD8); MS.Write(W, 2);  // SOI
+    W := UInt16ToBigEndian($FFD9); MS.Write(W, 2);  // EOI
     MS.Position := 0;
 
     JPEG := TCnJPEGImage.Create;
