@@ -842,8 +842,7 @@ begin
     if FStream.Read(B, 1) <> 1 then
     begin
       FEOF := True;
-      // 用零填充剩余位
-      Result := Integer(FBitBuf) shr (32 - Count);
+      Result := 0;
       Exit;
     end;
 
@@ -853,7 +852,7 @@ begin
       if FStream.Read(B, 1) <> 1 then
       begin
         FEOF := True;
-        Result := Integer(FBitBuf) shr (32 - Count);
+        Result := 0;
         Exit;
       end;
 
@@ -875,7 +874,7 @@ begin
         // EOI
         FHitMarker := $FFD9;
         FEOF := True;
-        Result := Integer(FBitBuf) shr (32 - Count);
+        Result := 0;
         Exit;
       end
       else
@@ -883,21 +882,18 @@ begin
         // 其他标记（SOS/DHT/DRI 等），记录并当作 EOF 处理
         FHitMarker := $FF00 or B;
         FEOF := True;
-        Result := Integer(FBitBuf) shr (32 - Count);
+        Result := 0;
         Exit;
       end;
     end;
 
     // 将字节加入位缓冲（高位在前）
-    FBitBuf := (FBitBuf shl 8) or B;
+    FBitBuf := (FBitBuf shl 8) or Cardinal(B);
     Inc(FBitCnt, 8);
   end;
 
-  // 从高位提取 Count 位
-  Result := Integer(FBitBuf) shr (32 - Count);
-  // 清除已读位
-  FBitBuf := FBitBuf shl Count;
   Dec(FBitCnt, Count);
+  Result := (FBitBuf shr FBitCnt) and ((Cardinal(1) shl Count) - 1);
 end;
 
 procedure TCnJPEGBitReader.ResetDC;
@@ -1042,19 +1038,20 @@ function TCnJPEGMarker.ReadMarker: Word;
 var
   B: Byte;
 begin
-  // 跳过非 FF 字节，找到 marker 前缀
   repeat
-    B := ReadByte;
-  until B = $FF;
+    // Scan for FF marker prefix
+    repeat
+      B := ReadByte;
+    until B = $FF;
 
-  // 跳过填充 FF
-  repeat
-    B := ReadByte;
-  until B <> $FF;
+    // Skip padding FF bytes
+    repeat
+      B := ReadByte;
+    until B <> $FF;
 
-  // B=00 是字节对齐填充（不应出现在 marker 扫描中），当作错误处理
-  if B = $00 then
-    raise ECnJPEGException.Create(SCnErrorInvalidMarkerInMarkerContext);
+    // FF 00 is byte-stuffing (escaped FF), not a marker.
+    // Skip it and continue scanning for the next real marker.
+  until B <> $00;
 
   Result := $FF00 or B;
 end;
@@ -1519,7 +1516,7 @@ begin
       Sum := 0;
       for U := 0 to 7 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * DQ[V * 8 + U]);
-      Tmp[X * 8 + V] := Integer(Sum shr 16);
+      Tmp[X * 8 + V] := Integer(SarInt64(Sum, 16));
     end;
   end;
 
@@ -1531,7 +1528,7 @@ begin
       Sum := 0;
       for V := 0 to 7 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[X * 8 + V]);
-      Sum := Sum shr 16;
+      Sum := SarInt64(Sum, 16);
       Inc(Sum, 128);
       if Sum < 0 then Sum := 0;
       if Sum > 255 then Sum := 255;
@@ -1857,37 +1854,17 @@ begin
 
             if Size = 0 then
             begin
-              if Run = 0 then
+              if Run = 15 then
               begin
-                // EOB：计算 EOB 游程
-                EOBRun := 1;
-                // 尝试读取更多位确定 EOB 游程长度
-                while True do
-                begin
-                  Val := FBitReader.GetBit;
-                  if Val = 1 then
-                  begin
-                    EOBRun := (EOBRun shl 1) or 1;
-                    if EOBRun >= 32768 then Break;
-                  end
-                  else
-                  begin
-                    EOBRun := (EOBRun shl 1);
-                    if EOBRun >= 1 then
-                    begin
-                      EOBRun := EOBRun + FBitReader.GetBits(1);
-                      Break;
-                    end;
-                  end;
-                end;
-                Dec(EOBRun);  // 当前块已算 1 个
-                Break;
-              end
-              else if Run = 15 then
-                Inc(K, 16)  // ZRL
-              else
-                Break;
-              Continue;
+                Inc(K, 16);  // ZRL
+                Continue;
+              end;
+              // EOB run: EOBn where n=Run (0..14)
+              EOBRun := 1 shl Run;
+              if Run > 0 then
+                EOBRun := EOBRun + FBitReader.GetBits(Run);
+              Dec(EOBRun);  // current block counts as 1
+              Break;
             end;
 
             Inc(K, Run);
@@ -1918,39 +1895,17 @@ begin
 
             if Size = 0 then
             begin
-              if Run = 0 then
+              if Run = 15 then
               begin
-                // EOB 游程
-                EOBRun := 1;
-                while True do
-                begin
-                  Val := FBitReader.GetBit;
-                  if Val = 1 then
-                  begin
-                    EOBRun := (EOBRun shl 1) or 1;
-                    if EOBRun >= 32768 then Break;
-                  end
-                  else
-                  begin
-                    EOBRun := (EOBRun shl 1);
-                    if EOBRun >= 1 then
-                    begin
-                      EOBRun := EOBRun + FBitReader.GetBits(1);
-                      Break;
-                    end;
-                  end;
-                end;
-                Dec(EOBRun);
-                Break;
-              end
-              else if Run = 15 then
-              begin
-                // ZRL：跳过 16 个零系数
-                Inc(K, 16);
-              end
-              else
-                Break;
-              Continue;
+                Inc(K, 16);  // ZRL
+                Continue;
+              end;
+              // EOB run: EOBn where n=Run (0..14)
+              EOBRun := 1 shl Run;
+              if Run > 0 then
+                EOBRun := EOBRun + FBitReader.GetBits(Run);
+              Dec(EOBRun);  // current block counts as 1
+              Break;
             end;
 
             // Size=1：跳过 Run 个零，精化下一个系数
@@ -2880,7 +2835,7 @@ begin
       Sum := 0;
       for X := 0 to 7 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * F[X + Y * 8]);
-      Tmp[U + Y * 8] := Integer(Sum shr 16);
+      Tmp[U + Y * 8] := Integer(SarInt64(Sum, 16));
     end;
   for U := 0 to 7 do
     for V := 0 to 7 do
@@ -2888,7 +2843,7 @@ begin
       Sum := 0;
       for Y := 0 to 7 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[U + Y * 8]);
-      QCoef[V * 8 + U] := Integer(Sum shr 16);
+      QCoef[V * 8 + U] := Integer(SarInt64(Sum, 16));
     end;
 
   // 3. 量化
@@ -3246,7 +3201,7 @@ begin
               Sum := 0;
               for X := 0 to 7 do
                 Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * F[X + Y * 8]);
-              Tmp[U + Y * 8] := Integer(Sum shr 16);
+              Tmp[U + Y * 8] := Integer(SarInt64(Sum, 16));
             end;
           // 列变换
           for U := 0 to 7 do
@@ -3255,7 +3210,7 @@ begin
               Sum := 0;
               for Y := 0 to 7 do
                 Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[U + Y * 8]);
-              QCoef[V * 8 + U] := Integer(Sum shr 16);
+              QCoef[V * 8 + U] := Integer(SarInt64(Sum, 16));
             end;
           // 量化
           for I := 0 to 63 do
@@ -3291,7 +3246,7 @@ begin
               Sum := 0;
               for X := 0 to 7 do
                 Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * F[X + Y * 8]);
-              Tmp[U + Y * 8] := Integer(Sum shr 16);
+              Tmp[U + Y * 8] := Integer(SarInt64(Sum, 16));
             end;
           for U := 0 to 7 do
             for V := 0 to 7 do
@@ -3299,7 +3254,7 @@ begin
               Sum := 0;
               for Y := 0 to 7 do
                 Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[U + Y * 8]);
-              QCoef[V * 8 + U] := Integer(Sum shr 16);
+              QCoef[V * 8 + U] := Integer(SarInt64(Sum, 16));
             end;
           for I := 0 to 63 do
           begin
