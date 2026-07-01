@@ -478,6 +478,7 @@ type
     FTransparentColor: TColor;
 
     procedure FreeBitmap;
+    procedure EnsureJPEGDataValid;
     procedure CreateBitmap;
     procedure NewJPEGData;
     function GetBitmap: TBitmap;
@@ -1502,40 +1503,49 @@ procedure TCnJPEGDecoder.DequantizeAndIDCT(var Coef: array of SmallInt;
   QuantID: Integer; var OutPixels: array of Byte;
   CompIdx: Integer; AScale: TCnJPEGScale);
 var
-  I, X, Y, U, V: Integer;
+  I, X, Y, U, V, M: Integer;
   DQ: array[0..63] of Integer;
   Tmp: array[0..63] of Integer;
   Sum: Int64;
 begin
-  // 反量化（Coef 和 QuantTable 均为自然顺序）
+  // Scaled IDCT: determine output block size M based on AScale
+  // M=8: full 8x8; M=4: top-left 4x4 coefs; M=2: top-left 2x2; M=1: DC only
+  case AScale of
+    jsHalf:    M := 4;
+    jsQuarter: M := 2;
+    jsEighth:  M := 1;
+  else
+    M := 8;
+  end;
   for I := 0 to 63 do
     DQ[I] := Coef[I] * FQuantTables[QuantID, I];
 
   // 行变换: Tmp[x*8+v] = sum_u cos[u][x] * DQ[v*8+u], 然后 >> 16
-  for V := 0 to 7 do
+  for V := 0 to M - 1 do
   begin
-    for X := 0 to 7 do
+    for X := 0 to M - 1 do
     begin
       Sum := 0;
-      for U := 0 to 7 do
+      for U := 0 to M - 1 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * DQ[V * 8 + U]);
-      Tmp[X * 8 + V] := Integer(SarInt64(Sum, 16));
+      Tmp[X * M + V] := Integer(SarInt64(Sum, 16));
     end;
   end;
 
   // 列变换: Out[y*8+x] = (sum_v cos[v][y] * Tmp[x*8+v]) >> 16, +128, clamp
-  for X := 0 to 7 do
+  // Second pass: Out[y*M+x] = (sum_{v=0}^{M-1} cos[v][y] * Tmp[x*M+v]) >> 16, +128, clamp
+  for X := 0 to M - 1 do
   begin
-    for Y := 0 to 7 do
+    for Y := 0 to M - 1 do
     begin
       Sum := 0;
-      for V := 0 to 7 do
-        Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[X * 8 + V]);
+      for V := 0 to M - 1 do
+        Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[X * M + V]);
       Sum := SarInt64(Sum, 16);
       Inc(Sum, 128);
       if Sum < 0 then Sum := 0;
       if Sum > 255 then Sum := 255;
-      OutPixels[Y * 8 + X] := Byte(Sum);
+      OutPixels[Y * M + X] := Byte(Sum);
     end;
   end;
 end;
@@ -1545,7 +1555,7 @@ var
   CompIdx, BX, BY, PX, PY: Integer;
   Coef: array[0..63] of SmallInt;
   Pixels: array[0..63] of Byte;
-  // 分量像素缓冲（最大 16×16 = 256 字节）
+  M, ScaledMCUW, ScaledMCUH: Integer;
   CompBuf: array[0..3, 0..255] of Byte;
   CompW, CompH: array[0..3] of Integer;
   OutX, OutY: Integer;
@@ -1556,13 +1566,21 @@ var
   RowPtr: PByteArray;
   ImgX, ImgY: Integer;
 begin
+  // Determine scaled block size
+  case FScale of
+    jsHalf:    M := 4;
+    jsQuarter: M := 2;
+    jsEighth:  M := 1;
+  else
+    M := 8;
+  end;
   FillChar(CompBuf[0, 0], SizeOf(CompBuf), 0);
 
   // 解码每个分量的每个块
   for CompIdx := 0 to FNumComponents - 1 do
   begin
-    CompW[CompIdx] := 8 * FComponents[CompIdx].HSampFactor;
-    CompH[CompIdx] := 8 * FComponents[CompIdx].VSampFactor;
+    CompW[CompIdx] := M * FComponents[CompIdx].HSampFactor;
+    CompH[CompIdx] := M * FComponents[CompIdx].VSampFactor;
 
     for BY := 0 to FComponents[CompIdx].VSampFactor - 1 do
       for BX := 0 to FComponents[CompIdx].HSampFactor - 1 do
@@ -1572,28 +1590,30 @@ begin
           Pixels, CompIdx, FScale);
 
         // 将 8×8 像素复制到分量缓冲
-        for PY := 0 to 7 do
-          for PX := 0 to 7 do
-            CompBuf[CompIdx, (BY * 8 + PY) * CompW[CompIdx] + (BX * 8 + PX)] :=
-              Pixels[PY * 8 + PX];
+        for PY := 0 to M - 1 do
+          for PX := 0 to M - 1 do
+            CompBuf[CompIdx, (BY * M + PY) * CompW[CompIdx] + (BX * M + PX)] :=
+              Pixels[PY * M + PX];
       end;
   end;
 
   // 上采样 + 色彩转换 + 写入位图
-  MaxPX := FMCUWidth;
-  MaxPY := FMCUHeight;
+  ScaledMCUW := M * FMaxH;
+  ScaledMCUH := M * FMaxV;
+  MaxPX := ScaledMCUW;
+  MaxPY := ScaledMCUH;
   if MCUX = FMCUsPerRow - 1 then
-    MaxPX := FWidth - MCUX * FMCUWidth;
+    MaxPX := ScaledOutWidth - MCUX * ScaledMCUW;
   if MCUY = FMCUsPerCol - 1 then
-    MaxPY := FHeight - MCUY * FMCUHeight;
+    MaxPY := ScaledOutHeight - MCUY * ScaledMCUH;
 
-  OutX := MCUX * FMCUWidth;
-  OutY := MCUY * FMCUHeight;
+  OutX := MCUX * ScaledMCUW;
+  OutY := MCUY * ScaledMCUH;
 
   for PY := 0 to MaxPY - 1 do
   begin
     ImgY := OutY + PY;
-    if ImgY >= FHeight then Break;
+    if ImgY >= ScaledOutHeight then Break;
     if ImgY >= OutBmp.Height then Break;
 
     RowPtr := OutBmp.ScanLine[ImgY];
@@ -1601,7 +1621,7 @@ begin
     for PX := 0 to MaxPX - 1 do
     begin
       ImgX := OutX + PX;
-      if ImgX >= FWidth then Break;
+      if ImgX >= ScaledOutWidth then Break;
       if ImgX >= OutBmp.Width then Break;
 
       if FNumComponents = 1 then
@@ -1965,8 +1985,16 @@ var
   RowPtr: PByteArray;
   ImgX, ImgY: Integer;
   Val: Byte;
+  M, ScaledMCUW, ScaledMCUH: Integer;
 begin
-  // 对每个 MCU 执行反量化 + IDCT + 色彩转换
+  // Determine scaled block size
+  case FScale of
+    jsHalf:    M := 4;
+    jsQuarter: M := 2;
+    jsEighth:  M := 1;
+  else
+    M := 8;
+  end;
   for MCUY := 0 to FMCUsPerCol - 1 do
   begin
     for MCUX := 0 to FMCUsPerRow - 1 do
@@ -1975,8 +2003,8 @@ begin
 
       for CompIdx := 0 to FNumComponents - 1 do
       begin
-        CompW[CompIdx] := 8 * FComponents[CompIdx].HSampFactor;
-        CompH[CompIdx] := 8 * FComponents[CompIdx].VSampFactor;
+        CompW[CompIdx] := M * FComponents[CompIdx].HSampFactor;
+        CompH[CompIdx] := M * FComponents[CompIdx].VSampFactor;
 
         for BY := 0 to FComponents[CompIdx].VSampFactor - 1 do
           for BX := 0 to FComponents[CompIdx].HSampFactor - 1 do
@@ -1991,28 +2019,30 @@ begin
             DequantizeAndIDCT(Coef, FComponents[CompIdx].QuantTableID,
               Pixels, CompIdx, FScale);
 
-            for PY := 0 to 7 do
-              for PX := 0 to 7 do
-                CompBuf[CompIdx, (BY * 8 + PY) * CompW[CompIdx] + (BX * 8 + PX)] :=
-                  Pixels[PY * 8 + PX];
+            for PY := 0 to M - 1 do
+              for PX := 0 to M - 1 do
+                CompBuf[CompIdx, (BY * M + PY) * CompW[CompIdx] + (BX * M + PX)] :=
+                  Pixels[PY * M + PX];
           end;
       end;
 
       // 上采样 + 色彩转换 + 写入位图（与 DecodeMCU 相同逻辑）
-      MaxPX := FMCUWidth;
-      MaxPY := FMCUHeight;
+      ScaledMCUW := M * FMaxH;
+      ScaledMCUH := M * FMaxV;
+      MaxPX := ScaledMCUW;
+      MaxPY := ScaledMCUH;
       if MCUX = FMCUsPerRow - 1 then
-        MaxPX := FWidth - MCUX * FMCUWidth;
+        MaxPX := ScaledOutWidth - MCUX * ScaledMCUW;
       if MCUY = FMCUsPerCol - 1 then
-        MaxPY := FHeight - MCUY * FMCUHeight;
+        MaxPY := ScaledOutHeight - MCUY * ScaledMCUH;
 
-      OutX := MCUX * FMCUWidth;
-      OutY := MCUY * FMCUHeight;
+      OutX := MCUX * ScaledMCUW;
+      OutY := MCUY * ScaledMCUH;
 
       for PY := 0 to MaxPY - 1 do
       begin
         ImgY := OutY + PY;
-        if ImgY >= FHeight then Break;
+        if ImgY >= ScaledOutHeight then Break;
         if ImgY >= OutBmp.Height then Break;
 
         RowPtr := OutBmp.ScanLine[ImgY];
@@ -2020,7 +2050,7 @@ begin
         for PX := 0 to MaxPX - 1 do
         begin
           ImgX := OutX + PX;
-          if ImgX >= FWidth then Break;
+          if ImgX >= ScaledOutWidth then Break;
           if ImgX >= OutBmp.Width then Break;
 
           if FNumComponents = 1 then
@@ -3849,6 +3879,14 @@ begin
   end;
 end;
 
+procedure TCnJPEGImage.EnsureJPEGDataValid;
+begin
+  // If bitmap was modified (e.g. assigned from TBitmap), compress it
+  // to FData before freeing, so DIBNeeded can re-decode from valid JPEG data
+  if FModified and (FBitmap <> nil) then
+    Compress;
+end;
+
 procedure TCnJPEGImage.CreateBitmap;
 begin
   FreeBitmap;
@@ -3890,6 +3928,7 @@ begin
     FGrayscale := Value;
     if Value then
       FPixelFormat := jf8Bit;
+    EnsureJPEGDataValid;
     FreeBitmap;
     FModified := True;
   end;
@@ -3900,6 +3939,7 @@ begin
   if FPixelFormat <> Value then
   begin
     FPixelFormat := Value;
+    EnsureJPEGDataValid;
     FreeBitmap;
   end;
 end;
@@ -3909,6 +3949,7 @@ begin
   if FPerformance <> Value then
   begin
     FPerformance := Value;
+    EnsureJPEGDataValid;
     FreeBitmap;
   end;
 end;
@@ -3932,6 +3973,7 @@ begin
   if FScale <> Value then
   begin
     FScale := Value;
+    EnsureJPEGDataValid;
     FreeBitmap;
   end;
 end;
@@ -3941,6 +3983,7 @@ begin
   if FSmoothing <> Value then
   begin
     FSmoothing := Value;
+    EnsureJPEGDataValid;
     FreeBitmap;
   end;
 end;
@@ -4149,6 +4192,10 @@ end;
 procedure TCnJPEGImage.DIBNeeded;
 var
   Decoder: TCnJPEGDecoder;
+  GrayBmp: TBitmap;
+  I, X, Y: Integer;
+  Pal: PLogPalette;
+  SrcRow, DstRow: PByteArray;
 begin
   if FBitmap <> nil then Exit;
   if FData = nil then
@@ -4159,6 +4206,57 @@ begin
   try
     Decoder.Decode(FData.Data, FBitmap, FScale, FPerformance,
       FSmoothing, FProgressiveDisplay);
+
+    // Convert to 8-bit grayscale if PixelFormat = jf8Bit
+    if FPixelFormat = jf8Bit then
+    begin
+      GrayBmp := TBitmap.Create;
+      try
+        GrayBmp.PixelFormat := pf8Bit;
+        GrayBmp.Width := FBitmap.Width;
+        GrayBmp.Height := FBitmap.Height;
+
+        // Set up 256-level grayscale palette
+        GetMem(Pal, SizeOf(TLogPalette) + 255 * SizeOf(TPaletteEntry));
+        try
+          Pal.palVersion := $300;
+          Pal.palNumEntries := 256;
+          for I := 0 to 255 do
+          begin
+            Pal.palPalEntry[I].peRed := I;
+            Pal.palPalEntry[I].peGreen := I;
+            Pal.palPalEntry[I].peBlue := I;
+            Pal.palPalEntry[I].peFlags := 0;
+          end;
+          GrayBmp.Palette := CreatePalette(Pal^);
+        finally
+          FreeMem(Pal);
+        end;
+
+        // Copy pixels: for grayscale JPEG, R=G=B=Y, take B channel directly
+        // For color JPEG, convert RGB to grayscale: Y = 0.299R + 0.587G + 0.114B
+        for Y := 0 to FBitmap.Height - 1 do
+        begin
+          SrcRow := FBitmap.ScanLine[Y];
+          DstRow := GrayBmp.ScanLine[Y];
+          for X := 0 to FBitmap.Width - 1 do
+          begin
+            if (FData <> nil) and FData.Grayscale then
+              DstRow[X] := SrcRow[X * 3]
+            else
+              DstRow[X] := Byte(Round(0.299 * SrcRow[X * 3 + 2] +
+                                      0.587 * SrcRow[X * 3 + 1] +
+                                      0.114 * SrcRow[X * 3]));
+          end;
+        end;
+
+        FBitmap.Free;
+        FBitmap := GrayBmp;
+        GrayBmp := nil;
+      finally
+        GrayBmp.Free;
+      end;
+    end;
   finally
     Decoder.Free;
   end;

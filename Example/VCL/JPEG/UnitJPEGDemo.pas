@@ -27,6 +27,8 @@ type
     chkProgressive: TCheckBox;
     cmbScale: TComboBox;
     cmbPerformance: TComboBox;
+    cmbPixelFormat: TComboBox;
+    LabelPF: TLabel;
     chkSmoothing: TCheckBox;
     btnCompare: TButton;
     MemoInfo: TMemo;
@@ -40,6 +42,7 @@ type
     procedure chkProgressiveClick(Sender: TObject);
     procedure cmbScaleChange(Sender: TObject);
     procedure cmbPerformanceChange(Sender: TObject);
+    procedure cmbPixelFormatChange(Sender: TObject);
     procedure chkSmoothingClick(Sender: TObject);
     procedure btnCompareClick(Sender: TObject);
   private
@@ -67,6 +70,7 @@ begin
   TrackBarQuality.Position := 100;
   cmbScale.ItemIndex := 0;
   cmbPerformance.ItemIndex := 0;
+  cmbPixelFormat.ItemIndex := 0;
   chkSmoothing.Checked := True;
   UpdateLabels;
 end;
@@ -88,6 +92,7 @@ begin
   if FCnJPEG.Empty then Exit;
   FCnJPEG.Scale := TCnJPEGScale(cmbScale.ItemIndex);
   FCnJPEG.Performance := TCnJPEGPerformance(cmbPerformance.ItemIndex);
+  FCnJPEG.PixelFormat := TCnJPEGPixelFormat(cmbPixelFormat.ItemIndex);
   FCnJPEG.Smoothing := chkSmoothing.Checked;
   FCnJPEG.Grayscale := chkGrayscale.Checked;
   FCnJPEG.CompressionQuality := TrackBarQuality.Position;
@@ -124,6 +129,10 @@ begin
   MemoInfo.Lines.Add('Size: ' + IntToStr(FCnJPEG.Width) + 'x' + IntToStr(FCnJPEG.Height));
   MemoInfo.Lines.Add('Grayscale: ' + BoolToStr(FCnJPEG.Grayscale, True));
   MemoInfo.Lines.Add('Progressive: ' + BoolToStr(FCnJPEG.ProgressiveEncoding, True));
+  MemoInfo.Lines.Add('PixelFormat: ' + IntToStr(Ord(FCnJPEG.PixelFormat)) +
+    ' (0=24bit, 1=8bit)');
+  MemoInfo.Lines.Add('Scale: ' + IntToStr(Ord(FCnJPEG.Scale)) +
+    ' (0=Full, 1=1/2, 2=1/4, 3=1/8)');
   MemoInfo.Lines.Add('ColorSpace: ' + GetEnumName(TypeInfo(TCnJPEGColorSpace),
     Ord(FCnJPEG.NewJPEG.ColorSpace)));
 end;
@@ -200,6 +209,11 @@ begin
 end;
 
 procedure TFormJPEGDemo.cmbPerformanceChange(Sender: TObject);
+begin
+  ReloadCnJPEG;
+end;
+
+procedure TFormJPEGDemo.cmbPixelFormatChange(Sender: TObject);
 begin
   ReloadCnJPEG;
 end;

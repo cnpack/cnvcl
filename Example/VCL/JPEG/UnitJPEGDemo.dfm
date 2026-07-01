@@ -147,6 +147,26 @@ object FormJPEGDemo: TFormJPEGDemo
         'Quality'
         'Speed')
     end
+    object cmbPixelFormat: TComboBox
+      Left = 790
+      Top = 16
+      Width = 65
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      TabOrder = 10
+      OnChange = cmbPixelFormatChange
+      Items.Strings = (
+        '24-bit'
+        '8-bit')
+    end
+    object LabelPF: TLabel
+      Left = 790
+      Top = 2
+      Width = 55
+      Height = 13
+      Caption = 'Pixel Format'
+    end
   end
   object PanelLeft: TPanel
     Left = 0
