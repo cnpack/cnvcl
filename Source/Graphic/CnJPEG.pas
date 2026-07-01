@@ -42,6 +42,24 @@ uses
   Windows, SysUtils, Classes, Graphics, CnNative;
 
 const
+  // JPEG Marker 常量
+  CN_JPEG_SOI   = $FFD8;  // Start of Image
+  CN_JPEG_EOI   = $FFD9;  // End of Image
+  CN_JPEG_SOS   = $FFDA;  // Start of Scan
+  CN_JPEG_DQT   = $FFDB;  // Define Quantization Table
+  CN_JPEG_DHT   = $FFC4;  // Define Huffman Table
+  CN_JPEG_DRI   = $FFDD;  // Define Restart Interval
+  CN_JPEG_SOF0  = $FFC0;  // Baseline DCT
+  CN_JPEG_SOF1  = $FFC1;  // Extended DCT
+  CN_JPEG_SOF2  = $FFC2;  // Progressive DCT
+  CN_JPEG_APP0  = $FFE0;  // JFIF
+  CN_JPEG_APP1  = $FFE1;  // EXIF
+  CN_JPEG_APP14 = $FFEE;  // Adobe
+  CN_JPEG_COM   = $FFFE;  // Comment
+  CN_JPEG_RST0  = $FFD0;  // Restart Marker 0
+  CN_JPEG_RST7  = $FFD7;  // Restart Marker 7
+  CN_JPEG_TEM   = $FF01;  // Temporary marker
+
   // 标准 JPEG ZigZag 扫描顺序
   CN_JPEG_ZIGZAG_ORDER: array[0..63] of Byte = (
      0,  1,  8, 16,  9,  2,  3, 10,
@@ -603,24 +621,6 @@ resourcestring
 //============================================================================
 
 const
-  // JPEG Marker 常量
-  CN_JPEG_SOI   = $FFD8;  // Start of Image
-  CN_JPEG_EOI   = $FFD9;  // End of Image
-  CN_JPEG_SOS   = $FFDA;  // Start of Scan
-  CN_JPEG_DQT   = $FFDB;  // Define Quantization Table
-  CN_JPEG_DHT   = $FFC4;  // Define Huffman Table
-  CN_JPEG_DRI   = $FFDD;  // Define Restart Interval
-  CN_JPEG_SOF0  = $FFC0;  // Baseline DCT
-  CN_JPEG_SOF1  = $FFC1;  // Extended DCT
-  CN_JPEG_SOF2  = $FFC2;  // Progressive DCT
-  CN_JPEG_APP0  = $FFE0;  // JFIF
-  CN_JPEG_APP1  = $FFE1;  // EXIF
-  CN_JPEG_APP14 = $FFEE;  // Adobe
-  CN_JPEG_COM   = $FFFE;  // Comment
-  CN_JPEG_RST0  = $FFD0;  // Restart Marker 0
-  CN_JPEG_RST7  = $FFD7;  // Restart Marker 7
-  CN_JPEG_TEM   = $FF01;  // Temporary marker
-
   CN_JPEG_MAX_COMPONENTS = 4;
   CN_JPEG_BLOCK_SIZE = 64;  // 8×8
 
