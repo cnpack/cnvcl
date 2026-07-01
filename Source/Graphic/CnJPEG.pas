@@ -2211,10 +2211,13 @@ begin
           Marker.SkipBytes(SegLen - 2);
       end;
 
-      // 读取下一个 marker
+      if Marker.Position < SegEnd then
+        Marker.Seek(SegEnd);
+
       Code := Marker.ReadMarker;
       if Code = CN_JPEG_EOI then Break;
       SegLen := Marker.ReadWord;
+      SegEnd := Marker.Position + SegLen - 2;
     end;
 
     if Code = CN_JPEG_EOI then Break;
