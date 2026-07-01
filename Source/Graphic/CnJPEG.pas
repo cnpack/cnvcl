@@ -465,8 +465,8 @@ type
     procedure SetWidth(Value: Integer); override;
     procedure AssignTo(Dest: TPersistent); override;
     procedure DefineProperties(Filer: TFiler); override;
-    procedure ReadData(Stream: TStream);
-    procedure WriteData(Stream: TStream);
+    procedure ReadData(Stream: TStream); override;
+    procedure WriteData(Stream: TStream); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -543,6 +543,20 @@ procedure UnregisterCnJPEG;
 {* 从 TPicture 注销 TCnJPEGImage}
 
 implementation
+
+resourcestring
+  SCnErrorUnexpectedEndOfJpegData = 'Unexpected End of JPEG Data';
+  SCnErrorInvalidMarkerInMarkerContext = 'Invalid Marker: FF00 in Marker Context';
+  SCnErrorInvalidSegmentLength = 'Invalid Segment Length';
+  SCnErrorInvalidQuantizationTableId = 'Invalid Quantization Table ID';
+  SCnErrorInvalidHuffmanTableId = 'Invalid Huffman Table ID';
+  SCnErrorUnsupportedSamplePrecision = 'Unsupported Sample Precision: ';
+  SCnErrorTooManyComponents = 'Too Many Components: ';
+  SCnErrorTooManyScanComponents = 'Too Many Scan Components';
+  SCnErrorInvalidJpegMissingSoi = 'Invalid JPEG: Missing SOI';
+  SCnErrorNoJpegDataToDecode = 'No JPEG Data to Decode';
+  SCnErrorNoImageData = 'No Image Data';
+  SCnErrorCannotAllocateClipboardMemory = 'Cannot Allocate Clipboard Memory';
 
 //============================================================================
 // 常量定义
@@ -745,7 +759,6 @@ var
   Code: Integer;
   LookBits: Integer;
   LookSize: Integer;
-  LookCode: Integer;
 begin
   // 生成 MinCode/MaxCode/ValPtr 数组
   K := 0;
@@ -990,7 +1003,7 @@ end;
 function TCnJPEGMarker.ReadByte: Byte;
 begin
   if FStream.Read(Result, 1) <> 1 then
-    raise ECnJPEGException.Create('Unexpected end of JPEG data');
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
 end;
 
 function TCnJPEGMarker.ReadWord: Word;
@@ -1014,7 +1027,7 @@ begin
   begin
     Read := FStream.Read(P^, Remaining);
     if Read <= 0 then
-      raise ECnJPEGException.Create('Unexpected end of JPEG data');
+      raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
     Inc(P, Read);
     Dec(Remaining, Read);
   end;
@@ -1041,7 +1054,7 @@ begin
 
   // B=00 是字节对齐填充（不应出现在 marker 扫描中），当作错误处理
   if B = $00 then
-    raise ECnJPEGException.Create('Invalid marker: FF00 in marker context');
+    raise ECnJPEGException.Create(SCnErrorInvalidMarkerInMarkerContext);
 
   Result := $FF00 or B;
 end;
@@ -1056,7 +1069,7 @@ begin
   SegLen := ReadWord;
   Result := SegLen;
   if SegLen < 2 then
-    raise ECnJPEGException.Create('Invalid segment length');
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   Dec(SegLen, 2); // 减去长度字段自身
 
   Remaining := SegLen;
@@ -1128,7 +1141,7 @@ begin
     Prec := B shr 4;       // 精度：0=8bit, 1=16bit
     TableID := B and $0F;  // 表 ID (0-3)
     if TableID > 3 then
-      raise ECnJPEGException.Create('Invalid quantization table ID');
+      raise ECnJPEGException.Create(SCnErrorInvalidQuantizationTableId);
 
     for I := 0 to 63 do
     begin
@@ -1163,7 +1176,7 @@ begin
     Tc := B shr 4;        // 表类别：0=DC, 1=AC
     Th := B and $0F;      // 表 ID (0-3)
     if Th > 3 then
-      raise ECnJPEGException.Create('Invalid Huffman table ID');
+      raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTableId);
 
     if Tc = 0 then
       Table := @FDCTables[Th]
@@ -1205,7 +1218,7 @@ var
 begin
   Precision := Marker.ReadByte;
   if Precision <> 8 then
-    raise ECnJPEGException.Create('Unsupported sample precision: ' + IntToStr(Precision));
+    raise ECnJPEGException.Create(SCnErrorUnsupportedSamplePrecision + IntToStr(Precision));
 
   FHeight := Marker.ReadWord;
   FWidth := Marker.ReadWord;
@@ -1213,7 +1226,7 @@ begin
   FNumComponents := Nf;
 
   if Nf > CN_JPEG_MAX_COMPONENTS then
-    raise ECnJPEGException.Create('Too many components: ' + IntToStr(Nf));
+    raise ECnJPEGException.Create(SCnErrorTooManyComponents + IntToStr(Nf));
 
   for I := 0 to Nf - 1 do
   begin
@@ -1257,7 +1270,7 @@ begin
   Ns := Marker.ReadByte;  // 扫描分量数
   FScanCompCount := Ns;
   if Ns > CN_JPEG_MAX_COMPONENTS then
-    raise ECnJPEGException.Create('Too many scan components');
+    raise ECnJPEGException.Create(SCnErrorTooManyScanComponents);
 
   for I := 0 to Ns - 1 do
   begin
@@ -1342,6 +1355,7 @@ begin
     (Ident[3] = 'b') and (Ident[4] = 'e') then
   begin
     Version := Marker.ReadWord;
+    Marker.ReadWord; // Flags0
     Marker.ReadWord; // flags
     Transform := Marker.ReadByte;
     FAdobeTransform := Transform;
@@ -1699,6 +1713,15 @@ procedure TCnJPEGDecoder.AllocCoefBlocks;
 var
   I, TotalBlocks: Integer;
 begin
+  // 先初始化一维数组，再清空每个二维子数组，确保从干净状态开始
+  SetLength(FCoefBlocks, CN_JPEG_MAX_COMPONENTS);
+  for I := 0 to CN_JPEG_MAX_COMPONENTS - 1 do
+  begin
+    FCompBlocksPerRow[I] := 0;
+    FCompBlocksPerCol[I] := 0;
+    SetLength(FCoefBlocks[I], 0);
+  end;
+
   for I := 0 to FNumComponents - 1 do
   begin
     FCompBlocksPerRow[I] := FMCUsPerRow * FComponents[I].HSampFactor;
@@ -2118,6 +2141,7 @@ procedure TCnJPEGDecoder.DecodeScanProgressive(OutBmp: TBitmap;
 var
   Code: Word;
   SegLen: Word;
+  SegEnd: Int64;
   HitMarker: Word;
 begin
   // 预分配系数块存储
@@ -2164,6 +2188,7 @@ begin
 
     // 处理扫描间的 marker
     SegLen := Marker.ReadWord;
+    SegEnd := Marker.Position + SegLen - 2;
     while True do
     begin
       if Code = CN_JPEG_SOS then
@@ -2283,6 +2308,7 @@ var
   Marker: TCnJPEGMarker;
   Code: Word;
   SegLen: Word;
+  SegEnd: Int64;
   I: Integer;
 begin
   FScale := AScale;
@@ -2297,7 +2323,7 @@ begin
     // 1. 读取 SOI
     Code := Marker.ReadMarker;
     if Code <> CN_JPEG_SOI then
-      raise ECnJPEGException.Create('Invalid JPEG: missing SOI');
+      raise ECnJPEGException.Create(SCnErrorInvalidJpegMissingSoi);
 
     // 2. 循环读取 marker
     repeat
@@ -2313,6 +2339,7 @@ begin
 
       // 读取段长度
       SegLen := Marker.ReadWord;
+      SegEnd := Marker.Position + SegLen - 2;
 
       case Code of
         CN_JPEG_APP0:
@@ -2341,6 +2368,10 @@ begin
             Marker.SkipBytes(SegLen - 2);
         end;
       end;
+
+      // Safety net: skip any unconsumed segment data
+      if Marker.Position < SegEnd then
+        Marker.Seek(SegEnd);
     until False;
 
     // 3. 计算 MCU 参数
@@ -2351,13 +2382,13 @@ begin
     OutBmp.Width := ScaledOutWidth;
     OutBmp.Height := ScaledOutHeight;
 
-  // 5. 初始化 DC 预测值
-  for I := 0 to 3 do
-    FPrevDC[I] := 0;
+    // 5. 初始化 DC 预测值
+    for I := 0 to 3 do
+      FPrevDC[I] := 0;
 
-  // 初始化 YCbCr 查找表
-  if not FYCbCrTableInit then
-    InitYCbCrTable;
+    // 初始化 YCbCr 查找表
+    if not FYCbCrTableInit then
+      InitYCbCrTable;
 
     // 6. 解码扫描数据
     if FProgressive then
@@ -2372,14 +2403,13 @@ begin
         FBitReader.Free;
         FBitReader := nil;
       end;
+    end;
+
+    // 7. 平滑处理
+    ApplySmoothing(OutBmp);
+  finally
+    Marker.Free;
   end;
-
-  // 7. 平滑处理
-  ApplySmoothing(OutBmp);
-
-finally
-  Marker.Free;
-end;
 end;
 
 //============================================================================
@@ -3741,7 +3771,7 @@ begin
     // 读取 SOI
     Code := Marker.ReadMarker;
     if Code <> CN_JPEG_SOI then
-      raise ECnJPEGException.Create('Invalid JPEG: missing SOI');
+      raise ECnJPEGException.Create(SCnErrorInvalidJpegMissingSoi);
 
     // 循环读取 marker
     repeat
@@ -4148,7 +4178,7 @@ var
 begin
   if FBitmap <> nil then Exit;
   if FData = nil then
-    raise ECnJPEGException.Create('No JPEG data to decode');
+    raise ECnJPEGException.Create(SCnErrorNoJpegDataToDecode);
 
   CreateBitmap;
   Decoder := TCnJPEGDecoder.Create;
@@ -4165,7 +4195,7 @@ begin
   if FData = nil then
   begin
     if FBitmap = nil then
-      raise ECnJPEGException.Create('No image data');
+      raise ECnJPEGException.Create(SCnErrorNoImageData);
     Compress;
   end;
 end;
@@ -4221,7 +4251,7 @@ begin
     SaveToStream(Stream);
     Data := GlobalAlloc(GMEM_MOVEABLE or GMEM_DDESHARE, Stream.Size);
     if Data = 0 then
-      raise ECnJPEGException.Create('Cannot allocate clipboard memory');
+      raise ECnJPEGException.Create(SCnErrorCannotAllocateClipboardMemory);
     Ptr := GlobalLock(Data);
     if Ptr = nil then
     begin

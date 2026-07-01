@@ -1,8 +1,8 @@
 object FormJPEGDemo: TFormJPEGDemo
   Left = 192
   Top = 107
-  Width = 800
-  Height = 600
+  Width = 938
+  Height = 717
   Caption = 'CnJPEG Demo'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,23 +16,23 @@ object FormJPEGDemo: TFormJPEGDemo
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
-    Left = 385
-    Top = 41
+    Left = 428
+    Top = 57
     Width = 4
-    Height = 527
+    Height = 628
     Cursor = crHSplit
     Align = alRight
   end
   object PanelTop: TPanel
     Left = 0
     Top = 0
-    Width = 792
-    Height = 41
+    Width = 930
+    Height = 57
     Align = alTop
     TabOrder = 0
     object LabelQuality: TLabel
       Left = 310
-      Top = 0
+      Top = 8
       Width = 56
       Height = 13
       Caption = 'Quality: 100'
@@ -41,7 +41,7 @@ object FormJPEGDemo: TFormJPEGDemo
       Left = 8
       Top = 8
       Width = 65
-      Height = 25
+      Height = 35
       Caption = 'Load JPEG'
       TabOrder = 0
       OnClick = btnLoadClick
@@ -50,7 +50,7 @@ object FormJPEGDemo: TFormJPEGDemo
       Left = 80
       Top = 8
       Width = 65
-      Height = 25
+      Height = 35
       Caption = 'Save JPEG'
       TabOrder = 1
       OnClick = btnSaveClick
@@ -59,7 +59,7 @@ object FormJPEGDemo: TFormJPEGDemo
       Left = 152
       Top = 8
       Width = 75
-      Height = 25
+      Height = 35
       Caption = 'BMP->JPEG'
       TabOrder = 2
       OnClick = btnConvertClick
@@ -68,14 +68,14 @@ object FormJPEGDemo: TFormJPEGDemo
       Left = 236
       Top = 8
       Width = 65
-      Height = 25
+      Height = 35
       Caption = 'Compare'
       TabOrder = 3
       OnClick = btnCompareClick
     end
     object TrackBarQuality: TTrackBar
       Left = 310
-      Top = 8
+      Top = 22
       Width = 121
       Height = 25
       Max = 100
@@ -92,7 +92,7 @@ object FormJPEGDemo: TFormJPEGDemo
     end
     object chkGrayscale: TCheckBox
       Left = 440
-      Top = 12
+      Top = 20
       Width = 65
       Height = 17
       Caption = 'Grayscale'
@@ -101,7 +101,7 @@ object FormJPEGDemo: TFormJPEGDemo
     end
     object chkProgressive: TCheckBox
       Left = 510
-      Top = 12
+      Top = 20
       Width = 65
       Height = 17
       Caption = 'Progress.'
@@ -110,7 +110,7 @@ object FormJPEGDemo: TFormJPEGDemo
     end
     object chkSmoothing: TCheckBox
       Left = 580
-      Top = 12
+      Top = 20
       Width = 65
       Height = 17
       Caption = 'Smooth'
@@ -121,7 +121,7 @@ object FormJPEGDemo: TFormJPEGDemo
     end
     object cmbScale: TComboBox
       Left = 650
-      Top = 8
+      Top = 16
       Width = 65
       Height = 21
       Style = csDropDownList
@@ -136,7 +136,7 @@ object FormJPEGDemo: TFormJPEGDemo
     end
     object cmbPerformance: TComboBox
       Left = 720
-      Top = 8
+      Top = 16
       Width = 65
       Height = 21
       Style = csDropDownList
@@ -150,15 +150,15 @@ object FormJPEGDemo: TFormJPEGDemo
   end
   object PanelLeft: TPanel
     Left = 0
-    Top = 41
-    Width = 385
-    Height = 527
+    Top = 57
+    Width = 428
+    Height = 628
     Align = alClient
     TabOrder = 1
     object LabelCnJPEG: TLabel
       Left = 1
       Top = 1
-      Width = 383
+      Width = 426
       Height = 13
       Align = alTop
       Caption = 'CnJPEG'
@@ -166,23 +166,23 @@ object FormJPEGDemo: TFormJPEGDemo
     object ImageCnJPEG: TImage
       Left = 1
       Top = 14
-      Width = 383
-      Height = 512
+      Width = 426
+      Height = 613
       Align = alClient
       Center = True
     end
   end
   object PanelRight: TPanel
-    Left = 389
-    Top = 41
-    Width = 403
-    Height = 527
+    Left = 432
+    Top = 57
+    Width = 498
+    Height = 628
     Align = alRight
     TabOrder = 2
     object LabelNative: TLabel
       Left = 1
       Top = 1
-      Width = 401
+      Width = 496
       Height = 13
       Align = alTop
       Caption = 'Native TJPEGImage'
@@ -190,15 +190,15 @@ object FormJPEGDemo: TFormJPEGDemo
     object ImageNative: TImage
       Left = 1
       Top = 14
-      Width = 401
+      Width = 496
       Height = 350
       Align = alTop
       Center = True
     end
     object MemoInfo: TMemo
       Left = 1
-      Top = 392
-      Width = 401
+      Top = 493
+      Width = 496
       Height = 134
       Align = alBottom
       TabOrder = 0
