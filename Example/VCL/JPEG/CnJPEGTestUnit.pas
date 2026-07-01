@@ -3,7 +3,7 @@ unit CnJPEGTestUnit;
 interface
 
 uses
-  SysUtils, Classes, Graphics, CnNative, CnJPEG;
+  SysUtils, Classes, Windows, Graphics, CnNative, CnJPEG;
 
 type
   TCnJPEGTestCase = record
@@ -249,7 +249,7 @@ end;
 
 class procedure TColorTests.TestRGBToYCbCr;
 var
-  Y, Cb, Cr: Integer;
+  Y: Integer;
   R, G, B: Integer;
 begin
   // Red: R=255, G=0, B=0 → Y≈76, Cb≈85, Cr≈255
@@ -280,7 +280,6 @@ type
 class procedure TQuantTests.TestQuantTableBuild;
 var
   Encoder: TCnJPEGEncoder;
-  I: Integer;
 begin
   Encoder := TCnJPEGEncoder.Create;
   try
@@ -412,6 +411,416 @@ begin
 end;
 
 //============================================================================
+// L1: Huffman Table Build Tests (Task 36.1)
+//============================================================================
+
+type
+  THuffmanTests = class
+    class procedure TestHuffmanTableBuild;
+    class procedure TestHuffmanDCDecode;
+    class procedure TestHuffmanACDecode;
+  end;
+
+class procedure THuffmanTests.TestHuffmanTableBuild;
+var
+  Tbl: TCnJPEGHuffmanTable;
+  I, TotalCodes: Integer;
+begin
+  // Build standard DC luminance table
+  for I := 1 to 16 do
+    Tbl.Bits[I] := CN_JPEG_STD_DC_LUMINANCE_BITS[I];
+  for I := 0 to 11 do
+    Tbl.HuffVal[I] := CN_JPEG_STD_DC_LUMINANCE_VAL[I];
+
+  CnJPEGBuildHuffmanTable(Tbl);
+
+  // DC luminance: Bits = (0,1,5,1,1,1,1,1,1,0,...)
+  // Length 1: 0 codes, Length 2: 1 code -> MinCode[2]=0, MaxCode[2]=0
+  AssertEqual(0, Tbl.MinCode[2], 'DC lum MinCode[2]');
+  AssertEqual(0, Tbl.MaxCode[2], 'DC lum MaxCode[2]');
+  AssertEqual(0, Tbl.ValPtr[2], 'DC lum ValPtr[2]');
+
+  // Length 3: 5 codes -> MinCode[3]=2, MaxCode[3]=6
+  AssertEqual(2, Tbl.MinCode[3], 'DC lum MinCode[3]');
+  AssertEqual(6, Tbl.MaxCode[3], 'DC lum MaxCode[3]');
+  AssertEqual(1, Tbl.ValPtr[3], 'DC lum ValPtr[3]');
+
+  // Total code count should be 12
+  TotalCodes := 0;
+  for I := 1 to 16 do
+    Inc(TotalCodes, Tbl.Bits[I]);
+  AssertEqual(12, TotalCodes, 'DC lum total codes');
+
+  // Empty bits (length 1 has 0 codes) -> MaxCode[1] = $FFFF
+  AssertEqual($FFFF, Tbl.MaxCode[1], 'DC lum MaxCode[1] empty');
+
+  // Lookahead: value 0 (code 00, 2 bits) should be at indices 0x00..0x3F
+  AssertTrue(Tbl.Lookahead[0].Valid, 'DC lum Lookahead[0] valid');
+  AssertEqual(0, Tbl.Lookahead[0].Code, 'DC lum Lookahead[0] code');
+  AssertEqual(2, Tbl.Lookahead[0].Size, 'DC lum Lookahead[0] size');
+
+  // Build standard AC luminance table
+  for I := 1 to 16 do
+    Tbl.Bits[I] := CN_JPEG_STD_AC_LUMINANCE_BITS[I];
+  for I := 0 to 161 do
+    Tbl.HuffVal[I] := CN_JPEG_STD_AC_LUMINANCE_VAL[I];
+
+  CnJPEGBuildHuffmanTable(Tbl);
+
+  // AC luminance total codes = 162
+  TotalCodes := 0;
+  for I := 1 to 16 do
+    Inc(TotalCodes, Tbl.Bits[I]);
+  AssertEqual(162, TotalCodes, 'AC lum total codes');
+end;
+
+//============================================================================
+// L1: Huffman DC Decode Tests (Task 36.2)
+//============================================================================
+
+class procedure THuffmanTests.TestHuffmanDCDecode;
+var
+  Bmp: TBitmap;
+  JPEG: TCnJPEGImage;
+  OutBmp: TBitmap;
+  X, Y: Integer;
+  Row: PByteArray;
+begin
+  // Test DC decoding via encode->decode roundtrip with uniform color
+  // A solid color block has DC only (all AC = 0), making DC decode testable
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    // Solid gray (128,128,128) -> Y=128, Cb=128, Cr=128 -> DC=128
+    Bmp.Canvas.Brush.Color := RGB(128, 128, 128);
+    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // For a solid gray block, DC decode should produce ~128
+        // With quality=100, quantization is 1, so DC should be exact
+        Row := OutBmp.ScanLine[0];
+        // BGR format
+        AssertInRange(Row[0], 120, 136, 'DC decode B channel');
+        AssertInRange(Row[1], 120, 136, 'DC decode G channel');
+        AssertInRange(Row[2], 120, 136, 'DC decode R channel');
+
+        // All pixels in a solid block should be nearly identical
+        for Y := 0 to 7 do
+        begin
+          Row := OutBmp.ScanLine[Y];
+          for X := 0 to 7 do
+          begin
+            AssertInRange(Row[X * 3], 120, 136, 'DC decode B uniform');
+            AssertInRange(Row[X * 3 + 1], 120, 136, 'DC decode G uniform');
+            AssertInRange(Row[X * 3 + 2], 120, 136, 'DC decode R uniform');
+          end;
+        end;
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+//============================================================================
+// L1: Huffman AC Decode Tests (Task 36.3)
+//============================================================================
+
+class procedure THuffmanTests.TestHuffmanACDecode;
+var
+  Bmp, OutBmp: TBitmap;
+  JPEG: TCnJPEGImage;
+  Row: PByteArray;
+  X, Y2: Integer;
+  DiffFound: Boolean;
+  V0, V: Byte;
+begin
+  // Test AC decoding via encode->decode with a gradient pattern.
+  // A horizontal gradient has strong AC coefficients.
+  // If AC decode fails (e.g. EOB/ZRL mishandled), output will be flat.
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    for X := 0 to 7 do
+    begin
+      Row := Bmp.ScanLine[0];
+      Row[X * 3] := Byte(X * 32);     // B: 0,32,64,96,128,160,192,224
+      Row[X * 3 + 1] := Byte(X * 32); // G
+      Row[X * 3 + 2] := Byte(X * 32); // R
+    end;
+    // Copy row 0 to all rows (consistent horizontal gradient)
+    for Y2 := 1 to 7 do
+    begin
+      Row := Bmp.ScanLine[Y2];
+      for X := 0 to 7 do
+      begin
+        Row[X * 3] := Byte(X * 32);
+        Row[X * 3 + 1] := Byte(X * 32);
+        Row[X * 3 + 2] := Byte(X * 32);
+      end;
+    end;
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // Verify gradient is present (not flat) — AC coefficients decoded correctly
+        Row := OutBmp.ScanLine[0];
+        V0 := Row[0]; // first pixel B
+        DiffFound := False;
+        for X := 1 to 7 do
+        begin
+          V := Row[X * 3];
+          if Abs(V - V0) > 5 then
+          begin
+            DiffFound := True;
+            Break;
+          end;
+        end;
+        AssertTrue(DiffFound, 'AC decode: gradient should have variation across pixels');
+
+        // Verify the trend is increasing (allow some quantization noise)
+        for X := 1 to 6 do
+        begin
+          AssertTrue(Row[(X + 1) * 3] >= Row[X * 3] - 10,
+            'AC decode: gradient should be roughly increasing at X=' + IntToStr(X));
+        end;
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+//============================================================================
+// L1: IDCT Basic Tests (Task 37.1)
+//============================================================================
+
+type
+  TIDCTTests = class
+    class procedure TestIDCTBasics;
+  end;
+
+class procedure TIDCTTests.TestIDCTBasics;
+var
+  Bmp, OutBmp: TBitmap;
+  JPEG: TCnJPEGImage;
+  Row: PByteArray;
+  X, Y: Integer;
+  MinVal, MaxVal: Byte;
+begin
+  // Test 1: Solid color block (all coefficients zero except DC)
+  // DC = 128, AC = 0 -> IDCT output should be 128 (flat gray)
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    Bmp.Canvas.Brush.Color := RGB(128, 128, 128);
+    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // Flat block: all pixels should be close to 128
+        for Y := 0 to 7 do
+        begin
+          Row := OutBmp.ScanLine[Y];
+          for X := 0 to 7 do
+          begin
+            AssertInRange(Row[X * 3], 120, 136, 'IDCT flat B');
+            AssertInRange(Row[X * 3 + 1], 120, 136, 'IDCT flat G');
+            AssertInRange(Row[X * 3 + 2], 120, 136, 'IDCT flat R');
+          end;
+        end;
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+
+  // Test 2: Horizontal gradient (strong AC coefficient at frequency 1)
+  // If IDCT works, we should see a smooth gradient, not a flat or garbled block
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    for Y := 0 to 7 do
+    begin
+      Row := Bmp.ScanLine[Y];
+      for X := 0 to 7 do
+      begin
+        Row[X * 3] := Byte(X * 32);
+        Row[X * 3 + 1] := Byte(X * 32);
+        Row[X * 3 + 2] := Byte(X * 32);
+      end;
+    end;
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // Check that output has a gradient (min != max)
+        Row := OutBmp.ScanLine[0];
+        MinVal := 255;
+        MaxVal := 0;
+        for X := 0 to 7 do
+        begin
+          if Row[X * 3] < MinVal then MinVal := Row[X * 3];
+          if Row[X * 3] > MaxVal then MaxVal := Row[X * 3];
+        end;
+        AssertTrue(MaxVal - MinVal > 10, 'IDCT gradient: should have range > 10');
+
+        // Check gradient is monotonic (allowing small noise)
+        for X := 1 to 6 do
+          AssertTrue(Row[(X + 1) * 3] >= Row[X * 3] - 10,
+            'IDCT gradient: should be roughly increasing');
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+
+  // Test 3: Black and white halves (vertical edge — tests vertical frequency)
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    for Y := 0 to 7 do
+    begin
+      Row := Bmp.ScanLine[Y];
+      for X := 0 to 3 do
+      begin
+        Row[X * 3] := 0;
+        Row[X * 3 + 1] := 0;
+        Row[X * 3 + 2] := 0;
+      end;
+      for X := 4 to 7 do
+      begin
+        Row[X * 3] := 255;
+        Row[X * 3 + 1] := 255;
+        Row[X * 3 + 2] := 255;
+      end;
+    end;
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // Left half should be dark, right half should be bright
+        Row := OutBmp.ScanLine[0];
+        AssertTrue(Row[0] < 100, 'IDCT edge: left half should be dark');
+        AssertTrue(Row[7 * 3] > 155, 'IDCT edge: right half should be bright');
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+//============================================================================
+// L1: Segment Length Minimal Test (Task 35.2)
+//============================================================================
+
+type
+  TSegmentTests = class
+    class procedure TestMinimalSegment;
+  end;
+
+class procedure TSegmentTests.TestMinimalSegment;
+var
+  MS: TMemoryStream;
+  Marker: TCnJPEGMarker;
+  SegData: TMemoryStream;
+  SegLen: Integer;
+  W: Word;
+begin
+  // Test: minimal segment (length=2, 0 data bytes)
+  MS := TMemoryStream.Create;
+  try
+    W := UInt16ToBigEndian($FFE0); MS.Write(W, 2);  // APP0 marker
+    W := UInt16ToBigEndian(2);    MS.Write(W, 2);   // length = 2 (minimum)
+    MS.Position := 0;
+    Marker := TCnJPEGMarker.Create(MS);
+    try
+      Marker.ReadMarker;  // skip marker code
+      SegData := TMemoryStream.Create;
+      try
+        SegLen := Marker.ReadSegment(SegData);
+        AssertEqual(2, SegLen, 'minimal segment length');
+        AssertEqual(0, SegData.Size, 'minimal segment data size');
+      finally
+        SegData.Free;
+      end;
+    finally
+      Marker.Free;
+    end;
+  finally
+    MS.Free;
+  end;
+end;
+
+//============================================================================
 // L3: Integration Tests
 //============================================================================
 
@@ -484,6 +893,17 @@ initialization
 
   // L1: Quantization
   RegisterTest('L1_Quant_Build', 'Quantization table building', TQuantTests.TestQuantTableBuild);
+
+  // L1: Huffman Table (Task 36.1-36.3)
+  RegisterTest('L1_Huffman_Build', 'Huffman table construction', THuffmanTests.TestHuffmanTableBuild);
+  RegisterTest('L1_Huffman_DC', 'Huffman DC coefficient decode', THuffmanTests.TestHuffmanDCDecode);
+  RegisterTest('L1_Huffman_AC', 'Huffman AC coefficient decode', THuffmanTests.TestHuffmanACDecode);
+
+  // L1: IDCT (Task 37.1)
+  RegisterTest('L1_IDCT_Basics', 'IDCT basic transforms', TIDCTTests.TestIDCTBasics);
+
+  // L1: Segment Length Minimal (Task 35.2)
+  RegisterTest('L1_Marker_MinSeg', 'Minimal segment (length=2)', TSegmentTests.TestMinimalSegment);
 
   // L2: Baseline Decode/Encode
   RegisterTest('L2_Decode_Properties', 'Decode properties from minimal JPEG', TDecodeTests.TestDecodeProperties);
