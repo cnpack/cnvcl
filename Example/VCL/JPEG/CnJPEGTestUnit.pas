@@ -1792,10 +1792,9 @@ var
   MS: TMemoryStream;
   X, Y: Integer;
   Row: PByteArray;
+  Diff, MaxDiff: Integer;
 begin
-  // Encode progressive, verify stream properties and basic decode
-  // Note: Progressive AC refine scan has known encoder bugs,
-  // so we only verify flags, sizes, and that decode doesn't crash
+  // Encode progressive, verify stream properties and pixel roundtrip accuracy
   Bmp := TBitmap.Create;
   try
     Bmp.PixelFormat := pf24bit;
@@ -1837,10 +1836,29 @@ begin
 
         AssertEqual(32, OutBmp.Width, 'Progressive roundtrip width');
         AssertEqual(32, OutBmp.Height, 'Progressive roundtrip height');
-        // Verify output is not completely blank (has some non-zero pixels)
+
+        // Verify output is not completely blank
         Row := OutBmp.ScanLine[16];
         AssertTrue((Row[0] <> 0) or (Row[1] <> 0) or (Row[2] <> 0),
           'Progressive output should have non-zero pixels');
+
+        // Verify pixel accuracy (quality 100 should have small error)
+        MaxDiff := 0;
+        for Y := 0 to 31 do
+        begin
+          Row := OutBmp.ScanLine[Y];
+          for X := 0 to 31 do
+          begin
+            Diff := Abs(Row[X * 3] - Byte((X * 8) and $FF));
+            if Diff > MaxDiff then MaxDiff := Diff;
+            Diff := Abs(Row[X * 3 + 1] - Byte((Y * 8) and $FF));
+            if Diff > MaxDiff then MaxDiff := Diff;
+            Diff := Abs(Row[X * 3 + 2] - Byte(128));
+            if Diff > MaxDiff then MaxDiff := Diff;
+          end;
+        end;
+        AssertTrue(MaxDiff <= 25,
+          'Progressive roundtrip pixel error should be <= 25, got ' + IntToStr(MaxDiff));
       finally
         OutBmp.Free;
       end;

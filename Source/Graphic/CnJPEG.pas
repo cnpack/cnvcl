@@ -1906,12 +1906,40 @@ begin
       begin
         // AC 精化扫描
         if EOBRun > 0 then
-          Dec(EOBRun)
+        begin
+          Dec(EOBRun);
+          // Read refinement bits for all already-nonzero coefficients
+          K := FScanSs;
+          while K <= FScanSe do
+          begin
+            if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] <> 0 then
+            begin
+              Val := FBitReader.GetBit;
+              if Val = 1 then
+                CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
+                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+            end;
+            Inc(K);
+          end;
+        end
         else
         begin
           K := FScanSs;
           while K <= FScanSe do
           begin
+            // Process already-nonzero coefficients: read refinement bits
+            while (K <= FScanSe) and
+                  (CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] <> 0) do
+            begin
+              Val := FBitReader.GetBit;
+              if Val = 1 then
+                CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
+                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+              Inc(K);
+            end;
+            if K > FScanSe then Break;
+
+            // Zero coefficient: read RS code
             RS := HuffmanDecode(ACTable^);
             Run := RS shr 4;
             Size := RS and $0F;
@@ -1920,36 +1948,71 @@ begin
             begin
               if Run = 15 then
               begin
-                Inc(K, 16);  // ZRL
+                // ZRL: skip 16 zero positions, reading ref bits for NZ
+                Val := 0;
+                while Val < 16 do
+                begin
+                  if K > FScanSe then Break;
+                  if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] <> 0 then
+                  begin
+                    RS := FBitReader.GetBit;
+                    if RS = 1 then
+                      CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
+                        CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+                  end
+                  else
+                    Inc(Val);
+                  Inc(K);
+                end;
                 Continue;
               end;
-              // EOB run: EOBn where n=Run (0..14)
+              // EOB run
               EOBRun := 1 shl Run;
               if Run > 0 then
                 EOBRun := EOBRun + FBitReader.GetBits(Run);
-              Dec(EOBRun);  // current block counts as 1
+              Dec(EOBRun);
+              // Read ref bits for remaining positions in this block
+              Inc(K);
+              while K <= FScanSe do
+              begin
+                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] <> 0 then
+                begin
+                  Val := FBitReader.GetBit;
+                  if Val = 1 then
+                    CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
+                      CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+                end;
+                Inc(K);
+              end;
               Break;
             end;
 
-            // Size=1：跳过 Run 个零，精化下一个系数
-            Inc(K, Run);
-            if K > FScanSe then Break;
-
-            Val := FBitReader.GetBit;
-            if Val = 1 then
+            // Size=1: new nonzero coefficient
+            // Skip Run zero positions, reading ref bits for NZ
+            Val := 0;
+            while Val < Run do
             begin
-              if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] = 0 then
+              if K > FScanSe then Break;
+              if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] <> 0 then
               begin
-                // 新出现的非零系数：正值 + (1<<Al)
-                CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] := SmallInt(1 shl FScanAl);
+                RS := FBitReader.GetBit;
+                if RS = 1 then
+                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
+                    CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
               end
               else
-              begin
-                // 已有非零系数：设置第 Al 位
-                CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
-                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
-              end;
+                Inc(Val);
+              Inc(K);
             end;
+
+            if K > FScanSe then Break;
+
+            // Read sign bit and set new coefficient
+            Val := FBitReader.GetBit;
+            if Val = 1 then
+              CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] := SmallInt(1 shl FScanAl)
+            else
+              CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] := SmallInt(-(1 shl FScanAl));
             Inc(K);
           end;
         end;
@@ -3331,7 +3394,7 @@ begin
             CoefPtr := PSmallIntArray(GetEncCoefBlockPtr(CompIdx,
               MCUX * FHSampFactor[CompIdx] + BX,
               MCUY * FVSampFactor[CompIdx] + BY));
-            DCVal := CoefPtr[0] shr Al;
+            DCVal := SarInt32(Integer(CoefPtr[0]), Al);
             Diff := DCVal - FPrevDC[CompIdx];
             FPrevDC[CompIdx] := DCVal;
             A := Abs(Diff);
@@ -3396,6 +3459,35 @@ var
   TblIdx: Integer;
   EOBRun: Integer;
   BlocksPerRow, BlocksPerCol: Integer;
+  HasNonZero: Boolean;
+
+  procedure FlushEOBRun;
+  var
+    N, Cat: Integer;
+  begin
+    if EOBRun <= 0 then Exit;
+    if EOBRun = 1 then
+    begin
+      FBitWriter.PutBits(FACEncCode[TblIdx, $00], FACEncSize[TblIdx, $00]);
+    end
+    else
+    begin
+      Cat := 0;
+      N := EOBRun;
+      while N > 1 do
+      begin
+        N := N shr 1;
+        Inc(Cat);
+      end;
+      RS := Cat shl 4;
+      FBitWriter.PutBits(FACEncCode[TblIdx, RS], FACEncSize[TblIdx, RS]);
+      Val := EOBRun - (1 shl Cat);
+      if Cat > 0 then
+        FBitWriter.PutBits(Cardinal(Val), Cat);
+    end;
+    EOBRun := 0;
+  end;
+
 begin
   FPrevDC[CompIdx] := 0;
   TblIdx := CompIdx;
@@ -3419,15 +3511,31 @@ begin
 
       if EOBRun > 0 then
       begin
-        Dec(EOBRun);
-        Continue;
+        HasNonZero := False;
+        for K := Ss to Se do
+        begin
+          if SarInt32(Integer(ZigCoef[K]), Al) <> 0 then
+          begin
+            HasNonZero := True;
+            Break;
+          end;
+        end;
+
+        if HasNonZero then
+          FlushEOBRun
+        else
+        begin
+          Dec(EOBRun);
+          Continue;
+        end;
       end;
 
       K := Ss;
       Run := 0;
       while K <= Se do
       begin
-        if ZigCoef[K] = 0 then
+        Val := SarInt32(Integer(ZigCoef[K]), Al);
+        if Val = 0 then
         begin
           Inc(Run);
           Inc(K);
@@ -3440,7 +3548,6 @@ begin
           Dec(Run, 16);
         end;
 
-        Val := ZigCoef[K] shr Al;
         A := Abs(Val);
         Size := 0;
         while A > 0 do
@@ -3462,35 +3569,16 @@ begin
 
       if Run > 0 then
       begin
-        // EOB run
         Inc(EOBRun);
-        // 写 EOBn 编码
-        if EOBRun = 1 then
-          FBitWriter.PutBits(FACEncCode[TblIdx, $00], FACEncSize[TblIdx, $00])
-        else
-        begin
-          // EOBn: 写入 ZRL + (EOBRun-1) 的二进制
-          K := 0;
-          A := EOBRun - 1;
-          while A > 0 do
-          begin
-            Inc(K);
-            A := A shr 1;
-          end;
-          RS := (K shl 4);  // Size=K, Run=0 → EOBn
-          if RS <= $0F then
-          begin
-            FBitWriter.PutBits(FACEncCode[TblIdx, RS], FACEncSize[TblIdx, RS]);
-            Val := EOBRun - 1 - (1 shl (K - 1));
-            FBitWriter.PutBits(Cardinal(Val), K);
-          end
-          else
-            FBitWriter.PutBits(FACEncCode[TblIdx, $00], FACEncSize[TblIdx, $00]);
-          Dec(EOBRun);  // 当前块已算
-        end;
+        if EOBRun = 32767 then
+          FlushEOBRun;
       end;
     end;
   end;
+
+  if EOBRun > 0 then
+    FlushEOBRun;
+
   FBitWriter.Flush;
 end;
 
@@ -3505,7 +3593,45 @@ var
   EOBRun: Integer;
   BlocksPerRow, BlocksPerCol: Integer;
   CoefVal: SmallInt;
-  Sign: Integer;
+  BufBits: array[0..63] of Integer;
+  BufCount: Integer;
+  HasNewNonZero: Boolean;
+
+  procedure FlushEOBRun;
+  var
+    N, Cat: Integer;
+  begin
+    if EOBRun <= 0 then Exit;
+    if EOBRun = 1 then
+    begin
+      FBitWriter.PutBits(FACEncCode[TblIdx, $00], FACEncSize[TblIdx, $00]);
+    end
+    else
+    begin
+      Cat := 0;
+      N := EOBRun;
+      while N > 1 do
+      begin
+        N := N shr 1;
+        Inc(Cat);
+      end;
+      RS := Cat shl 4;
+      FBitWriter.PutBits(FACEncCode[TblIdx, RS], FACEncSize[TblIdx, RS]);
+      Val := EOBRun - (1 shl Cat);
+      if Cat > 0 then
+        FBitWriter.PutBits(Cardinal(Val), Cat);
+    end;
+    EOBRun := 0;
+  end;
+
+  procedure OutputBufBits;
+  var
+    J: Integer;
+  begin
+    for J := 0 to BufCount - 1 do
+      FBitWriter.PutBit(BufBits[J]);
+  end;
+
 begin
   TblIdx := CompIdx;
   if TblIdx > 1 then TblIdx := 1;
@@ -3526,41 +3652,47 @@ begin
 
       if EOBRun > 0 then
       begin
-        Dec(EOBRun);
-        // 在 EOB run 中仍需输出非零系数的修正位
-        K := Ss;
-        while K <= Se do
+        HasNewNonZero := False;
+        for K := Ss to Se do
         begin
-          if ZigCoef[K] <> 0 then
+          if (Abs(ZigCoef[K]) >= (1 shl Al)) and
+             (Abs(ZigCoef[K]) < (1 shl (Al + 1))) then
           begin
-            Val := (ZigCoef[K] shr Al) and 1;
-            if Val = 1 then
-              FBitWriter.PutBit(1);
+            HasNewNonZero := True;
+            Break;
           end;
-          Inc(K);
         end;
-        Continue;
+
+        if HasNewNonZero then
+          FlushEOBRun
+        else
+        begin
+          Inc(EOBRun);
+          if EOBRun = 32767 then
+            FlushEOBRun;
+          Continue;
+        end;
       end;
 
       K := Ss;
       Run := 0;
+      BufCount := 0;
       while K <= Se do
       begin
         CoefVal := ZigCoef[K];
 
-        // 检查是否是已校正的系数（在新位之前已非零）
+        // Already nonzero: buffer refinement bit
         if Abs(CoefVal) >= (1 shl (Al + 1)) then
         begin
-          // 之前已非零：输出修正位
-          Val := (CoefVal shr Al) and 1;
-          if Val = 1 then
-            FBitWriter.PutBit(1);
+          BufBits[BufCount] := (Integer(CoefVal) shr Al) and 1;
+          Inc(BufCount);
+          Inc(Run);
           Inc(K);
           Continue;
         end;
 
-        // 新出现的非零系数
-        if CoefVal = 0 then
+        // Zero at new precision
+        if Abs(CoefVal) < (1 shl Al) then
         begin
           Inc(Run);
           Inc(K);
@@ -3571,6 +3703,8 @@ begin
         while Run >= 16 do
         begin
           FBitWriter.PutBits(FACEncCode[TblIdx, $F0], FACEncSize[TblIdx, $F0]);
+          OutputBufBits;
+          BufCount := 0;
           Dec(Run, 16);
           // ZRL 期间修正位也要输出
         end;
@@ -3578,8 +3712,12 @@ begin
         // 新非零系数：RS=Run<<4|1, 附加 1 位
         RS := (Run shl 4) or 1;
         FBitWriter.PutBits(FACEncCode[TblIdx, RS], FACEncSize[TblIdx, RS]);
-        Sign := (CoefVal shr Al) and 1;
-        FBitWriter.PutBit(Sign);
+        OutputBufBits;
+        BufCount := 0;
+        if CoefVal > 0 then
+          FBitWriter.PutBit(1)
+        else
+          FBitWriter.PutBit(0);
         Run := 0;
         Inc(K);
       end;
@@ -3587,14 +3725,15 @@ begin
       if Run > 0 then
       begin
         Inc(EOBRun);
-        if EOBRun >= 32767 then
-        begin
-          FBitWriter.PutBits(FACEncCode[TblIdx, $00], FACEncSize[TblIdx, $00]);
-          EOBRun := 0;
-        end;
+        if EOBRun = 32767 then
+          FlushEOBRun;
       end;
     end;
   end;
+
+  if EOBRun > 0 then
+    FlushEOBRun;
+
   FBitWriter.Flush;
 end;
 
