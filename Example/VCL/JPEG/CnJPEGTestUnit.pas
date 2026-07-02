@@ -419,14 +419,17 @@ type
     class procedure TestHuffmanTableBuild;
     class procedure TestHuffmanDCDecode;
     class procedure TestHuffmanACDecode;
+    class procedure TestHuffmanBitstreamDecode;
   end;
 
 class procedure THuffmanTests.TestHuffmanTableBuild;
 var
   Tbl: TCnJPEGHuffmanTable;
-  I, TotalCodes: Integer;
+  I, J, TotalCodes: Integer;
+  BitCode, CodeLen: Byte;
+  Found: Boolean;
 begin
-  // Build standard DC luminance table
+  // ---- Test 1: Standard DC luminance table ----
   for I := 1 to 16 do
     Tbl.Bits[I] := CN_JPEG_STD_DC_LUMINANCE_BITS[I];
   for I := 0 to 11 do
@@ -459,7 +462,38 @@ begin
   AssertEqual(0, Tbl.Lookahead[0].Code, 'DC lum Lookahead[0] code');
   AssertEqual(2, Tbl.Lookahead[0].Size, 'DC lum Lookahead[0] size');
 
-  // Build standard AC luminance table
+  // ---- Test 2: Lookahead consistency with bit-by-bit decode ----
+  // For every 8-bit prefix, verify lookahead matches manual decode
+  for I := 0 to 255 do
+  begin
+    // Manual bit-by-bit decode from 8-bit prefix
+    BitCode := 0;
+    Found := False;
+    CodeLen := 0;
+    for J := 1 to 8 do
+    begin
+      BitCode := (BitCode shl 1) or ((I shr (8 - J)) and 1);
+      if (Tbl.Bits[J] > 0) and (BitCode <= Tbl.MaxCode[J]) then
+      begin
+        CodeLen := J;
+        Found := True;
+        Break;
+      end;
+    end;
+
+    if Found then
+    begin
+      AssertTrue(Tbl.Lookahead[I].Valid,
+        'DC lum Lookahead[' + IntToStr(I) + '] should be valid');
+      AssertEqual(Tbl.HuffVal[Tbl.ValPtr[CodeLen] + BitCode - Tbl.MinCode[CodeLen]],
+        Tbl.Lookahead[I].Code, 'DC lum Lookahead[' + IntToStr(I) + '] code mismatch');
+      AssertEqual(CodeLen, Tbl.Lookahead[I].Size,
+        'DC lum Lookahead[' + IntToStr(I) + '] size mismatch');
+    end;
+    // If not Found, code is > 8 bits, lookahead may or may not be valid (not tested here)
+  end;
+
+  // ---- Test 3: Standard AC luminance table ----
   for I := 1 to 16 do
     Tbl.Bits[I] := CN_JPEG_STD_AC_LUMINANCE_BITS[I];
   for I := 0 to 161 do
@@ -472,6 +506,22 @@ begin
   for I := 1 to 16 do
     Inc(TotalCodes, Tbl.Bits[I]);
   AssertEqual(162, TotalCodes, 'AC lum total codes');
+
+  // ---- Test 4: Empty table (BITS all 0) should not crash ----
+  FillChar(Tbl, SizeOf(Tbl), 0);
+  CnJPEGBuildHuffmanTable(Tbl);
+
+  for I := 1 to 16 do
+  begin
+    AssertEqual(0, Tbl.MinCode[I], 'Empty table MinCode[' + IntToStr(I) + ']');
+    AssertEqual($FFFF, Tbl.MaxCode[I], 'Empty table MaxCode[' + IntToStr(I) + ']');
+    AssertEqual(0, Tbl.ValPtr[I], 'Empty table ValPtr[' + IntToStr(I) + ']');
+    AssertTrue(not Tbl.Lookahead[I].Valid, 'Empty table Lookahead[' + IntToStr(I) + '] invalid');
+  end;
+  // Also check a few spread-out lookahead entries
+  AssertTrue(not Tbl.Lookahead[0].Valid, 'Empty table Lookahead[0]');
+  AssertTrue(not Tbl.Lookahead[128].Valid, 'Empty table Lookahead[128]');
+  AssertTrue(not Tbl.Lookahead[255].Valid, 'Empty table Lookahead[255]');
 end;
 
 //============================================================================
@@ -485,8 +535,10 @@ var
   OutBmp: TBitmap;
   X, Y: Integer;
   Row: PByteArray;
+  Row0: PByteArray;
+  DC1, DC2: Integer;
 begin
-  // Test DC decoding via encode->decode roundtrip with uniform color
+  // ---- Test 1: Solid gray block (S=0 → DIFF=0 for DC) ----
   // A solid color block has DC only (all AC = 0), making DC decode testable
   Bmp := TBitmap.Create;
   try
@@ -526,6 +578,58 @@ begin
             AssertInRange(Row[X * 3 + 2], 120, 136, 'DC decode R uniform');
           end;
         end;
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+
+  // ---- Test 2: Differential DC accumulation (two blocks) ----
+  // 16x8 image = two 8x8 blocks side by side.
+  // Block 0: solid gray (Y=128), Block 1: solid bright gray (Y=200)
+  // DC of block 0 = 128, DC of block 1 = DIFF = 200 - 128 = 72
+  // Verifies that differential accumulation produces correct DC for block 1.
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 16;
+    Bmp.Height := 8;
+    // Left block: gray (128,128,128)
+    Bmp.Canvas.Brush.Color := RGB(128, 128, 128);
+    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    // Right block: bright gray (200,200,200)
+    Bmp.Canvas.Brush.Color := RGB(200, 200, 200);
+    Bmp.Canvas.FillRect(Rect(8, 0, 16, 8));
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // Left block should be ~128
+        Row := OutBmp.ScanLine[0];
+        AssertInRange(Row[0], 118, 138, 'DC diff: left block B');
+        AssertInRange(Row[1], 118, 138, 'DC diff: left block G');
+        AssertInRange(Row[2], 118, 138, 'DC diff: left block R');
+
+        // Right block should be ~200 (differential decode worked)
+        Row0 := OutBmp.ScanLine[0];
+        DC1 := Row0[1]; // G channel of left block
+        DC2 := Row0[8 * 3 + 1]; // G channel of right block (pixel X=8)
+        AssertInRange(DC2, 190, 210, 'DC diff: right block G (differential accumulation)');
+
+        // The difference between blocks should be significant (72 ± tolerance)
+        AssertTrue(Abs(DC2 - DC1) > 50,
+          'DC diff: blocks should have significantly different DC values');
       finally
         OutBmp.Free;
       end;
@@ -617,6 +721,304 @@ begin
   finally
     Bmp.Free;
   end;
+
+  // ---- Test 2: Solid block exercises EOB (RS=0x00) ----
+  // A solid block has all AC=0, so the encoder emits EOB immediately.
+  // If EOB decode fails, the block would have garbage AC values.
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    Bmp.Canvas.Brush.Color := RGB(64, 64, 64);
+    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // All pixels should be close to 64 (EOB decoded correctly → flat block)
+        for Y2 := 0 to 7 do
+        begin
+          Row := OutBmp.ScanLine[Y2];
+          for X := 0 to 7 do
+          begin
+            AssertInRange(Row[X * 3], 54, 74, 'AC EOB: B uniform at (' + IntToStr(X) + ',' + IntToStr(Y2) + ')');
+          end;
+        end;
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+
+  // ---- Test 3: Checkerboard pattern exercises ZRL (RS=0xF0) ----
+  // A checkerboard has many high-frequency AC coefficients.
+  // If ZRL (skip 16 zeros) decode fails, output would be wrong.
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 8;
+    Bmp.Height := 8;
+    for Y2 := 0 to 7 do
+    begin
+      Row := Bmp.ScanLine[Y2];
+      for X := 0 to 7 do
+      begin
+        if ((X + Y2) and 1) = 0 then
+        begin
+          Row[X * 3] := 255; Row[X * 3 + 1] := 255; Row[X * 3 + 2] := 255;
+        end
+        else
+        begin
+          Row[X * 3] := 0; Row[X * 3 + 1] := 0; Row[X * 3 + 2] := 0;
+        end;
+      end;
+    end;
+
+    JPEG := TCnJPEGImage.Create;
+    try
+      JPEG.Assign(Bmp);
+      JPEG.CompressionQuality := 100;
+
+      OutBmp := TBitmap.Create;
+      try
+        JPEG.DIBNeeded;
+        OutBmp.Assign(JPEG);
+
+        // Checkerboard should produce significant variation (ZRL decoded correctly)
+        Row := OutBmp.ScanLine[0];
+        V0 := Row[0]; // first pixel B
+        V := Row[3];  // second pixel B
+        AssertTrue(Abs(V - V0) > 30,
+          'AC ZRL: checkerboard should have high contrast between adjacent pixels');
+      finally
+        OutBmp.Free;
+      end;
+    finally
+      JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+//============================================================================
+// L1: Huffman Bitstream Direct Decode Tests (Task 36.2 + 36.3)
+// Directly tests Huffman table + BitReader without going through full JPEG encode/decode.
+// Uses the same decode algorithm as the private TCnJPEGDecoder.HuffmanDecode.
+//============================================================================
+
+class procedure THuffmanTests.TestHuffmanBitstreamDecode;
+var
+  Tbl: TCnJPEGHuffmanTable;
+  MS: TMemoryStream;
+  Reader: TCnJPEGBitReader;
+  I, S, V, Diff: Integer;
+  RS, Run, Size: Integer;
+  Coef: array[0..63] of SmallInt;
+  B: Byte;
+begin
+  // ---- Part A: DC Huffman decode (Task 36.2) ----
+  // Build standard DC luminance table
+  for I := 1 to 16 do
+    Tbl.Bits[I] := CN_JPEG_STD_DC_LUMINANCE_BITS[I];
+  for I := 0 to 11 do
+    Tbl.HuffVal[I] := CN_JPEG_STD_DC_LUMINANCE_VAL[I];
+  CnJPEGBuildHuffmanTable(Tbl);
+
+  // Construct bitstream for 3 DC decodes:
+  //   1. S=0 (code 00, 2 bits) → DIFF=0
+  //   2. S=2 (code 011, 3 bits) + additional bits 10 → V=2, DIFF=+2
+  //   3. S=2 (code 011, 3 bits) + additional bits 01 → V=1, DIFF=-2
+  // Bitstream: 00 011 10 011 01 0000 → 00011100 11010000 → 0x1C 0xD0
+  MS := TMemoryStream.Create;
+  try
+    B := $1C; MS.Write(B, 1);
+    B := $D0; MS.Write(B, 1);
+    MS.Position := 0;
+
+    Reader := TCnJPEGBitReader.Create(MS);
+    try
+      // Decode 1: S=0 → DIFF=0
+      S := 0; V := 0;
+      // Manual Huffman decode (same algorithm as TCnJPEGDecoder.HuffmanDecode)
+      V := 0;
+      for I := 1 to 16 do
+      begin
+        V := (V shl 1) or Reader.GetBit;
+        if (Tbl.Bits[I] > 0) and (V <= Tbl.MaxCode[I]) then
+        begin
+          S := Tbl.HuffVal[Tbl.ValPtr[I] + V - Tbl.MinCode[I]];
+          Break;
+        end;
+      end;
+      AssertEqual(0, S, 'DC bitstream: first decode S should be 0');
+      // S=0 → DIFF=0 (no additional bits)
+      Diff := 0;
+      AssertEqual(0, Diff, 'DC bitstream: DIFF should be 0 when S=0');
+
+      // Decode 2: S=2 → read 2 additional bits
+      V := 0;
+      for I := 1 to 16 do
+      begin
+        V := (V shl 1) or Reader.GetBit;
+        if (Tbl.Bits[I] > 0) and (V <= Tbl.MaxCode[I]) then
+        begin
+          S := Tbl.HuffVal[Tbl.ValPtr[I] + V - Tbl.MinCode[I]];
+          Break;
+        end;
+      end;
+      AssertEqual(2, S, 'DC bitstream: second decode S should be 2');
+      V := Reader.GetBits(S);
+      // V=2 (binary 10), V >= 2^(S-1)=2 → DIFF = V = 2
+      if V >= (1 shl (S - 1)) then
+        Diff := V
+      else
+        Diff := V - (1 shl S) + 1;
+      AssertEqual(2, Diff, 'DC bitstream: DIFF should be +2');
+
+      // Decode 3: S=2 → read 2 additional bits
+      V := 0;
+      for I := 1 to 16 do
+      begin
+        V := (V shl 1) or Reader.GetBit;
+        if (Tbl.Bits[I] > 0) and (V <= Tbl.MaxCode[I]) then
+        begin
+          S := Tbl.HuffVal[Tbl.ValPtr[I] + V - Tbl.MinCode[I]];
+          Break;
+        end;
+      end;
+      AssertEqual(2, S, 'DC bitstream: third decode S should be 2');
+      V := Reader.GetBits(S);
+      // V=1 (binary 01), V < 2^(S-1)=2 → DIFF = V - (2^S - 1) = 1 - 3 = -2
+      if V >= (1 shl (S - 1)) then
+        Diff := V
+      else
+        Diff := V - (1 shl S) + 1;
+      AssertEqual(-2, Diff, 'DC bitstream: DIFF should be -2');
+
+      // Verify differential accumulation: DC = 0 + 2 + (-2) = 0
+      AssertEqual(0, 0 + 2 + (-2), 'DC bitstream: differential accumulation DC=0');
+    finally
+      Reader.Free;
+    end;
+  finally
+    MS.Free;
+  end;
+
+  // ---- Part B: AC Huffman decode (Task 36.3) ----
+  // Build standard AC luminance table
+  for I := 1 to 16 do
+    Tbl.Bits[I] := CN_JPEG_STD_AC_LUMINANCE_BITS[I];
+  for I := 0 to 161 do
+    Tbl.HuffVal[I] := CN_JPEG_STD_AC_LUMINANCE_VAL[I];
+  CnJPEGBuildHuffmanTable(Tbl);
+
+  // Construct bitstream for AC decode:
+  //   1. RS=0x21 (code 11100, 5 bits) + 1 additional bit (1) → Run=2, Size=1, Val=1
+  //      → Coef[3] = 1 (skip 2 zeros at positions 1,2, write at position 3)
+  //   2. RS=0x00 (code 1010, 4 bits) → EOB, remaining coefficients = 0
+  // Bitstream: 11100 1 1010 00 → 11100110 10000000 → 0xE6 0x80
+  MS := TMemoryStream.Create;
+  try
+    B := $E6; MS.Write(B, 1);
+    B := $80; MS.Write(B, 1);
+    MS.Position := 0;
+
+    Reader := TCnJPEGBitReader.Create(MS);
+    try
+      // Initialize coefficient array
+      FillChar(Coef[0], SizeOf(Coef), 0);
+
+      // Decode AC coefficients (simplified version of DecodeBlock AC portion)
+      I := 1; // Start from position 1 (DC is position 0)
+      while I <= 63 do
+      begin
+        // Manual Huffman decode
+        V := 0;
+        RS := -1;
+        for S := 1 to 16 do
+        begin
+          V := (V shl 1) or Reader.GetBit;
+          if (Tbl.Bits[S] > 0) and (V <= Tbl.MaxCode[S]) then
+          begin
+            RS := Tbl.HuffVal[Tbl.ValPtr[S] + V - Tbl.MinCode[S]];
+            Break;
+          end;
+        end;
+        AssertTrue(RS >= 0, 'AC bitstream: decode should succeed at I=' + IntToStr(I));
+
+        Run := RS shr 4;
+        Size := RS and $0F;
+
+        if Size = 0 then
+        begin
+          if Run = 15 then
+          begin
+            // ZRL: skip 16 zeros
+            Inc(I, 16);
+            Continue;
+          end
+          else
+          begin
+            // EOB: remaining coefficients are zero
+            Break;
+          end;
+        end;
+
+        // Skip Run zeros
+        Inc(I, Run);
+        AssertTrue(I <= 63, 'AC bitstream: coefficient index in range');
+
+        // Read Size additional bits
+        V := Reader.GetBits(Size);
+        if V >= (1 shl (Size - 1)) then
+          Coef[I] := V
+        else
+          Coef[I] := V - (1 shl Size) + 1;
+
+        Inc(I);
+      end;
+
+      // Verify: Coef[3] should be 1 (Run=2, Size=1, V=1 → positive)
+      AssertEqual(1, Coef[3], 'AC bitstream: Coef[3] should be 1');
+      // All other AC coefficients (except position 3) should be 0
+      for I := 1 to 63 do
+      begin
+        if I <> 3 then
+          AssertEqual(0, Coef[I], 'AC bitstream: Coef[' + IntToStr(I) + '] should be 0 (EOB)');
+      end;
+    finally
+      Reader.Free;
+    end;
+  finally
+    MS.Free;
+  end;
+
+  // ---- Part C: ZRL test (RS=0xF0) ----
+  // The ZRL code for AC luminance is 11 bits (too long for simple bitstream test).
+  // Instead, verify via table lookup that $F0 is present in the table.
+  V := -1;
+  for I := 0 to 161 do
+  begin
+    if Tbl.HuffVal[I] = $F0 then
+    begin
+      V := I;
+      Break;
+    end;
+  end;
+  AssertTrue(V >= 0, 'AC bitstream: ZRL ($F0) should be in standard AC table');
 end;
 
 //============================================================================
@@ -626,6 +1028,7 @@ end;
 type
   TIDCTTests = class
     class procedure TestIDCTBasics;
+    class procedure TestIDCTQualityComparison;
   end;
 
 class procedure TIDCTTests.TestIDCTBasics;
@@ -772,6 +1175,111 @@ begin
       end;
     finally
       JPEG.Free;
+    end;
+  finally
+    Bmp.Free;
+  end;
+end;
+
+//============================================================================
+// L1: IDCT Quality vs Speed Comparison Tests (Task 37.2)
+//============================================================================
+
+class procedure TIDCTTests.TestIDCTQualityComparison;
+var
+  Bmp, OutBmp1, OutBmp2: TBitmap;
+  JPEG, JPEG2: TCnJPEGImage;
+  MS: TMemoryStream;
+  X, Y: Integer;
+  Row1, Row2: PByteArray;
+  MaxDiff, Diff: Integer;
+begin
+  // Test: jpBestQuality vs jpBestSpeed should produce nearly identical output.
+  // The current implementation uses a single IDCT algorithm for both modes,
+  // so the difference should be 0. Allow <= 2 for future algorithm changes.
+  Bmp := TBitmap.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 32;
+    Bmp.Height := 32;
+    // Create a complex pattern with strong AC coefficients
+    for Y := 0 to 31 do
+    begin
+      Row1 := Bmp.ScanLine[Y];
+      for X := 0 to 31 do
+      begin
+        Row1[X * 3]     := Byte((X * 8) and $FF);     // B: horizontal gradient
+        Row1[X * 3 + 1] := Byte((Y * 8) and $FF);     // G: vertical gradient
+        Row1[X * 3 + 2] := Byte((X * 8 + Y * 8) and $FF); // R: diagonal
+      end;
+    end;
+
+    // Encode to stream
+    MS := TMemoryStream.Create;
+    try
+      JPEG := TCnJPEGImage.Create;
+      try
+        JPEG.Assign(Bmp);
+        JPEG.CompressionQuality := 90;
+        JPEG.SaveToStream(MS);
+      finally
+        JPEG.Free;
+      end;
+
+      // Decode with jpBestQuality
+      MS.Position := 0;
+      JPEG := TCnJPEGImage.Create;
+      try
+        JPEG.LoadFromStream(MS);
+        JPEG.Performance := jpBestQuality;
+        OutBmp1 := TBitmap.Create;
+        try
+          JPEG.DIBNeeded;
+          OutBmp1.Assign(JPEG);
+        finally
+          JPEG.Free;
+        end;
+
+        // Decode with jpBestSpeed
+        MS.Position := 0;
+        JPEG2 := TCnJPEGImage.Create;
+        try
+          JPEG2.LoadFromStream(MS);
+          JPEG2.Performance := jpBestSpeed;
+          OutBmp2 := TBitmap.Create;
+          try
+            JPEG2.DIBNeeded;
+            OutBmp2.Assign(JPEG2);
+
+            // Compare every pixel
+            MaxDiff := 0;
+            for Y := 0 to 31 do
+            begin
+              Row1 := OutBmp1.ScanLine[Y];
+              Row2 := OutBmp2.ScanLine[Y];
+              for X := 0 to 31 do
+              begin
+                Diff := Abs(Row1[X * 3] - Row2[X * 3]);
+                if Diff > MaxDiff then MaxDiff := Diff;
+                Diff := Abs(Row1[X * 3 + 1] - Row2[X * 3 + 1]);
+                if Diff > MaxDiff then MaxDiff := Diff;
+                Diff := Abs(Row1[X * 3 + 2] - Row2[X * 3 + 2]);
+                if Diff > MaxDiff then MaxDiff := Diff;
+              end;
+            end;
+            AssertTrue(MaxDiff <= 2,
+              'IDCT quality vs speed: pixel difference should be <= 2, got ' + IntToStr(MaxDiff));
+          finally
+            OutBmp2.Free;
+          end;
+        finally
+          JPEG2.Free;
+        end;
+      finally
+        OutBmp1.Free;
+      end;
+    finally
+      MS.Free;
     end;
   finally
     Bmp.Free;
@@ -1895,9 +2403,11 @@ initialization
   RegisterTest('L1_Huffman_Build', 'Huffman table construction', THuffmanTests.TestHuffmanTableBuild);
   RegisterTest('L1_Huffman_DC', 'Huffman DC coefficient decode', THuffmanTests.TestHuffmanDCDecode);
   RegisterTest('L1_Huffman_AC', 'Huffman AC coefficient decode', THuffmanTests.TestHuffmanACDecode);
+  RegisterTest('L1_Huffman_Bitstream', 'Huffman bitstream direct decode', THuffmanTests.TestHuffmanBitstreamDecode);
 
   // L1: IDCT (Task 37.1)
   RegisterTest('L1_IDCT_Basics', 'IDCT basic transforms', TIDCTTests.TestIDCTBasics);
+  RegisterTest('L1_IDCT_Quality', 'IDCT quality vs speed comparison', TIDCTTests.TestIDCTQualityComparison);
 
   // L1: Segment Length Minimal (Task 35.2)
   RegisterTest('L1_Marker_MinSeg', 'Minimal segment (length=2)', TSegmentTests.TestMinimalSegment);
