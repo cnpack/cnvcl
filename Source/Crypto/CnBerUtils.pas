@@ -847,6 +847,7 @@ resourcestring
   SCnErrorBerTagTypeMismatchForBoolean = 'Ber Tag Type Mismatch for Boolean: ';
   SCnErrorBerTagTypeMismatchForCommonInteger = 'Ber Tag Type Mismatch for Common Integer.';
   SCnErrorDataLengthOverflowForCommonInteger = 'Data Length %d Overflow for Common Integer.';
+  SCnErrorBerParseDepthOverflow = 'BER Parse Depth Overflow %d';
 
 const
   CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_UFT8STRING, CN_BER_TAG_NUMERICSTRING,
@@ -1029,7 +1030,7 @@ var
 begin
   // Depth limit to prevent stack overflow from malicious nesting
   if ADepth > CN_BER_MAX_DEPTH then
-    raise ECnBerException.CreateFmt('BER Parse Depth Overflow %d', [ADepth]);
+    raise ECnBerException.CreateFmt(SCnErrorBerParseDepthOverflow, [ADepth]);
 
   Run := 0;  // Run 是基于 AData 起始处的偏移量
   Result := ADataByteLen;
@@ -1107,7 +1108,8 @@ begin
       Inc(Run);   // Run 指向具体长度，如果 LenLen 为 0，则 Run 指向下一个 Area 开头
 
       // AData[Run] 到 AData[Run + LenLen - 1] 是长度
-      if (ADataByteLen > 0) and (Run + Cardinal(LenLen) - 1 >= ADataByteLen) then
+      if ((ADataByteLen > 0) and (Run + Cardinal(LenLen) - 1 >= ADataByteLen)) or
+         ((ADataByteLen = 0) and (Run + Cardinal(LenLen) - 1 >= MaxRun)) then
         raise ECnBerException.CreateFmt(SCnErrorDataCorruptionTagBaseLen,
           [AStartOffset, Run, LenLen]);
 
@@ -1116,7 +1118,16 @@ begin
         DataLen := AData^[Run]
       else if LenLen = SizeOf(Word) then
         DataLen := (Cardinal(AData^[Run]) shl 8) or Cardinal(AData^[Run + 1])
-      else if LenLen > SizeOf(Word) then  // TODO: LenLen = 0 时是不定长编码，BER 中支持，以 00 00 结尾
+      else if LenLen = 3 then
+        DataLen := (Cardinal(AData^[Run]) shl 16) or
+                   (Cardinal(AData^[Run + 1]) shl 8) or
+                   Cardinal(AData^[Run + 2])
+      else if LenLen = SizeOf(Cardinal) then
+        DataLen := Integer((Cardinal(AData^[Run]) shl 24) or
+                   (Cardinal(AData^[Run + 1]) shl 16) or
+                   (Cardinal(AData^[Run + 2]) shl 8) or
+                   Cardinal(AData^[Run + 3]))
+      else if LenLen > SizeOf(Cardinal) then  // TODO: LenLen = 0 时是不定长编码，BER 中支持，以 00 00 结尾
         raise ECnBerException.CreateFmt(SCnErrorLengthTooLongOrIncorrect, [AStartOffset, LenLen]);
 
       DataOffset := AStartOffset + Run + Cardinal(LenLen);
