@@ -619,11 +619,10 @@ begin
     PBuf := Stream.Memory;
     Valid := True;
     for I := 1 to L do
+    begin
       if PByte(TCnNativeUInt(PBuf) + Stream.Size - I)^ <> L then
-      begin
-        Valid := False;
-        Break;
-      end;
+        Valid := False;  // Constant-time: no Break, always scan all bytes
+    end;
 
     if not Valid then
       Exit;
@@ -682,10 +681,7 @@ begin
   for I := 1 to V do
   begin
     if Ord(Result[L - I + 1]) <> V then
-    begin
-      Valid := False;
-      Break;
-    end;
+      Valid := False;  // Constant-time: no Break, always scan all bytes
   end;
 
   if Valid then

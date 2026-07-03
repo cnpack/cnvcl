@@ -6341,7 +6341,7 @@ begin
     U2 := TCnBigNumber.Create;
     if not BigNumberMul(U2, InSignature.R, SInv) then
       Exit;
-    if not BigNumberNonNegativeMod(U1, U1, Ecc.Order) then // u2 = (r * s^-1) mod N
+    if not BigNumberNonNegativeMod(U2, U2, Ecc.Order) then // u2 = (r * s^-1) mod N
       Exit;
 
     P1 := TCnEccPoint.Create;

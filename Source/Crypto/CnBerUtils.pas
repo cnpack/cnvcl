@@ -81,6 +81,9 @@ const
   CN_BER_LENGTH_MASK                        = $7F;
   {* Ber Tag 的长度掩码}
 
+  CN_BER_MAX_DEPTH                          = 200;
+  {* Ber 解析的最多轮数避免堆栈溢出}
+
   CN_BER_TAG_RESERVED                       = $00;
   {* Ber Tag 类型 0，保留}
 
@@ -477,7 +480,8 @@ type
     function GetTotalCount: Integer;
     function GetItems(Index: Integer): TCnBerReadNode;
     function ParseArea(Parent: TCnLeaf; AData: PByteArray; ADataByteLen: Cardinal;
-      AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean = True): Cardinal;
+      AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean = True;
+      ADepth: Integer = 0; AMaxDataLen: Cardinal = 0): Cardinal;
     {* 解析一段数据为一个或多个节点，该数据里的所有 ASN.1 节点均序次挂在 Parent 节点下，
       返回这个 Area 的总长度。IsTop 表示是 Parent 是 Root 顶级节点，以处理长度问题。
       ADataLen 如果传 0，表示是不定长节点，ParseArea 此时需要判断 00 00 以告知上一级结尾了
@@ -1009,9 +1013,11 @@ begin
 end;
 
 function TCnBerReader.ParseArea(Parent: TCnLeaf; AData: PByteArray;
-  ADataByteLen: Cardinal; AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean): Cardinal;
+  ADataByteLen: Cardinal; AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean;
+  ADepth: Integer; AMaxDataLen: Cardinal): Cardinal;
 var
   Run, Start: Cardinal;
+  MaxRun: Cardinal;
   Tag, DataLen, DataOffset, LenLen, Delta, SubLen: Integer;
   B: Byte;
   IsStruct, OutLenIsZero, MyEnd, LenSingle: Boolean;
@@ -1021,13 +1027,34 @@ var
   TagName: string;
 {$ENDIF}
 begin
+  // Depth limit to prevent stack overflow from malicious nesting
+  if ADepth > CN_BER_MAX_DEPTH then
+    raise ECnBerException.CreateFmt('BER Parse Depth Overflow %d', [ADepth]);
+
   Run := 0;  // Run 是基于 AData 起始处的偏移量
   Result := ADataByteLen;
   OutLenIsZero := ADataByteLen = 0;
   MyEnd := False;
 
+  // Indefinite-length mode: compute max safe offset to prevent OOB read
+  if ADataByteLen = 0 then
+  begin
+    if AMaxDataLen > 0 then
+      MaxRun := AMaxDataLen
+    else if FDataByteLen > AStartOffset then
+      MaxRun := FDataByteLen - AStartOffset
+    else
+      MaxRun := 0;
+  end
+  else
+    MaxRun := ADataByteLen;
+
   while (ADataByteLen = 0) or (Run < ADataByteLen) do // ADataLen 如果等于 0 表示是不定长节点
   begin
+    // Boundary check in indefinite-length mode
+    if (ADataByteLen = 0) and (Run >= MaxRun) then
+      Exit;
+
     B := AData^[Run];
 
     if B = $FF then
@@ -1044,6 +1071,10 @@ begin
     if (Run >= ADataByteLen) and (ADataByteLen > 0) then
       raise ECnBerException.CreateFmt(SCnErrorDataCorruptionTagBase,
         [AStartOffset, Run, ADataByteLen]);
+
+    // Indefinite-length boundary check before accessing AData^[Run]
+    if (ADataByteLen = 0) and (Run >= MaxRun) then
+      Exit;
 
     // Run 指向长度，如果 Tag 和长度都是 0，表示不定长内容的终结，不新建节点
     // 注意 ADataLen 可能因为是顶层节点，长度由外部传入，
@@ -1140,11 +1171,13 @@ begin
             try
               // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里要跳过
               SubLen := ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run + 1),
-                ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1, MyEnd, False);
+                ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1, MyEnd, False,
+                ADepth + 1, ALeaf.BerDataLength);
             except
               // 但有些场合没这个字节。所以上面出错时，不跳过这个字节，重新解析
               SubLen := ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
-                ALeaf.BerDataLength, ALeaf.BerDataOffset, MyEnd, False);
+                ALeaf.BerDataLength, ALeaf.BerDataOffset, MyEnd, False,
+                ADepth + 1, ALeaf.BerDataLength);
             end;
           finally
             FCurrentIsBitString := False;
@@ -1153,7 +1186,8 @@ begin
         else
         begin
           SubLen := ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
-            ALeaf.BerDataLength, ALeaf.BerDataOffset, MyEnd, False);
+            ALeaf.BerDataLength, ALeaf.BerDataOffset, MyEnd, False,
+            ADepth + 1, ALeaf.BerDataLength);
         end;
       except
         ; // 如果内嵌解析失败，不终止，当做普通节点
@@ -1327,7 +1361,11 @@ begin
   // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
   if (Length(S) in [11, 13]) and (S[Length(S)] = 'Z') then
   begin
-    Y := StrToInt(Copy(S, 1, 2)) + 2000;
+    Y := StrToInt(Copy(S, 1, 2));
+    if Y >= 50 then
+      Y := Y + 1900
+    else
+      Y := Y + 2000;
     M := StrToInt(Copy(S, 3, 2));
     D := StrToInt(Copy(S, 5, 2));
     H := StrToInt(Copy(S, 7, 2));
@@ -1402,7 +1440,8 @@ function TCnBerReadNode.AsBoolean: Boolean;
 var
   B: Byte;
 begin
-  if (FBerTag <> CN_BER_TAG_BOOLEAN) and (FBerDataLength <> 1) then
+  B := 0;
+  if (FBerTag <> CN_BER_TAG_BOOLEAN) or (FBerDataLength <> 1) then
     raise ECnBerException.Create(SCnErrorBerTagTypeMismatchForBoolean + IntToStr(FBerTag));
 
   CopyDataTo(@B);
