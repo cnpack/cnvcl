@@ -2023,13 +2023,16 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    if BigNumberCompare(InSignature.R, SM2.Order) >= 0 then
+    // Verify 1 <= R <= N-1 and 1 <= S <= N-1
+    if InSignature.R.IsZero or InSignature.R.IsNegative or
+       (BigNumberCompare(InSignature.R, SM2.Order) >= 0) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
     end;
 
-    if BigNumberCompare(InSignature.S, SM2.Order) >= 0 then
+    if InSignature.S.IsZero or InSignature.S.IsNegative or
+       (BigNumberCompare(InSignature.S, SM2.Order) >= 0) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;

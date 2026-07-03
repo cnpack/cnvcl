@@ -6321,6 +6321,15 @@ begin
   if not CheckEccPublicKey(Ecc, PublicKey) then
     Exit;
 
+  // Verify 1 <= R <= N-1 and 1 <= S <= N-1
+  if InSignature.R.IsZero or InSignature.R.IsNegative or
+     (BigNumberCompare(InSignature.R, Ecc.Order) >= 0) then
+    Exit;
+
+  if InSignature.S.IsZero or InSignature.S.IsNegative or
+     (BigNumberCompare(InSignature.S, Ecc.Order) >= 0) then
+    Exit;
+
   BuildShortXValue(InE, Ecc.Order); // InE is z
 
   U1 := nil;
