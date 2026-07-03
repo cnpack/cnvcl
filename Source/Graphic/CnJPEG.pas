@@ -1105,7 +1105,7 @@ begin
 inherited Create;
 FScale := jsFullSize;
 FPerformance := jpBestQuality;
-FSmoothing := True;
+FSmoothing := False;
 FProgressiveDisplay := False;
 FWidth := 0;
 FHeight := 0;
@@ -1528,7 +1528,7 @@ begin
       Sum := 0;
       for U := 0 to M - 1 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * DQ[V * 8 + U]);
-      Tmp[X * M + V] := Integer(SarInt64(Sum, 16));
+      Tmp[X * M + V] := Integer(SarInt64(Sum + 32768, 16));
     end;
   end;
 
@@ -1541,7 +1541,7 @@ begin
       Sum := 0;
       for V := 0 to M - 1 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[X * M + V]);
-      Sum := SarInt64(Sum, 16);
+      Sum := SarInt64(Sum + 32768, 16);
       Inc(Sum, 128);
       if Sum < 0 then Sum := 0;
       if Sum > 255 then Sum := 255;
@@ -1561,10 +1561,14 @@ var
   OutX, OutY: Integer;
   MaxPX, MaxPY: Integer;
   YVal, CbVal, CrVal, AVal: Byte;
-  CbX, CbY: Integer;
+  CbX0, CbY0, CbX1, CbY1: Integer;
+  CbFX, CbFY: Integer;  // fractional position for bilinear
+  Cb00, Cb01, Cb10, Cb11: Byte;
+  Cr00, Cr01, Cr10, Cr11: Byte;
   R, G, B: Integer;
   RowPtr: PByteArray;
   ImgX, ImgY: Integer;
+  SubH, SubV: Integer;  // chroma subsampling factors
 begin
   // Determine scaled block size
   case FScale of
@@ -1636,15 +1640,54 @@ begin
       begin
         // YCbCr → RGB
         YVal := CompBuf[0, PY * CompW[0] + PX];
-        CbX := (PX * FComponents[1].HSampFactor) div FMaxH;
-        CbY := (PY * FComponents[1].VSampFactor) div FMaxV;
-        CbVal := CompBuf[1, CbY * CompW[1] + CbX];
-        CrVal := CompBuf[2, CbY * CompW[2] + CbX];
 
-        R := YVal + Round(1.402 * (CrVal - 128));
-        G := YVal - Round(0.34414 * (CbVal - 128)) -
-             Round(0.71414 * (CrVal - 128));
-        B := YVal + Round(1.772 * (CbVal - 128));
+        // Bilinear interpolation for chroma
+        SubH := FComponents[1].HSampFactor;
+        SubV := FComponents[1].VSampFactor;
+        if (SubH = FMaxH) and (SubV = FMaxV) then
+        begin
+          // No subsampling - direct access
+          CbVal := CompBuf[1, PY * CompW[1] + PX];
+          CrVal := CompBuf[2, PY * CompW[2] + PX];
+        end
+        else
+        begin
+          // Bilinear interpolation
+          // Map PX,PY from full-res to chroma-res with fixed-point fractions
+          CbFX := (PX * SubH * 256) div FMaxH;
+          CbFY := (PY * SubV * 256) div FMaxV;
+          CbX0 := CbFX shr 8;
+          CbY0 := CbFY shr 8;
+          CbX1 := CbX0 + 1;
+          CbY1 := CbY0 + 1;
+          if CbX1 >= CompW[1] then CbX1 := CbX0;
+          if CbY1 >= CompH[1] then CbY1 := CbY0;
+
+          Cb00 := CompBuf[1, CbY0 * CompW[1] + CbX0];
+          Cb10 := CompBuf[1, CbY0 * CompW[1] + CbX1];
+          Cb01 := CompBuf[1, CbY1 * CompW[1] + CbX0];
+          Cb11 := CompBuf[1, CbY1 * CompW[1] + CbX1];
+          Cr00 := CompBuf[2, CbY0 * CompW[2] + CbX0];
+          Cr10 := CompBuf[2, CbY0 * CompW[2] + CbX1];
+          Cr01 := CompBuf[2, CbY1 * CompW[2] + CbX0];
+          Cr11 := CompBuf[2, CbY1 * CompW[2] + CbX1];
+
+          // Fixed-point bilinear: (256-w)*(256-h)*c00 + w*(256-h)*c10 + ...
+          // Result >> 16, using 8-bit fractional weights
+          CbVal := Byte(((Cb00 * (256 - (CbFX and $FF)) * (256 - (CbFY and $FF)) +
+                          Cb10 * (CbFX and $FF) * (256 - (CbFY and $FF)) +
+                          Cb01 * (256 - (CbFX and $FF)) * (CbFY and $FF) +
+                          Cb11 * (CbFX and $FF) * (CbFY and $FF)) shr 16));
+          CrVal := Byte(((Cr00 * (256 - (CbFX and $FF)) * (256 - (CbFY and $FF)) +
+                          Cr10 * (CbFX and $FF) * (256 - (CbFY and $FF)) +
+                          Cr01 * (256 - (CbFX and $FF)) * (CbFY and $FF) +
+                          Cr11 * (CbFX and $FF) * (CbFY and $FF)) shr 16));
+        end;
+
+        // Use lookup tables for color conversion (avoids per-pixel Round)
+        R := YVal + CnJPEGCrToR[CrVal];
+        G := YVal + CnJPEGCbToG[CbVal] + CnJPEGCrToG[CrVal];
+        B := YVal + CnJPEGCbToB[CbVal];
         if R < 0 then R := 0;
         if R > 255 then R := 255;
         if G < 0 then G := 0;
@@ -1665,11 +1708,10 @@ begin
         AVal := CompBuf[3, PY * CompW[3] + PX];  // K
         if FAdobeTransform = 2 then
         begin
-          // YCCK: 先 YCbCr→RGB，再乘以 K
-          R := YVal + Round(1.402 * (CrVal - 128));
-          G := YVal - Round(0.34414 * (CbVal - 128)) -
-               Round(0.71414 * (CrVal - 128));
-          B := YVal + Round(1.772 * (CbVal - 128));
+          // YCCK: YCbCr to RGB, then multiply by K
+          R := YVal + CnJPEGCrToR[CrVal];
+          G := YVal + CnJPEGCbToG[CbVal] + CnJPEGCrToG[CrVal];
+          B := YVal + CnJPEGCbToB[CbVal];
           R := (R * AVal) div 255;
           G := (G * AVal) div 255;
           B := (B * AVal) div 255;
@@ -2043,12 +2085,16 @@ var
   OutX, OutY: Integer;
   MaxPX, MaxPY: Integer;
   YVal, CbVal, CrVal: Byte;
-  CbX, CbY: Integer;
+  CbX0, CbY0, CbX1, CbY1: Integer;
+  CbFX, CbFY: Integer;
+  Cb00, Cb01, Cb10, Cb11: Byte;
+  Cr00, Cr01, Cr10, Cr11: Byte;
   R, G, B: Integer;
   RowPtr: PByteArray;
   ImgX, ImgY: Integer;
   Val: Byte;
   M, ScaledMCUW, ScaledMCUH: Integer;
+  SubH, SubV: Integer;
 begin
   // Determine scaled block size
   case FScale of
@@ -2126,15 +2172,48 @@ begin
           else if FNumComponents = 3 then
           begin
             YVal := CompBuf[0, PY * CompW[0] + PX];
-            CbX := (PX * FComponents[1].HSampFactor) div FMaxH;
-            CbY := (PY * FComponents[1].VSampFactor) div FMaxV;
-            CbVal := CompBuf[1, CbY * CompW[1] + CbX];
-            CrVal := CompBuf[2, CbY * CompW[2] + CbX];
 
-            R := YVal + Round(1.402 * (CrVal - 128));
-            G := YVal - Round(0.34414 * (CbVal - 128)) -
-                 Round(0.71414 * (CrVal - 128));
-            B := YVal + Round(1.772 * (CbVal - 128));
+            // Bilinear interpolation for chroma
+            SubH := FComponents[1].HSampFactor;
+            SubV := FComponents[1].VSampFactor;
+            if (SubH = FMaxH) and (SubV = FMaxV) then
+            begin
+              CbVal := CompBuf[1, PY * CompW[1] + PX];
+              CrVal := CompBuf[2, PY * CompW[2] + PX];
+            end
+            else
+            begin
+              CbFX := (PX * SubH * 256) div FMaxH;
+              CbFY := (PY * SubV * 256) div FMaxV;
+              CbX0 := CbFX shr 8;
+              CbY0 := CbFY shr 8;
+              CbX1 := CbX0 + 1;
+              CbY1 := CbY0 + 1;
+              if CbX1 >= CompW[1] then CbX1 := CbX0;
+              if CbY1 >= CompH[1] then CbY1 := CbY0;
+
+              Cb00 := CompBuf[1, CbY0 * CompW[1] + CbX0];
+              Cb10 := CompBuf[1, CbY0 * CompW[1] + CbX1];
+              Cb01 := CompBuf[1, CbY1 * CompW[1] + CbX0];
+              Cb11 := CompBuf[1, CbY1 * CompW[1] + CbX1];
+              Cr00 := CompBuf[2, CbY0 * CompW[2] + CbX0];
+              Cr10 := CompBuf[2, CbY0 * CompW[2] + CbX1];
+              Cr01 := CompBuf[2, CbY1 * CompW[2] + CbX0];
+              Cr11 := CompBuf[2, CbY1 * CompW[2] + CbX1];
+
+              CbVal := Byte(((Cb00 * (256 - (CbFX and $FF)) * (256 - (CbFY and $FF)) +
+                              Cb10 * (CbFX and $FF) * (256 - (CbFY and $FF)) +
+                              Cb01 * (256 - (CbFX and $FF)) * (CbFY and $FF) +
+                              Cb11 * (CbFX and $FF) * (CbFY and $FF)) shr 16));
+              CrVal := Byte(((Cr00 * (256 - (CbFX and $FF)) * (256 - (CbFY and $FF)) +
+                              Cr10 * (CbFX and $FF) * (256 - (CbFY and $FF)) +
+                              Cr01 * (256 - (CbFX and $FF)) * (CbFY and $FF) +
+                              Cr11 * (CbFX and $FF) * (CbFY and $FF)) shr 16));
+            end;
+
+            R := YVal + CnJPEGCrToR[CrVal];
+            G := YVal + CnJPEGCbToG[CbVal] + CnJPEGCrToG[CrVal];
+            B := YVal + CnJPEGCbToB[CbVal];
             if R < 0 then R := 0;
             if R > 255 then R := 255;
             if G < 0 then G := 0;
@@ -2155,11 +2234,10 @@ begin
             Val := CompBuf[3, PY * CompW[3] + PX];  // K
             if FAdobeTransform = 2 then
             begin
-              // YCCK: 先 YCbCr→RGB，再乘以 K
-              R := YVal + Round(1.402 * (CrVal - 128));
-              G := YVal - Round(0.34414 * (CbVal - 128)) -
-                   Round(0.71414 * (CrVal - 128));
-              B := YVal + Round(1.772 * (CbVal - 128));
+              // YCCK: YCbCr to RGB, then multiply by K
+              R := YVal + CnJPEGCrToR[CrVal];
+              G := YVal + CnJPEGCbToG[CbVal] + CnJPEGCrToG[CrVal];
+              B := YVal + CnJPEGCbToB[CbVal];
               R := (R * Val) div 255;
               G := (G * Val) div 255;
               B := (B * Val) div 255;
@@ -2365,6 +2443,9 @@ var
   SegEnd: Int64;
   I: Integer;
 begin
+  // Initialize YCbCr lookup tables for fast color conversion
+  CnJPEGInitYCbCrTables;
+
   FScale := AScale;
   FPerformance := APerformance;
   FSmoothing := ASmoothing;
@@ -3994,7 +4075,7 @@ begin
   FProgressiveDisplay := False;
   FProgressiveEncoding := False;
   FScale := jsFullSize;
-  FSmoothing := True;
+  FSmoothing := False;
   FTransparentColor := clDefault;
 end;
 

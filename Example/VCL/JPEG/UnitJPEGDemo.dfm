@@ -37,6 +37,13 @@ object FormJPEGDemo: TFormJPEGDemo
       Height = 13
       Caption = 'Quality: 100'
     end
+    object LabelPF: TLabel
+      Left = 790
+      Top = 2
+      Width = 57
+      Height = 13
+      Caption = 'Pixel Format'
+    end
     object btnLoad: TButton
       Left = 8
       Top = 8
@@ -160,13 +167,6 @@ object FormJPEGDemo: TFormJPEGDemo
         '24-bit'
         '8-bit')
     end
-    object LabelPF: TLabel
-      Left = 790
-      Top = 2
-      Width = 55
-      Height = 13
-      Caption = 'Pixel Format'
-    end
   end
   object PanelLeft: TPanel
     Left = 0
@@ -211,8 +211,8 @@ object FormJPEGDemo: TFormJPEGDemo
       Left = 1
       Top = 14
       Width = 496
-      Height = 350
-      Align = alTop
+      Height = 479
+      Align = alClient
       Center = True
     end
     object MemoInfo: TMemo
