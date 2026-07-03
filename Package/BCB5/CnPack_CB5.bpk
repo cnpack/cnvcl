@@ -135,6 +135,7 @@
       ..\..\Source\Graphic\CnHint.obj 
       ..\..\Source\Graphic\CnIconUtils.obj 
       ..\..\Source\Graphic\CnImage.obj 
+      ..\..\Source\Graphic\CnJPEG.obj 
       ..\..\Source\Graphic\CnLED.obj 
       ..\..\Source\Graphic\CnListBox.obj 
       ..\..\Source\Graphic\CnMemo.obj 

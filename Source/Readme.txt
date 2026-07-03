@@ -488,8 +488,11 @@ cnpack\Source 目录内容说明：
   CnImage.pas
     调试用界面控件 TCnImage、TCnPaintBox 单元
 
+  CnJPEG.pas
+    JPEG 格式图像的编解码单元
+
   CnLED.pas
-    LED 效果的显示组件实现单元，支持汉字。
+    LED 效果的显示组件实现单元，支持汉字
 
   CnListBox.pas
     支持自画效果的 CnListBox 控件实现单元
@@ -545,7 +548,7 @@ cnpack\Source 目录内容说明：
   CnWizardImage.pas
     向导界面图像控件
 
-               41 文件
+               42 文件
 
 \Lang\2052
 \Lang\1028

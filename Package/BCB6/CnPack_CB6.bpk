@@ -161,6 +161,7 @@
       ..\..\Source\Graphic\CnHint.obj 
       ..\..\Source\Graphic\CnIconUtils.obj 
       ..\..\Source\Graphic\CnImage.obj 
+      ..\..\Source\Graphic\CnJPEG.obj 
       ..\..\Source\Graphic\CnLED.obj 
       ..\..\Source\Graphic\CnListBox.obj 
       ..\..\Source\Graphic\CnMemo.obj 
@@ -470,6 +471,7 @@
       <FILE FILENAME="..\..\Source\Graphic\CnHint.pas" FORMNAME="" UNITNAME="CnHint" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnIconUtils.pas" FORMNAME="" UNITNAME="CnIconUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnImage.pas" FORMNAME="" UNITNAME="CnImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnJPEG.pas" FORMNAME="" UNITNAME="CnJPEG" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnLED.pas" FORMNAME="" UNITNAME="CnLED" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnListBox.pas" FORMNAME="" UNITNAME="CnListBox" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnMemo.pas" FORMNAME="" UNITNAME="CnMemo" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

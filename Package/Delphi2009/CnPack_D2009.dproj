@@ -230,6 +230,7 @@
 			<DCCReference Include="..\..\Source\Graphic\CnHint.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnIconUtils.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnImage.pas"/>
+			<DCCReference Include="..\..\Source\Graphic\CnJPEG.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnLED.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnListBox.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnMemo.pas"/>
