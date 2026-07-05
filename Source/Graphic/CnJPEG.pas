@@ -1505,7 +1505,7 @@ procedure TCnJPEGDecoder.DequantizeAndIDCT(var Coef: array of SmallInt;
 var
   I, X, Y, U, V, M: Integer;
   DQ: array[0..63] of Integer;
-  Tmp: array[0..63] of Integer;
+  Tmp: array[0..63] of Int64;  // Int64: keep full intermediate precision
   Sum: Int64;
 begin
   // Scaled IDCT: determine output block size M based on AScale
@@ -1528,7 +1528,7 @@ begin
       Sum := 0;
       for U := 0 to M - 1 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[U, X]) * DQ[V * 8 + U]);
-      Tmp[X * M + V] := Integer(SarInt64(Sum + 32768, 16));
+      Tmp[X * M + V] := Sum;  // no intermediate truncation, keep full precision
     end;
   end;
 
@@ -1541,7 +1541,7 @@ begin
       Sum := 0;
       for V := 0 to M - 1 do
         Inc(Sum, Int64(CN_JPEG_IDCT_COS[V, Y]) * Tmp[X * M + V]);
-      Sum := SarInt64(Sum + 32768, 16);
+      Sum := SarInt64(Sum + Int64($7FFFFFFF) + 1, 32);
       Inc(Sum, 128);
       if Sum < 0 then Sum := 0;
       if Sum > 255 then Sum := 255;
@@ -1853,7 +1853,12 @@ begin
               // 精化扫描：读取 1 位修正 DC 系数
               Val := FBitReader.GetBit;
               if Val = 1 then
-                CoefPtr^ := CoefPtr^ or SmallInt(1 shl FScanAl);
+              begin
+                if CoefPtr^ > 0 then
+                  Inc(CoefPtr^, SmallInt(1 shl FScanAl))
+                else
+                  Dec(CoefPtr^, SmallInt(1 shl FScanAl));
+              end;
             end;
           end;
       end;
@@ -1958,8 +1963,12 @@ begin
             begin
               Val := FBitReader.GetBit;
               if Val = 1 then
-                CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
-                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+              begin
+                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
+                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
+                else
+                  Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+              end;
             end;
             Inc(K);
           end;
@@ -1975,8 +1984,12 @@ begin
             begin
               Val := FBitReader.GetBit;
               if Val = 1 then
-                CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
-                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+              begin
+                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
+                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
+                else
+                  Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+              end;
               Inc(K);
             end;
             if K > FScanSe then Break;
@@ -1999,8 +2012,12 @@ begin
                   begin
                     RS := FBitReader.GetBit;
                     if RS = 1 then
-                      CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
-                        CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+                    begin
+                      if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
+                        Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
+                      else
+                        Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                    end;
                   end
                   else
                     Inc(Val);
@@ -2021,8 +2038,12 @@ begin
                 begin
                   Val := FBitReader.GetBit;
                   if Val = 1 then
-                    CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
-                      CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+                  begin
+                    if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
+                      Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
+                    else
+                      Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                  end;
                 end;
                 Inc(K);
               end;
@@ -2039,8 +2060,12 @@ begin
               begin
                 RS := FBitReader.GetBit;
                 if RS = 1 then
-                  CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] :=
-                    CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] or SmallInt(1 shl FScanAl);
+                begin
+                  if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
+                    Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
+                  else
+                    Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                end;
               end
               else
                 Inc(Val);
@@ -2049,7 +2074,29 @@ begin
 
             if K > FScanSe then Break;
 
-            // Read sign bit and set new coefficient
+            // After skipping Run zeros, continue processing any nonzero
+            // positions (reading refinement bits) until we find the next
+            // zero position where the new coefficient should be placed.
+            // This matches libjpeg: the new coefficient goes at the first
+            // zero position after Run zeros, not at the position immediately
+            // after the Run-th zero (which might be nonzero from a prior scan).
+            while (K <= FScanSe) and
+                  (CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] <> 0) do
+            begin
+              Val := FBitReader.GetBit;
+              if Val = 1 then
+              begin
+                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
+                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
+                else
+                  Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+              end;
+              Inc(K);
+            end;
+
+            if K > FScanSe then Break;
+
+            // Read sign bit and set new coefficient at this zero position
             Val := FBitReader.GetBit;
             if Val = 1 then
               CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] := SmallInt(1 shl FScanAl)
@@ -2540,8 +2587,8 @@ begin
       end;
     end;
 
-    // 7. 平滑处理
-    ApplySmoothing(OutBmp);
+      // 7. 平滑处理
+      ApplySmoothing(OutBmp);
   finally
     Marker.Free;
   end;

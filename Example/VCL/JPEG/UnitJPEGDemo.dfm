@@ -121,8 +121,8 @@ object FormJPEGDemo: TFormJPEGDemo
       Width = 65
       Height = 17
       Caption = 'Smooth'
-      Checked = True
-      State = cbChecked
+      Checked = False
+      State = cbUnchecked
       TabOrder = 7
       OnClick = chkSmoothingClick
     end

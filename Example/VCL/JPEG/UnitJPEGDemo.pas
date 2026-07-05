@@ -71,7 +71,7 @@ begin
   cmbScale.ItemIndex := 0;
   cmbPerformance.ItemIndex := 0;
   cmbPixelFormat.ItemIndex := 0;
-  chkSmoothing.Checked := True;
+  chkSmoothing.Checked := False;
   UpdateLabels;
 end;
 
