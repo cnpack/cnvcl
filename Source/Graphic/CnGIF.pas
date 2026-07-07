@@ -109,6 +109,7 @@ type
     FFrames: TObjectList;
     FCurrentFrame: Integer;
     FLoopCount: Integer;
+    FHasNetscape: Boolean;
 
     // äÖÈ¾»º´æ
     FCompositeBuf: PByteArray;
@@ -163,6 +164,7 @@ type
 
     // ¸ôÐÐÉ¨Ãè
     procedure Deinterlace(Frame: TCnGIFFrame);
+    procedure InterlacePixels(Frame: TCnGIFFrame; Dst: PByteArray);
 
     procedure SetCurrentFrame(Value: Integer);
     function  GetFrameCount: Integer;
@@ -305,7 +307,10 @@ begin
     FreeMem(FPixels);
   FPixelCount := Count;
   if Count > 0 then
-    GetMem(FPixels, Count)
+  begin
+    GetMem(FPixels, Count);
+    FillChar(FPixels^, Count, 0);
+  end
   else
     FPixels := nil;
 end;
@@ -347,6 +352,7 @@ begin
   FCurrentFrame := 0;
   FRenderedFrame := -1;
   FLoopCount := 0;
+  FHasNetscape := False;
   FHasPendingGCE := False;
   FreeComposite;
   FreeDIB;
@@ -536,6 +542,7 @@ begin
       B1 := ReadByte(Stream);
       B2 := ReadByte(Stream);
       FLoopCount := B1 or (B2 shl 8);
+      FHasNetscape := True;
       ReadByte(Stream); // terminators
     end
     else
@@ -792,7 +799,7 @@ begin
     else
       I := Code;
 
-    while I > 255 do
+    while I > ClearCode + 1 do
     begin
       if SP >= GIF_MAX_CODES then Break;
       Stack[SP] := Table[I].Suffix;  Inc(SP);
@@ -890,6 +897,53 @@ begin
     end;
   finally
     FreeMem(Src);
+  end;
+end;
+
+procedure TCnGIFImage.InterlacePixels(Frame: TCnGIFFrame; Dst: PByteArray);
+var
+  RowSize: Integer;
+  H: Integer;
+  SrcRow: Integer;
+  DstRow: Integer;
+begin
+  H := Frame.FHeight;
+  RowSize := Frame.FWidth;
+  if (H <= 1) or (RowSize <= 0) then
+    Exit;
+
+  DstRow := 0;
+  // Pass 1: linear rows 0, 8, 16, ...
+  SrcRow := 0;
+  while SrcRow < H do
+  begin
+    Move(Frame.FPixels^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+    Inc(DstRow);
+    Inc(SrcRow, 8);
+  end;
+  // Pass 2: linear rows 4, 12, 20, ...
+  SrcRow := 4;
+  while SrcRow < H do
+  begin
+    Move(Frame.FPixels^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+    Inc(DstRow);
+    Inc(SrcRow, 8);
+  end;
+  // Pass 3: linear rows 2, 6, 10, 14, ...
+  SrcRow := 2;
+  while SrcRow < H do
+  begin
+    Move(Frame.FPixels^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+    Inc(DstRow);
+    Inc(SrcRow, 4);
+  end;
+  // Pass 4: linear rows 1, 3, 5, 7, ...
+  SrcRow := 1;
+  while SrcRow < H do
+  begin
+    Move(Frame.FPixels^[SrcRow * RowSize], Dst^[DstRow * RowSize], RowSize);
+    Inc(DstRow);
+    Inc(SrcRow, 2);
   end;
 end;
 
@@ -1225,6 +1279,7 @@ var
   Pkd: Byte;
   PalSz: Integer;
   SrcStm: TMemoryStream;
+  InterBuf: PByteArray;
 begin
   if FFrames.Count = 0 then
     Exit;
@@ -1243,8 +1298,8 @@ begin
     Pkd := Pkd or ((FColorResolution and $07) shl 4);
     if FSortFlag then Pkd := Pkd or $08;
     PalSz := Length(FGlobalPalette);
-    J := 7;
-    while (1 shl (J + 1)) < PalSz do Dec(J);
+    J := 0;
+    while (1 shl (J + 1)) < PalSz do Inc(J);
     Pkd := Pkd or (J and $07);
   end;
   WriteByte(Stream, Pkd);
@@ -1256,7 +1311,7 @@ begin
     WriteColorTable(Stream, FGlobalPalette, Length(FGlobalPalette));
 
   // NETSCAPE 2.0 Application Extension (Ñ­»·²¥·Å)
-  if (FFrames.Count > 1) and (FLoopCount > 0) then
+  if (FFrames.Count > 1) and FHasNetscape then
   begin
     WriteByte(Stream, GIF_EXT_INTRODUCER);
     WriteByte(Stream, GIF_EXT_APPLICATION);
@@ -1304,8 +1359,8 @@ begin
     begin
       Pkd := Pkd or $80;
       PalSz := Length(Frame.FLocalPalette);
-      J := 7;
-      while (1 shl (J + 1)) < PalSz do Dec(J);
+      J := 0;
+      while (1 shl (J + 1)) < PalSz do Inc(J);
       Pkd := Pkd or (J and $07);
     end;
     WriteByte(Stream, Pkd);
@@ -1341,6 +1396,18 @@ begin
     begin
       SrcStm := TMemoryStream.Create;
       try
+        if Frame.FInterlaced then
+        begin
+          GetMem(InterBuf, Frame.FWidth * Frame.FHeight);
+          try
+            InterlacePixels(Frame, InterBuf);
+            EncodeLZW(InterBuf, Frame.FWidth * Frame.FHeight,
+                      SrcStm, MinCodeSize);
+          finally
+            FreeMem(InterBuf);
+          end;
+        end
+        else
         EncodeLZW(Frame.FPixels, Frame.FWidth * Frame.FHeight,
                   SrcStm, MinCodeSize);
         EmitSubBlocks(Stream, SrcStm.Memory, SrcStm.Size);
