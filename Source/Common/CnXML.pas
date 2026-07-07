@@ -241,6 +241,7 @@ type
     FColumn: Integer;         // Current column number
     FCurrentChar: Char;       // Current character
     FLength: Integer;         // Source text length (for optimization)
+    FPreserveWhitespace: Boolean;  // When True, whitespace between tags becomes text tokens
 
     procedure NextChar;       // Move to next character
     procedure SkipWhitespace; // Skip whitespace characters
@@ -281,6 +282,8 @@ type
 
        返回值：Integer                    - 当前字符位置
     }
+
+    property PreserveWhitespace: Boolean read FPreserveWhitespace write FPreserveWhitespace;
 
     function CurrentLine: Integer;
     {* 获取当前行号。
@@ -336,6 +339,7 @@ type
     procedure AddChild(Node: TCnXMLNode);
     procedure InternalRemoveChild(Node: TCnXMLNode);
     function IndexOfChild(Node: TCnXMLNode): Integer;
+    procedure SetOwnerDocumentRecursive(Doc: TCnXMLDocument);
   public
     constructor Create(AOwnerDocument: TCnXMLDocument; ANodeType: TCnXMLNodeType);
     {* 构造函数。
@@ -702,6 +706,7 @@ type
     FLexer: TCnXMLLexer;
     FDocument: TCnXMLDocument;
     FCurrentToken: TCnXMLToken;
+    FPreserveWhitespace: Boolean;
 
     procedure NextToken;                             // Get next token
     procedure RaiseError(const Msg: string);         // Raise parsing error
@@ -729,6 +734,8 @@ type
 
        返回值：TCnXMLDocument             - 解析得到的文档对象
     }
+
+    property PreserveWhitespace: Boolean read FPreserveWhitespace write FPreserveWhitespace;
   end;
 
 //==============================================================================
@@ -1058,6 +1065,8 @@ begin
     // UTF-16 BE, Exchange each WideChar
     for I := 2 to FLength do
       FSource[I] := Char(Swap(Ord(FSource[I])));
+    FSource[1] := #$FEFF;  // Normalize BOM to LE form
+    FPosition := 1;        // Skip BOM
   end
   else if (FLength >= 3) and
     (FSource[1] = #$EF) and (FSource[2] = #$BB) and (FSource[3] = #$BF) then
@@ -1226,6 +1235,7 @@ begin
 
   Result := Copy(FSource, StartPos, FPosition - StartPos);
   NextChar;  // Skip closing quote
+  Result := UnescapeText(Result);
 end;
 
 function TCnXMLLexer.UnescapeText(const Text: string): string;
@@ -1342,10 +1352,14 @@ begin
       NextChar;  // Skip '-'
       NextChar;  // Skip '-'
       NextChar;  // Skip '>'
-      Break;
+      Exit;
     end;
     NextChar;
   end;
+
+  // Reached EOF without closing '-->'
+  raise ECnXMLException.Create(SCN_XML_UNEXPECTED_EOF,
+    CN_XML_ERR_UNEXPECTED_EOF, FLine, FColumn);
 end;
 
 function TCnXMLLexer.ReadCData: string;
@@ -1367,10 +1381,14 @@ begin
       NextChar;  // Skip ']'
       NextChar;  // Skip ']'
       NextChar;  // Skip '>'
-      Break;
+      Exit;
     end;
     NextChar;
   end;
+
+  // Reached EOF without closing ']]>'
+  raise ECnXMLException.Create(SCN_XML_UNEXPECTED_EOF,
+    CN_XML_ERR_UNEXPECTED_EOF, FLine, FColumn);
 end;
 
 function TCnXMLLexer.ReadPI: string;
@@ -1391,10 +1409,14 @@ begin
       Result := Copy(FSource, StartPos, FPosition - StartPos);
       NextChar;  // Skip '?'
       NextChar;  // Skip '>'
-      Break;
+      Exit;
     end;
     NextChar;
   end;
+
+  // Reached EOF without closing '?>'
+  raise ECnXMLException.Create(SCN_XML_UNEXPECTED_EOF,
+    CN_XML_ERR_UNEXPECTED_EOF, FLine, FColumn);
 end;
 
 function TCnXMLLexer.NextToken: TCnXMLToken;
@@ -1426,6 +1448,19 @@ begin
   if FCurrentChar = #0 then
   begin
     Result.TokenType := xttEOF;
+    Exit;
+  end;
+
+  // When PreserveWhitespace is set, emit whitespace-only text that sits
+  // before a '<' as a text token, so the parser can keep it.
+  if FPreserveWhitespace and (FCurrentChar = '<') and (FPosition > SavedPosition) then
+  begin
+    FPosition := SavedPosition;
+    FLine := SavedLine;
+    FColumn := SavedColumn;
+    FCurrentChar := SavedChar;
+    Result.TokenType := xttText;
+    Result.Value := ReadText;
     Exit;
   end;
 
@@ -1761,10 +1796,8 @@ end;
 
 procedure TCnXMLNode.SetText(const Value: string);
 var
-  I: Integer;
   Child: TCnXMLNode;
   TextNode: TCnXMLNode;
-  Found: Boolean;
 begin
   // For text nodes, set node value directly
   if FNodeType = xntText then
@@ -1773,25 +1806,19 @@ begin
     Exit;
   end;
 
-  // For element nodes, find or create text child node
+  // For element nodes, replace all children with a single text node
   if FNodeType = xntElement then
   begin
-    Found := False;
-
-    // Find existing text node
-    for I := 0 to ChildCount - 1 do
+    // Free all existing children (elements, comments, text, etc.)
+    while ChildCount > 0 do
     begin
-      Child := Children[I];
-      if Child.NodeType = xntText then
-      begin
-        Child.NodeValue := Value;
-        Found := True;
-        Break;
-      end;
+      Child := FirstChild;
+      InternalRemoveChild(Child);
+      Child.Free;
     end;
 
-    // Create new text node if not found
-    if not Found then
+    // Append new text node if value is non-empty
+    if Value <> '' then
     begin
       TextNode := TCnXMLNode.Create(FOwnerDocument, xntText);
       TextNode.NodeValue := Value;
@@ -1826,6 +1853,16 @@ begin
     Result := -1;
 end;
 
+procedure TCnXMLNode.SetOwnerDocumentRecursive(Doc: TCnXMLDocument);
+var
+  I: Integer;
+begin
+  FOwnerDocument := Doc;
+  if FChildNodes <> nil then
+    for I := 0 to FChildNodes.Count - 1 do
+      TCnXMLNode(FChildNodes[I]).SetOwnerDocumentRecursive(Doc);
+end;
+
 function TCnXMLNode.AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
 begin
   if NewChild = nil then
@@ -1840,6 +1877,11 @@ begin
 
   // Add to this node
   AddChild(NewChild);
+
+  // Reassign OwnerDocument for the appended subtree if it differs
+  if (FOwnerDocument <> nil) and (NewChild.FOwnerDocument <> FOwnerDocument) then
+    NewChild.SetOwnerDocumentRecursive(FOwnerDocument);
+
   Result := NewChild;
 end;
 
@@ -2258,6 +2300,7 @@ var
   Parser: TCnXMLParser;
   TempDoc: TCnXMLDocument;
   I: Integer;
+  S: string;
 begin
   // Clear current content
   for I := ChildCount - 1 downto 0 do
@@ -2267,9 +2310,28 @@ begin
   end;
   FDocumentElement := nil;
 
+  // Handle Unicode BOM embedded in the string (Unicode Delphi only).
+  // #$FEFF = UTF-16 LE BOM (just strip it).
+  // #$FFFE = byte-swapped UTF-16 BE BOM; remaining chars need byte-swap.
+  S := XMLString;
+  {$IFDEF UNICODE}
+  if Length(S) > 0 then
+  begin
+    if S[1] = #$FEFF then
+      Delete(S, 1, 1)
+    else if S[1] = #$FFFE then
+    begin
+      Delete(S, 1, 1);
+      for I := 1 to Length(S) do
+        S[I] := Char(Swap(Ord(S[I])));
+    end;
+  end;
+  {$ENDIF}
+
   // Parse XML string
-  Parser := TCnXMLParser.Create(XMLString);
+  Parser := TCnXMLParser.Create(S);
   try
+    Parser.PreserveWhitespace := FPreserveWhitespace;
     TempDoc := Parser.Parse;
     try
       // Copy properties
@@ -2281,7 +2343,7 @@ begin
       if TempDoc.DocumentElement <> nil then
       begin
         TempDoc.InternalRemoveChild(TempDoc.DocumentElement);
-        TempDoc.DocumentElement.FOwnerDocument := Self;
+        TempDoc.DocumentElement.SetOwnerDocumentRecursive(Self);
         AppendChild(TempDoc.DocumentElement);
         FDocumentElement := TempDoc.DocumentElement;
       end;
@@ -2636,12 +2698,24 @@ end;
 
 destructor TCnXMLParser.Destroy;
 begin
+  if FCurrentToken.Attributes <> nil then
+  begin
+    FCurrentToken.Attributes.Free;
+    FCurrentToken.Attributes := nil;
+  end;
   FLexer.Free;
   inherited;
 end;
 
 procedure TCnXMLParser.NextToken;
 begin
+  // Free Attributes from previous token: TCnXMLToken is a record holding
+  // a heap-allocated TStringList that the record copy below would orphan.
+  if FCurrentToken.Attributes <> nil then
+  begin
+    FCurrentToken.Attributes.Free;
+    FCurrentToken.Attributes := nil;
+  end;
   FCurrentToken := FLexer.NextToken;
 end;
 
@@ -2754,7 +2828,7 @@ begin
 
       xttText:
         begin
-          if Trim(FCurrentToken.Value) <> '' then
+          if FPreserveWhitespace or (Trim(FCurrentToken.Value) <> '') then
           begin
             Node := FDocument.CreateTextNode(FCurrentToken.Value);
             ParentNode.AppendChild(Node);
@@ -2794,6 +2868,7 @@ end;
 
 function TCnXMLParser.Parse: TCnXMLDocument;
 begin
+  FLexer.PreserveWhitespace := FPreserveWhitespace;
   FDocument := TCnXMLDocument.Create;
   try
     NextToken;  // Get first token
