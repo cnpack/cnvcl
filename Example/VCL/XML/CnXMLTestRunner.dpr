@@ -1,4 +1,4 @@
-program CnXMLBugfixTestRunner;
+program CnXMLTestRunner;
 
 {$IFDEF FPC}
 {$MODE DELPHI}
