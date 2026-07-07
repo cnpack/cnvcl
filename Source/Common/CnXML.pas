@@ -45,13 +45,13 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, TypInfo;
+  Classes, SysUtils, TypInfo, CnNative
+  {$IFDEF FPC}
+  , Variants
+  {$ENDIF}
+  ;
 
 type
-{$IFNDEF TBYTES_DEFINED}
-  TBytes = array of Byte;
-{$ENDIF}
-
 //==============================================================================
 // Exception and Type Definitions
 //==============================================================================
@@ -1306,10 +1306,24 @@ begin
             else
               CharCode := StrToInt(EntityStr);
 
+            {$IFDEF UNICODE}
+            if (CharCode >= 0) and (CharCode <= $FFFF) then
+              EntityValue := Char(CharCode)
+            else if (CharCode >= $10000) and (CharCode <= $10FFFF) then
+            begin
+              // Surrogate pair encoding for code points above BMP
+              CharCode := CharCode - $10000;
+              EntityValue := Char($D800 + (CharCode shr 10)) +
+                             Char($DC00 + (CharCode and $3FF));
+            end
+            else
+              EntityValue := '?';  // Invalid character
+            {$ELSE}
             if (CharCode >= 0) and (CharCode <= 255) then
               EntityValue := Chr(CharCode)
             else
               EntityValue := '?';  // Invalid character
+            {$ENDIF}
           except
             EntityValue := '?';  // Conversion failed
           end;
@@ -1502,10 +1516,13 @@ begin
     // DOCTYPE and other <!...> declarations (e.g. <!DOCTYPE ...>, <!ENTITY ...>)
     // XML specification: document type declaration starts with <! and ends with >
     // Skip entirely - SVG rendering does not need DTD validation.
+    // Internal subset form: <!DOCTYPE name [ ... ]> ¡ª the '[' opens a subset;
+    // inside it '>' may appear (closing nested <!ENTITY/<!ELEMENT/<!ATTLIST>).
+    // Track subset depth: only break on '>' when subset depth is 0.
     if FCurrentChar = '!' then
     begin
       NextChar;  // Skip '!'
-      // Skip until matching '>', respecting quoted strings
+      // Skip until matching '>', respecting quoted strings and '[ ... ]' subset
       while (FCurrentChar <> #0) do
       begin
         if FCurrentChar = '"' then
@@ -1523,6 +1540,33 @@ begin
             NextChar;
           if FCurrentChar = '''' then
             NextChar;
+        end
+        else if FCurrentChar = '[' then
+        begin
+          NextChar;  // Enter internal subset
+          while (FCurrentChar <> #0) and (FCurrentChar <> ']') do
+          begin
+            if FCurrentChar = '"' then
+            begin
+              NextChar;
+              while (FCurrentChar <> #0) and (FCurrentChar <> '"') do
+                NextChar;
+              if FCurrentChar = '"' then
+                NextChar;
+            end
+            else if FCurrentChar = '''' then
+            begin
+              NextChar;
+              while (FCurrentChar <> #0) and (FCurrentChar <> '''') do
+                NextChar;
+              if FCurrentChar = '''' then
+                NextChar;
+            end
+            else
+              NextChar;
+          end;
+          if FCurrentChar = ']' then
+            NextChar;  // Skip ']'
         end
         else if FCurrentChar = '>' then
         begin
@@ -3309,7 +3353,8 @@ begin
           end;
 
         tkInteger, tkChar, tkWChar, tkFloat, tkString, tkLString,
-        tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}, tkVariant, tkInt64:
+        tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}
+        {$IFDEF FPC}, tkAString{$ENDIF}, tkVariant, tkInt64:
           begin
             PropValue := GetPropValue(Obj, string(PropInfo.Name));
             // Store as child element for compatibility
