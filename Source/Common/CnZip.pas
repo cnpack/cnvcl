@@ -712,6 +712,7 @@ begin
   Zip := TCnZipWriter.Create;
 
   try
+    Zip.Utf8 := True;
     Zip.CreateZipFile(FileName);
     Zip.AddDirectory(DirName);
     Zip.Save;
@@ -884,7 +885,15 @@ end;
 function TCnZipBase.RawToString(Raw: AnsiString): string;
 begin
   if FUtf8 then
-    Result := ZipUtf8ToString(Raw)
+  begin
+  {$IFDEF FPC}
+    // FPC/Lazarus 下 string 默认即为 UTF-8 编码的 AnsiString,
+    // Raw 中的字节已是 UTF-8,直接类型转换即可,避免 Utf8ToAnsi 二次编码导致乱码
+    Result := string(Raw);
+  {$ELSE}
+    Result := ZipUtf8ToString(Raw);
+  {$ENDIF}
+  end
   else
     Result := string(Raw);
 end;
@@ -912,7 +921,15 @@ end;
 function TCnZipBase.StringToRaw(Str: string): AnsiString;
 begin
   if FUtf8 then
-    Result := ZipStringToUtf8(Str)
+  begin
+  {$IFDEF FPC}
+    // FPC/Lazarus 下 string 默认即为 UTF-8 编码的 AnsiString,
+    // 字节本身已是 UTF-8,直接类型转换即可,避免 AnsiToUtf8 二次编码导致乱码
+    Result := AnsiString(Str);
+  {$ELSE}
+    Result := ZipStringToUtf8(Str);
+  {$ENDIF}
+  end
   else
     Result := AnsiString(Str);
 end;
@@ -1138,7 +1155,9 @@ begin
         VerifyRead(FInStream, Header^.FileComment[1], Header^.FileCommentLength);
       end;
 
-      if (Header^.Flag and CN_UTF8_MASK) = 0 then
+      if (Header^.Flag and CN_UTF8_MASK) <> 0 then
+        FUtf8 := True
+      else
         FUtf8 := False;
     except
       Dispose(Header);
