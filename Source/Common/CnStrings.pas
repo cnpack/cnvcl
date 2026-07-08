@@ -1305,27 +1305,38 @@ var
   S: AnsiString;
   P: PAnsiChar;
   I, Count: Integer;
+  SB: TCnStringBuilder;
 begin
   Count := GetCount;
   if (Count = 1) and (Get(0) = '') then
     Result := QuoteChar + QuoteChar
   else
   begin
-    Result := '';
-    for I := 0 to Count - 1 do
-    begin
-      S := Get(I);
-      P := PAnsiChar(S);
-      while not (P^ in [#0..' ', QuoteChar, Delimiter]) do
-      {$IFDEF MSWINDOWS}
-        P := CharNextA(P);
-      {$ELSE}
-        Inc(P);
-      {$ENDIF}
-      if (P^ <> #0) then S := AnsiString(AnsiQuotedStr(string(S), Char(QuoteChar)));
-      Result := Result + S + Delimiter;
+    SB := TCnStringBuilder.Create(True);
+    try
+      for I := 0 to Count - 1 do
+      begin
+        S := Get(I);
+        P := PAnsiChar(S);
+        while not (P^ in [#0..' ', QuoteChar, Delimiter]) do
+        {$IFDEF MSWINDOWS}
+          P := CharNextA(P);
+        {$ELSE}
+          Inc(P);
+        {$ENDIF}
+        if (P^ <> #0) then S := AnsiString(AnsiQuotedStr(string(S), Char(QuoteChar)));
+        {$IFDEF UNICODE}
+        SB.AppendAnsi(S).AppendAnsiChar(Delimiter);
+        {$ELSE}
+        SB.Append(S).AppendAnsiChar(Delimiter);
+        {$ENDIF}
+      end;
+      Result := SB.ToAnsiString;
+      if Length(Result) > 0 then
+        SetLength(Result, Length(Result) - 1);
+    finally
+      SB.Free;
     end;
-    System.Delete(Result, Length(Result), 1);
   end;
 end;
 
@@ -2224,6 +2235,7 @@ var
   SearchStr, Patt, NewStr: string;
   Offset, TailOffset: Integer;
   IsWhole: Boolean;
+  SB: TCnStringBuilder;
 begin
   if crfIgnoreCase in Flags then
   begin
@@ -2242,21 +2254,21 @@ begin
   end;
 
   NewStr := S;
-  Result := '';
-
-  while SearchStr <> '' do
-  begin
-{$IFDEF UNICODE}
-    Offset := Pos(Patt, SearchStr);
-{$ELSE}
-    Offset := AnsiPos(Patt, SearchStr);
-{$ENDIF}
-    IsWhole := True;
-    if Offset = 0 then
+  SB := TCnStringBuilder.Create;
+  try
+    while SearchStr <> '' do
     begin
-      Result := Result + NewStr;
-      Break;
-    end
+{$IFDEF UNICODE}
+      Offset := Pos(Patt, SearchStr);
+{$ELSE}
+      Offset := AnsiPos(Patt, SearchStr);
+{$ENDIF}
+      IsWhole := True;
+      if Offset = 0 then
+      begin
+        SB.Append(NewStr);
+        Break;
+      end
     else if crfWholeWord in Flags then
     begin
       // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
@@ -2276,20 +2288,24 @@ begin
     if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
     begin
       // 替换一次
-      Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+      SB.Append(Copy(NewStr, 1, Offset - 1)).Append(NewPattern);
       NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
       if not (crfReplaceAll in Flags) then
       begin
-        Result := Result + NewStr;
+        SB.Append(NewStr);
         Break;
       end;
     end
     else // 整字匹配的要求下，未整字匹配，不能替换
     begin
-      Result := Result + Copy(NewStr, 1, Offset - 1) + OldPattern; // 注意必须用 OldePattern，不能替换
+      SB.Append(Copy(NewStr, 1, Offset - 1)).Append(OldPattern); // 注意必须用 OldePattern，不能替换
       NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
     end;
     SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
+    Result := SB.ToString;
+  finally
+    SB.Free;
   end;
 end;
 
@@ -2301,6 +2317,7 @@ var
   SearchStr, Patt, NewStr: AnsiString;
   Offset, TailOffset: Integer;
   IsWhole: Boolean;
+  SB: TCnStringBuilder;
 begin
   if crfIgnoreCase in Flags then
   begin
@@ -2314,17 +2331,17 @@ begin
   end;
 
   NewStr := S;
-  Result := '';
-
-  while SearchStr <> '' do
-  begin
-    Offset := AnsiPos(Patt, SearchStr);
-    IsWhole := True;
-    if Offset = 0 then
+  SB := TCnStringBuilder.Create(True);
+  try
+    while SearchStr <> '' do
     begin
-      Result := Result + NewStr;
-      Break;
-    end
+      Offset := AnsiPos(Patt, SearchStr);
+      IsWhole := True;
+      if Offset = 0 then
+      begin
+        SB.AppendAnsi(NewStr);
+        Break;
+      end
     else if crfWholeWord in Flags then
     begin
       // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
@@ -2344,20 +2361,24 @@ begin
     if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
     begin
       // 替换一次
-      Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+      SB.AppendAnsi(Copy(NewStr, 1, Offset - 1)).AppendAnsi(NewPattern);
       NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
       if not (crfReplaceAll in Flags) then
       begin
-        Result := Result + NewStr;
+        SB.AppendAnsi(NewStr);
         Break;
       end;
     end
     else // 整字匹配的要求下，未整字匹配，不能替换
     begin
-      Result := Result + Copy(NewStr, 1, Offset - 1) + OldPattern; // 注意必须用 OldePattern，不能替换
+      SB.AppendAnsi(Copy(NewStr, 1, Offset - 1)).AppendAnsi(OldPattern); // 注意必须用 OldePattern，不能替换
       NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
     end;
     SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
+    Result := SB.ToAnsiString;
+  finally
+    SB.Free;
   end;
 end;
 
@@ -2369,6 +2390,7 @@ var
   SearchStr, Patt, NewStr: WideString;
   Offset, TailOffset: Integer;
   IsWhole: Boolean;
+  SB: TCnStringBuilder;
 begin
   if crfIgnoreCase in Flags then
   begin
@@ -2382,50 +2404,54 @@ begin
   end;
 
   NewStr := S;
-  Result := '';
-
-  while SearchStr <> '' do
-  begin
-    Offset := Pos(Patt, SearchStr);
-    IsWhole := True;
-    if Offset = 0 then
+  SB := TCnStringBuilder.Create(False);
+  try
+    while SearchStr <> '' do
     begin
-      Result := Result + NewStr;
-      Break;
-    end
-    else if crfWholeWord in Flags then
-    begin
-      // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
-      // 有头且头非分隔符，或有尾且尾非分隔符，则非整字
-      if (Offset > 1) and not IsSepCharW(SearchStr[Offset - 1]) then
-        IsWhole := False
-      else
+      Offset := Pos(Patt, SearchStr);
+      IsWhole := True;
+      if Offset = 0 then
       begin
-        TailOffset := Offset + Length(Patt); // 指向匹配后的一个字符
-        if (TailOffset <= Length(SearchStr)) and not IsSepCharW(SearchStr[TailOffset]) then
-          IsWhole := False;
-      end;
-
-      // 得到了是否整字匹配的结论
-    end;
-
-    if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
-    begin
-      // 替换一次
-      Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
-      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
-      if not (crfReplaceAll in Flags) then
-      begin
-        Result := Result + NewStr;
+        SB.AppendWide(NewStr);
         Break;
+      end
+      else if crfWholeWord in Flags then
+      begin
+        // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
+        // 有头且头非分隔符，或有尾且尾非分隔符，则非整字
+        if (Offset > 1) and not IsSepCharW(SearchStr[Offset - 1]) then
+          IsWhole := False
+        else
+        begin
+          TailOffset := Offset + Length(Patt); // 指向匹配后的一个字符
+          if (TailOffset <= Length(SearchStr)) and not IsSepCharW(SearchStr[TailOffset]) then
+            IsWhole := False;
+        end;
+
+        // 得到了是否整字匹配的结论
       end;
-    end
-    else // 整字匹配的要求下，未整字匹配，不能替换
-    begin
-      Result := Result + Copy(NewStr, 1, Offset - 1) + OldPattern; // 注意必须用 OldePattern，不能替换
-      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+
+      if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
+      begin
+        // 替换一次
+        SB.AppendWide(Copy(NewStr, 1, Offset - 1)).AppendWide(NewPattern);
+        NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+        if not (crfReplaceAll in Flags) then
+        begin
+          SB.AppendWide(NewStr);
+          Break;
+        end;
+      end
+      else // 整字匹配的要求下，未整字匹配，不能替换
+      begin
+        SB.AppendWide(Copy(NewStr, 1, Offset - 1)).AppendWide(OldPattern); // 注意必须用 OldePattern，不能替换
+        NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+      end;
+      SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
     end;
-    SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+    Result := SB.ToWideString;
+  finally
+    SB.Free;
   end;
 end;
 

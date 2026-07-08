@@ -1300,6 +1300,7 @@ end;
 destructor TCnInt64List.Destroy;
 begin
   Clear;
+  inherited;
 end;
 
 function TCnInt64List.Add(Item: Int64): Integer;
@@ -1993,6 +1994,7 @@ end;
 destructor TCnExtendedList.Destroy;
 begin
   Clear;
+  inherited;
 end;
 
 function TCnExtendedList.Add(Item: Extended): Integer;

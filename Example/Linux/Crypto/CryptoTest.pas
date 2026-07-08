@@ -52,7 +52,7 @@ uses
   CnPolynomial, CnBits, CnBerUtils, CnCertificateAuthority, CnLattice, CnOTS,
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
-  CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP;
+  CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP, CnStrings;
 
 type
   TCnCryptoTestProc = function: Boolean;
@@ -85,6 +85,9 @@ function TestRandomDistribution: Boolean;
 // ============================== Strings ======================================
 
 function TestUtf8: Boolean;
+function TestStringReplace: Boolean;
+function TestStringBuilder: Boolean;
+function TestAnsiStringListDelimitedText: Boolean;
 
 // ============================== Calendar =====================================
 
@@ -1777,6 +1780,9 @@ begin
 // ============================== Strings ======================================
 
   MyAssert(TestUtf8, 'TestUtf8');
+  MyAssert(TestStringReplace, 'TestStringReplace');
+  MyAssert(TestStringBuilder, 'TestStringBuilder');
+  MyAssert(TestAnsiStringListDelimitedText, 'TestAnsiStringListDelimitedText');
 
 // ============================== Calendar =====================================
 
@@ -2779,6 +2785,223 @@ begin
 
   W := CnUtf8DecodeToWideString(Utf8);
   Result := DataToHex(@W[1], Length(W) * SizeOf(WideChar)) = UTF16_LE_HEXSTR;
+end;
+
+function TestStringReplace: Boolean;
+var
+  S, R: string;
+{$IFDEF UNICODE}
+  SA, RA: AnsiString;
+{$ELSE}
+  SW, RW: WideString;
+{$ENDIF}
+begin
+  // ---- string version (all compilers) ----
+  // Basic replace all
+  S := 'hello world hello';
+  R := CnStringReplace(S, 'hello', 'hi', [crfReplaceAll]);
+  Result := R = 'hi world hi';
+  if not Result then Exit;
+
+  // Replace first only
+  R := CnStringReplace(S, 'hello', 'hi', []);
+  Result := R = 'hi world hello';
+  if not Result then Exit;
+
+  // Case insensitive
+  R := CnStringReplace(S, 'HELLO', 'hi', [crfReplaceAll, crfIgnoreCase]);
+  Result := R = 'hi world hi';
+  if not Result then Exit;
+
+  // Whole word match - should replace
+  R := CnStringReplace(S, 'hello', 'hi', [crfReplaceAll, crfWholeWord]);
+  Result := R = 'hi world hi';
+  if not Result then Exit;
+
+  // Whole word match - should NOT replace (substring inside 'helloworld')
+  S := 'helloworld hello';
+  R := CnStringReplace(S, 'hello', 'hi', [crfReplaceAll, crfWholeWord]);
+  Result := R = 'helloworld hi';
+  if not Result then Exit;
+
+  // No match
+  R := CnStringReplace(S, 'xyz', 'abc', [crfReplaceAll]);
+  Result := R = S;
+  if not Result then Exit;
+
+  // Empty string
+  R := CnStringReplace('', 'a', 'b', [crfReplaceAll]);
+  Result := R = '';
+  if not Result then Exit;
+
+  // Replace with longer string
+  S := 'a,b,c';
+  R := CnStringReplace(S, ',', '---', [crfReplaceAll]);
+  Result := R = 'a---b---c';
+  if not Result then Exit;
+
+  // Replace with empty string (delete)
+  R := CnStringReplace(S, ',', '', [crfReplaceAll]);
+  Result := R = 'abc';
+  if not Result then Exit;
+
+  S := 'hello world hello';
+  // ---- Ansi version (UNICODE only) / Wide version (non-UNICODE only) ----
+{$IFDEF UNICODE}
+  SA := AnsiString(S);
+  RA := CnStringReplaceA(SA, 'hello', 'hi', [crfReplaceAll]);
+  Result := RA = 'hi world hi';
+  if not Result then Exit;
+
+  RA := CnStringReplaceA(SA, 'hello', 'hi', []);
+  Result := RA = 'hi world hello';
+  if not Result then Exit;
+
+  RA := CnStringReplaceA(SA, 'HELLO', 'hi', [crfReplaceAll, crfIgnoreCase]);
+  Result := RA = 'hi world hi';
+  if not Result then Exit;
+
+  SA := 'helloworld hello';
+  RA := CnStringReplaceA(SA, 'hello', 'hi', [crfReplaceAll, crfWholeWord]);
+  Result := RA = 'helloworld hi';
+  if not Result then Exit;
+
+  RA := CnStringReplaceA('', 'a', 'b', [crfReplaceAll]);
+  Result := RA = '';
+  if not Result then Exit;
+
+  SA := 'a,b,c';
+  RA := CnStringReplaceA(SA, ',', '', [crfReplaceAll]);
+  Result := RA = 'abc';
+{$ELSE}
+  SW := WideString(S);
+  RW := CnStringReplaceW(SW, 'hello', 'hi', [crfReplaceAll]);
+  Result := RW = 'hi world hi';
+  if not Result then Exit;
+
+  RW := CnStringReplaceW(SW, 'hello', 'hi', []);
+  Result := RW = 'hi world hello';
+  if not Result then Exit;
+
+  RW := CnStringReplaceW(SW, 'HELLO', 'hi', [crfReplaceAll, crfIgnoreCase]);
+  Result := RW = 'hi world hi';
+  if not Result then Exit;
+
+  SW := 'helloworld hello';
+  RW := CnStringReplaceW(SW, 'hello', 'hi', [crfReplaceAll, crfWholeWord]);
+  Result := RW = 'helloworld hi';
+  if not Result then Exit;
+
+  RW := CnStringReplaceW('', 'a', 'b', [crfReplaceAll]);
+  Result := RW = '';
+  if not Result then Exit;
+
+  SW := 'a,b,c';
+  RW := CnStringReplaceW(SW, ',', '', [crfReplaceAll]);
+  Result := RW = 'abc';
+{$ENDIF}
+end;
+
+function TestStringBuilder: Boolean;
+var
+  SB: TCnStringBuilder;
+  C: Char;
+  I: Integer;
+begin
+  // Basic append and toString
+  SB := TCnStringBuilder.Create;
+  try
+    SB.Append('Hello').Append(' ').Append('World');
+    Result := SB.ToString = 'Hello World';
+    if not Result then Exit;
+
+    // Append integer
+    SB.Clear;
+    I := 42;
+    SB.Append('Value: ').Append(I);
+    Result := SB.ToString = 'Value: 42';
+    if not Result then Exit;
+
+    // Append with format
+    SB.Clear;
+    SB.Append('Result: %d items', [100]);
+    Result := SB.ToString = 'Result: 100 items';
+    if not Result then Exit;
+
+    // Chained appends building a long string
+    SB.Clear;
+    SB.Append('A').Append('B').Append('C').Append('D').Append('E');
+    Result := SB.ToString = 'ABCDE';
+    if not Result then Exit;
+
+    // AppendLine
+    SB.Clear;
+    SB.Append('Line1').AppendLine.Append('Line2');
+    Result := SB.ToString = 'Line1' + #13#10 + 'Line2';
+    if not Result then Exit;
+
+    // Append char with repeat count
+    SB.Clear;
+    C := 'X';
+    SB.Append(C, 5);
+    Result := SB.ToString = 'XXXXX';
+  finally
+    SB.Free;
+  end;
+end;
+
+function TestAnsiStringListDelimitedText: Boolean;
+var
+  SL: TCnAnsiStrings;
+  R: AnsiString;
+begin
+  SL := TCnAnsiStringList.Create;
+  try
+    // Basic delimited text
+    SL.Add('apple');
+    SL.Add('banana');
+    SL.Add('cherry');
+    R := SL.DelimitedText;
+    // Delimiter defaults to ',' and QuoteChar to '"'
+    // Result should be 'apple,banana,cherry'
+    Result := R = 'apple,banana,cherry';
+    if not Result then Exit;
+
+    // Add item containing delimiter, should be quoted
+    SL.Clear;
+    SL.Add('simple');
+    SL.Add('has,comma');
+    R := SL.DelimitedText;
+    // 'has,comma' should be quoted because it contains the delimiter
+    Result := R = 'simple,"has,comma"';
+    if not Result then Exit;
+
+    // Add item containing space, should be quoted
+    SL.Clear;
+    SL.Add('has space');
+    SL.Add('normal');
+    R := SL.DelimitedText;
+    Result := R = '"has space",normal';
+    if not Result then Exit;
+
+    // Single empty item
+    SL.Clear;
+    SL.Add('');
+    R := SL.DelimitedText;
+    Result := R = '""';
+    if not Result then Exit;
+
+    // Multiple items with special chars
+    SL.Clear;
+    SL.Add('a');
+    SL.Add('b');
+    SL.Add('c');
+    SL.Delimiter := ';';
+    R := SL.DelimitedText;
+    Result := R = 'a;b;c';
+  finally
+    SL.Free;
+  end;
 end;
 
 // ================================ Calendar ======================================
