@@ -1854,10 +1854,10 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                if CoefPtr^ > 0 then
-                  Inc(CoefPtr^, SmallInt(1 shl FScanAl))
-                else
-                  Dec(CoefPtr^, SmallInt(1 shl FScanAl));
+                // Refine bit: always add (1 shl Al) regardless of sign.
+                // After first scan, stored = SarInt32(C, Al) shl Al = C with
+                // lower Al bits cleared. Adding back the refine bit restores C.
+                Inc(CoefPtr^, SmallInt(1 shl FScanAl));
               end;
             end;
           end;
@@ -1964,10 +1964,7 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
-                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
-                else
-                  Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
               end;
             end;
             Inc(K);
@@ -1985,10 +1982,7 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
-                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
-                else
-                  Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
               end;
               Inc(K);
             end;
@@ -2013,10 +2007,7 @@ begin
                     RS := FBitReader.GetBit;
                     if RS = 1 then
                     begin
-                      if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
-                        Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
-                      else
-                        Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                      Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
                     end;
                   end
                   else
@@ -2039,10 +2030,7 @@ begin
                   Val := FBitReader.GetBit;
                   if Val = 1 then
                   begin
-                    if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
-                      Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
-                    else
-                      Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                    Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
                   end;
                 end;
                 Inc(K);
@@ -2061,10 +2049,7 @@ begin
                 RS := FBitReader.GetBit;
                 if RS = 1 then
                 begin
-                  if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
-                    Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
-                  else
-                    Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
                 end;
               end
               else
@@ -2086,10 +2071,7 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                if CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]] > 0 then
-                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl))
-                else
-                  Dec(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
               end;
               Inc(K);
             end;
@@ -2443,9 +2425,9 @@ begin
 
   TmpBmp := TBitmap.Create;
   try
-    TmpBmp.PixelFormat := pf24bit;
     TmpBmp.Width := BmpW;
     TmpBmp.Height := BmpH;
+    TmpBmp.PixelFormat := pf24bit;
     TmpBmp.Canvas.Draw(0, 0, OutBmp);
 
     for Y := 1 to BmpH - 2 do
@@ -2560,9 +2542,9 @@ begin
     CalculateMCUParams;
 
     // 4. 设置输出位图
-    OutBmp.PixelFormat := pf24bit;
     OutBmp.Width := ScaledOutWidth;
     OutBmp.Height := ScaledOutHeight;
+    OutBmp.PixelFormat := pf24bit;
 
     // 5. 初始化 DC 预测值
     for I := 0 to 3 do
@@ -3812,9 +3794,13 @@ begin
         // Already nonzero: buffer refinement bit
         if Abs(CoefVal) >= (1 shl (Al + 1)) then
         begin
+          // Already nonzero: buffer refinement bit.
+          // Do NOT increment Run — Run counts only zero coefficients
+          // at the new precision. Already-nonzero coefficients are
+          // skipped by the decoder (which reads ref bits for them
+          // without counting toward Run).
           BufBits[BufCount] := (Integer(CoefVal) shr Al) and 1;
           Inc(BufCount);
-          Inc(Run);
           Inc(K);
           Continue;
         end;
@@ -4479,9 +4465,9 @@ begin
     begin
       GrayBmp := TBitmap.Create;
       try
-        GrayBmp.PixelFormat := pf8Bit;
         GrayBmp.Width := FBitmap.Width;
         GrayBmp.Height := FBitmap.Height;
+        GrayBmp.PixelFormat := pf8Bit;
 
         // Set up 256-level grayscale palette
         GetMem(Pal, SizeOf(TLogPalette) + 255 * SizeOf(TPaletteEntry));

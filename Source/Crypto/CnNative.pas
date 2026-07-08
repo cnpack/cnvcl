@@ -3946,7 +3946,7 @@ function SarInt64(V: Int64; ShiftCount: Integer): Int64;
 begin
   Result := V shr ShiftCount;
   if (V and $8000000000000000) <> 0 then
-    Result := Result or ($FFFFFFFFFFFFFFFF shl (64 - ShiftCount));
+    Result := Result or (Int64($FFFFFFFFFFFFFFFF) shl (64 - ShiftCount));
 end;
 
 procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
