@@ -38,6 +38,14 @@ var
 
 implementation
 
+function MakeRect(ALeft, ATop, ARight, ABottom: Integer): TRect;
+begin
+  Result.Left := ALeft;
+  Result.Top := ATop;
+  Result.Right := ARight;
+  Result.Bottom := ABottom;
+end;
+
 var
   TestCases: array of TCnGIFTestCase;
 
@@ -1951,13 +1959,13 @@ begin
     Bmp.Width := 16;
     Bmp.Height := 16;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 8, 8));
     Bmp.Canvas.Brush.Color := clGreen;
-    Bmp.Canvas.FillRect(Rect(8, 0, 16, 8));
+    Bmp.Canvas.FillRect(MakeRect(8, 0, 16, 8));
     Bmp.Canvas.Brush.Color := clBlue;
-    Bmp.Canvas.FillRect(Rect(0, 8, 8, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 8, 8, 16));
     Bmp.Canvas.Brush.Color := clYellow;
-    Bmp.Canvas.FillRect(Rect(8, 8, 16, 16));
+    Bmp.Canvas.FillRect(MakeRect(8, 8, 16, 16));
 
     Img := TCnGIFImage.Create;
     try
