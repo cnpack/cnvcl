@@ -19,17 +19,19 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
+    <RequiredPackages>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+    </RequiredPackages>
     <Units>
       <Unit>
-        <Filename Value="GIF.lpr"/>
+        <Filename Value="GIFTest.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="UnitGIF.pas"/>
+        <Filename Value="..\..\VCL\GIF\CnGIFTestUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="frmGIFDemo"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
       </Unit>
     </Units>
   </ProjectOptions>
