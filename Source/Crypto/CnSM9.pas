@@ -5323,7 +5323,7 @@ begin
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
       Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen); // 用 K2 和 C2 算出 C3
 
-      // KDFKey 的前面部分的长度与与密文相等，XOR 出结果即为明文
+      // KDFKey 的前面部分的长度与密文相等，XOR 出结果即为明文
       for I := 0 to Length(C2) - 1 do
         C2[I] := Byte(KDFKey[I + 1]) xor P^[I];
     end;

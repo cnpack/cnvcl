@@ -1173,7 +1173,7 @@ begin
     ctSha512Ecc:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA512_ECDSA[0],
         SizeOf(OID_SHA512_ECDSA), AParent);
-    // TODO: 其它算法类型支持
+    // TODO: 其他算法类型支持
   end;
 end;
 
@@ -3670,7 +3670,7 @@ begin
     else
       Exit;
 
-    // 解析众多其它字段
+    // 解析众多其他字段
     List := TStringList.Create;
     try
       Node := Node.GetNextSibling; // 签名算法节点后的同级节点是 Issuer

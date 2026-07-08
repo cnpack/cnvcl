@@ -4529,7 +4529,7 @@ begin
       Rnd := FEccBigNumberPool.Obtain;
       Tmp := FEccBigNumberPool.Obtain;
 
-      // 盲化，乘数增加 64 位随机的价的倍数，最终值会抵消，但运算随机化了能更抗攻击，尤其是 NAF 部分
+      // 盲化，乘数增加 64 位随机的阶的倍数，最终值会抵消，但运算随机化了能更抗攻击，尤其是 NAF 部分
       if BigNumberRandBits(Rnd, 64) then
       begin
         BigNumberMul(Tmp, Rnd, FOrder);

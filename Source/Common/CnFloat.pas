@@ -489,7 +489,7 @@ function ExtendedToStr(AValue: Extended): string;
 {
   此处实现了三个将 Extended 类型转换为二、八、十六进制字符串的函数。
   算法是读取 Extended 类型在内存中的二进制内容进行转换。关于 Extended 类型的说明
-  可以参考其它资料。Double 与 Single 类型为系统通用支持的浮点类型，与 Delphi 特有的
+  可以参考其他资料。Double 与 Single 类型为系统通用支持的浮点类型，与 Delphi 特有的
   Extended 在存储形式上稍有不同。三者均将尾数规格化，但 Double 与 Single 尾数部分略
   掉了默认的 1。比如尾数二进制内容为 1.001，则在 Double 与 Single 中存储为 001，略去
   小数点前的 1，而在 Extended 里存储为 1001。

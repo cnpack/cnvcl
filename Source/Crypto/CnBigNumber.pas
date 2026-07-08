@@ -154,9 +154,6 @@ type
   TCnBigNumber = class(TObject)
   {* 用来代表一个大数的对象}
   private
-{$IFDEF DEBUG}
-    FIsFromPool: Boolean;
-{$ENDIF}
     FNeg: Integer;
     // 1 为负，0 为正
     FTop: Integer;
@@ -2988,7 +2985,6 @@ resourcestring
   SCnErrorBigNumberJacobiSymbol = 'Jacobi Symbol: A, N Must > 0';
   SCnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';
   SCnErrorBigNumberParamDupRef = 'Duplicated References for BigNumber Parameters';
-  SCnErrorBigNumberFreeFromPool = 'Error. Try to Free a Big Number From Pool';
   SCnErrorBigNumberZeroZeroExp = '0^0 Not Defined';
 
 const
@@ -10535,13 +10531,9 @@ end;
 
 destructor TCnBigNumber.Destroy;
 begin
-{$IFDEF DEBUG}
-  if FIsFromPool then
-    raise ECnBigNumberException.Create(SCnErrorBigNumberFreeFromPool);
-{$ENDIF}
-
-  if fD <> nil then
-    FreeMemory(fD);
+  BigNumberClear(Self);
+  if FD <> nil then
+    FreeMemory(FD);
 
   FD := nil;
   inherited;

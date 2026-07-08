@@ -5144,7 +5144,7 @@ begin
       Exit;
     end;
 
-    // 通过后从 DB[MdLen] 开始跳过纯 0 搜 1，搜到 1 后，1 后的到尾巴的就是消息原文
+    // 通过后从 DB[MdLen] 开始跳过纯 0 搜 1，搜到 1 后，1 后到尾巴的就是消息原文
     MStart := -1;
     Looking := True;
     BadFormat := False;
