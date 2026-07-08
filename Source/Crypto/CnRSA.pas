@@ -1582,15 +1582,10 @@ begin
       // TODO: d 不能太小，不满足时得 Continue
       PrivateKey.UpdateCRT;
     finally
-      S2.Clear;
       S2.Free;
-      S1.Clear;
       S1.Free;
-      R.Clear;
       R.Free;
-      Y.Clear;
       Y.Free;
-      Rem.Clear;
       Rem.Free;
     end;
 
@@ -1779,11 +1774,8 @@ begin
     Result := True;
     _CnSetLastError(ECN_RSA_OK);
   finally
-    M.Clear;
     M.Free;
-    P.Clear;
     P.Free;
-    T.Clear;
     T.Free;
   end;
 end;
@@ -2442,11 +2434,8 @@ begin
     finally
       V2.Free;
       V1.Free;
-      H.Clear;
       H.Free;
-      M2.Clear;
       M2.Free;
-      M1.Clear;
       M1.Free;
     end;
   end
@@ -2543,20 +2532,15 @@ destructor TCnRSAPrivateKey.Destroy;
 begin
   if FUseCRT then
   begin
-    FQInv.Clear;
     FQInv.Free;
-    FDQ1.Clear;
     FDQ1.Free;
-    FDP1.Clear;
     FDP1.Free;
   end;
 
   FPrivKeyExponent.Free;
   FPrivKeyProduct.Free;
 
-  FPrimeKey2.Clear;
   FPrimeKey2.Free;
-  FPrimeKey1.Clear;
   FPrimeKey1.Free;
   inherited;
 end;
@@ -2640,9 +2624,7 @@ begin
         _CnSetLastError(ECN_RSA_OK);
       end;
     finally
-      D.Clear;
       D.Free;
-      R.Clear;
       R.Free;
     end;
   end
@@ -2982,9 +2964,7 @@ begin
     end;
   finally
     Stream.Free;
-    Res.Clear;
     Res.Free;
-    Data.Clear;
     Data.Free;
   end;
 end;
@@ -4621,9 +4601,7 @@ begin
     BigNumberDirectMulMod(M, M, SK, Prime);
     Result := BigNumberAddMod(OutNewRandom, M, InOldRandom, Prime);
   finally
-    SK.Clear;
     SK.Free;
-    M.Clear;
     M.Free;
   end;
 end;

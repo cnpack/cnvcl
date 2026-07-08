@@ -6174,13 +6174,9 @@ begin
     end;
     Result := True;
   finally
-    P.Clear;
     P.Free;
-    KInv.Clear;
     KInv.Free;
-    X.Clear;
     X.Free;
-    K.Clear;
     K.Free;
   end;
 end;

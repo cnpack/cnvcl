@@ -420,7 +420,6 @@ begin
     Result := True;
   finally
     H.Free;
-    K.Clear;
     K.Free;
   end;
 end;
@@ -537,11 +536,8 @@ begin
       Exit;
     until False;
   finally
-    T.Clear;
     T.Free;
-    KInv.Clear;
     KInv.Free;
-    K.Clear;
     K.Free;
   end;
 end;

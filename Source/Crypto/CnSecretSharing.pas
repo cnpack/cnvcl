@@ -985,9 +985,7 @@ end;
 destructor TCnFeldmanVssPiece.Destroy;
 begin
   FCommitments.Free;
-  FShare.Clear;
   FShare.Free;
-  FOrder.Clear;
   FOrder.Free;
   inherited;
 end;

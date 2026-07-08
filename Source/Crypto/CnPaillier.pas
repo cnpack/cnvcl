@@ -409,13 +409,9 @@ end;
 
 destructor TCnPaillierPrivateKey.Destroy;
 begin
-  FMu.Clear;
   FMu.Free;
-  FLambda.Clear;
   FLambda.Free;
-  FQ.Clear;
   FQ.Free;
-  FP.Clear;
   FP.Free;
   inherited;
 end;
@@ -527,14 +523,10 @@ begin
     Result := True;
     _CnSetLastError(ECN_PAILLIER_OK);
   finally
-    Lam.Clear;
     Lam.Free;
-    T.Clear;
     T.Free;
     AN.Free;
-    AQ.Clear;
     AQ.Free;
-    AP.Clear;
     AP.Free;
   end;
 end;
@@ -637,7 +629,6 @@ begin
     T2.Free;
     G.Free;
     M.Free;
-    R.Clear;
     R.Free;
     T1.Free;
   end;
@@ -668,7 +659,6 @@ begin
     Result := True;
     _CnSetLastError(ECN_PAILLIER_OK);
   finally
-    T.Clear;
     T.Free;
   end;
 end;

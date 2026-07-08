@@ -1104,7 +1104,6 @@ begin
     Point.Z := R.Z;
   finally
     SetLength(Naf, 0);
-    M.Clear;
     M.Free;
     E.Free;
     R.Free;
@@ -1323,13 +1322,9 @@ begin
     Result := True;
     _CnSetLastError(ECN_SM2_OK);
   finally
-    P2.Clear;
     P2.Free;
-    P1.Clear;
     P1.Free;
-    Py.Clear;
     Py.Free;
-    K.Clear;
     K.Free;
     if SM2IsNil then
       SM2.Free;
@@ -1958,13 +1953,9 @@ begin
       Break;
     end;
   finally
-    K.Clear;
     K.Free;
-    P.Clear;
     P.Free;
-    R.Clear;
     R.Free;
-    E.Clear;
     E.Free;
     if PubIsNil then
       PublicKey.Free;
@@ -2347,13 +2338,9 @@ begin
     OutOptionalS2 := CalcSM2OptionalSig(V, InRA, OutRB, Za, Zb, False);
     Result := True;
   finally
-    V.Clear;
     V.Free;
-    T.Clear;
     T.Free;
-    X.Clear;
     X.Free;
-    R.Clear;
     R.Free;
     if SM2IsNil then
       SM2.Free;
@@ -2436,11 +2423,8 @@ begin
     OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, False);
     Result := True;
   finally
-    U.Clear;
     U.Free;
-    T.Clear;
     T.Free;
-    X.Clear;
     X.Free;
     if SM2IsNil then
       SM2.Free;
@@ -3372,15 +3356,10 @@ begin
       Break;
     end;
   finally
-    Inv.Clear;
     Inv.Free;
-    Q.Clear;
     Q.Free;
-    P.Clear;
     P.Free;
-    RandKC.Clear;
     RandKC.Free;
-    K1.Clear;
     K1.Free;
     if SM2IsNil then
       SM2.Free;
@@ -3492,11 +3471,8 @@ begin
     Result := True;
     _CnSetLastError(ECN_SM2_OK);
   finally
-    Inv.Clear;
     Inv.Free;
-    S2.Clear;
     S2.Free;
-    S1.Clear;
     S1.Free;
     if SM2IsNil then
       SM2.Free;
