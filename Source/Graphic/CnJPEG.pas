@@ -622,7 +622,7 @@ resourcestring
 
 const
   CN_JPEG_MAX_COMPONENTS = 4;
-  CN_JPEG_BLOCK_SIZE = 64;  // 8×8
+  CN_JPEG_BLOCK_SIZE = 64;  // 8x8
 
   // IDCT 余弦表（定点，缩放因子 2^15 = 32768）
   // idct_cos[u][x] = round(C(u) * cos((2x+1)*u*PI/16) * 32768)
@@ -1698,6 +1698,7 @@ begin
         RowPtr[ImgX * 3]     := Byte(B);  // B
         RowPtr[ImgX * 3 + 1] := Byte(G);  // G
         RowPtr[ImgX * 3 + 2] := Byte(R);  // R
+
       end
       else if FNumComponents = 4 then
       begin
@@ -2425,9 +2426,10 @@ begin
 
   TmpBmp := TBitmap.Create;
   try
+    TmpBmp.HandleType := bmDIB;
+    TmpBmp.PixelFormat := pf24bit;
     TmpBmp.Width := BmpW;
     TmpBmp.Height := BmpH;
-    TmpBmp.PixelFormat := pf24bit;
     TmpBmp.Canvas.Draw(0, 0, OutBmp);
 
     for Y := 1 to BmpH - 2 do
@@ -2542,11 +2544,11 @@ begin
     CalculateMCUParams;
 
     // 4. 设置输出位图
+    OutBmp.HandleType := bmDIB;
+    OutBmp.PixelFormat := pf24bit;
     OutBmp.Width := ScaledOutWidth;
     OutBmp.Height := ScaledOutHeight;
-    OutBmp.PixelFormat := pf24bit;
 
-    // 5. 初始化 DC 预测值
     for I := 0 to 3 do
       FPrevDC[I] := 0;
 
@@ -3267,9 +3269,9 @@ begin
   FMCUsPerCol := (FHeight + FMCUHeight - 1) div FMCUHeight;
 
   // 确保源位图是 24 位
-  SrcPF := SrcBmp.PixelFormat;
-  if SrcPF <> pf24bit then
-    SrcBmp.PixelFormat := pf24bit;
+  SrcBmp.HandleType := bmDIB;
+  SrcBmp.PixelFormat := pf24bit;
+  SrcPF := pf24bit;
 
   // 构建表
   BuildQuantTables(FQuality);
@@ -3857,9 +3859,9 @@ var
   NumComps, I: Integer;
   SrcPF: TPixelFormat;
 begin
-  SrcPF := SrcBmp.PixelFormat;
-  if SrcPF <> pf24bit then
-    SrcBmp.PixelFormat := pf24bit;
+  SrcBmp.HandleType := bmDIB;
+  SrcBmp.PixelFormat := pf24bit;
+  SrcPF := pf24bit;
 
   // 1. 预计算所有 DCT 系数
   ComputeAllCoefBlocks(SrcBmp);
@@ -4144,6 +4146,7 @@ procedure TCnJPEGImage.CreateBitmap;
 begin
   FreeBitmap;
   FBitmap := TBitmap.Create;
+  FBitmap.HandleType := bmDIB;
 end;
 
 procedure TCnJPEGImage.NewJPEGData;
@@ -4303,7 +4306,10 @@ begin
   begin
     DIBNeeded;
     if FBitmap <> nil then
-      Dest.Assign(FBitmap)
+    begin
+      Dest.Assign(FBitmap);
+      TBitmap(Dest).HandleType := bmDIB;
+    end
     else
     begin
       TBitmap(Dest).Width := 0;
@@ -4415,6 +4421,7 @@ begin
     NewJPEGData;
     CreateBitmap;
     FBitmap.Assign(Source);
+    FBitmap.HandleType := bmDIB;
     FModified := True;
     Changed(Self);
   end
@@ -4465,9 +4472,10 @@ begin
     begin
       GrayBmp := TBitmap.Create;
       try
+        GrayBmp.HandleType := bmDIB;
+        GrayBmp.PixelFormat := pf8Bit;
         GrayBmp.Width := FBitmap.Width;
         GrayBmp.Height := FBitmap.Height;
-        GrayBmp.PixelFormat := pf8Bit;
 
         // Set up 256-level grayscale palette
         GetMem(Pal, SizeOf(TLogPalette) + 255 * SizeOf(TPaletteEntry));
