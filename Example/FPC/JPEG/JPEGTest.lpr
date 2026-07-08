@@ -3,7 +3,7 @@ program JPEGTest;
 {$APPTYPE CONSOLE}
 
 uses
-  SysUtils,
+  SysUtils, Interfaces,
   CnJPEGTestUnit in '..\..\VCL\JPEG\CnJPEGTestUnit.pas';
 
 begin

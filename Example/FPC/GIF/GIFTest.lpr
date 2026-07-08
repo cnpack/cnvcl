@@ -3,7 +3,7 @@ program GIFTest;
 {$APPTYPE CONSOLE}
 
 uses
-  SysUtils,
+  SysUtils, Interfaces,
   CnGIFTestUnit in '..\..\VCL\GIF\CnGIFTestUnit.pas';
 
 begin

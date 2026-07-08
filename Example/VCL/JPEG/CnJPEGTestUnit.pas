@@ -68,6 +68,14 @@ begin
       [Value, Lo, Hi, Msg]));
 end;
 
+function MakeRect(ALeft, ATop, ARight, ABottom: Integer): TRect;
+begin
+  Result.Left := ALeft;
+  Result.Top := ATop;
+  Result.Right := ARight;
+  Result.Bottom := ABottom;
+end;
+
 procedure RunAllTests;
 var
   I: Integer;
@@ -343,9 +351,9 @@ begin
   // Create a simple bitmap
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 64;
     Bmp.Height := 64;
+    Bmp.PixelFormat := pf24bit;
     for Y := 0 to 63 do
     begin
       Row := Bmp.ScanLine[Y];
@@ -388,11 +396,11 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 32;
     Bmp.Height := 32;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 32, 32));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 32, 32));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -542,12 +550,12 @@ begin
   // A solid color block has DC only (all AC = 0), making DC decode testable
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     // Solid gray (128,128,128) -> Y=128, Cb=128, Cr=128 -> DC=128
     Bmp.Canvas.Brush.Color := RGB(128, 128, 128);
-    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 8, 8));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -595,15 +603,15 @@ begin
   // Verifies that differential accumulation produces correct DC for block 1.
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 16;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     // Left block: gray (128,128,128)
     Bmp.Canvas.Brush.Color := RGB(128, 128, 128);
-    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 8, 8));
     // Right block: bright gray (200,200,200)
     Bmp.Canvas.Brush.Color := RGB(200, 200, 200);
-    Bmp.Canvas.FillRect(Rect(8, 0, 16, 8));
+    Bmp.Canvas.FillRect(MakeRect(8, 0, 16, 8));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -659,9 +667,9 @@ begin
   // If AC decode fails (e.g. EOB/ZRL mishandled), output will be flat.
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     for X := 0 to 7 do
     begin
       Row := Bmp.ScanLine[0];
@@ -727,11 +735,11 @@ begin
   // If EOB decode fails, the block would have garbage AC values.
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := RGB(64, 64, 64);
-    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 8, 8));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -767,9 +775,9 @@ begin
   // If ZRL (skip 16 zeros) decode fails, output would be wrong.
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     for Y2 := 0 to 7 do
     begin
       Row := Bmp.ScanLine[Y2];
@@ -1043,11 +1051,11 @@ begin
   // DC = 128, AC = 0 -> IDCT output should be 128 (flat gray)
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := RGB(128, 128, 128);
-    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 8, 8));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1084,9 +1092,9 @@ begin
   // If IDCT works, we should see a smooth gradient, not a flat or garbled block
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     for Y := 0 to 7 do
     begin
       Row := Bmp.ScanLine[Y];
@@ -1136,9 +1144,9 @@ begin
   // Test 3: Black and white halves (vertical edge — tests vertical frequency)
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     for Y := 0 to 7 do
     begin
       Row := Bmp.ScanLine[Y];
@@ -1199,9 +1207,9 @@ begin
   // so the difference should be 0. Allow <= 2 for future algorithm changes.
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 32;
     Bmp.Height := 32;
+    Bmp.PixelFormat := pf24bit;
     // Create a complex pattern with strong AC coefficients
     for Y := 0 to 31 do
     begin
@@ -1352,11 +1360,11 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 16;
     Bmp.Height := 16;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clBlue;
-    Bmp.Canvas.FillRect(Rect(0, 0, 16, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 16, 16));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1404,11 +1412,11 @@ begin
   // Create a bitmap and encode to JPEG, then verify markers in stream
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 16;
     Bmp.Height := 16;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 16, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 16, 16));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1479,9 +1487,9 @@ begin
   // Encode bitmap to JPEG, save to stream, load back, compare pixels
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 32;
     Bmp.Height := 32;
+    Bmp.PixelFormat := pf24bit;
     for Y := 0 to 31 do
     begin
       RowIn := Bmp.ScanLine[Y];
@@ -1554,11 +1562,11 @@ begin
   // Encode with progressive=True, verify SOF2 marker in stream
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 16;
     Bmp.Height := 16;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clGreen;
-    Bmp.Canvas.FillRect(Rect(0, 0, 16, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 16, 16));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1629,11 +1637,11 @@ begin
   // Create a 100x100 bitmap (not a multiple of 8, tests rounding)
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 100;
     Bmp.Height := 100;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clBlue;
-    Bmp.Canvas.FillRect(Rect(0, 0, 100, 100));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 100, 100));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1704,14 +1712,14 @@ begin
   // Encode a gradient bitmap, decode at full and half, verify half is a downscaled version
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 64;
     Bmp.Height := 64;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clNavy;
-    Bmp.Canvas.FillRect(Rect(0, 0, 64, 64));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 64, 64));
     // Draw a horizontal gradient on top half
     Bmp.Canvas.Brush.Color := clYellow;
-    Bmp.Canvas.FillRect(Rect(0, 0, 64, 32));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 64, 32));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1765,11 +1773,11 @@ begin
   // Verify quarter scale produces correct size and doesn't crash
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 64;
     Bmp.Height := 64;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 64, 64));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 64, 64));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1807,11 +1815,11 @@ begin
   // Verify eighth scale produces correct size and doesn't crash
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 64;
     Bmp.Height := 64;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clLime;
-    Bmp.Canvas.FillRect(Rect(0, 0, 64, 64));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 64, 64));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1861,14 +1869,14 @@ begin
   // Higher quality should produce larger file
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 64;
     Bmp.Height := 64;
+    Bmp.PixelFormat := pf24bit;
     // Draw gradient to make it non-trivial
     Bmp.Canvas.Brush.Color := clBlue;
-    Bmp.Canvas.FillRect(Rect(0, 0, 64, 32));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 64, 32));
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 32, 64, 64));
+    Bmp.Canvas.FillRect(MakeRect(0, 32, 64, 64));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1913,11 +1921,11 @@ begin
   // Load color image, set grayscale, verify output is gray
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 32;
     Bmp.Height := 32;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 32, 32));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 32, 32));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -1958,11 +1966,11 @@ begin
   // Encode color image, set PixelFormat=jf8Bit, verify 8-bit output
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 32;
     Bmp.Height := 32;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clBlue;
-    Bmp.Canvas.FillRect(Rect(0, 0, 32, 32));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 32, 32));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2000,11 +2008,11 @@ begin
   // Change scale, verify output size changes
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 80;
     Bmp.Height := 80;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clGreen;
-    Bmp.Canvas.FillRect(Rect(0, 0, 80, 80));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 80, 80));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2061,9 +2069,9 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 1;
     Bmp.Height := 1;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Pixels[0, 0] := clRed;
 
     JPEG := TCnJPEGImage.Create;
@@ -2096,11 +2104,11 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 8;
     Bmp.Height := 8;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 8, 8));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 8, 8));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2135,11 +2143,11 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 9;
     Bmp.Height := 9;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clLime;
-    Bmp.Canvas.FillRect(Rect(0, 0, 9, 9));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 9, 9));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2174,11 +2182,11 @@ var
 begin
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 15;
     Bmp.Height := 16;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clBlue;
-    Bmp.Canvas.FillRect(Rect(0, 0, 15, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 15, 16));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2236,11 +2244,11 @@ begin
   // Create a normal color JPEG and verify ColorSpace is RGB
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 16;
     Bmp.Height := 16;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clRed;
-    Bmp.Canvas.FillRect(Rect(0, 0, 16, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 16, 16));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2262,11 +2270,11 @@ begin
   // Test grayscale JPEG color space
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 16;
     Bmp.Height := 16;
+    Bmp.PixelFormat := pf24bit;
     Bmp.Canvas.Brush.Color := clGray;
-    Bmp.Canvas.FillRect(Rect(0, 0, 16, 16));
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 16, 16));
 
     JPEG := TCnJPEGImage.Create;
     try
@@ -2305,9 +2313,9 @@ begin
   // Encode progressive, verify stream properties and pixel roundtrip accuracy
   Bmp := TBitmap.Create;
   try
-    Bmp.PixelFormat := pf24bit;
     Bmp.Width := 32;
     Bmp.Height := 32;
+    Bmp.PixelFormat := pf24bit;
     for Y := 0 to 31 do
     begin
       Row := Bmp.ScanLine[Y];
