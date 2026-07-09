@@ -15341,9 +15341,8 @@ begin
   if (XDegree >= 0) and (XDegree < FXs.Count) then
   begin
     YL := TCnSparseBigNumberList(FXs[XDegree]);
-    if YL <> nil then
-      if (YDegree >= 0) and (YDegree < YL.Count) then
-        Result := YL.ReadonlyValue[YDegree];
+    if (YL <> nil) and (YDegree >= 0) then
+      Result := YL.ReadonlyValue[YDegree];
   end;
 end;
 

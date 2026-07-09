@@ -38,7 +38,7 @@ unit CnSEA;
 interface
 
 uses
-  SysUtils, Classes, CnBigNumber, CnPolynomial;
+  SysUtils, Classes, CnBigNumber, CnPolynomial, CnPrime;
 
 function CnGenerateClassicalModularPolynomial(Res: TCnBigNumberBiPolynomial; L: Integer): Boolean;
 {* 计算并返回正整数 L 的经典模多项式 Phi_L(X, Y)，L 是素数时初步符合以下网址的结果。
@@ -216,6 +216,11 @@ begin
   Result := False;
   if Res = nil then Exit;
   if L < 1 then Exit;
+
+  // SEA 算法只需素数 L 的模多项式，合数 L 的模多项式计算方法不同
+  // （需考虑中间等环，多项式次数为 psi(N) = N*prod(1+1/p) 而非 L+1）
+  // 此处仅支持 L=1 和素数 L，避免合数输入产生静默错误
+  if (L > 1) and not CnUInt32IsPrime(L) then Exit;
 
   // L=1: Phi_1(X, Y) = X - Y
   if L = 1 then
