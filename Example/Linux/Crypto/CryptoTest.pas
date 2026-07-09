@@ -40,6 +40,7 @@ interface
 // 注意为了保持测试用例的纯净性，不能 {$I CnPack.inc}
 
 {$IFDEF FPC}
+{$MODE Delphi}
 // FPC 下要关闭 Range Check 以避免编译出错
 {$R-}
 {$ENDIF}
