@@ -3158,21 +3158,27 @@ end;
 function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean;
 var
   P: PByte;
-  I: Integer;
   VolatileSink: Byte;
 begin
   Result := False;
   if (Buffer = nil) or (ByteLength <= 0) then
     Exit;
 
-  P := PByte(Buffer);
-  for I := 0 to ByteLength - 1 do
-  begin
-    P^ := 0;
-    Inc(P);
-  end;
+  // 使用 FillChar 进行批量清零，其内部生成 REP STOSB（x86/x64）或等价的
+  // 向量化指令，由 CPU 硬件级优化，远快于逐字节 Pascal 循环。
+  FillChar(Buffer^, ByteLength, 0);
 
-  VolatileSink := PByte(Buffer)^;
+  // 读回首尾字节建立数据依赖，阻止编译器的死存储消除优化。
+  // 仅读首字节时，理论上一台足够激进的编译器可仅保留首字节写入而丢弃其余；
+  // 同时读取尾字节可确保整个填充范围都被观测到，安全性优于原实现。
+  // ByteLength 为 1 时首尾同址，只读一次即可。
+  P := PByte(Buffer);
+  VolatileSink := P^;
+  if ByteLength > 1 then
+  begin
+    Inc(P, ByteLength - 1);
+    VolatileSink := VolatileSink or P^;
+  end;
   Result := VolatileSink = 0;
 end;
 
