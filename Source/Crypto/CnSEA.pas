@@ -101,7 +101,7 @@ function CnSeaCheckPrimeType(L: Integer; A, B, P: TCnBigNumber;
 }
 
 function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
-  L: Integer; A, B, P: TCnBigNumber): Boolean;
+  L: Integer; A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
 {* 对 Elkies 素数 L，计算核多项式 h(x)（次数为 (l-1)/2）。
    通过对 L 阶除法多项式 ψ_l(x) 取平方-free 部分并因式分解来实现。
 
@@ -115,7 +115,7 @@ function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
 }
 
 function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
-  A, B, P: TCnBigNumber): Boolean;
+  A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
 {* 对 Elkies 素数 L，利用核多项式计算 Frobenius 迹 t mod l。
    在商环 F_p[x]/(h(x)) 中搜索 Frobenius 的特征值 λ，
    然后 t ≡ λ + p·1/λ (mod p)。
@@ -334,31 +334,14 @@ begin
     // H[0](q) = 1
     H[0][0].SetWord(1);
 
-    // H[k](q) = H[k-1](q) * j(q)
-    // H[k][i+k] corresponds to q^i, i in [-k..N-k]
-    // j(q) coeff of q^r is J_q[r+1], r in [-1..N-1]
+    // H[k](q) = H[k-1](q) * j(q), truncated to degree N
+    // H[k][j] = coeff of q^(j-k), J_q[j] = coeff of q^(j-1)
+    // The polynomial product H[k-1] * J_q directly gives H[k][j] = product[j]
+    // (shifts cancel: q^(j-(k-1)) * q^(n-1) = q^(j+n-k), so index j+n=k+i => H[k][i+k])
+    // Use BigNumberPolynomialMulTrunc instead of manual triple loop for efficiency
+    // (zero-skipping, pooled objects, better memory access)
     for K := 1 to N do
-    begin
-      for I := -K to N - K do
-      begin
-        Sum.SetZero;
-        // i = d + r, where d is power in H[k-1] (d in [-(k-1)..N-(k-1)])
-        // r is power in j(q) (r in [-1..N-1])
-        // so d = i - r.
-        // We iterate r from -1 to N-1.
-        for D := -(K - 1) to N - (K - 1) do
-        begin
-          // r = i - d
-          // r must be in [-1..N-1]
-          if (I - D >= -1) and (I - D <= N - 1) then
-          begin
-            BigNumberMul(T, H[K - 1][D + (K - 1)], J_q[I - D + 1]);
-            BigNumberAdd(Sum, Sum, T);
-          end;
-        end;
-        BigNumberCopy(H[K][I + K], Sum);
-      end;
-    end;
+      BigNumberPolynomialMulTrunc(H[K], H[K - 1], J_q, N);
 
     SetLength(Pm_Poly, L + 2);
     for M := 1 to L + 1 do
@@ -607,9 +590,9 @@ begin
 end;
 
 function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
-  L: Integer; A, B, P: TCnBigNumber): Boolean;
+  L: Integer; A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
 var
-  DPs: TObjectList;
+  OwnDPs: Boolean;
   PsiL, Y2, XPowP, XPmX: TCnBigNumberPolynomial;
   T1, T2, T3, G, H: TCnBigNumberPolynomial;
   Lambda, TargetDeg: Integer;
@@ -619,7 +602,7 @@ begin
   if (Res = nil) or (L < 3) then Exit;
   if (A = nil) or (B = nil) or (P = nil) then Exit;
 
-  DPs := nil;
+  OwnDPs := False;
   Y2 := nil;
   XPowP := nil;
   XPmX := nil;
@@ -630,9 +613,12 @@ begin
   H := nil;
   try
     // 生成 0 到 L+1 阶的除法多项式
-    DPs := TObjectList.Create(True);
-    CnGenerateGaloisDivisionPolynomials(A, B, P, L + 1, DPs);
-
+    if DPs = nil then
+    begin
+      DPs := TObjectList.Create(True);
+      CnGenerateGaloisDivisionPolynomials(A, B, P, L + 1, DPs);
+      OwnDPs := True;
+    end;
     // 取 Psi_L(x) 作为模多项式 —— 由 DPs 拥有
     PsiL := TCnBigNumberPolynomial(DPs[L]);
 
@@ -708,12 +694,13 @@ begin
     XPmX.Free;
     XPowP.Free;
     Y2.Free;
-    DPs.Free;
+    if OwnDPs then
+	  DPs.Free;
   end;
 end;
 
 function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
-  A, B, P: TCnBigNumber): Boolean;
+  A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
 var
   H: TCnBigNumberPolynomial;
   Y2: TCnBigNumberPolynomial;
@@ -746,7 +733,7 @@ begin
   try
     // 步骤 1：计算核多项式 h(x)，次数为 (L-1)/2
     H := TCnBigNumberPolynomial.Create;
-    if not CnSeaElkiesKernelPolynomial(H, L, A, B, P) then Exit;
+    if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs) then Exit;
 
     // 步骤 2：设置辅助多项式 Y2 = x^3 + Ax + B
     Y2 := TCnBigNumberPolynomial.Create;
@@ -879,7 +866,6 @@ begin
   Result := False;
 
   Y2 := nil;
-  LDP := nil;
   BQ := nil;
   Pi2PX := nil;
   Pi2PY := nil;
@@ -1115,7 +1101,7 @@ begin
       if PrimeType = sptElkies then
       begin
         // 尝试 Elkies 方法
-        ElkiesOk := CnSeaElkiesTrace(TraceRes, L, A, B, P);
+        ElkiesOk := CnSeaElkiesTrace(TraceRes, L, A, B, P, DPs);
         if ElkiesOk then
           Ta[I] := TraceRes.GetInt64
         else

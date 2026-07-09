@@ -715,9 +715,13 @@ begin
 end;
 
 procedure TestPointCount(const AVal, BVal, PVal: Int64; const TestName: string);
+const
+  MSecsPerDay = 86400000;
 var
   A, B, P, SeaResult, SchoofResult: TCnBigNumber;
   Match: Boolean;
+  T1, T2: TDateTime;
+  SeaMs, SchoofMs: Int64;
 begin
   WriteLn;
   WriteLn(Format('--- %s ---', [TestName]));
@@ -733,15 +737,33 @@ begin
 
     WriteLn(Format('  E: y^2 = x^3 + %dx + %d over F_%d', [AVal, BVal, PVal]));
 
+    T1 := Now;
     if CnSeaElkiesPointCount(SeaResult, A, B, P) then
-      WriteLn(Format('  SEA result:   #E = %s', [SeaResult.ToDec]))
+    begin
+      T2 := Now;
+      SeaMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  SEA result:   #E = %s  (%d ms)', [SeaResult.ToDec, SeaMs]))
+    end
     else
-      WriteLn('  SEA FAILED');
+    begin
+      T2 := Now;
+      SeaMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  SEA FAILED  (%d ms)', [SeaMs]));
+    end;
 
+    T1 := Now;
     if CnEccSchoof(SchoofResult, A, B, P) then
-      WriteLn(Format('  Schoof result: #E = %s', [SchoofResult.ToDec]))
+    begin
+      T2 := Now;
+      SchoofMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  Schoof result: #E = %s  (%d ms)', [SchoofResult.ToDec, SchoofMs]))
+    end
     else
-      WriteLn('  Schoof FAILED');
+    begin
+      T2 := Now;
+      SchoofMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  Schoof FAILED  (%d ms)', [SchoofMs]));
+    end;
 
     Match := BigNumberCompare(SeaResult, SchoofResult) = 0;
     if Match then
