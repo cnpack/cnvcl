@@ -514,7 +514,7 @@ begin
 
       if BigNumberCompare(CoeffIJ, CoeffJI) <> 0 then
         raise Exception.CreateFmt(
-          'PrintModularPolynomialCoefficients: 对称系数不等 [%d,%d]=%s vs [%d,%d]=%s',
+          'PrintModularPolynomialCoefficients: NOT Equal! [%d,%d]=%s vs [%d,%d]=%s',
           [I, YList[J].Exponent, CoeffIJ.ToDec,
            YList[J].Exponent, I, CoeffJI.ToDec]);
     end;
