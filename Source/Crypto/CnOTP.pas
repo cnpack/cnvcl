@@ -337,6 +337,9 @@ var
   end;
 
 begin
+  if Length(FSeedKey) <= 0 then
+    raise ECnOneTimePasswordException.Create(SCnErrorOTPInvalidDataLength);
+
   // 计算动态口令过程
   T := Int64HostToNetwork(EpochSeconds div FPeriod);
 

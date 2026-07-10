@@ -2889,7 +2889,7 @@ var
   Res, Data: TCnBigNumber;
   ResBuf: TBytes;
   FakeBuf: TBytes;
-  I: Integer;
+  RandOK: Boolean;
 begin
   Result := False;
   Res := nil;
@@ -2910,13 +2910,7 @@ begin
     begin
       // 为了防范 Bleichenbacher 攻击，要在 Padding 失败时返回伪数据冒充成功，这里准备好假数据
       SetLength(FakeBuf, BlockSize);
-      if not CnRandomFillBytes2(PAnsiChar(@FakeBuf[0]), BlockSize) then
-      begin
-        // 如果随机数生成失败，使用更安全的回退方案
-        // 注意：这里仍然使用确定性数据，但在实际部署中应该失败并拒绝解密
-        for I := 0 to BlockSize - 1 do
-          FakeBuf[I] := Byte((I * 7 + 13) mod 256);  // 稍微复杂一点的模式
-      end;
+      RandOK := CnRandomFillBytes2(PAnsiChar(@FakeBuf[0]), BlockSize);
 
       if RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen) then
       begin
@@ -2925,6 +2919,11 @@ begin
       end
       else
       begin
+        if not RandOK then
+        begin
+          Result := False;
+          Exit;
+        end;
         // Padding 无效：使用假数据，但要让输出看起来"合理"
         // 关键修复：生成一个看起来像真实数据的随机长度
         // 使用假数据的前 N 字节，其中 N 是一个"合理"的长度
