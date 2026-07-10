@@ -5,7 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, StrUtils, CnNative, CnConsts, CnContainers, CnHashMap,
+  SysUtils, Classes, Contnrs, CnNative, CnConsts, CnContainers, CnHashMap,
   CnRandom, CnBigNumber, CnPrime, CnMatrix, CnBigRational, CnComplex, CnDFT,
   CnPolynomial, CnECC, CnSEA;
 
@@ -721,7 +721,11 @@ var
   A, B, P, SeaResult, SchoofResult: TCnBigNumber;
   Match: Boolean;
   T1, T2: TDateTime;
-  SeaMs, SchoofMs: Int64;
+  SeaMs, SchoofMs, PreGenMs: Int64;
+  ModPolys: TObjectList;
+  PhiL: TCnBigNumberBiPolynomial;
+  QMax, QMul, BQ: TCnBigNumber;
+  I, L: Integer;
 begin
   WriteLn;
   WriteLn(Format('--- %s ---', [TestName]));
@@ -730,6 +734,10 @@ begin
   P := TCnBigNumber.Create;
   SeaResult := TCnBigNumber.Create;
   SchoofResult := TCnBigNumber.Create;
+  QMax := TCnBigNumber.Create;
+  QMul := TCnBigNumber.Create;
+  BQ := TCnBigNumber.Create;
+  ModPolys := nil;
   try
     A.SetInt64(AVal);
     B.SetInt64(BVal);
@@ -737,8 +745,39 @@ begin
 
     WriteLn(Format('  E: y^2 = x^3 + %dx + %d over F_%d', [AVal, BVal, PVal]));
 
+    // Pre-generate modular polynomials for all needed primes
+    ModPolys := TObjectList.Create(True);
+    if not BigNumberSqrt(QMax, P) then Exit;
+    BigNumberAddWord(QMax, 1);
+    BigNumberMulWord(QMax, 4);
+    QMul.SetOne;
+    I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
+
     T1 := Now;
-    if CnSeaElkiesPointCount(SeaResult, A, B, P) then
+    while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
+    begin
+      L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+      BigNumberSetWord(BQ, L);
+      if BigNumberCompare(BQ, P) <> 0 then
+      begin
+        BigNumberMulWord(QMul, L);
+        if L >= 3 then
+        begin
+          PhiL := TCnBigNumberBiPolynomial.Create;
+          if CnGenerateClassicalModularPolynomial(PhiL, L) then
+            ModPolys.Add(PhiL)
+          else
+            PhiL.Free;
+        end;
+      end;
+      Inc(I);
+    end;
+    T2 := Now;
+    PreGenMs := Round((T2 - T1) * MSecsPerDay);
+    WriteLn(Format('  Pre-generated %d modular polynomials (%d ms)', [ModPolys.Count, PreGenMs]));
+
+    T1 := Now;
+    if CnSeaElkiesPointCount(SeaResult, A, B, P, ModPolys) then
     begin
       T2 := Now;
       SeaMs := Round((T2 - T1) * MSecsPerDay);
@@ -771,6 +810,10 @@ begin
     else
       WriteLn(Format('  MISMATCH! SEA=%s Schoof=%s', [SeaResult.ToDec, SchoofResult.ToDec]));
   finally
+    ModPolys.Free;
+    BQ.Free;
+    QMul.Free;
+    QMax.Free;
     SchoofResult.Free;
     SeaResult.Free;
     P.Free;

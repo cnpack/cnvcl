@@ -87,7 +87,7 @@ function CnSeaJInvariant(Res, A, B, P: TCnBigNumber): Boolean;
 }
 
 function CnSeaCheckPrimeType(L: Integer; A, B, P: TCnBigNumber;
-  JPrime: TCnBigNumber = nil): TCnSeaPrimeType;
+  JPrime: TCnBigNumber = nil; PhiL: TCnBigNumberBiPolynomial = nil): TCnSeaPrimeType;
 {* 判定素数 L 对曲线 E/F_p 是 Elkies 素数还是 Atkin 素数。
    通过计算 Φ_l(j(E), Y) mod p 并检查其在 F_p 中是否有根来实现。
 
@@ -129,7 +129,8 @@ function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
    返回值：Boolean                        - 返回计算是否成功
 }
 
-function CnSeaElkiesPointCount(Res, A, B, P: TCnBigNumber): Boolean;
+function CnSeaElkiesPointCount(Res, A, B, P: TCnBigNumber;
+  ModPolys: TObjectList = nil): Boolean;
 {* SEA 点不完整计数算法：计算椭圆曲线 E: y^2 = x^3 + Ax + B 在 F_p 上的点数 #E(F_p)。
    对每个小素数 l，优先使用 Elkies 方法计算 t mod l，Atkin 素数回退到 Schoof 方法，
    最后用中国剩余定理合并结果，#E = p + 1 - t。
@@ -542,10 +543,10 @@ begin
 end;
 
 function CnSeaCheckPrimeType(L: Integer; A, B, P: TCnBigNumber;
-  JPrime: TCnBigNumber): TCnSeaPrimeType;
+  JPrime: TCnBigNumber; PhiL: TCnBigNumberBiPolynomial): TCnSeaPrimeType;
 var
   J: TCnBigNumber;
-  PhiL: TCnBigNumberBiPolynomial;
+  OwnPhiL: Boolean;
   FY: TCnBigNumberPolynomial;
   Roots: TCnBigNumberList;
 begin
@@ -554,7 +555,9 @@ begin
   if (A = nil) or (B = nil) or (P = nil) then Exit;
 
   J := TCnBigNumber.Create;
-  PhiL := TCnBigNumberBiPolynomial.Create;
+  OwnPhiL := (PhiL = nil);
+  if OwnPhiL then
+    PhiL := TCnBigNumberBiPolynomial.Create;
   FY := TCnBigNumberPolynomial.Create;
   Roots := TCnBigNumberList.Create;
   try
@@ -562,7 +565,11 @@ begin
     if not CnSeaJInvariant(J, A, B, P) then Exit;
 
     // 生成模多项式 Phi_L(X, Y)
-    if not CnGenerateClassicalModularPolynomial(PhiL, L) then Exit;
+    if OwnPhiL then
+    begin
+      if not CnGenerateClassicalModularPolynomial(PhiL, L) then
+	    Exit;
+    end;
 
     // 在 X = j 处求值，得到关于 Y 的一元多项式 f(Y) = Phi_L(j, Y) mod p
     if not BigNumberBiPolynomialGaloisEvaluateByX(FY, PhiL, J, P) then Exit;
@@ -584,7 +591,8 @@ begin
   finally
     Roots.Free;
     FY.Free;
-    PhiL.Free;
+    if OwnPhiL then
+	  PhiL.Free;
     J.Free;
   end;
 end;
@@ -997,11 +1005,12 @@ begin
   end;
 end;
 
-function CnSeaElkiesPointCount(Res, A, B, P: TCnBigNumber): Boolean;
+function CnSeaElkiesPointCount(Res, A, B, P: TCnBigNumber;
+  ModPolys: TObjectList = nil): Boolean;
 var
   Pa, Ta: TCnInt64List;
   QMax, QMul, BQ: TCnBigNumber;
-  I, J: Integer;
+  I, J, ModPolyIdx: Integer;
   L: Int64;
   DPs: TObjectList;
   Y2, P1, P2, G: TCnBigNumberPolynomial;
@@ -1090,13 +1099,18 @@ begin
     end;
 
     // 对每个素数 L >= 3 计算迹
+    ModPolyIdx := 0;
     for I := 0 to Pa.Count - 1 do
     begin
       L := Pa[I];
       if L = 2 then Continue; // 已处理
 
       // 检查是 Elkies 还是 Atkin
-      PrimeType := CnSeaCheckPrimeType(L, A, B, P);
+      if (ModPolys <> nil) and (ModPolyIdx < ModPolys.Count) then
+        PrimeType := CnSeaCheckPrimeType(L, A, B, P, nil, TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx]))
+      else
+        PrimeType := CnSeaCheckPrimeType(L, A, B, P);
+      Inc(ModPolyIdx);
 
       if PrimeType = sptElkies then
       begin
