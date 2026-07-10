@@ -376,7 +376,11 @@ begin
       Exit;
   end;
 
-  Result := CryptGenRandom(FHProv, BufByteLen, Buf);
+  // 检查 FHProv 是否有效初始化，避免在句柄为 0 时调用 CryptGenRandom
+  if FHProv <> 0 then
+    Result := CryptGenRandom(FHProv, BufByteLen, Buf)
+  else
+    Result := False;
 {$ELSE}
 {$IFDEF MACOS}
   Result := CCRandomGenerateBytes(Buf, BufByteLen) = 0;
