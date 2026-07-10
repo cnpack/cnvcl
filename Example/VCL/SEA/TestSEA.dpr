@@ -32,6 +32,25 @@ begin
   TestPointCount(2, 1, 100003, 'Curve F_100003');
   TestPointCount(3, 8, 999983, 'Curve F_999983');
 
+  // Cross-validate with the most expensive Schoof test case from CryptoTest.pas
+  // A=7, B=1, P=6074001169, expected #E = 6074123004
+  TestPointCount(7, 1, 6074001169, 'Schoof Largest Test F_6074001169');
+
+  // ===== 48-bit CM curve: y^2 = x^3 + x over p = 16777213^2 + 38^2 =====
+  // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
+  // Needs L up to 19. Schoof infeasible at this size.
+  TestPointCount48BitCM;
+
+  // ===== Standard curve: secp112r1 (NIST/SECG, 112-bit) =====
+  // Smallest standard ECC curve. h=1 so #E = n.
+  // SEA only (Schoof too slow at this size)
+  TestPointCountHex(
+    'DB7C2ABF62E35E668076BEAD2088',  // a
+    '659EF8BA043916EEDE8911702B22',  // b
+    'DB7C2ABF62E35E668076BEAD208B',  // p
+    'DB7C2ABF62E35E7628DFAC6561C5',  // expected #E = n (since h=1)
+    'secp112r1 (112-bit standard)');
+
   WriteLn;
   WriteLn('Done.');
   Readln;

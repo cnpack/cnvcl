@@ -173,6 +173,11 @@ const
      - 调大：更多用暴力搜索（简单但慢），适合小素数场景
      - 调小：更早启用 BSGS（快但需 Atkin 素数），适合大素数场景}
 
+var
+  FSeaBigNumberPool: TCnBigNumberPool = nil;
+  FSeaPolynomialPool: TCnBigNumberPolynomialPool = nil;
+  FSeaRationalPolynomialPool: TCnBigNumberRationalPolynomialPool = nil;
+
 // 计算因子和函数 sigma_k(n) = sum_{d|n} d^k
 procedure CalcSigma(Res: TCnBigNumber; N, K: Integer);
 var
@@ -527,10 +532,10 @@ begin
   if (Res = nil) or (A = nil) or (B = nil) or (P = nil) then Exit;
   if P.IsZero or P.IsNegative then Exit;
 
-  T1 := TCnBigNumber.Create;
-  T2 := TCnBigNumber.Create;
-  Num := TCnBigNumber.Create;
-  Den := TCnBigNumber.Create;
+  T1 := FSeaBigNumberPool.Obtain;
+  T2 := FSeaBigNumberPool.Obtain;
+  Num := FSeaBigNumberPool.Obtain;
+  Den := FSeaBigNumberPool.Obtain;
   try
     // Num = 4 * A^3 mod p
     BigNumberMul(T1, A, A);
@@ -563,10 +568,10 @@ begin
 
     Result := True;
   finally
-    Den.Free;
-    Num.Free;
-    T2.Free;
-    T1.Free;
+    FSeaBigNumberPool.Recycle(Den);
+    FSeaBigNumberPool.Recycle(Num);
+    FSeaBigNumberPool.Recycle(T2);
+    FSeaBigNumberPool.Recycle(T1);
   end;
 end;
 
@@ -585,11 +590,11 @@ begin
   if (L < 2) or ((L > 2) and not CnUInt32IsPrime(L)) then Exit;
   if (A = nil) or (B = nil) or (P = nil) then Exit;
 
-  J := TCnBigNumber.Create;
+  J := FSeaBigNumberPool.Obtain;
   OwnPhiL := (PhiL = nil);
   if OwnPhiL then
     PhiL := TCnBigNumberBiPolynomial.Create;
-  FY := TCnBigNumberPolynomial.Create;
+  FY := FSeaPolynomialPool.Obtain;
   Roots := TCnBigNumberList.Create;
   try
     // 计算 j 不变量
@@ -620,10 +625,10 @@ begin
     else
     begin
       // For large p, use GCD(g(Y), Y^p - Y) to detect linear factors
-      G := TCnBigNumberPolynomial.Create;
-      XPowP := TCnBigNumberPolynomial.Create;
-      XPmX := TCnBigNumberPolynomial.Create;
-      YPoly := TCnBigNumberPolynomial.Create;
+      G := FSeaPolynomialPool.Obtain;
+      XPowP := FSeaPolynomialPool.Obtain;
+      XPmX := FSeaPolynomialPool.Obtain;
+      YPoly := FSeaPolynomialPool.Obtain;
       try
         YPoly.SetCoefficients([0, 1]);
         BigNumberPolynomialGaloisPower(XPowP, YPoly, P, P, FY);
@@ -657,18 +662,18 @@ begin
         else
           Result := sptAtkin;
       finally
-        YPoly.Free;
-        XPmX.Free;
-        XPowP.Free;
-        G.Free;
+        FSeaPolynomialPool.Recycle(YPoly);
+        FSeaPolynomialPool.Recycle(XPmX);
+        FSeaPolynomialPool.Recycle(XPowP);
+        FSeaPolynomialPool.Recycle(G);
       end;
     end;
   finally
     Roots.Free;
-    FY.Free;
+    FSeaPolynomialPool.Recycle(FY);
     if OwnPhiL then
 	  PhiL.Free;
-    J.Free;
+    FSeaBigNumberPool.Recycle(J);
   end;
 end;
 
@@ -677,7 +682,7 @@ function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
 var
   OwnDPs: Boolean;
   PsiL, Y2, XPowP, XPmX: TCnBigNumberPolynomial;
-  T1, T2, T3, G, H: TCnBigNumberPolynomial;
+  T1, T2, G, H: TCnBigNumberPolynomial;
   Lambda, TargetDeg: Integer;
   Found: Boolean;
 begin
@@ -691,7 +696,6 @@ begin
   XPmX := nil;
   T1 := nil;
   T2 := nil;
-  T3 := nil;
   G := nil;
   H := nil;
   try
@@ -706,24 +710,23 @@ begin
     PsiL := TCnBigNumberPolynomial(DPs[L]);
 
     // 设置 Y2 = x^3 + Ax + B
-    Y2 := TCnBigNumberPolynomial.Create;
+    Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
     // 计算 x^p mod Psi_L
-    XPowP := TCnBigNumberPolynomial.Create;
+    XPowP := FSeaPolynomialPool.Obtain;
     XPowP.SetCoefficients([0, 1]); // x
     BigNumberPolynomialGaloisPower(XPowP, XPowP, P, P, PsiL);
 
     // XPmX = x^p - x mod Psi_L
-    XPmX := TCnBigNumberPolynomial.Create;
-    T1 := TCnBigNumberPolynomial.Create;
+    XPmX := FSeaPolynomialPool.Obtain;
+    T1 := FSeaPolynomialPool.Obtain;
     T1.SetCoefficients([0, 1]); // x
     BigNumberPolynomialGaloisSub(XPmX, XPowP, T1, P, PsiL);
 
-    T2 := TCnBigNumberPolynomial.Create;
-    T3 := TCnBigNumberPolynomial.Create;
-    G := TCnBigNumberPolynomial.Create;
-    H := TCnBigNumberPolynomial.Create;
+    T2 := FSeaPolynomialPool.Obtain;
+    G := FSeaPolynomialPool.Obtain;
+    H := FSeaPolynomialPool.Obtain;
 
     TargetDeg := (L - 1) div 2;
     Found := False;
@@ -769,14 +772,13 @@ begin
 
     Result := True;
   finally
-    H.Free;
-    G.Free;
-    T3.Free;
-    T2.Free;
-    T1.Free;
-    XPmX.Free;
-    XPowP.Free;
-    Y2.Free;
+    FSeaPolynomialPool.Recycle(H);
+    FSeaPolynomialPool.Recycle(G);
+    FSeaPolynomialPool.Recycle(T2);
+    FSeaPolynomialPool.Recycle(T1);
+    FSeaPolynomialPool.Recycle(XPmX);
+    FSeaPolynomialPool.Recycle(XPowP);
+    FSeaPolynomialPool.Recycle(Y2);
     if OwnDPs then
 	  DPs.Free;
   end;
@@ -815,22 +817,22 @@ begin
   K := nil;
   try
     // 步骤 1：计算核多项式 h(x)，次数为 (L-1)/2
-    H := TCnBigNumberPolynomial.Create;
+    H := FSeaPolynomialPool.Obtain;
     if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs) then Exit;
 
     // 步骤 2：设置辅助多项式 Y2 = x^3 + Ax + B
-    Y2 := TCnBigNumberPolynomial.Create;
+    Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
-    BQ := TCnBigNumber.Create;
+    BQ := FSeaBigNumberPool.Obtain;
 
     // 步骤 3：计算 Frobenius 作用 pi(P) = (x^p mod h, y * Y2^((p-1)/2) mod h)
     // 在有理多项式表示中，点 (x, y) 对应 (MX, MY * y)
     // pi(P) 的 x 坐标 = x^p mod h(x)
     // pi(P) 的 y 系数 = Y2^((p-1)/2) mod h(x)（因为 y^p = y * (y^2)^((p-1)/2)）
 
-    PiPX := TCnBigNumberRationalPolynomial.Create;
-    PiPY := TCnBigNumberRationalPolynomial.Create;
+    PiPX := FSeaRationalPolynomialPool.Obtain;
+    PiPY := FSeaRationalPolynomialPool.Obtain;
 
     PiPX.SetOne;
     PiPX.Numerator.SetCoefficients([0, 1]); // x
@@ -843,20 +845,20 @@ begin
     BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, P, H); // Y2^((p-1)/2) mod h
 
     // 步骤 4：设置通用点 P = (x, y) 用于增量计算
-    PX := TCnBigNumberRationalPolynomial.Create;
-    PY := TCnBigNumberRationalPolynomial.Create;
+    PX := FSeaRationalPolynomialPool.Obtain;
+    PY := FSeaRationalPolynomialPool.Obtain;
     PX.SetOne;
     PX.Numerator.SetCoefficients([0, 1]); // x
     PY.SetOne; // 1 * y
 
     // 步骤 5：初始化 RS = [1]P = (x, y)
-    RSX := TCnBigNumberRationalPolynomial.Create;
-    RSY := TCnBigNumberRationalPolynomial.Create;
+    RSX := FSeaRationalPolynomialPool.Obtain;
+    RSY := FSeaRationalPolynomialPool.Obtain;
     BigNumberRationalPolynomialCopy(RSX, PX);
     BigNumberRationalPolynomialCopy(RSY, PY);
 
-    TSX := TCnBigNumberRationalPolynomial.Create;
-    TSY := TCnBigNumberRationalPolynomial.Create;
+    TSX := FSeaRationalPolynomialPool.Obtain;
+    TSY := FSeaRationalPolynomialPool.Obtain;
 
     // 步骤 6：搜索特征值 lambda
     // 逐一比较 [J]P 与 pi(P)，J = 1, ..., (L+1)/2
@@ -889,9 +891,9 @@ begin
     if not Found then Exit;
 
     // 步骤 7：计算 t = lambda + p * lambda^{-1} mod L
-    T := TCnBigNumber.Create;
-    LambdaInv := TCnBigNumber.Create;
-    K := TCnBigNumber.Create;
+    T := FSeaBigNumberPool.Obtain;
+    LambdaInv := FSeaBigNumberPool.Obtain;
+    K := FSeaBigNumberPool.Obtain;
 
     if Lambda = 0 then
     begin
@@ -917,20 +919,20 @@ begin
 
     Result := True;
   finally
-    K.Free;
-    LambdaInv.Free;
-    T.Free;
-    TSY.Free;
-    TSX.Free;
-    RSY.Free;
-    RSX.Free;
-    PY.Free;
-    PX.Free;
-    PiPY.Free;
-    PiPX.Free;
-    BQ.Free;
-    Y2.Free;
-    H.Free;
+    FSeaBigNumberPool.Recycle(K);
+    FSeaBigNumberPool.Recycle(LambdaInv);
+    FSeaBigNumberPool.Recycle(T);
+    FSeaRationalPolynomialPool.Recycle(TSY);
+    FSeaRationalPolynomialPool.Recycle(TSX);
+    FSeaRationalPolynomialPool.Recycle(RSY);
+    FSeaRationalPolynomialPool.Recycle(RSX);
+    FSeaRationalPolynomialPool.Recycle(PY);
+    FSeaRationalPolynomialPool.Recycle(PX);
+    FSeaRationalPolynomialPool.Recycle(PiPY);
+    FSeaRationalPolynomialPool.Recycle(PiPX);
+    FSeaBigNumberPool.Recycle(BQ);
+    FSeaPolynomialPool.Recycle(Y2);
+    FSeaPolynomialPool.Recycle(H);
   end;
 end;
 
@@ -963,10 +965,10 @@ begin
   TSX := nil;
   TSY := nil;
   try
-    Y2 := TCnBigNumberPolynomial.Create;
+    Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
-    BQ := TCnBigNumber.Create;
+    BQ := FSeaBigNumberPool.Obtain;
 
     // 取 L 阶除法多项式作为模多项式
     LDP := TCnBigNumberPolynomial(DPs[L]);
@@ -974,14 +976,14 @@ begin
     K := BigNumberModWord(P, L);
 
     // 计算 pi^2(P) 的 x 坐标: x^(p^2) mod LDP
-    Pi2PX := TCnBigNumberRationalPolynomial.Create;
+    Pi2PX := FSeaRationalPolynomialPool.Obtain;
     Pi2PX.SetOne;
     Pi2PX.Numerator.SetCoefficients([0, 1]); // x
     BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, P, P, LDP); // x^p
     BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, P, P, LDP); // x^(p^2)
 
     // 计算 pi^2(P) 的 y 系数: Y2^((p^2-1)/2) mod LDP
-    Pi2PY := TCnBigNumberRationalPolynomial.Create;
+    Pi2PY := FSeaRationalPolynomialPool.Obtain;
     Pi2PY.SetOne;
     BigNumberMul(BQ, P, P); // p^2
     BQ.SubWord(1);          // p^2 - 1
@@ -989,16 +991,16 @@ begin
     BigNumberPolynomialGaloisPower(Pi2PY.Numerator, Y2, BQ, P, LDP);
 
     // 计算 [K]P
-    KPX := TCnBigNumberRationalPolynomial.Create;
-    KPY := TCnBigNumberRationalPolynomial.Create;
+    KPX := FSeaRationalPolynomialPool.Obtain;
+    KPY := FSeaRationalPolynomialPool.Obtain;
     KPX.SetOne;
     KPX.Numerator.SetCoefficients([0, 1]); // x
     KPY.SetOne; // 1 * y
     TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, P, LDP);
 
     // LS = pi^2(P) + [K]P
-    LSX := TCnBigNumberRationalPolynomial.Create;
-    LSY := TCnBigNumberRationalPolynomial.Create;
+    LSX := FSeaRationalPolynomialPool.Obtain;
+    LSY := FSeaRationalPolynomialPool.Obtain;
     TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, P, LDP);
 
     // 若 LS 为零（点 at infinity），则 t = 0
@@ -1010,13 +1012,13 @@ begin
     end;
 
     // 计算 pi(P) 的 x 坐标: x^p mod LDP
-    PiPX := TCnBigNumberRationalPolynomial.Create;
+    PiPX := FSeaRationalPolynomialPool.Obtain;
     PiPX.SetOne;
     PiPX.Numerator.SetCoefficients([0, 1]); // x
     BigNumberPolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, P, P, LDP);
 
     // 计算 pi(P) 的 y 系数: Y2^((p-1)/2) mod LDP
-    PiPY := TCnBigNumberRationalPolynomial.Create;
+    PiPY := FSeaRationalPolynomialPool.Obtain;
     PiPY.SetOne;
     BigNumberCopy(BQ, P);
     BQ.SubWord(1);
@@ -1024,13 +1026,13 @@ begin
     BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, P, LDP);
 
     // 搜索 t: RS = [J] * pi(P)，J = 1, ..., (L+1)/2
-    RSX := TCnBigNumberRationalPolynomial.Create;
-    RSY := TCnBigNumberRationalPolynomial.Create;
+    RSX := FSeaRationalPolynomialPool.Obtain;
+    RSY := FSeaRationalPolynomialPool.Obtain;
     BigNumberRationalPolynomialCopy(RSX, PiPX);
     BigNumberRationalPolynomialCopy(RSY, PiPY);
 
-    TSX := TCnBigNumberRationalPolynomial.Create;
-    TSY := TCnBigNumberRationalPolynomial.Create;
+    TSX := FSeaRationalPolynomialPool.Obtain;
+    TSY := FSeaRationalPolynomialPool.Obtain;
 
     Found := False;
     for I := 1 to (L + 1) div 2 do
@@ -1062,19 +1064,19 @@ begin
 
     Result := True;
   finally
-    TSY.Free;
-    TSX.Free;
-    RSY.Free;
-    RSX.Free;
-    LSY.Free;
-    LSX.Free;
-    KPY.Free;
-    KPX.Free;
-    PiPY.Free;
-    PiPX.Free;
-    Pi2PY.Free;
-    Pi2PX.Free;
-    BQ.Free;
+    FSeaRationalPolynomialPool.Recycle(TSY);
+    FSeaRationalPolynomialPool.Recycle(TSX);
+    FSeaRationalPolynomialPool.Recycle(RSY);
+    FSeaRationalPolynomialPool.Recycle(RSX);
+    FSeaRationalPolynomialPool.Recycle(LSY);
+    FSeaRationalPolynomialPool.Recycle(LSX);
+    FSeaRationalPolynomialPool.Recycle(KPY);
+    FSeaRationalPolynomialPool.Recycle(KPX);
+    FSeaRationalPolynomialPool.Recycle(PiPY);
+    FSeaRationalPolynomialPool.Recycle(PiPX);
+    FSeaRationalPolynomialPool.Recycle(Pi2PY);
+    FSeaRationalPolynomialPool.Recycle(Pi2PX);
+    FSeaBigNumberPool.Recycle(BQ);
     // LDP 由 DPs 拥有，不释放
     Y2.Free;
   end;
@@ -1093,18 +1095,18 @@ begin
   RX := nil; RY := nil; SX := nil; SY := nil;
   Lam := nil; T1 := nil; T2 := nil; T3 := nil;
   try
-    N := TCnBigNumber.Create;
-    X := TCnBigNumber.Create;
-    Y2 := TCnBigNumber.Create;
-    Y := TCnBigNumber.Create;
-    RX := TCnBigNumber.Create;
-    RY := TCnBigNumber.Create;
-    SX := TCnBigNumber.Create;
-    SY := TCnBigNumber.Create;
-    Lam := TCnBigNumber.Create;
-    T1 := TCnBigNumber.Create;
-    T2 := TCnBigNumber.Create;
-    T3 := TCnBigNumber.Create;
+    N := FSeaBigNumberPool.Obtain;
+    X := FSeaBigNumberPool.Obtain;
+    Y2 := FSeaBigNumberPool.Obtain;
+    Y := FSeaBigNumberPool.Obtain;
+    RX := FSeaBigNumberPool.Obtain;
+    RY := FSeaBigNumberPool.Obtain;
+    SX := FSeaBigNumberPool.Obtain;
+    SY := FSeaBigNumberPool.Obtain;
+    Lam := FSeaBigNumberPool.Obtain;
+    T1 := FSeaBigNumberPool.Obtain;
+    T2 := FSeaBigNumberPool.Obtain;
+    T3 := FSeaBigNumberPool.Obtain;
 
     // N = |p + 1 - t|
     BigNumberSub(N, P, T);
@@ -1258,9 +1260,18 @@ begin
 
     Result := Inf;
   finally
-    T3.Free; T2.Free; T1.Free; Lam.Free;
-    SY.Free; SX.Free; RY.Free; RX.Free;
-    Y.Free; Y2.Free; X.Free; N.Free;
+    FSeaBigNumberPool.Recycle(T3);
+	FSeaBigNumberPool.Recycle(T2);
+	FSeaBigNumberPool.Recycle(T1);
+	FSeaBigNumberPool.Recycle(Lam);
+    FSeaBigNumberPool.Recycle(SY);
+	FSeaBigNumberPool.Recycle(SX);
+	FSeaBigNumberPool.Recycle(RY);
+	FSeaBigNumberPool.Recycle(RX);
+    FSeaBigNumberPool.Recycle(Y);
+	FSeaBigNumberPool.Recycle(Y2);
+	FSeaBigNumberPool.Recycle(X);
+	FSeaBigNumberPool.Recycle(N);
   end;
 end;
 
@@ -1305,10 +1316,10 @@ begin
     Pa := TCnInt64List.Create;
     Ta := TCnInt64List.Create;
 
-    QMax := TCnBigNumber.Create;
-    QMul := TCnBigNumber.Create;
-    BQ := TCnBigNumber.Create;
-    TraceRes := TCnBigNumber.Create;
+    QMax := FSeaBigNumberPool.Obtain;
+    QMul := FSeaBigNumberPool.Obtain;
+    BQ := FSeaBigNumberPool.Obtain;
+    TraceRes := FSeaBigNumberPool.Obtain;
     AtkinInfos := TObjectList.Create(True);
     ElkiesTraces := TCnInt64List.Create;
     ElkiesModuli := TCnInt64List.Create;
@@ -1317,7 +1328,7 @@ begin
     // 计算所需素数列表：乘积 > 4 * sqrt(p)
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
-    BigNumberMulWord(QMax, 8);
+    BigNumberMulWord(QMax, 4);
     QMul.SetOne;
     I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
 
@@ -1339,10 +1350,10 @@ begin
       raise ECnEccException.Create('Prime number is too large for SEA.');
 
     // 准备 Y2 = x^3 + Ax + B
-    Y2 := TCnBigNumberPolynomial.Create;
-    P1 := TCnBigNumberPolynomial.Create;
-    P2 := TCnBigNumberPolynomial.Create;
-    G := TCnBigNumberPolynomial.Create;
+    Y2 := FSeaPolynomialPool.Obtain;
+    P1 := FSeaPolynomialPool.Obtain;
+    P2 := FSeaPolynomialPool.Obtain;
+    G := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
     // 处理 L = 2 的特殊情形：检查 gcd(x^p - x, x^3+Ax+B)
@@ -1483,14 +1494,14 @@ begin
 
     Result := True;
   finally
-    G.Free;
-    P2.Free;
-    P1.Free;
-    Y2.Free;
-    TraceRes.Free;
-    BQ.Free;
-    QMul.Free;
-    QMax.Free;
+    FSeaPolynomialPool.Recycle(G);
+    FSeaPolynomialPool.Recycle(P2);
+    FSeaPolynomialPool.Recycle(P1);
+    FSeaPolynomialPool.Recycle(Y2);
+    FSeaBigNumberPool.Recycle(TraceRes);
+    FSeaBigNumberPool.Recycle(BQ);
+    FSeaBigNumberPool.Recycle(QMul);
+    FSeaBigNumberPool.Recycle(QMax);
     DPs.Free;
     AtkinTraces.Free;
     ElkiesModuli.Free;
@@ -1835,11 +1846,11 @@ begin
   if not CnUInt32IsPrime(L) then Exit;
 
   Traces.Clear;
-  J := TCnBigNumber.Create;
+  J := FSeaBigNumberPool.Obtain;
   OwnPhiL := (PhiL = nil);
   if OwnPhiL then
     PhiL := TCnBigNumberBiPolynomial.Create;
-  FY := TCnBigNumberPolynomial.Create;
+  FY := FSeaPolynomialPool.Obtain;
   Factors := TCnBigNumberPolynomialList.Create;
   try
     if not CnSeaJInvariant(J, A, B, P) then Exit;
@@ -1879,9 +1890,9 @@ begin
     Result := Traces.Count > 0;
   finally
     Factors.Free;
-    FY.Free;
+    FSeaPolynomialPool.Recycle(FY);
     if OwnPhiL then PhiL.Free;
-    J.Free;
+    FSeaBigNumberPool.Recycle(J);
   end;
 end;
 
@@ -1918,15 +1929,15 @@ begin
   BabyRs := nil;
 
   try
-    M_E := TCnBigNumber.Create;
-    T_E := TCnBigNumber.Create;
-    QMax := TCnBigNumber.Create;
-    QTmp := TCnBigNumber.Create;
-    Tmp := TCnBigNumber.Create;
-    T := TCnBigNumber.Create;
-    GStep := TCnBigNumber.Create;
-    BaseT := TCnBigNumber.Create;
-    Threshold := TCnBigNumber.Create;
+    M_E := FSeaBigNumberPool.Obtain;
+    T_E := FSeaBigNumberPool.Obtain;
+    QMax := FSeaBigNumberPool.Obtain;
+    QTmp := FSeaBigNumberPool.Obtain;
+    Tmp := FSeaBigNumberPool.Obtain;
+    T := FSeaBigNumberPool.Obtain;
+    GStep := FSeaBigNumberPool.Obtain;
+    BaseT := FSeaBigNumberPool.Obtain;
+    Threshold := FSeaBigNumberPool.Obtain;
 
     // CRT on Elkies results
     if ElkiesTraces.Count > 0 then
@@ -2150,15 +2161,26 @@ begin
     end;
   finally
     BabyRs.Free;
-    Threshold.Free;
-    BaseT.Free;
-    GStep.Free;
-    T.Free;
-    Tmp.Free;
-    QTmp.Free;
-    QMax.Free;
-    T_E.Free;
-    M_E.Free;
+    FSeaBigNumberPool.Recycle(Threshold);
+    FSeaBigNumberPool.Recycle(BaseT);
+    FSeaBigNumberPool.Recycle(GStep);
+    FSeaBigNumberPool.Recycle(T);
+    FSeaBigNumberPool.Recycle(Tmp);
+    FSeaBigNumberPool.Recycle(QTmp);
+    FSeaBigNumberPool.Recycle(QMax);
+    FSeaBigNumberPool.Recycle(T_E);
+    FSeaBigNumberPool.Recycle(M_E);
   end;
 end;
+
+initialization
+  FSeaBigNumberPool := TCnBigNumberPool.Create;
+  FSeaPolynomialPool := TCnBigNumberPolynomialPool.Create;
+  FSeaRationalPolynomialPool := TCnBigNumberRationalPolynomialPool.Create;
+
+finalization
+  FSeaRationalPolynomialPool.Free;
+  FSeaPolynomialPool.Free;
+  FSeaBigNumberPool.Free;
+
 end.
