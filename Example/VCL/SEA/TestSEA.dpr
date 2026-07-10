@@ -41,6 +41,10 @@ begin
   // Needs L up to 19. Schoof infeasible at this size.
   TestPointCount48BitCM;
 
+  // ===== 64-bit CM curve: y^2 = x^3 + x over p = 3037000503^2 + 88^2 =====
+  // Needs L up to 31 (Phi_29 and Phi_31). WARNING: may take hours.
+  TestPointCount64BitCM;
+
   // ===== Standard curve: secp112r1 (NIST/SECG, 112-bit) =====
   // Smallest standard ECC curve. h=1 so #E = n.
   // SEA only (Schoof too slow at this size)
