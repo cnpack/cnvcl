@@ -1706,6 +1706,8 @@ procedure MyAssert(AProc: TCnCryptoTestProc; const Msg: string);
 var
   V: Boolean;
   S: string;
+  Start: TDateTime;
+  Elapsed: Int64;
 begin
   S := FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg;
   if not Assigned(AProc) then
@@ -1719,9 +1721,13 @@ begin
     S := S + StringOfChar(' ', 70 - Length(S));
   MyWrite(S);
 
+  Start := Now;
   V := AProc();
   if V then
-    MyWriteln('OK')
+  begin
+    Elapsed := Trunc((Now - Start) * MSecsPerDay);
+    MyWriteln('OK    ' + IntToStr(Elapsed) + 'ms');
+  end
   else
     MyWriteln('Fail');
 

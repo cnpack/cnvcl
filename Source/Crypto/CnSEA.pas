@@ -163,6 +163,16 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
 
 implementation
 
+const
+  CN_SEA_BSGS_THRESHOLD = 100000;
+  {* 当 Elkies-Atkin 组合搜索空间 N = floor(2*QMax/M_E) 超过此阈值时，
+     从暴力搜索切换到 BSGS（Baby-Step Giant-Step）算法。
+
+     取值依据：每次迭代约 25μs（256 位 BigNumber 运算），100000 次约 2.5 秒，
+     在可接受范围内。超过此值则 BSGS 的 L_1/|S_1| 倍加速（通常 2~10x）更划算。
+     - 调大：更多用暴力搜索（简单但慢），适合小素数场景
+     - 调小：更早启用 BSGS（快但需 Atkin 素数），适合大素数场景}
+
 // 计算因子和函数 sigma_k(n) = sum_{d|n} d^k
 procedure CalcSigma(Res: TCnBigNumber; N, K: Integer);
 var
@@ -1884,9 +1894,16 @@ var
   M_E, T_E: TCnBigNumber;
   QMax, QTmp, Tmp, T: TCnBigNumber;
   N: Integer;
-  Found, Verified: Boolean;
+  Found, Verified, UseBSGS: Boolean;
   TMod: Int64;
-  LVal: Int64;
+  LVal, L1Val, LCheck, InvME64: Int64;
+  BestIdx, Dir: Integer;
+  BabyR: Int64;
+
+  // BSGS variables
+  BabyRs: TCnInt64List;       // baby step r values: k mod L_1
+  GStep, BaseT, Threshold: TCnBigNumber;
+  GiantSize: Int64;
 begin
   Result := False;
   M_E := nil;
@@ -1895,6 +1912,11 @@ begin
   QTmp := nil;
   Tmp := nil;
   T := nil;
+  GStep := nil;
+  BaseT := nil;
+  Threshold := nil;
+  BabyRs := nil;
+
   try
     M_E := TCnBigNumber.Create;
     T_E := TCnBigNumber.Create;
@@ -1902,6 +1924,9 @@ begin
     QTmp := TCnBigNumber.Create;
     Tmp := TCnBigNumber.Create;
     T := TCnBigNumber.Create;
+    GStep := TCnBigNumber.Create;
+    BaseT := TCnBigNumber.Create;
+    Threshold := TCnBigNumber.Create;
 
     // CRT on Elkies results
     if ElkiesTraces.Count > 0 then
@@ -1928,58 +1953,206 @@ begin
 
     // Search range: t = t_E + k*M_E must lie in [-QMax, QMax].
     // Since t_E in [0, M_E), k ranges over at most ceil(2*QMax/M_E)+1 values.
-    // N = ceil(2*QMax / M_E) + 1
-    BigNumberAdd(Tmp, QMax, QMax);   // Tmp = 2*QMax
-    BigNumberDiv(Tmp, nil, Tmp, M_E);
-    N := BigNumberGetInt64(Tmp) + 1;
-    if N > 1000000 then
+    // Total candidates = floor(2*QMax / M_E) + 1
+    BigNumberAdd(Tmp, QMax, QMax);         // Tmp = 2*QMax
+    BigNumberDiv(Tmp, nil, Tmp, M_E);      // Tmp = floor(2*QMax / M_E)
+
+    // Use BigNumber comparison to decide brute force vs BSGS.
+    // Avoids Int64 overflow when M_E is small relative to QMax.
+    BigNumberSetWord(QTmp, CN_SEA_BSGS_THRESHOLD);
+    if BigNumberCompare(Tmp, QTmp) > 0 then
+      UseBSGS := True
+    else
     begin
-      // Search space too large for brute force; need BSGS.
-      // Return False so caller can fall back to Schoof.
-      Exit;
+      N := Integer(BigNumberGetInt64(Tmp)) + 1;
+      UseBSGS := False;
     end;
 
-    // Brute force search: t = t_E + k*M_E for k = -N..N
-    Found := False;
-    for K := -N to N do
+    if not UseBSGS then
     begin
-      BigNumberSetInt64(Tmp, K);
-      BigNumberMul(Tmp, Tmp, M_E);
-      BigNumberAdd(T, T_E, Tmp);
-
-      // Check Hasse bound
-      BigNumberCopy(QTmp, T);
-      if QTmp.IsNegative then QTmp.Negate;
-      if BigNumberCompare(QTmp, QMax) > 0 then Continue;
-
-      // Check against all Atkin constraints
-      Found := True;
-      for I := 0 to AtkinInfos.Count - 1 do
+      // ---- Brute force search: t = t_E + k*M_E for k = -N..N ----
+      Found := False;
+      for K := -N to N do
       begin
-        LVal := TCnSeaAtkinInfo(AtkinInfos[I]).L;
-        TMod := BigNumberModWord(T, LVal);
-        if T.IsNegative then
-          TMod := (LVal - TMod) mod LVal;
-        if TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces.IndexOf(TMod) < 0 then
+        BigNumberSetInt64(Tmp, K);
+        BigNumberMul(Tmp, Tmp, M_E);
+        BigNumberAdd(T, T_E, Tmp);
+
+        // Check Hasse bound
+        BigNumberCopy(QTmp, T);
+        if QTmp.IsNegative then QTmp.Negate;
+        if BigNumberCompare(QTmp, QMax) > 0 then Continue;
+
+        // Check against all Atkin constraints
+        Found := True;
+        for I := 0 to AtkinInfos.Count - 1 do
         begin
-          Found := False;
-          Break;
+          LVal := TCnSeaAtkinInfo(AtkinInfos[I]).L;
+          TMod := BigNumberModWord(T, LVal);
+          if T.IsNegative then
+            TMod := (LVal - TMod) mod LVal;
+          if TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces.IndexOf(TMod) < 0 then
+          begin
+            Found := False;
+            Break;
+          end;
+        end;
+
+        if Found then
+        begin
+          Verified := SeaVerifyTrace(A, B, P, T);
+          if Verified then
+          begin
+            BigNumberCopy(Res, T);
+            Result := True;
+            Exit;
+          end;
         end;
       end;
+    end
+    else
+    begin
+      // ---- BSGS (Baby-Step Giant-Step) search ----
+      //
+      // Goal: find k such that t = t_E + k*M_E satisfies:
+      //   (a) |t| <= QMax  (Hasse bound)
+      //   (b) t mod L_i in PossibleTraces[i] for each Atkin prime L_i
+      //   (c) [p+1-t]P = O (point verification)
+      //
+      // Method: pick the most selective Atkin prime L_1 (smallest |S_1|/L_1).
+      // For each candidate s in S_1, the constraint t = s (mod L_1) gives:
+      //   k = (s - t_E) * M_E^{-1}  (mod L_1)
+      // Let r_s = this value in [0, L_1). Then k = j*L_1 + r_s for integer j.
+      //
+      // Baby step: precompute {r_s} for all s in S_1 (at most |S_1| values, < L_1).
+      // Giant step: GStep = L_1 * M_E. Iterate j = 0, +-1, +-2, ...
+      //   base_t(j) = t_E + j * GStep
+      //   t = base_t + r_s * M_E  for each r_s
+      //   Check Hasse bound + remaining Atkin constraints + verify.
+      //
+      // Complexity: O(|S_1| * 2*QMax / (L_1*M_E)) = O((|S_1|/L_1) * N)
+      // Speedup over brute force: factor L_1 / |S_1|.
 
-      if Found then
+      if AtkinInfos.Count = 0 then
+        Exit; // No Atkin primes to guide BSGS
+
+      // Select most selective Atkin prime
+      BestIdx := 0;
+      for K := 1 to AtkinInfos.Count - 1 do
       begin
-        // Verify candidate t by checking [p+1-t]P = O on the curve
-        Verified := SeaVerifyTrace(A, B, P, T);
-        if Verified then
+        if TCnSeaAtkinInfo(AtkinInfos[K]).PossibleTraces.Count *
+           TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L <
+           TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count *
+           TCnSeaAtkinInfo(AtkinInfos[K]).L then
+          BestIdx := K;
+      end;
+      L1Val := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L;
+
+      // Compute M_E^{-1} mod L_1 via BigNumber
+      QTmp.SetInt64(L1Val);
+      BigNumberModularInverse(Tmp, M_E, QTmp);
+      InvME64 := BigNumberModWord(Tmp, L1Val);
+
+      // t_E mod L_1
+      TMod := BigNumberModWord(T_E, L1Val);
+      if T_E.IsNegative then
+        TMod := (L1Val - TMod) mod L1Val;
+
+      // Build baby step table: r_s = (s - t_E_mod) * M_E_inv mod L_1
+      BabyRs := TCnInt64List.Create;
+      for K := 0 to TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count - 1 do
+      begin
+        BabyR := (TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces[K] - TMod
+          + L1Val) mod L1Val;
+        BabyR := (BabyR * InvME64) mod L1Val;
+        BabyRs.Add(BabyR);
+      end;
+
+      // Giant step = L_1 * M_E
+      BigNumberSetInt64(Tmp, L1Val);
+      BigNumberMul(GStep, Tmp, M_E);
+
+      // Termination threshold = QMax + (L_1 - 1) * M_E
+      // When |j * GStep| exceeds this, no baby step can bring t within Hasse bound.
+      BigNumberSetInt64(Tmp, L1Val - 1);
+      BigNumberMul(Threshold, Tmp, M_E);
+      BigNumberAdd(Threshold, Threshold, QMax);
+
+      // Iterate giant steps: j = 0, +-1, +-2, ...
+      Found := False;
+      GiantSize := 0;
+      while True do
+      begin
+        for Dir := 0 to 1 do
         begin
-          BigNumberCopy(Res, T);
-          Result := True;
-          Exit;
+          if (Dir = 1) and (GiantSize = 0) then Continue;
+
+          // base_t = t_E + sign * GiantSize * GStep
+          BigNumberCopy(BaseT, T_E);
+          BigNumberSetInt64(Tmp, GiantSize);
+          BigNumberMul(Tmp, Tmp, GStep);
+          if Dir = 0 then
+            BigNumberAdd(BaseT, BaseT, Tmp)
+          else
+            BigNumberSub(BaseT, BaseT, Tmp);
+
+          // For each baby step r_s
+          for K := 0 to BabyRs.Count - 1 do
+          begin
+            // t = base_t + r_s * M_E
+            BigNumberSetInt64(Tmp, BabyRs[K]);
+            BigNumberMul(Tmp, Tmp, M_E);
+            BigNumberAdd(T, BaseT, Tmp);
+
+            // Check Hasse bound
+            BigNumberCopy(QTmp, T);
+            if QTmp.IsNegative then QTmp.Negate;
+            if BigNumberCompare(QTmp, QMax) > 0 then Continue;
+
+            // Check remaining Atkin constraints (skip BestIdx)
+            Found := True;
+            for I := 0 to AtkinInfos.Count - 1 do
+            begin
+              if I = BestIdx then Continue;
+              LCheck := TCnSeaAtkinInfo(AtkinInfos[I]).L;
+              TMod := BigNumberModWord(T, LCheck);
+              if T.IsNegative then
+                TMod := (LCheck - TMod) mod LCheck;
+              if TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces.IndexOf(TMod) < 0 then
+              begin
+                Found := False;
+                Break;
+              end;
+            end;
+
+            if Found then
+            begin
+              Verified := SeaVerifyTrace(A, B, P, T);
+              if Verified then
+              begin
+                BigNumberCopy(Res, T);
+                Result := True;
+                Exit;
+              end;
+            end;
+          end;
         end;
+
+        // Check termination: |GiantSize * GStep| > Threshold
+        BigNumberSetInt64(Tmp, GiantSize);
+        BigNumberMul(Tmp, Tmp, GStep);
+        if Tmp.IsNegative then Tmp.Negate;
+        if BigNumberCompare(Tmp, Threshold) > 0 then Break;
+
+        Inc(GiantSize);
+        if GiantSize > 200000000 then Break; // safety limit
       end;
     end;
   finally
+    BabyRs.Free;
+    Threshold.Free;
+    BaseT.Free;
+    GStep.Free;
     T.Free;
     Tmp.Free;
     QTmp.Free;
