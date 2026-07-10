@@ -777,7 +777,7 @@ begin
     WriteLn(Format('  Pre-generated %d modular polynomials (%d ms)', [ModPolys.Count, PreGenMs]));
 
     T1 := Now;
-    if CnSeaElkiesPointCount(SeaResult, A, B, P, ModPolys) then
+    if CnSeaPointCount(SeaResult, A, B, P, ModPolys) then
     begin
       T2 := Now;
       SeaMs := Round((T2 - T1) * MSecsPerDay);

@@ -39,6 +39,8 @@ begin
   TestPointCount(3, 5, 97, 'Medium Curve F_97');
   TestPointCount(2, 3, 1009, 'Larger Curve F_1009');
   TestPointCount(1, 1, 10007, 'Curve F_10007');
+  TestPointCount(2, 1, 100003, 'Curve F_100003');
+  TestPointCount(3, 8, 999983, 'Curve F_999983');
 
   WriteLn;
   WriteLn('Done.');

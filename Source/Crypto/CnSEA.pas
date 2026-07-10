@@ -28,10 +28,12 @@ unit CnSEA;
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
-* 修改记录：2026.07.09 V1.1
+* 修改记录：2026.07.10 V1.2
+*               实现 SEA 第二阶段：Aktin 素数检测与合并计算
+*           2026.07.09 V1.1
 *               实现 SEA 第一阶段：Elkies 素数检测与迹计算
 *           2026.03.24 V1.0
-*           创建单元，实现经典模多项式生成
+*               创建单元，实现经典模多项式生成
 ================================================================================
 |</PRE>}
 
@@ -48,6 +50,22 @@ type
      sptElkies - Elkies 素数，Φ_l(j, Y) 在 F_p 中有根
      sptAtkin  - Atkin 素数，Φ_l(j, Y) 在 F_p 中无根
      sptFailed - 判定失败（输入错误或计算异常）}
+
+  TCnSeaAtkinInfo = class
+  {* Atkin 素数信息类，包括可能的 traces t mod L.}
+  public
+    L: Int64;
+    R: Integer;
+    PossibleTraces: TCnInt64List;
+    SplitType: Integer;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+function CnSeaAtkinPossibleTraces(Traces: TCnInt64List;
+  L: Integer; A, B, P: TCnBigNumber;
+  PhiL: TCnBigNumberBiPolynomial = nil): Boolean;
+{* Compute the set of possible t mod L values for an Atkin prime L.}
 
 function CnGenerateClassicalModularPolynomial(Res: TCnBigNumberBiPolynomial; L: Integer): Boolean;
 {* 计算并返回正整数 L 的经典模多项式 Phi_L(X, Y)，L 是素数时初步符合以下网址的结果。
@@ -129,7 +147,7 @@ function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
    返回值：Boolean                        - 返回计算是否成功
 }
 
-function CnSeaElkiesPointCount(Res, A, B, P: TCnBigNumber;
+function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
   ModPolys: TObjectList = nil): Boolean;
 {* SEA 点不完整计数算法：计算椭圆曲线 E: y^2 = x^3 + Ax + B 在 F_p 上的点数 #E(F_p)。
    对每个小素数 l，优先使用 Elkies 方法计算 t mod l，Atkin 素数回退到 Schoof 方法，
@@ -549,6 +567,9 @@ var
   OwnPhiL: Boolean;
   FY: TCnBigNumberPolynomial;
   Roots: TCnBigNumberList;
+  G, XPowP, XPmX, YPoly: TCnBigNumberPolynomial;
+  Factors: TCnBigNumberPolynomialList;
+  Idx: Integer;
 begin
   Result := sptFailed;
   if (L < 2) or ((L > 2) and not CnUInt32IsPrime(L)) then Exit;
@@ -587,7 +608,51 @@ begin
         BigNumberCopy(JPrime, Roots[0]);
     end
     else
-      Result := sptAtkin;
+    begin
+      // For large p, use GCD(g(Y), Y^p - Y) to detect linear factors
+      G := TCnBigNumberPolynomial.Create;
+      XPowP := TCnBigNumberPolynomial.Create;
+      XPmX := TCnBigNumberPolynomial.Create;
+      YPoly := TCnBigNumberPolynomial.Create;
+      try
+        YPoly.SetCoefficients([0, 1]);
+        BigNumberPolynomialGaloisPower(XPowP, YPoly, P, P, FY);
+        BigNumberPolynomialGaloisSub(XPmX, XPowP, YPoly, P);
+        BigNumberPolynomialGaloisGreatestCommonDivisor(G, XPmX, FY, P);
+
+        if G.MaxDegree > 0 then
+        begin
+          Result := sptElkies;
+          if JPrime <> nil then
+          begin
+            Factors := TCnBigNumberPolynomialList.Create;
+            try
+              if BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, G, P) then
+              begin
+                for Idx := 0 to Factors.Count - 1 do
+                begin
+                  if TCnBigNumberPolynomial(Factors[Idx]).MaxDegree = 1 then
+                  begin
+                    BigNumberCopy(JPrime, TCnBigNumberPolynomial(Factors[Idx])[0]);
+                    BigNumberNonNegativeMod(JPrime, JPrime, P);
+                    Break;
+                  end;
+                end;
+              end;
+            finally
+              Factors.Free;
+            end;
+          end;
+        end
+        else
+          Result := sptAtkin;
+      finally
+        YPoly.Free;
+        XPmX.Free;
+        XPowP.Free;
+        G.Free;
+      end;
+    end;
   finally
     Roots.Free;
     FY.Free;
@@ -1005,7 +1070,196 @@ begin
   end;
 end;
 
-function CnSeaElkiesPointCount(Res, A, B, P: TCnBigNumber;
+// Verify candidate trace t by checking [p+1-t]P = O for a point P on E/F_p
+function SeaVerifyTrace(A, B, P, T: TCnBigNumber): Boolean;
+var
+  N, X, Y2, Y, RX, RY, SX, SY, Lam, T1, T2, T3: TCnBigNumber;
+  Inf: Boolean;
+  I, Bits: Integer;
+  StartX: Int64;
+begin
+  Result := False;
+  N := nil; X := nil; Y2 := nil; Y := nil;
+  RX := nil; RY := nil; SX := nil; SY := nil;
+  Lam := nil; T1 := nil; T2 := nil; T3 := nil;
+  try
+    N := TCnBigNumber.Create;
+    X := TCnBigNumber.Create;
+    Y2 := TCnBigNumber.Create;
+    Y := TCnBigNumber.Create;
+    RX := TCnBigNumber.Create;
+    RY := TCnBigNumber.Create;
+    SX := TCnBigNumber.Create;
+    SY := TCnBigNumber.Create;
+    Lam := TCnBigNumber.Create;
+    T1 := TCnBigNumber.Create;
+    T2 := TCnBigNumber.Create;
+    T3 := TCnBigNumber.Create;
+
+    // N = |p + 1 - t|
+    BigNumberSub(N, P, T);
+    BigNumberAddWord(N, 1);
+    if N.IsNegative then
+      N.Negate;
+
+    // Find a point on E(F_p): try x = 0, 1, 2, ...
+    StartX := 0;
+    while True do
+    begin
+      X.SetWord(StartX);
+      if BigNumberCompare(X, P) >= 0 then Exit;
+
+      // y^2 = x^3 + Ax + B mod p
+      BigNumberMul(Y2, X, X);
+      BigNumberMod(Y2, Y2, P);
+      BigNumberMul(Y2, Y2, X);
+      BigNumberMod(Y2, Y2, P);
+      BigNumberMul(T1, A, X);
+      BigNumberMod(T1, T1, P);
+      BigNumberAdd(Y2, Y2, T1);
+      BigNumberMod(Y2, Y2, P);
+      BigNumberAdd(Y2, Y2, B);
+      BigNumberMod(Y2, Y2, P);
+
+      if Y2.IsZero then
+      begin
+        BigNumberCopy(SX, X);
+        SY.SetZero;
+        Break;
+      end;
+
+      // Check QR via Euler's criterion
+      BigNumberCopy(T1, P);
+      T1.SubWord(1);
+      BigNumberShiftRightOne(T1, T1);
+      BigNumberPowerMod(T2, Y2, T1, P);
+      if T2.IsOne then
+      begin
+        if BigNumberTonelliShanks(Y, Y2, P) then
+        begin
+          BigNumberCopy(SX, X);
+          BigNumberCopy(SY, Y);
+          Break;
+        end;
+      end;
+      Inc(StartX);
+    end;
+
+    // Compute [N]P using double-and-add
+    Inf := True;
+    Bits := BigNumberGetBitsCount(N);
+
+    for I := 0 to Bits - 1 do
+    begin
+      if not Inf then
+      begin
+        // R = 2*R (point doubling)
+        // lambda = (3*RX^2 + A) / (2*RY) mod p
+        BigNumberMul(T1, RX, RX);
+        BigNumberMod(T1, T1, P);
+        BigNumberMulWord(T1, 3);
+        BigNumberMod(T1, T1, P);
+        BigNumberAdd(T1, T1, A);
+        BigNumberMod(T1, T1, P);
+
+        BigNumberSetWord(T2, 2);
+        BigNumberMul(T2, T2, RY);
+        BigNumberMod(T2, T2, P);
+        if T2.IsZero then
+        begin
+          Inf := True;
+        end
+        else
+        begin
+          BigNumberModularInverse(T3, T2, P);
+          BigNumberMul(Lam, T1, T3);
+          BigNumberMod(Lam, Lam, P);
+
+          BigNumberMul(T1, Lam, Lam);
+          BigNumberMod(T1, T1, P);
+          BigNumberSetWord(T2, 2);
+          BigNumberMul(T2, T2, RX);
+          BigNumberMod(T2, T2, P);
+          BigNumberSub(T1, T1, T2);
+          BigNumberMod(T1, T1, P);
+
+          BigNumberSub(T2, RX, T1);
+          BigNumberMod(T2, T2, P);
+          BigNumberMul(T3, Lam, T2);
+          BigNumberMod(T3, T3, P);
+          BigNumberSub(T3, T3, RY);
+          BigNumberMod(T3, T3, P);
+
+          BigNumberCopy(RX, T1);
+          BigNumberCopy(RY, T3);
+        end;
+      end;
+
+      if BigNumberIsBitSet(N, I) then
+      begin
+        if Inf then
+        begin
+          BigNumberCopy(RX, SX);
+          BigNumberCopy(RY, SY);
+          Inf := False;
+        end
+        else
+        begin
+          // R = R + S (point addition)
+          if BigNumberCompare(RX, SX) = 0 then
+          begin
+            if BigNumberCompare(RY, SY) = 0 then
+              Continue // R = S, doubling already done
+            else
+            begin
+              Inf := True; // R = -S
+              Continue;
+            end;
+          end;
+
+          // lambda = (SY - RY) / (SX - RX) mod p
+          BigNumberSub(T1, SY, RY);
+          BigNumberMod(T1, T1, P);
+          BigNumberSub(T2, SX, RX);
+          BigNumberMod(T2, T2, P);
+          BigNumberModularInverse(T3, T2, P);
+          BigNumberMul(Lam, T1, T3);
+          BigNumberMod(Lam, Lam, P);
+
+          BigNumberMul(T1, Lam, Lam);
+          BigNumberMod(T1, T1, P);
+          BigNumberSub(T1, T1, RX);
+          BigNumberMod(T1, T1, P);
+          BigNumberSub(T1, T1, SX);
+          BigNumberMod(T1, T1, P);
+
+          BigNumberSub(T2, RX, T1);
+          BigNumberMod(T2, T2, P);
+          BigNumberMul(T3, Lam, T2);
+          BigNumberMod(T3, T3, P);
+          BigNumberSub(T3, T3, RY);
+          BigNumberMod(T3, T3, P);
+
+          BigNumberCopy(RX, T1);
+          BigNumberCopy(RY, T3);
+        end;
+      end;
+    end;
+
+    Result := Inf;
+  finally
+    T3.Free; T2.Free; T1.Free; Lam.Free;
+    SY.Free; SX.Free; RY.Free; RX.Free;
+    Y.Free; Y2.Free; X.Free; N.Free;
+  end;
+end;
+
+function CnSeaCombineElkiesAtkin(Res: TCnBigNumber;
+  ElkiesTraces, ElkiesModuli: TCnInt64List;
+  AtkinInfos: TObjectList;
+  A, B, P: TCnBigNumber): Boolean; forward;
+
+function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
   ModPolys: TObjectList = nil): Boolean;
 var
   Pa, Ta: TCnInt64List;
@@ -1017,6 +1271,10 @@ var
   TraceRes: TCnBigNumber;
   PrimeType: TCnSeaPrimeType;
   ElkiesOk: Boolean;
+  AtkinInfos: TObjectList;
+  ElkiesTraces, ElkiesModuli: TCnInt64List;
+  AtkinTraces: TCnInt64List;
+  Info: TCnSeaAtkinInfo;
 begin
   Result := False;
   if (Res = nil) or (A = nil) or (B = nil) or (P = nil) then Exit;
@@ -1041,11 +1299,15 @@ begin
     QMul := TCnBigNumber.Create;
     BQ := TCnBigNumber.Create;
     TraceRes := TCnBigNumber.Create;
+    AtkinInfos := TObjectList.Create(True);
+    ElkiesTraces := TCnInt64List.Create;
+    ElkiesModuli := TCnInt64List.Create;
+    AtkinTraces := TCnInt64List.Create;
 
     // 计算所需素数列表：乘积 > 4 * sqrt(p)
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
-    BigNumberMulWord(QMax, 4);
+    BigNumberMulWord(QMax, 8);
     QMul.SetOne;
     I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
 
@@ -1088,6 +1350,8 @@ begin
           Ta[0] := 1
         else
           Ta[0] := 0;
+        ElkiesTraces.Add(Ta[0]);
+        ElkiesModuli.Add(2);
       end;
     end;
 
@@ -1117,19 +1381,41 @@ begin
         // 尝试 Elkies 方法
         ElkiesOk := CnSeaElkiesTrace(TraceRes, L, A, B, P, DPs);
         if ElkiesOk then
-          Ta[I] := TraceRes.GetInt64
+        begin
+          Ta[I] := TraceRes.GetInt64;
+          ElkiesTraces.Add(Ta[I]);
+          ElkiesModuli.Add(L);
+        end
         else
         begin
           // Elkies 失败，回退到 Schoof
           SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
           Ta[I] := TraceRes.GetInt64;
+          ElkiesTraces.Add(Ta[I]);
+          ElkiesModuli.Add(L);
         end;
       end
       else if PrimeType = sptAtkin then
       begin
-        // Atkin 素数：使用基本 Schoof 方法
-        SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
-        Ta[I] := TraceRes.GetInt64;
+        AtkinTraces.Clear;
+        if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) and
+           CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
+           TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx - 1])) then
+        begin
+          Info := TCnSeaAtkinInfo.Create;
+          Info.L := L;
+          Info.R := 0;
+          Info.PossibleTraces.AddList(AtkinTraces);
+          AtkinInfos.Add(Info);
+          Ta[I] := -1;
+        end
+        else
+        begin
+          SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
+          Ta[I] := TraceRes.GetInt64;
+          ElkiesTraces.Add(Ta[I]);
+          ElkiesModuli.Add(L);
+        end;
       end
       else
       begin
@@ -1140,7 +1426,24 @@ begin
     end;
 
     // 中国剩余定理合并结果
-    BigNumberChineseRemainderTheorem(Res, Ta, Pa);
+    if AtkinInfos.Count > 0 then
+    begin
+      if not CnSeaCombineElkiesAtkin(Res, ElkiesTraces, ElkiesModuli, AtkinInfos, A, B, P) then
+      begin
+        // Atkin matching failed (search space too large).
+        // Fall back to Schoof for Atkin primes, then CRT.
+        for I := 0 to AtkinInfos.Count - 1 do
+        begin
+          L := TCnSeaAtkinInfo(AtkinInfos[I]).L;
+          SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
+          ElkiesTraces.Add(TraceRes.GetInt64);
+          ElkiesModuli.Add(L);
+        end;
+        BigNumberChineseRemainderTheorem(Res, ElkiesTraces, ElkiesModuli);
+      end;
+    end
+    else
+      BigNumberChineseRemainderTheorem(Res, Ta, Pa);
 
     // 根据 Hasse 界限定迹的符号：|t| <= 2*sqrt(p)
     BigNumberSqrt(QMax, P);
@@ -1179,9 +1482,510 @@ begin
     QMul.Free;
     QMax.Free;
     DPs.Free;
+    AtkinTraces.Free;
+    ElkiesModuli.Free;
+    ElkiesTraces.Free;
+    AtkinInfos.Free;
     Ta.Free;
     Pa.Free;
   end;
 end;
 
+// ==================== Atkin Prime Handling ====================
+
+function SeaInt64GCD(A, B: Integer): Integer;
+begin
+  while B <> 0 do
+  begin
+    Result := A mod B;
+    A := B;
+    B := Result;
+  end;
+  Result := A;
+end;
+
+function SeaInt64LCM(A, B: Integer): Integer;
+var
+  G: Integer;
+begin
+  if (A = 0) or (B = 0) then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  G := SeaInt64GCD(A, B);
+  Result := (A div G) * B;
+end;
+
+function SeaInt64PowMod(Base, Exp, M: Int64): Int64;
+var
+  B, E: Int64;
+begin
+  Result := 1;
+  B := Base mod M;
+  E := Exp;
+  while E > 0 do
+  begin
+    if E and 1 = 1 then
+      Result := (Result * B) mod M;
+    B := (B * B) mod M;
+    E := E shr 1;
+  end;
+end;
+
+function SeaFindPrimitiveRoot(L: Int64): Int64;
+var
+  N, T, G: Int64;
+  Factors: array of Int64;
+  I, Idx: Integer;
+  IsPrim: Boolean;
+begin
+  Result := 0;
+  if L < 2 then Exit;
+  if L = 2 then begin Result := 1; Exit; end;
+  N := L - 1;
+  T := N;
+  SetLength(Factors, 0);
+  I := 2;
+  while I * I <= T do
+  begin
+    if T mod I = 0 then
+    begin
+      Idx := Length(Factors);
+      SetLength(Factors, Idx + 1);
+      Factors[Idx] := I;
+      while T mod I = 0 do T := T div I;
+    end;
+    Inc(I);
+  end;
+  if T > 1 then
+  begin
+    Idx := Length(Factors);
+    SetLength(Factors, Idx + 1);
+    Factors[Idx] := T;
+  end;
+  G := 2;
+  while G <= L - 1 do
+  begin
+    IsPrim := True;
+    for I := 0 to High(Factors) do
+    begin
+      if SeaInt64PowMod(G, (L - 1) div Factors[I], L) = 1 then
+      begin
+        IsPrim := False;
+        Break;
+      end;
+    end;
+    if IsPrim then
+    begin
+      Result := G;
+      Exit;
+    end;
+    Inc(G);
+  end;
+end;
+
+function SeaFindNonResidue(L: Int64): Int64;
+var
+  D: Int64;
+begin
+  Result := 0;
+  D := 2;
+  while D <= L - 1 do
+  begin
+    if SeaInt64PowMod(D, (L - 1) div 2, L) = L - 1 then
+    begin
+      Result := D;
+      Exit;
+    end;
+    Inc(D);
+  end;
+end;
+
+procedure SeaFp2Mul(a1, b1, a2, b2: Int64; Delta, L: Int64; var ra, rb: Int64);
+var
+  T1, T2, T3: Int64;
+begin
+  T1 := (a1 * a2) mod L;
+  T2 := (b1 * b2) mod L;
+  T2 := (T2 * Delta) mod L;
+  ra := (T1 + T2) mod L;
+  T3 := (a1 * b2 + b1 * a2) mod L;
+  rb := T3;
+end;
+
+procedure SeaFp2Pow(a, b: Int64; Exp: Int64; Delta, L: Int64; var ra, rb: Int64);
+var
+  CA, CB, TA, TB: Int64;
+begin
+  ra := 1;
+  rb := 0;
+  CA := a mod L;
+  CB := b mod L;
+  while Exp > 0 do
+  begin
+    if Exp and 1 = 1 then
+    begin
+      SeaFp2Mul(ra, rb, CA, CB, Delta, L, TA, TB);
+      ra := TA;
+      rb := TB;
+    end;
+    SeaFp2Mul(CA, CB, CA, CB, Delta, L, TA, TB);
+    CA := TA;
+    CB := TB;
+    Exp := Exp shr 1;
+  end;
+end;
+
+procedure SeaFindNorm1Generator(var ga, gb: Int64; Delta, L: Int64);
+var
+  LP1, T: Int64;
+  Factors: array of Int64;
+  I, Idx: Integer;
+  IsGen: Boolean;
+  A, B, TA, TB: Int64;
+  Q: Int64;
+begin
+  LP1 := L + 1;
+  T := LP1;
+  SetLength(Factors, 0);
+  I := 2;
+  while I * I <= T do
+  begin
+    if T mod I = 0 then
+    begin
+      Idx := Length(Factors);
+      SetLength(Factors, Idx + 1);
+      Factors[Idx] := I;
+      while T mod I = 0 do T := T div I;
+    end;
+    Inc(I);
+  end;
+  if T > 1 then
+  begin
+    Idx := Length(Factors);
+    SetLength(Factors, Idx + 1);
+    Factors[Idx] := T;
+  end;
+  B := 1;
+  while B <= L - 1 do
+  begin
+    Q := (1 + (Delta * ((B * B) mod L)) mod L) mod L;
+    // Q = a^2 for norm-1 element (a, b). Accept Q=0 (a=0) or QR.
+    if (Q <> 0) and (SeaInt64PowMod(Q, (L - 1) div 2, L) <> 1) then
+    begin
+      Inc(B);
+      Continue;
+    end;
+    A := 0;
+    while A <= L - 1 do
+    begin
+      if (A * A) mod L = Q then
+      begin
+        IsGen := True;
+        for I := 0 to High(Factors) do
+        begin
+          SeaFp2Pow(A, B, LP1 div Factors[I], Delta, L, TA, TB);
+          if (TA = 1) and (TB = 0) then
+          begin
+            IsGen := False;
+            Break;
+          end;
+        end;
+        if IsGen then
+        begin
+          ga := A;
+          gb := B;
+          Exit;
+        end;
+      end;
+      Inc(A);
+    end;
+    Inc(B);
+  end;
+end;
+
+procedure SeaAtkinTracesRDivLm1(Traces: TCnInt64List; L: Int64; R: Integer;
+  P: TCnBigNumber);
+var
+  G, PModL, Lambda, LambdaInv, T2: Int64;
+  K, T: Int64;
+begin
+  G := SeaFindPrimitiveRoot(L);
+  PModL := BigNumberModWord(P, L);
+  K := 0;
+  while K <= R - 1 do
+  begin
+    Lambda := SeaInt64PowMod(G, ((L - 1) div R) * K, L);
+    if Lambda = 0 then
+    begin
+      Inc(K);
+      Continue;
+    end;
+    LambdaInv := SeaInt64PowMod(Lambda, R - 1, L);
+    T2 := (Lambda + 2 + LambdaInv) mod L;
+    T2 := (PModL * T2) mod L;
+    if T2 = 0 then
+    begin
+      if Traces.IndexOf(0) < 0 then Traces.Add(0);
+    end
+    else
+    begin
+      if SeaInt64PowMod(T2, (L - 1) div 2, L) = 1 then
+      begin
+        T := 0;
+        while T <= L - 1 do
+        begin
+          if (T * T) mod L = T2 then
+          begin
+            if Traces.IndexOf(T) < 0 then Traces.Add(T);
+            if Traces.IndexOf(L - T) < 0 then Traces.Add(L - T);
+            Break;
+          end;
+          Inc(T);
+        end;
+      end;
+    end;
+    Inc(K);
+  end;
+end;
+
+procedure SeaAtkinTracesRDivLp1(Traces: TCnInt64List; L: Int64; R: Integer;
+  P: TCnBigNumber);
+var
+  Delta, GA, GB: Int64;
+  LP1DivR, K: Int64;
+  LA, LB: Int64;
+  T2, T: Int64;
+  PModL: Int64;
+begin
+  Delta := SeaFindNonResidue(L);
+  SeaFindNorm1Generator(GA, GB, Delta, L);
+  LP1DivR := (L + 1) div R;
+  PModL := BigNumberModWord(P, L);
+  K := 0;
+  while K <= R - 1 do
+  begin
+    SeaFp2Pow(GA, GB, LP1DivR * K, Delta, L, LA, LB);
+    T2 := (2 * PModL * ((LA + 1) mod L)) mod L;
+    if T2 = 0 then
+    begin
+      if Traces.IndexOf(0) < 0 then Traces.Add(0);
+    end
+    else
+    begin
+      if SeaInt64PowMod(T2, (L - 1) div 2, L) = 1 then
+      begin
+        T := 0;
+        while T <= L - 1 do
+        begin
+          if (T * T) mod L = T2 then
+          begin
+            if Traces.IndexOf(T) < 0 then Traces.Add(T);
+            if Traces.IndexOf(L - T) < 0 then Traces.Add(L - T);
+            Break;
+          end;
+          Inc(T);
+        end;
+      end;
+    end;
+    Inc(K);
+  end;
+end;
+
+// TCnSeaAtkinInfo
+
+constructor TCnSeaAtkinInfo.Create;
+begin
+  inherited Create;
+  PossibleTraces := TCnInt64List.Create;
+end;
+
+destructor TCnSeaAtkinInfo.Destroy;
+begin
+  PossibleTraces.Free;
+  inherited Destroy;
+end;
+
+function CnSeaAtkinPossibleTraces(Traces: TCnInt64List;
+  L: Integer; A, B, P: TCnBigNumber;
+  PhiL: TCnBigNumberBiPolynomial): Boolean;
+var
+  J: TCnBigNumber;
+  OwnPhiL: Boolean;
+  FY: TCnBigNumberPolynomial;
+  Factors: TCnBigNumberPolynomialList;
+  I, Deg, R: Integer;
+  SplitType: Integer;
+  L64: Int64;
+begin
+  Result := False;
+  if (Traces = nil) or (L < 3) then Exit;
+  if (A = nil) or (B = nil) or (P = nil) then Exit;
+  if not CnUInt32IsPrime(L) then Exit;
+
+  Traces.Clear;
+  J := TCnBigNumber.Create;
+  OwnPhiL := (PhiL = nil);
+  if OwnPhiL then
+    PhiL := TCnBigNumberBiPolynomial.Create;
+  FY := TCnBigNumberPolynomial.Create;
+  Factors := TCnBigNumberPolynomialList.Create;
+  try
+    if not CnSeaJInvariant(J, A, B, P) then Exit;
+    if OwnPhiL then
+    begin
+      if not CnGenerateClassicalModularPolynomial(PhiL, L) then Exit;
+    end;
+    if not BigNumberBiPolynomialGaloisEvaluateByX(FY, PhiL, J, P) then Exit;
+    if FY.MaxDegree <= 0 then Exit;
+    if not BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, FY, P) then Exit;
+
+    R := 1;
+    for I := 0 to Factors.Count - 1 do
+    begin
+      Deg := TCnBigNumberPolynomial(Factors[I]).MaxDegree;
+      if Deg > 0 then
+        R := SeaInt64LCM(R, Deg);
+    end;
+    if R < 1 then Exit;
+
+    L64 := L;
+    SplitType := 0;
+    if (L64 - 1) mod R = 0 then
+      SplitType := 1;
+    if (L64 + 1) mod R = 0 then
+      SplitType := SplitType or 2;
+    if SplitType = 0 then Exit;
+
+    // When R divides both L-1 and L+1 (e.g. R=2, L odd), try both
+    // split types and merge candidates. The correct eigenvalue ratio
+    // gamma may lie in either F_L* or the norm-1 subgroup of F_{L^2}*.
+    if (SplitType and 1) <> 0 then
+      SeaAtkinTracesRDivLm1(Traces, L64, R, P);
+    if (SplitType and 2) <> 0 then
+      SeaAtkinTracesRDivLp1(Traces, L64, R, P);
+
+    Result := Traces.Count > 0;
+  finally
+    Factors.Free;
+    FY.Free;
+    if OwnPhiL then PhiL.Free;
+    J.Free;
+  end;
+end;
+
+function CnSeaCombineElkiesAtkin(Res: TCnBigNumber;
+  ElkiesTraces, ElkiesModuli: TCnInt64List;
+  AtkinInfos: TObjectList;
+  A, B, P: TCnBigNumber): Boolean;
+var
+  I, K: Integer;
+  M_E, T_E: TCnBigNumber;
+  QMax, QTmp, Tmp, T: TCnBigNumber;
+  N: Integer;
+  Found, Verified: Boolean;
+  TMod: Int64;
+  LVal: Int64;
+begin
+  Result := False;
+  M_E := nil;
+  T_E := nil;
+  QMax := nil;
+  QTmp := nil;
+  Tmp := nil;
+  T := nil;
+  try
+    M_E := TCnBigNumber.Create;
+    T_E := TCnBigNumber.Create;
+    QMax := TCnBigNumber.Create;
+    QTmp := TCnBigNumber.Create;
+    Tmp := TCnBigNumber.Create;
+    T := TCnBigNumber.Create;
+
+    // CRT on Elkies results
+    if ElkiesTraces.Count > 0 then
+    begin
+      if not BigNumberChineseRemainderTheorem(T_E, ElkiesTraces, ElkiesModuli) then
+        Exit;
+      M_E.SetOne;
+      for I := 0 to ElkiesModuli.Count - 1 do
+      begin
+        QTmp.SetInt64(ElkiesModuli[I]);
+        BigNumberMul(M_E, M_E, QTmp);
+      end;
+    end
+    else
+    begin
+      T_E.SetZero;
+      M_E.SetOne;
+    end;
+
+    // Hasse bound: |t| <= 2*sqrt(p). Use 2*(sqrt(p)+1) for safety.
+    BigNumberSqrt(QMax, P);
+    QMax.AddWord(1);
+    BigNumberMulWord(QMax, 2);
+
+    // Search range: t = t_E + k*M_E must lie in [-QMax, QMax].
+    // Since t_E in [0, M_E), k ranges over at most ceil(2*QMax/M_E)+1 values.
+    // N = ceil(2*QMax / M_E) + 1
+    BigNumberAdd(Tmp, QMax, QMax);   // Tmp = 2*QMax
+    BigNumberDiv(Tmp, nil, Tmp, M_E);
+    N := BigNumberGetInt64(Tmp) + 1;
+    if N > 1000000 then
+    begin
+      // Search space too large for brute force; need BSGS.
+      // Return False so caller can fall back to Schoof.
+      Exit;
+    end;
+
+    // Brute force search: t = t_E + k*M_E for k = -N..N
+    Found := False;
+    for K := -N to N do
+    begin
+      BigNumberSetInt64(Tmp, K);
+      BigNumberMul(Tmp, Tmp, M_E);
+      BigNumberAdd(T, T_E, Tmp);
+
+      // Check Hasse bound
+      BigNumberCopy(QTmp, T);
+      if QTmp.IsNegative then QTmp.Negate;
+      if BigNumberCompare(QTmp, QMax) > 0 then Continue;
+
+      // Check against all Atkin constraints
+      Found := True;
+      for I := 0 to AtkinInfos.Count - 1 do
+      begin
+        LVal := TCnSeaAtkinInfo(AtkinInfos[I]).L;
+        TMod := BigNumberModWord(T, LVal);
+        if T.IsNegative then
+          TMod := (LVal - TMod) mod LVal;
+        if TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces.IndexOf(TMod) < 0 then
+        begin
+          Found := False;
+          Break;
+        end;
+      end;
+
+      if Found then
+      begin
+        // Verify candidate t by checking [p+1-t]P = O on the curve
+        Verified := SeaVerifyTrace(A, B, P, T);
+        if Verified then
+        begin
+          BigNumberCopy(Res, T);
+          Result := True;
+          Exit;
+        end;
+      end;
+    end;
+  finally
+    T.Free;
+    Tmp.Free;
+    QTmp.Free;
+    QMax.Free;
+    T_E.Free;
+    M_E.Free;
+  end;
+end;
 end.
