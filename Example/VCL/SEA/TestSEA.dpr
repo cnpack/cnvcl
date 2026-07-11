@@ -28,15 +28,15 @@ begin
   TestPrimeType;
   TestElkiesTrace;
 
-  TestPointCount(2, 2, 17, 'Small Curve F_17');
-  TestPointCount(3, 5, 97, 'Medium Curve F_97');
-  TestPointCount(2, 3, 1009, 'Larger Curve F_1009');
-  TestPointCount(1, 1, 10007, 'Curve F_10007');
-  TestPointCount(2, 1, 100003, 'Curve F_100003');
-  TestPointCount(3, 8, 999983, 'Curve F_999983');
+  TestPointCount(2, 2, 17, 'Small Curve F_17');        // 加起来三百多毫秒
+  TestPointCount(3, 5, 97, 'Medium Curve F_97');       // 加起来两百多毫秒
+  TestPointCount(2, 3, 1009, 'Larger Curve F_1009');   // 加起来六百多毫秒
+  TestPointCount(1, 1, 10007, 'Curve F_10007');        // 加起来八秒多
+  TestPointCount(2, 1, 100003, 'Curve F_100003');      // 加起来二十二秒多
+  TestPointCount(3, 8, 999983, 'Curve F_999983');      // 998712，加起来十七秒多
 
   // Cross-validate with the most expensive Schoof test case from CryptoTest.pas
-  // A=7, B=1, P=6074001169, expected #E = 6074123004
+  // A=7, B=1, P=6074001169, expected #E = 6074123004 ，SEA 本身八十秒左右，加起来二百五十秒多
   TestPointCount(7, 1, 6074001169, 'Schoof Largest Test F_6074001169');
 
   // ===== 48-bit CM curve: y^2 = x^3 + x over p = 16777213^2 + 38^2 =====

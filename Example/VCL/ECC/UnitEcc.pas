@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
   Chart, TypInfo, CnPrime, CnBigNumber, CnNative, CnPemUtils, CnPolynomial,
-  CnSEA, FileCtrl, Contnrs;
+  CnSEA, FileCtrl, Contnrs, CnFileUtils;
 
 type
   TFormEcc = class(TForm)
@@ -273,6 +273,7 @@ type
     btnSeaBrowseEcc: TSpeedButton;
     btnSeaLoad: TButton;
     btnSeaCount: TButton;
+    btnSeaSaveMp: TSpeedButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -360,6 +361,7 @@ type
     procedure btnSeaBrowseEccClick(Sender: TObject);
     procedure btnSeaLoadClick(Sender: TObject);
     procedure btnSeaCountClick(Sender: TObject);
+    procedure btnSeaSaveMpClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -375,6 +377,9 @@ type
     FBNECDHPubKey1, FBNECDHPubKey2: TCnEccPublicKey;
 
     FModPolys: TObjectList;
+    FSeaMPFiles: TStringList;
+    procedure SeaMPFileFound(const FullFileName: string; const Info: TSearchRec;
+      var FindAbort: Boolean);
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
@@ -403,6 +408,40 @@ var
   FPublicKey: TCnEccPublicKey;
   FCurveType: TCnEccCurveType;
   FKeyEcc: TCnEcc;
+
+// Extract L value from filename like "CnMP_17.txt" or full path "C:\dir\CnMP_17.txt"
+function ExtractLFromMPFileName(const FileName: string): Integer;
+var
+  BaseName, NumStr: string;
+  UnderScorePos, DotPos: Integer;
+begin
+  Result := 0;
+  BaseName := ExtractFileName(FileName);
+  // Find the underscore in "CnMP_<L>.txt"
+  UnderScorePos := Pos('_', BaseName);
+  if UnderScorePos = 0 then Exit;
+  // Find the dot before extension
+  DotPos := Pos('.', BaseName);
+  if DotPos = 0 then DotPos := Length(BaseName) + 1;
+  // Extract the number between underscore and dot
+  NumStr := Copy(BaseName, UnderScorePos + 1, DotPos - UnderScorePos - 1);
+  Result := StrToIntDef(NumStr, 0);
+end;
+
+// Sort comparison for TStringList.CustomSort: sort by L value in filename
+function CompareMPFileNames(List: TStringList; Index1, Index2: Integer): Integer;
+var
+  L1, L2: Integer;
+begin
+  L1 := ExtractLFromMPFileName(List[Index1]);
+  L2 := ExtractLFromMPFileName(List[Index2]);
+  if L1 < L2 then
+    Result := -1
+  else if L1 > L2 then
+    Result := 1
+  else
+    Result := 0;
+end;
 
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
@@ -649,6 +688,7 @@ end;
 procedure TFormEcc.FormDestroy(Sender: TObject);
 begin
   FModPolys.Free;
+  FSeaMPFiles.Free;
 
   FKeyEcc.Free;
   FPrivateKey.Free;
@@ -3288,19 +3328,173 @@ begin
     edtSeaMPDir.Text := S;
 end;
 
-procedure TFormEcc.btnSeaLoadClick(Sender: TObject);
+procedure TFormEcc.SeaMPFileFound(const FullFileName: string;
+  const Info: TSearchRec; var FindAbort: Boolean);
 begin
-  if FModPolys <> nil then
-    FModPolys := TObjectList.Create
+  if FSeaMPFiles <> nil then
+    FSeaMPFiles.Add(FullFileName);
+end;
+
+procedure TFormEcc.btnSeaLoadClick(Sender: TObject);
+var
+  Dir, FileName: string;
+  I, L, Loaded, Skipped: Integer;
+  PhiL: TCnBigNumberBiPolynomial;
+  SL: TStringList;
+begin
+  Dir := IncludeTrailingBackslash(edtSeaMPDir.Text);
+  if not DirectoryExists(Dir) then
+  begin
+    ShowMessage('Directory not exists: ' + Dir);
+    Exit;
+  end;
+
+  if FModPolys = nil then
+    FModPolys := TObjectList.Create(True)
   else
     FModPolys.Clear;
 
-  // 遍历文件加载并按 3 5 7 11 排列
+  if FSeaMPFiles = nil then
+    FSeaMPFiles := TStringList.Create
+  else
+    FSeaMPFiles.Clear;
+
+  Screen.Cursor := crHourGlass;
+  try
+    // Use CnFindFile to collect all CnMP_*.txt files
+    CnFindFile(Dir, 'CnMP_*.txt', SeaMPFileFound, nil, False);
+
+    if FSeaMPFiles.Count = 0 then
+    begin
+      ShowMessage('No CnMP_*.txt files found in ' + Dir);
+      Exit;
+    end;
+
+    // Sort files by the L value embedded in filename (CnMP_<L>.txt)
+    FSeaMPFiles.CustomSort(@CompareMPFileNames);
+
+    Loaded := 0;
+    Skipped := 0;
+    SL := TStringList.Create;
+    try
+      for I := 0 to FSeaMPFiles.Count - 1 do
+      begin
+        FileName := FSeaMPFiles[I];
+        L := ExtractLFromMPFileName(FileName);
+        if L < 3 then
+        begin
+          Inc(Skipped);
+          Continue;
+        end;
+
+        SL.LoadFromFile(FileName);
+        PhiL := TCnBigNumberBiPolynomial.Create;
+        if LoadModularPolynomialCoefficientsFromText(PhiL, SL) then
+        begin
+          FModPolys.Add(PhiL);
+          Inc(Loaded);
+          mmoSeaMP.Lines.Add(Format('Loaded Phi_%d from %s (%d coefficients)',
+            [L, ExtractFileName(FileName), SL.Count]));
+        end
+        else
+        begin
+          PhiL.Free;
+          Inc(Skipped);
+          mmoSeaMP.Lines.Add(Format('FAILED to load Phi_%d from %s',
+            [L, ExtractFileName(FileName)]));
+        end;
+        Application.ProcessMessages;
+      end;
+    finally
+      SL.Free;
+    end;
+
+    mmoSeaMP.Lines.Add(Format('Load complete: %d loaded, %d skipped (total %d files)',
+      [Loaded, Skipped, FSeaMPFiles.Count]));
+  finally
+    Screen.Cursor := crDefault;
+  end;
 end;
 
 procedure TFormEcc.btnSeaCountClick(Sender: TObject);
+var
+  A, B, P, Res: TCnBigNumber;
+  T1, T2: TDateTime;
+  SeaMs: Int64;
+  HasModPolys: Boolean;
 begin
-  // 用 A B P 和 FModPoly 计算
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+  Res := TCnBigNumber.Create;
+  try
+    A.SetDec(edtSeaEccA.Text);
+    B.SetDec(edtSeaEccB.Text);
+    P.SetDec(edtSeaEccP.Text);
+
+    if P.IsZero or P.IsNegative then
+    begin
+      ShowMessage('Invalid Prime P');
+      Exit;
+    end;
+
+    HasModPolys := (FModPolys <> nil) and (FModPolys.Count > 0);
+    if HasModPolys then
+      mmoSeaMP.Lines.Add(Format('SEA Point Count: A=%s B=%s P=%s (ModPolys: %d)',
+        [A.ToDec, B.ToDec, P.ToDec, FModPolys.Count]))
+    else
+      mmoSeaMP.Lines.Add(Format('SEA Point Count: A=%s B=%s P=%s (ModPolys: 0)',
+        [A.ToDec, B.ToDec, P.ToDec]));
+
+    Screen.Cursor := crHourGlass;
+    try
+      T1 := Now;
+      if CnSeaPointCount(Res, A, B, P, FModPolys) then
+      begin
+        T2 := Now;
+        SeaMs := Round((T2 - T1) * 86400000);
+        mmoSeaMP.Lines.Add(Format('  #E = %s  (%d ms)', [Res.ToDec, SeaMs]));
+        mmoSeaMP.Lines.Add(Format('  (0x%s)', [Res.ToHex]));
+      end
+      else
+      begin
+        T2 := Now;
+        SeaMs := Round((T2 - T1) * 86400000);
+        mmoSeaMP.Lines.Add(Format('  SEA FAILED  (%d ms)', [SeaMs]));
+      end;
+    finally
+      Screen.Cursor := crDefault;
+    end;
+  finally
+    Res.Free;
+    P.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+procedure TFormEcc.btnSeaSaveMpClick(Sender: TObject);
+var
+  L: Integer;
+  S: string;
+  SL: TStringList;
+  P: TCnBigNumberBiPolynomial;
+begin
+  mmoSeaMP.Lines.Clear;
+  L := StrToInt(edtSeaL.Text);
+  P := TCnBigNumberBiPolynomial.Create;
+  SL := TStringList.Create;
+  if CnGenerateClassicalModularPolynomial(P, L) then
+  begin
+    SaveModularPolynomialCoefficientsToText(P, mmoSeaMP.Lines);
+    SaveModularPolynomialCoefficientsToText(P, SL);
+    S := Format(MP_FMT, [L]);
+    dlgSave1.FileName := S;
+    if dlgSave1.Execute then
+      SL.SaveToFile(dlgSave1.FileName);
+  end;
+  SL.Free;
+  P.Free;
 end;
 
 end.

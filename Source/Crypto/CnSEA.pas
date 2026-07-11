@@ -1484,8 +1484,8 @@ begin
       begin
         AtkinTraces.Clear;
         if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) and
-           CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
-           TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx - 1])) then
+          CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
+          TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx - 1])) then
         begin
           Info := TCnSeaAtkinInfo.Create;
           Info.L := L;
