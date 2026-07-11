@@ -79,8 +79,8 @@ function CnGenerateClassicalModularPolynomial(Res: TCnBigNumberBiPolynomial; L: 
    返回值：Boolean                        - 返回计算是否成功
 }
 
-procedure PrintModularPolynomialCoefficients(P: TCnBigNumberBiPolynomial; Res: TStrings);
-{* 将二元多项式的非零系数以 [X度, Y度] 系数值 的格式逐行打印到 Res 字符串列表中。
+procedure SaveModularPolynomialCoefficientsToText(P: TCnBigNumberBiPolynomial; Res: TStrings);
+{* 将二元多项式的非零系数以 [X度, Y度] 系数值逐行打印到 Res 字符串列表中，采用 MIT 格式。
    同时验证对称位置 [i,j] 和 [j,i] 的系数是否相等，不相等则抛出异常。
    注意：[i,i] 对角线项无需验证（自身和自己相等）。
 
@@ -89,6 +89,19 @@ procedure PrintModularPolynomialCoefficients(P: TCnBigNumberBiPolynomial; Res: T
      Res: TStrings                        - 输出的目标字符串列表
 
    返回值：（无）
+}
+
+function LoadModularPolynomialCoefficientsFromText(Res: TCnBigNumberBiPolynomial;
+  Lines: TStrings): Boolean;
+{* 从 MIT 格式的文本字符串中加载二元模多项式系数。
+   每行的格式类似于 [XDeg, YDeg] DecimalValue，与 SaveModularPolynomialCoefficientsToText 一致。
+   对称的位置 [i,j] 与 [j,i] 均会被加载，返回加载是否成功。
+
+   参数：
+     Res: TCnBigNumberBiPolynomial        - 待加载的二元多项式
+     Lines: TStrings                      - 待加载的字符串列表
+
+   返回值：Boolean                        - 加载是否成功
 }
 
 function CnSeaJInvariant(Res, A, B, P: TCnBigNumber): Boolean;
@@ -157,6 +170,7 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
      Res: TCnBigNumber                    - 返回点数 #E(F_p)
      A, B: TCnBigNumber                   - Weierstrass 方程参数
      P: TCnBigNumber                      - 有限域素数 p
+     ModPolys: TObjectList                - 预计算的模多项式列表，为 nil 时内部自行计算
 
    返回值：Boolean                        - 返回计算是否成功
 }
@@ -412,7 +426,8 @@ begin
         end;
       end;
 
-      for I := 0 to M * L do PmArr[I].Free;
+      for I := 0 to M * L do
+        PmArr[I].Free;
     end;
 
     SetLength(Sm_Poly, L + 2);
@@ -459,7 +474,6 @@ begin
       end;
     end;
     Res.CorrectTop;
-
   finally
     if Length(Sm_Poly) > 0 then
       for K := 0 to L + 1 do
@@ -481,7 +495,7 @@ begin
   Result := True;
 end;
 
-procedure PrintModularPolynomialCoefficients(P: TCnBigNumberBiPolynomial; Res: TStrings);
+procedure SaveModularPolynomialCoefficientsToText(P: TCnBigNumberBiPolynomial; Res: TStrings);
 var
   I, J: Integer;
   YList: TCnSparseBigNumberList;
@@ -495,8 +509,10 @@ begin
   begin
     YList := P.YFactorsList[I];
     for J := 0 to YList.Count - 1 do
+    begin
       if I >= J then
         Res.Add(Format('[%d,%d] %s', [I, YList[J].Exponent, YList[J].Value.ToDec]));
+    end;
   end;
 
   // 第二遍：验证对称位置 [i,j] 与 [j,i] 的系数是否相等
@@ -518,6 +534,53 @@ begin
           [I, YList[J].Exponent, CoeffIJ.ToDec,
            YList[J].Exponent, I, CoeffJI.ToDec]);
     end;
+  end;
+end;
+
+function LoadModularPolynomialCoefficientsFromText(Res: TCnBigNumberBiPolynomial;
+  Lines: TStrings): Boolean;
+var
+  I, M, N, SpPos, Comma: Integer;
+  Line, Key, ValStr: string;
+  Coeff: TCnBigNumber;
+begin
+  Result := False;
+  if (Res = nil) or (Lines = nil) then Exit;
+  Res.SetZero;
+
+  Coeff := TCnBigNumber.Create;
+  try
+    for I := 0 to Lines.Count - 1 do
+    begin
+      Line := Trim(Lines[I]);
+      if Line = '' then Continue;
+
+      // Parse "[m,n] value"
+      SpPos := Pos('] ', Line);
+      if SpPos = 0 then Continue;
+      Key := Copy(Line, 1, SpPos);  // [m,n]
+      ValStr := Trim(Copy(Line, SpPos + 1, MaxInt));
+      if ValStr = '' then Continue;
+
+      // Extract m and n from [m,n]
+      Key := StringReplace(Key, '[', '', [rfReplaceAll]);
+      Key := StringReplace(Key, ']', '', [rfReplaceAll]);
+      Key := StringReplace(Key, ' ', '', [rfReplaceAll]);
+      Comma := Pos(',', Key);
+      if Comma = 0 then Continue;
+      M := StrToInt(Copy(Key, 1, Comma - 1));
+      N := StrToInt(Copy(Key, Comma + 1, MaxInt));
+
+      Coeff.SetDec(ValStr);
+      // Set [M, N] (SafeValue auto-expands dimensions)
+      BigNumberCopy(Res.SafeValue[M, N], Coeff);
+      // Also fill symmetric [N, M] unless it's the diagonal
+      if M <> N then
+        BigNumberCopy(Res.SafeValue[N, M], Coeff);
+      Result := True;
+    end;
+  finally
+    Coeff.Free;
   end;
 end;
 

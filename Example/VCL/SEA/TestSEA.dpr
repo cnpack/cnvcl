@@ -20,6 +20,9 @@ begin
   RunModularPolynomialTest(13, MIT_L13);
   RunModularPolynomialTest(17, MIT_L17);
 
+  // ===== Part 1b: Load-from-text round-trip test =====
+  TestLoadModularPolynomial;
+
   // ===== 第二部分：SEA 第一阶段功能测试 =====
   TestJInvariant;
   TestPrimeType;

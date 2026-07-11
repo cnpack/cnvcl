@@ -2030,7 +2030,7 @@ object FormEcc: TFormEcc
         Width = 788
         Height = 479
         Anchors = [akLeft, akTop, akRight, akBottom]
-        Caption = 'Square Root'
+        Caption = 'Modular Polynomial'
         TabOrder = 0
         object lblSeaL: TLabel
           Left = 16

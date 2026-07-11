@@ -3193,7 +3193,7 @@ begin
   if CnGenerateClassicalModularPolynomial(P, L) then
   begin
     mmoSeaMP.Lines.Add(P.ToString);
-    PrintModularPolynomialCoefficients(P, mmoSeaMP.Lines);
+    SaveModularPolynomialCoefficientsToText(P, mmoSeaMP.Lines);
   end
   else
     mmoSeaMP.Lines.Add('Failed to Generate ModularPolynomial for Degree: ' + IntToStr(L));

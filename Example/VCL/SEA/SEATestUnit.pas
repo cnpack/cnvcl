@@ -10,6 +10,7 @@ uses
   CnPolynomial, CnECC, CnSEA;
 
 procedure RunModularPolynomialTest(L: Integer; const MitData: string);
+procedure TestLoadModularPolynomial;
 procedure TestJInvariant;
 procedure TestPrimeType;
 procedure TestElkiesTrace;
@@ -586,6 +587,84 @@ begin
       WriteLn('FAILED to generate Phi_' + IntToStr(L));
   finally
     Poly.Free;
+  end;
+end;
+
+// Test CnLoadModularPolynomialFromText: Generate -> Print -> Load -> Compare
+procedure TestLoadModularPolynomial;
+var
+  Ls: array[0..6] of Integer;
+  Idx, L, I, J: Integer;
+  Gen, Loaded: TCnBigNumberBiPolynomial;
+  SL: TStringList;
+  YList: TCnSparseBigNumberList;
+  CoeffGen, CoeffLoaded: TCnBigNumber;
+  Mismatch: Integer;
+begin
+  WriteLn;
+  WriteLn('===== Test CnLoadModularPolynomialFromText =====');
+  Ls[0] := 2; Ls[1] := 3; Ls[2] := 5; Ls[3] := 7;
+  Ls[4] := 11; Ls[5] := 13; Ls[6] := 17;
+
+  Gen := TCnBigNumberBiPolynomial.Create;
+  Loaded := TCnBigNumberBiPolynomial.Create;
+  SL := TStringList.Create;
+  CoeffGen := TCnBigNumber.Create;
+  try
+    for Idx := Low(Ls) to High(Ls) do
+    begin
+      L := Ls[Idx];
+      WriteLn(Format('  Phi_%d:', [L]));
+
+      // Step 1: Generate
+      if not CnGenerateClassicalModularPolynomial(Gen, L) then
+      begin
+        WriteLn('    GENERATE FAILED');
+        Continue;
+      end;
+
+      // Step 2: Print to TStrings
+      SL.Clear;
+      SaveModularPolynomialCoefficientsToText(Gen, SL);
+      WriteLn(Format('    Printed %d coefficients', [SL.Count]));
+
+      // Step 3: Load from TStrings
+      if not LoadModularPolynomialCoefficientsFromText(Loaded, SL) then
+      begin
+        WriteLn('    LOAD FAILED');
+        Continue;
+      end;
+
+      // Step 4: Compare all coefficients
+      Mismatch := 0;
+      for I := 0 to Gen.MaxXDegree do
+      begin
+        YList := Gen.YFactorsList[I];
+        for J := 0 to YList.Count - 1 do
+        begin
+          CoeffGen := YList[J].Value;
+          CoeffLoaded := Loaded.ReadonlyValue[I, YList[J].Exponent];
+          if BigNumberCompare(CoeffGen, CoeffLoaded) <> 0 then
+          begin
+            Inc(Mismatch);
+            if Mismatch <= 3 then
+              WriteLn(Format('    MISMATCH [%d,%d]: Gen=%s Loaded=%s',
+                [I, YList[J].Exponent, CoeffGen.ToDec, CoeffLoaded.ToDec]));
+          end;
+        end;
+      end;
+
+      if Mismatch = 0 then
+        WriteLn(Format('    OK (deg %dx%d, all match)',
+          [Loaded.MaxXDegree, Loaded.MaxYDegree]))
+      else
+        WriteLn(Format('    FAIL: %d mismatches', [Mismatch]));
+    end;
+  finally
+    CoeffGen.Free;
+    SL.Free;
+    Loaded.Free;
+    Gen.Free;
   end;
 end;
 
