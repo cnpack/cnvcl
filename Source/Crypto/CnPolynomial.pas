@@ -12747,11 +12747,13 @@ begin
   if P.FXs.Count <= 0 then
     P.FXs.Add(TCnInt64List.Create)
   else
+  begin
     for I := P.FXs.Count - 1 downto 1 do
     begin
       P.FXs[I].Free;
       P.FXs.Delete(I);
     end;
+  end;
 
   if P.YFactorsList[0].Count <= 0 then
     P.YFactorsList[0].Add(0)
@@ -12771,11 +12773,13 @@ begin
   if P.FXs.Count <= 0 then
     P.FXs.Add(TCnInt64List.Create)
   else
+  begin
     for I := P.FXs.Count - 1 downto 1 do
     begin
       P.FXs[I].Free;
       P.FXs.Delete(I);
     end;
+  end;
 
   if P.YFactorsList[0].Count <= 0 then
     P.YFactorsList[0].Add(1)
@@ -13749,11 +13753,13 @@ begin
   if FXs.Count <= 0 then
     FXs.Add(TCnInt64List.Create)
   else
+  begin
     for I := FXs.Count - 1 downto 1 do
     begin
       FXs[I].Free;
       FXs.Delete(I);
     end;
+  end;
 
   YFactorsList[0].Clear;
 end;
@@ -14000,7 +14006,14 @@ begin
 end;
 
 procedure BigNumberBiPolynomialSetZero(P: TCnBigNumberBiPolynomial);
+var
+  I: Integer;
 begin
+  // Must free each TCnSparseBigNumberList before clearing references.
+  // TCnRefObjectList.Clear only removes pointers without freeing objects,
+  // so failing to free here causes memory leaks when a polynomial is reused.
+  for I := P.FXs.Count - 1 downto 0 do
+    P.FXs[I].Free;
   P.FXs.Clear;
 end;
 
@@ -14011,11 +14024,13 @@ begin
   if P.FXs.Count <= 0 then
     P.FXs.Add(TCnSparseBigNumberList.Create)
   else
+  begin
     for I := P.FXs.Count - 1 downto 1 do
     begin
       P.FXs[I].Free;
       P.FXs.Delete(I);
     end;
+  end;
 
   if P.YFactorsList[0].Count <= 0 then
     P.YFactorsList[0].Add(TCnExponentBigNumberPair.Create)
