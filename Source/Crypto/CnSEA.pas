@@ -165,6 +165,7 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
 {* SEA 点不完整计数算法：计算椭圆曲线 E: y^2 = x^3 + Ax + B 在 F_p 上的点数 #E(F_p)。
    对每个小素数 l，优先使用 Elkies 方法计算 t mod l，Atkin 素数回退到 Schoof 方法，
    最后用中国剩余定理合并结果，#E = p + 1 - t。
+   ModPolys 应当是预先计算好的模多项式，次数依次为 3, 5, 7, 11……
 
    参数：
      Res: TCnBigNumber                    - 返回点数 #E(F_p)

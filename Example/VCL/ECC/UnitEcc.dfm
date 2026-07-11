@@ -2039,18 +2039,76 @@ object FormEcc: TFormEcc
           Height = 13
           Caption = 'Y^2'
         end
+        object bvl3: TBevel
+          Left = 256
+          Top = 24
+          Width = 17
+          Height = 25
+          Shape = bsLeftLine
+        end
+        object lblSeaDir: TLabel
+          Left = 272
+          Top = 28
+          Width = 45
+          Height = 13
+          Caption = 'Directory:'
+        end
+        object btnSeaBrowse: TSpeedButton
+          Left = 592
+          Top = 24
+          Width = 23
+          Height = 22
+          Caption = '...'
+          OnClick = btnSeaBrowseClick
+        end
+        object lblSeaMPDir: TLabel
+          Left = 16
+          Top = 288
+          Width = 67
+          Height = 13
+          Caption = 'M.P Directory:'
+        end
+        object lblSeaEccA: TLabel
+          Left = 16
+          Top = 320
+          Width = 32
+          Height = 13
+          Caption = 'Ecc A:'
+        end
+        object lblSeaEccB: TLabel
+          Left = 408
+          Top = 320
+          Width = 32
+          Height = 13
+          Caption = 'Ecc B:'
+        end
+        object lblSeaPrime: TLabel
+          Left = 16
+          Top = 352
+          Width = 51
+          Height = 13
+          Caption = 'Ecc Prime:'
+        end
+        object btnSeaBrowseEcc: TSpeedButton
+          Left = 352
+          Top = 284
+          Width = 23
+          Height = 22
+          Caption = '...'
+          OnClick = btnSeaBrowseEccClick
+        end
         object edtSeaL: TEdit
           Left = 48
           Top = 24
-          Width = 121
+          Width = 41
           Height = 21
           TabOrder = 0
           Text = '4'
         end
         object btnSeaModularPoly: TButton
-          Left = 184
+          Left = 96
           Top = 24
-          Width = 161
+          Width = 145
           Height = 25
           Caption = 'Calc Modular Polynomial'
           TabOrder = 1
@@ -2060,19 +2118,92 @@ object FormEcc: TFormEcc
           Left = 16
           Top = 56
           Width = 753
-          Height = 401
+          Height = 217
           ReadOnly = True
           TabOrder = 2
+        end
+        object edtSeaDir: TEdit
+          Left = 328
+          Top = 24
+          Width = 257
+          Height = 21
+          TabOrder = 3
+        end
+        object btnSeaSave: TButton
+          Left = 696
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Save To Dir'
+          TabOrder = 4
+          OnClick = btnSeaSaveClick
+        end
+        object edtSeaTop: TEdit
+          Left = 632
+          Top = 24
+          Width = 57
+          Height = 21
+          TabOrder = 5
+          Text = '31'
+        end
+        object edtSeaMPDir: TEdit
+          Left = 88
+          Top = 284
+          Width = 257
+          Height = 21
+          TabOrder = 6
+        end
+        object edtSeaEccA: TEdit
+          Left = 88
+          Top = 316
+          Width = 305
+          Height = 21
+          TabOrder = 7
+          Text = '1'
+        end
+        object edtSeaEccB: TEdit
+          Left = 448
+          Top = 316
+          Width = 321
+          Height = 21
+          TabOrder = 8
+          Text = '0'
+        end
+        object edtSeaEccP: TEdit
+          Left = 88
+          Top = 348
+          Width = 321
+          Height = 21
+          TabOrder = 9
+          Text = '281474876048813'
+        end
+        object btnSeaLoad: TButton
+          Left = 400
+          Top = 284
+          Width = 137
+          Height = 25
+          Caption = 'Load Modular Polynomials'
+          TabOrder = 10
+          OnClick = btnSeaLoadClick
+        end
+        object btnSeaCount: TButton
+          Left = 448
+          Top = 344
+          Width = 81
+          Height = 25
+          Caption = 'Sea Count'
+          TabOrder = 11
+          OnClick = btnSeaCountClick
         end
       end
     end
   end
   object dlgOpen1: TOpenDialog
-    Left = 396
+    Left = 364
     Top = 80
   end
   object dlgSave1: TSaveDialog
-    Left = 436
+    Left = 404
     Top = 80
   end
 end

@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
   Chart, TypInfo, CnPrime, CnBigNumber, CnNative, CnPemUtils, CnPolynomial,
-  CnSEA;
+  CnSEA, FileCtrl, Contnrs;
 
 type
   TFormEcc = class(TForm)
@@ -256,6 +256,23 @@ type
     edtSeaL: TEdit;
     btnSeaModularPoly: TButton;
     mmoSeaMP: TMemo;
+    bvl3: TBevel;
+    lblSeaDir: TLabel;
+    edtSeaDir: TEdit;
+    btnSeaBrowse: TSpeedButton;
+    btnSeaSave: TButton;
+    edtSeaTop: TEdit;
+    lblSeaMPDir: TLabel;
+    edtSeaMPDir: TEdit;
+    lblSeaEccA: TLabel;
+    lblSeaEccB: TLabel;
+    edtSeaEccA: TEdit;
+    edtSeaEccB: TEdit;
+    lblSeaPrime: TLabel;
+    edtSeaEccP: TEdit;
+    btnSeaBrowseEcc: TSpeedButton;
+    btnSeaLoad: TButton;
+    btnSeaCount: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -338,6 +355,11 @@ type
     procedure btnEccFastSchoofClick(Sender: TObject);
     procedure btnEccSchoof2Click(Sender: TObject);
     procedure btnSeaModularPolyClick(Sender: TObject);
+    procedure btnSeaBrowseClick(Sender: TObject);
+    procedure btnSeaSaveClick(Sender: TObject);
+    procedure btnSeaBrowseEccClick(Sender: TObject);
+    procedure btnSeaLoadClick(Sender: TObject);
+    procedure btnSeaCountClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -351,6 +373,8 @@ type
     FBNEccDataPoint: TCnEccPoint;
     FBNECDHPrivKey1, FBNECDHPrivKey2: TCnEccPrivateKey;
     FBNECDHPubKey1, FBNECDHPubKey2: TCnEccPublicKey;
+
+    FModPolys: TObjectList;
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
@@ -360,7 +384,7 @@ type
 
     procedure CallUseless; // 调用必要的函数防止被 Link 时忽略
   public
-    { Public declarations }
+
   end;
 
 var
@@ -372,6 +396,7 @@ implementation
 
 const
   CN_ECC_PLAIN_DATA_BITS_GAP = 24;
+  MP_FMT = 'CnMP_%d.txt';
 
 var
   FPrivateKey: TCnEccPrivateKey;
@@ -623,6 +648,8 @@ end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
 begin
+  FModPolys.Free;
+
   FKeyEcc.Free;
   FPrivateKey.Free;
   FPublicKey.Free;
@@ -3197,6 +3224,83 @@ begin
   end
   else
     mmoSeaMP.Lines.Add('Failed to Generate ModularPolynomial for Degree: ' + IntToStr(L));
+end;
+
+procedure TFormEcc.btnSeaBrowseClick(Sender: TObject);
+var
+  S: string;
+begin
+  if SelectDirectory('Directory', 'C:\', S) then
+  begin
+    edtSeaDir.Text := S;
+    edtSeaMPDir.Text := S;
+  end;
+end;
+
+procedure TFormEcc.btnSeaSaveClick(Sender: TObject);
+var
+  S: string;
+  L: TStringList;
+  I, T, C: Integer;
+  P: TCnBigNumberBiPolynomial;
+begin
+  if not DirectoryExists(edtSeaDir.Text) then
+  begin
+    ShowMessage('NO Directory');
+    Exit;
+  end;
+  T := StrToInt(edtSeaTop.Text);
+
+  if T < 2 then
+  begin
+    ShowMessage('Invalid Max Number');
+    Exit;
+  end;
+
+  Screen.Cursor := crHourGlass;
+  try
+    C := 0;
+    for I := 2 to T do
+    begin
+      P := TCnBigNumberBiPolynomial.Create;
+      L := TStringList.Create;
+      if CnGenerateClassicalModularPolynomial(P, I) then
+      begin
+        SaveModularPolynomialCoefficientsToText(P, L);
+        S := Format(MP_FMT, [I]);
+        L.SaveToFile(IncludeTrailingBackslash(edtSeaDir.Text) + S);
+        Inc(C);
+      end;
+      L.Free;
+      P.Free;
+    end;
+    ShowMessage(Format('Save %d Files OK', [C]));
+  finally
+    Screen.Cursor := crDefault;
+  end;
+end;
+
+procedure TFormEcc.btnSeaBrowseEccClick(Sender: TObject);
+var
+  S: string;
+begin
+  if SelectDirectory('Directory', 'C:\', S) then
+    edtSeaMPDir.Text := S;
+end;
+
+procedure TFormEcc.btnSeaLoadClick(Sender: TObject);
+begin
+  if FModPolys <> nil then
+    FModPolys := TObjectList.Create
+  else
+    FModPolys.Clear;
+
+  // 遍历文件加载并按 3 5 7 11 排列
+end;
+
+procedure TFormEcc.btnSeaCountClick(Sender: TObject);
+begin
+  // 用 A B P 和 FModPoly 计算
 end;
 
 end.
