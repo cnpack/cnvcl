@@ -42,10 +42,11 @@ begin
   // ===== 48-bit CM curve: y^2 = x^3 + x over p = 16777213^2 + 38^2 =====
   // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
   // Needs L up to 19. Schoof infeasible at this size.
+  // 281474842494388，SE 本身二百八十多秒到五百秒，也就是十分钟前后。
   TestPointCount48BitCM;
 
   // ===== 64-bit CM curve: y^2 = x^3 + x over p = 3037000503^2 + 88^2 =====
-  // Needs L up to 31 (Phi_29 and Phi_31). WARNING: may take hours.
+  // Needs L up to 31 (Phi_29 and Phi_31). SEA 本身一千五百多秒也就是二十五分钟。
   TestPointCount64BitCM;
 
   // ===== Standard curve: secp112r1 (NIST/SECG, 112-bit) =====

@@ -22,7 +22,7 @@ procedure TestPointCountHex(const AHex, BHex, PHex, ExpectedOrderHex: string;
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 procedure TestPointCount48BitCM;
 {* 该用例验证 48Bit 的素数域的上述椭圆曲线。
-   九百九十秒算到 23 的模多项式，一百六十多秒 SEA。
+   九百九十秒算到 23 的模多项式，一百六十多秒到二百八十多秒的 SEA。
 
   p = 281474876048813 (0xFFFFFA0005AD)
   p = 16777213^2 + 38^2 (CM by Z[i])
@@ -572,15 +572,21 @@ end;
 procedure RunModularPolynomialTest(L: Integer; const MitData: string);
 var
   Poly: TCnBigNumberBiPolynomial;
+  T1, T2: TDateTime;
+  Ms: Int64;
 begin
   WriteLn;
   WriteLn('===== Phi_' + IntToStr(L) + '(X, Y) =====');
   Poly := TCnBigNumberBiPolynomial.Create;
   try
+    T1 := Now;
     if CnGenerateClassicalModularPolynomial(Poly, L) then
     begin
+      T2 := Now;
+      Ms := Round((T2 - T1) * 86400000);
       WriteLn('MaxXDegree=' + IntToStr(Poly.MaxXDegree) +
-              ' MaxYDegree=' + IntToStr(Poly.MaxYDegree));
+              ' MaxYDegree=' + IntToStr(Poly.MaxYDegree) +
+              '  (' + IntToStr(Ms) + ' ms)');
       CompareWithEmbedded(Poly, MitData);
     end
     else
@@ -609,7 +615,6 @@ begin
   Gen := TCnBigNumberBiPolynomial.Create;
   Loaded := TCnBigNumberBiPolynomial.Create;
   SL := TStringList.Create;
-  CoeffGen := TCnBigNumber.Create;
   try
     for Idx := Low(Ls) to High(Ls) do
     begin
@@ -661,7 +666,8 @@ begin
         WriteLn(Format('    FAIL: %d mismatches', [Mismatch]));
     end;
   finally
-    CoeffGen.Free;
+    // CoeffGen and CoeffLoaded are read-only references to internal objects
+    // owned by Gen/Loaded, so they must NOT be freed here.
     SL.Free;
     Loaded.Free;
     Gen.Free;
