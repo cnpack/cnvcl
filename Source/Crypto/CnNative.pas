@@ -4151,6 +4151,112 @@ end;
 
 {$IFDEF CPUX86ORX64}
 
+{$IFDEF CALL_SYSV_AMD64}
+
+// 非 Windows 平台上的 x64 FPC（macOS/Linux）采用 System V AMD64 ABI：
+//   参数依次通过 RDI、RSI、RDX、RCX、R8、R9 寄存器传递。
+//
+// Delphi 以及 Windows 平台上的 FPC 采用 Microsoft x64 ABI：
+//   参数依次通过 RCX、RDX、R8、R9 寄存器传递。
+//
+// 下面已有的汇编代码是按照 Microsoft x64 ABI 编写的。
+// 如果直接运行在 System V AMD64 ABI 环境下，将会读取错误的参数寄存器，
+// 从而导致 EDivByZero（除零异常）。
+//
+// Int64DivInt32Mod、UInt64DivUInt32Mod 和 Int128DivInt64Mod
+// 均采用纯 Pascal 实现（依赖 CPU 原生 div/mod 指令，性能已经足够）。
+//
+// UInt128DivUInt64Mod 则仍采用汇编实现，并按照 System V AMD64 ABI
+// 正确映射参数寄存器，以获得更好的性能。该函数是在定义
+// BN_DATA_USE_64 时的热点路径（Hot Path），由 BigNumberDiv 调用。
+
+procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+  DivRes := A div B;
+  ModRes := A mod B;
+end;
+
+procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal);
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+  DivRes := A div B;
+  ModRes := A mod B;
+end;
+
+procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+var
+  C: Integer;
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then
+  begin
+    DivRes := ALo div B;
+    ModRes := ALo mod B;
+  end
+  else
+  begin
+    if B < 0 then
+    begin
+      Int128DivInt64Mod(ALo, AHi, -B, DivRes, ModRes);
+      DivRes := -DivRes;
+      Exit;
+    end;
+
+    if AHi < 0 then
+    begin
+      AHi := not AHi;
+      ALo := not ALo;
+{$IFDEF SUPPORT_UINT64}
+      UInt64Add(UInt64(ALo), UInt64(ALo), 1, C);
+{$ELSE}
+      UInt64Add(ALo, ALo, 1, C);
+{$ENDIF}
+      if C > 0 then
+        AHi := AHi + C;
+
+      Int128DivInt64Mod(ALo, AHi, B, DivRes, ModRes);
+
+      if ModRes = 0 then
+        DivRes := -DivRes
+      else
+      begin
+        DivRes := -DivRes - 1;
+        ModRes := B - ModRes;
+      end;
+      Exit;
+    end;
+
+{$IFDEF SUPPORT_UINT64}
+    UInt128DivUInt64Mod(TUInt64(ALo), TUInt64(AHi), TUInt64(B), TUInt64(DivRes), TUInt64(ModRes));
+{$ELSE}
+    UInt128DivUInt64Mod(ALo, AHi, B, DivRes, ModRes);
+{$ENDIF}
+  end;
+end;
+
+procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64); assembler;
+asm
+  // System V AMD64 ABI: RDI=ALo, RSI=AHi, RDX=B, RCX=&DivRes, R8=&ModRes
+  // DIV instruction: RDX:RAX / operand -> RAX=quotient, RDX=remainder
+  MOV RAX, RDI      // ALo -> RAX (dividend low)
+  PUSH RCX          // Save &DivRes
+  PUSH R8           // Save &ModRes
+  MOV RCX, RDX      // B -> RCX (divisor)
+  MOV RDX, RSI      // AHi -> RDX (dividend high)
+  DIV RCX           // RDX:RAX / RCX -> RAX=quotient, RDX=remainder
+  POP R8            // Restore &ModRes
+  POP RCX           // Restore &DivRes
+  MOV [RCX], RAX    // *DivRes = quotient
+  MOV [R8], RDX     // *ModRes = remainder
+end;
+
+{$ELSE}
+
 {$IFDEF CPUX64}
 
 // 64 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在 RCX 里，B 在 EDX/RDX 里，DivRes 地址在 R8 里，ModRes 地址在 R9 里
@@ -4326,6 +4432,8 @@ begin
     ModRes := R;
   end;
 end;
+
+{$ENDIF}
 
 {$ENDIF}
 
