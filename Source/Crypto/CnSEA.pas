@@ -2030,7 +2030,7 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
 var
   Pa, Ta: TCnInt64List;
   QMax, QMul, BQ: TCnBigNumber;
-  I, J, ModPolyIdx: Integer;
+  I, J, ModPolyIdx, RequiredModPolyCount: Integer;
   L: Int64;
   DPs: TObjectList;
   Y2, P1, P2, G: TCnBigNumberPolynomial;
@@ -2094,6 +2094,19 @@ begin
     if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
       raise ECnEccException.Create('Prime number is too large for SEA.');
 
+    // Validate external ModPolys: must have one entry per prime L >= 3 in Pa
+    if ModPolys <> nil then
+    begin
+      RequiredModPolyCount := 0;
+      for I := 0 to Pa.Count - 1 do
+        if Pa[I] >= 3 then
+          Inc(RequiredModPolyCount);
+      if ModPolys.Count < RequiredModPolyCount then
+        raise ECnEccException.CreateFmt(
+          'ModPolys has %d entries but SEA needs %d (primes 3..%d for this p). ' +
+          'Use CnSeaMaxRequiredPrimeL to determine the required L in advance.',
+          [ModPolys.Count, RequiredModPolyCount, Pa[Pa.Count - 1]]);
+    end;
     // ×¼±¸ Y2 = x^3 + Ax + B
     Y2 := FSeaPolynomialPool.Obtain;
     P1 := FSeaPolynomialPool.Obtain;

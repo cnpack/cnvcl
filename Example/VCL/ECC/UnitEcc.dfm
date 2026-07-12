@@ -2137,7 +2137,7 @@ object FormEcc: TFormEcc
           Width = 41
           Height = 21
           TabOrder = 0
-          Text = '4'
+          Text = '13'
         end
         object btnSeaModularPoly: TButton
           Left = 96
@@ -2193,7 +2193,7 @@ object FormEcc: TFormEcc
           Width = 305
           Height = 21
           TabOrder = 7
-          Text = '1'
+          Text = '4451685225093714772084598273548424'
         end
         object edtSeaEccB: TEdit
           Left = 448
@@ -2201,7 +2201,7 @@ object FormEcc: TFormEcc
           Width = 321
           Height = 21
           TabOrder = 8
-          Text = '0'
+          Text = '2061118396808653202902996166388514'
         end
         object edtSeaEccP: TEdit
           Left = 88
@@ -2209,7 +2209,7 @@ object FormEcc: TFormEcc
           Width = 321
           Height = 21
           TabOrder = 9
-          Text = '281474876048813'
+          Text = '4451685225093714772084598273548427'
         end
         object btnSeaLoad: TButton
           Left = 400

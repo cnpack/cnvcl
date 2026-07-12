@@ -3423,6 +3423,8 @@ var
   SeaMs: Int64;
   HasModPolys: Boolean;
 begin
+  mmoSeaMP.Lines.Add(DateTimeToStr(Now));
+
   A := TCnBigNumber.Create;
   B := TCnBigNumber.Create;
   P := TCnBigNumber.Create;
@@ -3464,6 +3466,7 @@ begin
       end;
     finally
       Screen.Cursor := crDefault;
+      mmoSeaMP.Lines.Add(DateTimeToStr(Now));
     end;
   finally
     Res.Free;
