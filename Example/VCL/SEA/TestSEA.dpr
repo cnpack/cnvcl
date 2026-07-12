@@ -19,6 +19,7 @@ begin
   RunModularPolynomialTest(11, MIT_L11);
   RunModularPolynomialTest(13, MIT_L13);
   RunModularPolynomialTest(17, MIT_L17);
+  // 算 23 要 二百五十秒，算 29 需要一千三百秒
 
   // ===== Part 1b: Load-from-text round-trip test =====
   TestLoadModularPolynomial;
@@ -30,21 +31,21 @@ begin
   TestPrimeType;
   TestElkiesTrace;
 
-  TestPointCount(2, 2, 17, 'Small Curve F_17');        // 加起来三百多毫秒
-  TestPointCount(3, 5, 97, 'Medium Curve F_97');       // 加起来两百多毫秒
-  TestPointCount(2, 3, 1009, 'Larger Curve F_1009');   // 加起来六百多毫秒
-  TestPointCount(1, 1, 10007, 'Curve F_10007');        // 加起来八秒多
-  TestPointCount(2, 1, 100003, 'Curve F_100003');      // 加起来二十二秒多
-  TestPointCount(3, 8, 999983, 'Curve F_999983');      // 998712，加起来十七秒多
+  TestPointCount(2, 2, 17, 'Small Curve F_17');        // 加起来一百多毫秒
+  TestPointCount(3, 5, 97, 'Medium Curve F_97');       // 加起来一百七十多毫秒
+  TestPointCount(2, 3, 1009, 'Larger Curve F_1009');   // 加起来四百多毫秒
+  TestPointCount(1, 1, 10007, 'Curve F_10007');        // 加起来三秒多
+  TestPointCount(2, 1, 100003, 'Curve F_100003');      // 加起来九秒多
+  TestPointCount(3, 8, 999983, 'Curve F_999983');      // 998712，加起来十一秒多
 
   // Cross-validate with the most expensive Schoof test case from CryptoTest.pas
-  // A=7, B=1, P=6074001169, expected #E = 6074123004 ，SEA 本身八十秒左右，加起来一百二十秒多
+  // A=7, B=1, P=6074001169, expected #E = 6074123004 ，SEA 本身六十秒左右，加起来一百秒多
   TestPointCount(7, 1, 6074001169, 'Schoof Largest Test F_6074001169');
 
   // ===== 48-bit CM curve: y^2 = x^3 + x over p = 16777213^2 + 38^2 =====
   // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
   // Needs L up to 19. Schoof infeasible at this size.
-  // 281474842494388，SE 本身二百秒左右，也就是三分钟多。
+  // 281474842494388，SE 本身一百二十秒左右，也就是两分钟。
   TestPointCount48BitCM;
 
   // ===== 64-bit CM curve: y^2 = x^3 + x over p = 3037000503^2 + 88^2 =====

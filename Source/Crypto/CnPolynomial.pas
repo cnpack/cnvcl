@@ -9850,7 +9850,7 @@ function BigNumberPolynomialGaloisMul(Res: TCnBigNumberPolynomial;
 var
   R: TCnBigNumberPolynomial;
   T: TCnBigNumber;
-  I, J: Integer;
+  I, J, K: Integer;
 begin
   if BigNumberPolynomialIsZero(P1) or BigNumberPolynomialIsZero(P2) then
   begin
@@ -9875,9 +9875,12 @@ begin
     begin
       BigNumberMul(T, P1[I], P2[J]);
       BigNumberAdd(R[I + J], R[I + J], T);
-      BigNumberNonNegativeMod(R[I + J], R[I + J], Prime);
     end;
   end;
+
+  // Reduce all coefficients mod Prime in one pass (delayed mod optimization)
+  for K := 0 to R.MaxDegree do
+    BigNumberNonNegativeMod(R[K], R[K], Prime);
 
   R.CorrectTop;
 
