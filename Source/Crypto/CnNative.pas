@@ -2090,9 +2090,9 @@ procedure ConstTimeConditionalAssign64(CanAssign: Boolean; Source: TUInt64; var 
 
 // ================ 以上是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
-{$IFDEF MSWINDOWS}
+{$IFDEF CPUX86ORX64}
 
-// 这四个函数因为用了 Intel 汇编，因而只支持 32 位和 64 位的 Intel CPU，照理应该用条件：CPUX86 或 CPUX64
+// 这四个函数因为用了 Intel 汇编，因而只支持 32 位和 64 位的 Intel CPU，用条件：CPUX86 或 CPUX64
 
 procedure Int64DivInt32Mod(A: Int64; B: Integer;
   var DivRes: Integer; var ModRes: Integer);
@@ -4149,7 +4149,7 @@ begin
   Dest := (Dest and (not Mask)) or (Source and Mask);
 end;
 
-{$IFDEF MSWINDOWS}
+{$IFDEF CPUX86ORX64}
 
 {$IFDEF CPUX64}
 
