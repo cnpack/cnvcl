@@ -7633,42 +7633,93 @@ end;
 
 // 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂，
 // NNegInv 是预先计算好的 N 对 R 的负模逆元，T 不能为负且小于 N * R
+
+//
+// Word-by-word algorithm (O(n^2) single-word multiplications total):
+//   for i = 0 to NWords-1:
+//     m = (T[i] * NNegInv[0]) mod 2^BN_BITS2   -- single word multiply
+//     T += m * N shifted left by i words          -- n word-multiply-adds
+//   Result = T >> (NWords * BN_BITS2)
+//   if Result >= N: Result -= N
+//
+// This replaces the old implementation that used two full BigNumberMul calls
+// (each O(n^2)), reducing the reduction cost from 2*n^2 to n^2 word-muls.
 function BigNumberMontgomeryReduction(Res: TCnBigNumber;
   T, R, N, NNegInv: TCnBigNumber): Boolean;
 var
-  M: TCnBigNumber;
+  NWords, I, J: Integer;
+  MWord, Carry, C: TCnBigNumberElement;
+  TP, NP: PCnBigNumberElementArray;
+  Buf: TCnBigNumber;
 begin
   Result := False;
-  M := nil;
+  NWords := N.FTop;
 
+  // Work on a local copy so we do not modify T
+  Buf := FLocalBigNumberPool.Obtain;
   try
-    M := FLocalBigNumberPool.Obtain;
-
-    if not BigNumberMul(M, T, NNegInv) then // M := T * N'
+    if BigNumberCopy(Buf, T) = nil then
+      Exit;
+    // Ensure Buf has enough space: 2*NWords for T, +1 for carry overflow
+    if BigNumberWordExpand(Buf, 2 * NWords + 1) = nil then
       Exit;
 
-    // M := T * N' mod R 因为 R 是 2 次幂，所以可以快速保留低位，得到的 M < R
-    if not BigNumberKeepLowBits(M, R.GetBitsCount - 1) then
-      Exit;
+    TP := PCnBigNumberElementArray(Buf.FD);
+    NP := PCnBigNumberElementArray(N.FD);
 
-    // 复用 M := (T + M * N) / R
-    if not BigNumberMul(M, M, N) then
-      Exit;
+    // Zero out words from FTop to 2*NWords (high words needed for carry)
+    for I := Buf.FTop to 2 * NWords do
+      TP^[I] := 0;
 
-    if not BigNumberAdd(M, T, M) then
-      Exit;
+    for I := 0 to NWords - 1 do
+    begin
+      // m = T[i] * NNegInv[0] mod 2^BN_BITS2 (only low word of NNegInv matters)
+      MWord := (TP^[I] * PCnBigNumberElementArray(NNegInv.FD)^[0]) and BN_MASK2;
 
-    // 因为 R 是 2 次幂，所以可以 M 快速右移做除法，且结果必为整数
-    if not BigNumberShiftRight(M, M, R.GetBitsCount - 1) then
-      Exit;
+      // T += m * N * 2^(I * BN_BITS2): add m*N starting at word I
+      Carry := 0;
+      for J := 0 to NWords - 1 do
+      begin
+        // TP^[I+J] += MWord * NP^[J] + Carry, Carry = high word
+        MulAdd(TP^[I + J], MWord, NP^[J], Carry);
+      end;
 
-    // M >= N 则减 N
-    if BigNumberCompare(M, N) >= 0 then
-      Result := BigNumberSub(Res, M, N)
-    else
-      Result := BigNumberCopy(Res, M) <> nil;
+      // Add carry to T[I + NWords] with overflow propagation
+      J := I + NWords;
+      while (Carry > 0) and (J <= 2 * NWords) do
+      begin
+        C := TP^[J];
+        TP^[J] := C + Carry;
+        if TP^[J] < C then
+          Carry := 1
+        else
+          Carry := 0;
+        Inc(J);
+      end;
+      // T[I] is now guaranteed 0 (by construction of Montgomery)
+    end;
+
+    // Result = T >> (NWords * BN_BITS2): shift right by NWords words.
+    // The result can occupy NWords+1 words (the extra word at position 2*NWords
+    // holds the final carry overflow, value 0 or 1). We must include it so that
+    // the conditional subtraction works correctly.
+    for I := 0 to NWords do
+      TP^[I] := TP^[I + NWords];
+    Buf.FTop := NWords + 1;
+    BigNumberCorrectTop(Buf);
+
+    // Conditional subtract: if Buf >= N, Buf -= N
+    if BigNumberCompare(Buf, N) >= 0 then
+    begin
+      if not BigNumberSub(Buf, Buf, N) then
+        Exit;
+    end;
+
+    if BigNumberCopy(Res, Buf) = nil then
+      Exit;
+    Result := True;
   finally
-    FLocalBigNumberPool.Recycle(M);
+    FLocalBigNumberPool.Recycle(Buf);
   end;
 end;
 
@@ -7677,61 +7728,53 @@ end;
 function BigNumberMontgomeryMulMod(Res: TCnBigNumber;
   A, B, R, R2ModN, N, NNegInv: TCnBigNumber): Boolean;
 var
-  AA, BB, RA, RB, M: TCnBigNumber;
+  T, RA, RB: TCnBigNumber;
 begin
   Result := False;
 
-  AA := nil;
+  T := nil;
   RA := nil;
-  BB := nil;
   RB := nil;
-  M := nil;
 
   try
-    AA := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
     RA := FLocalBigNumberPool.Obtain;
-
-    // AA := A * (R * R mod N) 不超过 N * R
-    if not BigNumberMul(AA, A, R2ModN) then
-      Exit;
-    // 蒙哥马利算得 RA := A*(R*R)*R^-1 mod N = A * R mod N
-    if not BigNumberMontgomeryReduction(RA, AA, R, N, NNegInv) then
-      Exit;
-
-    BB := FLocalBigNumberPool.Obtain;
     RB := FLocalBigNumberPool.Obtain;
 
-    // BB := B * (R * R mod N) 不超过 N * R
-    if not BigNumberMul(BB, B, R2ModN) then
+    // Step 1: Convert A to Montgomery form: RA = A * R mod N
+    //   T = A * R2ModN  (T < N * R since A < N, R2ModN < N)
+    if not BigNumberMul(T, A, R2ModN) then
+      Exit;
+    //   RA = T * R^-1 mod N = A * R^2 * R^-1 = A * R mod N
+    if not BigNumberMontgomeryReduction(RA, T, R, N, NNegInv) then
+      Exit;
+
+    // Step 2: Convert B to Montgomery form: RB = B * R mod N
+
+    if not BigNumberMul(T, B, R2ModN) then
       Exit;
     // 蒙哥马利算得 RB := B*(R*R)*R^-1 mod N = B * R mod N
-    if not BigNumberMontgomeryReduction(RB, BB, R, N, NNegInv) then
+    if not BigNumberMontgomeryReduction(RB, T, R, N, NNegInv) then
       Exit;
 
     // M := (A*R * B*R) 不超过 N^2，因为 R 比 N 大，更确保 M < N * R
-    M := FLocalBigNumberPool.Obtain;
-    if not BigNumberMul(M, RA, RB) then
+    if not BigNumberMul(T, RA, RB) then
       Exit;
 
     // 蒙哥马利算得 Res := (A*R * B*R) * R^-1 mod N = A*B*R mod N
-    if not BigNumberMontgomeryReduction(Res, M, R, N, NNegInv) then
+    if not BigNumberMontgomeryReduction(Res, T, R, N, NNegInv) then
       Exit;
 
-    // Res 中间值给 M
-    if BigNumberCopy(M, Res) = nil then
-      Exit;
-
-    // 再次蒙哥马利算得 A*B*R * R^-1 mod N = A*B mod N
-    if not BigNumberMontgomeryReduction(Res, M, R, N, NNegInv) then
+    // Step 4: Convert back from Montgomery form: Res = A*B*R * R^-1 = A*B mod N
+    //   Reduction copies T to internal Buf, so Res can be both input and output
+    if not BigNumberMontgomeryReduction(Res, Res, R, N, NNegInv) then
       Exit;
 
     Result := True;
   finally
-    FLocalBigNumberPool.Recycle(M);
     FLocalBigNumberPool.Recycle(RB);
-    FLocalBigNumberPool.Recycle(BB);
     FLocalBigNumberPool.Recycle(RA);
-    FLocalBigNumberPool.Recycle(AA);
+    FLocalBigNumberPool.Recycle(T);
   end;
 end;
 

@@ -19,7 +19,7 @@ begin
   RunModularPolynomialTest(11, MIT_L11);
   RunModularPolynomialTest(13, MIT_L13);
   RunModularPolynomialTest(17, MIT_L17);
-  // 算 23 要 二百五十秒，算 29 需要一千三百秒
+  // 算 23 要 二百五十秒，算 29 需要一千三百秒，算 31 需要一万一千六百秒
 
   // ===== Part 1b: Load-from-text round-trip test =====
   TestLoadModularPolynomial;
@@ -36,7 +36,7 @@ begin
   TestPointCount(2, 3, 1009, 'Larger Curve F_1009');   // 加起来四百多毫秒
   TestPointCount(1, 1, 10007, 'Curve F_10007');        // 加起来三秒多
   TestPointCount(2, 1, 100003, 'Curve F_100003');      // 加起来九秒多
-  TestPointCount(3, 8, 999983, 'Curve F_999983');      // 998712，加起来十一秒多
+  TestPointCount(3, 8, 999983, 'Curve F_999983');      // 加起来十一秒多
 
   // Cross-validate with the most expensive Schoof test case from CryptoTest.pas
   // A=7, B=1, P=6074001169, expected #E = 6074123004 ，SEA 本身六十秒左右，加起来一百秒多
@@ -49,7 +49,7 @@ begin
   TestPointCount48BitCM;
 
   // ===== 64-bit CM curve: y^2 = x^3 + x over p = 3037000503^2 + 88^2 =====
-  // Needs L up to 31 (Phi_29 and Phi_31). SEA 本身最多两千五百多秒也就是四十多分钟。
+  // Needs L up to 31 (Phi_29 and Phi_31). SEA 本身最多两千四百秒也就是四十分钟。
   TestPointCount64BitCM;
 
   // ===== Standard curve: secp112r1 (NIST/SECG, 112-bit) =====

@@ -175,6 +175,7 @@ function TestBigNumberAKSIsPrime: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
+function TestBigNumberMontgomery: Boolean;
 
 // ================================ Bits =======================================
 
@@ -1876,6 +1877,7 @@ begin
   MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
   MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
+  MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
 
 // ================================ Bits =======================================
 
@@ -5090,6 +5092,133 @@ begin
     if not Result then Exit;
   finally
     BigNumberFree(T);
+  end;
+end;
+
+function TestBigNumberMontgomery: Boolean;
+var
+  N, R, R2ModN, NNegInv, A, B, Res, Expected, Tmp: TCnBigNumber;
+  NWords, RBits, WordBits: Integer;
+begin
+  Result := False;
+  N := BigNumberNew;
+  R := BigNumberNew;
+  R2ModN := BigNumberNew;
+  NNegInv := BigNumberNew;
+  A := BigNumberNew;
+  B := BigNumberNew;
+  Res := BigNumberNew;
+  Expected := BigNumberNew;
+  Tmp := BigNumberNew;
+  // WordBits = BN_BITS2, depends on whether BN_DATA_USE_64 is defined.
+  // Use SizeOf(TCnBigNumberElement) to detect it at compile time.
+  WordBits := SizeOf(TCnBigNumberElement) * 8;
+  try
+    // ---- Test 1: 32-bit modulus (1 word in 32-bit mode) ----
+    N.SetHex('FFFFFFFB');  // 4294967291, a 32-bit prime
+    A.SetHex('5A9B7C3D');
+    B.SetHex('0E4F5A6B');
+
+    // Compute R = 2^(NWords * BN_BITS2). NWords = ceil(BitsCount / BN_BITS2).
+    // Use SizeOf(TCnBigNumberElement) to support both 32-bit and 64-bit element modes.
+    NWords := (N.GetBitsCount + WordBits - 1) div WordBits;
+    RBits := NWords * WordBits;
+    BigNumberSetOne(R);
+    BigNumberShiftLeft(R, R, RBits);
+    BigNumberMulMod(R2ModN, R, R, N);
+    BigNumberModularInverse(NNegInv, N, R, False);
+    BigNumberSub(NNegInv, R, NNegInv);
+
+    BigNumberMulMod(Expected, A, B, N);
+    if not BigNumberMontgomeryMulMod(Res, A, B, R, R2ModN, N, NNegInv) then
+      Exit;
+    Result := BigNumberCompare(Res, Expected) = 0;
+    if not Result then Exit;
+
+    // ---- Test 2: 64-bit modulus (2 words in 32-bit mode) ----
+    N.SetHex('FFFFFFFFFFFFFFC5');  // 64-bit prime
+    A.SetHex('FFFFFFFFFFFFFF00');
+    B.SetHex('FFFFFFFFFFFFF000');
+    // Ensure A, B < N
+    BigNumberMod(Tmp, A, N); BigNumberCopy(A, Tmp);
+    BigNumberMod(Tmp, B, N); BigNumberCopy(B, Tmp);
+
+    NWords := (N.GetBitsCount + WordBits - 1) div WordBits;
+    RBits := NWords * WordBits;
+    BigNumberSetOne(R);
+    BigNumberShiftLeft(R, R, RBits);
+    BigNumberMulMod(R2ModN, R, R, N);
+    BigNumberModularInverse(NNegInv, N, R, False);
+    BigNumberSub(NNegInv, R, NNegInv);
+
+    BigNumberMulMod(Expected, A, B, N);
+    if not BigNumberMontgomeryMulMod(Res, A, B, R, R2ModN, N, NNegInv) then
+      Exit;
+    Result := BigNumberCompare(Res, Expected) = 0;
+    if not Result then Exit;
+
+    // ---- Test 3: 128-bit modulus ----
+    N.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    A.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00');
+    B.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFF0000');
+    BigNumberMod(Tmp, A, N); BigNumberCopy(A, Tmp);
+    BigNumberMod(Tmp, B, N); BigNumberCopy(B, Tmp);
+
+    NWords := (N.GetBitsCount + WordBits - 1) div WordBits;
+    RBits := NWords * WordBits;
+    BigNumberSetOne(R);
+    BigNumberShiftLeft(R, R, RBits);
+    BigNumberMulMod(R2ModN, R, R, N);
+    BigNumberModularInverse(NNegInv, N, R, False);
+    BigNumberSub(NNegInv, R, NNegInv);
+
+    BigNumberMulMod(Expected, A, B, N);
+    if not BigNumberMontgomeryMulMod(Res, A, B, R, R2ModN, N, NNegInv) then
+      Exit;
+    Result := BigNumberCompare(Res, Expected) = 0;
+    if not Result then Exit;
+
+    // ---- Test 4: 256-bit modulus (secp256k1 prime) ----
+    N.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
+    A.SetHex('5A9B7C3D1E2F3A4B5C6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B');
+    B.SetHex('0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF');
+    BigNumberMod(Tmp, A, N); BigNumberCopy(A, Tmp);
+    BigNumberMod(Tmp, B, N); BigNumberCopy(B, Tmp);
+
+    NWords := (N.GetBitsCount + WordBits - 1) div WordBits;
+    RBits := NWords * WordBits;
+    BigNumberSetOne(R);
+    BigNumberShiftLeft(R, R, RBits);
+    BigNumberMulMod(R2ModN, R, R, N);
+    BigNumberModularInverse(NNegInv, N, R, False);
+    BigNumberSub(NNegInv, R, NNegInv);
+
+    BigNumberMulMod(Expected, A, B, N);
+    if not BigNumberMontgomeryMulMod(Res, A, B, R, R2ModN, N, NNegInv) then
+      Exit;
+    Result := BigNumberCompare(Res, Expected) = 0;
+    if not Result then Exit;
+
+    // ---- Test 5: 256-bit, A and B both close to N ----
+    A.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2E');
+    B.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2D');
+    BigNumberMod(Tmp, A, N); BigNumberCopy(A, Tmp);
+    BigNumberMod(Tmp, B, N); BigNumberCopy(B, Tmp);
+
+    BigNumberMulMod(Expected, A, B, N);
+    if not BigNumberMontgomeryMulMod(Res, A, B, R, R2ModN, N, NNegInv) then
+      Exit;
+    Result := BigNumberCompare(Res, Expected) = 0;
+  finally
+    BigNumberFree(Tmp);
+    BigNumberFree(Expected);
+    BigNumberFree(Res);
+    BigNumberFree(B);
+    BigNumberFree(A);
+    BigNumberFree(NNegInv);
+    BigNumberFree(R2ModN);
+    BigNumberFree(R);
+    BigNumberFree(N);
   end;
 end;
 
