@@ -23,6 +23,8 @@ begin
   // ===== Part 1b: Load-from-text round-trip test =====
   TestLoadModularPolynomial;
 
+  TestMaxRequiredPrimeL;
+
   // ===== 第二部分：SEA 第一阶段功能测试 =====
   TestJInvariant;
   TestPrimeType;
@@ -36,17 +38,17 @@ begin
   TestPointCount(3, 8, 999983, 'Curve F_999983');      // 998712，加起来十七秒多
 
   // Cross-validate with the most expensive Schoof test case from CryptoTest.pas
-  // A=7, B=1, P=6074001169, expected #E = 6074123004 ，SEA 本身八十秒左右，加起来二百五十秒多
+  // A=7, B=1, P=6074001169, expected #E = 6074123004 ，SEA 本身八十秒左右，加起来一百二十秒多
   TestPointCount(7, 1, 6074001169, 'Schoof Largest Test F_6074001169');
 
   // ===== 48-bit CM curve: y^2 = x^3 + x over p = 16777213^2 + 38^2 =====
   // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
   // Needs L up to 19. Schoof infeasible at this size.
-  // 281474842494388，SE 本身二百八十多秒到五百秒，也就是十分钟前后。
+  // 281474842494388，SE 本身二百秒左右，也就是三分钟多。
   TestPointCount48BitCM;
 
   // ===== 64-bit CM curve: y^2 = x^3 + x over p = 3037000503^2 + 88^2 =====
-  // Needs L up to 31 (Phi_29 and Phi_31). SEA 本身一千五百多秒也就是二十五分钟。
+  // Needs L up to 31 (Phi_29 and Phi_31). SEA 本身最多两千五百多秒也就是四十多分钟。
   TestPointCount64BitCM;
 
   // ===== Standard curve: secp112r1 (NIST/SECG, 112-bit) =====

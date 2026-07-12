@@ -11,6 +11,7 @@ uses
 
 procedure RunModularPolynomialTest(L: Integer; const MitData: string);
 procedure TestLoadModularPolynomial;
+procedure TestMaxRequiredPrimeL;
 procedure TestJInvariant;
 procedure TestPrimeType;
 procedure TestElkiesTrace;
@@ -671,6 +672,58 @@ begin
     SL.Free;
     Loaded.Free;
     Gen.Free;
+  end;
+end;
+
+// Test CnSeaMaxRequiredPrimeL: verify max L for various field sizes
+procedure TestMaxRequiredPrimeL;
+var
+  P: TCnBigNumber;
+  MaxL: Integer;
+  R: string;
+begin
+  WriteLn;
+  WriteLn('===== Test CnSeaMaxRequiredPrimeL =====');
+  P := TCnBigNumber.Create;
+  try
+    // Small primes: quick sanity checks
+    // p=17: 2*3*5=30 > 4*sqrt(17)+4 ~ 20, so maxL=5
+    P.SetWord(17);
+    MaxL := CnSeaMaxRequiredPrimeL(P);
+    if MaxL = 5 then R := 'OK' else R := 'FAIL';
+    WriteLn(Format('  p=17       ( 5 bits): maxL=%d  %s', [MaxL, R]));
+
+    // p=97: 2*3*5*7=210 > 4*sqrt(97)+4 ~ 43, so maxL=7
+    P.SetWord(97);
+    MaxL := CnSeaMaxRequiredPrimeL(P);
+    if MaxL = 7 then R := 'OK' else R := 'FAIL';
+    WriteLn(Format('  p=97       ( 7 bits): maxL=%d  %s', [MaxL, R]));
+
+    // p=100003: 2*3*5*7*11=2310 > 4*sqrt(100003)+4 ~ 1268, so maxL=11
+    P.SetWord(100003);
+    MaxL := CnSeaMaxRequiredPrimeL(P);
+    if MaxL = 11 then R := 'OK' else R := 'FAIL';
+    WriteLn(Format('  p=100003   (17 bits): maxL=%d  %s', [MaxL, R]));
+
+    // 48-bit CM curve: p=281474876048813, maxL=23
+    P.SetDec('281474876048813');
+    MaxL := CnSeaMaxRequiredPrimeL(P);
+    if MaxL = 23 then R := 'OK' else R := 'FAIL';
+    WriteLn(Format('  p=2.8e14   (48 bits): maxL=%d  %s', [MaxL, R]));
+
+    // 64-bit CM curve: p=3037000503^2+88^2, maxL=31
+    P.SetDec('9223372055222260753');
+    MaxL := CnSeaMaxRequiredPrimeL(P);
+    if MaxL = 31 then R := 'OK' else R := 'FAIL';
+    WriteLn(Format('  p=9.2e18   (64 bits): maxL=%d  %s', [MaxL, R]));
+
+    // secp112r1: p=0xDB7C2ABF62E35E668076BEAD208B, maxL=47
+    P.SetHex('DB7C2ABF62E35E668076BEAD208B');
+    MaxL := CnSeaMaxRequiredPrimeL(P);
+    if MaxL = 47 then R := 'OK' else R := 'FAIL';
+    WriteLn(Format('  p=secp112r1(112 bits): maxL=%d  %s', [MaxL, R]));
+  finally
+    P.Free;
   end;
 end;
 

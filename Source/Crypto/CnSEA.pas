@@ -178,6 +178,18 @@ function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
    返回值：Boolean                        - 返回计算是否成功
 }
 
+function CnSeaMaxRequiredPrimeL(P: TCnBigNumber): Integer;
+{* 快速计算在素域 E/F_p 上运行 SEA 算法所需的最大模多项式次数 L_max。
+   累加小素数，直到它们的乘积超过 4sqrt(p)（Hasse 界）。
+   所需的素数即为 2 到 L_max 之间的所有素数（若适用，则跳过 L = p）。
+   利用这一方法可以提前准备 CnMP_.txt 预计算文件，而无需运行完整的 SEA 算法。
+
+   参数：
+     P: TCnBigNumber                      - 有限域素数 p
+
+   返回值：Integer                        - 模多项式所需最高次数，如果返回 0，表示 P 不合法或实在太大了
+}
+
 function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
   ModPolys: TObjectList = nil): Boolean;
 {* SEA 点不完整计数算法：计算椭圆曲线 E: y^2 = x^3 + Ax + B 在 F_p 上的点数 #E(F_p)。
@@ -2242,6 +2254,53 @@ begin
     AtkinInfos.Free;
     Ta.Free;
     Pa.Free;
+  end;
+end;
+
+// ==================== Max Required L Calculation ====================
+
+function CnSeaMaxRequiredPrimeL(P: TCnBigNumber): Integer;
+var
+  QMax, QMul, BQ: TCnBigNumber;
+  I: Integer;
+  L: Int64;
+begin
+  Result := 0;
+  if (P = nil) or P.IsZero or P.IsNegative then Exit;
+
+  QMax := TCnBigNumber.Create;
+  QMul := TCnBigNumber.Create;
+  BQ := TCnBigNumber.Create;
+  try
+    // Hasse bound: need product of all small primes L > 4*sqrt(p)
+    if not BigNumberSqrt(QMax, P) then Exit;
+    BigNumberAddWord(QMax, 1);
+    BigNumberMulWord(QMax, 4);
+
+    QMul.SetOne;
+    I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
+
+    while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
+    begin
+      L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+
+      // Skip L = P (same as the field characteristic)
+      BigNumberSetWord(BQ, L);
+      if BigNumberCompare(BQ, P) <> 0 then
+      begin
+        BigNumberMulWord(QMul, L);
+        Result := L;
+      end;
+
+      Inc(I);
+    end;
+
+    if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
+      Result := 0;  // P too large for available prime table
+  finally
+    BQ.Free;
+    QMul.Free;
+    QMax.Free;
   end;
 end;
 
