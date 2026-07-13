@@ -3908,7 +3908,7 @@ begin
     Exit;
 
   PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] and
-    TCnBigNumberElement(not (1 shl J));
+    TCnBigNumberElement(not (TCnBigNumberElement(1) shl J));
 
   BigNumberCorrectTop(Num);
   Result := True;
@@ -3977,7 +3977,7 @@ begin
   end;
 
   PCnBigNumberElementArray(Num.FD)^[I] := PCnBigNumberElementArray(Num.FD)^[I] or
-    TCnBigNumberElement(1 shl J);
+    TCnBigNumberElement(TCnBigNumberElement(1) shl J);
   Result := True;
 end;
 
