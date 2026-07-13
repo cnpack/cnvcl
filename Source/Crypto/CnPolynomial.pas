@@ -16429,7 +16429,7 @@ function BigNumberPolynomialGaloisEqualDegreeFactor(Factors: TCnBigNumberPolynom
       for TryVal := 0 to 10 do
       begin
         // Q = X^{(p^d-1)/2} mod Factor
-        if not BigNumberPolynomialGaloisPower(Q, XPoly, BigNumberGetWord(PExp), Prime, Factor) then
+        if not BigNumberPolynomialGaloisPower(Q, XPoly, PExp, Prime, Factor) then
           Continue;
 
         // Build constant polynomial "TryVal" in Temp1
