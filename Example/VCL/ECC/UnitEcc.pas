@@ -2733,7 +2733,8 @@ begin
   Q.SetDec('9223372036854775783');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMsg(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
+    ShowMsg(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，
+              // SEA 耗时四十分钟，得到同样的 9223372037391309723 
 
   R.Free;
   Q.Free;

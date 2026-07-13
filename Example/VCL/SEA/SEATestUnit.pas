@@ -525,7 +525,7 @@ begin
   Expected := TCnBigNumber.Create;
   try
     // Split MitData by #10 into lines
-    SL.Text := StringReplace(MitData, #10, sLineBreak, [rfReplaceAll]);
+    SL.Text := StringReplace(MitData, #10, #13#10, [rfReplaceAll]);
 
     WriteLn(Format('  Comparing %d MIT entries', [SL.Count]));
 

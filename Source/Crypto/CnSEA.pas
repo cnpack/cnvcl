@@ -217,11 +217,17 @@ const
   CN_SEA_BSGS_THRESHOLD = 100000;
   {* 当 Elkies-Atkin 组合搜索空间 N = floor(2*QMax/M_E) 超过此阈值时，
      从暴力搜索切换到 BSGS（Baby-Step Giant-Step）算法。
-
      取值依据：每次迭代约 25μs（256 位 BigNumber 运算），100000 次约 2.5 秒，
      在可接受范围内。超过此值则 BSGS 的 L_1/|S_1| 倍加速（通常 2~10x）更划算。
      - 调大：更多用暴力搜索（简单但慢），适合小素数场景
      - 调小：更早启用 BSGS（快但需 Atkin 素数），适合大素数场景}
+
+  CN_SEA_ELKIES_BSGS_THRESHOLD = 71;
+  {* 素数大于该值时采用 BSGS 查找，否则线性。
+     BSGS 算法虽然能将迭代次数从 (L+1)/2 降低到大约 2*sqrt((L+1)/2)，
+     但它的每次迭代都有额外的开销（比如需要通过多项式模逆来构建 baby step 表）。
+     因此，对于较小的 L（<71），线性搜索反而更快。具体来看：当 L=71 时，
+     线性搜索需要 36 次，而 BSGS 需要 12 次；当 L=1009 时，线性搜索需要 505 次，而 BSGS 只需要 46 次。}
 
 var
   FSeaBigNumberPool: TCnBigNumberPool = nil;
@@ -1525,22 +1531,137 @@ begin
     FSeaPolynomialPool.Recycle(XPowP);
     FSeaPolynomialPool.Recycle(Y2);
     if OwnDPs then
-	  DPs.Free;
+      DPs.Free;
+  end;
+end;
+
+// ==================== Elkies Trace: Polynomial-Only Point Operations ====================
+
+// Polynomial-only elliptic curve point addition (handles doubling and identity).
+// Points are (X, Y) where actual coords are (X, Y * sqrt(Y2(x))).
+// All operations in quotient ring F_p[x]/(h(x)) via polynomial modular inverse.
+procedure SeaPolyPointAdd(SX, SY: TCnBigNumberPolynomial;
+  PX, PY, QX, QY, Y2, InvY2, H: TCnBigNumberPolynomial;
+  A, P: TCnBigNumber);
+var
+  T1, T2, T3, R, Delta, InvDelta: TCnBigNumberPolynomial;
+begin
+  // Handle identity element
+  if PX.IsZero and PY.IsZero then
+  begin
+    BigNumberPolynomialCopy(SX, QX);
+    BigNumberPolynomialCopy(SY, QY);
+    Exit;
+  end;
+  if QX.IsZero and QY.IsZero then
+  begin
+    BigNumberPolynomialCopy(SX, PX);
+    BigNumberPolynomialCopy(SY, PY);
+    Exit;
+  end;
+
+  T1 := nil;
+  T2 := nil;
+  T3 := nil;
+  R := nil;
+  Delta := nil;
+  InvDelta := nil;
+  try
+    T1 := FSeaPolynomialPool.Obtain;
+    T2 := FSeaPolynomialPool.Obtain;
+    T3 := FSeaPolynomialPool.Obtain;
+    R := FSeaPolynomialPool.Obtain;
+    Delta := FSeaPolynomialPool.Obtain;
+    InvDelta := FSeaPolynomialPool.Obtain;
+
+    if BigNumberPolynomialGaloisEqual(PX, QX, P) then
+    begin
+      // X equal: doubling or opposite point
+      if BigNumberPolynomialGaloisEqual(PY, QY, P) then
+      begin
+        // Doubling [2]P
+        // Num = 3*PX^2 + A
+        BigNumberPolynomialGaloisMul(T1, PX, PX, P, H);
+        BigNumberPolynomialGaloisAdd(T2, T1, T1, P, H);   // 2*PX^2
+        BigNumberPolynomialGaloisAdd(T2, T2, T1, P, H);   // 3*PX^2
+        BigNumberPolynomialGaloisAddBigNumber(T2, A, P);   // 3*PX^2 + A
+
+        // Den = 2*PY
+        BigNumberPolynomialGaloisAdd(T3, PY, PY, P, H);
+
+        // R = Num * Den^{-1}
+        BigNumberPolynomialGaloisModularInverse(InvDelta, T3, H, P);
+        BigNumberPolynomialGaloisMul(R, T2, InvDelta, P, H);
+
+        // SX = R^2 * InvY2 - 2*PX
+        BigNumberPolynomialGaloisMul(T1, R, R, P, H);
+        BigNumberPolynomialGaloisMul(SX, T1, InvY2, P, H);
+        BigNumberPolynomialGaloisSub(T1, SX, PX, P, H);
+        BigNumberPolynomialGaloisSub(SX, T1, PX, P, H);
+
+        // SY = R * (PX - SX) * InvY2 - PY
+        BigNumberPolynomialGaloisSub(T1, PX, SX, P, H);
+        BigNumberPolynomialGaloisMul(SY, R, T1, P, H);
+        BigNumberPolynomialGaloisMul(SY, SY, InvY2, P, H);
+        BigNumberPolynomialGaloisSub(SY, SY, PY, P, H);
+      end
+      else
+      begin
+        // Y opposite, result is identity
+        SX.SetZero;
+        SY.SetZero;
+      end;
+    end
+    else
+    begin
+      // Generic addition P + Q (X1 != X2)
+      // R = (QY - PY) / (QX - PX)
+      BigNumberPolynomialGaloisSub(Delta, QX, PX, P, H);
+      BigNumberPolynomialGaloisModularInverse(InvDelta, Delta, H, P);
+      BigNumberPolynomialGaloisSub(T1, QY, PY, P, H);
+      BigNumberPolynomialGaloisMul(R, T1, InvDelta, P, H);
+
+      // SX = R^2 * Y2 - PX - QX
+      BigNumberPolynomialGaloisMul(T1, R, R, P, H);
+      BigNumberPolynomialGaloisMul(SX, T1, Y2, P, H);
+      BigNumberPolynomialGaloisSub(SX, SX, PX, P, H);
+      BigNumberPolynomialGaloisSub(SX, SX, QX, P, H);
+
+      // SY = R * (PX - SX) - PY
+      BigNumberPolynomialGaloisSub(T1, PX, SX, P, H);
+      BigNumberPolynomialGaloisMul(SY, R, T1, P, H);
+      BigNumberPolynomialGaloisSub(SY, SY, PY, P, H);
+    end;
+  finally
+    FSeaPolynomialPool.Recycle(InvDelta);
+    FSeaPolynomialPool.Recycle(Delta);
+    FSeaPolynomialPool.Recycle(R);
+    FSeaPolynomialPool.Recycle(T3);
+    FSeaPolynomialPool.Recycle(T2);
+    FSeaPolynomialPool.Recycle(T1);
   end;
 end;
 
 function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
   A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
 var
-  H: TCnBigNumberPolynomial;
-  Y2: TCnBigNumberPolynomial;
+  H, Y2, InvY2: TCnBigNumberPolynomial;
   BQ: TCnBigNumber;
-  PiPX, PiPY: TCnBigNumberRationalPolynomial;
-  RSX, RSY, TSX, TSY: TCnBigNumberRationalPolynomial;
-  PX, PY: TCnBigNumberRationalPolynomial;
-  I, Lambda: Integer;
+  // Frobenius image and point coords as pure polynomials (not rational)
+  PiPX, PiPY: TCnBigNumberPolynomial;
+  PX, PY: TCnBigNumberPolynomial;
+  // Linear search iteration variables
+  RSX, RSY, TSX, TSY: TCnBigNumberPolynomial;
+  // BSGS variables
+  BabyX, BabyY: array of TCnBigNumberPolynomial;
+  NegMX, NegMY: TCnBigNumberPolynomial;
+  GX, GY: TCnBigNumberPolynomial;
+  M, BabyIdx, GiantIdx, Lambda: Integer;
+  UseBSGS: Boolean;
+  I: Integer;
   T, LambdaInv, K: TCnBigNumber;
   Found: Boolean;
+  BabyLen, GiantMax: Integer;
 begin
   Result := False;
   if (Res = nil) or (L < 3) then Exit;
@@ -1548,88 +1669,195 @@ begin
 
   H := nil;
   Y2 := nil;
+  InvY2 := nil;
   BQ := nil;
   PiPX := nil;
   PiPY := nil;
+  PX := nil;
+  PY := nil;
   RSX := nil;
   RSY := nil;
   TSX := nil;
   TSY := nil;
-  PX := nil;
-  PY := nil;
+  NegMX := nil;
+  NegMY := nil;
+  GX := nil;
+  GY := nil;
   T := nil;
   LambdaInv := nil;
   K := nil;
+  SetLength(BabyX, 0);
+  SetLength(BabyY, 0);
   try
-    // 步骤 1：计算核多项式 h(x)，次数为 (L-1)/2
+    // Step 1: compute kernel polynomial h(x), degree (L-1)/2
     H := FSeaPolynomialPool.Obtain;
     if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs) then Exit;
 
-    // 步骤 2：设置辅助多项式 Y2 = x^3 + Ax + B
+    // Step 2: curve polynomial Y2 = x^3 + Ax + B
     Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
     BQ := FSeaBigNumberPool.Obtain;
 
-    // 步骤 3：计算 Frobenius 作用 pi(P) = (x^p mod h, y * Y2^((p-1)/2) mod h)
-    // 在有理多项式表示中，点 (x, y) 对应 (MX, MY * y)
-    // pi(P) 的 x 坐标 = x^p mod h(x)
-    // pi(P) 的 y 系数 = Y2^((p-1)/2) mod h(x)（因为 y^p = y * (y^2)^((p-1)/2)）
+    // Step 2b: precompute InvY2 = Y2^{-1} mod h (for doubling)
+    InvY2 := FSeaPolynomialPool.Obtain;
+    BigNumberPolynomialGaloisModularInverse(InvY2, Y2, H, P);
 
-    PiPX := FSeaRationalPolynomialPool.Obtain;
-    PiPY := FSeaRationalPolynomialPool.Obtain;
+    // Step 3: compute Frobenius image pi(P) as pure polynomials
+    // pi(P) x-component = x^p mod h(x)
+    // pi(P) y-coefficient = Y2^((p-1)/2) mod h(x)
+    PiPX := FSeaPolynomialPool.Obtain;
+    PiPX.SetCoefficients([0, 1]); // x
+    BigNumberPolynomialGaloisPower(PiPX, PiPX, P, P, H); // x^p mod h
 
-    PiPX.SetOne;
-    PiPX.Numerator.SetCoefficients([0, 1]); // x
-    BigNumberPolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, P, P, H); // x^p mod h
-
-    PiPY.SetOne;
+    PiPY := FSeaPolynomialPool.Obtain;
     BigNumberCopy(BQ, P);
     BQ.SubWord(1);
     BigNumberShiftRightOne(BQ, BQ); // (p-1)/2
-    BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, P, H); // Y2^((p-1)/2) mod h
+    BigNumberPolynomialGaloisPower(PiPY, Y2, BQ, P, H); // Y2^((p-1)/2) mod h
 
-    // 步骤 4：设置通用点 P = (x, y) 用于增量计算
-    PX := FSeaRationalPolynomialPool.Obtain;
-    PY := FSeaRationalPolynomialPool.Obtain;
-    PX.SetOne;
-    PX.Numerator.SetCoefficients([0, 1]); // x
-    PY.SetOne; // 1 * y
+    // Step 4: generic point P = (x, 1) in polynomial representation
+    PX := FSeaPolynomialPool.Obtain;
+    PX.SetCoefficients([0, 1]); // x
+    PY := FSeaPolynomialPool.Obtain;
+    PY.SetOne; // 1
 
-    // 步骤 5：初始化 RS = [1]P = (x, y)
-    RSX := FSeaRationalPolynomialPool.Obtain;
-    RSY := FSeaRationalPolynomialPool.Obtain;
-    BigNumberRationalPolynomialCopy(RSX, PX);
-    BigNumberRationalPolynomialCopy(RSY, PY);
-
-    TSX := FSeaRationalPolynomialPool.Obtain;
-    TSY := FSeaRationalPolynomialPool.Obtain;
-
-    // 步骤 6：搜索特征值 lambda
-    // 逐一比较 [J]P 与 pi(P)，J = 1, ..., (L+1)/2
-    // 若 x 坐标匹配，再比较 y 坐标确定符号
+    // Steps 5-6: search for eigenvalue lambda such that [lambda]P = pi(P)
     Found := False;
     Lambda := 0;
 
-    for I := 1 to (L + 1) div 2 do
+    UseBSGS := (L >= CN_SEA_ELKIES_BSGS_THRESHOLD);
+
+    if UseBSGS then
     begin
-      if BigNumberRationalPolynomialGaloisEqual(RSX, PiPX, P, H) then
+      // ===== BSGS Search =====
+      // lambda = a + b*m, a in {1..m}, b in {0..m}
+      // Baby: [1]P, [2]P, ..., [m]P
+      // Giant: G = pi(P) - [b*m]P, look for G = [a]P
+
+      M := 1;
+      while M * M < ((L + 1) div 2) do
+        Inc(M);
+
+      BabyLen := M;
+      SetLength(BabyX, BabyLen);
+      SetLength(BabyY, BabyLen);
+
+      // Baby step 0: [1]P = (x, 1)
+      BabyX[0] := FSeaPolynomialPool.Obtain;
+      BabyY[0] := FSeaPolynomialPool.Obtain;
+      BigNumberPolynomialCopy(BabyX[0], PX);
+      BigNumberPolynomialCopy(BabyY[0], PY);
+
+      // Baby step 1: [2]P (doubling of [1]P)
+      if BabyLen >= 2 then
       begin
-        // x 坐标匹配
-        if BigNumberRationalPolynomialGaloisEqual(RSY, PiPY, P, H) then
-          Lambda := I  // y 也匹配
-        else
-          Lambda := L - I; // y 相反
-        Found := True;
-        Break;
+        BabyX[1] := FSeaPolynomialPool.Obtain;
+        BabyY[1] := FSeaPolynomialPool.Obtain;
+        SeaPolyPointAdd(BabyX[1], BabyY[1], BabyX[0], BabyY[0],
+          BabyX[0], BabyY[0], Y2, InvY2, H, A, P);
       end;
 
-      // RS = RS + P = [I+1]P（增量加法）
-      if I < (L + 1) div 2 then
+      // Baby steps 2..m-1: [a+1]P = [a]P + P
+      for BabyIdx := 2 to BabyLen - 1 do
       begin
-        TCnPolynomialEcc.RationalPointAddPoint(RSX, RSY, PX, PY, TSX, TSY, A, B, P, H);
-        BigNumberRationalPolynomialCopy(RSX, TSX);
-        BigNumberRationalPolynomialCopy(RSY, TSY);
+        BabyX[BabyIdx] := FSeaPolynomialPool.Obtain;
+        BabyY[BabyIdx] := FSeaPolynomialPool.Obtain;
+        SeaPolyPointAdd(BabyX[BabyIdx], BabyY[BabyIdx], BabyX[BabyIdx - 1], BabyY[BabyIdx - 1],
+          PX, PY, Y2, InvY2, H, A, P);
+      end;
+
+      // [m]P is in BabyX[m-1], BabyY[m-1]
+      // Compute -[m]P = (MX, -MY)
+      NegMX := FSeaPolynomialPool.Obtain;
+      NegMY := FSeaPolynomialPool.Obtain;
+      BigNumberPolynomialCopy(NegMX, BabyX[BabyLen - 1]);
+      BigNumberPolynomialCopy(NegMY, BabyY[BabyLen - 1]);
+      BigNumberPolynomialGaloisNegate(NegMY, P);
+
+      // Giant steps: G = pi(P)
+      GX := FSeaPolynomialPool.Obtain;
+      GY := FSeaPolynomialPool.Obtain;
+      BigNumberPolynomialCopy(GX, PiPX);
+      BigNumberPolynomialCopy(GY, PiPY);
+
+      GiantMax := M + 1;
+      for GiantIdx := 0 to GiantMax do
+      begin
+        // Check if G is identity (lambda = b*m)
+        if GX.IsZero and GY.IsZero then
+        begin
+          if GiantIdx > 0 then
+          begin
+            Lambda := GiantIdx * M;
+            Found := True;
+            Break;
+          end;
+        end
+        else
+        begin
+          // Search baby table for X match
+          for BabyIdx := 0 to BabyLen - 1 do
+          begin
+            if BigNumberPolynomialGaloisEqual(GX, BabyX[BabyIdx], P) then
+            begin
+              // X matches, check Y for sign
+              if BigNumberPolynomialGaloisEqual(GY, BabyY[BabyIdx], P) then
+                Lambda := (BabyIdx + 1) + GiantIdx * M
+              else
+                Lambda := L - ((BabyIdx + 1) + GiantIdx * M);
+              Found := True;
+              Break;
+            end;
+          end;
+          if Found then Break;
+        end;
+
+        // G = G + (-[m]P) = G - [m]P
+        if GiantIdx < GiantMax then
+        begin
+          TSX := FSeaPolynomialPool.Obtain;
+          TSY := FSeaPolynomialPool.Obtain;
+          SeaPolyPointAdd(TSX, TSY, GX, GY, NegMX, NegMY, Y2, InvY2, H, A, P);
+          BigNumberPolynomialCopy(GX, TSX);
+          BigNumberPolynomialCopy(GY, TSY);
+          FSeaPolynomialPool.Recycle(TSX);
+          FSeaPolynomialPool.Recycle(TSY);
+          TSX := nil;
+          TSY := nil;
+        end;
+      end;
+    end
+    else
+    begin
+      // ===== Linear Search (polynomial-only) =====
+      RSX := FSeaPolynomialPool.Obtain;
+      RSY := FSeaPolynomialPool.Obtain;
+      BigNumberPolynomialCopy(RSX, PX); // [1]P
+      BigNumberPolynomialCopy(RSY, PY);
+
+      TSX := FSeaPolynomialPool.Obtain;
+      TSY := FSeaPolynomialPool.Obtain;
+
+      for I := 1 to (L + 1) div 2 do
+      begin
+        if BigNumberPolynomialGaloisEqual(RSX, PiPX, P) then
+        begin
+          if BigNumberPolynomialGaloisEqual(RSY, PiPY, P) then
+            Lambda := I
+          else
+            Lambda := L - I;
+          Found := True;
+          Break;
+        end;
+
+      // RS = RS + P = [I+1]P（增量加法）
+        if I < (L + 1) div 2 then
+        begin
+          SeaPolyPointAdd(TSX, TSY, RSX, RSY, PX, PY, Y2, InvY2, H, A, P);
+          BigNumberPolynomialCopy(RSX, TSX);
+          BigNumberPolynomialCopy(RSY, TSY);
+        end;
       end;
     end;
 
@@ -1667,14 +1895,29 @@ begin
     FSeaBigNumberPool.Recycle(K);
     FSeaBigNumberPool.Recycle(LambdaInv);
     FSeaBigNumberPool.Recycle(T);
-    FSeaRationalPolynomialPool.Recycle(TSY);
-    FSeaRationalPolynomialPool.Recycle(TSX);
-    FSeaRationalPolynomialPool.Recycle(RSY);
-    FSeaRationalPolynomialPool.Recycle(RSX);
-    FSeaRationalPolynomialPool.Recycle(PY);
-    FSeaRationalPolynomialPool.Recycle(PX);
-    FSeaRationalPolynomialPool.Recycle(PiPY);
-    FSeaRationalPolynomialPool.Recycle(PiPX);
+    FSeaPolynomialPool.Recycle(GY);
+    FSeaPolynomialPool.Recycle(GX);
+    FSeaPolynomialPool.Recycle(NegMY);
+    FSeaPolynomialPool.Recycle(NegMX);
+    // Recycle baby step table
+    for BabyIdx := 0 to Length(BabyX) - 1 do
+    begin
+      if BabyX[BabyIdx] <> nil then
+        FSeaPolynomialPool.Recycle(BabyX[BabyIdx]);
+      if BabyY[BabyIdx] <> nil then
+        FSeaPolynomialPool.Recycle(BabyY[BabyIdx]);
+    end;
+    SetLength(BabyX, 0);
+    SetLength(BabyY, 0);
+    FSeaPolynomialPool.Recycle(TSY);
+    FSeaPolynomialPool.Recycle(TSX);
+    FSeaPolynomialPool.Recycle(RSY);
+    FSeaPolynomialPool.Recycle(RSX);
+    FSeaPolynomialPool.Recycle(PY);
+    FSeaPolynomialPool.Recycle(PX);
+    FSeaPolynomialPool.Recycle(PiPY);
+    FSeaPolynomialPool.Recycle(PiPX);
+    FSeaPolynomialPool.Recycle(InvY2);
     FSeaBigNumberPool.Recycle(BQ);
     FSeaPolynomialPool.Recycle(Y2);
     FSeaPolynomialPool.Recycle(H);
