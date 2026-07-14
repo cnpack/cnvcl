@@ -5601,6 +5601,13 @@ resourcestring
   SCnErrorPolynomialGCDMustOne = 'Modular Inverse Need GCD = 1';
   SCnErrorPolynomialGaloisInvalidDegree = 'Galois Division Polynomial Invalid Degree';
 
+const
+  CN_POLYMUL_KARATSUBA_THRESHOLD = 16;
+  {* 有限域上多项式乘法的 Karatsuba 阈值。
+     当两个操作数的次数都大于或等于该值时，将使用 Karatsuba 算法
+     而不是传统的教科书乘法。该阈值在乘法计算量的节省
+     与拆分、加法以及递归调用的额外开销之间应该能取得平衡。}
+
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
   FLocalInt64RationalPolynomialPool: TCnInt64RationalPolynomialPool = nil;
@@ -9844,6 +9851,146 @@ begin
   end;
 end;
 
+// Raw polynomial multiplication using Karatsuba algorithm (no modular reduction).
+// Res must not alias P1 or P2. Coefficients are accumulated without mod;
+// the caller is responsible for reducing mod Prime afterwards.
+procedure BigNumberPolynomialMulKaratsuba(Res: TCnBigNumberPolynomial;
+  P1, P2: TCnBigNumberPolynomial);
+var
+  N1, N2, H, I, J: Integer;
+  P1Low, P1High, P2Low, P2High: TCnBigNumberPolynomial;
+  Z0, Z1, Z2, Sum1, Sum2: TCnBigNumberPolynomial;
+  T: TCnBigNumber;
+begin
+  N1 := P1.MaxDegree;
+  N2 := P2.MaxDegree;
+
+  // 小次数恢复到传统乘法
+  if (N1 < CN_POLYMUL_KARATSUBA_THRESHOLD) or (N2 < CN_POLYMUL_KARATSUBA_THRESHOLD) then
+  begin
+    T := FLocalBigNumberPool.Obtain;
+    try
+      Res.Clear;
+      Res.MaxDegree := N1 + N2;
+      for I := 0 to N1 do
+      begin
+        if P1[I].IsZero then
+          Continue;
+
+        for J := 0 to N2 do
+        begin
+          if P2[J].IsZero then
+            Continue;
+          BigNumberMul(T, P1[I], P2[J]);
+          BigNumberAdd(Res[I + J], Res[I + J], T);
+        end;
+      end;
+      Res.CorrectTop;
+    finally
+      FLocalBigNumberPool.Recycle(T);
+    end;
+    Exit;
+  end;
+
+  // Recursive Karatsuba: split at H based on the SMALLER polynomial to avoid
+  // creating a zero high-part when degrees differ significantly (common in CRT)
+  H := (Min(N1, N2) + 1) div 2;
+
+  P1Low := FLocalBigNumberPolynomialPool.Obtain;
+  P1High := FLocalBigNumberPolynomialPool.Obtain;
+  P2Low := FLocalBigNumberPolynomialPool.Obtain;
+  P2High := FLocalBigNumberPolynomialPool.Obtain;
+  Z0 := FLocalBigNumberPolynomialPool.Obtain;
+  Z1 := FLocalBigNumberPolynomialPool.Obtain;
+  Z2 := FLocalBigNumberPolynomialPool.Obtain;
+  Sum1 := FLocalBigNumberPolynomialPool.Obtain;
+  Sum2 := FLocalBigNumberPolynomialPool.Obtain;
+
+  try
+    // Split P1 into P1Low (coeffs 0..H-1) and P1High (coeffs H..N1)
+    if N1 < H then
+    begin
+      BigNumberPolynomialCopy(P1Low, P1);
+      P1High.SetZero;
+    end
+    else
+    begin
+      P1Low.MaxDegree := H - 1;
+      for I := 0 to H - 1 do
+        BigNumberCopy(P1Low[I], P1[I]);
+      P1Low.CorrectTop;
+      P1High.MaxDegree := N1 - H;
+      for I := 0 to N1 - H do
+        BigNumberCopy(P1High[I], P1[I + H]);
+      P1High.CorrectTop;
+    end;
+
+    // Split P2 into P2Low (coeffs 0..H-1) and P2High (coeffs H..N2)
+    if N2 < H then
+    begin
+      BigNumberPolynomialCopy(P2Low, P2);
+      P2High.SetZero;
+    end
+    else
+    begin
+      P2Low.MaxDegree := H - 1;
+      for I := 0 to H - 1 do
+        BigNumberCopy(P2Low[I], P2[I]);
+      P2Low.CorrectTop;
+      P2High.MaxDegree := N2 - H;
+      for I := 0 to N2 - H do
+        BigNumberCopy(P2High[I], P2[I + H]);
+      P2High.CorrectTop;
+    end;
+
+    // Z0 = P1Low * P2Low
+    BigNumberPolynomialMulKaratsuba(Z0, P1Low, P2Low);
+
+    // Z2 = P1High * P2High
+    if P1High.IsZero or P2High.IsZero then
+      Z2.SetZero
+    else
+      BigNumberPolynomialMulKaratsuba(Z2, P1High, P2High);
+
+    // Sum1 = P1Low + P1High,  Sum2 = P2Low + P2High
+    BigNumberPolynomialAdd(Sum1, P1Low, P1High);
+    BigNumberPolynomialAdd(Sum2, P2Low, P2High);
+
+    // Z1 = Sum1 * Sum2 - Z0 - Z2
+    BigNumberPolynomialMulKaratsuba(Z1, Sum1, Sum2);
+    BigNumberPolynomialSub(Z1, Z1, Z0);
+    BigNumberPolynomialSub(Z1, Z1, Z2);
+
+    // Res = Z0 + x^H * Z1 + x^(2H) * Z2
+    Res.Clear;
+    Res.MaxDegree := N1 + N2;
+
+    // Copy Z0 to low part
+    for I := 0 to Z0.MaxDegree do
+      BigNumberCopy(Res[I], Z0[I]);
+
+    // Add Z1 shifted by H
+    for I := 0 to Z1.MaxDegree do
+      BigNumberAdd(Res[I + H], Res[I + H], Z1[I]);
+
+    // Add Z2 shifted by 2*H
+    for I := 0 to Z2.MaxDegree do
+      BigNumberAdd(Res[I + 2 * H], Res[I + 2 * H], Z2[I]);
+
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(Sum2);
+    FLocalBigNumberPolynomialPool.Recycle(Sum1);
+    FLocalBigNumberPolynomialPool.Recycle(Z2);
+    FLocalBigNumberPolynomialPool.Recycle(Z1);
+    FLocalBigNumberPolynomialPool.Recycle(Z0);
+    FLocalBigNumberPolynomialPool.Recycle(P2High);
+    FLocalBigNumberPolynomialPool.Recycle(P2Low);
+    FLocalBigNumberPolynomialPool.Recycle(P1High);
+    FLocalBigNumberPolynomialPool.Recycle(P1Low);
+  end;
+end;
+
 function BigNumberPolynomialGaloisMul(Res: TCnBigNumberPolynomial;
   P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
@@ -9859,22 +10006,36 @@ begin
     Exit;
   end;
 
-  T := FLocalBigNumberPool.Obtain;
   if (Res = P1) or (Res = P2) then
     R := FLocalBigNumberPolynomialPool.Obtain
   else
     R := Res;
 
-  R.Clear;
-  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
-
-  for I := 0 to P1.MaxDegree do
+  // 判断，大的才使用 Karatsuba 算法，小的用教科书上的传统乘法
+  if (P1.MaxDegree >= CN_POLYMUL_KARATSUBA_THRESHOLD) and
+     (P2.MaxDegree >= CN_POLYMUL_KARATSUBA_THRESHOLD) then
   begin
-    // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
-    for J := 0 to P2.MaxDegree do
-    begin
-      BigNumberMul(T, P1[I], P2[J]);
-      BigNumberAdd(R[I + J], R[I + J], T);
+    // Karatsuba 乘法，内部不带求余
+    BigNumberPolynomialMulKaratsuba(R, P1, P2);
+  end
+  else
+  begin
+    // 传统乘法，内部不带求余
+    T := FLocalBigNumberPool.Obtain;
+    try
+      R.Clear;
+      R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+      for I := 0 to P1.MaxDegree do
+      begin
+        for J := 0 to P2.MaxDegree do
+        begin
+          BigNumberMul(T, P1[I], P2[J]);
+          BigNumberAdd(R[I + J], R[I + J], T);
+        end;
+      end;
+      R.CorrectTop;
+    finally
+      FLocalBigNumberPool.Recycle(T);
     end;
   end;
 
@@ -9893,7 +10054,6 @@ begin
     BigNumberPolynomialCopy(Res, R);
     FLocalBigNumberPolynomialPool.Recycle(R);
   end;
-  FLocalBigNumberPool.Recycle(T);
   Result := True;
 end;
 

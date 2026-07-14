@@ -521,6 +521,14 @@ var
   Matched: Boolean;
 begin
   Result := 0;
+
+  // MitData 为空时直接跳过，不误导用户以为验证通过
+  if Trim(MitData) = '' then
+  begin
+    WriteLn('  No MIT reference data provided, skipping comparison');
+    Exit;
+  end;
+
   SL := TStringList.Create;
   Expected := TCnBigNumber.Create;
   try
