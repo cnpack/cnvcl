@@ -23,7 +23,7 @@ procedure TestPointCountHex(const AHex, BHex, PHex, ExpectedOrderHex: string;
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 procedure TestPointCount48BitCM;
 {* 该用例验证 48Bit 的素数域的上述椭圆曲线。
-   九百九十秒算到 23 的模多项式，一百六十多秒到二百八十多秒的 SEA。
+   九百九十秒算到 23 的模多项式，耗时九十秒的 SEA。
 
   p = 281474876048813 (0xFFFFFA0005AD)
   p = 16777213^2 + 38^2 (CM by Z[i])
@@ -38,10 +38,23 @@ procedure TestPointCount48BitCM;
     VERIFIED! [#E]P = O (point at infinity)
 }
 
-// 64-bit CM curve test: y^2 = x^3 + x over p = 3037000503^2 + 88^2
+// 64-bit CM curve test: y^2 = x^3 + x over p = 3037000503^2 + 88^2 = 9223372055222260753
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
-// Needs L up to 31 (Phi_29 and Phi_31). Very slow - may take hours.
+// Needs L up to 31 (Phi_29 and Phi_31).
+// SEA 耗时七百秒也就是十二分钟不到，MP 建议预存。
 procedure TestPointCount64BitCM;
+
+// 72-bit CM curve test: y^2 = x^3 + x over p = 55000000000^2 + 21^2 = 3025000000000000000441
+// CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
+// Needs L up to 37. 算出结果是 3025000000000000000400
+// SEA 耗时 1092547 毫秒也就是一千一百秒，二十分钟不到，MP 要预存。
+procedure TestPointCount72BitCM;
+
+// 96-bit CM curve test: y^2 = x^3 + x over p = 200000000000000^2 + 3^2 = 40000000000000000000000000009
+// CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
+// Needs L up to 43. 算出结果是 40000000000000000000000000016
+// SEA 耗时 4769718 毫秒也就是四千七百秒，八十分钟不到，MP 要预存。
+procedure TestPointCount96BitCM;
 
 // ============================================================
 // MIT Classical Modular Polynomial coefficients (embedded)
@@ -1327,6 +1340,356 @@ begin
 
     WriteLn(Format('  p = %s (0x%s)', [P.ToDec, P.ToHex]));
     WriteLn(Format('  p = %d^2 + 88^2 (CM by Z[i])', [CM_A]));
+    WriteLn(Format('  CM candidate 1: #E = %s (0x%s)', [Expected1.ToDec, Expected1.ToHex]));
+    WriteLn(Format('  CM candidate 2: #E = %s (0x%s)', [Expected2.ToDec, Expected2.ToHex]));
+
+    // Pre-generate modular polynomials
+    ModPolys := TObjectList.Create(True);
+    if not BigNumberSqrt(QMax, P) then Exit;
+    BigNumberAddWord(QMax, 1);
+    BigNumberMulWord(QMax, 4);
+    QMul.SetOne;
+    I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
+
+    T1 := Now;
+    while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
+    begin
+      L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+      BigNumberSetWord(BQ, L);
+      if BigNumberCompare(BQ, P) <> 0 then
+      begin
+        BigNumberMulWord(QMul, L);
+        if L >= 3 then
+        begin
+          PhiL := TCnBigNumberBiPolynomial.Create;
+          if CnGenerateClassicalModularPolynomial(PhiL, L) then
+          begin
+            ModPolys.Add(PhiL);
+            WriteLn(Format('    Generated Phi_%d (deg %dx%d), %d ms',
+              [L, PhiL.MaxXDegree, PhiL.MaxYDegree, Round((Now - T1) * MSecsPerDay)]));
+          end
+          else
+            PhiL.Free;
+        end;
+      end;
+      Inc(I);
+    end;
+    T2 := Now;
+    PreGenMs := Round((T2 - T1) * MSecsPerDay);
+    WriteLn(Format('  Pre-generated %d modular polynomials (L up to %d, %d ms)',
+      [ModPolys.Count, L, PreGenMs]));
+
+    // SEA
+    T1 := Now;
+    if CnSeaPointCount(SeaResult, A, B, P, ModPolys) then
+    begin
+      T2 := Now;
+      SeaMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  SEA result:   #E = %s  (%d ms)', [SeaResult.ToDec, SeaMs]));
+      WriteLn(Format('           (0x%s)', [SeaResult.ToHex]));
+
+      // Check against CM candidates
+      Match1 := BigNumberCompare(SeaResult, Expected1) = 0;
+      Match2 := BigNumberCompare(SeaResult, Expected2) = 0;
+      if Match1 then
+        WriteLn('  CM MATCH! #E = p + 1 - 2a')
+      else if Match2 then
+        WriteLn('  CM MATCH! #E = p + 1 + 2a')
+      else
+        WriteLn('  CM MISMATCH!');
+
+      // Independent verification: find a point P on E, check [#E]P = O
+      WriteLn('  Independent verification ([#E]P = O):');
+      Ecc := TCnEcc.Create(AHex, BHex, PHex, '0', '0', SeaResult.ToHex, 1);
+      Point := TCnEccPoint.Create;
+      XVal := TCnBigNumber.Create;
+      Found := False;
+      XInt := 1;
+      while XInt <= 10000 do
+      begin
+        XVal.SetInt64(XInt);
+        if Ecc.PlainToPoint(XVal, Point) then
+        begin
+          Found := True;
+          Break;
+        end;
+        Inc(XInt);
+      end;
+
+      if Found then
+      begin
+        WriteLn(Format('    Found point P = (%s, %s)', [Point.X.ToDec, Point.Y.ToDec]));
+        Ecc.MultiplePoint(SeaResult, Point);
+        if Point.IsZero then
+          WriteLn('    VERIFIED! [#E]P = O (point at infinity)')
+        else
+          WriteLn(Format('    FAILED! [#E]P = (%s, %s)', [Point.X.ToDec, Point.Y.ToDec]));
+      end
+      else
+        WriteLn('    Could not find a point on the curve for verification');
+    end
+    else
+    begin
+      T2 := Now;
+      SeaMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  SEA FAILED  (%d ms)', [SeaMs]));
+    end;
+  finally
+    XVal.Free;
+    Point.Free;
+    Ecc.Free;
+    ModPolys.Free;
+    BQ.Free;
+    QMul.Free;
+    QMax.Free;
+    Tmp.Free;
+    Expected2.Free;
+    Expected1.Free;
+    SeaResult.Free;
+    P.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// 72-bit CM curve test
+// p = 55000000000^2 + 21^2 = 3025000000000000000441
+// Curve: y^2 = x^3 + x (a=1, b=0), CM discriminant D = -4
+// CM theory: #E = p + 1 +/- 2*55000000000
+// Needs L up to 37 (Phi_37). Very slow.
+procedure TestPointCount72BitCM;
+const
+  MSecsPerDay = 86400000;
+  PHex = 'A3FC4EE0DCF4A401B9';
+  AHex = '1';
+  BHex = '0';
+  CM_A = '55000000000';
+var
+  A, B, P, SeaResult, Expected1, Expected2, Tmp: TCnBigNumber;
+  T1, T2: TDateTime;
+  SeaMs, PreGenMs: Int64;
+  ModPolys: TObjectList;
+  PhiL: TCnBigNumberBiPolynomial;
+  QMax, QMul, BQ: TCnBigNumber;
+  I, L: Integer;
+  Match1, Match2: Boolean;
+  Ecc: TCnEcc;
+  Point: TCnEccPoint;
+  XVal: TCnBigNumber;
+  XInt: Int64;
+  Found: Boolean;
+begin
+  WriteLn;
+  WriteLn('--- 72-bit CM Curve: y^2 = x^3 + x over F_p ---');
+
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+  SeaResult := TCnBigNumber.Create;
+  Expected1 := TCnBigNumber.Create;
+  Expected2 := TCnBigNumber.Create;
+  Tmp := TCnBigNumber.Create;
+  QMax := TCnBigNumber.Create;
+  QMul := TCnBigNumber.Create;
+  BQ := TCnBigNumber.Create;
+  ModPolys := nil;
+  Ecc := nil;
+  Point := nil;
+  XVal := nil;
+  try
+    A.SetHex(AHex);
+    B.SetHex(BHex);
+    P.SetHex(PHex);
+
+    // CM expected orders: p + 1 +/- 2a
+    Tmp.SetDec(CM_A);
+    BigNumberMulWord(Tmp, 2);  // Tmp = 2*CM_A
+
+    BigNumberCopy(Expected1, P);
+    BigNumberAddWord(Expected1, 1);
+    BigNumberSub(Expected1, Expected1, Tmp);  // p + 1 - 2a
+
+    BigNumberCopy(Expected2, P);
+    BigNumberAddWord(Expected2, 1);
+    BigNumberAdd(Expected2, Expected2, Tmp);  // p + 1 + 2a
+
+    WriteLn(Format('  p = %s (0x%s)', [P.ToDec, P.ToHex]));
+    WriteLn(Format('  p = %s^2 + 21^2 (CM by Z[i])', [CM_A]));
+    WriteLn(Format('  CM candidate 1: #E = %s (0x%s)', [Expected1.ToDec, Expected1.ToHex]));
+    WriteLn(Format('  CM candidate 2: #E = %s (0x%s)', [Expected2.ToDec, Expected2.ToHex]));
+
+    // Pre-generate modular polynomials
+    ModPolys := TObjectList.Create(True);
+    if not BigNumberSqrt(QMax, P) then Exit;
+    BigNumberAddWord(QMax, 1);
+    BigNumberMulWord(QMax, 4);
+    QMul.SetOne;
+    I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
+
+    T1 := Now;
+    while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
+    begin
+      L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+      BigNumberSetWord(BQ, L);
+      if BigNumberCompare(BQ, P) <> 0 then
+      begin
+        BigNumberMulWord(QMul, L);
+        if L >= 3 then
+        begin
+          PhiL := TCnBigNumberBiPolynomial.Create;
+          if CnGenerateClassicalModularPolynomial(PhiL, L) then
+          begin
+            ModPolys.Add(PhiL);
+            WriteLn(Format('    Generated Phi_%d (deg %dx%d), %d ms',
+              [L, PhiL.MaxXDegree, PhiL.MaxYDegree, Round((Now - T1) * MSecsPerDay)]));
+          end
+          else
+            PhiL.Free;
+        end;
+      end;
+      Inc(I);
+    end;
+    T2 := Now;
+    PreGenMs := Round((T2 - T1) * MSecsPerDay);
+    WriteLn(Format('  Pre-generated %d modular polynomials (L up to %d, %d ms)',
+      [ModPolys.Count, L, PreGenMs]));
+
+    // SEA
+    T1 := Now;
+    if CnSeaPointCount(SeaResult, A, B, P, ModPolys) then
+    begin
+      T2 := Now;
+      SeaMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  SEA result:   #E = %s  (%d ms)', [SeaResult.ToDec, SeaMs]));
+      WriteLn(Format('           (0x%s)', [SeaResult.ToHex]));
+
+      // Check against CM candidates
+      Match1 := BigNumberCompare(SeaResult, Expected1) = 0;
+      Match2 := BigNumberCompare(SeaResult, Expected2) = 0;
+      if Match1 then
+        WriteLn('  CM MATCH! #E = p + 1 - 2a')
+      else if Match2 then
+        WriteLn('  CM MATCH! #E = p + 1 + 2a')
+      else
+        WriteLn('  CM MISMATCH!');
+
+      // Independent verification: find a point P on E, check [#E]P = O
+      WriteLn('  Independent verification ([#E]P = O):');
+      Ecc := TCnEcc.Create(AHex, BHex, PHex, '0', '0', SeaResult.ToHex, 1);
+      Point := TCnEccPoint.Create;
+      XVal := TCnBigNumber.Create;
+      Found := False;
+      XInt := 1;
+      while XInt <= 10000 do
+      begin
+        XVal.SetInt64(XInt);
+        if Ecc.PlainToPoint(XVal, Point) then
+        begin
+          Found := True;
+          Break;
+        end;
+        Inc(XInt);
+      end;
+
+      if Found then
+      begin
+        WriteLn(Format('    Found point P = (%s, %s)', [Point.X.ToDec, Point.Y.ToDec]));
+        Ecc.MultiplePoint(SeaResult, Point);
+        if Point.IsZero then
+          WriteLn('    VERIFIED! [#E]P = O (point at infinity)')
+        else
+          WriteLn(Format('    FAILED! [#E]P = (%s, %s)', [Point.X.ToDec, Point.Y.ToDec]));
+      end
+      else
+        WriteLn('    Could not find a point on the curve for verification');
+    end
+    else
+    begin
+      T2 := Now;
+      SeaMs := Round((T2 - T1) * MSecsPerDay);
+      WriteLn(Format('  SEA FAILED  (%d ms)', [SeaMs]));
+    end;
+  finally
+    XVal.Free;
+    Point.Free;
+    Ecc.Free;
+    ModPolys.Free;
+    BQ.Free;
+    QMul.Free;
+    QMax.Free;
+    Tmp.Free;
+    Expected2.Free;
+    Expected1.Free;
+    SeaResult.Free;
+    P.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// 96-bit CM curve test
+// p = 200000000000000^2 + 3^2 = 40000000000000000000000000009
+// Curve: y^2 = x^3 + x (a=1, b=0), CM discriminant D = -4
+// CM theory: #E = p + 1 +/- 2*200000000000000
+// Needs L up to 43 (Phi_43). Extremely slow.
+procedure TestPointCount96BitCM;
+const
+  MSecsPerDay = 86400000;
+  PHex = '813F3978F894098440000009';
+  AHex = '1';
+  BHex = '0';
+  CM_A = '200000000000000';
+var
+  A, B, P, SeaResult, Expected1, Expected2, Tmp: TCnBigNumber;
+  T1, T2: TDateTime;
+  SeaMs, PreGenMs: Int64;
+  ModPolys: TObjectList;
+  PhiL: TCnBigNumberBiPolynomial;
+  QMax, QMul, BQ: TCnBigNumber;
+  I, L: Integer;
+  Match1, Match2: Boolean;
+  Ecc: TCnEcc;
+  Point: TCnEccPoint;
+  XVal: TCnBigNumber;
+  XInt: Int64;
+  Found: Boolean;
+begin
+  WriteLn;
+  WriteLn('--- 96-bit CM Curve: y^2 = x^3 + x over F_p ---');
+
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+  SeaResult := TCnBigNumber.Create;
+  Expected1 := TCnBigNumber.Create;
+  Expected2 := TCnBigNumber.Create;
+  Tmp := TCnBigNumber.Create;
+  QMax := TCnBigNumber.Create;
+  QMul := TCnBigNumber.Create;
+  BQ := TCnBigNumber.Create;
+  ModPolys := nil;
+  Ecc := nil;
+  Point := nil;
+  XVal := nil;
+  try
+    A.SetHex(AHex);
+    B.SetHex(BHex);
+    P.SetHex(PHex);
+
+    // CM expected orders: p + 1 +/- 2a
+    Tmp.SetDec(CM_A);
+    BigNumberMulWord(Tmp, 2);  // Tmp = 2*CM_A
+
+    BigNumberCopy(Expected1, P);
+    BigNumberAddWord(Expected1, 1);
+    BigNumberSub(Expected1, Expected1, Tmp);  // p + 1 - 2a
+
+    BigNumberCopy(Expected2, P);
+    BigNumberAddWord(Expected2, 1);
+    BigNumberAdd(Expected2, Expected2, Tmp);  // p + 1 + 2a
+
+    WriteLn(Format('  p = %s (0x%s)', [P.ToDec, P.ToHex]));
+    WriteLn(Format('  p = %s^2 + 3^2 (CM by Z[i])', [CM_A]));
     WriteLn(Format('  CM candidate 1: #E = %s (0x%s)', [Expected1.ToDec, Expected1.ToHex]));
     WriteLn(Format('  CM candidate 2: #E = %s (0x%s)', [Expected2.ToDec, Expected2.ToHex]));
 
