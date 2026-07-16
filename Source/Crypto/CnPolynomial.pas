@@ -16553,8 +16553,7 @@ function BigNumberPolynomialGaloisEqualDegreeFactor(Factors: TCnBigNumberPolynom
 
   procedure SplitEqualDegree(Factor: TCnBigNumberPolynomial);
   var
-    Q, H, Temp1, Temp2: TCnBigNumberPolynomial;
-    XPoly: TCnBigNumberPolynomial;
+    Q, H, Temp1, Temp2, BasePoly: TCnBigNumberPolynomial;
     PExp: TCnBigNumber;
     TryVal: Integer;
     CopyFactor: TCnBigNumberPolynomial;
@@ -16572,32 +16571,36 @@ function BigNumberPolynomialGaloisEqualDegreeFactor(Factors: TCnBigNumberPolynom
     H := FLocalBigNumberPolynomialPool.Obtain;
     Temp1 := FLocalBigNumberPolynomialPool.Obtain;
     Temp2 := FLocalBigNumberPolynomialPool.Obtain;
-    XPoly := FLocalBigNumberPolynomialPool.Obtain;
+    BasePoly := FLocalBigNumberPolynomialPool.Obtain;
     PExp := FLocalBigNumberPool.Obtain;
     try
-      // Create X polynomial
-      XPoly.SetZero;
-      XPoly.MaxDegree := 1;
-      XPoly[1].SetWord(1);
 
       // Compute p^d
       BigNumberPower(PExp, Prime, Cardinal(D));
       BigNumberSubWord(PExp, 1);
       BigNumberShiftRightOne(PExp, PExp);
 
-      // Try deterministic splits: GCD(X^{(p^d-1)/2} - a, F) for a = 0, 1, 2...
-      for TryVal := 0 to 10 do
+      // Constant polynomial "1" for Q - 1
+      Temp1.SetZero;
+      Temp1.MaxDegree := 0;
+      Temp1[0].SetWord(1);
+
+      // Try different base polynomials: (x + c) for c = 0, 1, 2, ...
+      // Using varying base avoids the issue where x^{(p^d-1)/2} mod Factor
+      // is a constant, making gcd(Q - a, Factor) always trivial.
+      for TryVal := 0 to 50 do
       begin
-        // Q = X^{(p^d-1)/2} mod Factor
-        if not BigNumberPolynomialGaloisPower(Q, XPoly, PExp, Prime, Factor) then
+        // BasePoly = x + TryVal
+        BasePoly.SetZero;
+        BasePoly.MaxDegree := 1;
+        BasePoly[0].SetWord(TryVal);
+        BasePoly[1].SetWord(1);
+
+        // Q = (x + TryVal)^{(p^d-1)/2} mod Factor
+        if not BigNumberPolynomialGaloisPower(Q, BasePoly, PExp, Prime, Factor) then
           Continue;
 
-        // Build constant polynomial "TryVal" in Temp1
-        Temp1.SetZero;
-        Temp1.MaxDegree := 0;
-        Temp1[0].SetWord(TryVal);
-
-        // Compute Q - TryVal into Q (reuse Q as result is safe)
+        // H = gcd(Q - 1, Factor)
         BigNumberPolynomialGaloisSub(Q, Q, Temp1, Prime);
         if not BigNumberPolynomialGaloisGreatestCommonDivisor(H, Q, Factor, Prime) then
           Continue;
@@ -16611,12 +16614,43 @@ function BigNumberPolynomialGaloisEqualDegreeFactor(Factors: TCnBigNumberPolynom
           Exit;
         end;
       end;
+
+      // Fallback: try higher-degree base polynomials x^2 + c
+      for TryVal := 0 to 20 do
+      begin
+        BasePoly.SetZero;
+        BasePoly.MaxDegree := 2;
+        BasePoly[0].SetWord(TryVal);
+        BasePoly[2].SetWord(1);
+
+        if not BigNumberPolynomialGaloisPower(Q, BasePoly, PExp, Prime, Factor) then
+          Continue;
+
+        BigNumberPolynomialGaloisSub(Q, Q, Temp1, Prime);
+        if not BigNumberPolynomialGaloisGreatestCommonDivisor(H, Q, Factor, Prime) then
+          Continue;
+
+        if (H.MaxDegree > 0) and (H.MaxDegree < Factor.MaxDegree) then
+        begin
+          SplitEqualDegree(H);
+          BigNumberPolynomialGaloisDiv(Temp2, nil, Factor, H, Prime);
+          SplitEqualDegree(Temp2);
+          Exit;
+        end;
+      end;
+
+      // All attempts failed ¡ª add the factor as-is rather than dropping it.
+      // This ensures the caller can detect incomplete factorization
+      // (factors with degree > D indicate EDF could not split them).
+      CopyFactor := TCnBigNumberPolynomial.Create;
+      BigNumberPolynomialCopy(CopyFactor, Factor);
+      Factors.Add(CopyFactor);
     finally
       FLocalBigNumberPolynomialPool.Recycle(Q);
       FLocalBigNumberPolynomialPool.Recycle(H);
       FLocalBigNumberPolynomialPool.Recycle(Temp1);
       FLocalBigNumberPolynomialPool.Recycle(Temp2);
-      FLocalBigNumberPolynomialPool.Recycle(XPoly);
+      FLocalBigNumberPolynomialPool.Recycle(BasePoly);
       FLocalBigNumberPool.Recycle(PExp);
     end;
   end;
@@ -16639,6 +16673,7 @@ var
   N, D, DegFound: Integer;
   I: Integer;
   SF, P: TCnBigNumberPolynomial;
+  H, G, XPoly, TempPoly: TCnBigNumberPolynomial;
 begin
   Result := False;
   if F.IsZero then Exit;
@@ -16661,32 +16696,68 @@ begin
         Continue;
       end;
 
-      // Try d = 1, 2, ..., N/2
-      DegFound := 0;
-      D := 1;
-      while (D <= N div 2) and (DegFound < N) do
-      begin
-        FactorsD := TCnBigNumberPolynomialList.Create;
-        try
-          if not BigNumberPolynomialGaloisEqualDegreeFactor(FactorsD, SF, D, Prime) then
-            Exit;
+      // DDF (Distinct-Degree Factorization) + EDF (Equal-Degree Factorization)
+      H := FLocalBigNumberPolynomialPool.Obtain;
+      G := FLocalBigNumberPolynomialPool.Obtain;
+      XPoly := FLocalBigNumberPolynomialPool.Obtain;
+      TempPoly := FLocalBigNumberPolynomialPool.Obtain;
+      try
+        // XPoly = x
+        XPoly.SetZero;
+        XPoly.MaxDegree := 1;
+        XPoly[1].SetWord(1);
 
-          // Move factors from FactorsD to Factors
-          while FactorsD.Count > 0 do
+        // H = x (will be iterated as x^{p^d} mod SF)
+        BigNumberPolynomialCopy(H, XPoly);
+
+        DegFound := 0;
+        D := 1;
+        while (D <= N div 2) and (SF.MaxDegree > 0) do
+        begin
+          // H = H^p mod SF (one Frobenius step: x^{p^d} -> x^{p^{d+1}})
+          BigNumberPolynomialGaloisPower(H, H, Prime, Prime, SF);
+
+          // G = gcd(H - x, SF) = product of all degree-d irreducible factors
+          BigNumberPolynomialGaloisSub(TempPoly, H, XPoly, Prime);
+          BigNumberPolynomialGaloisGreatestCommonDivisor(G, TempPoly, SF, Prime);
+
+          if G.MaxDegree > 0 then
           begin
-            P := TCnBigNumberPolynomial(FactorsD.Extract(FactorsD[0]));
-            Factors.Add(P);
-            DegFound := DegFound + P.MaxDegree;
-          end;
-        finally
-          FactorsD.Free;
-        end;
-        Inc(D);
-      end;
+            // EDF: split G into individual degree-d factors
+            FactorsD := TCnBigNumberPolynomialList.Create;
+            try
+              if not BigNumberPolynomialGaloisEqualDegreeFactor(FactorsD, G, D, Prime) then
+                Exit;
+              while FactorsD.Count > 0 do
+              begin
+                P := TCnBigNumberPolynomial(FactorsD.Extract(FactorsD[0]));
+                Factors.Add(P);
+                DegFound := DegFound + P.MaxDegree;
+              end;
+            finally
+              FactorsD.Free;
+            end;
 
-      // If some part remains unfactored, add a copy as irreducible
-      if DegFound < N then
-        Factors.Add(BigNumberPolynomialDuplicate(SF));
+            // SF = SF / G (remove found factors)
+            BigNumberPolynomialGaloisDiv(TempPoly, nil, SF, G, Prime);
+            BigNumberPolynomialCopy(SF, TempPoly);
+          end;
+
+          Inc(D);
+        end;
+
+        // Remaining SF (if any) is irreducible
+        if SF.MaxDegree > 0 then
+        begin
+          Factors.Add(BigNumberPolynomialDuplicate(SF));
+          DegFound := DegFound + SF.MaxDegree;
+        end;
+      finally
+        FLocalBigNumberPolynomialPool.Recycle(TempPoly);
+        FLocalBigNumberPolynomialPool.Recycle(XPoly);
+        FLocalBigNumberPolynomialPool.Recycle(G);
+        FLocalBigNumberPolynomialPool.Recycle(H);
+      end;
     end;
 
     // Free remaining square-free factors that WERE transferred to Factors

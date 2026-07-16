@@ -150,7 +150,8 @@ function CnSeaCheckPrimeType(L: Integer; A, B, P: TCnBigNumber;
 }
 
 function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
-  L: Integer; A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
+  L: Integer; A, B, P: TCnBigNumber; DPs: TObjectList = nil;
+  ScalarLambda: PInteger = nil): Boolean;
 {* 对 Elkies 素数 L，计算核多项式 h(x)（次数为 (l-1)/2）。
    通过对 L 阶除法多项式 ψ_l(x) 取平方-free 部分并因式分解来实现。
 
@@ -159,6 +160,7 @@ function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
      L: Integer                           - Elkies 素数
      A, B: TCnBigNumber                   - Weierstrass 方程参数
      P: TCnBigNumber                      - 有限域素数 p
+	 ScalarLambda: PInteger               -
 
    返回值：Boolean                        - 返回计算是否成功
 }
@@ -501,7 +503,7 @@ procedure SeaCalcJRaw(var J: array of Int64; MaxDegree: Integer; Prime: Int64);
 var
   E4, E6, E4_3, E6_2, Delta, DeltaInv, T2: array of Int64;
   I, J2: Integer;
-  Inv1728, Sum, T: Int64;
+  Inv1728, Sum: Int64;
 begin
   SetLength(E4, MaxDegree + 2);
   SetLength(E6, MaxDegree + 2);
@@ -1198,7 +1200,7 @@ begin
     YList := P.YFactorsList[I];
     for J := 0 to YList.Count - 1 do
     begin
-      if I >= J then
+      if I >= YList[J].Exponent then
         Res.Add(Format('[%d,%d] %s', [I, YList[J].Exponent, YList[J].Value.ToDec]));
     end;
   end;
@@ -1429,13 +1431,19 @@ begin
 end;
 
 function CnSeaElkiesKernelPolynomial(Res: TCnBigNumberPolynomial;
-  L: Integer; A, B, P: TCnBigNumber; DPs: TObjectList = nil): Boolean;
+  L: Integer; A, B, P: TCnBigNumber; DPs: TObjectList;
+  ScalarLambda: PInteger): Boolean;
 var
   OwnDPs: Boolean;
   PsiL, Y2, XPowP, XPmX: TCnBigNumberPolynomial;
   T1, T2, G, H: TCnBigNumberPolynomial;
   Lambda, TargetDeg: Integer;
   Found: Boolean;
+  CzFactors: TCnBigNumberPolynomialList;
+  CzI: Integer;
+  CzOk: Boolean;
+  ScalarLam: Integer;
+  BQ: TCnBigNumber;
 begin
   Result := False;
   if (Res = nil) or (L < 3) then Exit;
@@ -1449,6 +1457,7 @@ begin
   T2 := nil;
   G := nil;
   H := nil;
+
   try
     // 生成 0 到 L+1 阶的除法多项式
     if DPs = nil then
@@ -1457,7 +1466,7 @@ begin
       CnGenerateGaloisDivisionPolynomials(A, B, P, L + 1, DPs);
       OwnDPs := True;
     end;
-    // 取 Psi_L(x) 作为模多项式 —— 由 DPs 拥有
+    // 取 Psi_L(x) 作为模多项式，由 DPs 拥有
     PsiL := TCnBigNumberPolynomial(DPs[L]);
 
     // 设置 Y2 = x^3 + Ax + B
@@ -1481,6 +1490,7 @@ begin
 
     TargetDeg := (L - 1) div 2;
     Found := False;
+    ScalarLam := 0;
 
     // 对每个 lambda = 1, ..., L-1，检查 gcd(Psi_L, G_lambda) 的次数
     for Lambda := 1 to L - 1 do
@@ -1509,17 +1519,84 @@ begin
       end;
 
       // H = gcd(Psi_L, G)
-      BigNumberPolynomialGaloisGreatestCommonDivisor(H, PsiL, G, P);
+      // When G is the zero polynomial (e.g. scalar Frobenius with lambda=1
+      // and x^p = x mod PsiL), gcd(PsiL, 0) = PsiL.
+      if G.IsZero then
+        BigNumberPolynomialCopy(H, PsiL)
+      else
+        BigNumberPolynomialGaloisGreatestCommonDivisor(H, PsiL, G, P);
 
       if H.MaxDegree = TargetDeg then
       begin
         BigNumberPolynomialCopy(Res, H);
         Found := True;
         Break;
+      end
+      else if (H.MaxDegree > TargetDeg) and (H.MaxDegree mod TargetDeg = 0) then
+      begin
+        // GCD degree is a multiple of TargetDeg - both eigenvalue kernels
+        // are in F_p (e.g. when t = 0 mod L and -p is QR mod L).
+        // Factor H and extract a factor of degree TargetDeg.
+        CzFactors := TCnBigNumberPolynomialList.Create;
+        try
+          CzOk := BigNumberPolynomialGaloisFactorCantorZassenhaus(CzFactors, H, P);
+          if CzOk then
+          begin
+            for CzI := 0 to CzFactors.Count - 1 do
+            begin
+              if TCnBigNumberPolynomial(CzFactors[CzI]).MaxDegree = TargetDeg then
+              begin
+                BigNumberPolynomialCopy(Res, TCnBigNumberPolynomial(CzFactors[CzI]));
+                Found := True;
+                Break;
+              end;
+            end;
+          end;
+        finally
+          CzFactors.Free;
+        end;
+        if Found then Break;
+        // CZ factorization failed. If GCD = full Psi_L, Frobenius is scalar
+        // with eigenvalue Lambda. Record it for direct trace computation.
+        if (H.MaxDegree = PsiL.MaxDegree) and (ScalarLam = 0) then
+          ScalarLam := Lambda;
       end;
     end;
 
-    if not Found then Exit;
+    if not Found then
+    begin
+      // If scalar Frobenius was detected (GCD = full Psi_L for some lambda),
+      // determine the actual eigenvalue by checking the y-coordinate action.
+      // When x^p = x mod PsiL, Frobenius is ±1 on E[L].
+      // Y2^((p-1)/2) = 1 means pi = +1 (eigenvalue 1).
+      // Y2^((p-1)/2) = -1 means pi = -1 (eigenvalue L-1).
+      if ScalarLam > 0 then
+      begin
+        BQ := FSeaBigNumberPool.Obtain;
+        try
+          BigNumberCopy(BQ, P);
+          BQ.SubWord(1);
+          BigNumberShiftRightOne(BQ, BQ); // (p-1)/2
+          BigNumberPolynomialGaloisPower(T2, Y2, BQ, P, PsiL);
+          if T2.IsOne then
+            ScalarLam := 1
+          else
+            ScalarLam := L - 1;
+        finally
+          FSeaBigNumberPool.Recycle(BQ);
+        end;
+        if ScalarLambda <> nil then
+          ScalarLambda^ := ScalarLam;
+        // Return Psi_L as the kernel polynomial (full degree).
+        BigNumberPolynomialCopy(Res, PsiL);
+        Result := True;
+      end;
+      Exit;
+    end;
+
+    // Normal success: also pass scalar eigenvalue if available
+    if (ScalarLambda <> nil) and (ScalarLam > 0) then
+      ScalarLambda^ := ScalarLam;
 
     Result := True;
   finally
@@ -1662,6 +1739,7 @@ var
   T, LambdaInv, K: TCnBigNumber;
   Found: Boolean;
   BabyLen, GiantMax: Integer;
+  ScalarLam: Integer;
 begin
   Result := False;
   if (Res = nil) or (L < 3) then Exit;
@@ -1691,7 +1769,30 @@ begin
   try
     // Step 1: compute kernel polynomial h(x), degree (L-1)/2
     H := FSeaPolynomialPool.Obtain;
-    if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs) then Exit;
+    ScalarLam := 0;
+    if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs, @ScalarLam) then Exit;
+
+    // Scalar Frobenius: eigenvalue is known, compute trace directly
+    // t = lambda + p * lambda^{-1} mod L
+    if ScalarLam > 0 then
+    begin
+      T := FSeaBigNumberPool.Obtain;
+      LambdaInv := FSeaBigNumberPool.Obtain;
+      K := FSeaBigNumberPool.Obtain;
+      K.SetWord(L);
+      BigNumberSetWord(T, ScalarLam);
+      BigNumberModularInverse(LambdaInv, T, K);
+      // t = lambda + p * lambda^{-1} mod L
+      BigNumberSetWord(T, ScalarLam);
+      BigNumberMod(T, T, K);
+      BigNumberMod(LambdaInv, LambdaInv, K);
+      BigNumberMul(Res, P, LambdaInv);
+      BigNumberMod(Res, Res, K);
+      BigNumberAdd(Res, Res, T);
+      BigNumberMod(Res, Res, K);
+      Result := True;
+      Exit;
+    end;
 
     // Step 2: curve polynomial Y2 = x^3 + Ax + B
     Y2 := FSeaPolynomialPool.Obtain;
@@ -1719,6 +1820,16 @@ begin
     // Step 4: generic point P = (x, 1) in polynomial representation
     PX := FSeaPolynomialPool.Obtain;
     PX.SetCoefficients([0, 1]); // x
+    // Reduce PX mod h(x) for proper quotient ring representation.
+    // When deg(H) = 1 (L=3), x must be reduced to a constant.
+    if H.MaxDegree <= PX.MaxDegree then
+    begin
+      RSX := FSeaPolynomialPool.Obtain;
+      BigNumberPolynomialGaloisDiv(nil, RSX, PX, H, P);
+      BigNumberPolynomialCopy(PX, RSX);
+      FSeaPolynomialPool.Recycle(RSX);
+      RSX := nil;
+    end;
     PY := FSeaPolynomialPool.Obtain;
     PY.SetOne; // 1
 
@@ -1924,152 +2035,6 @@ begin
   end;
 end;
 
-// 辅助函数：使用基本 Schoof 方法计算 t mod L（用于 Atkin 素数或回退）
-function SeaSchoofTraceModL(Res: TCnBigNumber; L: Int64;
-  A, B, P: TCnBigNumber; DPs: TObjectList): Boolean;
-var
-  K: Int64;
-  Y2, LDP: TCnBigNumberPolynomial;
-  BQ: TCnBigNumber;
-  Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY: TCnBigNumberRationalPolynomial;
-  LSX, LSY, RSX, RSY, TSX, TSY: TCnBigNumberRationalPolynomial;
-  I: Integer;
-  Found: Boolean;
-begin
-  Result := False;
-
-  Y2 := nil;
-  BQ := nil;
-  Pi2PX := nil;
-  Pi2PY := nil;
-  PiPX := nil;
-  PiPY := nil;
-  KPX := nil;
-  KPY := nil;
-  LSX := nil;
-  LSY := nil;
-  RSX := nil;
-  RSY := nil;
-  TSX := nil;
-  TSY := nil;
-  try
-    Y2 := FSeaPolynomialPool.Obtain;
-    Y2.SetCoefficients([B, A, 0, 1]);
-
-    BQ := FSeaBigNumberPool.Obtain;
-
-    // 取 L 阶除法多项式作为模多项式
-    LDP := TCnBigNumberPolynomial(DPs[L]);
-
-    K := BigNumberModWord(P, L);
-
-    // 计算 pi^2(P) 的 x 坐标: x^(p^2) mod LDP
-    Pi2PX := FSeaRationalPolynomialPool.Obtain;
-    Pi2PX.SetOne;
-    Pi2PX.Numerator.SetCoefficients([0, 1]); // x
-    BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, P, P, LDP); // x^p
-    BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, P, P, LDP); // x^(p^2)
-
-    // 计算 pi^2(P) 的 y 系数: Y2^((p^2-1)/2) mod LDP
-    Pi2PY := FSeaRationalPolynomialPool.Obtain;
-    Pi2PY.SetOne;
-    BigNumberMul(BQ, P, P); // p^2
-    BQ.SubWord(1);          // p^2 - 1
-    BigNumberShiftRightOne(BQ, BQ); // (p^2 - 1) / 2
-    BigNumberPolynomialGaloisPower(Pi2PY.Numerator, Y2, BQ, P, LDP);
-
-    // 计算 [K]P
-    KPX := FSeaRationalPolynomialPool.Obtain;
-    KPY := FSeaRationalPolynomialPool.Obtain;
-    KPX.SetOne;
-    KPX.Numerator.SetCoefficients([0, 1]); // x
-    KPY.SetOne; // 1 * y
-    TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, P, LDP);
-
-    // LS = pi^2(P) + [K]P
-    LSX := FSeaRationalPolynomialPool.Obtain;
-    LSY := FSeaRationalPolynomialPool.Obtain;
-    TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, P, LDP);
-
-    // 若 LS 为零（点 at infinity），则 t = 0
-    if LSX.IsZero and LSY.IsZero then
-    begin
-      Res.SetZero;
-      Result := True;
-      Exit;
-    end;
-
-    // 计算 pi(P) 的 x 坐标: x^p mod LDP
-    PiPX := FSeaRationalPolynomialPool.Obtain;
-    PiPX.SetOne;
-    PiPX.Numerator.SetCoefficients([0, 1]); // x
-    BigNumberPolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, P, P, LDP);
-
-    // 计算 pi(P) 的 y 系数: Y2^((p-1)/2) mod LDP
-    PiPY := FSeaRationalPolynomialPool.Obtain;
-    PiPY.SetOne;
-    BigNumberCopy(BQ, P);
-    BQ.SubWord(1);
-    BigNumberShiftRightOne(BQ, BQ); // (p-1)/2
-    BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, P, LDP);
-
-    // 搜索 t: RS = [J] * pi(P)，J = 1, ..., (L+1)/2
-    RSX := FSeaRationalPolynomialPool.Obtain;
-    RSY := FSeaRationalPolynomialPool.Obtain;
-    BigNumberRationalPolynomialCopy(RSX, PiPX);
-    BigNumberRationalPolynomialCopy(RSY, PiPY);
-
-    TSX := FSeaRationalPolynomialPool.Obtain;
-    TSY := FSeaRationalPolynomialPool.Obtain;
-
-    Found := False;
-    for I := 1 to (L + 1) div 2 do
-    begin
-      if BigNumberRationalPolynomialGaloisEqual(LSX, RSX, P, LDP) then
-      begin
-        if BigNumberRationalPolynomialGaloisEqual(LSY, RSY, P, LDP) then
-          BigNumberSetWord(Res, I)
-        else
-          BigNumberSetWord(Res, L - I);
-        Found := True;
-        Break;
-      end;
-
-      // RS = RS + pi(P) = [I+1] * pi(P)
-      if I < (L + 1) div 2 then
-      begin
-        TCnPolynomialEcc.RationalPointAddPoint(RSX, RSY, PiPX, PiPY, TSX, TSY, A, B, P, LDP);
-        BigNumberRationalPolynomialCopy(RSX, TSX);
-        BigNumberRationalPolynomialCopy(RSY, TSY);
-      end;
-    end;
-
-    if not Found then
-    begin
-      // t = 0
-      Res.SetZero;
-    end;
-
-    Result := True;
-  finally
-    FSeaRationalPolynomialPool.Recycle(TSY);
-    FSeaRationalPolynomialPool.Recycle(TSX);
-    FSeaRationalPolynomialPool.Recycle(RSY);
-    FSeaRationalPolynomialPool.Recycle(RSX);
-    FSeaRationalPolynomialPool.Recycle(LSY);
-    FSeaRationalPolynomialPool.Recycle(LSX);
-    FSeaRationalPolynomialPool.Recycle(KPY);
-    FSeaRationalPolynomialPool.Recycle(KPX);
-    FSeaRationalPolynomialPool.Recycle(PiPY);
-    FSeaRationalPolynomialPool.Recycle(PiPX);
-    FSeaRationalPolynomialPool.Recycle(Pi2PY);
-    FSeaRationalPolynomialPool.Recycle(Pi2PX);
-    FSeaBigNumberPool.Recycle(BQ);
-    // LDP 由 DPs 拥有，不释放
-    Y2.Free;
-  end;
-end;
-
 // Verify candidate trace t by checking [p+1-t]P = O for a point P on E/F_p
 function SeaVerifyTrace(A, B, P, T: TCnBigNumber): Boolean;
 var
@@ -2077,6 +2042,7 @@ var
   Inf: Boolean;
   I, Bits: Integer;
   StartX: Int64;
+  PointCount: Integer;
 begin
   Result := False;
   N := nil; X := nil; Y2 := nil; Y := nil;
@@ -2102,12 +2068,16 @@ begin
     if N.IsNegative then
       N.Negate;
 
-    // Find a point on E(F_p): try x = 0, 1, 2, ...
+    // Try multiple points to avoid false positives from small-order points.
+    // For a 48-bit prime, trying 3 points gives false-positive probability
+    // < 1/2^48, which is sufficient.
+    PointCount := 0;
     StartX := 0;
-    while True do
+    while (StartX < 10000) and (PointCount < 3) do
     begin
       X.SetWord(StartX);
-      if BigNumberCompare(X, P) >= 0 then Exit;
+      if BigNumberCompare(X, P) >= 0 then
+        Exit; // Ran out of x values
 
       // y^2 = x^3 + Ax + B mod p
       BigNumberMul(Y2, X, X);
@@ -2121,11 +2091,11 @@ begin
       BigNumberAdd(Y2, Y2, B);
       BigNumberMod(Y2, Y2, P);
 
+      Inc(StartX);
       if Y2.IsZero then
       begin
-        BigNumberCopy(SX, X);
-        SY.SetZero;
-        Break;
+        // Point (X, 0) — order 2, skip (too small)
+        Continue;
       end;
 
       // Check QR via Euler's criterion
@@ -2133,120 +2103,166 @@ begin
       T1.SubWord(1);
       BigNumberShiftRightOne(T1, T1);
       BigNumberPowerMod(T2, Y2, T1, P);
-      if T2.IsOne then
+      if not T2.IsOne then
+        Continue; // Not a QR, no point with this x
+
+      if not BigNumberTonelliShanks(Y, Y2, P) then
+        Continue;
+
+      BigNumberCopy(SX, X);
+      BigNumberCopy(SY, Y);
+      Inc(PointCount);
+
+      // Compute [N]P using double-and-add (MSB to LSB)
+      Inf := True;
+      Bits := BigNumberGetBitsCount(N);
+
+      for I := Bits - 1 downto 0 do
       begin
-        if BigNumberTonelliShanks(Y, Y2, P) then
+        if not Inf then
         begin
-          BigNumberCopy(SX, X);
-          BigNumberCopy(SY, Y);
-          Break;
-        end;
-      end;
-      Inc(StartX);
-    end;
-
-    // Compute [N]P using double-and-add
-    Inf := True;
-    Bits := BigNumberGetBitsCount(N);
-
-    for I := 0 to Bits - 1 do
-    begin
-      if not Inf then
-      begin
-        // R = 2*R (point doubling)
-        // lambda = (3*RX^2 + A) / (2*RY) mod p
-        BigNumberMul(T1, RX, RX);
-        BigNumberMod(T1, T1, P);
-        BigNumberMulWord(T1, 3);
-        BigNumberMod(T1, T1, P);
-        BigNumberAdd(T1, T1, A);
-        BigNumberMod(T1, T1, P);
-
-        BigNumberSetWord(T2, 2);
-        BigNumberMul(T2, T2, RY);
-        BigNumberMod(T2, T2, P);
-        if T2.IsZero then
-        begin
-          Inf := True;
-        end
-        else
-        begin
-          BigNumberModularInverse(T3, T2, P);
-          BigNumberMul(Lam, T1, T3);
-          BigNumberMod(Lam, Lam, P);
-
-          BigNumberMul(T1, Lam, Lam);
+          // R = 2*R (point doubling)
+          // lambda = (3*RX^2 + A) / (2*RY) mod p
+          BigNumberMul(T1, RX, RX);
           BigNumberMod(T1, T1, P);
+          BigNumberMulWord(T1, 3);
+          BigNumberMod(T1, T1, P);
+          BigNumberAdd(T1, T1, A);
+          BigNumberMod(T1, T1, P);
+
           BigNumberSetWord(T2, 2);
-          BigNumberMul(T2, T2, RX);
+          BigNumberMul(T2, T2, RY);
           BigNumberMod(T2, T2, P);
-          BigNumberSub(T1, T1, T2);
-          BigNumberMod(T1, T1, P);
-
-          BigNumberSub(T2, RX, T1);
-          BigNumberMod(T2, T2, P);
-          BigNumberMul(T3, Lam, T2);
-          BigNumberMod(T3, T3, P);
-          BigNumberSub(T3, T3, RY);
-          BigNumberMod(T3, T3, P);
-
-          BigNumberCopy(RX, T1);
-          BigNumberCopy(RY, T3);
-        end;
-      end;
-
-      if BigNumberIsBitSet(N, I) then
-      begin
-        if Inf then
-        begin
-          BigNumberCopy(RX, SX);
-          BigNumberCopy(RY, SY);
-          Inf := False;
-        end
-        else
-        begin
-          // R = R + S (point addition)
-          if BigNumberCompare(RX, SX) = 0 then
+          if T2.IsZero then
           begin
-            if BigNumberCompare(RY, SY) = 0 then
-              Continue // R = S, doubling already done
-            else
-            begin
-              Inf := True; // R = -S
-              Continue;
-            end;
+            Inf := True;
+          end
+          else
+          begin
+            BigNumberModularInverse(T3, T2, P);
+            BigNumberMul(Lam, T1, T3);
+            BigNumberMod(Lam, Lam, P);
+
+            BigNumberMul(T1, Lam, Lam);
+            BigNumberMod(T1, T1, P);
+            BigNumberSetWord(T2, 2);
+            BigNumberMul(T2, T2, RX);
+            BigNumberMod(T2, T2, P);
+            BigNumberSub(T1, T1, T2);
+            BigNumberMod(T1, T1, P);
+
+            BigNumberSub(T2, RX, T1);
+            BigNumberMod(T2, T2, P);
+            BigNumberMul(T3, Lam, T2);
+            BigNumberMod(T3, T3, P);
+            BigNumberSub(T3, T3, RY);
+            BigNumberMod(T3, T3, P);
+
+            BigNumberCopy(RX, T1);
+            BigNumberCopy(RY, T3);
           end;
+        end;
 
-          // lambda = (SY - RY) / (SX - RX) mod p
-          BigNumberSub(T1, SY, RY);
-          BigNumberMod(T1, T1, P);
-          BigNumberSub(T2, SX, RX);
-          BigNumberMod(T2, T2, P);
-          BigNumberModularInverse(T3, T2, P);
-          BigNumberMul(Lam, T1, T3);
-          BigNumberMod(Lam, Lam, P);
+        if BigNumberIsBitSet(N, I) then
+        begin
+          if Inf then
+          begin
+            BigNumberCopy(RX, SX);
+            BigNumberCopy(RY, SY);
+            Inf := False;
+          end
+          else
+          begin
+            // R = R + S (point addition)
+            if BigNumberCompare(RX, SX) = 0 then
+            begin
+              if BigNumberCompare(RY, SY) = 0 then
+              begin
+                // R = S, so R + S = 2*R (point doubling)
+                // The doubling above was of R_old; now R = 2*R_old = S,
+                // so we need a NEW doubling to get R + S = 2S.
+                // lambda = (3*RX^2 + A) / (2*RY) mod p
+                BigNumberMul(T1, RX, RX);
+                BigNumberMod(T1, T1, P);
+                BigNumberMulWord(T1, 3);
+                BigNumberMod(T1, T1, P);
+                BigNumberAdd(T1, T1, A);
+                BigNumberMod(T1, T1, P);
 
-          BigNumberMul(T1, Lam, Lam);
-          BigNumberMod(T1, T1, P);
-          BigNumberSub(T1, T1, RX);
-          BigNumberMod(T1, T1, P);
-          BigNumberSub(T1, T1, SX);
-          BigNumberMod(T1, T1, P);
+                BigNumberSetWord(T2, 2);
+                BigNumberMul(T2, T2, RY);
+                BigNumberMod(T2, T2, P);
+                if T2.IsZero then
+                  Inf := True
+                else
+                begin
+                  BigNumberModularInverse(T3, T2, P);
+                  BigNumberMul(Lam, T1, T3);
+                  BigNumberMod(Lam, Lam, P);
 
-          BigNumberSub(T2, RX, T1);
-          BigNumberMod(T2, T2, P);
-          BigNumberMul(T3, Lam, T2);
-          BigNumberMod(T3, T3, P);
-          BigNumberSub(T3, T3, RY);
-          BigNumberMod(T3, T3, P);
+                  BigNumberMul(T1, Lam, Lam);
+                  BigNumberMod(T1, T1, P);
+                  BigNumberSetWord(T2, 2);
+                  BigNumberMul(T2, T2, RX);
+                  BigNumberMod(T2, T2, P);
+                  BigNumberSub(T1, T1, T2);
+                  BigNumberMod(T1, T1, P);
 
-          BigNumberCopy(RX, T1);
-          BigNumberCopy(RY, T3);
+                  BigNumberSub(T2, RX, T1);
+                  BigNumberMod(T2, T2, P);
+                  BigNumberMul(T3, Lam, T2);
+                  BigNumberMod(T3, T3, P);
+                  BigNumberSub(T3, T3, RY);
+                  BigNumberMod(T3, T3, P);
+
+                  BigNumberCopy(RX, T1);
+                  BigNumberCopy(RY, T3);
+                end;
+                Continue;
+              end
+              else
+              begin
+                Inf := True; // R = -S
+                Continue;
+              end;
+            end;
+
+            // lambda = (SY - RY) / (SX - RX) mod p
+            BigNumberSub(T1, SY, RY);
+            BigNumberMod(T1, T1, P);
+            BigNumberSub(T2, SX, RX);
+            BigNumberMod(T2, T2, P);
+            BigNumberModularInverse(T3, T2, P);
+            BigNumberMul(Lam, T1, T3);
+            BigNumberMod(Lam, Lam, P);
+
+            BigNumberMul(T1, Lam, Lam);
+            BigNumberMod(T1, T1, P);
+            BigNumberSub(T1, T1, RX);
+            BigNumberMod(T1, T1, P);
+            BigNumberSub(T1, T1, SX);
+            BigNumberMod(T1, T1, P);
+
+            BigNumberSub(T2, RX, T1);
+            BigNumberMod(T2, T2, P);
+            BigNumberMul(T3, Lam, T2);
+            BigNumberMod(T3, T3, P);
+            BigNumberSub(T3, T3, RY);
+            BigNumberMod(T3, T3, P);
+
+            BigNumberCopy(RX, T1);
+            BigNumberCopy(RY, T3);
+          end;
         end;
       end;
+
+      // If [N]P != O for any point, reject this trace
+      if not Inf then
+        Exit;
     end;
 
-    Result := Inf;
+    // All points verified: [N]P = O for all tested points
+    Result := PointCount > 0;
   finally
     FSeaBigNumberPool.Recycle(T3);
 	FSeaBigNumberPool.Recycle(T2);
@@ -2410,19 +2426,38 @@ begin
         end
         else
         begin
-          // Elkies 失败，回退到 Schoof
-          SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
-          Ta[I] := TraceRes.GetInt64;
-          ElkiesTraces.Add(Ta[I]);
-          ElkiesModuli.Add(L);
+          // Elkies failed (e.g. CM curve where Phi_L has roots in F_p but
+          // Frobenius has no eigenvector in E[L]). Fall back to Atkin.
+          AtkinTraces.Clear;
+          if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) then
+            ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
+              TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx - 1]))
+          else
+            ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P);
+          if ElkiesOk then
+          begin
+            Info := TCnSeaAtkinInfo.Create;
+            Info.L := L;
+            Info.R := 0;
+            Info.PossibleTraces.AddList(AtkinTraces);
+            AtkinInfos.Add(Info);
+            Ta[I] := -1;
+          end
+          else
+          begin
+            Ta[I] := -1;
+          end;
         end;
       end
       else if PrimeType = sptAtkin then
       begin
         AtkinTraces.Clear;
-        if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) and
-          CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
-          TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx - 1])) then
+        if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) then
+          ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
+            TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx - 1]))
+        else
+          ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P);
+        if ElkiesOk then
         begin
           Info := TCnSeaAtkinInfo.Create;
           Info.L := L;
@@ -2433,17 +2468,12 @@ begin
         end
         else
         begin
-          SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
-          Ta[I] := TraceRes.GetInt64;
-          ElkiesTraces.Add(Ta[I]);
-          ElkiesModuli.Add(L);
+          Ta[I] := -1;
         end;
       end
       else
       begin
-        // 判定失败，回退到 Schoof
-        SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
-        Ta[I] := TraceRes.GetInt64;
+        Ta[I] := -1;
       end;
     end;
 
@@ -2453,14 +2483,6 @@ begin
       if not CnSeaCombineElkiesAtkin(Res, ElkiesTraces, ElkiesModuli, AtkinInfos, A, B, P) then
       begin
         // Atkin matching failed (search space too large).
-        // Fall back to Schoof for Atkin primes, then CRT.
-        for I := 0 to AtkinInfos.Count - 1 do
-        begin
-          L := TCnSeaAtkinInfo(AtkinInfos[I]).L;
-          SeaSchoofTraceModL(TraceRes, L, A, B, P, DPs);
-          ElkiesTraces.Add(TraceRes.GetInt64);
-          ElkiesModuli.Add(L);
-        end;
         BigNumberChineseRemainderTheorem(Res, ElkiesTraces, ElkiesModuli);
       end;
     end
@@ -2885,6 +2907,7 @@ var
   FY: TCnBigNumberPolynomial;
   Factors: TCnBigNumberPolynomialList;
   I, Deg, R: Integer;
+  TotalDeg, Multiplicity: Integer;
   SplitType: Integer;
   L64: Int64;
 begin
@@ -2910,12 +2933,33 @@ begin
     if FY.MaxDegree <= 0 then Exit;
     if not BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, FY, P) then Exit;
 
+    // Compute R from factor degrees, accounting for repeated factors.
+    // For CM curves (e.g. j=1728), Phi_L(j,Y) can be a perfect square g^2.
+    // The square-free factorization returns g, losing the multiplicity.
+    // The true R (order of eigenvalue ratio gamma) must be multiplied by
+    // the multiplicity to reflect the original polynomial's factor degrees.
+    TotalDeg := 0;
+    for I := 0 to Factors.Count - 1 do
+    begin
+      Deg := TCnBigNumberPolynomial(Factors[I]).MaxDegree;
+      if Deg > 0 then
+        TotalDeg := TotalDeg + Deg;
+    end;
+    if TotalDeg = 0 then Exit;
+
+    // Multiplicity = input_degree / total_square_free_degree
+    // (1 for non-CM curves, 2 for CM curves with j=1728 and L inert in Z[i])
+    if (TotalDeg > 0) and (FY.MaxDegree mod TotalDeg = 0) then
+      Multiplicity := FY.MaxDegree div TotalDeg
+    else
+      Multiplicity := 1;
+
     R := 1;
     for I := 0 to Factors.Count - 1 do
     begin
       Deg := TCnBigNumberPolynomial(Factors[I]).MaxDegree;
       if Deg > 0 then
-        R := SeaInt64LCM(R, Deg);
+        R := SeaInt64LCM(R, Deg * Multiplicity);
     end;
     if R < 1 then Exit;
 

@@ -23,14 +23,14 @@ procedure TestPointCountHex(const AHex, BHex, PHex, ExpectedOrderHex: string;
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 procedure TestPointCount48BitCM;
 {* 该用例验证 48Bit 的素数域的上述椭圆曲线。
-   九百九十秒算到 23 的模多项式，耗时九十秒的 SEA。
+   SEA 本身耗时四百多秒。
 
   p = 281474876048813 (0xFFFFFA0005AD)
   p = 16777213^2 + 38^2 (CM by Z[i])
   CM candidate 1: #E = 281474842494388 (0xFFFFF80005B4)
   CM candidate 2: #E = 281474909603240 (0xFFFFFC0005A8)
   Pre-generated 8 modular polynomials (L up to 23, 990075 ms)
-  SEA result:   #E = 281474842494388  (167934 ms)
+  SEA result:   #E = 281474842494388
            (0xFFFFF80005B4)
   CM MATCH! #E = p + 1 - 2a
   Independent verification ([#E]P = O):
@@ -41,19 +41,19 @@ procedure TestPointCount48BitCM;
 // 64-bit CM curve test: y^2 = x^3 + x over p = 3037000503^2 + 88^2 = 9223372055222260753
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 // Needs L up to 31 (Phi_29 and Phi_31).
-// SEA 耗时七百秒也就是十二分钟不到，MP 建议预存。
+// 结果 9223372061296261760 SEA 耗时六十五秒也就是一分钟，MP 建议预存。
 procedure TestPointCount64BitCM;
 
 // 72-bit CM curve test: y^2 = x^3 + x over p = 55000000000^2 + 21^2 = 3025000000000000000441
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 // Needs L up to 37. 算出结果是 3025000000000000000400
-// SEA 耗时 1092547 毫秒也就是一千一百秒，二十分钟不到，MP 要预存。
+// SEA 耗时二百三十秒，四分钟不到，MP 要预存。
 procedure TestPointCount72BitCM;
 
 // 96-bit CM curve test: y^2 = x^3 + x over p = 200000000000000^2 + 3^2 = 40000000000000000000000000009
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 // Needs L up to 43. 算出结果是 40000000000000000000000000016
-// SEA 耗时 4769718 毫秒也就是四千七百秒，八十分钟不到，MP 要预存。
+// SEA 耗时五百一十多秒，八分多钟，MP 要预存。
 procedure TestPointCount96BitCM;
 
 // ============================================================
@@ -532,6 +532,13 @@ var
   Expected: TCnBigNumber;
   Actual: TCnBigNumber;
   Matched: Boolean;
+  // Reverse check variables
+  J, K: Integer;
+  YList: TCnSparseBigNumberList;
+  CoeffVal: TCnBigNumber;
+  MITKeys: TStringList;
+  KeyStr: string;
+  ExtraCount: Integer;
 begin
   Result := 0;
 
@@ -543,6 +550,9 @@ begin
   end;
 
   SL := TStringList.Create;
+  MITKeys := TStringList.Create;
+  MITKeys.Sorted := True;
+  MITKeys.Duplicates := dupIgnore;
   Expected := TCnBigNumber.Create;
   try
     // Split MitData by #10 into lines
@@ -550,6 +560,7 @@ begin
 
     WriteLn(Format('  Comparing %d MIT entries', [SL.Count]));
 
+    // ===== Pass 1: Verify every MIT entry matches our polynomial =====
     for I := 0 to SL.Count - 1 do
     begin
       Line := Trim(SL[I]);
@@ -569,6 +580,13 @@ begin
       M := StrToInt(Copy(Key, 1, Comma - 1));
       N := StrToInt(Copy(Key, Comma + 1, MaxInt));
 
+      // Record this key for reverse check (normalize so M >= N)
+      if M >= N then
+        KeyStr := IntToStr(M) + ',' + IntToStr(N)
+      else
+        KeyStr := IntToStr(N) + ',' + IntToStr(M);
+      MITKeys.Add(KeyStr);
+
       Expected.SetDec(ValStr);
       Actual := GetCoeff(P, M, N);  // readonly reference, do not free
 
@@ -581,12 +599,41 @@ begin
       end;
     end;
 
+    // ===== Pass 2: Check for extra non-zero coefficients not in MIT data =====
+    ExtraCount := 0;
+    for I := 0 to P.MaxXDegree do
+    begin
+      YList := P.YFactorsList[I];
+      for J := 0 to YList.Count - 1 do
+      begin
+        K := YList[J].Exponent;
+        CoeffVal := YList[J].Value;
+        if CoeffVal.IsZero then Continue;
+
+        // Normalize key so larger index first (symmetric polynomial)
+        if I >= K then
+          KeyStr := IntToStr(I) + ',' + IntToStr(K)
+        else
+          KeyStr := IntToStr(K) + ',' + IntToStr(I);
+
+        if not MITKeys.Find(KeyStr, SpPos) then
+        begin
+          Inc(ExtraCount);
+          Inc(Result);
+          WriteLn(Format('  EXTRA [%d,%d]: Ours=%s (not in MIT data)',
+            [I, K, CoeffVal.ToDec]));
+        end;
+      end;
+    end;
+
     if Result = 0 then
       WriteLn('  MIT comparison: ALL MATCH')
     else
-      WriteLn(Format('  MIT comparison: %d mismatches', [Result]));
+      WriteLn(Format('  MIT comparison: %d mismatches (%d extra coefficients)',
+        [Result, ExtraCount]));
   finally
     Expected.Free;
+    MITKeys.Free;
     SL.Free;
   end;
 end;
