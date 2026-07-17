@@ -28,7 +28,9 @@ unit CnOTP;
 *           参考《GB/T 38556-2020 信息安全技术动态口令密码应用技术规范》
 *           以及 RFC 4226 与 RFC 6238。其中 TOTP+SHA1 已通过 GitHub 的 2FA 测试
 * 开发平台：Win 7
-* 修改记录：2026.05.12 V1.2
+* 修改记录：2027.07.17 V1.3
+*                增加校验功能
+*           2026.05.12 V1.2
 *                修正世界时的偏差问题
 *           2023.04.11 V1.1
 *                增加 RFC 4226 的 HOTP 实现与 RFC 6238 的 TOTP 实现
@@ -81,6 +83,7 @@ type
     FPasswordType: TCnOnePasswordType;
     FPeriod: Integer;
     FDigits: Integer;
+    function GenerateAt(TimeStep: Int64): string;
     procedure SetDigits(const Value: Integer);
     procedure SetPeriod(const Value: Integer);
   public
@@ -118,6 +121,16 @@ type
        返回值：（无）
     }
 
+    function Verify(const Password: string; TimeStepWindow: Integer = 0): Boolean;
+    {* 验证动态口令是否与当前/邻近时间步计算出的口令一致。
+
+       参数：
+         Password: string                 - 待验证的口令字符串
+         TimeStepWindow: Integer          - 时间步容忍窗口（±），默认 0
+
+       返回值：Boolean                    - 匹配返回 True，否则 False
+    }
+
     function OneTimePassword: string;
     {* 根据各种数据计算动态口令，返回数字组成的字符串。
 
@@ -143,6 +156,7 @@ type
     FSeedKey: TBytes;
     FCounter: Int64;
     FDigits: Integer;
+    function GenerateAt(Counter: Int64): string;
     procedure SetDigits(const Value: Integer);
   public
     constructor Create; virtual;
@@ -169,6 +183,16 @@ type
        返回值：（无）
     }
 
+    function Verify(const Password: string; LookAheadWindow: Integer = 3): Boolean;
+    {* 验证动态口令是否与当前/后续计数器窗口计算出的口令一致。
+
+       参数：
+         Password: string                 - 待验证的口令字符串
+         LookAheadWindow: Integer         - 向前尝试的计数器窗口，默认 3（RFC 4226 建议）
+
+       返回值：Boolean                    - 匹配返回 True，否则 False。验证不改变计数器。
+    }
+
     function OneTimePassword: string;
     {* 根据各种数据计算动态口令，返回数字组成的字符串。
 
@@ -192,6 +216,7 @@ type
     FDigits: Integer;
     FPeriod: Integer;
     FPasswordType: TCnTOTPPasswordType;
+    function GenerateAt(TimeStep: Int64): string;
     procedure SetDigits(const Value: Integer);
     procedure SetPeriod(const Value: Integer);
   public
@@ -219,6 +244,16 @@ type
        返回值：string                     - 返回动态口令
     }
 
+    function Verify(const Password: string; TimeStepWindow: Integer = 1): Boolean;
+    {* 验证动态口令是否与当前/邻近时间步计算出的口令一致。
+
+       参数：
+         Password: string                 - 待验证的口令字符串
+         TimeStepWindow: Integer          - 时间步容忍窗口（±），默认 1（RFC 6238 建议）
+
+       返回值：Boolean                    - 匹配返回 True，否则 False
+    }
+
     property PasswordType: TCnTOTPPasswordType read FPasswordType write FPasswordType;
     {* TOTP 杂凑类型}
 
@@ -239,6 +274,92 @@ function CnGetCurrentTimeZoneUTCBiasMinutes: Integer;
    返回值：Integer                        - 返回分钟为单位的时间差
 }
 
+function CnTOTPGenerate(const SeedKey: TBytes; PasswordType: TCnTOTPPasswordType;
+  Period, Digits: Integer): string;
+{* 独立生成 TOTP 动态口令（RFC 6238）。内部构造 TCnTOTPGenerator 并调用其 OneTimePassword。
+
+   参数：
+     SeedKey: TBytes                     - 种子密钥
+     PasswordType: TCnTOTPPasswordType   - 杂凑类型（SHA1/256/512）
+     Period: Integer                     - 时间步周期（秒）
+     Digits: Integer                     - 口令位数
+
+   返回值：string                        - 当前时间步生成的动态口令，种子为空时返回空串
+}
+
+function CnHOTPGenerate(const SeedKey: TBytes; Counter: Int64; Digits: Integer): string;
+{* 独立生成 HOTP 动态口令（RFC 4226）。内部构造 TCnHOTPGenerator 并调用其 OneTimePassword。
+
+   参数：
+     SeedKey: TBytes                     - 种子密钥
+     Counter: Int64                      - 计数器
+     Digits: Integer                     - 口令位数
+
+   返回值：string                        - 指定计数器生成的动态口令，种子为空时返回空串
+}
+
+function CnDynamicTokenGenerate(const SeedKey: TBytes; PasswordType: TCnOnePasswordType;
+  Period, Digits, Counter: Integer; const ChallengeCode: TBytes): string;
+{* 独立生成 GB/T 38556 动态口令。内部构造 TCnDynamicToken 并调用其 OneTimePassword。
+
+   参数：
+     SeedKey: TBytes                     - 种子密钥
+     PasswordType: TCnOnePasswordType    - 中间计算函数类型（SM3/SM4）
+     Period: Integer                     - 时间步周期（秒）
+     Digits: Integer                     - 口令位数
+     Counter: Integer                    - 事件因子
+     ChallengeCode: TBytes               - 挑战种子
+
+   返回值：string                        - 根据当前时间步生成的动态口令，种子为空时返回空串
+}
+
+function CnTOTPVerify(const SeedKey: TBytes; PasswordType: TCnTOTPPasswordType;
+  Period, Digits: Integer; const Password: string; TimeStepWindow: Integer = 1): Boolean;
+{* 独立验证 TOTP 动态口令（RFC 6238）。内部构造 TCnTOTPGenerator 并调用其 Verify。
+
+   参数：
+     SeedKey: TBytes                     - 种子密钥
+     PasswordType: TCnTOTPPasswordType   - 杂凑类型（SHA1/256/512）
+     Period: Integer                     - 时间步周期（秒）
+     Digits: Integer                     - 口令位数
+     Password: string                    - 待验证的口令
+     TimeStepWindow: Integer             - 时间步窗口，默认 1
+
+   返回值：Boolean                       - 匹配返回 True，否则 False
+}
+
+function CnHOTPVerify(const SeedKey: TBytes; Counter: Int64; Digits: Integer;
+  const Password: string; LookAheadWindow: Integer = 3): Boolean;
+{* 独立验证 HOTP 动态口令（RFC 4226）。内部构造 TCnHOTPGenerator 并调用其 Verify。
+
+   参数：
+     SeedKey: TBytes                     - 种子密钥
+     Counter: Int64                      - 起始计数器
+     Digits: Integer                     - 口令位数
+     Password: string                    - 待验证的口令
+     LookAheadWindow: Integer            - 计数器窗口，默认 3
+
+   返回值：Boolean                       - 匹配返回 True，否则 False
+}
+
+function CnDynamicTokenVerify(const SeedKey: TBytes; PasswordType: TCnOnePasswordType;
+  Period, Digits, Counter: Integer; const ChallengeCode: TBytes;
+  const Password: string; TimeStepWindow: Integer = 0): Boolean;
+{* 独立验证 GB/T 38556 动态口令。内部构造 TCnDynamicToken 并调用其 Verify。
+
+   参数：
+     SeedKey: TBytes                     - 种子密钥
+     PasswordType: TCnOnePasswordType    - 中间计算函数类型（SM3/SM4）
+     Period: Integer                     - 时间步周期（秒）
+     Digits: Integer                     - 口令位数
+     Counter: Integer                    - 事件因子
+     ChallengeCode: TBytes               - 挑战种子
+     Password: string                    - 待验证的口令
+     TimeStepWindow: Integer             - 时间步窗口，默认 0
+
+   返回值：Boolean                       - 匹配返回 True，否则 False
+}
+
 implementation
 
 uses
@@ -248,6 +369,16 @@ resourcestring
   SCnErrorOTPInvalidDataLength = 'Invalid Data or Length';
   SCnErrorOTPInvalidDigits = 'Invalid Digits';
   SCnErrorOTPInvalidPeriod = 'Invalid Period';
+
+// 常量时间比较两串口令：长度不等直接 False，否则用 ConstTimeCompareMem 逐字节比较，
+// 避免验证分支因长度/内容差异产生可被利用的时序差异
+function CompareOTP(const A, B: string): Boolean;
+begin
+  if Length(A) <> Length(B) then
+    Result := False
+  else
+    Result := ConstTimeCompareMem(PChar(A), PChar(B), Length(A) * SizeOf(Char));
+end;
 
 function CnGetCurrentTimeZoneUTCBiasMinutes: Integer;
 var
@@ -309,7 +440,7 @@ begin
   inherited;
 end;
 
-function TCnDynamicToken.OneTimePassword: string;
+function TCnDynamicToken.GenerateAt(TimeStep: Int64): string;
 var
   L, Cnt: Integer;
   T: Int64;
@@ -337,11 +468,8 @@ var
   end;
 
 begin
-  if Length(FSeedKey) <= 0 then
-    raise ECnOneTimePasswordException.Create(SCnErrorOTPInvalidDataLength);
-
   // 计算动态口令过程
-  T := Int64HostToNetwork(EpochSeconds div FPeriod);
+  T := Int64HostToNetwork(TimeStep);
 
   L := SizeOf(Int64) + SizeOf(Integer) + Length(FChallengeCode);
   if L < CN_ID_MIN_LENGTH then
@@ -449,6 +577,33 @@ begin
   end;
 end;
 
+function TCnDynamicToken.OneTimePassword: string;
+begin
+  Result := GenerateAt(EpochSeconds div FPeriod);
+end;
+
+function TCnDynamicToken.Verify(const Password: string; TimeStepWindow: Integer): Boolean;
+var
+  BaseT, T: Int64;
+  K: Integer;
+begin
+  Result := False;
+  if Length(FSeedKey) = 0 then
+    Exit;
+  if TimeStepWindow < 0 then
+    TimeStepWindow := 0;
+  BaseT := EpochSeconds div FPeriod;
+  for K := -TimeStepWindow to TimeStepWindow do
+  begin
+    T := BaseT + K;
+    if CompareOTP(GenerateAt(T), Password) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 procedure TCnDynamicToken.SetChallengeCode(Code: Pointer;
   CodeByteLength: Integer);
 begin
@@ -504,7 +659,7 @@ begin
   inherited;
 end;
 
-function TCnHOTPGenerator.OneTimePassword: string;
+function TCnHOTPGenerator.GenerateAt(Counter: Int64): string;
 var
   Dig: TCnSHA1Digest;
   Cnt: Int64;
@@ -514,7 +669,7 @@ var
   TenPow: Integer;
   Fmt: string;
 begin
-  Cnt := Int64HostToNetwork(FCounter);
+  Cnt := Int64HostToNetwork(Counter);
   SHA1Hmac(@FSeedKey[0], Length(FSeedKey), @Cnt, SizeOf(Cnt), Dig);
 
   B := Dig[SizeOf(TCnSHA1Digest) - 1] and $0F;
@@ -527,8 +682,33 @@ begin
   TenPow := Trunc(IntPower(10, FDigits));
   Fmt := Format('%%%d.%dd', [FDigits, FDigits]);
   Result := Format(Fmt, [SNum mod Cardinal(TenPow)]);
+end;
 
+function TCnHOTPGenerator.OneTimePassword: string;
+begin
+  Result := GenerateAt(FCounter);
   Inc(FCounter);
+end;
+
+function TCnHOTPGenerator.Verify(const Password: string; LookAheadWindow: Integer): Boolean;
+var
+  C: Int64;
+  K: Integer;
+begin
+  Result := False;
+  if Length(FSeedKey) = 0 then
+    Exit;
+  if LookAheadWindow < 0 then
+    LookAheadWindow := 0;
+  for K := 0 to LookAheadWindow do
+  begin
+    C := FCounter + K;
+    if CompareOTP(GenerateAt(C), Password) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
 end;
 
 procedure TCnHOTPGenerator.SetCounter(Value: Int64);
@@ -570,7 +750,7 @@ begin
   inherited;
 end;
 
-function TCnTOTPGenerator.OneTimePassword: string;
+function TCnTOTPGenerator.GenerateAt(TimeStep: Int64): string;
 var
   T: Int64;
   Dig1: TCnSHA1Digest;
@@ -582,7 +762,7 @@ var
   TenPow: Integer;
   Fmt: string;
 begin
-  T := Int64HostToNetwork(EpochSeconds div FPeriod);
+  T := Int64HostToNetwork(TimeStep);
   case FPasswordType of
     tptSHA1:
       begin
@@ -614,6 +794,33 @@ begin
   Result := Format(Fmt, [SNum mod Cardinal(TenPow)]);
 end;
 
+function TCnTOTPGenerator.OneTimePassword: string;
+begin
+  Result := GenerateAt(EpochSeconds div FPeriod);
+end;
+
+function TCnTOTPGenerator.Verify(const Password: string; TimeStepWindow: Integer): Boolean;
+var
+  BaseT, T: Int64;
+  K: Integer;
+begin
+  Result := False;
+  if Length(FSeedKey) = 0 then
+    Exit;
+  if TimeStepWindow < 0 then
+    TimeStepWindow := 0;
+  BaseT := EpochSeconds div FPeriod;
+  for K := -TimeStepWindow to TimeStepWindow do
+  begin
+    T := BaseT + K;
+    if CompareOTP(GenerateAt(T), Password) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 procedure TCnTOTPGenerator.SetDigits(const Value: Integer);
 begin
   if Value <= 0 then
@@ -638,6 +845,130 @@ begin
 
   SetLength(FSeedKey, KeyByteLength);
   Move(Key^, FSeedKey[0], KeyByteLength);
+end;
+
+function CnTOTPGenerate(const SeedKey: TBytes; PasswordType: TCnTOTPPasswordType;
+  Period, Digits: Integer): string;
+var
+  G: TCnTOTPGenerator;
+begin
+  Result := '';
+  if Length(SeedKey) = 0 then
+    Exit;
+  G := TCnTOTPGenerator.Create;
+  try
+    G.SetSeedKey(@SeedKey[0], Length(SeedKey));
+    G.PasswordType := PasswordType;
+    G.Period := Period;
+    G.Digits := Digits;
+    Result := G.OneTimePassword;
+  finally
+    G.Free;
+  end;
+end;
+
+function CnHOTPGenerate(const SeedKey: TBytes; Counter: Int64; Digits: Integer): string;
+var
+  G: TCnHOTPGenerator;
+begin
+  Result := '';
+  if Length(SeedKey) = 0 then
+    Exit;
+  G := TCnHOTPGenerator.Create;
+  try
+    G.SetSeedKey(@SeedKey[0], Length(SeedKey));
+    G.SetCounter(Counter);
+    G.Digits := Digits;
+    Result := G.OneTimePassword;
+  finally
+    G.Free;
+  end;
+end;
+
+function CnDynamicTokenGenerate(const SeedKey: TBytes; PasswordType: TCnOnePasswordType;
+  Period, Digits, Counter: Integer; const ChallengeCode: TBytes): string;
+var
+  T: TCnDynamicToken;
+begin
+  Result := '';
+  if Length(SeedKey) = 0 then
+    Exit;
+  T := TCnDynamicToken.Create;
+  try
+    T.SetSeedKey(@SeedKey[0], Length(SeedKey));
+    T.PasswordType := PasswordType;
+    T.Period := Period;
+    T.Digits := Digits;
+    T.SetCounter(Counter);
+    if Length(ChallengeCode) > 0 then
+      T.SetChallengeCode(@ChallengeCode[0], Length(ChallengeCode));
+    Result := T.OneTimePassword;
+  finally
+    T.Free;
+  end;
+end;
+
+function CnTOTPVerify(const SeedKey: TBytes; PasswordType: TCnTOTPPasswordType;
+  Period, Digits: Integer; const Password: string; TimeStepWindow: Integer): Boolean;
+var
+  G: TCnTOTPGenerator;
+begin
+  Result := False;
+  if Length(SeedKey) = 0 then
+    Exit;
+  G := TCnTOTPGenerator.Create;
+  try
+    G.SetSeedKey(@SeedKey[0], Length(SeedKey));
+    G.PasswordType := PasswordType;
+    G.Period := Period;
+    G.Digits := Digits;
+    Result := G.Verify(Password, TimeStepWindow);
+  finally
+    G.Free;
+  end;
+end;
+
+function CnHOTPVerify(const SeedKey: TBytes; Counter: Int64; Digits: Integer;
+  const Password: string; LookAheadWindow: Integer): Boolean;
+var
+  G: TCnHOTPGenerator;
+begin
+  Result := False;
+  if Length(SeedKey) = 0 then
+    Exit;
+  G := TCnHOTPGenerator.Create;
+  try
+    G.SetSeedKey(@SeedKey[0], Length(SeedKey));
+    G.SetCounter(Counter);
+    G.Digits := Digits;
+    Result := G.Verify(Password, LookAheadWindow);
+  finally
+    G.Free;
+  end;
+end;
+
+function CnDynamicTokenVerify(const SeedKey: TBytes; PasswordType: TCnOnePasswordType;
+  Period, Digits, Counter: Integer; const ChallengeCode: TBytes;
+  const Password: string; TimeStepWindow: Integer): Boolean;
+var
+  T: TCnDynamicToken;
+begin
+  Result := False;
+  if Length(SeedKey) = 0 then
+    Exit;
+  T := TCnDynamicToken.Create;
+  try
+    T.SetSeedKey(@SeedKey[0], Length(SeedKey));
+    T.PasswordType := PasswordType;
+    T.Period := Period;
+    T.Digits := Digits;
+    T.SetCounter(Counter);
+    if Length(ChallengeCode) > 0 then
+      T.SetChallengeCode(@ChallengeCode[0], Length(ChallengeCode));
+    Result := T.Verify(Password, TimeStepWindow);
+  finally
+    T.Free;
+  end;
 end;
 
 end.

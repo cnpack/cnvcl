@@ -13144,6 +13144,7 @@ const
 var
   G: TCnHOTPGenerator;
   Seed: AnsiString;
+  SeedB: TBytes;
   I: Integer;
 begin
   G := TCnHOTPGenerator.Create;
@@ -13162,6 +13163,52 @@ begin
         Exit;
       end;
     end;
+
+    // 类方法 Verify：验证不改变 FCounter
+    G.SetCounter(0);
+    if not G.Verify(HOTP_VEC[0], 0) then         // 精确匹配当前计数器
+    begin
+      Result := False;
+      Exit;
+    end;
+    if not G.Verify(HOTP_VEC[3], 3) then         // 计数器 0 起，窗口 3 内可命中 C+3
+    begin
+      Result := False;
+      Exit;
+    end;
+    if G.Verify(HOTP_VEC[4], 3) then             // C+4 超出窗口 3，应失败
+    begin
+      Result := False;
+      Exit;
+    end;
+    if G.Verify('000000', 3) then                // 错误口令应失败
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 独立函数 CnHOTPGenerate / CnHOTPVerify
+    SeedB := AnsiToBytes(Seed);
+    if CnHOTPGenerate(SeedB, 5, 6) <> HOTP_VEC[5] then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if not CnHOTPVerify(SeedB, 0, 6, HOTP_VEC[0], 0) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if not CnHOTPVerify(SeedB, 0, 6, HOTP_VEC[3], 3) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if CnHOTPVerify(SeedB, 0, 6, '000000', 3) then
+    begin
+      Result := False;
+      Exit;
+    end;
   finally
     G.Free;
   end;
@@ -13171,6 +13218,7 @@ function TestTOTP: Boolean;
 var
   G: TCnTOTPGenerator;
   Seed: AnsiString;
+  SeedB: TBytes;
   S: string;
   I: Integer;
 begin
@@ -13194,6 +13242,18 @@ begin
       end;
     end;
 
+    // 类方法 Verify：刚生成的口令在窗口 1 内必然命中；错误口令应失败
+    if not G.Verify(S, 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if G.Verify('00000000', 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
     G.PasswordType := tptSHA256;
     S := G.OneTimePassword;
     Result := Length(S) = 8;
@@ -13205,6 +13265,11 @@ begin
         Result := False;
         Exit;
       end;
+    end;
+    if not G.Verify(S, 1) then
+    begin
+      Result := False;
+      Exit;
     end;
 
     G.PasswordType := tptSHA512;
@@ -13219,6 +13284,30 @@ begin
         Exit;
       end;
     end;
+    if not G.Verify(S, 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 独立函数 CnTOTPGenerate / CnTOTPVerify 往返验证
+    SeedB := AnsiToBytes(Seed);
+    S := CnTOTPGenerate(SeedB, tptSHA1, 30, 8);
+    if Length(S) <> 8 then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if not CnTOTPVerify(SeedB, tptSHA1, 30, 8, S, 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if CnTOTPVerify(SeedB, tptSHA1, 30, 8, '00000000', 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
   finally
     G.Free;
   end;
@@ -13228,6 +13317,7 @@ function TestDynamicToken: Boolean;
 var
   T: TCnDynamicToken;
   Seed, Challenge: AnsiString;
+  SeedB, ChalB: TBytes;
   S: string;
   I: Integer;
 begin
@@ -13255,6 +13345,18 @@ begin
       end;
     end;
 
+    // 类方法 Verify：刚生成的口令在窗口 1 内必然命中；错误口令应失败
+    if not T.Verify(S, 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if T.Verify('00000000', 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
     T.PasswordType := copSM4;
     S := T.OneTimePassword;
     Result := Length(S) = 8;
@@ -13266,6 +13368,31 @@ begin
         Result := False;
         Exit;
       end;
+    end;
+    if not T.Verify(S, 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 独立函数 CnDynamicTokenGenerate / CnDynamicTokenVerify 往返验证
+    SeedB := AnsiToBytes(Seed);
+    ChalB := AnsiToBytes(Challenge);
+    S := CnDynamicTokenGenerate(SeedB, copSM3, 60, 8, 1024, ChalB);
+    if Length(S) <> 8 then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if not CnDynamicTokenVerify(SeedB, copSM3, 60, 8, 1024, ChalB, S, 1) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    if CnDynamicTokenVerify(SeedB, copSM3, 60, 8, 1024, ChalB, '00000000', 1) then
+    begin
+      Result := False;
+      Exit;
     end;
   finally
     T.Free;
