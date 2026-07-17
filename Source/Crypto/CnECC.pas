@@ -6366,7 +6366,7 @@ begin
     if not BigNumberNonNegativeMod(P1.Y, InSignature.R, Ecc.Order) then  // º∆À„ r mod N
       Exit;
 
-    Result := BigNumberCompare(P1.X, P1.Y) = 0;
+    Result := BigNumberConstTimeEqual(P1.X, P1.Y);
   finally
     SInv.Free;
     P2.Free;

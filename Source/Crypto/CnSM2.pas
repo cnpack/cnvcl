@@ -2063,7 +2063,7 @@ begin
 
     BigNumberNonNegativeMod(R, E, SM2.Order);
 
-    Result := BigNumberCompare(R, InSignature.R) = 0;
+    Result := BigNumberConstTimeEqual(R, InSignature.R);
     _CnSetLastError(ECN_SM2_OK); // 正常进行校验，即使校验不通过也清空错误码
   finally
     K.Free;

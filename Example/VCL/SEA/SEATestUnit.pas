@@ -23,7 +23,7 @@ procedure TestPointCountHex(const AHex, BHex, PHex, ExpectedOrderHex: string;
 // CM theory gives #E = p + 1 +/- 2a. Independent verification via [#E]P = O.
 procedure TestPointCount48BitCM;
 {* 该用例验证 48Bit 的素数域的上述椭圆曲线。
-   SEA 本身耗时四百多秒。
+   SEA 本身耗时二百六十多秒。
 
   p = 281474876048813 (0xFFFFFA0005AD)
   p = 16777213^2 + 38^2 (CM by Z[i])
@@ -55,6 +55,14 @@ procedure TestPointCount72BitCM;
 // Needs L up to 43. 算出结果是 40000000000000000000000000016
 // SEA 耗时五百一十多秒，八分多钟，MP 要预存。
 procedure TestPointCount96BitCM;
+
+// 补充：===== Standard curve: secp112r1 (NIST/SECG, 112-bit) =====
+// Smallest standard ECC curve. h=1 so #E = n.
+// DB7C2ABF62E35E668076BEAD2088',  // a
+// 659EF8BA043916EEDE8911702B22',  // b
+// DB7C2ABF62E35E668076BEAD208B',  // p
+// 4451685225093714776491891542548933 = DB7C2ABF62E35E7628DFAC6561C5',  // expected #E = n (since h=1)
+// 耗时一千三百七十秒，二十三分钟左右。MP 采取预存。
 
 // ============================================================
 // MIT Classical Modular Polynomial coefficients (embedded)

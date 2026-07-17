@@ -2890,6 +2890,17 @@ var
   ResBuf: TBytes;
   FakeBuf: TBytes;
   RandOK: Boolean;
+
+  // 从假数据缓冲区中取出一段看似合理长度（8~64 字节）的内容填入输出缓冲区，
+  // 用于 Padding 失败时冒充成功返回，避免向调用方泄露可区分的失败响应
+  procedure FillFakeData;
+  begin
+    OutLen := 8 + (FakeBuf[0] mod 57);
+    if OutLen > BlockSize then
+      OutLen := BlockSize div 2;
+    Move(FakeBuf[0], OutBuf^, OutLen);
+  end;
+
 begin
   Result := False;
   Res := nil;
@@ -2922,19 +2933,14 @@ begin
         if not RandOK then
         begin
           Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
         // Padding 无效：使用假数据，但要让输出看起来"合理"
         // 关键修复：生成一个看起来像真实数据的随机长度
         // 使用假数据的前 N 字节，其中 N 是一个"合理"的长度
 
-        // 从假数据中提取一个看似合理的长度（8-64 字节之间）
-        OutLen := 8 + (FakeBuf[0] mod 57);  // 8 到 64 之间
-        if OutLen > BlockSize then
-          OutLen := BlockSize div 2;  // 安全回退
-
-        // 复制假数据的前 OutLen 字节
-        Move(FakeBuf[0], OutBuf^, OutLen);
+        FillFakeData;
         // 冒充成功，不告诉外界 Padding 失败
         Result := True;
         _CnSetLastError(ECN_RSA_OK);
@@ -2942,24 +2948,53 @@ begin
     end
     else if PaddingMode = cpmOAEP then
     begin
-      // OAEP 解密，仅私钥的控制在调用者
+      // OAEP 解密，仅私钥的控制在调用者。
+      // 内部 RemoveOaepSha1MgfPadding 已为常量时间，但 API 层仍可能因返回的不同成功/失败
+      // 布尔值形成 Manger 攻击所需的预言机。此处与 PKCS1 v1.5 路径一致：Padding 失败时
+      // 返回伪随机数据并冒充成功，避免泄露“解密成功/失败”这一可区分响应。
       Result := RemoveOaepSha1MgfPadding(OutBuf, OutLen, @ResBuf[0], Length(ResBuf));
 
       if Result then
         _CnSetLastError(ECN_RSA_OK)
       else
-        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      begin
+        SetLength(FakeBuf, BlockSize);
+        RandOK := CnRandomFillBytes2(PAnsiChar(@FakeBuf[0]), BlockSize);
+        if not RandOK then
+        begin
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
+          Exit;
+        end;
+
+        FillFakeData;
+        Result := True;
+        _CnSetLastError(ECN_RSA_OK);
+      end;
     end
     else if PaddingMode in [cpmOAEP_SHA256, cpmOAEP_SHA384, cpmOAEP_SHA512] then
     begin
-      // OAEP 解密，使用 SHA2 系列杂凑
+      // OAEP 解密，使用 SHA2 系列杂凑。同样防范 Manger 预言机。
       Result := RemoveOaepMgfPadding(OutBuf, OutLen, @ResBuf[0], Length(ResBuf),
         nil, 0, OAEPModeToDigestType(PaddingMode));
 
       if Result then
         _CnSetLastError(ECN_RSA_OK)
       else
-        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      begin
+        SetLength(FakeBuf, BlockSize);
+        RandOK := CnRandomFillBytes2(PAnsiChar(@FakeBuf[0]), BlockSize);
+        if not RandOK then
+        begin
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
+          Exit;
+        end;
+
+        FillFakeData;
+        Result := True;
+        _CnSetLastError(ECN_RSA_OK);
+      end;
     end;
   finally
     Stream.Free;
@@ -3634,8 +3669,10 @@ begin
       SetLength(BerBuf, Length(ResBuf));
       if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), @BerBuf[0], BerLen) then
       begin
-        _CnSetLastError(ECN_RSA_PADDING_ERROR);
-        Exit;
+        // 防范验签可区分预言机：Padding 失败时不再暴露 ECN_RSA_PADDING_ERROR，
+        // 而是将 BerLen 置为 -1，使后续比对必然失败（且不会误判空签名为通过），
+        // 最终与“哈希不符”路径一致地以 ECN_RSA_OK + False 收尾。
+        BerLen := -1;
       end;
 
       if SignType = rsdtNone then
@@ -3651,7 +3688,9 @@ begin
       begin
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
-          _CnSetLastError(ECN_RSA_BER_ERROR);
+          // Padding 失败或解出内容非法时，统一以“验签不通过”返回，不暴露 BER 错误码
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
 
@@ -3660,7 +3699,9 @@ begin
         Reader.ParseToTree;
         if Reader.TotalCount < 5 then
         begin
-          _CnSetLastError(ECN_RSA_BER_ERROR);
+          // Padding 合法但 BER 解析失败时，同样统一以“验签不通过”返回，不暴露 BER 错误码
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
 
@@ -3668,7 +3709,8 @@ begin
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = rsdtNone then
         begin
-          _CnSetLastError(ECN_RSA_BER_ERROR);
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
 
@@ -3858,8 +3900,10 @@ begin
       SetLength(BerBuf, Length(ResBuf));
       if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), @BerBuf[0], BerLen) then
       begin
-        _CnSetLastError(ECN_RSA_PADDING_ERROR);
-        Exit;
+        // 防范验签可区分预言机：Padding 失败时不再暴露 ECN_RSA_PADDING_ERROR，
+        // 而是将 BerLen 置为 -1，使后续比对必然失败（且不会误判空签名文件为通过），
+        // 最终与“哈希不符”路径一致地以 ECN_RSA_OK + False 收尾。
+        BerLen := -1;
       end;
 
       if SignType = rsdtNone then
@@ -3875,7 +3919,9 @@ begin
       begin
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
-          _CnSetLastError(ECN_RSA_BER_ERROR);
+          // Padding 失败或解出内容非法时，统一以“验签不通过”返回，不暴露 BER 错误码
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
 
@@ -3884,7 +3930,9 @@ begin
         Reader.ParseToTree;
         if Reader.TotalCount < 5 then
         begin
-          _CnSetLastError(ECN_RSA_BER_ERROR);
+          // Padding 合法但 BER 解析失败时，同样统一以“验签不通过”返回，不暴露 BER 错误码
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
 
@@ -3892,7 +3940,8 @@ begin
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = rsdtNone then
         begin
-          _CnSetLastError(ECN_RSA_BER_ERROR);
+          Result := False;
+          _CnSetLastError(ECN_RSA_OK);
           Exit;
         end;
 

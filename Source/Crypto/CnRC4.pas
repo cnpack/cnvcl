@@ -44,6 +44,10 @@ const
   CN_RC4_MAX_KEY_BYTE_LENGTH = 256;
   {* 最长支持 256 字节也就是 2048 位的密钥，也是内部 S 盒的大小}
 
+type
+  ECnRC4Exception = class(Exception);
+  {* RC4 相关异常}
+
 procedure RC4Encrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
   Output: Pointer; ByteLength: Integer);
 {* 对 Input 所指的字节长度为 ByteLength 的明文数据块，使用 Key 所指的字节长度 KeyByteLength 的
@@ -118,6 +122,9 @@ function RC4DecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): 
 
 implementation
 
+resourcestring
+  SCnRC4EmptyKey = 'RC4: Key is nil or Key Length is Zero';
+
 type
   TCnRC4State = packed record
     Permutation: array[0..CN_RC4_MAX_KEY_BYTE_LENGTH - 1] of Byte;
@@ -189,12 +196,16 @@ end;
 procedure RC4Encrypt(Key: Pointer; KeyByteLength: Integer; Input, Output: Pointer;
   ByteLength: Integer);
 begin
+  if (Key = nil) or (KeyByteLength <= 0) then
+    raise ECnRC4Exception.Create(SCnRC4EmptyKey);
   RC4(Key, KeyByteLength, Input, Output, ByteLength);
 end;
 
 procedure RC4Decrypt(Key: Pointer; KeyByteLength: Integer; Input, Output: Pointer;
   ByteLength: Integer);
 begin
+  if (Key = nil) or (KeyByteLength <= 0) then
+    raise ECnRC4Exception.Create(SCnRC4EmptyKey);
   RC4(Key, KeyByteLength, Input, Output, ByteLength);
 end;
 
