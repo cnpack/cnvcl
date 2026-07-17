@@ -4501,6 +4501,32 @@ function Int64BiPolynomialEvaluateByX(Res: TCnInt64Polynomial;
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function Int64BiPolynomialDerivativeX(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial): Boolean;
+{* 计算二元整系数多项式对 X 的偏导数 dP/dX。
+   若 P = sum(c[i,j] * X^i * Y^j)，则 dP/dX = sum(i*c[i,j] * X^(i-1) * Y^j)。
+   X 最高次为 0（即不含 X）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnInt64BiPolynomial            - 用来容纳结果的二元整系数多项式
+     P: TCnInt64BiPolynomial              - 待求偏导的二元整系数多项式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function Int64BiPolynomialDerivativeY(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial): Boolean;
+{* 计算二元整系数多项式对 Y 的偏导数 dP/dY。
+   若 P = sum(c[i,j] * X^i * Y^j)，则 dP/dY = sum(j*c[i,j] * X^i * Y^(j-1))。
+   Y 最高次为 0（即不含 Y）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnInt64BiPolynomial            - 用来容纳结果的二元整系数多项式
+     P: TCnInt64BiPolynomial              - 待求偏导的二元整系数多项式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
 procedure Int64BiPolynomialTranspose(Dest: TCnInt64BiPolynomial; Source: TCnInt64BiPolynomial);
 {* 将二元整系数多项式的 X Y 元互换至另一个二元整系数多项式对象中，Src 和 Dest 可以相同。
 
@@ -4712,6 +4738,32 @@ function Int64BiPolynomialGaloisEvaluateByX(Res: TCnInt64Polynomial;
      Res: TCnInt64Polynomial              - 用来容纳结果的一元整系数多项式
      P: TCnInt64BiPolynomial              - 待代入的二元整系数多项式
      XValue: Int64                        - 未知数 X 的值
+     Prime: Int64                         - 有限域上界
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function Int64BiPolynomialGaloisDerivativeX(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial; Prime: Int64): Boolean;
+{* 计算二元整系数多项式在 Prime 次方阶有限域上对 X 的偏导数 dP/dX，系数针对 Prime 取模。
+   X 最高次为 0（即不含 X）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnInt64BiPolynomial            - 用来容纳结果的二元整系数多项式
+     P: TCnInt64BiPolynomial              - 待求偏导的二元整系数多项式
+     Prime: Int64                         - 有限域上界
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function Int64BiPolynomialGaloisDerivativeY(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial; Prime: Int64): Boolean;
+{* 计算二元整系数多项式在 Prime 次方阶有限域上对 Y 的偏导数 dP/dY，系数针对 Prime 取模。
+   Y 最高次为 0（即不含 Y）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnInt64BiPolynomial            - 用来容纳结果的二元整系数多项式
+     P: TCnInt64BiPolynomial              - 待求偏导的二元整系数多项式
      Prime: Int64                         - 有限域上界
 
    返回值：Boolean                        - 返回是否计算成功
@@ -5327,6 +5379,32 @@ function BigNumberBiPolynomialEvaluateByX(Res: TCnBigNumberPolynomial;
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function BigNumberBiPolynomialDerivativeX(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial): Boolean;
+{* 计算二元大整系数多项式对 X 的偏导数 dP/dX。
+   若 P = sum(c[i,j] * X^i * Y^j)，则 dP/dX = sum(i*c[i,j] * X^(i-1) * Y^j)。
+   X 最高次为 0（即不含 X）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnBigNumberBiPolynomial        - 用来容纳结果的二元大整系数多项式
+     P: TCnBigNumberBiPolynomial          - 待求偏导的二元大整系数多项式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function BigNumberBiPolynomialDerivativeY(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial): Boolean;
+{* 计算二元大整系数多项式对 Y 的偏导数 dP/dY。
+   若 P = sum(c[i,j] * X^i * Y^j)，则 dP/dY = sum(j*c[i,j] * X^i * Y^(j-1))。
+   Y 最高次为 0（即不含 Y）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnBigNumberBiPolynomial        - 用来容纳结果的二元大整系数多项式
+     P: TCnBigNumberBiPolynomial          - 待求偏导的二元大整系数多项式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
 procedure BigNumberBiPolynomialTranspose(Dest: TCnBigNumberBiPolynomial;
   Source: TCnBigNumberBiPolynomial);
 {* 将二元大整系数多项式的 X Y 元互换至另一个二元大整系数多项式对象中，Src 和 Dest 可以相同。
@@ -5538,6 +5616,32 @@ function BigNumberBiPolynomialGaloisEvaluateByX(Res: TCnBigNumberPolynomial;
      Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
      P: TCnBigNumberBiPolynomial          - 待代入的二元大整系数多项式
      XValue: TCnBigNumber                 - 未知数 X 的值
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function BigNumberBiPolynomialGaloisDerivativeX(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+{* 计算二元大整系数多项式在 Prime 次方阶有限域上对 X 的偏导数 dP/dX，系数针对 Prime 取模。
+   X 最高次为 0（即不含 X）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnBigNumberBiPolynomial        - 用来容纳结果的二元大整系数多项式
+     P: TCnBigNumberBiPolynomial          - 待求偏导的二元大整系数多项式
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function BigNumberBiPolynomialGaloisDerivativeY(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+{* 计算二元大整系数多项式在 Prime 次方阶有限域上对 Y 的偏导数 dP/dY，系数针对 Prime 取模。
+   Y 最高次为 0（即不含 Y）时偏导为零多项式。Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnBigNumberBiPolynomial        - 用来容纳结果的二元大整系数多项式
+     P: TCnBigNumberBiPolynomial          - 待求偏导的二元大整系数多项式
      Prime: TCnBigNumber                  - 有限域上界
 
    返回值：Boolean                        - 返回是否计算成功
@@ -13384,6 +13488,83 @@ begin
   Result := True;
 end;
 
+function Int64BiPolynomialDerivativeX(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial): Boolean;
+var
+  I, J: Integer;
+  Tmp: TCnInt64BiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  // 不含 X（X 最高次为 0）时对 X 的偏导为 0
+  if P.MaxXDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  // Res 与 P 相同时借助临时对象避免覆盖
+  if Res = P then
+  begin
+    Tmp := FLocalInt64BiPolynomialPool.Obtain;
+    try
+      Int64BiPolynomialDerivativeX(Tmp, P);
+      Int64BiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalInt64BiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  for I := 1 to P.MaxXDegree do
+    for J := 0 to P.MaxYDegree do
+      Res.SafeValue[I - 1, J] := I * P.SafeValue[I, J];
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function Int64BiPolynomialDerivativeY(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial): Boolean;
+var
+  I, J: Integer;
+  Tmp: TCnInt64BiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  // 不含 Y（Y 最高次为 0）时对 Y 的偏导为 0
+  if P.MaxYDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalInt64BiPolynomialPool.Obtain;
+    try
+      Int64BiPolynomialDerivativeY(Tmp, P);
+      Int64BiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalInt64BiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  for I := 0 to P.MaxXDegree do
+    for J := 1 to P.MaxYDegree do
+      Res.SafeValue[I, J - 1] := J * P.SafeValue[I, J];
+  Res.CorrectTop;
+  Result := True;
+end;
+
 procedure Int64BiPolynomialTranspose(Dest, Source: TCnInt64BiPolynomial);
 var
   I, J: Integer;
@@ -13756,6 +13937,84 @@ begin
     end;
     Res.Add(Sum);
   end;
+  Result := True;
+end;
+
+function Int64BiPolynomialGaloisDerivativeX(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial; Prime: Int64): Boolean;
+var
+  I, J: Integer;
+  Tmp: TCnInt64BiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  if P.MaxXDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalInt64BiPolynomialPool.Obtain;
+    try
+      Int64BiPolynomialGaloisDerivativeX(Tmp, P, Prime);
+      Int64BiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalInt64BiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  for I := 1 to P.MaxXDegree do
+    for J := 0 to P.MaxYDegree do
+      Res.SafeValue[I - 1, J] :=
+        Int64NonNegativeMulMod(Int64NonNegativeMod(P.SafeValue[I, J], Prime),
+          Int64NonNegativeMod(I, Prime), Prime);
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function Int64BiPolynomialGaloisDerivativeY(Res: TCnInt64BiPolynomial;
+  P: TCnInt64BiPolynomial; Prime: Int64): Boolean;
+var
+  I, J: Integer;
+  Tmp: TCnInt64BiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  if P.MaxYDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalInt64BiPolynomialPool.Obtain;
+    try
+      Int64BiPolynomialGaloisDerivativeY(Tmp, P, Prime);
+      Int64BiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalInt64BiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  for I := 0 to P.MaxXDegree do
+    for J := 1 to P.MaxYDegree do
+      Res.SafeValue[I, J - 1] :=
+        Int64NonNegativeMulMod(Int64NonNegativeMod(P.SafeValue[I, J], Prime),
+          Int64NonNegativeMod(J, Prime), Prime);
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -14788,6 +15047,110 @@ begin
   Result := True;
 end;
 
+function BigNumberBiPolynomialDerivativeX(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, J: Integer;
+  T, V: TCnBigNumber;
+  Tmp: TCnBigNumberBiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  if P.MaxXDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalBigNumberBiPolynomialPool.Obtain;
+    try
+      BigNumberBiPolynomialDerivativeX(Tmp, P);
+      BigNumberBiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalBigNumberBiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  T := FLocalBigNumberPool.Obtain;
+  V := FLocalBigNumberPool.Obtain;
+  try
+    for I := 1 to P.MaxXDegree do
+      for J := 0 to P.MaxYDegree do
+      begin
+        BigNumberCopy(V, P.ReadonlyValue[I, J]);
+        if V.IsZero then
+          Continue;
+        BigNumberSetWord(T, I);
+        BigNumberMul(V, V, T);
+        Res.SafeValue[I - 1, J] := V; // 内部复制
+      end;
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPool.Recycle(V);
+    FLocalBigNumberPool.Recycle(T);
+  end;
+  Result := True;
+end;
+
+function BigNumberBiPolynomialDerivativeY(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, J: Integer;
+  T, V: TCnBigNumber;
+  Tmp: TCnBigNumberBiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  if P.MaxYDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalBigNumberBiPolynomialPool.Obtain;
+    try
+      BigNumberBiPolynomialDerivativeY(Tmp, P);
+      BigNumberBiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalBigNumberBiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  T := FLocalBigNumberPool.Obtain;
+  V := FLocalBigNumberPool.Obtain;
+  try
+    for I := 0 to P.MaxXDegree do
+      for J := 1 to P.MaxYDegree do
+      begin
+        BigNumberCopy(V, P.ReadonlyValue[I, J]);
+        if V.IsZero then
+          Continue;
+        BigNumberSetWord(T, J);
+        BigNumberMul(V, V, T);
+        Res.SafeValue[I, J - 1] := V; // 内部复制
+      end;
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPool.Recycle(V);
+    FLocalBigNumberPool.Recycle(T);
+  end;
+  Result := True;
+end;
+
 procedure BigNumberBiPolynomialTranspose(Dest, Source: TCnBigNumberBiPolynomial);
 var
   I, J: Integer;
@@ -15312,6 +15675,112 @@ begin
     FLocalBigNumberPool.Recycle(T);
     FLocalBigNumberPool.Recycle(TX);
     FLocalBigNumberPool.Recycle(Sum);
+  end;
+  Result := True;
+end;
+
+function BigNumberBiPolynomialGaloisDerivativeX(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  T, V: TCnBigNumber;
+  Tmp: TCnBigNumberBiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  if P.MaxXDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalBigNumberBiPolynomialPool.Obtain;
+    try
+      BigNumberBiPolynomialGaloisDerivativeX(Tmp, P, Prime);
+      BigNumberBiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalBigNumberBiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  T := FLocalBigNumberPool.Obtain;
+  V := FLocalBigNumberPool.Obtain;
+  try
+    for I := 1 to P.MaxXDegree do
+      for J := 0 to P.MaxYDegree do
+      begin
+        BigNumberCopy(V, P.ReadonlyValue[I, J]);
+        if V.IsZero then
+          Continue;
+        BigNumberSetWord(T, I);
+        BigNumberMul(V, V, T);
+        BigNumberNonNegativeMod(V, V, Prime);
+        Res.SafeValue[I - 1, J] := V; // 内部复制
+      end;
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPool.Recycle(V);
+    FLocalBigNumberPool.Recycle(T);
+  end;
+  Result := True;
+end;
+
+function BigNumberBiPolynomialGaloisDerivativeY(Res: TCnBigNumberBiPolynomial;
+  P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  T, V: TCnBigNumber;
+  Tmp: TCnBigNumberBiPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) then Exit;
+
+  if P.MaxYDegree = 0 then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if Res = P then
+  begin
+    Tmp := FLocalBigNumberBiPolynomialPool.Obtain;
+    try
+      BigNumberBiPolynomialGaloisDerivativeY(Tmp, P, Prime);
+      BigNumberBiPolynomialCopy(Res, Tmp);
+    finally
+      FLocalBigNumberBiPolynomialPool.Recycle(Tmp);
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Res.SetZero;
+  T := FLocalBigNumberPool.Obtain;
+  V := FLocalBigNumberPool.Obtain;
+  try
+    for I := 0 to P.MaxXDegree do
+      for J := 1 to P.MaxYDegree do
+      begin
+        BigNumberCopy(V, P.ReadonlyValue[I, J]);
+        if V.IsZero then
+          Continue;
+        BigNumberSetWord(T, J);
+        BigNumberMul(V, V, T);
+        BigNumberNonNegativeMod(V, V, Prime);
+        Res.SafeValue[I, J - 1] := V; // 内部复制
+      end;
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPool.Recycle(V);
+    FLocalBigNumberPool.Recycle(T);
   end;
   Result := True;
 end;

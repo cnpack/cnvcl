@@ -275,6 +275,10 @@ function TestInt64RationalPolynomial: Boolean;
 function TestBigNumberRationalPolynomial: Boolean;
 function TestInt64BiPolynomial: Boolean;
 function TestBigNumberBiPolynomial: Boolean;
+function TestInt64BiPolynomialDerivative: Boolean;
+function TestInt64BiPolynomialGaloisDerivative: Boolean;
+function TestBigNumberBiPolynomialDerivative: Boolean;
+function TestBigNumberBiPolynomialGaloisDerivative: Boolean;
 function TestPolynomialInverseTrunc: Boolean;
 function TestPolynomialMulTrunc: Boolean;
 function TestPolynomialPowerTrunc: Boolean;
@@ -1977,6 +1981,10 @@ begin
   MyAssert(TestBigNumberRationalPolynomial, 'TestBigNumberRationalPolynomial');
   MyAssert(TestInt64BiPolynomial, 'TestInt64BiPolynomial');
   MyAssert(TestBigNumberBiPolynomial, 'TestBigNumberBiPolynomial');
+  MyAssert(TestInt64BiPolynomialDerivative, 'TestInt64BiPolynomialDerivative');
+  MyAssert(TestInt64BiPolynomialGaloisDerivative, 'TestInt64BiPolynomialGaloisDerivative');
+  MyAssert(TestBigNumberBiPolynomialDerivative, 'TestBigNumberBiPolynomialDerivative');
+  MyAssert(TestBigNumberBiPolynomialGaloisDerivative, 'TestBigNumberBiPolynomialGaloisDerivative');
   MyAssert(TestPolynomialInverseTrunc, 'TestPolynomialInverseTrunc');
   MyAssert(TestPolynomialMulTrunc, 'TestPolynomialMulTrunc');
   MyAssert(TestPolynomialPowerTrunc, 'TestPolynomialPowerTrunc');
@@ -7824,6 +7832,160 @@ begin
     Res.Free;
     P2.Free;
     P1.Free;
+  end;
+end;
+
+function TestInt64BiPolynomialDerivative: Boolean;
+var
+  P, Res: TCnInt64BiPolynomial;
+begin
+  P := TCnInt64BiPolynomial.Create;
+  Res := TCnInt64BiPolynomial.Create;
+  try
+    // P = 5X^3 + 3X^2Y^3 + 2XY + 5
+    P.SetXYCoefficent(3, 0, 5);
+    P.SetXYCoefficent(2, 3, 3);
+    P.SetXYCoefficent(1, 1, 2);
+    P.SetXYCoefficent(0, 0, 5);
+
+    // dP/dX = 15X^2 + 6XY^3 + 2Y
+    Int64BiPolynomialDerivativeX(Res, P);
+    Result := Res.ToString = '15X^2+6XY^3+2Y';
+    if not Result then Exit;
+
+    // dP/dY = 9X^2Y^2 + 2X
+    Int64BiPolynomialDerivativeY(Res, P);
+    Result := Res.ToString = '9X^2Y^2+2X';
+    if not Result then Exit;
+
+    // 原地对 X 求偏导
+    Int64BiPolynomialDerivativeX(P, P);
+    Result := P.ToString = '15X^2+6XY^3+2Y';
+    if not Result then Exit;
+
+    // 常数对 X、Y 偏导均为 0
+    P.SetZero;
+    P.SetXYCoefficent(0, 0, 7);
+    Int64BiPolynomialDerivativeX(Res, P);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    Int64BiPolynomialDerivativeY(Res, P);
+    Result := Res.IsZero;
+  finally
+    Res.Free;
+    P.Free;
+  end;
+end;
+
+function TestInt64BiPolynomialGaloisDerivative: Boolean;
+var
+  P, Res: TCnInt64BiPolynomial;
+begin
+  P := TCnInt64BiPolynomial.Create;
+  Res := TCnInt64BiPolynomial.Create;
+  try
+    // P = 5X^3 + 3X^2Y^3 + 2XY + 5, Prime = 7
+    P.SetXYCoefficent(3, 0, 5);
+    P.SetXYCoefficent(2, 3, 3);
+    P.SetXYCoefficent(1, 1, 2);
+    P.SetXYCoefficent(0, 0, 5);
+
+    // dP/dX = 15X^2 + 6XY^3 + 2Y, mod 7 => X^2 + 6XY^3 + 2Y
+    Int64BiPolynomialGaloisDerivativeX(Res, P, 7);
+    Result := Res.ToString = 'X^2+6XY^3+2Y';
+    if not Result then Exit;
+
+    // dP/dY = 9X^2Y^2 + 2X, mod 7 => 2X^2Y^2 + 2X
+    Int64BiPolynomialGaloisDerivativeY(Res, P, 7);
+    Result := Res.ToString = '2X^2Y^2+2X';
+    if not Result then Exit;
+
+    // 原地对 Y 求偏导
+    Int64BiPolynomialGaloisDerivativeY(P, P, 7);
+    Result := P.ToString = '2X^2Y^2+2X';
+  finally
+    Res.Free;
+    P.Free;
+  end;
+end;
+
+function TestBigNumberBiPolynomialDerivative: Boolean;
+var
+  P, Res: TCnBigNumberBiPolynomial;
+begin
+  P := TCnBigNumberBiPolynomial.Create;
+  Res := TCnBigNumberBiPolynomial.Create;
+  try
+    // P = 5X^3 + 3X^2Y^3 + 2XY + 5
+    P.SetXYCoefficent(3, 0, 5);
+    P.SetXYCoefficent(2, 3, 3);
+    P.SetXYCoefficent(1, 1, 2);
+    P.SetXYCoefficent(0, 0, 5);
+
+    // dP/dX = 15X^2 + 6XY^3 + 2Y
+    BigNumberBiPolynomialDerivativeX(Res, P);
+    Result := Res.ToString = '15X^2+6XY^3+2Y';
+    if not Result then Exit;
+
+    // dP/dY = 9X^2Y^2 + 2X
+    BigNumberBiPolynomialDerivativeY(Res, P);
+    Result := Res.ToString = '9X^2Y^2+2X';
+    if not Result then Exit;
+
+    // 原地对 Y 求偏导
+    BigNumberBiPolynomialDerivativeY(P, P);
+    Result := P.ToString = '9X^2Y^2+2X';
+    if not Result then Exit;
+
+    // 常数对 X、Y 偏导均为 0
+    P.SetZero;
+    P.SetXYCoefficent(0, 0, 7);
+    BigNumberBiPolynomialDerivativeX(Res, P);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    BigNumberBiPolynomialDerivativeY(Res, P);
+    Result := Res.IsZero;
+  finally
+    Res.Free;
+    P.Free;
+  end;
+end;
+
+function TestBigNumberBiPolynomialGaloisDerivative: Boolean;
+var
+  P, Res: TCnBigNumberBiPolynomial;
+  Prime: TCnBigNumber;
+begin
+  P := TCnBigNumberBiPolynomial.Create;
+  Res := TCnBigNumberBiPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  try
+    // P = 5X^3 + 3X^2Y^3 + 2XY + 5, Prime = 7
+    P.SetXYCoefficent(3, 0, 5);
+    P.SetXYCoefficent(2, 3, 3);
+    P.SetXYCoefficent(1, 1, 2);
+    P.SetXYCoefficent(0, 0, 5);
+    Prime.SetWord(7);
+
+    // dP/dX = 15X^2 + 6XY^3 + 2Y, mod 7 => X^2 + 6XY^3 + 2Y
+    BigNumberBiPolynomialGaloisDerivativeX(Res, P, Prime);
+    Result := Res.ToString = 'X^2+6XY^3+2Y';
+    if not Result then Exit;
+
+    // dP/dY = 9X^2Y^2 + 2X, mod 7 => 2X^2Y^2 + 2X
+    BigNumberBiPolynomialGaloisDerivativeY(Res, P, Prime);
+    Result := Res.ToString = '2X^2Y^2+2X';
+    if not Result then Exit;
+
+    // 原地对 X 求偏导
+    BigNumberBiPolynomialGaloisDerivativeX(P, P, Prime);
+    Result := P.ToString = 'X^2+6XY^3+2Y';
+  finally
+    Prime.Free;
+    Res.Free;
+    P.Free;
   end;
 end;
 
