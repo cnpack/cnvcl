@@ -31,7 +31,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.01.30
+* 修改记录：2027.07.18
+*               增加输出到控制台的机制
+*           2026.01.30
 *               增加 POSIX 的内存输出支持，待测试
 *           2025.02.11
 *               增加对 FMX 的 Evaluate 支持，需要定义 ENABLE_FMX，待测试
@@ -111,7 +113,11 @@ interface
 // 注意仍然会被 FIgnoreViewer 变量给拦截而不输出
 
 // {$DEFINE DUMP_TO_FILE}
-// 定义此条件可重定向到文件.
+// 定义此条件可重定向输出到文件。
+// Define this flag to log message to a file.
+
+// {$DEFINE DUMP_TO_CONSOLE}
+// 定义此条件可重定向输出到控制台，注意应用程序需自行确保是控制台程序或提前 AllocConsole。
 // Define this flag to log message to a file.
 
 {$DEFINE LOCAL_SESSION}
@@ -131,6 +137,7 @@ interface
   {$UNDEF SUPPORT_EVALUATE}
   {$UNDEF ALLDEBUG}
   {$UNDEF DUMP_TO_FILE}
+  {$UNDEF DUMP_TO_CONSOLE}
 {$ENDIF}
 
 {$IFDEF ALLDEBUG}
@@ -142,8 +149,8 @@ interface
   {$UNDEF CAPTURE_STACK}   // CnRTL Does NOT Support MACOS.
   {$UNDEF SUPPORT_EVALUATE}
   {$DEFINE ENABLE_FMX}     // MAC 下只能支持 FMX
-  {$IFNDEF DUMP_TO_FILE}
-    {$DEFINE DUMP_TO_FILE} // MAC 下只能支持到文件，干脆直接支持
+  {$IFNDEF DUMP_TO_CONSOLE}
+    {$DEFINE DUMP_TO_FILE} // MAC 下如果没输出到终端，则直接支持到文件
   {$ENDIF}
 {$ENDIF}
 
@@ -324,6 +331,7 @@ type
     FDumpToFile: Boolean;
     FDumpFileName: string;
     FDumpFile: TFileStream;
+    FDumpToConsole: Boolean;
     FUseAppend: Boolean;
     FAfterFirstWrite: Boolean;
     FFindAbort: Boolean;
@@ -2027,6 +2035,9 @@ type
     property UseAppend: Boolean read GetUseAppend write SetUseAppend;
     {* 每次运行时，如果文件已存在，是否追加到已有内容后还是重写}
 
+    property DumpToConsole: Boolean read FDumpToConsole write FDumpToConsole;
+    {* 是否把输出信息同时输出到控制台}
+
     // 输出信息统计
     property MessageCount: Integer read GetMessageCount;
     {* 调用而输出的拆包信息数。注意一条长信息可能会被拆包拆成多条信息}
@@ -3087,6 +3098,10 @@ begin
   DumpToFile := True;
 {$ENDIF}
 
+{$IFDEF DUMP_TO_CONSOLE}
+  DumpToConsole := True;
+{$ENDIF}
+
   FActive := True;
 end;
 
@@ -3345,11 +3360,15 @@ begin
   TInterlocked.Increment(FMessageCount);
 {$ENDIF}
 
+  // 同时输出到控制台
+  if FDumpToConsole and not FIgnoreViewer then
+    WriteLn(FormatDateTime('yyyyMMdd:hhmmss.zzz ', Now) + AMsg);
+
 {$IFDEF REDIRECT_OPDS}
   Exit;
 {$ENDIF}
 
-  if not CheckEnabled and not FDumpToFile then
+  if not CheckEnabled and not FDumpToFile and not FDumpToConsole then
   begin
     Sleep(0);
     Exit;
@@ -3360,7 +3379,7 @@ begin
   else
     ChkReady := False;
 
-  if not ChkReady and not FDumpToFile then
+  if not ChkReady and not FDumpToFile and not FDumpToConsole then
   begin
     Sleep(0);
     Exit;
