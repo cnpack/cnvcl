@@ -210,6 +210,25 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
 
 implementation
 
+{$IFDEF SEA_TRACE}
+// Simple trace via WriteLn — FPC-compatible. Compile with -dSEA_TRACE.
+var
+  _SeaT0: TDateTime = 0;
+
+function _SeaMs: Int64;
+begin
+  if _SeaT0 = 0 then _SeaT0 := Now;
+  Result := Round((Now - _SeaT0) * 86400000);
+end;
+
+procedure _SeaT(const Fmt: string; const Args: array of const);
+begin
+  Write(Format('[%d] ', [_SeaMs]));
+  WriteLn(Format(Fmt, Args));
+  Flush(Output);
+end;
+{$ENDIF}
+
 const
   CN_SEA_CRT_THRESHOLD = 11;
   {* 模多项式计算时，当 L >= CN_SEA_CRT_THRESHOLD 时自动切换到 CRT 方法。
@@ -1492,9 +1511,15 @@ begin
     Found := False;
     ScalarLam := 0;
 
+    {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d deg=%d loop %d', [L, TargetDeg, L-1]); {$ENDIF}
+
     // 对每个 lambda = 1, ..., L-1，检查 gcd(Psi_L, G_lambda) 的次数
     for Lambda := 1 to L - 1 do
     begin
+      {$IFDEF SEA_TRACE}
+      if (Lambda mod ((L - 1) div 10 + 1) = 1) or (Lambda = L - 1) then
+        _SeaT('[ElkKern] L=%d λ=%d/%d', [L, Lambda, L-1]);
+      {$ENDIF}
       if (Lambda and 1) <> 0 then
       begin
         // lambda 为奇数: G = (x^p - x) * F[lambda]^2 + F[lambda-1] * F[lambda+1] * Y2
@@ -1770,7 +1795,9 @@ begin
     // Step 1: compute kernel polynomial h(x), degree (L-1)/2
     H := FSeaPolynomialPool.Obtain;
     ScalarLam := 0;
+    {$IFDEF SEA_TRACE} _SeaT('[ElkiesTrace] L=%d KernelPoly start', [L]); {$ENDIF}
     if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs, @ScalarLam) then Exit;
+    {$IFDEF SEA_TRACE} _SeaT('[ElkiesTrace] L=%d KernelPoly done deg=%d sLam=%d', [L, H.MaxDegree, ScalarLam]); {$ENDIF}
 
     // Scalar Frobenius: eigenvalue is known, compute trace directly
     // t = lambda + p * lambda^{-1} mod L
@@ -1838,6 +1865,8 @@ begin
     Lambda := 0;
 
     UseBSGS := (L >= CN_SEA_ELKIES_BSGS_THRESHOLD);
+
+    {$IFDEF SEA_TRACE} _SeaT('[ElkiesTrace] L=%d eigen search %s', [L, 'BSGS']); {$ENDIF}
 
     if UseBSGS then
     begin
@@ -2407,6 +2436,8 @@ begin
       L := Pa[I];
       if L = 2 then Continue; // 已处理
 
+      {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d start', [L]); {$ENDIF}
+
       // 检查是 Elkies 还是 Atkin
       if (ModPolys <> nil) and (ModPolyIdx < ModPolys.Count) then
         PrimeType := CnSeaCheckPrimeType(L, A, B, P, nil, TCnBigNumberBiPolynomial(ModPolys[ModPolyIdx]))
@@ -2414,8 +2445,11 @@ begin
         PrimeType := CnSeaCheckPrimeType(L, A, B, P);
       Inc(ModPolyIdx);
 
+      {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d type=%d ElmAtk', [L, Ord(PrimeType)]); {$ENDIF}
+
       if PrimeType = sptElkies then
       begin
+        {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d ElkiesTrace start', [L]); {$ENDIF}
         // 尝试 Elkies 方法
         ElkiesOk := CnSeaElkiesTrace(TraceRes, L, A, B, P, DPs);
         if ElkiesOk then
@@ -2423,11 +2457,13 @@ begin
           Ta[I] := TraceRes.GetInt64;
           ElkiesTraces.Add(Ta[I]);
           ElkiesModuli.Add(L);
+          {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Elkies OK t=%d', [L, Ta[I]]); {$ENDIF}
         end
         else
         begin
           // Elkies failed (e.g. CM curve where Phi_L has roots in F_p but
           // Frobenius has no eigenvector in E[L]). Fall back to Atkin.
+          {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Elkies FAIL→Atkin', [L]); {$ENDIF}
           AtkinTraces.Clear;
           if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) then
             ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
@@ -2442,6 +2478,7 @@ begin
             Info.PossibleTraces.AddList(AtkinTraces);
             AtkinInfos.Add(Info);
             Ta[I] := -1;
+            {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d fallback Atkin %d cand', [L, AtkinTraces.Count]); {$ENDIF}
           end
           else
           begin
@@ -2451,6 +2488,7 @@ begin
       end
       else if PrimeType = sptAtkin then
       begin
+        {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d AtkinPossibleTraces start', [L]); {$ENDIF}
         AtkinTraces.Clear;
         if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) then
           ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
@@ -2465,10 +2503,12 @@ begin
           Info.PossibleTraces.AddList(AtkinTraces);
           AtkinInfos.Add(Info);
           Ta[I] := -1;
+          {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Atkin OK %d cand', [L, AtkinTraces.Count]); {$ENDIF}
         end
         else
         begin
           Ta[I] := -1;
+          {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Atkin FAILED', [L]); {$ENDIF}
         end;
       end
       else
@@ -2478,11 +2518,13 @@ begin
     end;
 
     // 中国剩余定理合并结果
+    {$IFDEF SEA_TRACE} _SeaT('[SEA] Combine: %d Elk %d Atk', [ElkiesTraces.Count, AtkinInfos.Count]); {$ENDIF}
     if AtkinInfos.Count > 0 then
     begin
+      {$IFDEF SEA_TRACE} _SeaT('[SEA] → CnSeaCombineElkiesAtkin start', []); {$ENDIF}
       if not CnSeaCombineElkiesAtkin(Res, ElkiesTraces, ElkiesModuli, AtkinInfos, A, B, P) then
       begin
-        // Atkin matching failed (search space too large).
+        {$IFDEF SEA_TRACE} _SeaT('[SEA] → Combine FAIL, Elkies-only CRT', []); {$ENDIF}
         BigNumberChineseRemainderTheorem(Res, ElkiesTraces, ElkiesModuli);
       end;
     end
@@ -2905,11 +2947,14 @@ var
   J: TCnBigNumber;
   OwnPhiL: Boolean;
   FY: TCnBigNumberPolynomial;
-  Factors: TCnBigNumberPolynomialList;
-  I, Deg, R: Integer;
+  I, R: Integer;
   TotalDeg, Multiplicity: Integer;
   SplitType: Integer;
   L64: Int64;
+  // DDF-only variables (replaces CZ Factors)
+  SFFactors: TCnBigNumberPolynomialList;
+  IdxSF, D_DDF, N_DDF, DF_DDF: Integer;
+  SF_p, G_p, GH_p, GHX_p, GHSub_p: TCnBigNumberPolynomial;
 begin
   Result := False;
   if (Traces = nil) or (L < 3) then Exit;
@@ -2922,46 +2967,84 @@ begin
   if OwnPhiL then
     PhiL := TCnBigNumberBiPolynomial.Create;
   FY := FSeaPolynomialPool.Obtain;
-  Factors := TCnBigNumberPolynomialList.Create;
   try
+    {$IFDEF SEA_TRACE} _SeaT('[Atkin] L=%d j-inv start', [L]); {$ENDIF}
     if not CnSeaJInvariant(J, A, B, P) then Exit;
     if OwnPhiL then
     begin
       if not CnGenerateClassicalModularPolynomial(PhiL, L) then Exit;
     end;
+    {$IFDEF SEA_TRACE} _SeaT('[Atkin] L=%d eval Phi', [L]); {$ENDIF}
     if not BigNumberBiPolynomialGaloisEvaluateByX(FY, PhiL, J, P) then Exit;
     if FY.MaxDegree <= 0 then Exit;
-    if not BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors, FY, P) then Exit;
+    {$IFDEF SEA_TRACE} _SeaT('[Atkin] L=%d FYdeg=%d DDF start', [L, FY.MaxDegree]); {$ENDIF}
 
-    // Compute R from factor degrees, accounting for repeated factors.
-    // For CM curves (e.g. j=1728), Phi_L(j,Y) can be a perfect square g^2.
-    // The square-free factorization returns g, losing the multiplicity.
-    // The true R (order of eigenvalue ratio gamma) must be multiplied by
-    // the multiplicity to reflect the original polynomial's factor degrees.
-    TotalDeg := 0;
-    for I := 0 to Factors.Count - 1 do
-    begin
-      Deg := TCnBigNumberPolynomial(Factors[I]).MaxDegree;
-      if Deg > 0 then
-        TotalDeg := TotalDeg + Deg;
-    end;
-    if TotalDeg = 0 then Exit;
+    // ---- DDF-only factorization (skip expensive EDF) ----
+    // DDF gives G_d = product of all degree-d irreducible factors.
+    // R = lcm of all d where G_d is non-trivial.  No need for EDF.
+    SFFactors := TCnBigNumberPolynomialList.Create;
+    try
+      if BigNumberPolynomialGaloisSquareFreeFactorization(SFFactors, FY, P) <= 0 then Exit;
+      TotalDeg := 0; R := 1;
 
-    // Multiplicity = input_degree / total_square_free_degree
-    // (1 for non-CM curves, 2 for CM curves with j=1728 and L inert in Z[i])
-    if (TotalDeg > 0) and (FY.MaxDegree mod TotalDeg = 0) then
-      Multiplicity := FY.MaxDegree div TotalDeg
-    else
+      for IdxSF := 0 to SFFactors.Count - 1 do
+      begin
+        SF_p := TCnBigNumberPolynomial(SFFactors[IdxSF]);
+        N_DDF := SF_p.MaxDegree;
+        if N_DDF <= 1 then
+        begin
+          TotalDeg := TotalDeg + N_DDF;
+          if N_DDF > 0 then R := SeaInt64LCM(R, N_DDF);
+          Continue;
+        end;
+
+        GH_p := FSeaPolynomialPool.Obtain;
+        GHX_p := FSeaPolynomialPool.Obtain;
+        GHSub_p := FSeaPolynomialPool.Obtain;
+        G_p := FSeaPolynomialPool.Obtain;
+        try
+          GHX_p.SetZero; GHX_p.MaxDegree := 1; GHX_p[1].SetWord(1); // x
+          BigNumberPolynomialCopy(GH_p, GHX_p);
+          DF_DDF := 0; D_DDF := 1;
+
+          while (D_DDF <= N_DDF div 2) and (SF_p.MaxDegree > 0) do
+          begin
+            BigNumberPolynomialGaloisPower(GH_p, GH_p, P, P, SF_p);
+            BigNumberPolynomialGaloisSub(GHSub_p, GH_p, GHX_p, P);
+            BigNumberPolynomialGaloisGreatestCommonDivisor(G_p, GHSub_p, SF_p, P);
+            if G_p.MaxDegree > 0 then
+            begin
+              R := SeaInt64LCM(R, D_DDF);
+              DF_DDF := DF_DDF + G_p.MaxDegree;
+              BigNumberPolynomialGaloisDiv(GHSub_p, nil, SF_p, G_p, P);
+              BigNumberPolynomialCopy(SF_p, GHSub_p);
+            end;
+            Inc(D_DDF);
+          end;
+          if SF_p.MaxDegree > 0 then
+          begin
+            R := SeaInt64LCM(R, SF_p.MaxDegree);
+            DF_DDF := DF_DDF + SF_p.MaxDegree;
+          end;
+          TotalDeg := TotalDeg + DF_DDF;
+        finally
+          FSeaPolynomialPool.Recycle(G_p);
+          FSeaPolynomialPool.Recycle(GHSub_p);
+          FSeaPolynomialPool.Recycle(GHX_p);
+          FSeaPolynomialPool.Recycle(GH_p);
+        end;
+      end;
+
+      if TotalDeg = 0 then Exit;
       Multiplicity := 1;
-
-    R := 1;
-    for I := 0 to Factors.Count - 1 do
-    begin
-      Deg := TCnBigNumberPolynomial(Factors[I]).MaxDegree;
-      if Deg > 0 then
-        R := SeaInt64LCM(R, Deg * Multiplicity);
+      if FY.MaxDegree mod TotalDeg = 0 then
+        Multiplicity := FY.MaxDegree div TotalDeg;
+      R := R * Multiplicity;
+    finally
+      SFFactors.Free;
     end;
     if R < 1 then Exit;
+    {$IFDEF SEA_TRACE} _SeaT('[Atkin] L=%d DDF done R=%d M=%d', [L, R, Multiplicity]); {$ENDIF}
 
     L64 := L;
     SplitType := 0;
@@ -2981,7 +3064,6 @@ begin
 
     Result := Traces.Count > 0;
   finally
-    Factors.Free;
     FSeaPolynomialPool.Recycle(FY);
     if OwnPhiL then PhiL.Free;
     FSeaBigNumberPool.Recycle(J);
