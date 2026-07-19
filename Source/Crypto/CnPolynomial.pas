@@ -3172,6 +3172,24 @@ function BigNumberPolynomialGaloisPower(Res: TCnBigNumberPolynomial;
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function BigNumberPolynomialGaloisPowerBarrett(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
+  Modulus: TCnBigNumberPolynomial): Boolean;
+{* 使用 Barrett 约简实现快速多项式幂运算。预先计算 mu = x^(2n) div Modulus，
+   然后在每次平方步骤中，用 Karatsuba 乘法来代替传统的长除法。
+   要求 Modulus 模多项式必须是首一的（monic）。Res 可以是 P。
+   该算法专为“模数固定且指数极高”的场景优化（例如在 SEA 算法中计算 x^p mod Psi_L）。
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
+     P: TCnBigNumberPolynomial            - 底数
+     Exponent: Cardinal                   - 指数
+     Prime: TCnBigNumber                  - 有限域上界
+     Modulus: TCnBigNumberPolynomial      - 模多项式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
 function BigNumberPolynomialGaloisAddWord(P: TCnBigNumberPolynomial;
   N: Cardinal; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数加上 N 再 mod Prime。
@@ -10336,6 +10354,207 @@ begin
     Result := BigNumberPolynomialGaloisPower(Res, P, T, Prime, Primitive);
   finally
     FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+// Barrett reduction for polynomials over F_p.
+// Given monic modulus f(x) of degree n, precompute mu = x^(2n) div f.
+// Then to reduce a(x) of degree <= 2n-2:
+//   q = trunc( (a div x^(n-1)) * mu div x^(n+1) )
+//   r = a - q*f
+//   if deg(r) >= n, r = r - f (at most once for polynomials)
+// This replaces O(n^2) schoolbook long division with two Karatsuba multiplications.
+
+// Internal: Barrett-reduce Prod mod Modulus into Reduced, using precomputed Mu.
+// N = Modulus.MaxDegree. Temp polynomials Q1,Q2,TempMul,TempSub are reused.
+procedure PolyBarrettReduce(Reduced: TCnBigNumberPolynomial;
+  Prod: TCnBigNumberPolynomial; Modulus: TCnBigNumberPolynomial;
+  Mu: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  Q1, Q2, TempMul, TempSub: TCnBigNumberPolynomial);
+var
+  N, J: Integer;
+begin
+  N := Modulus.MaxDegree;
+
+  if Prod.MaxDegree < N then
+  begin
+    BigNumberPolynomialCopy(Reduced, Prod);
+    Exit;
+  end;
+
+  if Prod.MaxDegree < N - 1 then
+  begin
+    BigNumberPolynomialCopy(Reduced, Prod);
+    Exit;
+  end;
+
+  // Q1 = Prod div x^(N-1)  (keep coefficients from degree N-1 upward)
+  Q1.MaxDegree := Prod.MaxDegree - (N - 1);
+  for J := 0 to Q1.MaxDegree do
+    BigNumberCopy(Q1[J], Prod[J + N - 1]);
+  Q1.CorrectTop;
+
+  // TempMul = Q1 * Mu (Karatsuba)
+  BigNumberPolynomialMulKaratsuba(TempMul, Q1, Mu);
+  for J := 0 to TempMul.MaxDegree do
+    BigNumberNonNegativeMod(TempMul[J], TempMul[J], Prime);
+  TempMul.CorrectTop;
+
+  // Q2 = TempMul div x^(N+1)  (keep coefficients from degree N+1 upward)
+  if TempMul.MaxDegree >= N + 1 then
+  begin
+    Q2.MaxDegree := TempMul.MaxDegree - (N + 1);
+    for J := 0 to Q2.MaxDegree do
+      BigNumberCopy(Q2[J], TempMul[J + N + 1]);
+    Q2.CorrectTop;
+  end
+  else
+    BigNumberPolynomialSetZero(Q2);
+
+  // TempSub = Q2 * Modulus (Karatsuba)
+  BigNumberPolynomialMulKaratsuba(TempSub, Q2, Modulus);
+  for J := 0 to TempSub.MaxDegree do
+    BigNumberNonNegativeMod(TempSub[J], TempSub[J], Prime);
+  TempSub.CorrectTop;
+
+  // Reduced = Prod - TempSub
+  BigNumberPolynomialSub(Reduced, Prod, TempSub);
+  for J := 0 to Reduced.MaxDegree do
+    BigNumberNonNegativeMod(Reduced[J], Reduced[J], Prime);
+  Reduced.CorrectTop;
+
+  // Final correction: at most one subtraction needed for polynomial Barrett
+  if Reduced.MaxDegree >= N then
+  begin
+    BigNumberPolynomialSub(Reduced, Reduced, Modulus);
+    for J := 0 to Reduced.MaxDegree do
+      BigNumberNonNegativeMod(Reduced[J], Reduced[J], Prime);
+    Reduced.CorrectTop;
+    if Reduced.MaxDegree >= N then
+      BigNumberPolynomialGaloisMod(Reduced, Reduced, Modulus, Prime);
+  end;
+end;
+
+function BigNumberPolynomialGaloisPowerBarrett(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
+  Modulus: TCnBigNumberPolynomial): Boolean;
+var
+  N, I, J: Integer;
+  E: TCnBigNumber;
+  X2N, Mu, Q1, Q2, TempMul, TempSub: TCnBigNumberPolynomial;
+  Base, Acc, Prod, Reduced: TCnBigNumberPolynomial;
+  UseBarrett: Boolean;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) or (Exponent = nil) or (Prime = nil) or (Modulus = nil) then Exit;
+  if Modulus.MaxDegree < 1 then Exit;
+
+  N := Modulus.MaxDegree;
+  UseBarrett := (N >= CN_POLYMUL_KARATSUBA_THRESHOLD);
+
+  E := nil; Mu := nil; X2N := nil; Q1 := nil; Q2 := nil;
+  TempMul := nil; TempSub := nil;
+  Base := nil; Acc := nil; Prod := nil; Reduced := nil;
+
+  try
+    if Exponent.IsZero then
+    begin
+      Res.SetOne;
+      Result := True;
+      Exit;
+    end;
+
+    E := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(E, Exponent);
+
+    if UseBarrett then
+    begin
+      // Precompute mu = x^(2n) div f(x)
+      X2N := FLocalBigNumberPolynomialPool.Obtain;
+      X2N.Clear;
+      X2N.MaxDegree := 2 * N;   // expands list, new coeffs default to 0
+      X2N[2 * N].SetOne;        // x^(2n)
+
+      Mu := FLocalBigNumberPolynomialPool.Obtain;
+      BigNumberPolynomialGaloisDiv(Mu, nil, X2N, Modulus, Prime);
+
+      Q1 := FLocalBigNumberPolynomialPool.Obtain;
+      Q2 := FLocalBigNumberPolynomialPool.Obtain;
+      TempMul := FLocalBigNumberPolynomialPool.Obtain;
+      TempSub := FLocalBigNumberPolynomialPool.Obtain;
+    end;
+
+    // Base = P mod Modulus
+    Base := FLocalBigNumberPolynomialPool.Obtain;
+    if P.MaxDegree >= N then
+      BigNumberPolynomialGaloisMod(Base, P, Modulus, Prime)
+    else
+      BigNumberPolynomialCopy(Base, P);
+    for I := 0 to Base.MaxDegree do
+      BigNumberNonNegativeMod(Base[I], Base[I], Prime);
+    Base.CorrectTop;
+
+    // Acc = 1
+    Acc := FLocalBigNumberPolynomialPool.Obtain;
+    Acc.SetOne;
+
+    Prod := FLocalBigNumberPolynomialPool.Obtain;
+    Reduced := FLocalBigNumberPolynomialPool.Obtain;
+
+    while not E.IsZero do
+    begin
+      if BigNumberIsBitSet(E, 0) then
+      begin
+        // Acc = Acc * Base mod Modulus
+        BigNumberPolynomialMulKaratsuba(Prod, Acc, Base);
+        for J := 0 to Prod.MaxDegree do
+          BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
+        Prod.CorrectTop;
+
+        if UseBarrett and (Prod.MaxDegree >= N) then
+          PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+        else if Prod.MaxDegree >= N then
+          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+        else
+          BigNumberPolynomialCopy(Reduced, Prod);
+
+        BigNumberPolynomialCopy(Acc, Reduced);
+      end;
+
+      BigNumberShiftRightOne(E, E);
+      if not E.IsZero then
+      begin
+        // Base = Base * Base mod Modulus
+        BigNumberPolynomialMulKaratsuba(Prod, Base, Base);
+        for J := 0 to Prod.MaxDegree do
+          BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
+        Prod.CorrectTop;
+
+        if UseBarrett and (Prod.MaxDegree >= N) then
+          PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+        else if Prod.MaxDegree >= N then
+          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+        else
+          BigNumberPolynomialCopy(Reduced, Prod);
+
+        BigNumberPolynomialCopy(Base, Reduced);
+      end;
+    end;
+
+    BigNumberPolynomialCopy(Res, Acc);
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(Reduced);
+    FLocalBigNumberPolynomialPool.Recycle(Prod);
+    FLocalBigNumberPolynomialPool.Recycle(Acc);
+    FLocalBigNumberPolynomialPool.Recycle(Base);
+    FLocalBigNumberPolynomialPool.Recycle(TempSub);
+    FLocalBigNumberPolynomialPool.Recycle(TempMul);
+    FLocalBigNumberPolynomialPool.Recycle(Q2);
+    FLocalBigNumberPolynomialPool.Recycle(Q1);
+    FLocalBigNumberPolynomialPool.Recycle(Mu);
+    FLocalBigNumberPolynomialPool.Recycle(X2N);
+    FLocalBigNumberPool.Recycle(E);
   end;
 end;
 

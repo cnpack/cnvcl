@@ -287,6 +287,7 @@ function TestBigNumberPolynomialGaloisDerivative: Boolean;
 function TestBigNumberPolynomialGaloisSquareFreeFactorization: Boolean;
 function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
+function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
 
 // ================================ NTRU =======================================
 
@@ -1993,6 +1994,7 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisSquareFreeFactorization, 'TestBigNumberPolynomialGaloisSquareFreeFactorization');
   MyAssert(TestBigNumberPolynomialGaloisFindLinearFactors, 'TestBigNumberPolynomialGaloisFindLinearFactors');
   MyAssert(TestBigNumberPolynomialGaloisFactorCantorZassenhaus, 'TestBigNumberPolynomialGaloisFactorCantorZassenhaus');
+  MyAssert(TestBigNumberPolynomialGaloisPowerBarrett, 'TestBigNumberPolynomialGaloisPowerBarrett');
 
 // ================================ NTRU =======================================
 
@@ -8310,6 +8312,125 @@ begin
     F.Free;
     Prime.Free;
     Factors.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
+var
+  Base, Modulus, Res1, Res2: TCnBigNumberPolynomial;
+  Prime, Exp: TCnBigNumber;
+  I: Integer;
+begin
+  Result := False;
+  Base := TCnBigNumberPolynomial.Create;
+  Modulus := TCnBigNumberPolynomial.Create;
+  Res1 := TCnBigNumberPolynomial.Create;
+  Res2 := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  Exp := TCnBigNumber.Create;
+  try
+    // ---- Test 1: Small modulus (degree 2), small prime p=7 ----
+    // Modulus = x^2 + 1 (monic), Prime = 7, Base = x, Exp = 7
+    // x^7 mod (x^2+1) in F_7:  x^7 = x*(x^2)^3 = x*(-1)^3 = -x = 6x mod 7
+    Modulus.SetCoefficients([1, 0, 1]);   // x^2 + 1
+    Prime.SetWord(7);
+    Base.SetCoefficients([0, 1]);          // x
+    Exp.SetWord(7);
+
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+    // Both should be 6X
+    if Res2.ToString <> '6X' then Exit;
+
+    // ---- Test 2: Small modulus (degree 3), p=11 ----
+    // Modulus = x^3 + x + 1 (monic), Prime = 11, Base = x, Exp = 11
+    Modulus.SetCoefficients([1, 1, 0, 1]); // x^3 + x + 1
+    Prime.SetWord(11);
+    Base.SetCoefficients([0, 1]);          // x
+    Exp.SetWord(11);
+
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+
+    // ---- Test 3: Larger modulus (degree 20, triggers Karatsuba/Barrett path) ----
+    // Use a random-ish monic polynomial of degree 20 over F_p, p = 1000003 (prime)
+    // Compare Barrett result with standard power result
+    Prime.SetDec('1000003');
+    Modulus.Clear;
+    Modulus.MaxDegree := 20;
+    for I := 0 to 19 do
+      Modulus[I].SetWord((I * 37 + 13) mod 1000);  // pseudo-random coeffs
+    Modulus[20].SetOne;  // monic
+    Modulus.CorrectTop;
+
+    Base.SetCoefficients([0, 1]);  // x
+    Exp.SetDec('1000003');          // x^p
+
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+
+    // ---- Test 4: Base is not just x, degree 30, p = 100003 ----
+    Prime.SetWord(100003);
+    Modulus.Clear;
+    Modulus.MaxDegree := 30;
+    for I := 0 to 29 do
+      Modulus[I].SetWord((I * 101 + 7) mod 500);
+    Modulus[30].SetOne;
+    Modulus.CorrectTop;
+
+    Base.Clear;
+    Base.MaxDegree := 5;
+    for I := 0 to 5 do
+      Base[I].SetWord((I * 31 + 3) mod 500);
+    Base.CorrectTop;
+
+    Exp.SetWord(100003);
+
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+
+    // ---- Test 5: Exponent = 1 (edge case) ----
+    Exp.SetWord(1);
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+
+    // ---- Test 6: Exponent = 0 (edge case, result = 1) ----
+    Exp.SetZero;
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+    if Res2.ToString <> '1' then Exit;
+
+    // ---- Test 7: Large exponent with degree 50 modulus ----
+    // This really exercises the Barrett path with Karatsuba
+    Prime.SetDec('999999937');  // a 9-digit prime
+    Modulus.Clear;
+    Modulus.MaxDegree := 50;
+    for I := 0 to 49 do
+      Modulus[I].SetWord((I * 73 + 41) mod 10000);
+    Modulus[50].SetOne;
+    Modulus.CorrectTop;
+
+    Base.SetCoefficients([0, 1]);  // x
+    Exp.SetDec('999999937');
+
+    BigNumberPolynomialGaloisPower(Res1, Base, Exp, Prime, Modulus);
+    BigNumberPolynomialGaloisPowerBarrett(Res2, Base, Exp, Prime, Modulus);
+    if Res1.ToString <> Res2.ToString then Exit;
+
+    Result := True;
+  finally
+    Exp.Free;
+    Prime.Free;
+    Res2.Free;
+    Res1.Free;
+    Modulus.Free;
+    Base.Free;
   end;
 end;
 
