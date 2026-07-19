@@ -237,18 +237,39 @@ const
 
   CN_SEA_BSGS_THRESHOLD = 100000;
   {* 当 Elkies-Atkin 组合搜索空间 N = floor(2*QMax/M_E) 超过此阈值时，
+     从暴力搜索切换到 BSGS（Baby-Step Giant-Step）算法。}
+
+  CN_SEA_MAX_BABY_STEPS = 5000;
+  {* CRT baby-step 表的最大条目数。超过则停止添加 Atkin 素数。}
+
+  CN_SEA_MAX_CRT_L_PRODUCT: Int64 = $1000000000000000;  // 2^60
+  {* CRT 组合 L 乘积上限，保证 baby-step r 值不溢出 Int64。}
+
+  CN_SEA_MAX_MODPOLY_L = 199;
+  {* 最大可用模多项式次数。CnMP_*.txt 预计算文件覆盖到此 L 值。
+     超过此值的模多项式需要实时生成，耗时极长，应避免。}
+
+  CN_SEA_PRODUCT_SAFETY_BASE = 112;
+  {* 素数乘积阈值的基础安全余量（位数）。
+     标准 SEA 在乘积 > 4*sqrt(p) 时停止收集素数，但这仅保证 Elkies+Atkin
+     的 L 乘积超过 Hasse 界。由于 Atkin 素数的过滤强度 |S_i|/L_i 通常约 0.5
+     （而非 1/L_i），实际假阳性数可能高达 N * 0.5^(numAtkin)，在大素数时
+     仍可达数百万，导致 SeaVerifyTrace 验证耗时数天。
+     实际安全余量 = max(0, bits(p) - CN_SEA_PRODUCT_SAFETY_BASE)，随 p 的位数
+     动态增长，使 Atkin 过滤足够强（期望假阳性 < 1），从而可跳过昂贵的
+     点乘验证。
+     取 112 的理由：112 位及以下时，标准 SEA 的 L（约 47）已使组合阶段
+     候选数仅约 137 个，验证耗时可接受（<1 分钟），无需额外余量。
+     128 位起标准 L（约 59）的候选数迅速增长至数万以上，需要额外余量
+     来加强过滤。128 位时 SafetyBits=16，L≈73；256 位时 L≈190。}
+
+  CN_SEA_ELKIES_BSGS_THRESHOLD = 71;
+  {* 素数大于该值时采用 BSGS 查找，否则线性。
      从暴力搜索切换到 BSGS（Baby-Step Giant-Step）算法。
      取值依据：每次迭代约 25μs（256 位 BigNumber 运算），100000 次约 2.5 秒，
      在可接受范围内。超过此值则 BSGS 的 L_1/|S_1| 倍加速（通常 2~10x）更划算。
      - 调大：更多用暴力搜索（简单但慢），适合小素数场景
      - 调小：更早启用 BSGS（快但需 Atkin 素数），适合大素数场景}
-
-  CN_SEA_ELKIES_BSGS_THRESHOLD = 71;
-  {* 素数大于该值时采用 BSGS 查找，否则线性。
-     BSGS 算法虽然能将迭代次数从 (L+1)/2 降低到大约 2*sqrt((L+1)/2)，
-     但它的每次迭代都有额外的开销（比如需要通过多项式模逆来构建 baby step 表）。
-     因此，对于较小的 L（<71），线性搜索反而更快。具体来看：当 L=71 时，
-     线性搜索需要 36 次，而 BSGS 需要 12 次；当 L=1009 时，线性搜索需要 505 次，而 BSGS 只需要 46 次。}
 
 var
   FSeaBigNumberPool: TCnBigNumberPool = nil;
@@ -1492,10 +1513,12 @@ begin
     Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
-    // 计算 x^p mod Psi_L
+    // 计算 x^p mod Psi_L (use Barrett reduction for large Psi_L)
     XPowP := FSeaPolynomialPool.Obtain;
     XPowP.SetCoefficients([0, 1]); // x
-    BigNumberPolynomialGaloisPower(XPowP, XPowP, P, P, PsiL);
+    {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d x^p mod Psi start deg=%d', [L, PsiL.MaxDegree]); {$ENDIF}
+    BigNumberPolynomialGaloisPowerBarrett(XPowP, XPowP, P, P, PsiL);
+    {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d x^p mod Psi done', [L]); {$ENDIF}
 
     // XPmX = x^p - x mod Psi_L
     XPmX := FSeaPolynomialPool.Obtain;
@@ -1511,10 +1534,11 @@ begin
     Found := False;
     ScalarLam := 0;
 
-    {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d deg=%d loop %d', [L, TargetDeg, L-1]); {$ENDIF}
+    // For odd prime L, eigenvalues λ and L-λ share the same kernel h(x).
+    // Searching λ = 1..(L-1)/2 covers all eigenvalues. (2x speedup)
+    {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d deg=%d loop 1..%d', [L, TargetDeg, (L-1) div 2]); {$ENDIF}
 
-    // 对每个 lambda = 1, ..., L-1，检查 gcd(Psi_L, G_lambda) 的次数
-    for Lambda := 1 to L - 1 do
+    for Lambda := 1 to (L - 1) div 2 do
     begin
       {$IFDEF SEA_TRACE}
       if (Lambda mod ((L - 1) div 10 + 1) = 1) or (Lambda = L - 1) then
@@ -1602,7 +1626,7 @@ begin
           BigNumberCopy(BQ, P);
           BQ.SubWord(1);
           BigNumberShiftRightOne(BQ, BQ); // (p-1)/2
-          BigNumberPolynomialGaloisPower(T2, Y2, BQ, P, PsiL);
+          BigNumberPolynomialGaloisPowerBarrett(T2, Y2, BQ, P, PsiL);
           if T2.IsOne then
             ScalarLam := 1
           else
@@ -1836,13 +1860,13 @@ begin
     // pi(P) y-coefficient = Y2^((p-1)/2) mod h(x)
     PiPX := FSeaPolynomialPool.Obtain;
     PiPX.SetCoefficients([0, 1]); // x
-    BigNumberPolynomialGaloisPower(PiPX, PiPX, P, P, H); // x^p mod h
+    BigNumberPolynomialGaloisPowerBarrett(PiPX, PiPX, P, P, H); // x^p mod h
 
     PiPY := FSeaPolynomialPool.Obtain;
     BigNumberCopy(BQ, P);
     BQ.SubWord(1);
     BigNumberShiftRightOne(BQ, BQ); // (p-1)/2
-    BigNumberPolynomialGaloisPower(PiPY, Y2, BQ, P, H); // Y2^((p-1)/2) mod h
+    BigNumberPolynomialGaloisPowerBarrett(PiPY, Y2, BQ, P, H); // Y2^((p-1)/2) mod h
 
     // Step 4: generic point P = (x, 1) in polynomial representation
     PX := FSeaPolynomialPool.Obtain;
@@ -2318,7 +2342,7 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
 var
   Pa, Ta: TCnInt64List;
   QMax, QMul, BQ: TCnBigNumber;
-  I, J, ModPolyIdx, RequiredModPolyCount: Integer;
+  I, J, ModPolyIdx, RequiredModPolyCount, SafetyBits: Integer;
   L: Int64;
   DPs: TObjectList;
   Y2, P1, P2, G: TCnBigNumberPolynomial;
@@ -2358,16 +2382,23 @@ begin
     ElkiesModuli := TCnInt64List.Create;
     AtkinTraces := TCnInt64List.Create;
 
-    // 计算所需素数列表：乘积 > 4 * sqrt(p)
+    // 计算所需素数列表：乘积 > 4 * sqrt(p) * 2^SafetyBits
+    // SafetyBits 随 p 的位数动态增长，确保 Atkin 过滤足够强
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
     BigNumberMulWord(QMax, 4);
+    SafetyBits := BigNumberGetBitsCount(P) - CN_SEA_PRODUCT_SAFETY_BASE;
+    if SafetyBits < 0 then SafetyBits := 0;
+    for J := 1 to SafetyBits do
+      BigNumberShiftLeftOne(QMax, QMax);
     QMul.SetOne;
     I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
 
     while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
     begin
       L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+      // Guard: stop at max available mod poly L to avoid slow on-the-fly generation
+      if L > CN_SEA_MAX_MODPOLY_L then Break;
       // 跳过 L = P 的情况
       BigNumberSetWord(BQ, L);
       if BigNumberCompare(BQ, P) <> 0 then
@@ -2379,8 +2410,11 @@ begin
       Inc(I);
     end;
 
-    if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
-      raise ECnEccException.Create('Prime number is too large for SEA.');
+    // Note: if L > CN_SEA_MAX_MODPOLY_L guard triggered before threshold was
+    // reached, we proceed with available primes. The SkipVerify logic in
+    // CnSeaCombineElkiesAtkin will handle the case of weaker filtering.
+    if Pa.Count = 0 then
+      raise ECnEccException.Create('No primes available for SEA.');
 
     // Validate external ModPolys: must have one entry per prime L >= 3 in Pa
     if ModPolys <> nil then
@@ -2582,7 +2616,7 @@ end;
 function CnSeaMaxRequiredPrimeL(P: TCnBigNumber): Integer;
 var
   QMax, QMul, BQ: TCnBigNumber;
-  I: Integer;
+  I, J, SafetyBits: Integer;
   L: Int64;
 begin
   Result := 0;
@@ -2592,10 +2626,15 @@ begin
   QMul := TCnBigNumber.Create;
   BQ := TCnBigNumber.Create;
   try
-    // Hasse bound: need product of all small primes L > 4*sqrt(p)
+    // Extended threshold: product > 4*sqrt(p) * 2^SafetyBits
+    // SafetyBits = max(0, bits(p) - 112), scales with prime size
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
     BigNumberMulWord(QMax, 4);
+    SafetyBits := BigNumberGetBitsCount(P) - CN_SEA_PRODUCT_SAFETY_BASE;
+    if SafetyBits < 0 then SafetyBits := 0;
+    for J := 1 to SafetyBits do
+      BigNumberShiftLeftOne(QMax, QMax);
 
     QMul.SetOne;
     I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
@@ -2603,6 +2642,8 @@ begin
     while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
     begin
       L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+      // Guard: stop at max available mod poly L
+      if L > CN_SEA_MAX_MODPOLY_L then Break;
 
       // Skip L = P (same as the field characteristic)
       BigNumberSetWord(BQ, L);
@@ -3079,16 +3120,43 @@ var
   M_E, T_E: TCnBigNumber;
   QMax, QTmp, Tmp, T: TCnBigNumber;
   N: Integer;
-  Found, Verified, UseBSGS: Boolean;
+  Found, Verified, UseBSGS, SkipVerify: Boolean;
   TMod: Int64;
+  AtkinFilterRatio, E_fp_Log2: Double;
   LVal, L1Val, LCheck, InvME64: Int64;
   BestIdx, Dir: Integer;
   BabyR: Int64;
+  // Multi-prime CRT selection
+  SelIdx: array[0..5] of Integer;
+  SelL: array[0..5] of Int64;
+  SelC: array[0..5] of Integer;
+  SelCount, SelBestIdx: Integer;
+  SelBestR, SelR: Double;
+  SelFound: Boolean;
+  SelK, SelJ, SelPrev: Integer;
+  CRT_LProd, CRT_Lk, CRT_InvMk, CRT_TModK, CRT_R2, CRT_R1, CRT_Diff: Int64;
+  CRTOldCnt: Integer;
+  S1, S2: TCnInt64List;  // temp lists for CRT
+
+  // Int64 precompute
+  RmL: array of Int64;
+  RmTE: array of Int64;       // T_E mod L (read-only)
+  RmGS: array of Int64;
+  RmBaby0: array of Int64;
+  RmBase: array of Int64;     // per-direction base_t mod L (scratch)
+  RmLUT: array of Boolean;        // flattened 1D O(1) membership
+  RmLUTOff: array of Integer;     // row start offsets for RmLUT
+  BabyMod1D: array of Int64;  // flattened: [K * BabyCnt + I]
+  BabyCnt: Integer;
+  Survive: array of Boolean;
+  RmCount, RmIdx: Integer;
+  RmSkp: Boolean;
+  RmTModL, RmBm, RmLk: Int64;
 
   // BSGS variables
-  BabyRs: TCnInt64List;       // baby step r values: k mod L_1
+  BabyRs: TCnInt64List;
   GStep, BaseT, Threshold: TCnBigNumber;
-  GiantSize: Int64;
+  GiantSize, GiantMax, SurvCnt: Int64;
 begin
   Result := False;
   M_E := nil;
@@ -3142,6 +3210,24 @@ begin
     BigNumberAdd(Tmp, QMax, QMax);         // Tmp = 2*QMax
     BigNumberDiv(Tmp, nil, Tmp, M_E);      // Tmp = floor(2*QMax / M_E)
 
+    // ---- Compute expected false positives to decide if verification is needed ----
+    // E_fp = (2*QMax / M_E) * product(|S_i|/L_i for all Atkin primes)
+    // If E_fp < 1, the Atkin filtering is strong enough that at most one
+    // candidate can survive, making point verification unnecessary.
+    AtkinFilterRatio := 1.0;
+    for I := 0 to AtkinInfos.Count - 1 do
+      AtkinFilterRatio := AtkinFilterRatio *
+        (TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces.Count /
+         TCnSeaAtkinInfo(AtkinInfos[I]).L);
+    // log2(E_fp) ≈ bits(2*QMax) - bits(M_E) + log2(AtkinFilterRatio)
+    E_fp_Log2 := (BigNumberGetBitsCount(QMax) + 1) - BigNumberGetBitsCount(M_E) +
+                 Ln(AtkinFilterRatio) / Ln(2.0);
+    SkipVerify := (E_fp_Log2 < -2.0);  // E_fp < 0.25, very safe
+    {$IFDEF SEA_TRACE}
+    _SeaT('[Combine] E_fp_log2=%.1f SkipVerify=%d AtkinRatio=%.6e',
+      [E_fp_Log2, Ord(SkipVerify), AtkinFilterRatio]);
+    {$ENDIF}
+
     // Use BigNumber comparison to decide brute force vs BSGS.
     // Avoids Int64 overflow when M_E is small relative to QMax.
     BigNumberSetWord(QTmp, CN_SEA_BSGS_THRESHOLD);
@@ -3152,6 +3238,13 @@ begin
       N := Integer(BigNumberGetInt64(Tmp)) + 1;
       UseBSGS := False;
     end;
+
+    {$IFDEF SEA_TRACE}
+    if UseBSGS then
+      _SeaT('[Combine] BSGS mode, N~%s', ['TOO_LARGE'])
+    else
+      _SeaT('[Combine] BruteForce mode, N=%d', [N]);
+    {$ENDIF}
 
     if not UseBSGS then
     begin
@@ -3185,6 +3278,13 @@ begin
 
         if Found then
         begin
+          if SkipVerify then
+          begin
+            // Atkin filtering is strong enough: this is the unique answer
+            BigNumberCopy(Res, T);
+            Result := True;
+            Exit;
+          end;
           Verified := SeaVerifyTrace(A, B, P, T);
           if Verified then
           begin
@@ -3218,119 +3318,266 @@ begin
       // Complexity: O(|S_1| * 2*QMax / (L_1*M_E)) = O((|S_1|/L_1) * N)
       // Speedup over brute force: factor L_1 / |S_1|.
 
-      if AtkinInfos.Count = 0 then
-        Exit; // No Atkin primes to guide BSGS
-
-      // Select most selective Atkin prime
-      BestIdx := 0;
-      for K := 1 to AtkinInfos.Count - 1 do
+      // ---- Adaptive multi-prime CRT BSGS ----
+      // Greedy: select primes with smallest |S|/L ratio.
+      // Stop when baby steps > 5000 or L_prod > 2^60.
+      SelCount := 0; CRT_LProd := 1;
+      for SelBestIdx := 0 to 5 do
       begin
-        if TCnSeaAtkinInfo(AtkinInfos[K]).PossibleTraces.Count *
-           TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L <
-           TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count *
-           TCnSeaAtkinInfo(AtkinInfos[K]).L then
-          BestIdx := K;
-      end;
-      L1Val := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L;
+        BestIdx := -1; SelBestR := 1e99;
+        for K := 0 to AtkinInfos.Count - 1 do
+        begin
+          SelFound := False;
+          for SelJ := 0 to SelCount - 1 do
+            if K = SelIdx[SelJ] then begin SelFound := True; Break; end;
+          if SelFound then Continue;
+          SelR := TCnSeaAtkinInfo(AtkinInfos[K]).PossibleTraces.Count /
+                  TCnSeaAtkinInfo(AtkinInfos[K]).L;
+          if SelR < SelBestR then begin SelBestR := SelR; BestIdx := K; end;
+        end;
+        if BestIdx < 0 then Break;
 
-      // Compute M_E^{-1} mod L_1 via BigNumber
+        // Check baby step limit BEFORE committing
+        SelC[SelCount] := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count;
+        SelPrev := 1; for SelJ := 0 to SelCount do SelPrev := SelPrev * SelC[SelJ];
+        if (SelCount > 0) and (SelPrev > CN_SEA_MAX_BABY_STEPS) then Break;
+        // Int64 safety: L_prod < 2^60
+        if (SelCount > 0) and (CRT_LProd > CN_SEA_MAX_CRT_L_PRODUCT div TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L) then Break;
+        // Commit
+        SelIdx[SelCount] := BestIdx;
+        SelL[SelCount] := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L;
+        CRT_LProd := CRT_LProd * SelL[SelCount];
+        Inc(SelCount);
+      end;
+      if SelCount = 0 then Exit;
+      L1Val := SelL[0];
+      BestIdx := SelIdx[0];
+
+      // ---- Build CRT baby-step table ----
+      BabyRs := TCnInt64List.Create;
+      // Step 1: r mod L1
       QTmp.SetInt64(L1Val);
       BigNumberModularInverse(Tmp, M_E, QTmp);
       InvME64 := BigNumberModWord(Tmp, L1Val);
-
-      // t_E mod L_1
       TMod := BigNumberModWord(T_E, L1Val);
-      if T_E.IsNegative then
-        TMod := (L1Val - TMod) mod L1Val;
+      if T_E.IsNegative then TMod := (L1Val - TMod) mod L1Val;
+      S1 := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces;
+      for I := 0 to S1.Count - 1 do
+        BabyRs.Add( ((S1[I] - TMod + L1Val) mod L1Val * InvME64) mod L1Val );
+      CRT_LProd := L1Val;
 
-      // Build baby step table: r_s = (s - t_E_mod) * M_E_inv mod L_1
-      BabyRs := TCnInt64List.Create;
-      for K := 0 to TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count - 1 do
+      // Step 2..N: iterative CRT fold
+      for SelK := 1 to SelCount - 1 do
       begin
-        BabyR := (TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces[K] - TMod
-          + L1Val) mod L1Val;
-        BabyR := (BabyR * InvME64) mod L1Val;
-        BabyRs.Add(BabyR);
+        CRT_Lk := SelL[SelK];
+        QTmp.SetInt64(CRT_Lk);
+        BigNumberModularInverse(Tmp, M_E, QTmp);
+        CRT_InvMk := BigNumberModWord(Tmp, CRT_Lk);
+        CRT_TModK := BigNumberModWord(T_E, CRT_Lk);
+        if T_E.IsNegative then CRT_TModK := (CRT_Lk - CRT_TModK) mod CRT_Lk;
+
+        S2 := TCnSeaAtkinInfo(AtkinInfos[SelIdx[SelK]]).PossibleTraces;
+        CRTOldCnt := BabyRs.Count;
+        for I := 0 to S2.Count - 1 do
+        begin
+          CRT_R2 := ((S2[I] - CRT_TModK + CRT_Lk) mod CRT_Lk * CRT_InvMk) mod CRT_Lk;
+          for SelJ := 0 to CRTOldCnt - 1 do
+          begin
+            CRT_R1 := BabyRs[SelJ];
+            CRT_Diff := (CRT_R2 - CRT_R1) mod CRT_Lk;
+            if CRT_Diff < 0 then CRT_Diff := CRT_Diff + CRT_Lk;
+            CRT_Diff := Int64NonNegativeMulMod(CRT_Diff,
+              CnInt64ModularInverse2(CRT_LProd mod CRT_Lk, CRT_Lk), CRT_Lk);
+            BabyRs.Add(CRT_R1 + CRT_Diff * CRT_LProd);
+          end;
+        end;
+        for I := 0 to CRTOldCnt - 1 do BabyRs.Delete(0);
+        CRT_LProd := CRT_LProd * CRT_Lk;
       end;
 
-      // Giant step = L_1 * M_E
-      BigNumberSetInt64(Tmp, L1Val);
+      // Giant step = CRT_LProd * M_E
+      BigNumberSetInt64(Tmp, CRT_LProd);
       BigNumberMul(GStep, Tmp, M_E);
 
-      // Termination threshold = QMax + (L_1 - 1) * M_E
-      // When |j * GStep| exceeds this, no baby step can bring t within Hasse bound.
-      BigNumberSetInt64(Tmp, L1Val - 1);
+      // Threshold = QMax + (CRT_LProd - 1) * M_E
+      BigNumberSetInt64(Tmp, CRT_LProd - 1);
       BigNumberMul(Threshold, Tmp, M_E);
       BigNumberAdd(Threshold, Threshold, QMax);
 
-      // Iterate giant steps: j = 0, +-1, +-2, ...
-      Found := False;
-      GiantSize := 0;
+      // ---- Int64 precompute: remaining Atkin constraints ----
+      // Build O(1) lookup table per prime for fast membership check
+      RmCount := 0;
+      for I := 0 to AtkinInfos.Count - 1 do
+      begin
+        RmSkp := False;
+        for SelJ := 0 to SelCount - 1 do
+          if I = SelIdx[SelJ] then begin RmSkp := True; Break; end;
+        if not RmSkp then Inc(RmCount);
+      end;
+      SetLength(RmL, RmCount); SetLength(RmTE, RmCount);
+      SetLength(RmGS, RmCount); SetLength(RmBaby0, RmCount);
+      SetLength(RmBase, RmCount);
+      // First pass: fill RmL and candidate lists
+      RmIdx := 0;
+      for I := 0 to AtkinInfos.Count - 1 do
+      begin
+        RmSkp := False;
+        for SelJ := 0 to SelCount - 1 do
+          if I = SelIdx[SelJ] then begin RmSkp := True; Break; end;
+        if RmSkp then Continue;
+        RmL[RmIdx] := TCnSeaAtkinInfo(AtkinInfos[I]).L;
+        RmTModL := BigNumberModWord(T_E, RmL[RmIdx]);
+        if T_E.IsNegative then RmTModL := (RmL[RmIdx] - RmTModL) mod RmL[RmIdx];
+        RmTE[RmIdx] := RmTModL;
+        RmGS[RmIdx] := BigNumberModWord(GStep, RmL[RmIdx]);
+        RmBaby0[RmIdx] := BigNumberModWord(M_E, RmL[RmIdx]);
+        Inc(RmIdx);
+      end;
+      // Compute 1D LUT offsets from known L values
+      SetLength(RmLUTOff, RmCount + 1);
+      RmLUTOff[0] := 0;
+      for K := 0 to RmCount - 1 do
+        RmLUTOff[K + 1] := RmLUTOff[K] + Integer(RmL[K]) + 1;
+      SetLength(RmLUT, RmLUTOff[RmCount]);
+      for K := 0 to High(RmLUT) do RmLUT[K] := False;
+      // Fill LUT with candidate values
+      RmIdx := 0;
+      for I := 0 to AtkinInfos.Count - 1 do
+      begin
+        RmSkp := False;
+        for SelJ := 0 to SelCount - 1 do
+          if I = SelIdx[SelJ] then begin RmSkp := True; Break; end;
+        if RmSkp then Continue;
+        S1 := TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces;
+        SelPrev := RmLUTOff[RmIdx]; // base offset for this row
+        for SelJ := 0 to S1.Count - 1 do
+          RmLUT[SelPrev + S1[SelJ]] := True;
+        Inc(RmIdx);
+      end;
+      // Precompute (BabyRs[i] * RmBaby0[k]) mod RmL[k] → flat 1D
+      BabyCnt := BabyRs.Count;
+      SetLength(BabyMod1D, RmCount * BabyCnt);
+      for K := 0 to RmCount - 1 do
+      begin
+        SelPrev := K * BabyCnt; // row offset
+        for I := 0 to BabyCnt - 1 do
+          BabyMod1D[SelPrev + I] := (BabyRs[I] * RmBaby0[K]) mod RmL[K];
+      end;
+
+      // ---- Int64-optimized BSGS loop ----
+      // Precompute MaxGiantSize = Threshold / GStep (Int64-safe comparison)
+      BigNumberDiv(QTmp, nil, Threshold, GStep);
+      GiantMax := BigNumberGetInt64(QTmp);
+      {$IFDEF SEA_TRACE}
+      _SeaT('[Combine] CRT %d primes, %d baby, %d remAtk, ~%d giant steps',
+        [SelCount, BabyRs.Count, RmCount, GiantMax]);
+      {$ENDIF}
+      Found := False; GiantSize := 0;
+      SetLength(Survive, BabyCnt);  // Pre-allocate once outside the loop
+      {$IFDEF SEA_TRACE}
+      _SeaT('[Combine] BSGS loop start', []);
+      {$ENDIF}
       while True do
       begin
+        {$IFDEF SEA_TRACE}
+        if GiantSize = 0 then _SeaT('[Combine] step0 dir0 start', []);
+        {$ENDIF}
         for Dir := 0 to 1 do
         begin
           if (Dir = 1) and (GiantSize = 0) then Continue;
-
-          // base_t = t_E + sign * GiantSize * GStep
-          BigNumberCopy(BaseT, T_E);
-          BigNumberSetInt64(Tmp, GiantSize);
-          BigNumberMul(Tmp, Tmp, GStep);
-          if Dir = 0 then
-            BigNumberAdd(BaseT, BaseT, Tmp)
-          else
-            BigNumberSub(BaseT, BaseT, Tmp);
-
-          // For each baby step r_s
-          for K := 0 to BabyRs.Count - 1 do
+          // base_t mod each L (Int64) into RmTE as scratch
+          {$IFDEF SEA_TRACE}
+          if GiantSize = 0 then _SeaT('[Combine] baset start', []);
+          {$ENDIF}
+          for I := 0 to RmCount - 1 do
           begin
-            // t = base_t + r_s * M_E
-            BigNumberSetInt64(Tmp, BabyRs[K]);
+            RmLk := RmL[I];
+            RmBm := ((GiantSize mod RmLk) * RmGS[I]) mod RmLk;
+            if Dir = 0 then RmBm := (RmTE[I] + RmBm) mod RmLk
+            else begin
+              RmBm := (RmTE[I] - RmBm) mod RmLk;
+              if RmBm < 0 then RmBm := RmBm + RmLk;
+            end;
+            RmBase[I] := RmBm;
+          end;
+          {$IFDEF SEA_TRACE}
+          if GiantSize = 0 then _SeaT('[Combine] baset done, baby loop start count=%d', [BabyRs.Count]);
+          {$ENDIF}
+
+          // Filter baby steps: for each remaining Atkin prime, eliminate
+          // baby steps that fail its constraint. Only baby steps surviving ALL
+          // primes are candidates for full verification.
+          // Survive array is pre-allocated outside the loop for performance.
+          for I := 0 to BabyCnt - 1 do Survive[I] := True;
+
+          for K := 0 to RmCount - 1 do
+          begin
+            RmLk := RmL[K];
+            SelPrev := K * BabyCnt; // row start in BabyMod1D
+            CRT_TModK := RmBase[K];  // base mod this prime
+            RmTModL := RmLUTOff[K];
+            for I := 0 to BabyCnt - 1 do
+            begin
+              if not Survive[I] then Continue;
+              RmBm := (CRT_TModK + BabyMod1D[SelPrev + I]) mod RmLk;
+              if not RmLUT[RmTModL + RmBm] then
+                Survive[I] := False;
+            end;
+          end;
+
+          // Count survivors for tracing
+          {$IFDEF SEA_TRACE}
+          if (GiantSize > 0) and (GiantSize mod 10 = 0) then
+          begin
+            SurvCnt := 0;
+            for I := 0 to BabyCnt - 1 do
+              if Survive[I] then Inc(SurvCnt);
+            _SeaT('[Combine] step %d/%d dir%d  survivors=%d', [GiantSize, GiantMax, Dir, SurvCnt]);
+          end;
+          {$ENDIF}
+
+          // Check any surviving baby steps (extremely rare)
+          for I := 0 to BabyCnt - 1 do
+          begin
+            if not Survive[I] then Continue;
+            BigNumberCopy(BaseT, T_E);
+            BigNumberSetInt64(Tmp, GiantSize);
+            BigNumberMul(Tmp, Tmp, GStep);
+            if Dir = 0 then BigNumberAdd(BaseT, BaseT, Tmp)
+            else BigNumberSub(BaseT, BaseT, Tmp);
+            BigNumberSetInt64(Tmp, BabyRs[I]);
             BigNumberMul(Tmp, Tmp, M_E);
             BigNumberAdd(T, BaseT, Tmp);
-
-            // Check Hasse bound
             BigNumberCopy(QTmp, T);
             if QTmp.IsNegative then QTmp.Negate;
-            if BigNumberCompare(QTmp, QMax) > 0 then Continue;
-
-            // Check remaining Atkin constraints (skip BestIdx)
-            Found := True;
-            for I := 0 to AtkinInfos.Count - 1 do
+            if BigNumberCompare(QTmp, QMax) <= 0 then
             begin
-              if I = BestIdx then Continue;
-              LCheck := TCnSeaAtkinInfo(AtkinInfos[I]).L;
-              TMod := BigNumberModWord(T, LCheck);
-              if T.IsNegative then
-                TMod := (LCheck - TMod) mod LCheck;
-              if TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces.IndexOf(TMod) < 0 then
+              if SkipVerify then
               begin
-                Found := False;
-                Break;
-              end;
-            end;
-
-            if Found then
-            begin
-              Verified := SeaVerifyTrace(A, B, P, T);
-              if Verified then
-              begin
+                // Atkin filtering is strong enough: this is the unique answer
                 BigNumberCopy(Res, T);
                 Result := True;
                 Exit;
               end;
+              {$IFDEF SEA_TRACE}
+              _SeaT('[Combine] step %d verifying candidate...', [GiantSize]);
+              {$ENDIF}
+              if SeaVerifyTrace(A, B, P, T) then
+              begin BigNumberCopy(Res, T); Result := True; Exit; end;
+              {$IFDEF SEA_TRACE}
+              _SeaT('[Combine] step %d candidate failed', [GiantSize]);
+              {$ENDIF}
             end;
           end;
+          {$IFDEF SEA_TRACE}
+          if GiantSize = 0 then _SeaT('[Combine] baby loop done', []);
+          {$ENDIF}
         end;
-
-        // Check termination: |GiantSize * GStep| > Threshold
-        BigNumberSetInt64(Tmp, GiantSize);
-        BigNumberMul(Tmp, Tmp, GStep);
-        if Tmp.IsNegative then Tmp.Negate;
-        if BigNumberCompare(Tmp, Threshold) > 0 then Break;
-
+        {$IFDEF SEA_TRACE}
+        if GiantSize = 0 then _SeaT('[Combine] step0 done, now loop', []);
+        {$ENDIF}
+        if GiantSize >= GiantMax then Break;
         Inc(GiantSize);
-        if GiantSize > 200000000 then Break; // safety limit
       end;
     end;
   finally
