@@ -17358,7 +17358,7 @@ function BigNumberPolynomialGaloisFactorCantorZassenhaus(Factors: TCnBigNumberPo
   F: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
 var
   SquareFreeFactors, FactorsD: TCnBigNumberPolynomialList;
-  N, D, DegFound: Integer;
+  N, D: Integer;
   I: Integer;
   SF, P: TCnBigNumberPolynomial;
   H, G, XPoly, TempPoly: TCnBigNumberPolynomial;
@@ -17398,7 +17398,6 @@ begin
         // H = x (will be iterated as x^{p^d} mod SF)
         BigNumberPolynomialCopy(H, XPoly);
 
-        DegFound := 0;
         D := 1;
         while (D <= N div 2) and (SF.MaxDegree > 0) do
         begin
@@ -17420,7 +17419,6 @@ begin
               begin
                 P := TCnBigNumberPolynomial(FactorsD.Extract(FactorsD[0]));
                 Factors.Add(P);
-                DegFound := DegFound + P.MaxDegree;
               end;
             finally
               FactorsD.Free;
@@ -17436,10 +17434,7 @@ begin
 
         // Remaining SF (if any) is irreducible
         if SF.MaxDegree > 0 then
-        begin
           Factors.Add(BigNumberPolynomialDuplicate(SF));
-          DegFound := DegFound + SF.MaxDegree;
-        end;
       finally
         FLocalBigNumberPolynomialPool.Recycle(TempPoly);
         FLocalBigNumberPolynomialPool.Recycle(XPoly);

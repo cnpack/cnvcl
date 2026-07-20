@@ -24,11 +24,13 @@ unit CnSEA;
 * 软件名称：CnPack 组件包
 * 单元名称：Schoof-Elkies-Atkin 算法与模多项式相关计算
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：目前能在一两个小时里算出 secp128r1
+* 备    注：目前能在一两个小时里算出 secp128r1，五个半小时算出 secp160r1
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
-* 修改记录：2026.07.10 V1.2
+* 修改记录：2026.07.15 V1.3
+*               不断优化，能算出 160 位素数域上的椭圆曲线的阶了
+*           2026.07.10 V1.2
 *               实现 SEA 第二阶段：Aktin 素数检测与合并计算
 *           2026.07.09 V1.1
 *               实现 SEA 第一阶段：Elkies 素数检测与迹计算
@@ -216,7 +218,11 @@ function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
 implementation
 
 {$IFDEF SEA_TRACE}
-// Simple trace via WriteLn — FPC-compatible. Compile with -dSEA_TRACE.
+
+uses
+  CnDebug;
+
+// Simple trace via CnDebugger. Compile with -dSEA_TRACE.
 var
   _SeaT0: TDateTime = 0;
 
@@ -228,10 +234,9 @@ end;
 
 procedure _SeaT(const Fmt: string; const Args: array of const);
 begin
-  Write(Format('[%d] ', [_SeaMs]));
-  WriteLn(Format(Fmt, Args));
-  Flush(Output);
+  CnDebugger.TraceMsg(Format('[%d] ', [_SeaMs]) + Format(Fmt, Args));
 end;
+
 {$ENDIF}
 
 const
@@ -317,7 +322,7 @@ begin
       begin
         Base.SetWord(D);
         BigNumberCopy(T, Base);
-        for i := 2 to K do
+        for I := 2 to K do
           BigNumberMul(T, T, Base);
         BigNumberAdd(Res, Res, T);
       end;
@@ -426,7 +431,6 @@ begin
     finally
       DeltaInv.Free;
     end;
-
   finally
     E3.Free;
     C1728.Free;
@@ -2392,6 +2396,12 @@ begin
   P2 := nil;
   G := nil;
   TraceRes := nil;
+
+  AtkinInfos := nil;
+  ElkiesTraces := nil;
+  ElkiesModuli := nil;
+  AtkinTraces := nil;
+
   try
     Pa := TCnInt64List.Create;
     Ta := TCnInt64List.Create;
@@ -3009,7 +3019,7 @@ var
   J: TCnBigNumber;
   OwnPhiL: Boolean;
   FY: TCnBigNumberPolynomial;
-  I, R: Integer;
+  R: Integer;
   TotalDeg, Multiplicity: Integer;
   SplitType: Integer;
   L64: Int64;
@@ -3560,17 +3570,23 @@ begin
           // Check any surviving baby steps (extremely rare)
           for I := 0 to BabyCnt - 1 do
           begin
-            if not Survive[I] then Continue;
+            if not Survive[I] then
+              Continue;
             BigNumberCopy(BaseT, T_E);
             BigNumberSetInt64(Tmp, GiantSize);
             BigNumberMul(Tmp, Tmp, GStep);
-            if Dir = 0 then BigNumberAdd(BaseT, BaseT, Tmp)
-            else BigNumberSub(BaseT, BaseT, Tmp);
+            if Dir = 0 then
+              BigNumberAdd(BaseT, BaseT, Tmp)
+            else
+              BigNumberSub(BaseT, BaseT, Tmp);
+
             BigNumberSetInt64(Tmp, BabyRs[I]);
             BigNumberMul(Tmp, Tmp, M_E);
             BigNumberAdd(T, BaseT, Tmp);
             BigNumberCopy(QTmp, T);
-            if QTmp.IsNegative then QTmp.Negate;
+            if QTmp.IsNegative then
+              QTmp.Negate;
+
             if BigNumberCompare(QTmp, QMax) <= 0 then
             begin
               if SkipVerify then
@@ -3581,23 +3597,31 @@ begin
                 Exit;
               end;
               {$IFDEF SEA_TRACE}
-              _SeaT('[Combine] step %d verifying candidate...', [GiantSize]);
+              // _SeaT('[Combine] step %d verifying candidate...', [GiantSize]);
               {$ENDIF}
               if SeaVerifyTrace(A, B, P, T) then
-              begin BigNumberCopy(Res, T); Result := True; Exit; end;
+              begin
+                BigNumberCopy(Res, T);
               {$IFDEF SEA_TRACE}
-              _SeaT('[Combine] step %d candidate failed', [GiantSize]);
+              _SeaT('[Combine] step %d candidate OK.', [GiantSize]);
               {$ENDIF}
+                Result := True;
+                Exit;
+              end;
+
             end;
           end;
           {$IFDEF SEA_TRACE}
-          if GiantSize = 0 then _SeaT('[Combine] baby loop done', []);
+          if GiantSize = 0 then
+            _SeaT('[Combine] baby loop done', []);
           {$ENDIF}
         end;
         {$IFDEF SEA_TRACE}
-        if GiantSize = 0 then _SeaT('[Combine] step0 done, now loop', []);
+        if GiantSize = 0 then
+          _SeaT('[Combine] step0 done, now loop', []);
         {$ENDIF}
-        if GiantSize >= GiantMax then Break;
+        if GiantSize >= GiantMax then
+          Break;
         Inc(GiantSize);
       end;
     end;
