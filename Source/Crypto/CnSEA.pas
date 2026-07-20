@@ -24,7 +24,7 @@ unit CnSEA;
 * 软件名称：CnPack 组件包
 * 单元名称：Schoof-Elkies-Atkin 算法与模多项式相关计算
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：
+* 备    注：目前能在一两个小时里算出 secp128r1
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
@@ -180,6 +180,11 @@ function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
    返回值：Boolean                        - 返回计算是否成功
 }
 
+function CnSeaSafetyBits(PrimeBits: Integer): Integer;
+{* 根据 p 的位数返回 SafetyBits（分段策略）。
+   <=112 位返回 0（标准 SEA 已足够）；128 位返回 40；192 位返回 72；256 位返回 104。
+   用于在素数收集阶段扩展阈值，使 Atkin 过滤足够强以启用 SkipVerify。}
+
 function CnSeaMaxRequiredPrimeL(P: TCnBigNumber): Integer;
 {* 快速计算在素域 E/F_p 上运行 SEA 算法所需的最大模多项式次数 L_max。
    累加小素数，直到它们的乘积超过 4sqrt(p)（Hasse 界）。
@@ -255,21 +260,39 @@ const
      的 L 乘积超过 Hasse 界。由于 Atkin 素数的过滤强度 |S_i|/L_i 通常约 0.5
      （而非 1/L_i），实际假阳性数可能高达 N * 0.5^(numAtkin)，在大素数时
      仍可达数百万，导致 SeaVerifyTrace 验证耗时数天。
-     实际安全余量 = max(0, bits(p) - CN_SEA_PRODUCT_SAFETY_BASE)，随 p 的位数
-     动态增长，使 Atkin 过滤足够强（期望假阳性 < 1），从而可跳过昂贵的
-     点乘验证。
-     取 112 的理由：112 位及以下时，标准 SEA 的 L（约 47）已使组合阶段
-     候选数仅约 137 个，验证耗时可接受（<1 分钟），无需额外余量。
-     128 位起标准 L（约 59）的候选数迅速增长至数万以上，需要额外余量
-     来加强过滤。128 位时 SafetyBits=16，L≈73；256 位时 L≈190。}
+
+     SafetyBits 采用分段策略（CnSeaSafetyBits 函数），对小的 p 不增加额外
+     余量（标准 SEA 已足够），对 128 位及以上逐步增加余量以启用 SkipVerify：
+       <=112 位: SafetyBits=0  （L≈47, Combine 秒级）
+       128 位:   SafetyBits=40 （L≈83, Combine 秒级，Elkies 最大 deg≈3400）
+       192 位:   SafetyBits=72 （L≈131, Elkies 最大 deg≈8580）
+       256 位:   SafetyBits=104（L≈157, Elkies 最大 deg≈12246）
+     每段增加的素数约 4~6 个，其中约一半为 Elkies，使 E_fp_log2 < -2
+     从而 SkipVerify=1，Combine 阶段从小时级降为秒级。}
 
   CN_SEA_ELKIES_BSGS_THRESHOLD = 71;
   {* 素数大于该值时采用 BSGS 查找，否则线性。
-     从暴力搜索切换到 BSGS（Baby-Step Giant-Step）算法。
-     取值依据：每次迭代约 25μs（256 位 BigNumber 运算），100000 次约 2.5 秒，
-     在可接受范围内。超过此值则 BSGS 的 L_1/|S_1| 倍加速（通常 2~10x）更划算。
-     - 调大：更多用暴力搜索（简单但慢），适合小素数场景
-     - 调小：更早启用 BSGS（快但需 Atkin 素数），适合大素数场景}
+     BSGS 算法虽然能将迭代次数从 (L+1)/2 降低到大约 2*sqrt((L+1)/2)，
+     但它的每次迭代都有额外的开销（比如需要通过多项式模逆来构建 baby step 表）。
+     因此，对于较小的 L（<71），线性搜索反而更快。具体来看：当 L=71 时，
+     线性搜索需要 36 次，而 BSGS 需要 12 次；当 L=1009 时，线性搜索需要 505 次，而 BSGS 只需要 46 次。}
+
+function CnSeaSafetyBits(PrimeBits: Integer): Integer;
+begin
+  { 分段 SafetyBits 策略：
+    - <=112 位：SafetyBits=0，标准 SEA 的 L≈47 已使 Combine 足够快
+    - 113~128 位：SafetyBits=40，收集到 L≈83，使 SkipVerify=1
+    - 129~192 位：SafetyBits=72，收集到 L≈131
+    - >=193 位：SafetyBits=104，收集到 L≈157 }
+  if PrimeBits <= 112 then
+    Result := 0
+  else if PrimeBits <= 128 then
+    Result := 40
+  else if PrimeBits <= 192 then
+    Result := 72
+  else
+    Result := 104;
+end;
 
 var
   FSeaBigNumberPool: TCnBigNumberPool = nil;
@@ -2387,8 +2410,7 @@ begin
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
     BigNumberMulWord(QMax, 4);
-    SafetyBits := BigNumberGetBitsCount(P) - CN_SEA_PRODUCT_SAFETY_BASE;
-    if SafetyBits < 0 then SafetyBits := 0;
+    SafetyBits := CnSeaSafetyBits(BigNumberGetBitsCount(P));
     for J := 1 to SafetyBits do
       BigNumberShiftLeftOne(QMax, QMax);
     QMul.SetOne;
@@ -2627,12 +2649,11 @@ begin
   BQ := TCnBigNumber.Create;
   try
     // Extended threshold: product > 4*sqrt(p) * 2^SafetyBits
-    // SafetyBits = max(0, bits(p) - 112), scales with prime size
+    // SafetyBits via CnSeaSafetyBits (piecewise function)
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
     BigNumberMulWord(QMax, 4);
-    SafetyBits := BigNumberGetBitsCount(P) - CN_SEA_PRODUCT_SAFETY_BASE;
-    if SafetyBits < 0 then SafetyBits := 0;
+    SafetyBits := CnSeaSafetyBits(BigNumberGetBitsCount(P));
     for J := 1 to SafetyBits do
       BigNumberShiftLeftOne(QMax, QMax);
 
