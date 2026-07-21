@@ -480,6 +480,28 @@ type
        返回值：string                     - 返回字符串
     }
 
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 从指定内存地址中读取整个列表的自身状态，返回读取的字节长度。
+       Size > 0 时内部检测是否超过 Size，超过则抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+
+       参数：
+         Mem: Pointer                     - 待加载的内存地址
+         Size: Integer                    - 提供的内存地址字节长度
+
+       返回值：Integer                    - 返回读取的字节长度
+    }
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 将自身列表的状态全部存储于指定内存中，返回占用的字节长度。
+       如 Mem 为 nil 则直接返回所需占用字节长度。
+
+       参数：
+         Mem: Pointer                     - 待存储的内存地址
+
+       返回值：Integer                    - 返回存储的字节长度
+    }
+
     property Items[Index: Integer]: TCnBigRational read GetItem write SetItem; default;
     {* 大有理数列表项}
   end;
@@ -1421,6 +1443,90 @@ begin
       Result := Items[I].ToString
     else
       Result := Result + ',' + Items[I].ToString;
+  end;
+end;
+
+function TCnBigRationalList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+var
+  I, C, L: Integer;
+  P1: PByte;
+  P4: PInteger;
+  BN: TCnBigRational;
+begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
+
+  // 至少得放得下表示 Count 的 4 字节头部
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
+  P4 := PInteger(Mem);
+  C := P4^;
+  if C < 0 then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
+  // 整体重建：先清掉原有内容
+  Clear;
+
+  Result := SizeOf(Integer);  // 已经消耗了 Count 这 4 字节
+  if C > 0 then
+  begin
+    Inc(P4);
+    P1 := PByte(P4);
+    for I := 0 to C - 1 do
+    begin
+      BN := TCnBigRational.Create;
+      try
+        // 把剩余可用长度交给单项 LoadFromMem 做边界检查
+        if Size > 0 then
+          L := BN.LoadFromMem(P1, Size - Result)
+        else
+          L := BN.LoadFromMem(P1);
+
+        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+          raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
+        Add(BN);
+      except
+        BN.Free;
+        raise;
+      end;
+
+      Inc(P1, L);
+      Inc(Result, L);
+    end;
+  end;
+end;
+
+function TCnBigRationalList.SaveToMem(Mem: Pointer): Integer;
+var
+  I, L: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  Result := SizeOf(Integer);  // 写个 Count
+  if Mem = nil then
+  begin
+    if Count > 0 then
+      for I := 0 to Count - 1 do
+        Inc(Result, Items[I].SaveToMem(nil));
+    Exit;
+  end;
+
+  P4 := PInteger(Mem);
+  P4^ := Count;               // 写个 Count
+
+  if Count > 0 then           // 再挨个写
+  begin
+    Inc(P4);
+    P1 := PByte(P4);
+    for I := 0 to Count - 1 do
+    begin
+      L := Items[I].SaveToMem(P1);
+      Inc(P1, L);
+      Inc(Result, L);
+    end;
   end;
 end;
 

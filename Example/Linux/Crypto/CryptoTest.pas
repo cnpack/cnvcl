@@ -132,6 +132,7 @@ function TestBigComplexDecimalRealMul: Boolean;
 function TestBigComplexDecimalPower: Boolean;
 function TestBigComplexDecimalString: Boolean;
 function TestBigComplexLoadSaveMem: Boolean;
+function TestBigComplexListLoadSaveMem: Boolean;
 
 // ============================== DFT ==========================================
 
@@ -188,6 +189,7 @@ function TestBigRationalReduce: Boolean;
 function TestBigRationalNegReciprocal: Boolean;
 function TestBigRationalSetString: Boolean;
 function TestBigRationalLoadSaveMem: Boolean;
+function TestBigRationalListLoadSaveMem: Boolean;
 
 // ================================ Bits =======================================
 
@@ -256,6 +258,8 @@ function TestBigDecimalArcCos: Boolean;
 function TestBigDecimalArcTan: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
 function TestBigDecimalHyperbolicCos: Boolean;
+function TestBigDecimalLoadSaveMem: Boolean;
+function TestBigDecimalListLoadSaveMem: Boolean;
 function TestBigComplexDecimalEulerExp: Boolean;
 function TestBigComplexDecimalLn: Boolean;
 function TestBigComplexDecimalSin: Boolean;
@@ -263,6 +267,11 @@ function TestBigComplexDecimalCos: Boolean;
 function TestFloatGaussLegendrePi: Boolean;
 function TestGaussLegendrePi: Boolean;
 function TestXavierGourdonEuler: Boolean;
+
+// ============================== BigBinary ====================================
+
+function TestBigBinaryLoadSaveMem: Boolean;
+function TestBigBinaryListLoadSaveMem: Boolean;
 
 // ================================ QRCode =====================================
 
@@ -1851,6 +1860,7 @@ begin
   MyAssert(TestBigComplexDecimalPower, 'TestBigComplexDecimalPower');
   MyAssert(TestBigComplexDecimalString, 'TestBigComplexDecimalString');
   MyAssert(TestBigComplexLoadSaveMem, 'TestBigComplexLoadSaveMem');
+  MyAssert(TestBigComplexListLoadSaveMem, 'TestBigComplexListLoadSaveMem');
 
 // ================================ DFT ========================================
 
@@ -1907,6 +1917,7 @@ begin
   MyAssert(TestBigRationalNegReciprocal, 'TestBigRationalNegReciprocal');
   MyAssert(TestBigRationalSetString, 'TestBigRationalSetString');
   MyAssert(TestBigRationalLoadSaveMem, 'TestBigRationalLoadSaveMem');
+  MyAssert(TestBigRationalListLoadSaveMem, 'TestBigRationalListLoadSaveMem');
 
 // ================================ Bits =======================================
 
@@ -1975,6 +1986,8 @@ begin
   MyAssert(TestBigDecimalArcTan, 'TestBigDecimalArcTan');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
   MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
+  MyAssert(TestBigDecimalLoadSaveMem, 'TestBigDecimalLoadSaveMem');
+  MyAssert(TestBigDecimalListLoadSaveMem, 'TestBigDecimalListLoadSaveMem');
   MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
   MyAssert(TestBigComplexDecimalLn, 'TestBigComplexDecimalLn');
   MyAssert(TestBigComplexDecimalSin, 'TestBigComplexDecimalSin');
@@ -1982,6 +1995,11 @@ begin
   MyAssert(TestFloatGaussLegendrePi, 'TestFloatGaussLegendrePi');
   MyAssert(TestGaussLegendrePi, 'TestGaussLegendrePi');
   MyAssert(TestXavierGourdonEuler, 'TestXavierGourdonEuler');
+
+// ============================== BigBinary ====================================
+
+  MyAssert(TestBigBinaryLoadSaveMem, 'TestBigBinaryLoadSaveMem');
+  MyAssert(TestBigBinaryListLoadSaveMem, 'TestBigBinaryListLoadSaveMem');
 
 // ================================ QRCode =====================================
 
@@ -3838,6 +3856,56 @@ begin
   end;
 end;
 
+function TestBigComplexListLoadSaveMem: Boolean;
+var
+  L, Restored: TCnBigComplexList;
+  C: TCnBigComplex;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  L := TCnBigComplexList.Create;
+  Restored := TCnBigComplexList.Create;
+  try
+    // 空列表
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 0 then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 含 2 个元素
+    C := L.Add;
+    C.R.SetDec('123');
+    C.I.SetDec('-456');
+    C := L.Add;
+    C.R.SetDec('789');
+    C.I.SetDec('0');
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToString <> L[0].ToString then Exit;
+      if Restored[1].ToString <> L[1].ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    L.Free;
+  end;
+end;
+
 // ============================== DFT ==========================================
 
 function TestButterflyChangeComplex: Boolean;
@@ -5603,6 +5671,51 @@ begin
   end;
 end;
 
+function TestBigRationalListLoadSaveMem: Boolean;
+var
+  L, Restored: TCnBigRationalList;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  L := TCnBigRationalList.Create;
+  Restored := TCnBigRationalList.Create;
+  try
+    // 空列表
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 0 then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 含 2 个元素
+    L.Add.SetValue('1', '2');
+    L.Add.SetValue('-3', '7');
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToString <> '1 / 2' then Exit;
+      if Restored[1].ToString <> '-3 / 7' then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    L.Free;
+  end;
+end;
+
 // ================================ Bits =======================================
 
 function TestBitsEmpty: Boolean;
@@ -7046,6 +7159,94 @@ begin
   end;
 end;
 
+function TestBigDecimalLoadSaveMem: Boolean;
+var
+  D, Restored: TCnBigDecimal;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  D := TCnBigDecimal.Create;
+  Restored := TCnBigDecimal.Create;
+  try
+    // 123
+    D.SetDec('123');
+    Sz := D.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      D.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> D.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // -789
+    D.SetDec('-789');
+    Sz := D.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      D.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> D.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    D.Free;
+  end;
+end;
+
+function TestBigDecimalListLoadSaveMem: Boolean;
+var
+  L, Restored: TCnBigDecimalList;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  L := TCnBigDecimalList.Create;
+  Restored := TCnBigDecimalList.Create;
+  try
+    // 空列表
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 0 then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 含 2 个元素
+    L.Add.SetDec('42');
+    L.Add.SetDec('-17');
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToString <> '42' then Exit;
+      if Restored[1].ToString <> '-17' then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    L.Free;
+  end;
+end;
+
 function TestBigComplexDecimalEulerExp: Boolean;
 var
   Res, Num: TCnBigComplexDecimal;
@@ -7345,6 +7546,96 @@ var
 begin
   S := XavierGourdonEuler(1000);
   Result := Pos(E_STR, S) = 1;
+end;
+
+// ============================== BigBinary ====================================
+
+function TestBigBinaryLoadSaveMem: Boolean;
+var
+  B, Restored: TCnBigBinary;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  B := TCnBigBinary.Create;
+  Restored := TCnBigBinary.Create;
+  try
+    // 123
+    B.SetDec('123');
+    Sz := B.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      B.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> B.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // -789
+    B.SetDec('-789');
+    Sz := B.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      B.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> B.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    B.Free;
+  end;
+end;
+
+function TestBigBinaryListLoadSaveMem: Boolean;
+var
+  L, Restored: TCnBigBinaryList;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  L := TCnBigBinaryList.Create;
+  Restored := TCnBigBinaryList.Create;
+  try
+    // 空列表
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 0 then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 含 2 个元素
+    L.Add.SetDec('42');
+    L.Add.SetDec('-17');
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToString <> '42' then Exit;
+      if Restored[1].ToString <> '-17' then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    L.Free;
+  end;
 end;
 
 // ================================ QRCode =====================================
