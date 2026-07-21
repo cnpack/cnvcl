@@ -207,6 +207,29 @@ type
     procedure Conjugate;
     {* 大整数复数求共轭复数，也即虚部正负号反号}
 
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 从指定内存地址中读取自身状态，返回读取的字节长度。Mem 为 nil 时直接返回 0。
+       Size > 0 时内部检测是否超过 Size，超过则抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+
+       参数：
+         Mem: Pointer                     - 待加载的内存地址
+         Size: Integer                    - 可限制读取的内存最大字节长度
+
+       返回值：Integer                    - 读取的字节长度
+    }
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 将大整数复数保存到内存，返回所需/写入的字节数。
+       如 Mem 为 nil 则直接返回所需占用字节长度。
+       格式为：4 字节总字节长度 + 实部 TCnBigNumber 块 + 虚部 TCnBigNumber 块。
+
+       参数：
+         Mem: Pointer                     - 待存储的内存地址
+
+       返回值：Integer                    - 存储的字节长度
+    }
+
     property R: TCnBigNumber read FR;
     {* 实部}
     property I: TCnBigNumber read FI;
@@ -1517,6 +1540,9 @@ implementation
 uses
   CnMath;
 
+const
+  SCnErrorBigComplexMemSize = 'Memory Size Error';
+
 var
   FBigComplexDecimalPool: TCnBigComplexDecimalPool = nil;
   FBigDecimalPool: TCnBigDecimalPool = nil;
@@ -2221,6 +2247,60 @@ end;
 function TCnBigComplex.ToString: string;
 begin
   Result := BigComplexToString(Self);
+end;
+
+function TCnBigComplex.SaveToMem(Mem: Pointer): Integer;
+var
+  Lr, Li: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  if Mem = nil then
+  begin
+    Result := SizeOf(Integer) + FR.SaveToMem(nil) + FI.SaveToMem(nil);
+    Exit;
+  end;
+
+  Lr := FR.SaveToMem(nil);
+  Li := FI.SaveToMem(nil);
+  Result := SizeOf(Integer) + Lr + Li;
+
+  P4 := PInteger(Mem);
+  P4^ := Result;             // 4 字节总字节长度
+
+  Inc(P4);
+  P1 := PByte(P4);
+  FR.SaveToMem(P1);    // 实部
+  Inc(P1, Lr);
+  FI.SaveToMem(P1);    // 虚部
+end;
+
+function TCnBigComplex.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+var
+  Lr: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
+
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnBigNumberException.Create(SCnErrorBigComplexMemSize);
+
+  P4 := PInteger(Mem);
+  if (Size > 0) and (P4^ > Size) then
+    raise ECnBigNumberException.Create(SCnErrorBigComplexMemSize);
+  if P4^ < SizeOf(Integer) then
+    raise ECnBigNumberException.Create(SCnErrorBigComplexMemSize);
+
+  Result := P4^;             // 总字节长度
+  Inc(P4);
+  P1 := PByte(P4);
+
+  Lr := FR.LoadFromMem(P1, Size - SizeOf(Integer));          // 实部
+  Inc(P1, Lr);
+  FI.LoadFromMem(P1, Size - SizeOf(Integer) - Lr);     // 虚部
 end;
 
 { TCnBigComplexPool }

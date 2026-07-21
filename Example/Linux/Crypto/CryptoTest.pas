@@ -53,7 +53,8 @@ uses
   CnPolynomial, CnBits, CnBerUtils, CnCertificateAuthority, CnLattice, CnOTS,
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
-  CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP, CnStrings;
+  CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP, CnStrings,
+  CnBigRational;
 
 type
   TCnCryptoTestProc = function: Boolean;
@@ -130,6 +131,7 @@ function TestBigComplexDecimalProperties: Boolean;
 function TestBigComplexDecimalRealMul: Boolean;
 function TestBigComplexDecimalPower: Boolean;
 function TestBigComplexDecimalString: Boolean;
+function TestBigComplexLoadSaveMem: Boolean;
 
 // ============================== DFT ==========================================
 
@@ -177,6 +179,15 @@ function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
 function TestBigNumberMontgomery: Boolean;
 function TestBigNumberLoadSaveMem: Boolean;
+
+// ============================== BigRational ==================================
+
+function TestBigRationalBasic: Boolean;
+function TestBigRationalArithmetic: Boolean;
+function TestBigRationalReduce: Boolean;
+function TestBigRationalNegReciprocal: Boolean;
+function TestBigRationalSetString: Boolean;
+function TestBigRationalLoadSaveMem: Boolean;
 
 // ================================ Bits =======================================
 
@@ -1839,6 +1850,7 @@ begin
   MyAssert(TestBigComplexDecimalRealMul, 'TestBigComplexDecimalRealMul');
   MyAssert(TestBigComplexDecimalPower, 'TestBigComplexDecimalPower');
   MyAssert(TestBigComplexDecimalString, 'TestBigComplexDecimalString');
+  MyAssert(TestBigComplexLoadSaveMem, 'TestBigComplexLoadSaveMem');
 
 // ================================ DFT ========================================
 
@@ -1886,6 +1898,15 @@ begin
   MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
   MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
   MyAssert(TestBigNumberLoadSaveMem, 'TestBigNumberLoadSaveMem');
+
+// ============================== BigRational ==================================
+
+  MyAssert(TestBigRationalBasic, 'TestBigRationalBasic');
+  MyAssert(TestBigRationalArithmetic, 'TestBigRationalArithmetic');
+  MyAssert(TestBigRationalReduce, 'TestBigRationalReduce');
+  MyAssert(TestBigRationalNegReciprocal, 'TestBigRationalNegReciprocal');
+  MyAssert(TestBigRationalSetString, 'TestBigRationalSetString');
+  MyAssert(TestBigRationalLoadSaveMem, 'TestBigRationalLoadSaveMem');
 
 // ================================ Bits =======================================
 
@@ -3767,6 +3788,56 @@ begin
   end;
 end;
 
+function TestBigComplexLoadSaveMem: Boolean;
+var
+  C, Restored: TCnBigComplex;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  C := TCnBigComplex.Create;
+  Restored := TCnBigComplex.Create;
+  try
+    // ---- 含大数正实部与负虚部的复数 ----
+    C.R.SetDec('1234567890123456789012345678901234567890');
+    C.I.SetDec('-9876543210987654321098765432109876543210');
+
+    Sz := C.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      C.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.ToString <> C.ToString then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- 零虚部 ----
+    C.R.SetDec('42');
+    C.I.SetZero;
+    Sz := C.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      C.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.ToString <> C.ToString then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    C.Free;
+  end;
+end;
+
 // ============================== DFT ==========================================
 
 function TestButterflyChangeComplex: Boolean;
@@ -5323,6 +5394,212 @@ begin
   finally
     BigNumberFree(Restored);
     BigNumberFree(Num);
+  end;
+end;
+
+// ============================== BigRational ==================================
+
+function TestBigRationalBasic: Boolean;
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    // 0
+    R.SetValue('0', '1');
+    if not R.IsZero then Exit;
+    if R.ToString <> '0' then Exit;
+
+    // 1
+    R.SetValue('1', '1');
+    if not R.IsOne then Exit;
+    if R.ToString <> '1' then Exit;
+
+    // -1 为负整数
+    R.SetValue('-1', '1');
+    if not R.IsInt then Exit;
+    if not R.IsNegative then Exit;
+    if R.ToString <> '-1' then Exit;
+
+    // 1/2 不是整数
+    R.SetValue('1', '2');
+    if R.IsInt then Exit;
+    if R.ToString <> '1 / 2' then Exit;
+
+    // -3 为负整数
+    R.SetValue('-3', '1');
+    if not R.IsInt then Exit;
+    if not R.IsNegative then Exit;
+    if R.ToString <> '-3' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+  end;
+end;
+
+function TestBigRationalArithmetic: Boolean;
+var
+  A, B, R: TCnBigRational;
+begin
+  Result := False;
+  A := TCnBigRational.Create;
+  B := TCnBigRational.Create;
+  R := TCnBigRational.Create;
+  try
+    A.SetValue('1', '2');                   // A = 1/2
+    B.SetValue('1', '3');                   // B = 1/3
+
+    R.Assign(A); R.Add(B);                  // R = 1/2 + 1/3 = 5/6
+    if R.ToString <> '5 / 6' then Exit;
+
+    R.Assign(A); R.Sub(B);                  // R = 1/2 - 1/3 = 1/6
+    if R.ToString <> '1 / 6' then Exit;
+
+    R.Assign(A); R.Mul(B);                  // R = 1/2 * 1/3 = 1/6
+    if R.ToString <> '1 / 6' then Exit;
+
+    R.Assign(A); R.Divide(B);               // R = (1/2) / (1/3) = 3/2
+    if R.ToString <> '3 / 2' then Exit;
+
+    // 含大数运算：1/2 + 1/2 = 1
+    R.Assign(A);
+    R.Add(A);                               // 1/2 + 1/2 = 1
+    if R.ToString <> '1' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigRationalReduce: Boolean;
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    R.SetValue('6', '9');                    // 6/9 -> 2/3
+    R.Reduce;
+    if R.ToString <> '2 / 3' then Exit;
+
+    R.SetValue('10', '5');                   // 10/5 -> 2
+    R.Reduce;
+    if R.ToString <> '2' then Exit;
+
+    // 已最简的分数 Reduce 后不变
+    R.SetValue('3', '7');
+    R.Reduce;
+    if R.ToString <> '3 / 7' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+  end;
+end;
+
+function TestBigRationalNegReciprocal: Boolean;
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    R.SetValue('3', '4');                   // 3/4
+    R.Neg;
+    if R.ToString <> '-3 / 4' then Exit;
+
+    R.SetValue('3', '4');
+    R.Reciprocal;
+    if R.ToString <> '4 / 3' then Exit;
+
+    // 整数的倒数：5 -> 1/5
+    R.SetValue('5', '1');
+    R.Reciprocal;
+    if R.ToString <> '1 / 5' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+  end;
+end;
+
+function TestBigRationalSetString: Boolean;
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    R.SetString('1/2');
+    if R.ToString <> '1 / 2' then Exit;
+
+    R.SetString('7');
+    if R.ToString <> '7' then Exit;
+
+    R.SetString('-3/4');
+    if R.ToString <> '-3 / 4' then Exit;
+
+    R.SetString('0.5');                      // 小数 0.5 -> 1/2
+    if R.ToString <> '1 / 2' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+  end;
+end;
+
+function TestBigRationalLoadSaveMem: Boolean;
+var
+  R, Restored: TCnBigRational;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  Restored := TCnBigRational.Create;
+  try
+    // ---- 含大数分子与负分母的有理数 ----
+    R.Numerator.SetDec('1234567890123456789012345678901234567890');
+    R.Denominator.SetDec('-9876543210987654321098765432109876543210');
+
+    Sz := R.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      R.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.ToString <> R.ToString then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- 分母为 1（ToString 仅输出分子） ----
+    R.Numerator.SetDec('12345');
+    R.Denominator.SetDec('1');
+    Sz := R.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      R.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.ToString <> R.ToString then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    R.Free;
   end;
 end;
 

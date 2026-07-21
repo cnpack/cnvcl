@@ -124,16 +124,16 @@ type
     }
 
     function EqualInt(Value: TCnBigNumber): Boolean; overload;
-    {* 是否与另一大整数相等
+    {* 是否与另一大整数相等。
 
        参数：
          Value: TCnBigNumber              - 待判断大整数
 
-       返回值：Boolean                    -
+       返回值：Boolean                    - 返回是否相等
     }
 
     function Equal(Value: TCnBigRational): Boolean;
-    {* 是否与另一大有理数相等
+    {* 是否与另一大有理数相等。
 
        参数：
          Value: TCnBigRational            - 待判断的大有理数
@@ -324,6 +324,29 @@ type
          Digits: Integer                  - 待保留的小数点后的精度位数
 
        返回值：string                     - 返回的字符串
+    }
+
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 从内存中读取大有理数，返回读取的字节数。Mem 为 nil 时直接返回 0。
+       Size > 0 时内部检测是否超过 Size，超过则抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+
+       参数：
+         Mem: Pointer                     - 待加载的内存地址
+         Size: Integer                    - 可限制读取的内存最大字节长度
+
+       返回值：Integer                    - 读取的字节长度
+    }
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 将大有理数保存到内存，返回所需/写入的字节数。
+       如 Mem 为 nil 则直接返回所需占用字节长度。
+       格式为：4 字节总字节长度 + 分子 TCnBigNumber 块 + 分母 TCnBigNumber 块。
+
+       参数：
+         Mem: Pointer                     - 待存储的内存地址
+
+       返回值：Integer                    - 存储的字节长度
     }
 
     property Numerator: TCnBigNumber read FNumerator;
@@ -556,6 +579,7 @@ implementation
 resourcestring
   SCnErrorBigRationalDenominatorZero = 'Denominator Cannot be Zero.';
   SCnErrorBigRationalDivideByZero = 'Divide by Zero.';
+  SCnErrorBigRationalMemSize = 'Memory Size Error.';
 
 var
   FLocalBigRationalPool: TCnBigRationalPool = nil;
@@ -1207,6 +1231,60 @@ begin
     Result := FNumerator.ToDec
   else
     Result := FNumerator.ToDec + ' / ' + FDenominator.ToDec;
+end;
+
+function TCnBigRational.SaveToMem(Mem: Pointer): Integer;
+var
+  Ln, Ld: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  if Mem = nil then
+  begin
+    Result := SizeOf(Integer) + FNumerator.SaveToMem(nil) + FDenominator.SaveToMem(nil);
+    Exit;
+  end;
+
+  Ln := FNumerator.SaveToMem(nil);
+  Ld := FDenominator.SaveToMem(nil);
+  Result := SizeOf(Integer) + Ln + Ld;
+
+  P4 := PInteger(Mem);
+  P4^ := Result;             // 4 字节总字节长度
+
+  Inc(P4);
+  P1 := PByte(P4);
+  FNumerator.SaveToMem(P1);    // 分子
+  Inc(P1, Ln);
+  FDenominator.SaveToMem(P1);  // 分母
+end;
+
+function TCnBigRational.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+var
+  Ln: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
+
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
+  P4 := PInteger(Mem);
+  if (Size > 0) and (P4^ > Size) then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+  if P4^ < SizeOf(Integer) then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
+  Result := P4^;             // 总字节长度
+  Inc(P4);
+  P1 := PByte(P4);
+
+  Ln := FNumerator.LoadFromMem(P1, Size - SizeOf(Integer));       // 分子
+  Inc(P1, Ln);
+  FDenominator.LoadFromMem(P1, Size - SizeOf(Integer) - Ln);      // 分母
 end;
 
 { TCnBigRationalPool }
