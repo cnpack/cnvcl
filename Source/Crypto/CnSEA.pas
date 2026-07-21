@@ -2529,7 +2529,7 @@ begin
         begin
           // Elkies failed (e.g. CM curve where Phi_L has roots in F_p but
           // Frobenius has no eigenvector in E[L]). Fall back to Atkin.
-          {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Elkies FAIL¡úAtkin', [L]); {$ENDIF}
+          {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Elkies FAIL -> Atkin', [L]); {$ENDIF}
           AtkinTraces.Clear;
           if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) then
             ElkiesOk := CnSeaAtkinPossibleTraces(AtkinTraces, L, A, B, P,
@@ -2587,10 +2587,10 @@ begin
     {$IFDEF SEA_TRACE} _SeaT('[SEA] Combine: %d Elk %d Atk', [ElkiesTraces.Count, AtkinInfos.Count]); {$ENDIF}
     if AtkinInfos.Count > 0 then
     begin
-      {$IFDEF SEA_TRACE} _SeaT('[SEA] ¡ú CnSeaCombineElkiesAtkin start', []); {$ENDIF}
+      {$IFDEF SEA_TRACE} _SeaT('[SEA] -> CnSeaCombineElkiesAtkin start', []); {$ENDIF}
       if not CnSeaCombineElkiesAtkin(Res, ElkiesTraces, ElkiesModuli, AtkinInfos, A, B, P) then
       begin
-        {$IFDEF SEA_TRACE} _SeaT('[SEA] ¡ú Combine FAIL, Elkies-only CRT', []); {$ENDIF}
+        {$IFDEF SEA_TRACE} _SeaT('[SEA] -> Combine FAIL, Elkies-only CRT', []); {$ENDIF}
         BigNumberChineseRemainderTheorem(Res, ElkiesTraces, ElkiesModuli);
       end;
     end

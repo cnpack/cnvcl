@@ -10396,8 +10396,6 @@ begin
 
   // TempMul = Q1 * Mu (Karatsuba)
   BigNumberPolynomialMulKaratsuba(TempMul, Q1, Mu);
-  for J := 0 to TempMul.MaxDegree do
-    BigNumberNonNegativeMod(TempMul[J], TempMul[J], Prime);
   TempMul.CorrectTop;
 
   // Q2 = TempMul div x^(N+1)  (keep coefficients from degree N+1 upward)
@@ -10413,8 +10411,6 @@ begin
 
   // TempSub = Q2 * Modulus (Karatsuba)
   BigNumberPolynomialMulKaratsuba(TempSub, Q2, Modulus);
-  for J := 0 to TempSub.MaxDegree do
-    BigNumberNonNegativeMod(TempSub[J], TempSub[J], Prime);
   TempSub.CorrectTop;
 
   // Reduced = Prod - TempSub
@@ -10507,16 +10503,24 @@ begin
       begin
         // Acc = Acc * Base mod Modulus
         BigNumberPolynomialMulKaratsuba(Prod, Acc, Base);
-        for J := 0 to Prod.MaxDegree do
-          BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
         Prod.CorrectTop;
 
         if UseBarrett and (Prod.MaxDegree >= N) then
           PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
         else if Prod.MaxDegree >= N then
-          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+        begin
+          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime);
+          for J := 0 to Reduced.MaxDegree do
+            BigNumberNonNegativeMod(Reduced[J], Reduced[J], Prime);
+          Reduced.CorrectTop;
+        end
         else
+        begin
           BigNumberPolynomialCopy(Reduced, Prod);
+          for J := 0 to Reduced.MaxDegree do
+            BigNumberNonNegativeMod(Reduced[J], Reduced[J], Prime);
+          Reduced.CorrectTop;
+        end;
 
         BigNumberPolynomialCopy(Acc, Reduced);
       end;
@@ -10524,18 +10528,26 @@ begin
       BigNumberShiftRightOne(E, E);
       if not E.IsZero then
       begin
-        // Base = Base * Base mod Modulus
+        // Base = Base * Base mod Modulus. skip mod before Barrett
         BigNumberPolynomialMulKaratsuba(Prod, Base, Base);
-        for J := 0 to Prod.MaxDegree do
-          BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
         Prod.CorrectTop;
 
         if UseBarrett and (Prod.MaxDegree >= N) then
           PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
         else if Prod.MaxDegree >= N then
-          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+        begin
+          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime);
+          for J := 0 to Reduced.MaxDegree do
+            BigNumberNonNegativeMod(Reduced[J], Reduced[J], Prime);
+          Reduced.CorrectTop;
+        end
         else
+        begin
           BigNumberPolynomialCopy(Reduced, Prod);
+          for J := 0 to Reduced.MaxDegree do
+            BigNumberNonNegativeMod(Reduced[J], Reduced[J], Prime);
+          Reduced.CorrectTop;
+        end;
 
         BigNumberPolynomialCopy(Base, Reduced);
       end;
