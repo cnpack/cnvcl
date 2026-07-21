@@ -314,6 +314,18 @@ type
   TCnMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
   {* 内存固定块尺寸的数组排序比较函数原型}
 
+  ICnMemSerialize = interface
+    ['{25632D38-1154-4021-822D-1BB00A362CC2}']
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 某对象从 Mem 地址中读取自身状态，返回读取的字节长度。
+       内部应检测是否超过 Size，超过应抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。}
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 某对象将自身状态全部存储于 Mem 中，返回占用的字节长度。
+       如 Mem 为 nil 则直接返回所需占用字节长度。}
+  end;
+
 const
   CN_MAX_SQRT_INT64: Cardinal               = 3037000499;
   {* 64 位有符号数范围内最大的平方根}
