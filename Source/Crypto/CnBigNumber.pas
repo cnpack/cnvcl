@@ -902,6 +902,28 @@ type
        返回值：string                     - 返回字符串
     }
 
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 从指定内存地址中读取整个列表的自身状态，返回读取的字节长度。
+       Size > 0 时内部检测是否超过 Size，超过则抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+
+       参数：
+         Mem: Pointer                     - 待加载的内存地址
+         Size: Integer                    - 提供的内存地址字节长度
+
+       返回值：Integer                    - 返回读取的字节长度
+    }
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 将自身列表的状态全部存储于指定内存中，返回占用的字节长度。
+       如 Mem 为 nil 则直接返回所需占用字节长度。
+
+       参数：
+         Mem: Pointer                     - 待存储的内存地址
+
+       返回值：Integer                    - 返回存储的字节长度
+    }
+
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
     {* 大数列表项}
   end;
@@ -3817,6 +3839,7 @@ begin
   if N = 0 then
   begin
     Res.FTop := 0;
+    Res.FNeg := 0;
     Exit;
   end;
 
@@ -10886,7 +10909,7 @@ var
 begin
   // 4 字节总字节长度，1 字节是否 64 位模式，1 字节符号，
   // 4 字节大数内部字节长度，后面该长度的 ToBinary
-  Result := BigNumberGetBytesCount(Self) + SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer);
+  Result := BigNumberGetBytesCount(Self) + SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer);
   if Mem = nil then
     Exit;
 
@@ -11102,6 +11125,11 @@ begin
   inherited Insert(Index, ABigNumber);
 end;
 
+function TCnBigNumberList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+begin
+
+end;
+
 function TCnBigNumberList.Remove(ABigNumber: TCnBigNumber): Integer;
 begin
   Result := inherited Remove(ABigNumber);
@@ -11117,6 +11145,37 @@ begin
     Idx := IndexOfValue(Items[I]);
     if (Idx >= 0) and (Idx <> I) then
       Delete(I);
+  end;
+end;
+
+function TCnBigNumberList.SaveToMem(Mem: Pointer): Integer;
+var
+  I, L: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  Result := SizeOf(Integer);  // 写个 Count
+  if Mem = nil then
+  begin
+    if Count > 0 then
+      for I := 0 to Count - 1 do
+        Inc(Result, Items[I].SaveToMem(Mem));
+    Exit;
+  end;
+
+  P4 := PInteger(Mem);
+  P4^ := Count;               // 写个 Count
+
+  if Count > 0 then           // 再挨个写大数
+  begin
+    Inc(P4);
+    P1 := PByte(P4);
+    for I := 0 to Count - 1 do
+    begin
+      L := Items[I].SaveToMem(P1);
+      Inc(P1, L);
+      Inc(Result, L);
+    end;
   end;
 end;
 

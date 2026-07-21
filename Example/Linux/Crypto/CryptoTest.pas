@@ -176,6 +176,7 @@ function TestBigNumberBPSWIsPrime: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
 function TestBigNumberMontgomery: Boolean;
+function TestBigNumberLoadSaveMem: Boolean;
 
 // ================================ Bits =======================================
 
@@ -1883,6 +1884,7 @@ begin
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
   MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
   MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
+  MyAssert(TestBigNumberLoadSaveMem, 'TestBigNumberLoadSaveMem');
 
 // ================================ Bits =======================================
 
@@ -5229,6 +5231,95 @@ begin
     BigNumberFree(R2ModN);
     BigNumberFree(R);
     BigNumberFree(N);
+  end;
+end;
+
+function TestBigNumberLoadSaveMem: Boolean;
+var
+  Num, Restored: TCnBigNumber;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  Num := BigNumberNew;
+  Restored := BigNumberNew;
+  try
+    // ---- Test 0 value ----
+    Num.SetZero;
+    Sz := Num.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Num.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if not Restored.IsZero then Exit;
+      if Restored.IsNegative then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- Test positive small value ----
+    Num.SetHex('1234');
+    Sz := Num.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Num.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToHex <> '1234' then Exit;
+      if Restored.IsNegative then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- Test negative small value ----
+    Num.SetHex('ABCD');
+    Num.SetNegative(True);
+    Sz := Num.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Num.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToHex <> '-ABCD' then Exit;
+      if not Restored.IsNegative then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- Test positive large value ----
+    Num.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    Sz := Num.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Num.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToHex <> 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' then Exit;
+      if Restored.IsNegative then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- Test negative large value ----
+    Num.SetHex('DEADBEEFCAFEBABE123456789ABCDEF0');
+    Num.SetNegative(True);
+    Sz := Num.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Num.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToHex <> '-DEADBEEFCAFEBABE123456789ABCDEF0' then Exit;
+      if not Restored.IsNegative then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    BigNumberFree(Restored);
+    BigNumberFree(Num);
   end;
 end;
 
