@@ -289,6 +289,7 @@ function TestBigNumberPolynomialGaloisSquareFreeFactorization: Boolean;
 function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
+function TestBigNumberPolynomialLoadSaveMem: Boolean;
 
 // ================================ NTRU =======================================
 
@@ -1997,6 +1998,8 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisFindLinearFactors, 'TestBigNumberPolynomialGaloisFindLinearFactors');
   MyAssert(TestBigNumberPolynomialGaloisFactorCantorZassenhaus, 'TestBigNumberPolynomialGaloisFactorCantorZassenhaus');
   MyAssert(TestBigNumberPolynomialGaloisPowerBarrett, 'TestBigNumberPolynomialGaloisPowerBarrett');
+  MyAssert(TestBigNumberPolynomialLoadSaveMem, 'TestBigNumberPolynomialLoadSaveMem');
+
 
 // ================================ NTRU =======================================
 
@@ -8522,6 +8525,69 @@ begin
     Res1.Free;
     Modulus.Free;
     Base.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialLoadSaveMem: Boolean;
+var
+  Poly, Restored: TCnBigNumberPolynomial;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  Poly := TCnBigNumberPolynomial.Create;
+  Restored := TCnBigNumberPolynomial.Create;
+  try
+    // ---- 用例 1：空多项式，验证写入长度与读回一致性 ----
+    Poly.Clear;
+    Sz := Poly.SaveToMem(nil);
+    if Sz <> SizeOf(Integer) then  // 空列表只存一个 Count（=0）的 4 字节头
+      Exit;
+    GetMem(Buf, Sz);
+    try
+      Poly.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.Count <> 0 then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- 用例 2：含正数、负数、零与大数的多项式，验证往返一致 ----
+    Poly.SetCoefficients([1, -2, 3, -4, 0, 123456789, -987654321]);
+    Sz := Poly.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Poly.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.ToString <> Poly.ToString then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // ---- 用例 3：再次保存到内存并与首次结果比较（幂等性） ----
+    Sz := Poly.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      Poly.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then
+        Exit;
+      if Restored.ToString <> Poly.ToString then
+        Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    Poly.Free;
   end;
 end;
 

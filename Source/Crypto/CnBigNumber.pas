@@ -11126,8 +11126,56 @@ begin
 end;
 
 function TCnBigNumberList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+var
+  I, C, L: Integer;
+  P1: PByte;
+  P4: PInteger;
+  BN: TCnBigNumber;
 begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
 
+  // 至少得放得下表示 Count 的 4 字节头部
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
+
+  P4 := PInteger(Mem);
+  C := P4^;
+  if C < 0 then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
+
+  // 整体重建：先清掉原有内容
+  Clear;
+
+  Result := SizeOf(Integer);  // 已经消耗了 Count 这 4 字节
+  if C > 0 then
+  begin
+    Inc(P4);
+    P1 := PByte(P4);
+    for I := 0 to C - 1 do
+    begin
+      BN := TCnBigNumber.Create;
+      try
+        // 把剩余可用长度交给单项 LoadFromMem 做边界检查
+        if Size > 0 then
+          L := BN.LoadFromMem(P1, Size - Result)
+        else
+          L := BN.LoadFromMem(P1);
+
+        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+          raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
+
+        Add(BN);
+      except
+        BN.Free;
+        raise;
+      end;
+
+      Inc(P1, L);
+      Inc(Result, L);
+    end;
+  end;
 end;
 
 function TCnBigNumberList.Remove(ABigNumber: TCnBigNumber): Integer;
