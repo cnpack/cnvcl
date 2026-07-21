@@ -1569,7 +1569,7 @@ begin
     begin
       {$IFDEF SEA_TRACE}
       if (Lambda mod ((L - 1) div 10 + 1) = 1) or (Lambda = L - 1) then
-        _SeaT('[ElkKern] L=%d ¦Ë=%d/%d', [L, Lambda, L-1]);
+        _SeaT('[ElkKern] L=%d Lambda =%d/%d', [L, Lambda, L-1]);
       {$ENDIF}
       if (Lambda and 1) <> 0 then
       begin
