@@ -519,6 +519,28 @@ type
        返回值：string                     - 返回字符串
     }
 
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 从指定内存地址中读取整个列表的自身状态，返回读取的字节长度。
+       Size > 0 时内部检测是否超过 Size，超过则抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+
+       参数：
+         Mem: Pointer                     - 待加载的内存地址
+         Size: Integer                    - 提供的内存地址字节长度
+
+       返回值：Integer                    - 返回读取的字节长度
+    }
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 将自身列表的状态全部存储于指定内存中，返回占用的字节长度。
+       如 Mem 为 nil 则直接返回所需占用字节长度。
+
+       参数：
+         Mem: Pointer                     - 待存储的内存地址
+
+       返回值：Integer                    - 返回存储的字节长度
+    }
+
     property Items[Index: Integer]: TCnBigNumberPolynomial read GetItem write SetItem; default;
     {* 一元大整系数多项式列表项}
   end;
@@ -618,6 +640,28 @@ type
          const Rational: string           - 待转换的字符串
 
        返回值：（无）
+    }
+
+    function SaveToMem(Mem: Pointer): Integer;
+    {* 将自身状态全部存储于指定内存中，返回占用的字节长度。
+       如 Mem 为 nil 则直接返回所需占用字节长度。
+       格式为：4 字节总字节长度 + 分子多项式块 + 分母多项式块
+
+       参数：
+         Mem: Pointer                     - 待存储的内存地址
+
+       返回值：Integer                    - 存储的字节长度
+    }
+    function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
+    {* 从指定内存地址中读取自身状态，返回读取的字节长度。
+       Size > 0 时内部检测是否超过 Size，超过则抛异常。
+       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+
+       参数：
+         Mem: Pointer                     - 待加载的内存地址
+         Size: Integer                    - 可限制读取的内存最大长度
+
+       返回值：Integer                    - 读取的字节长度
     }
 
     property Numerator: TCnBigNumberPolynomial read FNumerator;
@@ -5717,6 +5761,7 @@ var
 implementation
 
 resourcestring
+  SCnErrorPolynomialMemSize = 'Memory Size Error';
   SCnErrorPolynomialInvalidDegree = 'Invalid Degree %d';
   SCnErrorPolynomialInvalidExponent = 'Invalid Exponent %d';
   SCnErrorPolynomialDegreeTooLarge = 'Degree Too Large';
@@ -8844,6 +8889,61 @@ begin
     Result := '0'
   else
     Result := FNumerator.ToString + ' / ' + FDenominator.ToString;
+end;
+
+function TCnBigNumberRationalPolynomial.SaveToMem(Mem: Pointer): Integer;
+var
+  Ln, Ld: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  if Mem = nil then
+  begin
+    Result := SizeOf(Integer) + FNumerator.SaveToMem(nil) + FDenominator.SaveToMem(nil);
+    Exit;
+  end;
+
+  Ln := FNumerator.SaveToMem(nil);
+  Ld := FDenominator.SaveToMem(nil);
+  Result := SizeOf(Integer) + Ln + Ld;
+
+  P4 := PInteger(Mem);
+  P4^ := Result;             // 4 字节总字节长度
+
+  Inc(P4);
+  P1 := PByte(P4);
+  FNumerator.SaveToMem(P1);    // 分子多项式
+
+  Inc(P1, Ln);
+  FDenominator.SaveToMem(P1);  // 分母多项式
+end;
+
+function TCnBigNumberRationalPolynomial.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+var
+  Ln: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
+
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+
+  P4 := PInteger(Mem);
+  if (Size > 0) and (P4^ > Size) then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+  if P4^ < SizeOf(Integer) then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+
+  Result := P4^;             // 总字节长度
+  Inc(P4);
+  P1 := PByte(P4);
+
+  Ln := FNumerator.LoadFromMem(P1, Size - SizeOf(Integer));       // 分子多项式
+  Inc(P1, Ln);
+  FDenominator.LoadFromMem(P1, Size - SizeOf(Integer) - Ln);      // 分母多项式
 end;
 
 { TCnBigNumberPolynomialPool }
@@ -16540,6 +16640,90 @@ begin
       Result := Items[I].ToString
     else
       Result := Result + ',' + Items[I].ToString;
+  end;
+end;
+
+function TCnBigNumberPolynomialList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+var
+  I, C, L: Integer;
+  P1: PByte;
+  P4: PInteger;
+  BN: TCnBigNumberPolynomial;
+begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
+
+  // 至少得放得下表示 Count 的 4 字节头部
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+
+  P4 := PInteger(Mem);
+  C := P4^;
+  if C < 0 then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+
+  // 整体重建：先清掉原有内容
+  Clear;
+
+  Result := SizeOf(Integer);  // 已经消耗了 Count 这 4 字节
+  if C > 0 then
+  begin
+    Inc(P4);
+    P1 := PByte(P4);
+    for I := 0 to C - 1 do
+    begin
+      BN := TCnBigNumberPolynomial.Create;
+      try
+        // 把剩余可用长度交给单项 LoadFromMem 做边界检查
+        if Size > 0 then
+          L := BN.LoadFromMem(P1, Size - Result)
+        else
+          L := BN.LoadFromMem(P1);
+
+        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+          raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+
+        Add(BN);
+      except
+        BN.Free;
+        raise;
+      end;
+
+      Inc(P1, L);
+      Inc(Result, L);
+    end;
+  end;
+end;
+
+function TCnBigNumberPolynomialList.SaveToMem(Mem: Pointer): Integer;
+var
+  I, L: Integer;
+  P1: PByte;
+  P4: PInteger;
+begin
+  Result := SizeOf(Integer);  // 写个 Count
+  if Mem = nil then
+  begin
+    if Count > 0 then
+      for I := 0 to Count - 1 do
+        Inc(Result, Items[I].SaveToMem(nil));
+    Exit;
+  end;
+
+  P4 := PInteger(Mem);
+  P4^ := Count;               // 写个 Count
+
+  if Count > 0 then           // 再挨个写
+  begin
+    Inc(P4);
+    P1 := PByte(P4);
+    for I := 0 to Count - 1 do
+    begin
+      L := Items[I].SaveToMem(P1);
+      Inc(P1, L);
+      Inc(Result, L);
+    end;
   end;
 end;
 

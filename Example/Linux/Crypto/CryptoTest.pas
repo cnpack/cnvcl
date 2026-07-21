@@ -133,6 +133,7 @@ function TestBigComplexDecimalPower: Boolean;
 function TestBigComplexDecimalString: Boolean;
 function TestBigComplexLoadSaveMem: Boolean;
 function TestBigComplexListLoadSaveMem: Boolean;
+function TestBigComplexDecimalLoadSaveMem: Boolean;
 
 // ============================== DFT ==========================================
 
@@ -310,6 +311,9 @@ function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
 function TestBigNumberPolynomialLoadSaveMem: Boolean;
+function TestBigNumberRationalPolynomialLoadSaveMem: Boolean;
+function TestBigNumberPolynomialListLoadSaveMem: Boolean;
+function TestBigComplexDecimalPolynomialLoadSaveMem: Boolean;
 
 // ================================ NTRU =======================================
 
@@ -1861,6 +1865,7 @@ begin
   MyAssert(TestBigComplexDecimalString, 'TestBigComplexDecimalString');
   MyAssert(TestBigComplexLoadSaveMem, 'TestBigComplexLoadSaveMem');
   MyAssert(TestBigComplexListLoadSaveMem, 'TestBigComplexListLoadSaveMem');
+  MyAssert(TestBigComplexDecimalLoadSaveMem, 'TestBigComplexDecimalLoadSaveMem');
 
 // ================================ DFT ========================================
 
@@ -2038,7 +2043,9 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisFactorCantorZassenhaus, 'TestBigNumberPolynomialGaloisFactorCantorZassenhaus');
   MyAssert(TestBigNumberPolynomialGaloisPowerBarrett, 'TestBigNumberPolynomialGaloisPowerBarrett');
   MyAssert(TestBigNumberPolynomialLoadSaveMem, 'TestBigNumberPolynomialLoadSaveMem');
-
+  MyAssert(TestBigNumberRationalPolynomialLoadSaveMem, 'TestBigNumberRationalPolynomialLoadSaveMem');
+  MyAssert(TestBigNumberPolynomialListLoadSaveMem, 'TestBigNumberPolynomialListLoadSaveMem');
+  MyAssert(TestBigComplexDecimalPolynomialLoadSaveMem, 'TestBigComplexDecimalPolynomialLoadSaveMem');
 
 // ================================ NTRU =======================================
 
@@ -3903,6 +3910,51 @@ begin
   finally
     Restored.Free;
     L.Free;
+  end;
+end;
+
+function TestBigComplexDecimalLoadSaveMem: Boolean;
+var
+  C, Restored: TCnBigComplexDecimal;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  C := TCnBigComplexDecimal.Create;
+  Restored := TCnBigComplexDecimal.Create;
+  try
+    // 实部 42 + 虚部 -17
+    C.R.SetDec('42');
+    C.I.SetDec('-17');
+    Sz := C.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      C.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> C.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 零虚部
+    C.R.SetDec('123');
+    C.I.SetZero;
+    Sz := C.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      C.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> C.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    C.Free;
   end;
 end;
 
@@ -9156,6 +9208,132 @@ begin
   finally
     Restored.Free;
     Poly.Free;
+  end;
+end;
+
+function TestBigNumberRationalPolynomialLoadSaveMem: Boolean;
+var
+  R, Restored: TCnBigNumberRationalPolynomial;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  R := TCnBigNumberRationalPolynomial.Create;
+  Restored := TCnBigNumberRationalPolynomial.Create;
+  try
+    // 2X + 1 / 4X + 3 = (2X+1)/(4X+3)
+    R.Numerator.SetCoefficients([1, 2]);
+    R.Denominator.SetCoefficients([3, 4]);
+    Sz := R.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      R.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.ToString <> R.ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    R.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialListLoadSaveMem: Boolean;
+var
+  L, Restored: TCnBigNumberPolynomialList;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  L := TCnBigNumberPolynomialList.Create;
+  Restored := TCnBigNumberPolynomialList.Create;
+  try
+    // 空列表
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 0 then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 含 2 个多项式
+    L.Add.SetCoefficients([1, 2]);   // 2X + 1
+    L.Add.SetCoefficients([5, 6]);   // 6X + 5
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToString <> L[0].ToString then Exit;
+      if Restored[1].ToString <> L[1].ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    L.Free;
+  end;
+end;
+
+function TestBigComplexDecimalPolynomialLoadSaveMem: Boolean;
+var
+  P, Restored: TCnBigComplexDecimalPolynomial;
+  C: TCnBigComplexDecimal;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  P := TCnBigComplexDecimalPolynomial.Create;
+  Restored := TCnBigComplexDecimalPolynomial.Create;
+  try
+    // 空列表
+    Sz := P.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      P.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 0 then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    // 含 2 个复数
+    C := P.Add;
+    C.R.SetDec('42');
+    C.I.SetDec('-17');
+    C := P.Add;
+    C.R.SetDec('0');
+    C.I.SetDec('1');
+    Sz := P.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      P.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToString <> P[0].ToString then Exit;
+      if Restored[1].ToString <> P[1].ToString then Exit;
+    finally
+      FreeMem(Buf);
+    end;
+
+    Result := True;
+  finally
+    Restored.Free;
+    P.Free;
   end;
 end;
 
