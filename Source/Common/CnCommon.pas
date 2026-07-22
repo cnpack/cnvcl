@@ -94,6 +94,7 @@ uses
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants,
 {$ENDIF}
+{$IFDEF SUPPORT_ENHANCED_RTTI} Rtti, {$ENDIF}
   CnConsts, CnNative, CnIni, CnIniStrUtils, CnWideStrings;
 
 const
@@ -1450,6 +1451,13 @@ function CnObjectToString(AObject: TObject; UseHex: Boolean = False): string;
 
    返回值：string                         - 返回对象地址的十进制值或十六进制值
 }
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function FindClassInAllRttiType(const ClassName: string): TPersistentClass;
+{* 使用 RTTI 对全局变量 RegGroups 进行遍历来搜索特定类名，无视当前 ClassGroup}
+
+{$ENDIF}
 
 implementation
 
@@ -9365,6 +9373,42 @@ begin
   else
     Result := '<nil>';
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function FindClassInAllRttiType(const ClassName: string): TPersistentClass;
+var
+  Ctx: TRttiContext;
+  RttiType: TRttiType;
+  Meta: TClass;
+begin
+  Result := nil;
+  if ClassName = '' then
+    Exit;
+
+  Ctx := TRttiContext.Create;
+  try
+    for RttiType in Ctx.GetTypes do
+    begin
+      if not RttiType.IsInstance then
+        Continue;
+
+      Meta := RttiType.AsInstance.MetaclassType;
+      // 必须是 TPersistent 后代（与 GetClass 的注册范围一致）
+      if not Meta.InheritsFrom(TPersistent) then
+        Continue;
+      if SameText(RttiType.Name, ClassName) then
+      begin
+        Result := TPersistentClass(Meta);
+        Exit;
+      end;
+    end;
+  finally
+    Ctx.Free;
+  end;
+end;
+
+{$ENDIF}
 
 { TCnWideMemIniFile }
 
