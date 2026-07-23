@@ -3357,8 +3357,8 @@ begin
       // 相对暴力的加速比：factor L_1 / |S_1|。
 
       // ---- 自适应多素数 CRT BSGS ----
-      // Greedy: select primes with smallest |S|/L ratio.
-      // Stop when baby steps > 5000 or L_prod > 2^60.
+      // 贪心策略：选取 |S|/L 比值最小的素数。
+      // 当小步 > 5000 或 L_prod > 2^60 时停止。
       SelCount := 0; CRT_LProd := 1;
       for SelBestIdx := 0 to 5 do
       begin
