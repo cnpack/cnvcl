@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, Contnrs, CnContainers, CnBigNumber;
+  SysUtils, Classes, SysConst, Contnrs, CnNative, CnContainers, CnBigNumber;
 
 type
   ECnBigRationalException = class(Exception);

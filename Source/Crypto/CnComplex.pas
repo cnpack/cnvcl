@@ -47,7 +47,7 @@ interface
 
 uses
   Classes, SysUtils, SysConst, Math, Contnrs,
-  CnBigNumber, CnBigDecimal, CnContainers;
+  CnNative, CnBigNumber, CnBigDecimal, CnContainers;
 
 type
   ECnComplexNumberException = class(Exception);
