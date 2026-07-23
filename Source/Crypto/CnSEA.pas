@@ -71,7 +71,7 @@ type
 function CnSeaAtkinPossibleTraces(Traces: TCnInt64List;
   L: Integer; A, B, P: TCnBigNumber;
   PhiL: TCnBigNumberBiPolynomial = nil): Boolean;
-{* Compute the set of possible t mod L values for an Atkin prime L.}
+{* 计算 Atkin 素数 L 的所有可能 t mod L 值集合。}
 
 function CnGenerateClassicalModularPolynomial(Res: TCnBigNumberBiPolynomial; L: Integer): Boolean;
 {* 计算并返回正整数 L 的经典模多项式 Phi_L(X, Y)，L 是素数时初步符合以下网址的结果。
@@ -87,19 +87,19 @@ function CnGenerateClassicalModularPolynomial(Res: TCnBigNumberBiPolynomial; L: 
 
 function CnGenerateClassicalModularPolynomialModP(Res: TCnInt64BiPolynomial;
   L: Integer; Prime: Int64): Boolean;
-{*  Compute classical modular polynomial Phi_L(X, Y) modulo a small prime.
-   Uses raw Int64 arrays for maximum speed. Prime must be < 2^31.}
+{* 在小素数模下计算经典模多项式 Phi_L(X, Y)。
+   使用原始 Int64 数组以获得最大速度，Prime 必须小于 2^31。}
 
 function CnGenerateClassicalModularPolynomialCRT(Res: TCnBigNumberBiPolynomial; L: Integer): Boolean;
-{*  CRT (Chinese Remainder Theorem) method to compute classical modular polynomial Phi_L(X, Y).
-   Uses multiple small primes and Int64 arithmetic for ~1000x speedup over BigNumber method.
-   Automatically used by CnGenerateClassicalModularPolynomial for L >= 11.
+{* CRT（中国剩余定理）方法计算经典模多项式 Phi_L(X, Y)。
+   使用多个小素数模和 Int64 运算，相比直接 BigNumber 方法能获得约 1000 倍提速。
+   当 L >= 11 时，CnGenerateClassicalModularPolynomial 会自动使用此方法。
 
-   Parameters:
-     Res: TCnBigNumberBiPolynomial        - Result bivariate polynomial
-     L: Integer                           - Modular polynomial order
+   参数：
+     Res: TCnBigNumberBiPolynomial        - 返回二元多项式
+     L: Integer                           - 模多项式序数
 
-   Returns: Boolean                        - Whether computation succeeded
+   返回值：Boolean                        - 返回计算是否成功
 }
 
 procedure SaveModularPolynomialCoefficientsToText(P: TCnBigNumberBiPolynomial; Res: TStrings);
@@ -225,7 +225,7 @@ implementation
 uses
   CnDebug;
 
-// Simple trace via CnDebugger. Compile with -dSEA_TRACE.
+// 通过 CnDebugger 进行简单跟踪。编译时加 -dSEA_TRACE。
 var
   _SeaT0: TDateTime = 0;
 
@@ -446,7 +446,7 @@ begin
 end;
 
 // ================== CRT Modular Polynomial Computation ==================
-// Optimized implementation using raw Int64 arrays and fast inline modular
+// 使用原始 Int64 数组和快速内联模运算的优化实现
 // arithmetic.
 //
 // On 64-bit CPU: primes < 2^30, Int64 multiplication is native (1 instruction).
@@ -454,20 +454,20 @@ end;
 //   avoiding slow software-emulated Int64 multiply/divide.
 
 {$IFDEF CPU64BITS}
-// 64-bit: primes < 2^30, A*B < 2^60 fits in Int64, native multiply
+// 64 位：素数 < 2^30，A*B < 2^60 可放入 Int64，使用原生乘法
 function SeaFastMulMod(A, B, P: Int64): Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (A * B) mod P;
 end;
 
-// Fast modular add for primes < 2^31
+// 小于 2^31 素数的快速模加
 function SeaFastAddMod(A, B, P: Int64): Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := A + B;
   if Result >= P then Result := Result - P;
 end;
 
-// Fast modular sub for primes < 2^31
+// 小于 2^31 素数的快速模减
 function SeaFastSubMod(A, B, P: Int64): Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := A - B;
@@ -475,13 +475,13 @@ begin
 end;
 
 const
-  // Largest prime < 2^30, used as starting point for prime search
+  // 小于 2^30 的最大素数，用作素数搜索起点
   SeaCRTPrimeStart: Int64 = 1073741789;
   SeaCRTBitsPerPrime = 30;
 
 {$ELSE}
-// 32-bit: primes < 2^15, A*B < 2^30 fits in Cardinal, native 32-bit multiply
-// This avoids slow software-emulated Int64 multiply/divide on 32-bit CPUs.
+// 32 位：素数 < 2^15，A*B < 2^30 可放入 Cardinal，使用原生 32 位乘法
+// 避免 32 位 CPU 上软件模拟的慢速 Int64 乘除法。
 function SeaFastMulMod(A, B, P: Int64): Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Cardinal(A) * Cardinal(B)) mod Cardinal(P);
@@ -500,19 +500,19 @@ begin
 end;
 
 const
-  // Largest prime < 2^15, used as starting point for prime search
+  // 小于 2^15 的最大素数，用作素数搜索起点
   SeaCRTPrimeStart: Int64 = 32749;
   SeaCRTBitsPerPrime = 15;
 
 {$ENDIF}
 
-// Compute the number of bits needed for CRT reconstruction of Phi_L.
-// Theoretical bound: H(Phi_L) ~ exp(6*L*ln(L)), in bits: 6*L*log2(L).
-// Empirical fit: actual bits ≈ 6*L*log2(L) + 17*L (the O(L) term is significant).
-// Formula 6*L*log2(L) + 20*L + 50 provides safe margin for all practical L.
-//   L=5: 219b (actual 157b), L=11: 498b (actual 421b),
-//   L=23: 1134b (actual 1018b), L=29: 1475b (actual 1338b),
-//   L=53: 2931b (actual ~2722b), L=97: 5831b
+// 计算 CRT 重构 Phi_L 所需的位数。
+// 理论界限：H(Phi_L) ~ exp(6*L*ln(L))，位数：6*L*log2(L)。
+// 经验拟合：实际位数 ≈ 6*L*log2(L) + 17*L（O(L) 项是显著的）。
+// 公式 6*L*log2(L) + 20*L + 50 对所有实用 L 提供安全裕度。
+//   L=5: 219b (实际157位），L=11：498位（实际421位）,
+//   L=23: 1134b (实际1018位），L=29：1475位（实际1338位）,
+//   L=53: 2931b (实际~2722位），L=97：5831位
 function SeaCalcBitsNeeded(L: Integer): Integer;
 var
   Log2L: Double;
@@ -526,8 +526,8 @@ begin
   end;
 end;
 
-// Compute sigma_k(N) mod Prime using sieve-like batch approach
-// Pre-computes sigma for all 1..MaxN at once: O(MaxN * log(MaxN))
+// 使用类似筛法的批量方法计算 sigma_k(N) mod Prime
+// 一次性预计算所有 1..MaxN 的 sigma：O(MaxN * log(MaxN))
 procedure SeaBatchSigmaModP(var Sigmas: array of Int64; MaxN, K: Integer; Prime: Int64);
 var
   D, M: Integer;
@@ -537,7 +537,7 @@ begin
     Sigmas[D] := 0;
   for D := 1 to MaxN do
   begin
-    // PowD = D^K mod Prime
+    // PowD = D^K mod Prime（模幂运算）
     PowD := Int64NonNegativeMod(D, Prime);
     Acc := 1;
     M := K;
@@ -549,7 +549,7 @@ begin
       if M > 0 then
         PowD := SeaFastMulMod(PowD, PowD, Prime);
     end;
-    // Add PowD to all multiples of D
+    // 将 PowD 加到 D 的所有倍数位置
     M := D;
     while M <= MaxN do
     begin
@@ -567,7 +567,7 @@ var
   SeaSigma3CacheMaxN: Integer = 0;
   SeaSigma5CacheMaxN: Integer = 0;
 
-// Compute J(q) mod Prime into a raw array J[0..MaxDegree]
+// 在原始数组 J[0..MaxDegree] 中计算 J(q) mod Prime
 // J(q) = q * j(q) = 1 + 744q + 196884q^2 + ...
 procedure SeaCalcJRaw(var J: array of Int64; MaxDegree: Integer; Prime: Int64);
 var
@@ -582,7 +582,7 @@ begin
   SetLength(Delta, MaxDegree + 2);
   SetLength(DeltaInv, MaxDegree + 2);
 
-  // Batch compute sigma_3 and sigma_5
+  // 批量计算 sigma_3 和 sigma_5
   if (SeaSigma3CachePrime <> Prime) or (SeaSigma3CacheMaxN < MaxDegree + 1) then
   begin
     SetLength(SeaSigma3Cache, MaxDegree + 2);
@@ -608,7 +608,7 @@ begin
   for I := 1 to MaxDegree + 1 do
     E6[I] := SeaFastSubMod(0, SeaFastMulMod(SeaSigma5Cache[I], 504, Prime), Prime);
 
-  // E4^3 truncated to MaxDegree+1 (schoolbook)
+  // E4^3 截断到 MaxDegree+1（逐项乘法）
   for I := 0 to MaxDegree + 1 do
     E4_3[I] := 0;
   for I := 0 to MaxDegree + 1 do
@@ -620,9 +620,9 @@ begin
       E4_3[I + J2] := SeaFastAddMod(E4_3[I + J2], SeaFastMulMod(E4[I], E4[J2], Prime), Prime);
     end;
   end;
-  // Multiply by E4 again for E4^3
-  // Actually E4_3 currently = E4^2, need one more multiply
-  // Let's use a temp
+  // 再乘 E4 得到 E4^3
+  // 目前 E4_3 = E4^2，需要再乘一次
+  // 使用临时变量
   begin
     SetLength(T2, MaxDegree + 2);
     for I := 0 to MaxDegree + 1 do
@@ -640,7 +640,7 @@ begin
       E4_3[I] := T2[I];
   end;
 
-  // E6^2 truncated
+  // E6^2 截断计算
   for I := 0 to MaxDegree + 1 do
     E6_2[I] := 0;
   for I := 0 to MaxDegree + 1 do
@@ -653,17 +653,17 @@ begin
     end;
   end;
 
-  // Delta = (E4^3 - E6^2) * 1728^(-1)
+  // Delta = (E4^3 - E6^2) * 1728 的逆
   Inv1728 := CnInt64ModularInverse2(Int64NonNegativeMod(1728, Prime), Prime);
   for I := 0 to MaxDegree + 1 do
     Delta[I] := SeaFastMulMod(SeaFastSubMod(E4_3[I], E6_2[I], Prime), Inv1728, Prime);
 
-  // Delta / q = shift right by 1
+  // Delta / q = 右移一位
   for I := 0 to MaxDegree do
     Delta[I] := Delta[I + 1];
   Delta[MaxDegree + 1] := 0;
 
-  // DeltaInv = (Delta/q)^(-1) mod x^(MaxDegree+1) via Newton's iteration
+  // 通过牛顿迭代计算 DeltaInv = (Delta/q)^(-1) mod x^(MaxDegree+1)
   DeltaInv[0] := CnInt64ModularInverse2(Delta[0], Prime);
   for I := 1 to MaxDegree do
   begin
@@ -676,7 +676,7 @@ begin
     DeltaInv[I] := SeaFastMulMod(SeaFastSubMod(0, Sum, Prime), DeltaInv[0], Prime);
   end;
 
-  // J(q) = E4^3 * DeltaInv truncated to MaxDegree
+  // J(q) = E4^3 * DeltaInv 截断到 MaxDegree
   for I := 0 to MaxDegree do
     J[I] := 0;
   for I := 0 to MaxDegree do
@@ -690,14 +690,14 @@ begin
   end;
 end;
 
-// Compute classical modular polynomial Phi_L mod Prime using raw Int64 arrays
-// All polynomial operations done with plain arrays for maximum speed.
+// 使用原始 Int64 数组计算经典模多项式 Phi_L mod Prime
+// 所有多项式运算使用普通数组以获得最大速度.
 function CnGenerateClassicalModularPolynomialModP(Res: TCnInt64BiPolynomial;
   L: Integer; Prime: Int64): Boolean;
 var
   N, I, K, D, M, U, V, MaxY, J2: Integer;
   J_q: array of Int64;
-  H: array of array of Int64;  // H[k][i] = coefficient of q^i in J(q)^k
+  H: array of array of Int64;  // H[k][i] = J(q)^k 中 q^i 的系数
   PmArr: array of Int64;
   Pm_Poly: array of array of Int64;
   Sm_Poly: array of array of Int64;  // Sm_Poly[k][v]
@@ -725,12 +725,12 @@ begin
   N := L * (L + 1);
   PrimeL := Int64NonNegativeMod(L, Prime);
 
-  // Compute J(q) mod Prime
+  // 计算 J(q) mod Prime
   SetLength(J_q, N + 1);
   SeaCalcJRaw(J_q, N, Prime);
 
-  // Compute H[k] = J(q)^k for k = 0..N using truncated multiplication
-  // H[k][i] for i = 0..N
+  // 使用截断乘法计算 H[k] = J(q)^k，其中 k = 0..N
+  // H[k][i] 中 i = 0..N
   SetLength(H, N + 1);
   for K := 0 to N do
   begin
@@ -742,7 +742,7 @@ begin
   // H[0] = 1
   H[0][0] := 1;
 
-  // H[k] = H[k-1] * J(q) truncated to degree N
+  // H[k] = H[k-1] * J(q) 截断到度数 N
   SetLength(HTemp, N + 1);
   for K := 1 to N do
   begin
@@ -759,23 +759,23 @@ begin
         HTemp[I + D] := SeaFastAddMod(HTemp[I + D], SeaFastMulMod(H[K - 1][I], J_q[D], Prime), Prime);
       end;
     end;
-    // Copy to H[K]
+    // 复制到 H[K]
     for I := 0 to N do
       H[K][I] := HTemp[I];
   end;
 
-  // Compute Pm_Poly[M] for M = 1..L+1
+  // 计算 Pm_Poly[M]，其中 M = 1..L+1
   SetLength(PmDeg, L + 2);
   SetLength(SmDeg, L + 2);
   SetLength(Sm_Poly, L + 2);
-  SetLength(PmArr, 0); // will resize per M
+  SetLength(PmArr, 0); // 将根据 M 调整大小
 
-  // First compute all Pm_Poly and store as rows of H-like arrays
-  // Pm_Poly[M] has degree M*L
-  // We'll store Pm_Poly in Sm_Poly temporarily... no, let's use a separate array
-  // Actually, let's compute Pm_Poly[M] on the fly during Sm_Poly computation
-  // to save memory. But the Sm_Poly recurrence needs Pm_Poly[1..K], so we need
-  // to store them all.
+  // 首先计算所有 Pm_Poly 并存储为 H 类数组的行
+  // Pm_Poly[M] 度数为 M*L
+  // 将 Pm_Poly 临时存储在 Sm_Poly 中... 不，使用单独数组
+  // 实际上，在 Sm_Poly 计算过程中即时计算 Pm_Poly[M]
+  // 以节省内存。但 Sm_Poly 递推需要 Pm_Poly[1..K]，所以需要
+  // 全部存储。
 
   SetLength(Pm_Poly, L + 2);
 
@@ -820,8 +820,8 @@ begin
     end;
   end;
 
-  // Compute Sm_Poly using Newton's recurrence
-  // Sm_Poly[K] = (1/K) * sum_{I=1}^{K} (-1)^(I-1) * Sm_Poly[K-I] * Pm_Poly[I]
+  // 使用牛顿递推计算 Sm_Poly
+  // Sm_Poly[K] = (1/K) * Σ_{I=1}^{K} (-1)^(I-1) * Sm_Poly[K-I] * Pm_Poly[I]
   SetLength(Sm_Poly, L + 2);
   SmDeg[0] := 0;
   SetLength(Sm_Poly[0], 1);
@@ -829,7 +829,7 @@ begin
 
   for K := 1 to L + 1 do
   begin
-    // Determine max degree of Sm_Poly[K]
+    // 确定 Sm_Poly[K] 的最大度数
     SmDeg[K] := 0;
     for I := 1 to K do
     begin
@@ -858,13 +858,13 @@ begin
       end;
     end;
 
-    // Divide by K: multiply by K^(-1) mod Prime
+    // 除以 K：乘 K^(-1) mod Prime
     T64 := CnInt64ModularInverse2(Int64NonNegativeMod(K, Prime), Prime);
     for I := 0 to SmDeg[K] do
       Sm_Poly[K][I] := SeaFastMulMod(Sm_Poly[K][I], T64, Prime);
   end;
 
-  // Assemble result into TCnInt64BiPolynomial
+  // 将结果装配到 TCnInt64BiPolynomial 中
   Res.SetZero;
   MaxY := 0;
   for K := 0 to L + 1 do
@@ -891,7 +891,7 @@ begin
   Result := True;
 end;
 
-// Find next prime below a given number (for CRT prime selection)
+// 找到小于给定数的下一个素数（用于 CRT 素数选取）
 function SeaFindNextPrimeBelow(N: Int64): Int64;
 var
   Candidate: Int64;
@@ -911,18 +911,18 @@ begin
   end;
 end;
 
-// Compute classical modular polynomial using CRT method
+// 使用 CRT 方法计算经典模多项式
 function CnGenerateClassicalModularPolynomialCRT(Res: TCnBigNumberBiPolynomial; L: Integer): Boolean;
 var
-  // Small L: delegate to direct method
+  // 小 L：委托给直接方法
   I, K, MaxX, MaxY: Integer;
   Prime: Int64;
   BitsNeeded, BitsCovered: Integer;
   Candidate: Int64;
   Primes: TCnInt64List;
-  ModResults: TObjectList;  // owns TCnInt64BiPolynomial objects
+  ModResults: TObjectList;  // 管理 TCnInt64BiPolynomial 对象
   ModRes: TCnInt64BiPolynomial;
-  // CRT state per coefficient
+  // 每个系数的 CRT 状态
   V, M, Tmp, Tmp2: TCnBigNumber;
   VModP, Diff, InvM, T, T1: Int64;
   U, VIdx: Integer;
@@ -930,7 +930,7 @@ begin
   Result := False;
   if (Res = nil) or (L < 1) then Exit;
 
-  // For small L, use direct BigNumber method
+  // 对于小 L，使用直接 BigNumber 方法
   if L < CN_SEA_CRT_THRESHOLD then
   begin
     Result := CnGenerateClassicalModularPolynomial(Res, L);
@@ -939,7 +939,7 @@ begin
 
   if (L > 1) and not CnUInt32IsPrime(L) then Exit;
 
-  // L=1 special case
+  // L=1 特殊处理
   if L = 1 then
   begin
     Result := CnGenerateClassicalModularPolynomial(Res, L);
@@ -953,8 +953,8 @@ begin
   Tmp := TCnBigNumber.Create;
   Tmp2 := TCnBigNumber.Create;
   try
-    // Height bound: theoretical formula 6*L*log2(L) + 20*L + 50
-    // See SeaCalcBitsNeeded for details and verification data.
+    // 高度上界：理论公式 6*L*log2(L) + 20*L + 50
+    // 详见 SeaCalcBitsNeeded 的推导与验证数据。
     BitsNeeded := SeaCalcBitsNeeded(L);
     Candidate := SeaCRTPrimeStart;
     BitsCovered := 0;
@@ -965,7 +965,7 @@ begin
       if Prime = 0 then
         raise Exception.Create('Cannot find enough primes for CRT');
 
-      // Skip primes that divide 1728 (= 2^6 * 3^3) or are <= L+1
+      // 跳过整除 1728 (= 2^6 * 3^3) 或 <= L+1 的素数
       if (Prime <= L + 1) or (Prime <= 1728) then
       begin
         Candidate := Prime - 2;
@@ -980,7 +980,7 @@ begin
         raise Exception.Create('Too many primes needed, L may be too large');
     end;
 
-    // Compute Phi_L mod p_i for each prime
+    // 对每个素数 p_i 计算 Phi_L mod p_i
     for I := 0 to Primes.Count - 1 do
     begin
       ModRes := TCnInt64BiPolynomial.Create;
@@ -992,7 +992,7 @@ begin
       ModResults.Add(ModRes);
     end;
 
-    // Determine the dimensions of the result
+    // 确定结果的维度
     MaxX := L + 1;
     MaxY := 0;
     for I := 0 to ModResults.Count - 1 do
@@ -1002,19 +1002,19 @@ begin
         MaxY := ModRes.MaxYDegree;
     end;
 
-    // Initialize result
+    // 初始化结果
     Res.SetZero;
     Res.MaxXDegree := MaxX;
     Res.MaxYDegree := MaxY;
 
-    // CRT reconstruction for each coefficient (U, V)
+    // 对每个系数 (U, V) 进行 CRT 重构
     for U := 0 to MaxX do
     begin
       for VIdx := 0 to MaxY do
       begin
-        // Incremental CRT:
-        // V = v_0 mod p_0, M = p_0
-        // For each subsequent prime p_k:
+        // 增量 CRT：
+        // V = v_0 mod p_0，M = p_0
+        // 对每个后续素数 p_k：
         //   t = (v_k - V mod p_k) * M^(-1) mod p_k
         //   V = V + M * t
         //   M = M * p_k
@@ -1022,7 +1022,7 @@ begin
         V.SetZero;
         M.SetWord(Cardinal(Primes[0]));
 
-        // Get v_0 = ModResults[0].SafeValue[U, VIdx]
+        // 取 v_0 = ModResults[0].SafeValue[U, VIdx]
         V.SetWord(Cardinal(TCnInt64BiPolynomial(ModResults[0]).SafeValue[U, VIdx]));
 
         for K := 1 to Primes.Count - 1 do
@@ -1066,7 +1066,7 @@ begin
         if BigNumberCompare(V, Tmp) > 0 then
           BigNumberSub(V, V, M);
 
-        // Store the result
+        // 保存结果
         if not V.IsZero then
           BigNumberCopy(Res.SafeValue[U, VIdx], V);
       end;
@@ -1093,7 +1093,7 @@ var
   PmArr: array of TCnBigNumber;
   T, Sum, Coeff: TCnBigNumber;
 begin
-  // For L >= CN_SEA_CRT_THRESHOLD, use CRT method for dramatic speedup (~1000x)
+  // 对于 L >= CN_SEA_CRT_THRESHOLD，使用 CRT 方法获得约 1000 倍提速
   if L >= CN_SEA_CRT_THRESHOLD then
   begin
     Result := CnGenerateClassicalModularPolynomialCRT(Res, L);
@@ -1146,7 +1146,7 @@ begin
     // H[k][j] = coeff of q^(j-k), J_q[j] = coeff of q^(j-1)
     // The polynomial product H[k-1] * J_q directly gives H[k][j] = product[j]
     // (shifts cancel: q^(j-(k-1)) * q^(n-1) = q^(j+n-k), so index j+n=k+i => H[k][i+k])
-    // Use BigNumberPolynomialMulTrunc instead of manual triple loop for efficiency
+    // 使用 BigNumberPolynomialMulTrunc 代替手动三层循环以提高效率
     // (zero-skipping, pooled objects, better memory access)
     for K := 1 to N do
       BigNumberPolynomialMulTrunc(H[K], H[K - 1], J_q, N);
@@ -1322,7 +1322,7 @@ begin
       ValStr := Trim(Copy(Line, SpPos + 1, MaxInt));
       if ValStr = '' then Continue;
 
-      // Extract m and n from [m,n]
+      // 从 [m,n] 提取 m 和 n
       Key := StringReplace(Key, '[', '', [rfReplaceAll]);
       Key := StringReplace(Key, ']', '', [rfReplaceAll]);
       Key := StringReplace(Key, ' ', '', [rfReplaceAll]);
@@ -1334,7 +1334,7 @@ begin
       Coeff.SetDec(ValStr);
       // Set [M, N] (SafeValue auto-expands dimensions)
       BigNumberCopy(Res.SafeValue[M, N], Coeff);
-      // Also fill symmetric [N, M] unless it's the diagonal
+      // 同时填充对称位置 [N, M]，对角线除外
       if M <> N then
         BigNumberCopy(Res.SafeValue[N, M], Coeff);
       Result := True;
@@ -1543,7 +1543,7 @@ begin
     Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
-    // 计算 x^p mod Psi_L (use Barrett reduction for large Psi_L)
+    // 计算 x^p mod Psi_L（大 Psi_L 时使用 Barrett 约简）
     XPowP := FSeaPolynomialPool.Obtain;
     XPowP.SetCoefficients([0, 1]); // x
     {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d x^p mod Psi start deg=%d', [L, PsiL.MaxDegree]); {$ENDIF}
@@ -1564,8 +1564,8 @@ begin
     Found := False;
     ScalarLam := 0;
 
-    // For odd prime L, eigenvalues λ and L-λ share the same kernel h(x).
-    // Searching λ = 1..(L-1)/2 covers all eigenvalues. (2x speedup)
+    // 对于奇素数 L，特征值 λ 和 L-λ 共享同一个核多项式 h(x)。
+    // 搜索 λ = 1..(L-1)/2 覆盖全部特征值（2 倍加速）
     {$IFDEF SEA_TRACE} _SeaT('[ElkKern] L=%d deg=%d loop 1..%d', [L, TargetDeg, (L-1) div 2]); {$ENDIF}
 
     for Lambda := 1 to (L - 1) div 2 do
@@ -1598,7 +1598,7 @@ begin
       end;
 
       // H = gcd(Psi_L, G)
-      // When G is the zero polynomial (e.g. scalar Frobenius with lambda=1
+      // 当 G 是零多项式时（如 lambda=1 的标量 Frobenius）
       // and x^p = x mod PsiL), gcd(PsiL, 0) = PsiL.
       if G.IsZero then
         BigNumberPolynomialCopy(H, PsiL)
@@ -1636,7 +1636,7 @@ begin
         end;
         if Found then Break;
         // CZ factorization failed. If GCD = full Psi_L, Frobenius is scalar
-        // with eigenvalue Lambda. Record it for direct trace computation.
+        // 具有特征值 Lambda。记录下来供直接迹计算。
         if (H.MaxDegree = PsiL.MaxDegree) and (ScalarLam = 0) then
           ScalarLam := Lambda;
       end;
@@ -1644,8 +1644,8 @@ begin
 
     if not Found then
     begin
-      // If scalar Frobenius was detected (GCD = full Psi_L for some lambda),
-      // determine the actual eigenvalue by checking the y-coordinate action.
+      // 如果检测到标量 Frobenius（对某些 lambda 有 GCD = 完全 Psi_L），
+      // 通过检查 y 坐标作用来确定实际特征值。
       // When x^p = x mod PsiL, Frobenius is ±1 on E[L].
       // Y2^((p-1)/2) = 1 means pi = +1 (eigenvalue 1).
       // Y2^((p-1)/2) = -1 means pi = -1 (eigenvalue L-1).
@@ -1666,7 +1666,7 @@ begin
         end;
         if ScalarLambda <> nil then
           ScalarLambda^ := ScalarLam;
-        // Return Psi_L as the kernel polynomial (full degree).
+        // 返回 Psi_L 作为核多项式（完全度数）。
         BigNumberPolynomialCopy(Res, PsiL);
         Result := True;
       end;
@@ -1695,7 +1695,7 @@ end;
 
 // Polynomial-only elliptic curve point addition (handles doubling and identity).
 // Points are (X, Y) where actual coords are (X, Y * sqrt(Y2(x))).
-// All operations in quotient ring F_p[x]/(h(x)) via polynomial modular inverse.
+// 商环 F_p[x]/(h(x)) 中的所有运算通过多项式模逆实现。
 procedure SeaPolyPointAdd(SX, SY: TCnBigNumberPolynomial;
   PX, PY, QX, QY, Y2, InvY2, H: TCnBigNumberPolynomial;
   A, P: TCnBigNumber);
@@ -1803,12 +1803,12 @@ function CnSeaElkiesTrace(Res: TCnBigNumber; L: Integer;
 var
   H, Y2, InvY2: TCnBigNumberPolynomial;
   BQ: TCnBigNumber;
-  // Frobenius image and point coords as pure polynomials (not rational)
+  // Frobenius 像与点坐标用纯多项式表示（非有理式）
   PiPX, PiPY: TCnBigNumberPolynomial;
   PX, PY: TCnBigNumberPolynomial;
-  // Linear search iteration variables
+  // 线性搜索迭代变量
   RSX, RSY, TSX, TSY: TCnBigNumberPolynomial;
-  // BSGS variables
+  // BSGS 变量
   BabyX, BabyY: array of TCnBigNumberPolynomial;
   NegMX, NegMY: TCnBigNumberPolynomial;
   GX, GY: TCnBigNumberPolynomial;
@@ -1846,14 +1846,14 @@ begin
   SetLength(BabyX, 0);
   SetLength(BabyY, 0);
   try
-    // Step 1: compute kernel polynomial h(x), degree (L-1)/2
+    // 步骤1：计算核多项式 h(x)，度数 (L-1)/2
     H := FSeaPolynomialPool.Obtain;
     ScalarLam := 0;
     {$IFDEF SEA_TRACE} _SeaT('[ElkiesTrace] L=%d KernelPoly start', [L]); {$ENDIF}
     if not CnSeaElkiesKernelPolynomial(H, L, A, B, P, DPs, @ScalarLam) then Exit;
     {$IFDEF SEA_TRACE} _SeaT('[ElkiesTrace] L=%d KernelPoly done deg=%d sLam=%d', [L, H.MaxDegree, ScalarLam]); {$ENDIF}
 
-    // Scalar Frobenius: eigenvalue is known, compute trace directly
+    // 标量 Frobenius：特征值已知，直接计算迹
     // t = lambda + p * lambda^{-1} mod L
     if ScalarLam > 0 then
     begin
@@ -1875,17 +1875,17 @@ begin
       Exit;
     end;
 
-    // Step 2: curve polynomial Y2 = x^3 + Ax + B
+    // 步骤2：曲线多项式 Y2 = x^3 + Ax + B
     Y2 := FSeaPolynomialPool.Obtain;
     Y2.SetCoefficients([B, A, 0, 1]);
 
     BQ := FSeaBigNumberPool.Obtain;
 
-    // Step 2b: precompute InvY2 = Y2^{-1} mod h (for doubling)
+    // 步骤2b：预计算 InvY2 = Y2^{-1} mod h（用于倍点）
     InvY2 := FSeaPolynomialPool.Obtain;
     BigNumberPolynomialGaloisModularInverse(InvY2, Y2, H, P);
 
-    // Step 3: compute Frobenius image pi(P) as pure polynomials
+    // 步骤3：用纯多项式计算 Frobenius 像 pi(P)
     // pi(P) x-component = x^p mod h(x)
     // pi(P) y-coefficient = Y2^((p-1)/2) mod h(x)
     PiPX := FSeaPolynomialPool.Obtain;
@@ -1898,7 +1898,7 @@ begin
     BigNumberShiftRightOne(BQ, BQ); // (p-1)/2
     BigNumberPolynomialGaloisPowerBarrett(PiPY, Y2, BQ, P, H); // Y2^((p-1)/2) mod h
 
-    // Step 4: generic point P = (x, 1) in polynomial representation
+    // 步骤4：通用点 P = (x, 1) 用多项式表示
     PX := FSeaPolynomialPool.Obtain;
     PX.SetCoefficients([0, 1]); // x
     // Reduce PX mod h(x) for proper quotient ring representation.
@@ -1914,7 +1914,7 @@ begin
     PY := FSeaPolynomialPool.Obtain;
     PY.SetOne; // 1
 
-    // Steps 5-6: search for eigenvalue lambda such that [lambda]P = pi(P)
+    // 步骤5-6：搜索特征值 lambda 使 [lambda]P = pi(P)
     Found := False;
     Lambda := 0;
 
@@ -1924,10 +1924,10 @@ begin
 
     if UseBSGS then
     begin
-      // ===== BSGS Search =====
+      // ===== BSGS 搜索 =====
       // lambda = a + b*m, a in {1..m}, b in {0..m}
       // Baby: [1]P, [2]P, ..., [m]P
-      // Giant: G = pi(P) - [b*m]P, look for G = [a]P
+      // 大步：G = pi(P) - [b*m]P，查找 G = [a]P
 
       M := 1;
       while M * M < ((L + 1) div 2) do
@@ -1937,13 +1937,13 @@ begin
       SetLength(BabyX, BabyLen);
       SetLength(BabyY, BabyLen);
 
-      // Baby step 0: [1]P = (x, 1)
+      // 小步0：[1]P = (x, 1)
       BabyX[0] := FSeaPolynomialPool.Obtain;
       BabyY[0] := FSeaPolynomialPool.Obtain;
       BigNumberPolynomialCopy(BabyX[0], PX);
       BigNumberPolynomialCopy(BabyY[0], PY);
 
-      // Baby step 1: [2]P (doubling of [1]P)
+      // 小步1：[2]P（[1]P 的倍点）
       if BabyLen >= 2 then
       begin
         BabyX[1] := FSeaPolynomialPool.Obtain;
@@ -1952,7 +1952,7 @@ begin
           BabyX[0], BabyY[0], Y2, InvY2, H, A, P);
       end;
 
-      // Baby steps 2..m-1: [a+1]P = [a]P + P
+      // 小步2..m-1：[a+1]P = [a]P + P
       for BabyIdx := 2 to BabyLen - 1 do
       begin
         BabyX[BabyIdx] := FSeaPolynomialPool.Obtain;
@@ -1962,14 +1962,14 @@ begin
       end;
 
       // [m]P is in BabyX[m-1], BabyY[m-1]
-      // Compute -[m]P = (MX, -MY)
+      // 计算 -[m]P = (MX, -MY)
       NegMX := FSeaPolynomialPool.Obtain;
       NegMY := FSeaPolynomialPool.Obtain;
       BigNumberPolynomialCopy(NegMX, BabyX[BabyLen - 1]);
       BigNumberPolynomialCopy(NegMY, BabyY[BabyLen - 1]);
       BigNumberPolynomialGaloisNegate(NegMY, P);
 
-      // Giant steps: G = pi(P)
+      // 大步：G = pi(P)
       GX := FSeaPolynomialPool.Obtain;
       GY := FSeaPolynomialPool.Obtain;
       BigNumberPolynomialCopy(GX, PiPX);
@@ -1978,7 +1978,7 @@ begin
       GiantMax := M + 1;
       for GiantIdx := 0 to GiantMax do
       begin
-        // Check if G is identity (lambda = b*m)
+        // 检查 G 是否为单位元（lambda = b*m）
         if GX.IsZero and GY.IsZero then
         begin
           if GiantIdx > 0 then
@@ -1990,12 +1990,12 @@ begin
         end
         else
         begin
-          // Search baby table for X match
+          // 在小步表中搜索 X 坐标匹配
           for BabyIdx := 0 to BabyLen - 1 do
           begin
             if BigNumberPolynomialGaloisEqual(GX, BabyX[BabyIdx], P) then
             begin
-              // X matches, check Y for sign
+              // X 坐标匹配，检查 Y 符号
               if BigNumberPolynomialGaloisEqual(GY, BabyY[BabyIdx], P) then
                 Lambda := (BabyIdx + 1) + GiantIdx * M
               else
@@ -2024,7 +2024,7 @@ begin
     end
     else
     begin
-      // ===== Linear Search (polynomial-only) =====
+      // ===== 线性搜索（纯多项式）=====
       RSX := FSeaPolynomialPool.Obtain;
       RSY := FSeaPolynomialPool.Obtain;
       BigNumberPolynomialCopy(RSX, PX); // [1]P
@@ -2093,7 +2093,7 @@ begin
     FSeaPolynomialPool.Recycle(GX);
     FSeaPolynomialPool.Recycle(NegMY);
     FSeaPolynomialPool.Recycle(NegMX);
-    // Recycle baby step table
+    // 回收小步表
     for BabyIdx := 0 to Length(BabyX) - 1 do
     begin
       if BabyX[BabyIdx] <> nil then
@@ -2118,7 +2118,7 @@ begin
   end;
 end;
 
-// Verify candidate trace t by checking [p+1-t]P = O for a point P on E/F_p
+// 通过检查 E/F_p 上一点 P 满足 [p+1-t]P = O 来验证候选迹 t
 function SeaVerifyTrace(A, B, P, T: TCnBigNumber): Boolean;
 var
   N, X, Y2, Y, RX, RY, SX, SY, Lam, T1, T2, T3: TCnBigNumber;
@@ -2151,7 +2151,7 @@ begin
     if N.IsNegative then
       N.Negate;
 
-    // Try multiple points to avoid false positives from small-order points.
+    // 尝试多个点，避免小阶点引起的误报。
     // For a 48-bit prime, trying 3 points gives false-positive probability
     // < 1/2^48, which is sufficient.
     PointCount := 0;
@@ -2181,13 +2181,13 @@ begin
         Continue;
       end;
 
-      // Check QR via Euler's criterion
+      // 通过欧拉准则检查是否为二次剩余
       BigNumberCopy(T1, P);
       T1.SubWord(1);
       BigNumberShiftRightOne(T1, T1);
       BigNumberPowerMod(T2, Y2, T1, P);
       if not T2.IsOne then
-        Continue; // Not a QR, no point with this x
+        Continue; // 不是二次剩余，此 x 坐标无对应点
 
       if not BigNumberTonelliShanks(Y, Y2, P) then
         Continue;
@@ -2196,7 +2196,7 @@ begin
       BigNumberCopy(SY, Y);
       Inc(PointCount);
 
-      // Compute [N]P using double-and-add (MSB to LSB)
+      // 使用倍加算法（MSB 到 LSB）计算 [N]P
       Inf := True;
       Bits := BigNumberGetBitsCount(N);
 
@@ -2339,12 +2339,12 @@ begin
         end;
       end;
 
-      // If [N]P != O for any point, reject this trace
+      // 若任意点 [N]P != O，则拒绝此迹
       if not Inf then
         Exit;
     end;
 
-    // All points verified: [N]P = O for all tested points
+    // 所有点验证通过：对所有测试点 [N]P = O
     Result := PointCount > 0;
   finally
     FSeaBigNumberPool.Recycle(T3);
@@ -2432,7 +2432,7 @@ begin
     while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
     begin
       L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
-      // Guard: stop at max available mod poly L to avoid slow on-the-fly generation
+      // 保护：在可用最大模多项式 L 处停止，避免耗时的即时生成
       if L > CN_SEA_MAX_MODPOLY_L then Break;
       // 跳过 L = P 的情况
       BigNumberSetWord(BQ, L);
@@ -2446,12 +2446,12 @@ begin
     end;
 
     // Note: if L > CN_SEA_MAX_MODPOLY_L guard triggered before threshold was
-    // reached, we proceed with available primes. The SkipVerify logic in
-    // CnSeaCombineElkiesAtkin will handle the case of weaker filtering.
+    // 已使用。CnSeaCombineElkiesAtkin 中的 SkipVerify 逻辑将处理
+    // 过滤较弱的情况。
     if Pa.Count = 0 then
       raise ECnEccException.Create('No primes available for SEA.');
 
-    // Validate external ModPolys: must have one entry per prime L >= 3 in Pa
+    // 验证外部 ModPolys：必须对 Pa 中每个素数 L >= 3 各有一个条目
     if ModPolys <> nil then
     begin
       RequiredModPolyCount := 0;
@@ -2535,7 +2535,7 @@ begin
         else
         begin
           // Elkies failed (e.g. CM curve where Phi_L has roots in F_p but
-          // Frobenius has no eigenvector in E[L]). Fall back to Atkin.
+          // Frobenius 在 E[L] 中无特征向量），回退到 Atkin。
           {$IFDEF SEA_TRACE} _SeaT('[SEA] L=%d Elkies FAIL -> Atkin', [L]); {$ENDIF}
           AtkinTraces.Clear;
           if (ModPolys <> nil) and (ModPolyIdx - 1 < ModPolys.Count) then
@@ -2666,7 +2666,7 @@ begin
   BQ := TCnBigNumber.Create;
   try
     // Extended threshold: product > 4*sqrt(p) * 2^SafetyBits
-    // SafetyBits via CnSeaSafetyBits (piecewise function)
+    // 通过 CnSeaSafetyBits 计算 SafetyBits（分段函数）
     if not BigNumberSqrt(QMax, P) then Exit;
     BigNumberAddWord(QMax, 1);
     BigNumberMulWord(QMax, 4);
@@ -2683,7 +2683,7 @@ begin
       // Guard: stop at max available mod poly L
       if L > CN_SEA_MAX_MODPOLY_L then Break;
 
-      // Skip L = P (same as the field characteristic)
+      // 跳过 L = P（与域特征相同）
       BigNumberSetWord(BQ, L);
       if BigNumberCompare(BQ, P) <> 0 then
       begin
@@ -2695,7 +2695,7 @@ begin
     end;
 
     if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
-      Result := 0;  // P too large for available prime table
+      Result := 0;  // P 太大，超出可用素数表范围
   finally
     BQ.Free;
     QMul.Free;
@@ -2883,7 +2883,7 @@ begin
   while B <= L - 1 do
   begin
     Q := (1 + (Delta * ((B * B) mod L)) mod L) mod L;
-    // Q = a^2 for norm-1 element (a, b). Accept Q=0 (a=0) or QR.
+    // Q = a^2，对范1元素 (a,b)。接受 Q=0（a=0）或二次剩余。
     if (Q <> 0) and (SeaInt64PowMod(Q, (L - 1) div 2, L) <> 1) then
     begin
       Inc(B);
@@ -3059,8 +3059,8 @@ begin
     {$IFDEF SEA_TRACE} _SeaT('[Atkin] L=%d FYdeg=%d DDF start', [L, FY.MaxDegree]); {$ENDIF}
 
     // ---- DDF-only factorization (skip expensive EDF) ----
-    // DDF gives G_d = product of all degree-d irreducible factors.
-    // R = lcm of all d where G_d is non-trivial.  No need for EDF.
+    // 相异度因式分解得出 G_d = 所有 d 次不可约因式之积。
+    // R = 所有 G_d 非平凡的 d 的最小公倍数，无需等度因式分解。
     SFFactors := TCnBigNumberPolynomialList.Create;
     try
       if BigNumberPolynomialGaloisSquareFreeFactorization(SFFactors, FY, P) <= 0 then Exit;
@@ -3133,9 +3133,9 @@ begin
       SplitType := SplitType or 2;
     if SplitType = 0 then Exit;
 
-    // When R divides both L-1 and L+1 (e.g. R=2, L odd), try both
-    // split types and merge candidates. The correct eigenvalue ratio
-    // gamma may lie in either F_L* or the norm-1 subgroup of F_{L^2}*.
+    // 当 R 同时整除 L-1 和 L+1（如 R=2, L 为奇数），尝试两种
+    // 分裂类型并合并候选。正确的特征值比
+    // gamma 可能位于 F_L* 或 F_{L^2}* 的范1子群中。
     if (SplitType and 1) <> 0 then
       SeaAtkinTracesRDivLm1(Traces, L64, R, P);
     if (SplitType and 2) <> 0 then
@@ -3164,7 +3164,7 @@ var
   LVal, L1Val, LCheck, InvME64: Int64;
   BestIdx, Dir: Integer;
   BabyR: Int64;
-  // Multi-prime CRT selection
+  // 多素数 CRT 选取
   SelIdx: array[0..5] of Integer;
   SelL: array[0..5] of Int64;
   SelC: array[0..5] of Integer;
@@ -3174,16 +3174,16 @@ var
   SelK, SelJ, SelPrev: Integer;
   CRT_LProd, CRT_Lk, CRT_InvMk, CRT_TModK, CRT_R2, CRT_R1, CRT_Diff: Int64;
   CRTOldCnt: Integer;
-  S1, S2: TCnInt64List;  // temp lists for CRT
+  S1, S2: TCnInt64List;  // CRT 临时列表
 
-  // Int64 precompute
+  // Int64 预计算
   RmL: array of Int64;
   RmTE: array of Int64;       // T_E mod L (read-only)
   RmGS: array of Int64;
   RmBaby0: array of Int64;
   RmBase: array of Int64;     // per-direction base_t mod L (scratch)
   RmLUT: array of Boolean;        // flattened 1D O(1) membership
-  RmLUTOff: array of Integer;     // row start offsets for RmLUT
+  RmLUTOff: array of Integer;     // RmLUT 的行起始偏移
   BabyMod1D: array of Int64;  // flattened: [K * BabyCnt + I]
   BabyCnt: Integer;
   Survive: array of Boolean;
@@ -3191,7 +3191,7 @@ var
   RmSkp: Boolean;
   RmTModL, RmBm, RmLk: Int64;
 
-  // BSGS variables
+  // BSGS 变量
   BabyRs: TCnInt64List;
   GStep, BaseT, Threshold: TCnBigNumber;
   GiantSize, GiantMax, SurvCnt: Int64;
@@ -3219,7 +3219,7 @@ begin
     BaseT := FSeaBigNumberPool.Obtain;
     Threshold := FSeaBigNumberPool.Obtain;
 
-    // CRT on Elkies results
+    // 对 Elkies 结果做 CRT
     if ElkiesTraces.Count > 0 then
     begin
       if not BigNumberChineseRemainderTheorem(T_E, ElkiesTraces, ElkiesModuli) then
@@ -3237,21 +3237,21 @@ begin
       M_E.SetOne;
     end;
 
-    // Hasse bound: |t| <= 2*sqrt(p). Use 2*(sqrt(p)+1) for safety.
+    // Hasse 界：|t| <= 2*sqrt(p)。用 2*(sqrt(p)+1) 作为安全冗余。
     BigNumberSqrt(QMax, P);
     QMax.AddWord(1);
     BigNumberMulWord(QMax, 2);
 
-    // Search range: t = t_E + k*M_E must lie in [-QMax, QMax].
-    // Since t_E in [0, M_E), k ranges over at most ceil(2*QMax/M_E)+1 values.
-    // Total candidates = floor(2*QMax / M_E) + 1
+    // 搜索范围：t = t_E + k*M_E 必须落在 [-QMax, QMax] 内。
+    // 由于 t_E ∈ [0, M_E)，k 最多覆盖 ceil(2*QMax/M_E)+1 个值。
+    // 候选总数 = floor(2*QMax / M_E) + 1
     BigNumberAdd(Tmp, QMax, QMax);         // Tmp = 2*QMax
     BigNumberDiv(Tmp, nil, Tmp, M_E);      // Tmp = floor(2*QMax / M_E)
 
-    // ---- Compute expected false positives to decide if verification is needed ----
-    // E_fp = (2*QMax / M_E) * product(|S_i|/L_i for all Atkin primes)
-    // If E_fp < 1, the Atkin filtering is strong enough that at most one
-    // candidate can survive, making point verification unnecessary.
+    // ---- 计算预期误报以判断是否需要验证 ----
+    // E_fp = (2*QMax / M_E) * 所有Atkin素数 (|S_i|/L_i) 之积
+    // 若 E_fp < 1，则 Atkin 过滤足够强，最多只有一个候选迹
+    // 能够存活，点验证不再必要。
     AtkinFilterRatio := 1.0;
     for I := 0 to AtkinInfos.Count - 1 do
       AtkinFilterRatio := AtkinFilterRatio *
@@ -3260,14 +3260,14 @@ begin
     // log2(E_fp) ≈ bits(2*QMax) - bits(M_E) + log2(AtkinFilterRatio)
     E_fp_Log2 := (BigNumberGetBitsCount(QMax) + 1) - BigNumberGetBitsCount(M_E) +
                  Ln(AtkinFilterRatio) / Ln(2.0);
-    SkipVerify := (E_fp_Log2 < -2.0);  // E_fp < 0.25, very safe
+    SkipVerify := (E_fp_Log2 < -2.0);  // E_fp < 0.25，非常安全
     {$IFDEF SEA_TRACE}
     _SeaT('[Combine] E_fp_log2=%.1f SkipVerify=%d AtkinRatio=%.6e',
       [E_fp_Log2, Ord(SkipVerify), AtkinFilterRatio]);
     {$ENDIF}
 
-    // Use BigNumber comparison to decide brute force vs BSGS.
-    // Avoids Int64 overflow when M_E is small relative to QMax.
+    // 用 BigNumber 比较决定暴力 vs BSGS。
+    // 避免 M_E 相对 QMax 较小时 Int64 溢出。
     BigNumberSetWord(QTmp, CN_SEA_BSGS_THRESHOLD);
     if BigNumberCompare(Tmp, QTmp) > 0 then
       UseBSGS := True
@@ -3294,12 +3294,12 @@ begin
         BigNumberMul(Tmp, Tmp, M_E);
         BigNumberAdd(T, T_E, Tmp);
 
-        // Check Hasse bound
+        // 检查 Hasse 界
         BigNumberCopy(QTmp, T);
         if QTmp.IsNegative then QTmp.Negate;
         if BigNumberCompare(QTmp, QMax) > 0 then Continue;
 
-        // Check against all Atkin constraints
+        // 检查所有 Atkin 约束条件
         Found := True;
         for I := 0 to AtkinInfos.Count - 1 do
         begin
@@ -3318,7 +3318,7 @@ begin
         begin
           if SkipVerify then
           begin
-            // Atkin filtering is strong enough: this is the unique answer
+            // Atkin 过滤足够强：这是唯一答案
             BigNumberCopy(Res, T);
             Result := True;
             Exit;
@@ -3342,21 +3342,21 @@ begin
       //   (b) t mod L_i in PossibleTraces[i] for each Atkin prime L_i
       //   (c) [p+1-t]P = O (point verification)
       //
-      // Method: pick the most selective Atkin prime L_1 (smallest |S_1|/L_1).
-      // For each candidate s in S_1, the constraint t = s (mod L_1) gives:
+      // 选取选择率最高的 Atkin 素数 L_1（最小 |S_1|/L_1）。
+      // 对 S_1 中的每个候选 s，约束 t ≡ s (mod L_1) 给出：
       //   k = (s - t_E) * M_E^{-1}  (mod L_1)
-      // Let r_s = this value in [0, L_1). Then k = j*L_1 + r_s for integer j.
+      // 令 r_s 为此值取在 [0, L_1) 中。则 k = j*L_1 + r_s，j 为整数。
       //
-      // Baby step: precompute {r_s} for all s in S_1 (at most |S_1| values, < L_1).
-      // Giant step: GStep = L_1 * M_E. Iterate j = 0, +-1, +-2, ...
+      // 小步：预计算 S_1 中所有 s 对应的 {r_s}（最多 |S_1| 个值，< L_1）。
+      // 大步：GStep = L_1 * M_E。迭代 j = 0, ±1, ±2, ...
       //   base_t(j) = t_E + j * GStep
-      //   t = base_t + r_s * M_E  for each r_s
-      //   Check Hasse bound + remaining Atkin constraints + verify.
+      //   t = base_t + r_s * M_E，对每个 r_s
+      //   检查 Hasse 界 + 剩余 Atkin 约束 + 验证。
       //
-      // Complexity: O(|S_1| * 2*QMax / (L_1*M_E)) = O((|S_1|/L_1) * N)
-      // Speedup over brute force: factor L_1 / |S_1|.
+      // 复杂度：O(|S_1| * 2*QMax / (L_1*M_E)) = O((|S_1|/L_1) * N)
+      // 相对暴力的加速比：factor L_1 / |S_1|。
 
-      // ---- Adaptive multi-prime CRT BSGS ----
+      // ---- 自适应多素数 CRT BSGS ----
       // Greedy: select primes with smallest |S|/L ratio.
       // Stop when baby steps > 5000 or L_prod > 2^60.
       SelCount := 0; CRT_LProd := 1;
@@ -3375,13 +3375,13 @@ begin
         end;
         if BestIdx < 0 then Break;
 
-        // Check baby step limit BEFORE committing
+        // 在提交前先检查小步上限
         SelC[SelCount] := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count;
         SelPrev := 1; for SelJ := 0 to SelCount do SelPrev := SelPrev * SelC[SelJ];
         if (SelCount > 0) and (SelPrev > CN_SEA_MAX_BABY_STEPS) then Break;
         // Int64 safety: L_prod < 2^60
         if (SelCount > 0) and (CRT_LProd > CN_SEA_MAX_CRT_L_PRODUCT div TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L) then Break;
-        // Commit
+        // 确认提交
         SelIdx[SelCount] := BestIdx;
         SelL[SelCount] := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L;
         CRT_LProd := CRT_LProd * SelL[SelCount];
@@ -3404,7 +3404,7 @@ begin
         BabyRs.Add( ((S1[I] - TMod + L1Val) mod L1Val * InvME64) mod L1Val );
       CRT_LProd := L1Val;
 
-      // Step 2..N: iterative CRT fold
+      // 步骤2..N：迭代 CRT 折叠
       for SelK := 1 to SelCount - 1 do
       begin
         CRT_Lk := SelL[SelK];
@@ -3433,11 +3433,11 @@ begin
         CRT_LProd := CRT_LProd * CRT_Lk;
       end;
 
-      // Giant step = CRT_LProd * M_E
+      // 大步 = CRT_LProd * M_E
       BigNumberSetInt64(Tmp, CRT_LProd);
       BigNumberMul(GStep, Tmp, M_E);
 
-      // Threshold = QMax + (CRT_LProd - 1) * M_E
+      // 阈值 = QMax + (CRT_LProd - 1) * M_E
       BigNumberSetInt64(Tmp, CRT_LProd - 1);
       BigNumberMul(Threshold, Tmp, M_E);
       BigNumberAdd(Threshold, Threshold, QMax);
@@ -3455,7 +3455,7 @@ begin
       SetLength(RmL, RmCount); SetLength(RmTE, RmCount);
       SetLength(RmGS, RmCount); SetLength(RmBaby0, RmCount);
       SetLength(RmBase, RmCount);
-      // First pass: fill RmL and candidate lists
+      // 第一遍：填充 RmL 和候选列表
       RmIdx := 0;
       for I := 0 to AtkinInfos.Count - 1 do
       begin
@@ -3471,14 +3471,14 @@ begin
         RmBaby0[RmIdx] := BigNumberModWord(M_E, RmL[RmIdx]);
         Inc(RmIdx);
       end;
-      // Compute 1D LUT offsets from known L values
+      // 从已知 L 值计算一维查找表偏移
       SetLength(RmLUTOff, RmCount + 1);
       RmLUTOff[0] := 0;
       for K := 0 to RmCount - 1 do
         RmLUTOff[K + 1] := RmLUTOff[K] + Integer(RmL[K]) + 1;
       SetLength(RmLUT, RmLUTOff[RmCount]);
       for K := 0 to High(RmLUT) do RmLUT[K] := False;
-      // Fill LUT with candidate values
+      // 用候选值填充查找表 LUT
       RmIdx := 0;
       for I := 0 to AtkinInfos.Count - 1 do
       begin
@@ -3492,7 +3492,7 @@ begin
           RmLUT[SelPrev + S1[SelJ]] := True;
         Inc(RmIdx);
       end;
-      // Precompute (BabyRs[i] * RmBaby0[k]) mod RmL[k] → flat 1D
+      // 预计算 (BabyRs[i] * RmBaby0[k]) mod RmL[k] → 展开为一维数组
       BabyCnt := BabyRs.Count;
       SetLength(BabyMod1D, RmCount * BabyCnt);
       for K := 0 to RmCount - 1 do
@@ -3503,7 +3503,7 @@ begin
       end;
 
       // ---- Int64-optimized BSGS loop ----
-      // Precompute MaxGiantSize = Threshold / GStep (Int64-safe comparison)
+      // 预计算 MaxGiantSize = Threshold / GStep（Int64 安全的比较）
       BigNumberDiv(QTmp, nil, Threshold, GStep);
       GiantMax := BigNumberGetInt64(QTmp);
       {$IFDEF SEA_TRACE}
@@ -3511,7 +3511,7 @@ begin
         [SelCount, BabyRs.Count, RmCount, GiantMax]);
       {$ENDIF}
       Found := False; GiantSize := 0;
-      SetLength(Survive, BabyCnt);  // Pre-allocate once outside the loop
+      SetLength(Survive, BabyCnt);  // 循环外部一次性预分配
       {$IFDEF SEA_TRACE}
       _SeaT('[Combine] BSGS loop start', []);
       {$ENDIF}
@@ -3542,10 +3542,9 @@ begin
           if GiantSize = 0 then _SeaT('[Combine] baset done, baby loop start count=%d', [BabyRs.Count]);
           {$ENDIF}
 
-          // Filter baby steps: for each remaining Atkin prime, eliminate
-          // baby steps that fail its constraint. Only baby steps surviving ALL
-          // primes are candidates for full verification.
-          // Survive array is pre-allocated outside the loop for performance.
+          // 过滤小步：对每个剩余 Atkin 素数，淘汰不满足其约束的小步。
+          // 只有通过所有素数的小步才是候选，进入完整验证。
+          // Survive 数组在循环外预分配以获得最佳性能。
           for I := 0 to BabyCnt - 1 do Survive[I] := True;
 
           for K := 0 to RmCount - 1 do
@@ -3598,7 +3597,7 @@ begin
             begin
               if SkipVerify then
               begin
-                // Atkin filtering is strong enough: this is the unique answer
+                // Atkin 过滤足够强：这是唯一答案
                 BigNumberCopy(Res, T);
                 Result := True;
                 Exit;
