@@ -157,6 +157,7 @@ type
     procedure DropDownListClick(Sender: TObject);
     procedure UpdateDropPosition;
     procedure CNKeyDown(var Message: TWMKeyDown); message CN_KEYDOWN;
+    procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
     procedure ApplicationMessage(var Msg: TMsg; var Handled: Boolean);
     function GetCaseSensitive: Boolean;
     function GetDropDownFont: TFont;
@@ -773,6 +774,11 @@ end;
 procedure TCnSearchComboBox.CloseUp;
 begin
   FDropDownList.CloseUp;
+end;
+
+procedure TCnSearchComboBox.CMFontChanged(var Message: TMessage);
+begin
+  FDropDownList.Font := Font;
 end;
 
 procedure TCnSearchComboBox.CNKeyDown(var Message: TWMKeyDown);
