@@ -10869,6 +10869,7 @@ var
   L: Integer;
   N: Boolean;
 begin
+  Result := 0;
   if Mem = nil then
     Exit;
 
