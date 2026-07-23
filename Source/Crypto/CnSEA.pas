@@ -24,11 +24,14 @@ unit CnSEA;
 * 软件名称：CnPack 组件包
 * 单元名称：Schoof-Elkies-Atkin 算法与模多项式相关计算
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：目前能在一两个小时里算出 secp128r1，五个半小时算出 secp160r1
+* 备    注：目前能在一两个小时里算出 secp128r1，五个半小时算出 secp160r1，
+*           十六小时算出 secp192r1。
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
-* 修改记录：2026.07.15 V1.3
+* 修改记录：2026.07.23 V1.4
+*               不断优化，能算出 192 位素数域上的椭圆曲线的阶了
+*           2026.07.15 V1.3
 *               不断优化，能算出 160 位素数域上的椭圆曲线的阶了
 *           2026.07.10 V1.2
 *               实现 SEA 第二阶段：Aktin 素数检测与合并计算
@@ -294,9 +297,9 @@ begin
   else if PrimeBits <= 128 then
     Result := 40
   else if PrimeBits <= 192 then
-    Result := 72
+    Result := 48
   else
-    Result := 104;
+    Result := 72;
 end;
 
 var
@@ -2474,6 +2477,7 @@ begin
       L := Pa[0];
       if L = 2 then
       begin
+        {$IFDEF SEA_TRACE} _SeaT('[SEA] L=2 x^p mod Y2 start (deg 3, %d-bit p)', [BigNumberGetBitsCount(P)]); {$ENDIF}
         P1.SetCoefficients([0, 1]); // x
         BigNumberPolynomialGaloisPower(P1, P1, P, P, Y2); // x^p mod Y2
         P2.SetCoefficients([0, 1]); // x
@@ -2485,14 +2489,17 @@ begin
           Ta[0] := 0;
         ElkiesTraces.Add(Ta[0]);
         ElkiesModuli.Add(2);
+        {$IFDEF SEA_TRACE} _SeaT('[SEA] L=2 done t=%d', [Ta[0]]); {$ENDIF}
       end;
     end;
 
     // 预生成除法多项式（供 Schoof 回退使用）
     if Pa.Count > 0 then
     begin
+      {$IFDEF SEA_TRACE} _SeaT('[SEA] GenerateDivisionPolynomials start (max deg=%d)', [Pa[Pa.Count - 1] + 2]); {$ENDIF}
       DPs := TObjectList.Create(True);
       CnGenerateGaloisDivisionPolynomials(A, B, P, Pa[Pa.Count - 1] + 2, DPs);
+      {$IFDEF SEA_TRACE} _SeaT('[SEA] GenerateDivisionPolynomials done (%d polys)', [DPs.Count]); {$ENDIF}
     end;
 
     // 对每个素数 L >= 3 计算迹
