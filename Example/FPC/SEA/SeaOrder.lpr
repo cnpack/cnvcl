@@ -429,13 +429,27 @@ begin
            'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF',
            '192-bit secp192r1', True);
   end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '224bit') then
+  begin
+    // secp224r1 parameters (NIST P-224 / SEC 2)
+    // p = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001
+    // a = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE
+    // b = B4050A850C04B3ABF54132565044B0B7D7BFD8BA270B39432355FFB4
+    WriteLn('Running secp224r1 test...');
+    WriteLn('NOTE: This may take a long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE',
+           'B4050A850C04B3ABF54132565044B0B7D7BFD8BA270B39432355FFB4',
+           'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001',
+           '224-bit secp224r1', True);
+  end
   else
   begin
     WriteLn('No parameters. Running built-in test cases (48/64/72/96/112/128-bit).');
     WriteLn('Usage: SeaOrder <A> <B> <P>');
     WriteLn('  A, B: Weierstrass coefficients (decimal or hex string)');
     WriteLn('  P:    field prime (decimal or hex string)');
-    WriteLn('  Special: SeaOrder 112bit / 128bit / 160bit / 192bit  for secp curves');
+    WriteLn('  Special: SeaOrder 112bit / 128bit / 160bit / 192bit / 224bit  for secp curves');
     WriteLn;
 
     // 48-bit CM curve: p = 16777213^2 + 38^2, a=1, b=0
