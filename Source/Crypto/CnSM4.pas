@@ -37,6 +37,8 @@ unit CnSM4;
 *           另外，本单元中的 CTR 是 8 字节 Nonce 加 8 字节计数器作为内部 16 字节初始化向量的模式，
 *           与有些其他场合用整个 16 字节 Iv 的后 4 或后 8 字节做计数器的不同，使用时需注意。
 *
+*           注意：ECB 块处理模式因不安全，除必要的外部要求场合外，不推荐使用。
+*
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6 + MaxOS 64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -142,6 +144,7 @@ procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLe
 // ============== 明文字符串与密文十六进制字符串之间的加解密 ===================
 
 procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 针对 AnsiString 的 SM4 加密，块间使用 ECB 模式。
 
    参数：
@@ -153,6 +156,7 @@ procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAn
 }
 
 procedure SM4DecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 针对 AnsiString 的 SM4 解密，块间使用 ECB 模式。
 
    参数：
@@ -270,6 +274,7 @@ procedure SM4DecryptCtrStr(Key: AnsiString; Nonce: PAnsiChar;
 // ================= 明文字节数组与密文字节数组之间的加解密 ====================
 
 function SM4EncryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 针对字节数组的 SM4 加密，块间使用 ECB 模式。
 
    参数：
@@ -280,6 +285,7 @@ function SM4EncryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
 }
 
 function SM4DecryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 针对字节数组的 SM4 解密，块间使用 ECB 模式。
 
    参数：
@@ -380,6 +386,7 @@ function SM4DecryptCtrBytes(Key: TBytes; Nonce: TBytes; Input: TBytes): TBytes;
 // ============== 明文字节数组与密文十六进制字符串之间的加解密 =================
 
 function SM4EncryptEcbBytesToHex(Key: TBytes; Input: TBytes): AnsiString;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入明文与加密 Key，SM4 加密返回转换成十六进制的密文，块间使用 ECB 模式。
 
    参数：
@@ -390,6 +397,7 @@ function SM4EncryptEcbBytesToHex(Key: TBytes; Input: TBytes): AnsiString;
 }
 
 function SM4DecryptEcbBytesFromHex(Key: TBytes; const Input: AnsiString): TBytes;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入十六进制的密文与加密 Key，SM4 解密返回明文，块间使用 ECB 模式。
 
    参数：
@@ -491,6 +499,7 @@ function SM4DecryptCtrBytesFromHex(Key: TBytes; Nonce: TBytes; const Input: Ansi
 
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 针对流的 SM4 加密，块间使用 ECB 模式。
    Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
 
@@ -505,6 +514,7 @@ procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
 
 procedure SM4DecryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 针对流的 SM4 解密，块间使用 ECB 模式。
    Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
 

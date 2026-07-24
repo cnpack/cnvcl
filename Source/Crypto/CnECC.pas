@@ -33,6 +33,7 @@ unit CnECC;
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等。
 *
 *           注意：不包括二元域上的魏尔斯特拉斯曲线 y^2 + xy = x^3 + ax^2 + b (mod f(x)) 的实现
+*           另外，Int64 系列参数的 Ecc 实现因安全性不足，仅供教学演示用，不能用于正式加解密场合。
 *
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装可无需指定固定长度
@@ -1684,8 +1685,8 @@ function CnEccSchoof2(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber; Q: TC
 function CnEccFastSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
   Q: TCnBigNumber): Boolean;
 {* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数。
-   目前问题: P16 计算基本通过。P19X, P19Y 计算验证未通过，暂通过 AI 对付过去，
-   没有明显的性能优化，不过功能目前看上去还算正确。
+   目前问题: P16 计算基本通过。P19X, P19Y 计算之前手工验证未通过，后通过 AI 对付过去了，
+   但没有明显的性能优化，只能说功能目前看上去还算正确。
 
    参数：
      Res: TCnBigNumber                    - 返回点总数

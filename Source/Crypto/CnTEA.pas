@@ -25,6 +25,7 @@ unit CnTEA;
 * 单元名称：TEA 系列加解密算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
 * 备    注：本单元实现了 TEA/XTEA/XXTEA 系列加解密算法。
+*           注意，因 TEA 系列算法本身已不再安全，本单元除必要的外部要求场合外，不建议使用。
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式

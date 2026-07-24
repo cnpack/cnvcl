@@ -51,6 +51,7 @@ unit CnMD5;
 * 单元作者：何清（QSoft） hq.com@263.net; http://qsoft.51.net
 *           基于 Ronald L. Rivest 的 MD5.pas 改写，保留原始声明
 * 备    注：本单元实现了 MD5 杂凑算法及对应的 HMAC 算法。
+*           注意，因 MD5 算法本身已不再安全，本单元除必要的外部要求场合外，不建议使用。
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式

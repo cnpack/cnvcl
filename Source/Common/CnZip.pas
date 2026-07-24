@@ -417,10 +417,8 @@ procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
 
 implementation
 
-{$IFDEF DEBUGZIP}
 uses
-  CnDebug;
-{$ENDIF}
+  CnRandom {$IFDEF DEBUGZIP}, CnDebug {$ENDIF};
 
 const
   CN_SIGNATURE_ZIPENDOFHEADER: Cardinal = $06054B50;
@@ -1826,8 +1824,9 @@ begin
   FKeys.InitKeys(FPassword);
 
   // 随机凑 12 个字节的头
-  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 2 do
-    H[I] := Random(256);
+  if not CnRandomFillBytes2(@H[0], CN_ZIP_CRYPT_HEAD_SIZE - 1) then
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+
   H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
 
   // 加密并写入

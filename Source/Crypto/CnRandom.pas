@@ -180,10 +180,10 @@ function CnRandomFloat: Extended;
    返回值：Extended                       - 满足 0 <= Result < 1 的随机浮点数
 }
 
-implementation
-
 resourcestring
   SCnErrorNoSecureRandom = 'NO Secure Random Generator!';
+
+implementation
 
 {$IFDEF MSWINDOWS}
 

@@ -2825,6 +2825,11 @@ begin
     if Is448Nil then
       Ed448 := TCnEd448.Create;
 
+    // RFC 8032 §5.2.7：S 必须满足 0 <= S < L
+    if (InSignature.S = nil) or BigNumberIsNegative(InSignature.S)
+      or (BigNumberCompare(InSignature.S, Ed448.Order) >= 0) then
+      Exit;
+
     // 验证 4*S*基点 是否 = 4*R点 + 4*Hash(R57位||公钥点57位||明文) * 公钥点
     L := TCnEccPoint.Create;
     R := TCnEccPoint.Create;
@@ -4985,6 +4990,11 @@ begin
   try
     if Is25519Nil then
       Ed25519 := TCnEd25519.Create;
+
+    // RFC 8032 §5.1.7：S 必须满足 0 <= S < L，否则 (R, S+nL) 构成可锻签名
+    if (InSignature.S = nil) or BigNumberIsNegative(InSignature.S)
+      or (BigNumberCompare(InSignature.S, Ed25519.Order) >= 0) then
+      Exit;
 
     // 验证 8*S*基点 是否 = 8*R点 + 8*Hash(R32位||公钥点32位||明文) * 公钥点
     L := TCnEccPoint.Create;

@@ -52,6 +52,8 @@ unit CnAES;
 *           初始化向量，4 字节网络字节序的计数器，拼成 16 字节的真正的初始化向量
 *           参与 AES 块加密运算，加解密均为块加密再异或的动作。
 *
+*           注意：ECB 块处理模式因不安全，除必要的外部要求场合外，不推荐使用。
+*
 * 开发平台：Delphi5 + Win 7
 * 修改记录：2024.07.25 V1.3
 *               加入 CTR 模式的支持，遵循 RFC 3686 规范
@@ -252,6 +254,7 @@ procedure EncryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey2
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey128; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式加密流。仅在 Delphi 下可用。
 
    参数：
@@ -265,6 +268,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey128; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
    参数：
@@ -278,6 +282,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey192; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式加密流。仅在 Delphi 下可用。
 
    参数：
@@ -291,6 +296,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey192; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
    参数：
@@ -304,6 +310,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey256; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式加密流。仅在 Delphi 下可用。
 
    参数：
@@ -317,6 +324,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey256; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
    参数：
@@ -333,6 +341,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure EncryptAES128StreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey128; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式加密流。
 
    参数：
@@ -345,6 +354,7 @@ procedure EncryptAES128StreamECB(Source: TStream; Count: Cardinal;
 }
 procedure EncryptAES128StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey128; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式加密流，使用扩展密钥。
 
    参数：
@@ -358,6 +368,7 @@ procedure EncryptAES128StreamECBExpanded(Source: TStream; Count: Cardinal;
 
 procedure EncryptAES192StreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey192; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式加密流。
 
    参数：
@@ -370,6 +381,7 @@ procedure EncryptAES192StreamECB(Source: TStream; Count: Cardinal;
 }
 procedure EncryptAES192StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey192; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式加密流，使用扩展密钥。
 
    参数：
@@ -383,6 +395,7 @@ procedure EncryptAES192StreamECBExpanded(Source: TStream; Count: Cardinal;
 
 procedure EncryptAES256StreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey256; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式加密流。
 
    参数：
@@ -395,6 +408,7 @@ procedure EncryptAES256StreamECB(Source: TStream; Count: Cardinal;
 }
 procedure EncryptAES256StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey256; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式加密流，使用扩展密钥。
 
    参数：
@@ -1334,6 +1348,7 @@ procedure DecryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey2
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey128; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式解密流。仅在 Delphi 下可用。
 
    参数：
@@ -1346,6 +1361,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 }
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey128; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
    参数：
@@ -1359,6 +1375,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey192; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式解密流。仅在 Delphi 下可用。
 
    参数：
@@ -1371,6 +1388,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 }
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey192; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
    参数：
@@ -1384,6 +1402,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey256; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式解密流。仅在 Delphi 下可用。
 
    参数：
@@ -1396,6 +1415,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 }
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey256; Dest: TStream); overload;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
    参数：
@@ -1412,6 +1432,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure DecryptAES128StreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey128; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式解密流。
 
    参数：
@@ -1424,6 +1445,7 @@ procedure DecryptAES128StreamECB(Source: TStream; Count: Cardinal;
 }
 procedure DecryptAES128StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey128; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES128 ECB 模式解密流，使用扩展密钥。
 
    参数：
@@ -1437,6 +1459,7 @@ procedure DecryptAES128StreamECBExpanded(Source: TStream; Count: Cardinal;
 
 procedure DecryptAES192StreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey192; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式解密流。
 
    参数：
@@ -1449,6 +1472,7 @@ procedure DecryptAES192StreamECB(Source: TStream; Count: Cardinal;
 }
 procedure DecryptAES192StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey192; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES192 ECB 模式解密流，使用扩展密钥。
 
    参数：
@@ -1462,6 +1486,7 @@ procedure DecryptAES192StreamECBExpanded(Source: TStream; Count: Cardinal;
 
 procedure DecryptAES256StreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnAESKey256; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES256 ECB 模式解密流。
 
    参数：
@@ -1474,6 +1499,7 @@ procedure DecryptAES256StreamECB(Source: TStream; Count: Cardinal;
 }
 procedure DecryptAES256StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey256; Dest: TStream);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES156 ECB 模式解密流，使用扩展密钥。
 
    参数：
@@ -2199,6 +2225,7 @@ procedure DecryptAES256StreamCTRExpanded(Source: TStream; Count: Cardinal;
 
 function AESEncryptEcbStrToHex(Value: AnsiString; Key: AnsiString;
   KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES ECB 模式加密字符串并将其转换成十六进制。
 
    参数：
@@ -2211,6 +2238,7 @@ function AESEncryptEcbStrToHex(Value: AnsiString; Key: AnsiString;
 
 function AESDecryptEcbStrFromHex(const HexStr: AnsiString; Key: AnsiString;
   KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES ECB 解密十六进制字符串。
 
    参数：
@@ -2330,7 +2358,7 @@ function AESDecryptCtrStrFromHex(const HexStr: AnsiString; Key: AnsiString;
 // ================= 明文字节数组与密文字节数组之间的加解密 ====================
 
 function AESEncryptEcbBytes(Value: TBytes; Key: TBytes;
-  KeyBit: TCnKeyBitType = kbt128): TBytes;
+  KeyBit: TCnKeyBitType = kbt128): TBytes; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES ECB 模式加密字节数组。
 
    参数：
@@ -2342,7 +2370,7 @@ function AESEncryptEcbBytes(Value: TBytes; Key: TBytes;
 }
 
 function AESDecryptEcbBytes(Value: TBytes; Key: TBytes;
-  KeyBit: TCnKeyBitType = kbt128): TBytes;
+  KeyBit: TCnKeyBitType = kbt128): TBytes; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES ECB 模式解密字节数组。
 
    参数：
@@ -2462,7 +2490,7 @@ function AESDecryptCtrBytes(Value: TBytes; Key: TBytes; Nonce: TBytes; Iv: TByte
 // ============== 明文字节数组与密文十六进制字符串之间的加解密 =================
 
 function AESEncryptEcbBytesToHex(Value: TBytes; Key: TBytes;
-  KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  KeyBit: TCnKeyBitType = kbt128): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES ECB 模式加密字节数组并将其转换成十六进制。
 
    参数：
@@ -2474,7 +2502,7 @@ function AESEncryptEcbBytesToHex(Value: TBytes; Key: TBytes;
 }
 
 function AESDecryptEcbBytesFromHex(const HexStr: AnsiString; Key: TBytes;
-  KeyBit: TCnKeyBitType = kbt128): TBytes;
+  KeyBit: TCnKeyBitType = kbt128): TBytes; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* AES ECB 解密十六进制字符串并返回字节数组。
 
    参数：

@@ -1904,6 +1904,9 @@ begin
           _CnSetLastError(ECN_SM2_RANDOM_ERROR);
           Exit;
         end;
+
+        if K.IsZero then
+          Continue;
       end;
 
       P.Assign(SM2.Generator);

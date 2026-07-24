@@ -4484,7 +4484,7 @@ var
 begin
   Val(S, I, E);
   Result := E = 0;
-  E := Trunc( I );
+  E := Trunc(I);
 end;
 
 // 判断字符串是否可转换成整型
@@ -4495,7 +4495,7 @@ var
 begin
   Val(S, I, E);
   Result := E = 0;
-  E := Trunc( I );
+  E := Trunc(I);
 end;
 
 // 判断字符串是否可转换成 DateTime
