@@ -17635,6 +17635,7 @@ begin
   Salt := HexToAnsiStr('123456');
   Res := CnPBKDF1(Pass, Salt, 1000, 16, cpdfMd5);
   Result := DataToHex(@Res[1], Length(Res)) = '090583F4EA468E822CDC7A8C7C785E1B';
+  if not Result then Exit;
 
   // Test with SHA1
   R := CnPBKDF1Bytes(P, S, 1000, 16, cpdfSha1);
@@ -17673,6 +17674,7 @@ begin
   Salt := HexToAnsiStr('123456');
   Res := CnPBKDF2(Pass, Salt, 1000, 32, cpdfSha256Hmac);
   Result := DataToHex(@Res[1], Length(Res)) = '87410D487A6414E9ADB9D078CBA7E28BFCB0C3767F1BD4C1A628010FF91DDD1A';
+  if not Result then Exit;
 
   // Test with SHA1 HMAC
   R := CnPBKDF2Bytes(P, S, 1000, 32, cpdfSha1Hmac);
