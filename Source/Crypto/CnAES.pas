@@ -4630,7 +4630,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  EncryptAES128StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  try
+    EncryptAES128StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES192StreamECB(Source: TStream; Count: Cardinal;
@@ -4639,7 +4643,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  EncryptAES192StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  try
+    EncryptAES192StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES256StreamECB(Source: TStream; Count: Cardinal;
@@ -4648,7 +4656,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  EncryptAES256StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  try
+    EncryptAES256StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES128StreamECBExpanded(Source: TStream; Count: Cardinal;
@@ -4838,7 +4850,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);
-  DecryptAES128StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  try
+    DecryptAES128StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES128StreamECBExpanded(Source: TStream; Count: Cardinal;
@@ -4882,7 +4898,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
-  DecryptAES192StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  try
+    DecryptAES192StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES192StreamECBExpanded(Source: TStream; Count: Cardinal;
@@ -4926,7 +4946,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
-  DecryptAES256StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  try
+    DecryptAES256StreamECBExpanded(Source, Count, ExpandedKey, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES256StreamECBExpanded(Source: TStream; Count: Cardinal;
@@ -5016,7 +5040,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  EncryptAES128StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES128StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
@@ -5082,7 +5110,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  EncryptAES192StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES192StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
@@ -5148,7 +5180,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  EncryptAES256StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES256StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
@@ -5260,7 +5296,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);
-  DecryptAES128StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES128StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
@@ -5313,7 +5353,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
-  DecryptAES192StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES192StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
@@ -5366,7 +5410,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
-  DecryptAES256StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES256StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
@@ -5465,7 +5513,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  EncryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
@@ -5529,7 +5581,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  EncryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
@@ -5593,7 +5649,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  EncryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
@@ -5946,7 +6006,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  EncryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
@@ -6009,7 +6073,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  EncryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
@@ -6073,7 +6141,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  EncryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    EncryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
@@ -6430,7 +6502,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  EncryptAES128StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  try
+    EncryptAES128StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES128StreamCTRExpanded(Source: TStream; Count: Cardinal;
@@ -6506,7 +6582,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  EncryptAES192StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  try
+    EncryptAES192StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES192StreamCTRExpanded(Source: TStream; Count: Cardinal;
@@ -6582,7 +6662,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  EncryptAES256StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  try
+    EncryptAES256StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure EncryptAES256StreamCTRExpanded(Source: TStream; Count: Cardinal;
@@ -6705,7 +6789,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  DecryptAES128StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  try
+    DecryptAES128StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES128StreamCTRExpanded(Source: TStream; Count: Cardinal;
@@ -6722,7 +6810,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  DecryptAES192StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  try
+    DecryptAES192StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES192StreamCTRExpanded(Source: TStream; Count: Cardinal;
@@ -6739,7 +6831,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  DecryptAES256StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  try
+    DecryptAES256StreamCTRExpanded(Source, Count, ExpandedKey, Nonce, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES256StreamCTRExpanded(Source: TStream; Count: Cardinal;
@@ -6791,6 +6887,9 @@ begin
 
     Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -6841,6 +6940,9 @@ begin
     SetLength(Result, DS.Size);
     Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -6888,6 +6990,9 @@ begin
 
     Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -6938,6 +7043,9 @@ begin
     SetLength(Result, DS.Size);
     Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -6985,6 +7093,9 @@ begin
 
     Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7035,6 +7146,9 @@ begin
     SetLength(Result, DS.Size);
     Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7082,6 +7196,9 @@ begin
 
     Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7132,6 +7249,9 @@ begin
     SetLength(Result, DS.Size);
     Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7179,6 +7299,9 @@ begin
 
     Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7229,6 +7352,9 @@ begin
     SetLength(Result, DS.Size);
     Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7282,6 +7408,9 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7335,6 +7464,9 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
     SS.Free;
     DS.Free;
   end;
@@ -7392,6 +7524,10 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
     SS.Free;
     DS.Free;
   end;
@@ -7449,6 +7585,10 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
     SS.Free;
     DS.Free;
   end;
@@ -7563,6 +7703,10 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
     SS.Free;
     DS.Free;
   end;
@@ -7677,6 +7821,10 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
     SS.Free;
     DS.Free;
   end;
@@ -7738,6 +7886,11 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
+    MemorySafeZero(@AESNonce, SizeOf(AESNonce));
     SS.Free;
     DS.Free;
   end;
@@ -7799,6 +7952,11 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
+    MemorySafeZero(@AESNonce, SizeOf(AESNonce));
     SS.Free;
     DS.Free;
   end;
