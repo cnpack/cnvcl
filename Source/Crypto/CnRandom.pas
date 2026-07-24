@@ -182,6 +182,7 @@ function CnRandomFloat: Extended;
 
 resourcestring
   SCnErrorNoSecureRandom = 'NO Secure Random Generator!';
+  {* 随机数生成器出错信息}
 
 implementation
 
