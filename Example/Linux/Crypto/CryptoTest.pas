@@ -46,7 +46,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
+  SysUtils, Classes, Contnrs, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
@@ -685,6 +685,11 @@ function TestMOTSSM3: Boolean;
 function TestMOTSSHA256: Boolean;
 function TestWOTSSM3: Boolean;
 function TestWOTSSHA256: Boolean;
+
+// ================================ SEA ========================================
+
+function TestModularPolynomial: Boolean;
+function TestSEAPointCount: Boolean;
 
 // ================================ ECC ========================================
 
@@ -2418,6 +2423,11 @@ begin
   MyAssert(TestMOTSSHA256, 'TestMOTSSHA256');
   MyAssert(TestWOTSSM3, 'TestWOTSSM3');
   MyAssert(TestWOTSSHA256, 'TestWOTSSHA256');
+
+// ================================ SEA ========================================
+
+  MyAssert(TestModularPolynomial, 'TestModularPolynomial');
+  MyAssert(TestSEAPointCount, 'TestSEAPointCount');
 
 // ================================ ECC ========================================
 
@@ -19439,6 +19449,262 @@ begin
   finally
     R.Free;
     Q.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// ================================ SEA ========================================
+const
+  MIT_L2: string =
+    '[3,0] 1' + SCRLF +
+    '[2,0] -162000' + SCRLF +
+    '[2,1] 1488' + SCRLF +
+    '[2,2] -1' + SCRLF +
+    '[1,0] 8748000000' + SCRLF +
+    '[1,1] 40773375' + SCRLF +
+    '[0,0] -157464000000000';
+
+  MIT_L3: string =
+    '[1,0] 1855425871872000000000' + SCRLF +
+    '[1,1] -770845966336000000' + SCRLF +
+    '[2,0] 452984832000000' + SCRLF +
+    '[2,1] 8900222976000' + SCRLF +
+    '[2,2] 2587918086' + SCRLF +
+    '[3,0] 36864000' + SCRLF +
+    '[3,1] -1069956' + SCRLF +
+    '[3,2] 2232' + SCRLF +
+    '[3,3] -1' + SCRLF +
+    '[4,0] 1';
+
+  MIT_L5: string =
+    '[0,0] 141359947154721358697753474691071362751004672000' + SCRLF +
+    '[1,0] 53274330803424425450420160273356509151232000' + SCRLF +
+    '[1,1] -264073457076620596259715790247978782949376' + SCRLF +
+    '[2,0] 6692500042627997708487149415015068467200' + SCRLF +
+    '[2,1] 36554736583949629295706472332656640000' + SCRLF +
+    '[2,2] 5110941777552418083110765199360000' + SCRLF +
+    '[3,0] 280244777828439527804321565297868800' + SCRLF +
+    '[3,1] -192457934618928299655108231168000' + SCRLF +
+    '[3,2] 26898488858380731577417728000' + SCRLF +
+    '[3,3] -441206965512914835246100' + SCRLF +
+    '[4,0] 1284733132841424456253440' + SCRLF +
+    '[4,1] 128541798906828816384000' + SCRLF +
+    '[4,2] 383083609779811215375' + SCRLF +
+    '[4,3] 107878928185336800' + SCRLF +
+    '[4,4] 1665999364600' + SCRLF +
+    '[5,0] 1963211489280' + SCRLF +
+    '[5,1] -246683410950' + SCRLF +
+    '[5,2] 2028551200' + SCRLF +
+    '[5,3] -4550940' + SCRLF +
+    '[5,4] 3720' + SCRLF +
+    '[5,5] -1' + SCRLF +
+    '[6,0] 1';
+
+  MIT_L7: string =
+    '[1,1] 1221349308261453750252370983314569119494710493184000000000000000000' + SCRLF +
+    '[2,0] 1464765079488386840337633731737402825128271675392000000000000000000' + SCRLF +
+    '[2,1] -838538082798149465723818021032241603179964268544000000000000000' + SCRLF +
+    '[2,2] -46666007311089950798495647194817495401448341504000000000000' + SCRLF +
+    '[3,0] 13483958224762213714698012883865296529472356352000000000000000' + SCRLF +
+    '[3,1] -129686683986501811181602978946723823397619367936000000000000' + SCRLF +
+    '[3,2] 72269669689202948469186346100000679630099972096000000000' + SCRLF +
+    '[3,3] -5397554444336630396660447092290576395211374592000000' + SCRLF +
+    '[4,0] 41375720005635744770247248526572116368162816000000000000' + SCRLF +
+    '[4,1] 553293497305121712634517214392820316998991872000000000' + SCRLF +
+    '[4,2] 308718989330868920558541707287296140145328128000000' + SCRLF +
+    '[4,3] 17972351380696034759035751584170427941396480000' + SCRLF +
+    '[4,4] 88037255060655710247136461896264828390470' + SCRLF +
+    '[5,0] 42320664241971721884753245384947305283584000000000' + SCRLF +
+    '[5,1] -40689839325168186578698294668599003971584000000' + SCRLF +
+    '[5,2] 11269804827778129625111322263056523132928000' + SCRLF +
+    '[5,3] -901645312135695263877115693740562092344' + SCRLF +
+    '[5,4] 14066810691825882583305340438456800' + SCRLF +
+    '[5,5] -18300817137706889881369818348' + SCRLF +
+    '[6,0] 3643255017844740441130401792000000' + SCRLF +
+    '[6,1] 1038063543615451121419229773824000' + SCRLF +
+    '[6,2] 10685207605419433304631062899228' + SCRLF +
+    '[6,3] 16125487429368412743622133040' + SCRLF +
+    '[6,4] 4460942463213898353207432' + SCRLF +
+    '[6,5] 177089350028475373552' + SCRLF +
+    '[6,6] 312598931380281' + SCRLF +
+    '[7,0] 104545516658688000' + SCRLF +
+    '[7,1] -34993297342013192' + SCRLF +
+    '[7,2] 720168419610864' + SCRLF +
+    '[7,3] -4079701128594' + SCRLF +
+    '[7,4] 9437674400' + SCRLF +
+    '[7,5] -10246068' + SCRLF +
+    '[7,6] 5208' + SCRLF +
+    '[7,7] -1' + SCRLF +
+    '[8,0] 1';
+
+// Helper: compare a generated bivariate polynomial against MIT reference data.
+// Returns the number of mismatches (0 = perfect match).
+function ComparePolyWithMIT(P: TCnBigNumberBiPolynomial; const MitData: string): Integer;
+var
+  SL: TStringList;
+  I, M, N, SpPos, Comma: Integer;
+  Line, ValStr: string;
+  Expected, Actual: TCnBigNumber;
+begin
+  Result := 0;
+  SL := TStringList.Create;
+  Expected := TCnBigNumber.Create;
+  try
+    SL.Text := StringReplace(MitData, #10, #13#10, [rfReplaceAll]);
+    for I := 0 to SL.Count - 1 do
+    begin
+      Line := Trim(SL[I]);
+      if Line = '' then Continue;
+      SpPos := Pos('] ', Line);
+      if SpPos = 0 then Continue;
+      ValStr := Trim(Copy(Line, SpPos + 1, MaxInt));
+      // Parse M and N from [M,N]
+      Line := StringReplace(Copy(Line, 1, SpPos), '[', '', [rfReplaceAll]);
+      Line := StringReplace(Line, ']', '', [rfReplaceAll]);
+      Line := StringReplace(Line, ' ', '', [rfReplaceAll]);
+      Comma := Pos(',', Line);
+      M := StrToInt(Copy(Line, 1, Comma - 1));
+      N := StrToInt(Copy(Line, Comma + 1, MaxInt));
+      Expected.SetDec(ValStr);
+      // Modular polynomial is symmetric: Phi_L(X,Y) = Phi_L(Y,X)
+      if M >= N then
+        Actual := P.ReadonlyValue[M, N]
+      else
+        Actual := P.ReadonlyValue[N, M];
+      if BigNumberCompare(Expected, Actual) <> 0 then
+        Inc(Result);
+    end;
+  finally
+    Expected.Free;
+    SL.Free;
+  end;
+end;
+
+function TestModularPolynomial: Boolean;
+const
+  PRIMES: array[0..3] of Integer = (2, 3, 5, 7);
+var
+  Poly: TCnBigNumberBiPolynomial;
+  L, Mismatch: Integer;
+  MITData: string;
+begin
+  Result := False;
+  // Test primes L = 2, 3, 5, 7
+  for L := 0 to 3 do
+  begin
+    Poly := TCnBigNumberBiPolynomial.Create;
+    try
+      if not CnGenerateClassicalModularPolynomial(Poly, PRIMES[L]) then
+        Exit;
+      case L of
+        0: MITData := MIT_L2;
+        1: MITData := MIT_L3;
+        2: MITData := MIT_L5;
+        3: MITData := MIT_L7;
+      else
+        MITData := '';
+      end;
+      Mismatch := ComparePolyWithMIT(Poly, MITData);
+      if Mismatch <> 0 then Exit;
+    finally
+      Poly.Free;
+    end;
+  end;
+  Result := True;
+end;
+
+function TestSEAPointCount: Boolean;
+const
+  // Test cases: (A, B, P) ¡ª all primes P are below 2^32 (32-bit).
+  // Expected orders are cross-validated with CnEccSchoof.
+  TestCount = 6;
+  TestA: array[0..TestCount - 1] of Integer = (2, 3, 2, 1, 2, 3);
+  TestB: array[0..TestCount - 1] of Integer = (2, 5, 3, 1, 1, 8);
+  TestP: array[0..TestCount - 1] of Cardinal  = (17, 97, 1009, 10007, 100003, 999983);
+var
+  Idx, I, L: Integer;
+  A, B, P, SeaResult, SchoofResult: TCnBigNumber;
+  QMax, QMul, BQ: TCnBigNumber;
+  ModPolys: TObjectList;
+  PhiL: TCnBigNumberBiPolynomial;
+  Match: Boolean;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+  SeaResult := TCnBigNumber.Create;
+  SchoofResult := TCnBigNumber.Create;
+  QMax := TCnBigNumber.Create;
+  QMul := TCnBigNumber.Create;
+  BQ := TCnBigNumber.Create;
+  ModPolys := nil;
+  try
+    for Idx := 0 to TestCount - 1 do
+    begin
+      A.SetWord(TestA[Idx]);
+      B.SetWord(TestB[Idx]);
+      P.SetWord(TestP[Idx]);
+
+      // Generate modular polynomials on-the-fly for this field size
+      ModPolys := TObjectList.Create(True);
+      if not BigNumberSqrt(QMax, P) then Exit;
+      BigNumberAddWord(QMax, 1);
+      BigNumberMulWord(QMax, 4);
+      QMul.SetOne;
+      I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
+      while (BigNumberCompare(QMul, QMax) <= 0) and
+            (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
+      begin
+        L := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+        BigNumberSetWord(BQ, L);
+        if BigNumberCompare(BQ, P) <> 0 then
+        begin
+          BigNumberMulWord(QMul, L);
+          if L >= 3 then
+          begin
+            PhiL := TCnBigNumberBiPolynomial.Create;
+            if CnGenerateClassicalModularPolynomial(PhiL, L) then
+              ModPolys.Add(PhiL)
+            else
+              PhiL.Free;
+          end;
+        end;
+        Inc(I);
+      end;
+
+      // SEA point count
+      if not CnSeaPointCount(SeaResult, A, B, P, ModPolys) then
+      begin
+        ModPolys.Free;
+        ModPolys := nil;
+        Exit;
+      end;
+
+      // Cross-validate with Schoof
+      if not CnEccSchoof(SchoofResult, A, B, P) then
+      begin
+        ModPolys.Free;
+        ModPolys := nil;
+        Exit;
+      end;
+
+      Match := BigNumberCompare(SeaResult, SchoofResult) = 0;
+      ModPolys.Free;
+      ModPolys := nil;
+
+      if not Match then Exit;
+    end;
+    Result := True;
+  finally
+    if ModPolys <> nil then ModPolys.Free;
+    BQ.Free;
+    QMul.Free;
+    QMax.Free;
+    SchoofResult.Free;
+    SeaResult.Free;
+    P.Free;
     B.Free;
     A.Free;
   end;

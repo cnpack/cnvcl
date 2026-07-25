@@ -1362,32 +1362,32 @@ begin
   try
     // Num = 4 * A^3 mod p
     BigNumberMul(T1, A, A);
-    BigNumberMod(T1, T1, P);
+    BigNumberNonNegativeMod(T1, T1, P);
     BigNumberMul(T1, T1, A);
-    BigNumberMod(T1, T1, P);
+    BigNumberNonNegativeMod(T1, T1, P);
     BigNumberCopy(Num, T1);
     BigNumberMulWord(Num, 4);
-    BigNumberMod(Num, Num, P);
+    BigNumberNonNegativeMod(Num, Num, P);
 
     // T2 = 27 * B^2 mod p
     BigNumberMul(T1, B, B);
-    BigNumberMod(T1, T1, P);
+    BigNumberNonNegativeMod(T1, T1, P);
     BigNumberCopy(T2, T1);
     BigNumberMulWord(T2, 27);
-    BigNumberMod(T2, T2, P);
+    BigNumberNonNegativeMod(T2, T2, P);
 
     // Den = 4A^3 + 27B^2 mod p （即判别式相关量）
     BigNumberAdd(Den, Num, T2);
-    BigNumberMod(Den, Den, P);
+    BigNumberNonNegativeMod(Den, Den, P);
 
     if Den.IsZero then Exit; // 奇异曲线，无 j 不变量
 
     // j = 1728 * Num / Den mod p
     BigNumberMulWord(Num, 1728);
-    BigNumberMod(Num, Num, P);
+    BigNumberNonNegativeMod(Num, Num, P);
     BigNumberModularInverse(T1, Den, P);
     BigNumberMul(Res, Num, T1);
-    BigNumberMod(Res, Res, P);
+    BigNumberNonNegativeMod(Res, Res, P);
 
     Result := True;
   finally
@@ -1865,12 +1865,12 @@ begin
       BigNumberModularInverse(LambdaInv, T, K);
       // t = lambda + p * lambda^{-1} mod L
       BigNumberSetWord(T, ScalarLam);
-      BigNumberMod(T, T, K);
-      BigNumberMod(LambdaInv, LambdaInv, K);
+      BigNumberNonNegativeMod(T, T, K);
+      BigNumberNonNegativeMod(LambdaInv, LambdaInv, K);
       BigNumberMul(Res, P, LambdaInv);
-      BigNumberMod(Res, Res, K);
+      BigNumberNonNegativeMod(Res, Res, K);
       BigNumberAdd(Res, Res, T);
-      BigNumberMod(Res, Res, K);
+      BigNumberNonNegativeMod(Res, Res, K);
       Result := True;
       Exit;
     end;
@@ -2077,12 +2077,12 @@ begin
 
     // t = lambda + p * lambda^{-1} mod L
     BigNumberSetWord(T, Lambda);
-    BigNumberMod(T, T, K);
-    BigNumberMod(LambdaInv, LambdaInv, K);
+    BigNumberNonNegativeMod(T, T, K);
+    BigNumberNonNegativeMod(LambdaInv, LambdaInv, K);
     BigNumberMul(Res, P, LambdaInv);
-    BigNumberMod(Res, Res, K);
+    BigNumberNonNegativeMod(Res, Res, K);
     BigNumberAdd(Res, Res, T);
-    BigNumberMod(Res, Res, K);
+    BigNumberNonNegativeMod(Res, Res, K);
 
     Result := True;
   finally
@@ -2154,6 +2154,7 @@ begin
     // 尝试多个点，避免小阶点引起的误报。
     // For a 48-bit prime, trying 3 points gives false-positive probability
     // < 1/2^48, which is sufficient.
+    {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT] T=%s N=%s', [T.ToDec, N.ToDec])); {$ENDIF}
     PointCount := 0;
     StartX := 0;
     while (StartX < 10000) and (PointCount < 3) do
@@ -2164,15 +2165,15 @@ begin
 
       // y^2 = x^3 + Ax + B mod p
       BigNumberMul(Y2, X, X);
-      BigNumberMod(Y2, Y2, P);
+      BigNumberNonNegativeMod(Y2, Y2, P);
       BigNumberMul(Y2, Y2, X);
-      BigNumberMod(Y2, Y2, P);
+      BigNumberNonNegativeMod(Y2, Y2, P);
       BigNumberMul(T1, A, X);
-      BigNumberMod(T1, T1, P);
+      BigNumberNonNegativeMod(T1, T1, P);
       BigNumberAdd(Y2, Y2, T1);
-      BigNumberMod(Y2, Y2, P);
+      BigNumberNonNegativeMod(Y2, Y2, P);
       BigNumberAdd(Y2, Y2, B);
-      BigNumberMod(Y2, Y2, P);
+      BigNumberNonNegativeMod(Y2, Y2, P);
 
       Inc(StartX);
       if Y2.IsZero then
@@ -2195,7 +2196,7 @@ begin
       BigNumberCopy(SX, X);
       BigNumberCopy(SY, Y);
       Inc(PointCount);
-
+      {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT] Point #%d: (%s, %s)', [PointCount, SX.ToDec, SY.ToDec])); {$ENDIF}
       // 使用倍加算法（MSB 到 LSB）计算 [N]P
       Inf := True;
       Bits := BigNumberGetBitsCount(N);
@@ -2207,15 +2208,15 @@ begin
           // R = 2*R (point doubling)
           // lambda = (3*RX^2 + A) / (2*RY) mod p
           BigNumberMul(T1, RX, RX);
-          BigNumberMod(T1, T1, P);
+          BigNumberNonNegativeMod(T1, T1, P);
           BigNumberMulWord(T1, 3);
-          BigNumberMod(T1, T1, P);
+          BigNumberNonNegativeMod(T1, T1, P);
           BigNumberAdd(T1, T1, A);
-          BigNumberMod(T1, T1, P);
+          BigNumberNonNegativeMod(T1, T1, P);
 
           BigNumberSetWord(T2, 2);
           BigNumberMul(T2, T2, RY);
-          BigNumberMod(T2, T2, P);
+          BigNumberNonNegativeMod(T2, T2, P);
           if T2.IsZero then
           begin
             Inf := True;
@@ -2224,22 +2225,22 @@ begin
           begin
             BigNumberModularInverse(T3, T2, P);
             BigNumberMul(Lam, T1, T3);
-            BigNumberMod(Lam, Lam, P);
+            BigNumberNonNegativeMod(Lam, Lam, P);
 
             BigNumberMul(T1, Lam, Lam);
-            BigNumberMod(T1, T1, P);
+            BigNumberNonNegativeMod(T1, T1, P);
             BigNumberSetWord(T2, 2);
             BigNumberMul(T2, T2, RX);
-            BigNumberMod(T2, T2, P);
+            BigNumberNonNegativeMod(T2, T2, P);
             BigNumberSub(T1, T1, T2);
-            BigNumberMod(T1, T1, P);
+            BigNumberNonNegativeMod(T1, T1, P);
 
             BigNumberSub(T2, RX, T1);
-            BigNumberMod(T2, T2, P);
+            BigNumberNonNegativeMod(T2, T2, P);
             BigNumberMul(T3, Lam, T2);
-            BigNumberMod(T3, T3, P);
+            BigNumberNonNegativeMod(T3, T3, P);
             BigNumberSub(T3, T3, RY);
-            BigNumberMod(T3, T3, P);
+            BigNumberNonNegativeMod(T3, T3, P);
 
             BigNumberCopy(RX, T1);
             BigNumberCopy(RY, T3);
@@ -2266,37 +2267,37 @@ begin
                 // so we need a NEW doubling to get R + S = 2S.
                 // lambda = (3*RX^2 + A) / (2*RY) mod p
                 BigNumberMul(T1, RX, RX);
-                BigNumberMod(T1, T1, P);
+                BigNumberNonNegativeMod(T1, T1, P);
                 BigNumberMulWord(T1, 3);
-                BigNumberMod(T1, T1, P);
+                BigNumberNonNegativeMod(T1, T1, P);
                 BigNumberAdd(T1, T1, A);
-                BigNumberMod(T1, T1, P);
+                BigNumberNonNegativeMod(T1, T1, P);
 
                 BigNumberSetWord(T2, 2);
                 BigNumberMul(T2, T2, RY);
-                BigNumberMod(T2, T2, P);
+                BigNumberNonNegativeMod(T2, T2, P);
                 if T2.IsZero then
                   Inf := True
                 else
                 begin
                   BigNumberModularInverse(T3, T2, P);
                   BigNumberMul(Lam, T1, T3);
-                  BigNumberMod(Lam, Lam, P);
+                  BigNumberNonNegativeMod(Lam, Lam, P);
 
                   BigNumberMul(T1, Lam, Lam);
-                  BigNumberMod(T1, T1, P);
+                  BigNumberNonNegativeMod(T1, T1, P);
                   BigNumberSetWord(T2, 2);
                   BigNumberMul(T2, T2, RX);
-                  BigNumberMod(T2, T2, P);
+                  BigNumberNonNegativeMod(T2, T2, P);
                   BigNumberSub(T1, T1, T2);
-                  BigNumberMod(T1, T1, P);
+                  BigNumberNonNegativeMod(T1, T1, P);
 
                   BigNumberSub(T2, RX, T1);
-                  BigNumberMod(T2, T2, P);
+                  BigNumberNonNegativeMod(T2, T2, P);
                   BigNumberMul(T3, Lam, T2);
-                  BigNumberMod(T3, T3, P);
+                  BigNumberNonNegativeMod(T3, T3, P);
                   BigNumberSub(T3, T3, RY);
-                  BigNumberMod(T3, T3, P);
+                  BigNumberNonNegativeMod(T3, T3, P);
 
                   BigNumberCopy(RX, T1);
                   BigNumberCopy(RY, T3);
@@ -2312,26 +2313,26 @@ begin
 
             // lambda = (SY - RY) / (SX - RX) mod p
             BigNumberSub(T1, SY, RY);
-            BigNumberMod(T1, T1, P);
+            BigNumberNonNegativeMod(T1, T1, P);
             BigNumberSub(T2, SX, RX);
-            BigNumberMod(T2, T2, P);
+            BigNumberNonNegativeMod(T2, T2, P);
             BigNumberModularInverse(T3, T2, P);
             BigNumberMul(Lam, T1, T3);
-            BigNumberMod(Lam, Lam, P);
+            BigNumberNonNegativeMod(Lam, Lam, P);
 
             BigNumberMul(T1, Lam, Lam);
-            BigNumberMod(T1, T1, P);
+            BigNumberNonNegativeMod(T1, T1, P);
             BigNumberSub(T1, T1, RX);
-            BigNumberMod(T1, T1, P);
+            BigNumberNonNegativeMod(T1, T1, P);
             BigNumberSub(T1, T1, SX);
-            BigNumberMod(T1, T1, P);
+            BigNumberNonNegativeMod(T1, T1, P);
 
             BigNumberSub(T2, RX, T1);
-            BigNumberMod(T2, T2, P);
+            BigNumberNonNegativeMod(T2, T2, P);
             BigNumberMul(T3, Lam, T2);
-            BigNumberMod(T3, T3, P);
+            BigNumberNonNegativeMod(T3, T3, P);
             BigNumberSub(T3, T3, RY);
-            BigNumberMod(T3, T3, P);
+            BigNumberNonNegativeMod(T3, T3, P);
 
             BigNumberCopy(RX, T1);
             BigNumberCopy(RY, T3);
@@ -2341,9 +2342,12 @@ begin
 
       // 若任意点 [N]P != O，则拒绝此迹
       if not Inf then
+      begin
+        {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT]   [N]P != O, R=(%s,%s)', [RX.ToDec, RY.ToDec])); {$ENDIF}
         Exit;
     end;
-
+      {$IFDEF SEA_DEBUG} WriteLn('[DbgVT]   [N]P = O, pass.'); {$ENDIF}
+    end;
     // 所有点验证通过：对所有测试点 [N]P = O
     Result := PointCount > 0;
   finally
@@ -3284,6 +3288,7 @@ begin
       _SeaT('[Combine] BruteForce mode, N=%d', [N]);
     {$ENDIF}
 
+    {$IFDEF SEA_DEBUG} WriteLn(Format('[Dbg] T_E=%s M_E=%s QMax=%s N=%d UseBSGS=%d SkipVerify=%d', [T_E.ToDec, M_E.ToDec, QMax.ToDec, N, Ord(UseBSGS), Ord(SkipVerify)])); {$ENDIF}
     if not UseBSGS then
     begin
       // ---- Brute force search: t = t_E + k*M_E for k = -N..N ----
@@ -3316,6 +3321,7 @@ begin
 
         if Found then
         begin
+          {$IFDEF SEA_DEBUG} WriteLn(Format('[Dbg] Candidate K=%d T=%s', [K, T.ToDec])); {$ENDIF}
           if SkipVerify then
           begin
             // Atkin 过滤足够强：这是唯一答案
@@ -3324,6 +3330,7 @@ begin
             Exit;
           end;
           Verified := SeaVerifyTrace(A, B, P, T);
+          {$IFDEF SEA_DEBUG} WriteLn(Format('[Dbg]   Verify=%d', [Ord(Verified)])); {$ENDIF}
           if Verified then
           begin
             BigNumberCopy(Res, T);
