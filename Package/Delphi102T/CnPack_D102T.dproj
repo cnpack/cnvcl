@@ -187,6 +187,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnRandom.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnRC4.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnRSA.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSEA.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSecretSharing.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSHA1.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSHA2.pas"/>

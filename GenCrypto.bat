@@ -258,6 +258,7 @@ ECHO USEUNIT("..\Source\CnQRCode.pas");                                         
 ECHO USEUNIT("..\Source\CnRandom.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnRC4.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnRSA.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSEA.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnSecretSharing.pas");                                         >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnSHA1.pas");                                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnSHA2.pas");                                                  >> Crypto.bpf
@@ -316,7 +317,7 @@ ECHO       ..\Source\CnPaillier.obj ..\Source\CnPDFCrypt.obj                    
 ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPolynomial.obj ..\Source\CnPrime.obj                           >> Crypto.bpr
 ECHO       ..\Source\CnQRCode.obj ..\Source\CnRandom.obj                              >> Crypto.bpr
-ECHO       ..\Source\CnRSA.obj ..\Source\CnRC4.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnRSA.obj ..\Source\CnSEA.obj ..\Source\CnRC4.obj                >> Crypto.bpr
 ECHO       ..\Source\CnSecretSharing.obj ..\Source\CnSHA1.obj                         >> Crypto.bpr
 ECHO       ..\Source\CnSHA2.obj ..\Source\CnSHA3.obj                                  >> Crypto.bpr
 ECHO       ..\Source\CnSLHDSA.obj ..\Source\CnSM2.obj                                 >> Crypto.bpr
@@ -481,6 +482,7 @@ CALL :COPYEXAMPLE Pailler
 CALL :COPYEXAMPLE Polynomial
 CALL :COPYEXAMPLE PrimeNumber
 CALL :COPYEXAMPLE RSA
+CALL :COPYEXAMPLE SEA
 CALL :COPYEXAMPLE SecretSharing
 CALL :COPYEXAMPLE SLHDSA
 CALL :COPYEXAMPLE SM2
@@ -566,6 +568,7 @@ ECHO   CnQRCode in '..\Source\CnQRCode.pas',                                   >
 ECHO   CnRandom in '..\Source\CnRandom.pas',                                   >> %1
 ECHO   CnRC4 in '..\Source\CnRC4.pas',                                         >> %1
 ECHO   CnRSA in '..\Source\CnRSA.pas',                                         >> %1
+ECHO   CnSEA in '..\Source\CnSEA.pas',                                         >> %1
 ECHO   CnSecretSharing in '..\Source\CnSecretSharing.pas',                     >> %1
 ECHO   CnSHA1 in '..\Source\CnSHA1.pas',                                       >> %1
 ECHO   CnSHA2 in '..\Source\CnSHA2.pas',                                       >> %1

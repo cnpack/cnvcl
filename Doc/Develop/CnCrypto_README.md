@@ -22,7 +22,7 @@ CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnP
 - **运算支持**：素数运算与判定、浮点复数运算、位运算、矩阵运算、离散傅立叶变换、128 位整型支持
 - **数论计算**：中国剩余定理、Lucas 序列、PollardRho 因数分解、模素数二次剩余、勒让德/雅可比符号
 - **抗量子计算**：基于模块化格的密钥封装机制 MLKEM、基于模块化格的数字签名算法 MLDSA、无状态杂凑数字签名算法 SLHDSA
-- **其他**：DSA 签名验证、关联数据认证加密 AEAD、动态口令 OTP、密钥派生 KDF、秘密共享的 Shamir 门限方案及 Feldman VSS 方案、历法计算
+- **其他**：DSA 签名验证、关联数据认证加密 AEAD、动态口令 OTP、密钥派生 KDF、秘密共享的 Shamir 门限方案及 Feldman VSS 方案、历法计算、椭圆曲线求阶算法 Schoof 及 Schoof-Elkies-Atkin（SEA）
 
 ## 国密支持
 
@@ -54,7 +54,7 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 `cn
 
 ## 测试用例
 
-`cncrypto\Test` 目录下有一完整的命令行测试用例 `CryptoTest.dpr`，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 `Crypto.bpr`、或用 Lazarus 打开 `Crypto.lpi`，均同样可以运行。在没有 Lazarus 仅有 FPC 时，也可用 `fpc` 命令行编译 `Crypto.lpr` 以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
+`cncrypto\Test` 目录下有一完整的命令行测试用例 `CryptoTest.dpr`，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 `Crypto.bpr`、或用 Lazarus 打开 `Crypto.lpi`，均同样可以运行。在没有 Lazarus 仅有 FPC 时，也可用 `fpc` 命令行编译 `Crypto.lpr` 以运行。部分用例耗时较长，跑时需有耐心。
 
 另外，本加解密库仅在小端 CPU 上运行测试过，大端 CPU 暂不保证支持。
 
@@ -76,7 +76,7 @@ CnPack 开发组由互联网上热爱 Delphi/C++Builder 程序开发的一群中国程序员自愿者自发
 - **邮件**：master@cnpack.org
 - **微信公众号**：CnPack开发组
 
-
+----
 
 # CnPack Crypto Library
 
@@ -102,7 +102,7 @@ The CnPack Development Package is released as open-source software under the CnP
 - **Mathematical Operations**: Prime Number Operations and Primality Testing, Complex Floating-Point Arithmetic, Bitwise Operations, Matrix Operations, Discrete Fourier Transform, 128-bit Integer Support
 - **Number Theory Computations**: Chinese Remainder Theorem, Lucas Sequences, Pollard-Rho Factorization, Quadratic Residues Modulo Primes, Legendre and Jacobi Symbols
 - **Post-Quantum Cryptography**: Module-Lattice-Based Key-Encapsulation Mechanism (MLKEM), Module-Lattice-Based Digital Signature Algorithm (MLDSA), Stateless Hash-Based Digital Signature Algorithm (SLHDSA).
-- **Others**: DSA Signature Verification, Authenticated Encryption with Associated Data (AEAD), One-Time Password (OTP), Key Derivation Functions (KDF), Shamir's Secret Sharing Threshold Scheme, and Feldman Verifiable Secret Sharing (VSS), Calendar.
+- **Others**: DSA Signature Verification, Authenticated Encryption with Associated Data (AEAD), One-Time Password (OTP), Key Derivation Functions (KDF), Shamir's Secret Sharing Threshold Scheme, and Feldman Verifiable Secret Sharing (VSS), Calendar, Elliptic Curve Order Computation: Schoof's Algorithm and Schoof-Elkies-Atkin (SEA).
 
 ## Support for Chinese National Cryptography Standards
 
@@ -134,7 +134,7 @@ Alternatively, the library also provides a runtime package. Open `cncrypto\Packa
 
 ## Test Cases
 
-The `cncrypto\Test` directory contains a complete command-line test suite, `CryptoTest.dpr`. Open and run it in any version of Delphi to verify the majority of the CnPack Crypto Library's functionality. It can also be opened with C++Builder 5/6 (`Crypto.bpr`) or Lazarus (`Crypto.lpi`) to run the tests. If only FPC (Free Pascal Compiler) is available without Lazarus, you may compile and run `Crypto.lpr` using the `fpc` command-line tool. The last two test cases are time-consuming and may take hours to complete. Please be patient during execution.
+The `cncrypto\Test` directory contains a complete command-line test suite, `CryptoTest.dpr`. Open and run it in any version of Delphi to verify the majority of the CnPack Crypto Library's functionality. It can also be opened with C++Builder 5/6 (`Crypto.bpr`) or Lazarus (`Crypto.lpi`) to run the tests. If only FPC (Free Pascal Compiler) is available without Lazarus, you may compile and run `Crypto.lpr` using the `fpc` command-line tool. Some test cases are time-consuming and may take hours to complete. Please be patient during execution.
 
 > **Note**: This cryptographic library has only been tested on little-endian CPUs. Support for big-endian CPUs is not currently guaranteed.
 

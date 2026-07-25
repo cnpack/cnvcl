@@ -37,6 +37,7 @@ USEUNIT("..\..\..\Source\Crypto\CnQRCode.pas");
 USEUNIT("..\..\..\Source\Crypto\CnRandom.pas");
 USEUNIT("..\..\..\Source\Crypto\CnRC4.pas");
 USEUNIT("..\..\..\Source\Crypto\CnRSA.pas");
+USEUNIT("..\..\..\Source\Crypto\CnSEA.pas");
 USEUNIT("..\..\..\Source\Crypto\CnSecretSharing.pas");
 USEUNIT("..\..\..\Source\Crypto\CnSHA1.pas");
 USEUNIT("..\..\..\Source\Crypto\CnSHA2.pas");
