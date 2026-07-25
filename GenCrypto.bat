@@ -317,7 +317,7 @@ ECHO       ..\Source\CnPaillier.obj ..\Source\CnPDFCrypt.obj                    
 ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPolynomial.obj ..\Source\CnPrime.obj                           >> Crypto.bpr
 ECHO       ..\Source\CnQRCode.obj ..\Source\CnRandom.obj                              >> Crypto.bpr
-ECHO       ..\Source\CnRSA.obj ..\Source\CnSEA.obj ..\Source\CnRC4.obj                >> Crypto.bpr
+ECHO       ..\Source\CnRC4.obj ..\Source\CnRSA.obj ..\Source\CnSEA.obj                >> Crypto.bpr
 ECHO       ..\Source\CnSecretSharing.obj ..\Source\CnSHA1.obj                         >> Crypto.bpr
 ECHO       ..\Source\CnSHA2.obj ..\Source\CnSHA3.obj                                  >> Crypto.bpr
 ECHO       ..\Source\CnSLHDSA.obj ..\Source\CnSM2.obj                                 >> Crypto.bpr
