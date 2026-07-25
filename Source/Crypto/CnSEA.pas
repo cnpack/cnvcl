@@ -222,10 +222,7 @@ implementation
 
 {$IFDEF SEA_TRACE}
 
-uses
-  CnDebug;
-
-// 通过 CnDebugger 进行简单跟踪。编译时加 -dSEA_TRACE。
+// 通过控制台输出进行简单跟踪。编译时加 -dSEA_TRACE。
 var
   _SeaT0: TDateTime = 0;
 
@@ -237,7 +234,7 @@ end;
 
 procedure _SeaT(const Fmt: string; const Args: array of const);
 begin
-  CnDebugger.TraceMsg(Format('[%d] ', [_SeaMs]) + Format(Fmt, Args));
+  WriteLn(Format('[%d] ', [_SeaMs]) + Format(Fmt, Args));
 end;
 
 {$ENDIF}

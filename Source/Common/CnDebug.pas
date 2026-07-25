@@ -148,7 +148,9 @@ interface
 {$IFDEF MACOS}
   {$UNDEF CAPTURE_STACK}   // CnRTL Does NOT Support MACOS.
   {$UNDEF SUPPORT_EVALUATE}
-  {$DEFINE ENABLE_FMX}     // MAC 下只能支持 FMX
+  {$IFNDEF FPC}
+    {$DEFINE ENABLE_FMX}   // MAC 下的 Delphi 只能支持 FMX
+  {$ENDIF}
   {$IFNDEF DUMP_TO_CONSOLE}
     {$DEFINE DUMP_TO_FILE} // MAC 下如果没输出到终端，则直接支持到文件
   {$ENDIF}
