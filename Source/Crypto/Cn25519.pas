@@ -2389,6 +2389,20 @@ begin
   end;
 end;
 
+procedure ConstTimeConditionalAssignField64Ecc4Point(CanAssign: Boolean;
+  const Source: TCn25519Field64Ecc4Point; var Dest: TCn25519Field64Ecc4Point);
+var
+  I: Integer;
+begin
+  for I := 0 to 4 do
+  begin
+    ConstTimeConditionalAssign64(CanAssign, Source.X[I], Dest.X[I]);
+    ConstTimeConditionalAssign64(CanAssign, Source.Y[I], Dest.Y[I]);
+    ConstTimeConditionalAssign64(CanAssign, Source.Z[I], Dest.Z[I]);
+    ConstTimeConditionalAssign64(CanAssign, Source.T[I], Dest.T[I]);
+  end;
+end;
+
 // 按 RFC 规定处理 25519 的随机数或私钥
 procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
 begin
@@ -4138,7 +4152,7 @@ end;
 procedure TCnEd25519.ExtendedField64MultiplePoint(K: TCnBigNumber;
   var P: TCn25519Field64Ecc4Point);
 var
-  I, C: Integer;
+  I: Integer;
   E, R, Q: TCn25519Field64Ecc4Point;
 begin
   if BigNumberIsNegative(K) then
@@ -4160,14 +4174,13 @@ begin
   Cn25519Field64Ecc4PointNeutual(Q);
   Cn25519Field64Ecc4PointCopy(E, P);
 
-  C := BigNumberGetBitsCount(K);
-  for I := 0 to C - 1 do
+  // 固定 256 次常量时间
+  for I := 0 to CN_25519_BLOCK_BYTESIZE * 8 - 1 do
   begin
     ExtendedField64PointAddPoint(R, E, Q);
-    if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
-      R := Q;
+    ConstTimeConditionalAssignField64Ecc4Point(K.IsBitSet(I), Q, R); // 始终加，但只置位时恒定时间 R <- Q，以防止侧信道攻击
 
-    if I < C - 1 then // 最后一次循环无需加 E
+    if I < CN_25519_BLOCK_BYTESIZE * 8 - 1 then // 最后一次循环无需加 E
       ExtendedField64PointAddPoint(E, E, E);
   end;
 
@@ -6025,7 +6038,7 @@ end;
 
 procedure TCnEd448.AffineMultiplePoint(K: TCnBigNumber; P: TCnEcc3Point);
 var
-  I, C: Integer;
+  I: Integer;
   E, R, Q: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
@@ -6059,14 +6072,15 @@ begin
     E.Y := P.Y;
     E.Z := P.Z;
 
-    C := BigNumberGetBitsCount(K);
-    for I := 0 to C - 1 do
+    // 448 次常量时间运算
+    for I := 0 to CN_448_EDWARDS_BLOCK_BYTESIZE * 8 - 1 do
     begin
       AffinePointAddPoint(R, E, Q);
-      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
-        R.Assign(Q);
+      BigNumberConstTimeConditionalAssign(K.IsBitSet(I), Q.X, R.X); // 始终加，但只置位时恒定时间 R <- Q，以防止侧信道攻击
+      BigNumberConstTimeConditionalAssign(K.IsBitSet(I), Q.Y, R.Y);
+      BigNumberConstTimeConditionalAssign(K.IsBitSet(I), Q.Z, R.Z);
 
-      if I < C - 1 then
+      if I < CN_448_EDWARDS_BLOCK_BYTESIZE * 8 - 1 then
         AffinePointAddPoint(E, E, E);
     end;
 

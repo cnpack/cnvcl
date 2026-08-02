@@ -4422,8 +4422,9 @@ begin
     for I := 0 to C - 1 do
     begin
       AffinePointAddPoint(R, E, Q);
-      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
-        R.Assign(Q);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.X, R.X); //始终加，且只置位时时间恒定 R <- Q，以防止侧信道攻击
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Y, R.Y);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Z, R.Z);
 
       if I < C - 1 then // 最后一次循环无需加 E
         AffinePointAddPoint(E, E, E);
@@ -4481,8 +4482,9 @@ begin
     for I := 0 to C - 1 do
     begin
       JacobianPointAddPoint(R, E, Q);
-      if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
-        R.Assign(Q);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.X, R.X); //始终加，且只置位时时间恒定 R <- Q，以防止侧信道攻击
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Y, R.Y);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Z, R.Z);
 
       if I < C - 1 then
         JacobianPointAddPoint(E, E, E);

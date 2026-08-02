@@ -1784,6 +1784,18 @@ procedure BigNumberConstTimeConditionalSwap(CanSwap: Boolean; Num1: TCnBigNumber
    返回值：（无）
 }
 
+procedure BigNumberConstTimeConditionalAssign(CanAssign: Boolean; Source: TCnBigNumber; Dest: TCnBigNumber);
+{* 固定时间根据条件决定是否执行大数赋值，执行时间不依赖数据内容，防止计时侧信道攻击。
+   用于签名验证、密钥比较等安全敏感场景。
+
+   参数：
+     CanSwap: Boolean                     - 控制是否交换
+     Source: TCnBigNumber                 - 待赋值的源大数
+     Dest: TCnBigNumber                   - 待赋值的目标大数
+
+   返回值：（无）
+}
+
 function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数对象，前者大于、等于、小于后者时分别返回 1、0、-1。
 
@@ -4129,6 +4141,22 @@ begin
   ConstTimeConditionalSwap32(CanSwap, T1, T2);
   Num1.FNeg := Integer(T1);
   Num2.FNeg := Integer(T2);
+end;
+
+procedure BigNumberConstTimeConditionalAssign(CanAssign: Boolean; Source: TCnBigNumber; Dest: TCnBigNumber);
+var
+  Tmp: TCnBigNumber;
+begin
+  if Source = Dest then
+    Exit;
+
+  Tmp := FLocalBigNumberPool.Obtain;
+  try
+    BigNumberCopy(Tmp, Source);
+    BigNumberConstTimeConditionalSwap(CanAssign, Dest, Tmp);
+  finally
+    FLocalBigNumberPool.Recycle(Tmp);
+  end;
 end;
 
 function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
