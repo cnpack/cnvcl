@@ -5653,7 +5653,12 @@ begin
       MemStream, Password, KeyHashMethod) then
     begin
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-      Reader.ParseToTree;
+      try
+        Reader.ParseToTree;
+      except
+        on E: ECnBerException do
+          Exit;
+      end;
       if Reader.TotalCount >= 5 then
       begin
         // 2 要判断是否公钥
@@ -5761,7 +5766,12 @@ begin
         MemStream, Password, KeyHashMethod) then
       begin
         Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-        Reader.ParseToTree;
+        try
+          Reader.ParseToTree;
+        except
+          on E: ECnBerException do
+            Exit;
+        end;
         if Reader.TotalCount >= 7 then
         begin
           Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -5792,7 +5802,12 @@ begin
         MemStream, Password, KeyHashMethod) then
       begin
         Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-        Reader.ParseToTree;
+        try
+          Reader.ParseToTree;
+        except
+          on E: ECnBerException do
+            Exit;
+        end;
         if Reader.TotalCount >= 11 then // 有 PKCS#8 标记且数量够
         begin
           Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -6403,7 +6418,12 @@ begin
     Stream.Clear;
     Stream.LoadFromFile(InSignFileName);
     Reader := TCnBerReader.Create(Stream.Memory, Stream.Size);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount <> 3 then
       Exit;
@@ -6464,7 +6484,12 @@ begin
     Stream.Clear;
     Stream.LoadFromFile(InSignFileName);
     Reader := TCnBerReader.Create(Stream.Memory, Stream.Size);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount <> 3 then
       Exit;
@@ -6593,7 +6618,12 @@ begin
     Stream.Clear;
     Stream.LoadFromStream(InSignStream);
     Reader := TCnBerReader.Create(Stream.Memory, Stream.Size);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount <> 3 then
       Exit;
@@ -6654,7 +6684,12 @@ begin
     Stream.Clear;
     Stream.LoadFromStream(InSignStream);
     Reader := TCnBerReader.Create(Stream.Memory, Stream.Size);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount <> 3 then
       Exit;
@@ -10300,7 +10335,12 @@ begin
     if Base64Decode(string(Buf), B) = ECN_BASE64_OK then
     begin
       Reader := TCnBerReader.Create(PByte(@B[0]), Length(B));
-      Reader.ParseToTree;
+      try
+        Reader.ParseToTree;
+      except
+        on E: ECnBerException do
+          Exit;
+      end;
 
       if Reader.TotalCount = 3 then
       begin
@@ -10331,7 +10371,12 @@ begin
   Reader := nil;
   try
     Reader := TCnBerReader.Create(PByte(@B[0]), Length(B));
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount = 3 then
     begin

@@ -848,6 +848,7 @@ resourcestring
   SCnErrorBerTagTypeMismatchForCommonInteger = 'Ber Tag Type Mismatch for Common Integer.';
   SCnErrorDataLengthOverflowForCommonInteger = 'Data Length %d Overflow for Common Integer.';
   SCnErrorBerParseDepthOverflow = 'BER Parse Depth Overflow %d';
+  SCnErrorBerDataLengthExceeds = 'BER Data Length Exceeds Available Buffer (Base %d, Offset %d, Len %d, Available %d).';
 
 const
   CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_UFT8STRING, CN_BER_TAG_NUMERICSTRING,
@@ -1136,6 +1137,30 @@ begin
         Inc(Delta, LenLen);
         Inc(Run, LenLen);   // Run 指向数据
       end;
+    end;
+
+    // 修复越界读：校验声明长度 DataLen 是否落在真实可解析范围内，
+    // 防止声明长度超过实际缓冲区导致后续按长度越界读取
+    if DataLen < 0 then
+      raise ECnBerException.CreateFmt(SCnErrorLengthTooLongOrIncorrect, [AStartOffset, LenLen]);
+
+    if ADataByteLen > 0 then
+    begin
+      // 定长模式：可用长度为真实缓冲 FDataByteLen 减去起始偏移
+      if FDataByteLen < AStartOffset then
+        raise ECnBerException.CreateFmt(SCnErrorBerDataLengthExceeds,
+          [AStartOffset, Run, DataLen, 0]);
+      if (Cardinal(DataLen) > FDataByteLen - AStartOffset) or
+         (Run > (FDataByteLen - AStartOffset) - Cardinal(DataLen)) then
+        raise ECnBerException.CreateFmt(SCnErrorBerDataLengthExceeds,
+          [AStartOffset, Run, DataLen, FDataByteLen - AStartOffset]);
+    end
+    else
+    begin
+      // 不定长模式：声明长度不能超过允许解析的上限 MaxRun
+      if (Cardinal(DataLen) > MaxRun) or (Run > MaxRun - Cardinal(DataLen)) then
+        raise ECnBerException.CreateFmt(SCnErrorBerDataLengthExceeds,
+          [AStartOffset, Run, DataLen, MaxRun]);
     end;
 
     // Tag, Len, DataOffset 都齐全了，Delta 是数据起始区与当前节点起始区的偏移

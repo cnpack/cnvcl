@@ -6000,18 +6000,21 @@ function TestBERTruncatedInput: Boolean;
 var
   B: TBytes;
   R: TCnBerReader;
-  N: TCnBerReadNode;
+  Raised: Boolean;
 begin
   Result := False;
+  // 截断输入：SEQUENCE 声明长度 6 超出实际缓冲区 5 字节，必须被拒绝以防越界读
   B := HexToBytes('3006020101');
   R := TCnBerReader.Create(@B[0], Length(B));
   try
-    R.ParseToTree;
-    if R.TotalCount <= 0 then Exit;
-
-    N := R.Items[0];
-    Result := (N.BerTag = CN_BER_TAG_SEQUENCE)
-      and (N.BerLength > Length(B));
+    Raised := False;
+    try
+      R.ParseToTree;
+    except
+      on E: ECnBerException do
+        Raised := True;
+    end;
+    Result := Raised;
   finally
     R.Free;
   end;
@@ -6021,18 +6024,21 @@ function TestBERConstructedChildTruncated: Boolean;
 var
   B: TBytes;
   R: TCnBerReader;
-  N: TCnBerReadNode;
+  Raised: Boolean;
 begin
   Result := False;
+  // 截断输入：SEQUENCE 声明长度 3 超出实际缓冲区 4 字节，必须被拒绝以防越界读
   B := HexToBytes('30030201');
   R := TCnBerReader.Create(@B[0], Length(B));
   try
-    R.ParseToTree;
-    if R.TotalCount <= 0 then Exit;
-
-    N := R.Items[0];
-    Result := (N.BerTag = CN_BER_TAG_SEQUENCE)
-      and (N.BerLength > Length(B));
+    Raised := False;
+    try
+      R.ParseToTree;
+    except
+      on E: ECnBerException do
+        Raised := True;
+    end;
+    Result := Raised;
   finally
     R.Free;
   end;

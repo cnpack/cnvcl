@@ -2642,7 +2642,12 @@ begin
       if CnRSADecryptData(SignValue, SignLength, @OutBuf[0], OutLen, RSAPublicKey) then
       begin
         Reader := TCnBerReader.Create(@OutBuf[0], OutLen);
-        Reader.ParseToTree;
+        try
+          Reader.ParseToTree;
+        except
+          on E: ECnBerException do
+            Exit;
+        end;
 
         if Reader.TotalCount < 5 then
           Exit;
@@ -2918,7 +2923,12 @@ begin
       Exit;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
     if (Reader.TotalCount >= 42) and (Reader.Items[2].BerTag = CN_BER_TAG_INTEGER)
       and (Reader.Items[2].AsInteger = 0) then // 就是有这么多项，版本号必须为 0
     begin
@@ -3060,7 +3070,12 @@ begin
       Exit;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount > 2 then
     begin
@@ -3141,7 +3156,12 @@ begin
       Exit;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount > 2 then
     begin
@@ -3238,7 +3258,12 @@ begin
       Exit;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount > 2 then
     begin
@@ -3305,7 +3330,12 @@ begin
       Exit;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     if Reader.TotalCount > 2 then
     begin
@@ -3623,7 +3653,12 @@ begin
     end;
 
     Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+        Exit;
+    end;
 
     Root := Reader.Items[0];
     if Root.Count <> 3 then

@@ -1677,7 +1677,15 @@ begin
 
   try
     Reader := TCnBerReader.Create(@Asn1Data[0], Length(Asn1Data));
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+      begin
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
+        Exit;
+      end;
+    end;
 
     if Reader.TotalCount <> 5 then
     begin

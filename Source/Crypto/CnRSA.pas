@@ -1906,7 +1906,15 @@ begin
     end;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    Reader.ParseToTree;
+    try
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do
+      begin
+        _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+        Exit;
+      end;
+    end;
 
     if Reader.TotalCount >= 12 then // 子节点多，说明是 PKCS#8 的 PEM 公私钥格式
     begin
@@ -1946,7 +1954,15 @@ begin
     begin
       Reader.Free;
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-      Reader.ParseToTree;
+      try
+        Reader.ParseToTree;
+      except
+        on E: ECnBerException do
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+      end;
 
       if Reader.TotalCount >= 8 then // 这个数量的子节点，是 PKCS#1 的 PEM 公私钥格式
       begin
@@ -2082,7 +2098,15 @@ begin
     begin
       // 读 PKCS#8 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
-      Reader.ParseToTree;
+      try
+        Reader.ParseToTree;
+      except
+        on E: ECnBerException do
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+      end;
       if Reader.TotalCount >= 7 then
       begin
         // 6 和 7 整成公钥
@@ -2108,7 +2132,15 @@ begin
     begin
       // 读 PKCS#1 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
-      Reader.ParseToTree;
+      try
+        Reader.ParseToTree;
+      except
+        on E: ECnBerException do
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+      end;
       if Reader.TotalCount in [3, 4] then // 大于等于 5 的话不像 PKCS1 格式
       begin
         // 1 和 2 整成公钥
@@ -3696,7 +3728,16 @@ begin
 
         // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
         Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
-        Reader.ParseToTree;
+        try
+          Reader.ParseToTree;
+        except
+          on E: ECnBerException do
+          begin
+            Result := False;
+            _CnSetLastError(ECN_RSA_OK);
+            Exit;
+          end;
+        end;
         if Reader.TotalCount < 5 then
         begin
           // Padding 合法但 BER 解析失败时，同样统一以“验签不通过”返回，不暴露 BER 错误码
@@ -3927,7 +3968,16 @@ begin
 
         // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
         Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
-        Reader.ParseToTree;
+        try
+          Reader.ParseToTree;
+        except
+          on E: ECnBerException do
+          begin
+            Result := False;
+            _CnSetLastError(ECN_RSA_OK);
+            Exit;
+          end;
+        end;
         if Reader.TotalCount < 5 then
         begin
           // Padding 合法但 BER 解析失败时，同样统一以“验签不通过”返回，不暴露 BER 错误码
