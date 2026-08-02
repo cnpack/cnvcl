@@ -7646,6 +7646,10 @@ begin
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
   finally
+    MemorySafeZero(@AESKey128, SizeOf(AESKey128));
+    MemorySafeZero(@AESKey192, SizeOf(AESKey192));
+    MemorySafeZero(@AESKey256, SizeOf(AESKey256));
+    MemorySafeZero(@AESIv, SizeOf(AESIv));
     SS.Free;
     DS.Free;
   end;

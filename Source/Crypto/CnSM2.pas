@@ -43,7 +43,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.01.12 V2.3
+* 修改记录：2026.08.02 V2.4
+*               去除 RandHex 参数以增加安全性，注意部分函数接口与之前不兼容
+*           2024.01.12 V2.3
 *               SM2 公钥类支持在不传 SM2 实例时加载压缩格式的公钥
 *           2023.04.29 V2.2
 *               将密钥交换的输出密钥格式由 AnsiString 改为 TBytes 以避免乱码
@@ -186,8 +188,7 @@ function CnSM2CheckKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey
 function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True; const RandHex: string = '';
-  C1UseCompress: Boolean = False): Boolean; overload;
+  IncludePrefixByte: Boolean = True; C1UseCompress: Boolean = False): Boolean; overload;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3，
@@ -204,7 +205,6 @@ function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 是否包括 C1 的前导字节 $04，默认包括
-     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
      C1UseCompress: Boolean                               - IncludePrefixByte 为 True 时 C1 是否使用压缩模式，此时前缀会变成 02 或 03
 
    返回值：Boolean                                        - 返回加密是否成功
@@ -212,8 +212,7 @@ function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
 
 function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True; const RandHex: string = '';
-  C1UseCompress: Boolean = False): TBytes; overload;
+  IncludePrefixByte: Boolean = True; C1UseCompress: Boolean = False): TBytes; overload;
 {* 用公钥对字节数组进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3，
@@ -227,7 +226,6 @@ function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; S
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 输出密文中是否要包括 C1 的前导字节 $04，默认包括
-     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
      C1UseCompress: Boolean                               - IncludePrefixByte 为 True 时 C1 是否使用压缩模式，此时前缀会变成 02 或 03
 
    返回值：TBytes                                         - 如果成功则返回密文字节数组，失败则返回空
@@ -272,7 +270,7 @@ function CnSM2DecryptData(const EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
 
 function CnSM2EncryptFile(const InFile: string; const OutFile: string; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True; const RandHex: string = ''; C1UseCompress: Boolean = False): Boolean;
+  IncludePrefixByte: Boolean = True; C1UseCompress: Boolean = False): Boolean;
 {* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
    IncludePrefixByte 用来声明是否包括 C1 前导的 $02/$03/$04 一字节，默认包括。
@@ -285,7 +283,6 @@ function CnSM2EncryptFile(const InFile: string; const OutFile: string; PublicKey
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 输出密文中是否要包括 C1 的前导字节 $04，默认包括
-     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
      C1UseCompress: Boolean                               - IncludePrefixByte 为 True 时 C1 是否使用压缩模式，此时前缀会变成 02 或 03
 
    返回值：Boolean                                        - 返回加密是否成功
@@ -365,7 +362,7 @@ function CnSM2CryptFromAsn1(Asn1Stream: TStream; OutStream: TStream; SM2: TCnSM2
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
-  SM2: TCnSM2 = nil; const RandHex: string = ''): Boolean; overload;
+  SM2: TCnSM2 = nil): Boolean; overload;
 {* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
    中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功。
 
@@ -377,14 +374,13 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen
      PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
      PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
-     const RandHex: string                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
 
    返回值：Boolean                        - 返回签名是否成功
 }
 
 function CnSM2SignData(const UserID: AnsiString; const PlainData: TBytes;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
-  SM2: TCnSM2 = nil; const RandHex: string = ''): Boolean; overload;
+  SM2: TCnSM2 = nil): Boolean; overload;
 {* 私钥对字节数组签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
    中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功。
 
@@ -395,7 +391,6 @@ function CnSM2SignData(const UserID: AnsiString; const PlainData: TBytes;
      PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
      PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
-     const RandHex: string                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
 
    返回值：Boolean                        - 返回签名是否成功
 }
@@ -1192,7 +1187,7 @@ end;
 }
 function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType;
-  IncludePrefixByte: Boolean; const RandHex: string; C1UseCompress: Boolean): Boolean;
+  IncludePrefixByte: Boolean; C1UseCompress: Boolean): Boolean;
 var
   Py, P1, P2: TCnEccPoint;
   K: TCnBigNumber;
@@ -1232,11 +1227,10 @@ begin
       BigNumberCopy(PublicKey.Y, Py.Y);
     end;
 
-    // 使用指定 K， 或生成一个随机 K
-    if RandHex <> '' then
-      K.SetHex(AnsiString(RandHex))
-    else
+    K.SetZero;
+    while K.IsZero do
     begin
+      // 生成一个随机 K
       if not BigNumberRandRange(K, SM2.Order) then
       begin
         _CnSetLastError(ECN_SM2_RANDOM_ERROR);
@@ -1333,7 +1327,7 @@ end;
 
 function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean;
-  const RandHex: string; C1UseCompress: Boolean): TBytes;
+  C1UseCompress: Boolean): TBytes;
 var
   Stream: TMemoryStream;
 begin
@@ -1341,7 +1335,7 @@ begin
   Stream := TMemoryStream.Create;
   try
     if CnSM2EncryptData(@PlainData[0], Length(PlainData), Stream, PublicKey, SM2,
-      SequenceType, IncludePrefixByte, RandHex, C1UseCompress) then
+      SequenceType, IncludePrefixByte, C1UseCompress) then
     begin
       SetLength(Result, Stream.Size);
       Move(Stream.Memory^, Result[0], Stream.Size);
@@ -1539,7 +1533,7 @@ end;
 
 function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean;
-  const RandHex: string; C1UseCompress: Boolean): Boolean;
+  C1UseCompress: Boolean): Boolean;
 var
   Stream: TMemoryStream;
   F: TFileStream;
@@ -1553,7 +1547,7 @@ begin
 
     F := TFileStream.Create(OutFile, fmCreate);
     Result := CnSM2EncryptData(Stream.Memory, Stream.Size, F, PublicKey, SM2,
-      SequenceType, IncludePrefixByte, RandHex, C1UseCompress);
+      SequenceType, IncludePrefixByte, C1UseCompress);
   finally
     F.Free;
     Stream.Free;
@@ -1846,13 +1840,12 @@ end;
 }
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
-  SM2: TCnSM2; const RandHex: string): Boolean;
+  SM2: TCnSM2): Boolean;
 var
   K, R, E: TCnBigNumber;
   P: TCnEccPoint;
   SM2IsNil: Boolean;
   PubIsNil: Boolean;
-  HexSet: Boolean;
   Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
@@ -1887,27 +1880,18 @@ begin
     E := TCnBigNumber.Create;
     R := TCnBigNumber.Create;
     K := TCnBigNumber.Create;
-    HexSet := False;
 
     while True do
     begin
-      // 使用指定 K，或生成一个随机 K
-      if RandHex <> '' then
+      // 生成一个随机 K
+      if not BigNumberRandRange(K, SM2.Order) then
       begin
-        K.SetHex(AnsiString(RandHex));
-        HexSet := True;
-      end
-      else
-      begin
-        if not BigNumberRandRange(K, SM2.Order) then
-        begin
-          _CnSetLastError(ECN_SM2_RANDOM_ERROR);
-          Exit;
-        end;
-
-        if K.IsZero then
-          Continue;
+        _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+        Exit;
       end;
+
+      if K.IsZero then
+        Continue;
 
       P.Assign(SM2.Generator);
       SM2.MultiplePoint(K, P);
@@ -1918,25 +1902,11 @@ begin
       BigNumberMod(R, E, SM2.Order); // 算出 R 后 E 不用了
 
       if R.IsZero then  // R 不能为 0
-      begin
-        if HexSet then // 外界使用的随机数不符合要求
-        begin
-          _CnSetLastError(ECN_SM2_RANDOM_ERROR);
-          Exit;
-        end;
         Continue;
-      end;
 
       BigNumberAdd(E, R, K);
       if BigNumberCompare(E, SM2.Order) = 0 then // R + K = N 也不行
-      begin
-        if HexSet then // 外界使用的随机数不符合要求
-        begin
-          _CnSetLastError(ECN_SM2_RANDOM_ERROR);
-          Exit;
-        end;
         Continue;
-      end;
 
       BigNumberCopy(OutSignature.R, R);  // 得到一个签名值 R
 
@@ -1969,10 +1939,10 @@ end;
 
 function CnSM2SignData(const UserID: AnsiString; const PlainData: TBytes;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
-  SM2: TCnSM2; const RandHex: string): Boolean;
+  SM2: TCnSM2): Boolean;
 begin
   Result := CnSM2SignData(UserID, @PlainData[0], Length(PlainData), OutSignature,
-    PrivateKey, PublicKey, SM2, RandHex);
+    PrivateKey, PublicKey, SM2);
 end;
 
 {
@@ -2471,10 +2441,14 @@ begin
       SM2 := TCnSM2.Create;
 
     R := TCnBigNumber.Create;
-    if not BigNumberRandBytes(R, CN_SM2_FINITEFIELD_BYTESIZE) then
+    R.SetZero;
+    while R.IsZero or BigNumberEqual(R, SM2.Order) do // R 不能为 0 或阶
     begin
-      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
-      Exit;
+      if not BigNumberRandBytes(R, CN_SM2_FINITEFIELD_BYTESIZE) then
+      begin
+        _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+        Exit;
+      end;
     end;
 
     OutR.Assign(SM2.Generator);

@@ -15791,12 +15791,14 @@ begin
     Result := CnSM2CheckKeys(Priv, Pub);
     if not Result then Exit;
 
-    if CnSM2SignData(U, @M[1], Length(M), Sig, Priv, Pub, nil, '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
+    // SM2 去除 RandHex 参数后已无法控制外部随机数，'59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21'
+    if CnSM2SignData(U, @M[1], Length(M), Sig, Priv, Pub, nil) then
     begin
-      Result := Sig.ToHex() = 'F5A03B0648D2C4630EEAC513E1BB81A15944DA3827D5B74143AC7EACEEE720B3' +
-        'B1B6AA29DF212FD8763182BC0D421CA1BB9038FD1F7F42D4840B69C485BBC1AA';
-
-      if not Result then Exit;
+      // 故不比对签名原文，仅验证签名
+//      Result := Sig.ToHex() = 'F5A03B0648D2C4630EEAC513E1BB81A15944DA3827D5B74143AC7EACEEE720B3' +
+//        'B1B6AA29DF212FD8763182BC0D421CA1BB9038FD1F7F42D4840B69C485BBC1AA';
+//
+//      if not Result then Exit;
 
       Result := CnSM2VerifyData(U, @M[1], Length(M), Sig, Pub);
     end;
@@ -15809,7 +15811,7 @@ end;
 
 function TestSM22: Boolean;
 var
-  M: AnsiString;
+  M, S: AnsiString;
   Priv: TCnSM2PrivateKey;
   Pub: TCnSM2PublicKey;
   EnStream, DeStream: TMemoryStream;
@@ -15832,14 +15834,17 @@ begin
     Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
 
     Result := False;
-    if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
-      '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
+    // SM2 去除 RandHex 参数后已无法控制外部随机数，'59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21'
+    if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True) then
     begin
-      Result := DataToHex(EnStream.Memory, EnStream.Size) = '04' +
-        '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
-        'E858F9D81E5430A57B36DAAB8F950A3C64E6EE6A63094D99283AFF767E124DF0' +
-        '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
-        '21886CA989CA9C7D58087307CA93092D651EFA';
+      // 故不比对密文原文，仅验证长度及解密
+      S := DataToHex(EnStream.Memory, EnStream.Size);
+      Result := (Length(S) = 232) and (Copy(S, 1, 2) = '04');
+//      Result := DataToHex(EnStream.Memory, EnStream.Size) = '04' +
+//        '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
+//        'E858F9D81E5430A57B36DAAB8F950A3C64E6EE6A63094D99283AFF767E124DF0' +
+//        '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
+//        '21886CA989CA9C7D58087307CA93092D651EFA';
 
       if not Result then Exit;
 
@@ -15850,13 +15855,16 @@ begin
       if not Result then Exit;
 
       EnStream.Clear;
-      if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
-        '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21', True) then
+      // SM2 去除 RandHex 参数后已无法控制外部随机数，'59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21'
+      if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True, True) then
       begin
-        Result := DataToHex(EnStream.Memory, EnStream.Size) = '02' +
-          '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
-          '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
-          '21886CA989CA9C7D58087307CA93092D651EFA';
+        // 故不比对密文原文，仅验证长度及解密
+        S := DataToHex(EnStream.Memory, EnStream.Size);
+        Result := (Length(S) = 168) and ((Copy(S, 1, 2) = '02') or (Copy(S, 1, 2) = '03'));
+//        Result := DataToHex(EnStream.Memory, EnStream.Size) = '02' +
+//          '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
+//          '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
+//          '21886CA989CA9C7D58087307CA93092D651EFA';
 
         if not Result then Exit;
 
@@ -15871,9 +15879,9 @@ begin
 
         EnStream.Clear;
         if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
-          '2', True) then
+          True) then
         begin
-          Result := (EnStream.Size > 0) and (PByte(EnStream.Memory)^ = $03);
+          Result := (EnStream.Size > 0) and ((PByte(EnStream.Memory)^ = $02) or (PByte(EnStream.Memory)^ = $03));
           if not Result then Exit;
 
           FreeAndNil(DeStream);
