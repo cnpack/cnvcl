@@ -3216,6 +3216,25 @@ function BigNumberPolynomialGaloisPower(Res: TCnBigNumberPolynomial;
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function BigNumberPolynomialGaloisPowerWindowed(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
+  Primitive: TCnBigNumberPolynomial = nil): Boolean;
+{* 使用窗口化乘法优化的一元多项式 Galois 幂运算。指数位数高于
+   CN_POLY_GALOIS_WINDOW_MIN_BITS 时按 MSB 滑动窗口预计算小表，
+   每次计算 2^w-2 次乘法，减少平方后的乘法次数。
+   指数小于等于该阈值时内部直接委托给 BigNumberPolynomialGaloisPower。
+   Res 可用于结果，P 为底数，Prime 为 Fp 模数，Primitive 为模多项式。
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
+     P: TCnBigNumberPolynomial            - 底数
+     Exponent: Cardinal                   - 指数
+     Prime: TCnBigNumber                  - 有限域上界
+     Primitive: TCnBigNumberPolynomial    - 本原多项式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
 function BigNumberPolynomialGaloisPowerBarrett(Res: TCnBigNumberPolynomial;
   P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
   Modulus: TCnBigNumberPolynomial): Boolean;
@@ -10395,6 +10414,105 @@ begin
   Result := BigNumberPolynomialGaloisDiv(nil, Res, P, Divisor, Prime, Primitive, ErrMulFactor);
 end;
 
+const
+  CN_POLY_GALOIS_WINDOW_MIN_BITS = 23;
+
+function PolyGaloisWindowBit(B: Integer): Integer;
+begin
+  if B > 671 then
+    Result := 6
+  else if B > 239 then
+    Result := 5
+  else if B > 79 then
+    Result := 4
+  else
+    Result := 3;
+end;
+
+function BigNumberPolynomialGaloisPowerWindowed(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Exponent: TCnBigNumber;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial): Boolean;
+var
+  I, J, Bits, WStart, WEnd, Window, WValue, Start: Integer;
+  D: TCnBigNumberPolynomial;
+  Val: array[0..31] of TCnBigNumberPolynomial;
+begin
+  Bits := BigNumberGetBitsCount(Exponent);
+  if Bits <= CN_POLY_GALOIS_WINDOW_MIN_BITS then
+  begin
+    Result := BigNumberPolynomialGaloisPower(Res, P, Exponent, Prime, Primitive);
+    Exit;
+  end;
+
+  D := nil;
+  for I := Low(Val) to High(Val) do
+    Val[I] := nil;
+
+  try
+    Val[0] := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialCopy(Val[0], P);
+
+    Window := PolyGaloisWindowBit(Bits);
+    if Window > 1 then
+    begin
+      D := FLocalBigNumberPolynomialPool.Obtain;
+      BigNumberPolynomialGaloisMul(D, Val[0], Val[0], Prime, Primitive);
+      J := 1 shl (Window - 1);
+      for I := 1 to J - 1 do
+      begin
+        Val[I] := FLocalBigNumberPolynomialPool.Obtain;
+        BigNumberPolynomialGaloisMul(Val[I], Val[I - 1], D, Prime, Primitive);
+      end;
+    end;
+
+    Res.SetOne;
+    Start := 1;
+    WStart := Bits - 1;
+    while True do
+    begin
+      if not BigNumberIsBitSet(Exponent, WStart) then
+      begin
+        if Start = 0 then
+          BigNumberPolynomialGaloisMul(Res, Res, Res, Prime, Primitive);
+        if WStart = 0 then
+          Break;
+        Dec(WStart);
+        Continue;
+      end;
+
+      WValue := 1;
+      WEnd := 0;
+      for I := 1 to Window - 1 do
+      begin
+        if WStart - I < 0 then
+          Break;
+        if BigNumberIsBitSet(Exponent, WStart - I) then
+        begin
+          WValue := WValue shl (I - WEnd);
+          WValue := WValue or 1;
+          WEnd := I;
+        end;
+      end;
+
+      J := WEnd + 1;
+      if Start = 0 then
+        for I := 0 to J - 1 do
+          BigNumberPolynomialGaloisMul(Res, Res, Res, Prime, Primitive);
+
+      BigNumberPolynomialGaloisMul(Res, Res, Val[WValue shr 1], Prime, Primitive);
+      WStart := WStart - WEnd - 1;
+      Start := 0;
+      if WStart < 0 then
+        Break;
+    end;
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(D);
+    for I := Low(Val) to High(Val) do
+      FLocalBigNumberPolynomialPool.Recycle(Val[I]);
+  end;
+end;
+
 function BigNumberPolynomialGaloisPower(Res: TCnBigNumberPolynomial;
   P: TCnBigNumberPolynomial; Exponent: TCnBigNumber;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial): Boolean;
@@ -10417,6 +10535,12 @@ begin
   end
   else if Exponent.IsNegative then
     raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent]);
+
+  if BigNumberGetBitsCount(Exponent) > CN_POLY_GALOIS_WINDOW_MIN_BITS then
+  begin
+    Result := BigNumberPolynomialGaloisPowerWindowed(Res, P, Exponent, Prime, Primitive);
+    Exit;
+  end;
 
   T := FLocalBigNumberPolynomialPool.Obtain;
   BigNumberPolynomialCopy(T, P);
@@ -10539,10 +10663,13 @@ function BigNumberPolynomialGaloisPowerBarrett(Res: TCnBigNumberPolynomial;
   P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
   Modulus: TCnBigNumberPolynomial): Boolean;
 var
-  N, I, J: Integer;
+  N, I, J, K: Integer;
+  Bits, Window, WStart, WEnd, WValue, Start: Integer;
   E: TCnBigNumber;
   X2N, Mu, Q1, Q2, TempMul, TempSub: TCnBigNumberPolynomial;
   Base, Acc, Prod, Reduced: TCnBigNumberPolynomial;
+  D: TCnBigNumberPolynomial;
+  Val: array[0..31] of TCnBigNumberPolynomial;
   UseBarrett: Boolean;
 begin
   Result := False;
@@ -10601,48 +10728,179 @@ begin
     Prod := FLocalBigNumberPolynomialPool.Obtain;
     Reduced := FLocalBigNumberPolynomialPool.Obtain;
 
-    while not E.IsZero do
+    Bits := BigNumberGetBitsCount(E);
+    if (Bits > CN_POLY_GALOIS_WINDOW_MIN_BITS) and (not Exponent.IsNegative) then
     begin
-      if BigNumberIsBitSet(E, 0) then
+      D := nil;
+      for I := Low(Val) to High(Val) do
+        Val[I] := nil;
+      try
+        // Val[0] = Base??Val[I] = Base^(2I+1) mod f??I >= 1??
+        Val[0] := FLocalBigNumberPolynomialPool.Obtain;
+        BigNumberPolynomialCopy(Val[0], Base);
+
+        Window := PolyGaloisWindowBit(Bits);
+        if Window > 1 then
+        begin
+          D := FLocalBigNumberPolynomialPool.Obtain;
+          BigNumberPolynomialMulKaratsuba(Prod, Base, Base);
+          for K := 0 to Prod.MaxDegree do
+            BigNumberNonNegativeMod(Prod[K], Prod[K], Prime);
+          Prod.CorrectTop;
+          if UseBarrett and (Prod.MaxDegree >= N) then
+            PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+          else if Prod.MaxDegree >= N then
+            BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+          else
+            BigNumberPolynomialCopy(Reduced, Prod);
+          BigNumberPolynomialCopy(D, Reduced);
+
+          J := 1 shl (Window - 1);
+          for I := 1 to J - 1 do
+          begin
+            Val[I] := FLocalBigNumberPolynomialPool.Obtain;
+            BigNumberPolynomialMulKaratsuba(Prod, Val[I - 1], D);
+            for K := 0 to Prod.MaxDegree do
+              BigNumberNonNegativeMod(Prod[K], Prod[K], Prime);
+            Prod.CorrectTop;
+            if UseBarrett and (Prod.MaxDegree >= N) then
+              PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+            else if Prod.MaxDegree >= N then
+              BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+            else
+              BigNumberPolynomialCopy(Reduced, Prod);
+            BigNumberPolynomialCopy(Val[I], Reduced);
+          end;
+        end;
+
+        Start := 1;
+        WStart := Bits - 1;
+        while True do
+        begin
+          if not BigNumberIsBitSet(E, WStart) then
+          begin
+            if Start = 0 then
+            begin
+              BigNumberPolynomialMulKaratsuba(Prod, Acc, Acc);
+              for K := 0 to Prod.MaxDegree do
+                BigNumberNonNegativeMod(Prod[K], Prod[K], Prime);
+              Prod.CorrectTop;
+              if UseBarrett and (Prod.MaxDegree >= N) then
+                PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+              else if Prod.MaxDegree >= N then
+                BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+              else
+                BigNumberPolynomialCopy(Reduced, Prod);
+              BigNumberPolynomialCopy(Acc, Reduced);
+            end;
+            if WStart = 0 then
+              Break;
+            Dec(WStart);
+            Continue;
+          end;
+
+          WValue := 1;
+          WEnd := 0;
+          for I := 1 to Window - 1 do
+          begin
+            if WStart - I < 0 then
+              Break;
+            if BigNumberIsBitSet(E, WStart - I) then
+            begin
+              WValue := WValue shl (I - WEnd);
+              WValue := WValue or 1;
+              WEnd := I;
+            end;
+          end;
+
+          J := WEnd + 1;
+          if Start = 0 then
+            for I := 0 to J - 1 do
+            begin
+              BigNumberPolynomialMulKaratsuba(Prod, Acc, Acc);
+              for K := 0 to Prod.MaxDegree do
+                BigNumberNonNegativeMod(Prod[K], Prod[K], Prime);
+              Prod.CorrectTop;
+              if UseBarrett and (Prod.MaxDegree >= N) then
+                PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+              else if Prod.MaxDegree >= N then
+                BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+              else
+                BigNumberPolynomialCopy(Reduced, Prod);
+              BigNumberPolynomialCopy(Acc, Reduced);
+            end;
+
+          BigNumberPolynomialMulKaratsuba(Prod, Acc, Val[WValue shr 1]);
+          for K := 0 to Prod.MaxDegree do
+            BigNumberNonNegativeMod(Prod[K], Prod[K], Prime);
+          Prod.CorrectTop;
+          if UseBarrett and (Prod.MaxDegree >= N) then
+            PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+          else if Prod.MaxDegree >= N then
+            BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+          else
+            BigNumberPolynomialCopy(Reduced, Prod);
+          BigNumberPolynomialCopy(Acc, Reduced);
+
+          WStart := WStart - WEnd - 1;
+          Start := 0;
+          if WStart < 0 then
+            Break;
+        end;
+
+        BigNumberPolynomialCopy(Res, Acc);
+        Result := True;
+      finally
+        FLocalBigNumberPolynomialPool.Recycle(D);
+        for I := Low(Val) to High(Val) do
+          FLocalBigNumberPolynomialPool.Recycle(Val[I]);
+      end;
+    end
+    else
+    begin
+      while not E.IsZero do
       begin
-        // Acc = Acc * Base mod Modulus
-        BigNumberPolynomialMulKaratsuba(Prod, Acc, Base);
-        for J := 0 to Prod.MaxDegree do
-          BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
-        Prod.CorrectTop;
+        if BigNumberIsBitSet(E, 0) then
+        begin
+          // Acc = Acc * Base mod Modulus
+          BigNumberPolynomialMulKaratsuba(Prod, Acc, Base);
+          for J := 0 to Prod.MaxDegree do
+            BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
+          Prod.CorrectTop;
 
-        if UseBarrett and (Prod.MaxDegree >= N) then
-          PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
-        else if Prod.MaxDegree >= N then
-          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
-        else
-          BigNumberPolynomialCopy(Reduced, Prod);
+          if UseBarrett and (Prod.MaxDegree >= N) then
+            PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+          else if Prod.MaxDegree >= N then
+            BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+          else
+            BigNumberPolynomialCopy(Reduced, Prod);
 
-        BigNumberPolynomialCopy(Acc, Reduced);
+          BigNumberPolynomialCopy(Acc, Reduced);
+        end;
+
+        BigNumberShiftRightOne(E, E);
+        if not E.IsZero then
+        begin
+          // Base = Base * Base mod Modulus
+          BigNumberPolynomialMulKaratsuba(Prod, Base, Base);
+          for J := 0 to Prod.MaxDegree do
+            BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
+          Prod.CorrectTop;
+
+          if UseBarrett and (Prod.MaxDegree >= N) then
+            PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
+          else if Prod.MaxDegree >= N then
+            BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
+          else
+            BigNumberPolynomialCopy(Reduced, Prod);
+
+          BigNumberPolynomialCopy(Base, Reduced);
+        end;
       end;
 
-      BigNumberShiftRightOne(E, E);
-      if not E.IsZero then
-      begin
-        // Base = Base * Base mod Modulus
-        BigNumberPolynomialMulKaratsuba(Prod, Base, Base);
-        for J := 0 to Prod.MaxDegree do
-          BigNumberNonNegativeMod(Prod[J], Prod[J], Prime);
-        Prod.CorrectTop;
-
-        if UseBarrett and (Prod.MaxDegree >= N) then
-          PolyBarrettReduce(Reduced, Prod, Modulus, Mu, Prime, Q1, Q2, TempMul, TempSub)
-        else if Prod.MaxDegree >= N then
-          BigNumberPolynomialGaloisMod(Reduced, Prod, Modulus, Prime)
-        else
-          BigNumberPolynomialCopy(Reduced, Prod);
-
-        BigNumberPolynomialCopy(Base, Reduced);
-      end;
+      BigNumberPolynomialCopy(Res, Acc);
+      Result := True;
     end;
-
-    BigNumberPolynomialCopy(Res, Acc);
-    Result := True;
   finally
     FLocalBigNumberPolynomialPool.Recycle(Reduced);
     FLocalBigNumberPolynomialPool.Recycle(Prod);
