@@ -21,12 +21,14 @@ program SeaOrder;
 // executable's directory, avoiding expensive on-the-fly computation.
 // If a file is missing, it falls back to generation.
 //
-// Compile (macOS FPC):
-//   fpc -Mdelphi -Scghi -O2 \
+// Compile (macOS FPC, x86_64; 224-bit curves benefit from -O4/-CpCOREAVX2):
+//   fpc -Mdelphi -Scghi -O4 -CpCOREAVX2 \
 //     -Fu../../../Source/Common -Fu../../../Source/Crypto \
 //     -Fi../../../Source/Common -Fi../../../Source/Crypto \
 //     -XR/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk \
 //     -FE. SeaOrder.lpr
+//   (use -O2 without -CpCOREAVX2 on non-AVX2 CPUs; check SDK path with
+//    `xcodebuild -showsdks` -- see AGENTS.md section 8.2)
 // ==================================================================
 
 uses
@@ -155,7 +157,7 @@ begin
             else
             begin
               PhiL.Free;
-              // Parse failed — regenerate
+              // Parse failed - regenerate
               T1 := Now;
               PhiL := TCnBigNumberBiPolynomial.Create;
               if CnGenerateClassicalModularPolynomial(PhiL, L) then
@@ -172,7 +174,7 @@ begin
           end
           else
           begin
-            // File not found — regenerate
+            // File not found - regenerate
             WriteLn(Format('    [Generating] Phi_%d (file not found, may take a while...)', [L]));
             Flush(Output);
             T1 := Now;
@@ -375,6 +377,34 @@ begin
     WriteLn('(decimal if all digits, hex if 0x-prefixed or non-digit chars)');
     RunSEA(AStr, BStr, PStr, 'Custom Curve', False);
   end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '48bit') then
+  begin
+    // 48-bit CM curve: p = 16777213^2 + 38^2, a=1, b=0
+    WriteLn('Running 48-bit CM curve test...');
+    RunSEA('1', '0', 'FFFFFA0005AD',
+      '48-bit CM: y^2 = x^3 + x, p = 16777213^2 + 38^2', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '64bit') then
+  begin
+    // 64-bit CM curve: p = 3037000503^2 + 88^2, a=1, b=0
+    WriteLn('Running 64-bit CM curve test...');
+    RunSEA('1', '0', '8000000446C99411',
+      '64-bit CM: y^2 = x^3 + x, p = 3037000503^2 + 88^2', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '72bit') then
+  begin
+    // 72-bit CM curve: p = 55000000000^2 + 21^2, a=1, b=0
+    WriteLn('Running 72-bit CM curve test...');
+    RunSEA('1', '0', 'A3FC4EE0DCF4A401B9',
+      '72-bit CM: y^2 = x^3 + x, p = 55000000000^2 + 21^2', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '96bit') then
+  begin
+    // 96-bit CM curve: p = 200000000000000^2 + 3^2, a=1, b=0
+    WriteLn('Running 96-bit CM curve test...');
+    RunSEA('1', '0', '813F3978F894098440000009',
+      '96-bit CM: y^2 = x^3 + x, p = 200000000000000^2 + 3^2', True);
+  end
   else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '112bit') then
   begin
     // secp112r1 parameters
@@ -449,7 +479,7 @@ begin
     WriteLn('Usage: SeaOrder <A> <B> <P>');
     WriteLn('  A, B: Weierstrass coefficients (decimal or hex string)');
     WriteLn('  P:    field prime (decimal or hex string)');
-    WriteLn('  Special: SeaOrder 112bit / 128bit / 160bit / 192bit / 224bit  for secp curves');
+    WriteLn('  Special: SeaOrder 48bit / 64bit / 72bit / 96bit / 112bit / 128bit / 160bit / 192bit / 224bit  for standard curves');
     WriteLn;
 
     // 48-bit CM curve: p = 16777213^2 + 38^2, a=1, b=0
