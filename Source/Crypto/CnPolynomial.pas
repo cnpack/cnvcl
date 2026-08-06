@@ -5788,10 +5788,12 @@ resourcestring
   SCnErrorPolynomialGaloisInvalidDegree = 'Galois Division Polynomial Invalid Degree';
 
 const
-  CN_POLYMUL_KARATSUBA_THRESHOLD = 16;
+  CN_POLYMUL_KARATSUBA_TRIGGER_THRESHOLD = 64;
+  CN_POLYMUL_KARATSUBA_BASE_THRESHOLD = 1024;
   {* 有限域上多项式乘法的 Karatsuba 阈值。
-     当两个操作数的次数都大于或等于该值时，将使用 Karatsuba 算法
-     而不是传统的教科书乘法。该阈值在乘法计算量的节省
+     当两个操作数的次数都大于或等于 TRIGGER 值时，将使用 Karatsuba 算法
+     而不是传统的教科书乘法。当次数有一个小于 BASE 值时使用教科书乘法。
+     该两个阈值在乘法计算量的节省
      与拆分、加法以及递归调用的额外开销之间应该能取得平衡。}
 
 var
@@ -10107,7 +10109,7 @@ begin
   N2 := P2.MaxDegree;
 
   // 小次数恢复到传统乘法
-  if (N1 < CN_POLYMUL_KARATSUBA_THRESHOLD) or (N2 < CN_POLYMUL_KARATSUBA_THRESHOLD) then
+  if (N1 < CN_POLYMUL_KARATSUBA_BASE_THRESHOLD) or (N2 < CN_POLYMUL_KARATSUBA_BASE_THRESHOLD) then
   begin
     T := FLocalBigNumberPool.Obtain;
     try
@@ -10252,9 +10254,9 @@ begin
   else
     R := Res;
 
-  // 判断，大的才使用 Karatsuba 算法，小的用教科书上的传统乘法
-  if (P1.MaxDegree >= CN_POLYMUL_KARATSUBA_THRESHOLD) and
-     (P2.MaxDegree >= CN_POLYMUL_KARATSUBA_THRESHOLD) then
+  // 判断，两个足够大的才使用 Karatsuba 算法，小的用教科书上的传统乘法
+  if (P1.MaxDegree >= CN_POLYMUL_KARATSUBA_TRIGGER_THRESHOLD) and
+     (P2.MaxDegree >= CN_POLYMUL_KARATSUBA_TRIGGER_THRESHOLD) then
   begin
     // Karatsuba 乘法，内部不带求余
     BigNumberPolynomialMulKaratsuba(R, P1, P2);
@@ -10677,7 +10679,7 @@ begin
   if Modulus.MaxDegree < 1 then Exit;
 
   N := Modulus.MaxDegree;
-  UseBarrett := (N >= CN_POLYMUL_KARATSUBA_THRESHOLD);
+  UseBarrett := (N >= CN_POLYMUL_KARATSUBA_TRIGGER_THRESHOLD);
 
   E := nil; Mu := nil; X2N := nil; Q1 := nil; Q2 := nil;
   TempMul := nil; TempSub := nil;
