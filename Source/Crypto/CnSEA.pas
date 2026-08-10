@@ -24,14 +24,14 @@ unit CnSEA;
 * 软件名称：CnPack 组件包
 * 单元名称：Schoof-Elkies-Atkin 算法与模多项式相关计算
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：目前在模多项式系数预存为文件的情况下，能在一两个小时里算出 secp128r1，
-*           五个半小时算出 secp160r1 正确，十六小时算出 secp192r1 正确，
-*           八十小时左右算出 secp224r1 错了。
+* 备    注：目前在模多项式系数预存为文件的情况下，能在十多分钟内正确算出 secp128r1，
+*           三个半小时多正确算出 secp160r1，三个半小时多正确算出 secp192r1，
+*           但 secp224r1 尚未验证。
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
 * 修改记录：2026.07.30 V1.5
-*               不断优化，能算完 224 位素数域上的椭圆曲线的阶但算错了
+*               不断优化，能算完 224 位素数域上的椭圆曲线的阶但未验证
 *           2026.07.23 V1.4
 *               不断优化，能准确算出 192 位素数域上的椭圆曲线的阶了
 *           2026.07.15 V1.3
@@ -75,6 +75,12 @@ function CnSeaAtkinPossibleTraces(Traces: TCnInt64List;
   L: Integer; A, B, P: TCnBigNumber;
   PhiL: TCnBigNumberBiPolynomial = nil; J: TCnBigNumber = nil): Boolean;
 {* 计算 Atkin 素数 L 的所有可能 t mod L 值集合。}
+
+function CnSeaCombineElkiesAtkin(Res: TCnBigNumber;
+  ElkiesTraces, ElkiesModuli: TCnInt64List;
+  AtkinInfos: TObjectList;
+  A, B, P: TCnBigNumber): Boolean;
+{* 组合 Elkies 素数和 Atkin 素的计算结果。}
 
 function CnGenerateClassicalModularPolynomial(Res: TCnBigNumberBiPolynomial; L: Integer): Boolean;
 {* 计算并返回正整数 L 的经典模多项式 Phi_L(X, Y)，L 是素数时初步符合以下网址的结果。
@@ -237,8 +243,14 @@ begin
 end;
 
 procedure _SeaT(const Fmt: string; const Args: array of const);
+var
+  S, H, M, Sec: Int64;
 begin
-  WriteLn(Format('[%d] ', [_SeaMs]) + Format(Fmt, Args));
+  S := _SeaMs div 1000;
+  H := S div 3600;
+  M := (S mod 3600) div 60;
+  Sec := S mod 60;
+  WriteLn(Format('[%d - %2.2d:%2.2d:%2.2d] ', [_SeaMs, H, M, Sec]) + Format(Fmt, Args));
 end;
 
 {$ENDIF}
@@ -2139,16 +2151,19 @@ end;
 // 通过检查 E/F_p 上一点 P 满足 [p+1-t]P = O 来验证候选迹 t
 function SeaVerifyTrace(A, B, P, T: TCnBigNumber): Boolean;
 var
-  N, X, Y2, Y, RX, RY, SX, SY, Lam, T1, T2, T3: TCnBigNumber;
-  Inf: Boolean;
+  N, X, Y2, Y: TCnBigNumber;
+  RX, RY, RZ, SX, SY, SZ: TCnBigNumber;
+  D1, D2, D3, D4, D5, D6, D7, D8, D9: TCnBigNumber;
   I, Bits: Integer;
   StartX: Int64;
   PointCount: Integer;
 begin
   Result := False;
   N := nil; X := nil; Y2 := nil; Y := nil;
-  RX := nil; RY := nil; SX := nil; SY := nil;
-  Lam := nil; T1 := nil; T2 := nil; T3 := nil;
+  RX := nil; RY := nil; RZ := nil; SX := nil; SY := nil; SZ := nil;
+  D1 := nil; D2 := nil; D3 := nil; D4 := nil;
+  D5 := nil; D6 := nil; D7 := nil; D8 := nil; D9 := nil;
+
   try
     N := FSeaBigNumberPool.Obtain;
     X := FSeaBigNumberPool.Obtain;
@@ -2156,12 +2171,19 @@ begin
     Y := FSeaBigNumberPool.Obtain;
     RX := FSeaBigNumberPool.Obtain;
     RY := FSeaBigNumberPool.Obtain;
+    RZ := FSeaBigNumberPool.Obtain;
     SX := FSeaBigNumberPool.Obtain;
     SY := FSeaBigNumberPool.Obtain;
-    Lam := FSeaBigNumberPool.Obtain;
-    T1 := FSeaBigNumberPool.Obtain;
-    T2 := FSeaBigNumberPool.Obtain;
-    T3 := FSeaBigNumberPool.Obtain;
+    SZ := FSeaBigNumberPool.Obtain;
+    D1 := FSeaBigNumberPool.Obtain;
+    D2 := FSeaBigNumberPool.Obtain;
+    D3 := FSeaBigNumberPool.Obtain;
+    D4 := FSeaBigNumberPool.Obtain;
+    D5 := FSeaBigNumberPool.Obtain;
+    D6 := FSeaBigNumberPool.Obtain;
+    D7 := FSeaBigNumberPool.Obtain;
+    D8 := FSeaBigNumberPool.Obtain;
+    D9 := FSeaBigNumberPool.Obtain;
 
     // N = |p + 1 - t|
     BigNumberSub(N, P, T);
@@ -2182,16 +2204,11 @@ begin
         Exit; // Ran out of x values
 
       // y^2 = x^3 + Ax + B mod p
-      BigNumberMul(Y2, X, X);
-      BigNumberNonNegativeMod(Y2, Y2, P);
-      BigNumberMul(Y2, Y2, X);
-      BigNumberNonNegativeMod(Y2, Y2, P);
-      BigNumberMul(T1, A, X);
-      BigNumberNonNegativeMod(T1, T1, P);
-      BigNumberAdd(Y2, Y2, T1);
-      BigNumberNonNegativeMod(Y2, Y2, P);
-      BigNumberAdd(Y2, Y2, B);
-      BigNumberNonNegativeMod(Y2, Y2, P);
+      BigNumberDirectMulMod(Y2, X, X, P);
+      BigNumberDirectMulMod(Y2, Y2, X, P);
+      BigNumberDirectMulMod(D1, A, X, P);
+      BigNumberAddMod(Y2, Y2, D1, P);
+      BigNumberAddMod(Y2, Y2, B, P);
 
       Inc(StartX);
       if Y2.IsZero then
@@ -2201,167 +2218,106 @@ begin
       end;
 
       // 通过欧拉准则检查是否为二次剩余
-      BigNumberCopy(T1, P);
-      T1.SubWord(1);
-      BigNumberShiftRightOne(T1, T1);
-      BigNumberPowerMod(T2, Y2, T1, P);
-      if not T2.IsOne then
+      BigNumberCopy(D1, P);
+      D1.SubWord(1);
+      BigNumberShiftRightOne(D1, D1);
+      BigNumberPowerMod(D2, Y2, D1, P);
+      if not D2.IsOne then
         Continue; // 不是二次剩余，此 x 坐标无对应点
 
       if not BigNumberTonelliShanks(Y, Y2, P) then
         Continue;
 
+      // S = (X : Y : 1) in Jacobian coordinates
       BigNumberCopy(SX, X);
       BigNumberCopy(SY, Y);
+      SZ.SetWord(1);
       Inc(PointCount);
       {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT] Point #%d: (%s, %s)', [PointCount, SX.ToDec, SY.ToDec])); {$ENDIF}
       // 使用倍加算法（MSB 到 LSB）计算 [N]P
-      Inf := True;
+      RZ.SetZero; // R = O, Z = 0
       Bits := BigNumberGetBitsCount(N);
 
       for I := Bits - 1 downto 0 do
       begin
-        if not Inf then
+        if not RZ.IsZero then
         begin
-          // R = 2*R (point doubling)
-          // lambda = (3*RX^2 + A) / (2*RY) mod p
-          BigNumberMul(T1, RX, RX);
-          BigNumberNonNegativeMod(T1, T1, P);
-          BigNumberMulWord(T1, 3);
-          BigNumberNonNegativeMod(T1, T1, P);
-          BigNumberAdd(T1, T1, A);
-          BigNumberNonNegativeMod(T1, T1, P);
-
-          BigNumberSetWord(T2, 2);
-          BigNumberMul(T2, T2, RY);
-          BigNumberNonNegativeMod(T2, T2, P);
-          if T2.IsZero then
-          begin
-            Inf := True;
-          end
-          else
-          begin
-            BigNumberModularInverse(T3, T2, P);
-            BigNumberMul(Lam, T1, T3);
-            BigNumberNonNegativeMod(Lam, Lam, P);
-
-            BigNumberMul(T1, Lam, Lam);
-            BigNumberNonNegativeMod(T1, T1, P);
-            BigNumberSetWord(T2, 2);
-            BigNumberMul(T2, T2, RX);
-            BigNumberNonNegativeMod(T2, T2, P);
-            BigNumberSub(T1, T1, T2);
-            BigNumberNonNegativeMod(T1, T1, P);
-
-            BigNumberSub(T2, RX, T1);
-            BigNumberNonNegativeMod(T2, T2, P);
-            BigNumberMul(T3, Lam, T2);
-            BigNumberNonNegativeMod(T3, T3, P);
-            BigNumberSub(T3, T3, RY);
-            BigNumberNonNegativeMod(T3, T3, P);
-
-            BigNumberCopy(RX, T1);
-            BigNumberCopy(RY, T3);
-          end;
+          BigNumberDirectMulMod(D1, RX, RX, P);           // D1 = XX
+          BigNumberDirectMulMod(D2, RY, RY, P);           // D2 = YY
+          BigNumberDirectMulMod(D3, D2, D2, P);           // D3 = YYYY
+          BigNumberDirectMulMod(D4, RZ, RZ, P);           // D4 = ZZ
+          BigNumberAddMod(D5, RX, D2, P);                 // X + YY
+          BigNumberDirectMulMod(D5, D5, D5, P);           // (X+YY)^2
+          BigNumberSubMod(D5, D5, D1, P);                 // - XX
+          BigNumberSubMod(D5, D5, D3, P);                 // - YYYY
+          BigNumberAddMod(D5, D5, D5, P);                 // D5 = S
+          BigNumberDirectMulMod(D6, D4, D4, P);           // Z^4
+          BigNumberDirectMulMod(D6, D6, A, P);            // a*Z^4
+          BigNumberMulWordNonNegativeMod(D1, D1, 3, P);   // 3*XX
+          BigNumberAddMod(D6, D6, D1, P);                 // D6 = M
+          BigNumberAddMod(D7, RY, RZ, P);                 // Y + Z
+          BigNumberDirectMulMod(D7, D7, D7, P);           // (Y+Z)^2
+          BigNumberSubMod(D7, D7, D2, P);                 // - YY
+          BigNumberSubMod(D7, D7, D4, P);                 // D7 = Z3
+          BigNumberDirectMulMod(D8, D6, D6, P);           // M^2
+          BigNumberSubMod(D8, D8, D5, P);                 // M^2 - S
+          BigNumberSubMod(D8, D8, D5, P);                 // D8 = X3 = M^2 - 2*S
+          BigNumberSubMod(D9, D5, D8, P);                 // S - X3
+          BigNumberDirectMulMod(D9, D9, D6, P);           // M*(S-X3)
+          BigNumberMulWordNonNegativeMod(D3, D3, 8, P);   // 8*YYYY
+          BigNumberSubMod(D9, D9, D3, P);                 // D9 = Y3
+          BigNumberCopy(RX, D8);
+          BigNumberCopy(RY, D9);
+          BigNumberCopy(RZ, D7);
         end;
 
         if BigNumberIsBitSet(N, I) then
         begin
-          if Inf then
+          if RZ.IsZero then
           begin
             BigNumberCopy(RX, SX);
             BigNumberCopy(RY, SY);
-            Inf := False;
+            BigNumberCopy(RZ, SZ);
           end
           else
           begin
-            // R = R + S (point addition)
-            if BigNumberCompare(RX, SX) = 0 then
-            begin
-              if BigNumberCompare(RY, SY) = 0 then
-              begin
-                // R = S, so R + S = 2*R (point doubling)
-                // The doubling above was of R_old; now R = 2*R_old = S,
-                // so we need a NEW doubling to get R + S = 2S.
-                // lambda = (3*RX^2 + A) / (2*RY) mod p
-                BigNumberMul(T1, RX, RX);
-                BigNumberNonNegativeMod(T1, T1, P);
-                BigNumberMulWord(T1, 3);
-                BigNumberNonNegativeMod(T1, T1, P);
-                BigNumberAdd(T1, T1, A);
-                BigNumberNonNegativeMod(T1, T1, P);
-
-                BigNumberSetWord(T2, 2);
-                BigNumberMul(T2, T2, RY);
-                BigNumberNonNegativeMod(T2, T2, P);
-                if T2.IsZero then
-                  Inf := True
-                else
-                begin
-                  BigNumberModularInverse(T3, T2, P);
-                  BigNumberMul(Lam, T1, T3);
-                  BigNumberNonNegativeMod(Lam, Lam, P);
-
-                  BigNumberMul(T1, Lam, Lam);
-                  BigNumberNonNegativeMod(T1, T1, P);
-                  BigNumberSetWord(T2, 2);
-                  BigNumberMul(T2, T2, RX);
-                  BigNumberNonNegativeMod(T2, T2, P);
-                  BigNumberSub(T1, T1, T2);
-                  BigNumberNonNegativeMod(T1, T1, P);
-
-                  BigNumberSub(T2, RX, T1);
-                  BigNumberNonNegativeMod(T2, T2, P);
-                  BigNumberMul(T3, Lam, T2);
-                  BigNumberNonNegativeMod(T3, T3, P);
-                  BigNumberSub(T3, T3, RY);
-                  BigNumberNonNegativeMod(T3, T3, P);
-
-                  BigNumberCopy(RX, T1);
-                  BigNumberCopy(RY, T3);
-                end;
-                Continue;
-              end
-              else
-              begin
-                Inf := True; // R = -S
-                Continue;
-              end;
-            end;
-
-            // lambda = (SY - RY) / (SX - RX) mod p
-            BigNumberSub(T1, SY, RY);
-            BigNumberNonNegativeMod(T1, T1, P);
-            BigNumberSub(T2, SX, RX);
-            BigNumberNonNegativeMod(T2, T2, P);
-            BigNumberModularInverse(T3, T2, P);
-            BigNumberMul(Lam, T1, T3);
-            BigNumberNonNegativeMod(Lam, Lam, P);
-
-            BigNumberMul(T1, Lam, Lam);
-            BigNumberNonNegativeMod(T1, T1, P);
-            BigNumberSub(T1, T1, RX);
-            BigNumberNonNegativeMod(T1, T1, P);
-            BigNumberSub(T1, T1, SX);
-            BigNumberNonNegativeMod(T1, T1, P);
-
-            BigNumberSub(T2, RX, T1);
-            BigNumberNonNegativeMod(T2, T2, P);
-            BigNumberMul(T3, Lam, T2);
-            BigNumberNonNegativeMod(T3, T3, P);
-            BigNumberSub(T3, T3, RY);
-            BigNumberNonNegativeMod(T3, T3, P);
-
-            BigNumberCopy(RX, T1);
-            BigNumberCopy(RY, T3);
+            // R = R + S (Jacobian addition)
+            BigNumberDirectMulMod(D1, RZ, RZ, P);         // D1 = Z1^2
+            BigNumberDirectMulMod(D2, SX, D1, P);         // D2 = U2 = X2*Z1^2
+            BigNumberSubMod(D3, D2, RX, P);               // D3 = H = U2 - U1
+            BigNumberDirectMulMod(D4, RZ, D1, P);         // Z1^3
+            BigNumberDirectMulMod(D4, D4, SY, P);         // D4 = S2 = Y2*Z1^3
+            BigNumberSubMod(D5, D4, RY, P);               // S2 - S1
+            BigNumberAddMod(D5, D5, D5, P);               // D5 = r = 2*(S2-S1)
+            BigNumberAddMod(D6, D3, D3, P);               // 2*H
+            BigNumberDirectMulMod(D6, D6, D6, P);         // D6 = I = (2*H)^2
+            BigNumberDirectMulMod(D7, D6, D3, P);         // D7 = J = H^3
+            BigNumberDirectMulMod(D8, RX, D6, P);         // D8 = V = U1*I
+            BigNumberDirectMulMod(D9, D5, D5, P);         // r^2
+            BigNumberSubMod(D9, D9, D7, P);               // r^2 - J
+            BigNumberSubMod(D9, D9, D8, P);               // - V
+            BigNumberSubMod(D9, D9, D8, P);               // D9 = X3 = r^2 - J - 2*V
+            BigNumberSubMod(D6, D8, D9, P);               // V - X3
+            BigNumberDirectMulMod(D6, D6, D5, P);         // r*(V-X3)
+            BigNumberDirectMulMod(D7, D7, RY, P);         // S1*J
+            BigNumberAddMod(D7, D7, D7, P);               // 2*S1*J
+            BigNumberSubMod(D6, D6, D7, P);               // D6 = Y3
+            BigNumberAddMod(D4, RZ, SZ, P);               // Z1 + Z2
+            BigNumberDirectMulMod(D4, D4, D4, P);         // (Z1+Z2)^2
+            BigNumberSubMod(D4, D4, D1, P);               // - Z1^2
+            BigNumberSubMod(D4, D4, SZ, P);               // - Z2^2 (= 1)
+            BigNumberDirectMulMod(D4, D4, D3, P);         // D4 = Z3 = ((Z1+Z2)^2 - Z1^2 - Z2^2)*H
+            BigNumberCopy(RX, D9);
+            BigNumberCopy(RY, D6);
+            BigNumberCopy(RZ, D4);
           end;
         end;
       end;
 
       // 若任意点 [N]P != O，则拒绝此迹
-      if not Inf then
+      if not RZ.IsZero then
       begin
-        {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT]   [N]P != O, R=(%s,%s)', [RX.ToDec, RY.ToDec])); {$ENDIF}
+        {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT]   [N]P != O, R=(%s,%s,%s)', [RX.ToDec, RY.ToDec, RZ.ToDec])); {$ENDIF}
         Exit;
     end;
       {$IFDEF SEA_DEBUG} WriteLn('[DbgVT]   [N]P = O, pass.'); {$ENDIF}
@@ -2369,12 +2325,19 @@ begin
     // 所有点验证通过：对所有测试点 [N]P = O
     Result := PointCount > 0;
   finally
-    FSeaBigNumberPool.Recycle(T3);
-	FSeaBigNumberPool.Recycle(T2);
-	FSeaBigNumberPool.Recycle(T1);
-	FSeaBigNumberPool.Recycle(Lam);
+    FSeaBigNumberPool.Recycle(D9);
+    FSeaBigNumberPool.Recycle(D8);
+    FSeaBigNumberPool.Recycle(D7);
+    FSeaBigNumberPool.Recycle(D6);
+    FSeaBigNumberPool.Recycle(D5);
+    FSeaBigNumberPool.Recycle(D4);
+    FSeaBigNumberPool.Recycle(D3);
+    FSeaBigNumberPool.Recycle(D2);
+    FSeaBigNumberPool.Recycle(D1);
+    FSeaBigNumberPool.Recycle(SZ);
     FSeaBigNumberPool.Recycle(SY);
-	FSeaBigNumberPool.Recycle(SX);
+    FSeaBigNumberPool.Recycle(SX);
+    FSeaBigNumberPool.Recycle(RZ);
 	FSeaBigNumberPool.Recycle(RY);
 	FSeaBigNumberPool.Recycle(RX);
     FSeaBigNumberPool.Recycle(Y);
@@ -2383,11 +2346,6 @@ begin
 	FSeaBigNumberPool.Recycle(N);
   end;
 end;
-
-function CnSeaCombineElkiesAtkin(Res: TCnBigNumber;
-  ElkiesTraces, ElkiesModuli: TCnInt64List;
-  AtkinInfos: TObjectList;
-  A, B, P: TCnBigNumber): Boolean; forward;
 
 function CnSeaPointCount(Res, A, B, P: TCnBigNumber;
   ModPolys: TObjectList = nil): Boolean;
@@ -3742,7 +3700,9 @@ begin
             for I := 0 to BabyCnt - 1 do
             begin
               if not Survive[I] then Continue;
-              RmBm := (CRT_TModK + BabyMod1D[SelPrev + I]) mod RmLk;
+              RmBm := CRT_TModK + BabyMod1D[SelPrev + I];
+              if RmBm >= RmLk then
+                RmBm := RmBm - RmLk;
               if not RmLUT[RmTModL + RmBm] then
                 Survive[I] := False;
             end;
