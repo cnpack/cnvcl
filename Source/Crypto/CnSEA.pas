@@ -24,8 +24,8 @@ unit CnSEA;
 * 软件名称：CnPack 组件包
 * 单元名称：Schoof-Elkies-Atkin 算法与模多项式相关计算
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：目前在模多项式系数预存为文件的情况下，能在十多分钟内正确算出 secp128r1，
-*           三个半小时多正确算出 secp160r1，三个半小时多正确算出 secp192r1，
+* 备    注：目前在模多项式系数预存为文件的情况下，能在十分钟内正确算出 secp128r1，
+*           两个多小时多正确算出 secp160r1，两个半小时多正确算出 secp192r1，
 *           但 secp224r1 尚未验证。
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
@@ -976,7 +976,7 @@ begin
     begin
       Prime := SeaFindNextPrimeBelow(Candidate);
       if Prime = 0 then
-        raise Exception.Create('Cannot find enough primes for CRT');
+        raise Exception.Create('Cannot Find Enough Primes for CRT');
 
       // 跳过整除 1728 (= 2^6 * 3^3) 或 <= L+1 的素数
       if (Prime <= L + 1) or (Prime <= 1728) then
@@ -990,7 +990,7 @@ begin
       Candidate := Prime - 2;
 
       if Primes.Count > 500 then
-        raise Exception.Create('Too many primes needed, L may be too large');
+        raise Exception.Create('Too Many Primes Needed, L may be Too Large');
     end;
 
     // 对每个素数 p_i 计算 Phi_L mod p_i
@@ -2444,7 +2444,7 @@ begin
     // 已使用。CnSeaCombineElkiesAtkin 中的 SkipVerify 逻辑将处理
     // 过滤较弱的情况。
     if Pa.Count = 0 then
-      raise ECnEccException.Create('No primes available for SEA.');
+      raise ECnEccException.Create('No Primes Available for SEA.');
 
     // 验证外部 ModPolys：必须对 Pa 中每个素数 L >= 3 各有一个条目
     if ModPolys <> nil then
@@ -2455,8 +2455,8 @@ begin
           Inc(RequiredModPolyCount);
       if ModPolys.Count < RequiredModPolyCount then
         raise ECnEccException.CreateFmt(
-          'ModPolys has %d entries but SEA needs %d (primes 3..%d for this p). ' +
-          'Use CnSeaMaxRequiredPrimeL to determine the required L in advance.',
+          'ModPolys has %d Entries but SEA Needs %d (Primes 3..%d for this p). ' +
+          'Use CnSeaMaxRequiredPrimeL to Determine the Required L in Advance.',
           [ModPolys.Count, RequiredModPolyCount, Pa[Pa.Count - 1]]);
     end;
     // 准备 Y2 = x^3 + Ax + B

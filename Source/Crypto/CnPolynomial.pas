@@ -5788,13 +5788,12 @@ resourcestring
   SCnErrorPolynomialGaloisInvalidDegree = 'Galois Division Polynomial Invalid Degree';
 
 const
-  CN_POLYMUL_KARATSUBA_TRIGGER_THRESHOLD = 64;
-  CN_POLYMUL_KARATSUBA_BASE_THRESHOLD = 1024;
+  CN_POLYMUL_KARATSUBA_TRIGGER_THRESHOLD = 128;
+  CN_POLYMUL_KARATSUBA_BASE_THRESHOLD = 64;
   {* 有限域上多项式乘法的 Karatsuba 阈值。
      当两个操作数的次数都大于或等于 TRIGGER 值时，将使用 Karatsuba 算法
      而不是传统的教科书乘法。当次数有一个小于 BASE 值时使用教科书乘法。
-     该两个阈值在乘法计算量的节省
-     与拆分、加法以及递归调用的额外开销之间应该能取得平衡。}
+     该两个阈值在乘法计算量的节省与拆分、加法以及递归调用的额外开销之间应该能取得平衡。}
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
