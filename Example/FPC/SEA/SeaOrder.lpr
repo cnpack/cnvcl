@@ -475,7 +475,7 @@ begin
   end
   else
   begin
-    WriteLn('No parameters. Running built-in test cases (48/64/72/96/112/128-bit).');
+    WriteLn('No parameters. Running built-in test cases from 48-bit to 192-bit.');
     WriteLn('Usage: SeaOrder <A> <B> <P>');
     WriteLn('  A, B: Weierstrass coefficients (decimal or hex string)');
     WriteLn('  P:    field prime (decimal or hex string)');
@@ -497,6 +497,33 @@ begin
     // 96-bit CM curve: p = 200000000000000^2 + 3^2, a=1, b=0
     RunSEA('1', '0', '813F3978F894098440000009',
       '96-bit CM: y^2 = x^3 + x, p = 200000000000000^2 + 3^2', True);
+
+    // secp112r1
+    RunSEA('DB7C2ABF62E35E668076BEAD2088',
+           '659EF8BA043916EEDE8911702B22',
+           'DB7C2ABF62E35E668076BEAD208B',
+           '112-bit secp112r1', True);
+
+    // secp128r1
+    WriteLn('NOTE: 128-bit may take a long time.');
+    RunSEA('FFFFFFFDFFFFFFFFFFFFFFFFFFFFFFFC',
+           'E87579C11079F43DD824993C2CEE5ED3',
+           'FFFFFFFDFFFFFFFFFFFFFFFFFFFFFFFF',
+           '128-bit secp128r1', True);
+
+    // secp160r1
+    WriteLn('NOTE: 160-bit may take a long time.');
+    RunSEA('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7FFFFFFC',
+           '1C97BEFC54BD7A8B65ACF89F81D4D4ADC565FA45',
+           'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7FFFFFFF',
+           '160-bit secp160r1', True);
+
+    // secp192r1
+    WriteLn('NOTE: 192-bit may take a long time.');
+    RunSEA('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFC',
+           '64210519E59C80E70FA7E9AB72243049FEB8DEECC146B9B1',
+           'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF',
+           '192-bit secp192r1', True);
   end;
 
   WriteLn;

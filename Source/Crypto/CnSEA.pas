@@ -27,6 +27,11 @@ unit CnSEA;
 * 备    注：目前在模多项式系数预存为文件的情况下，能在十分钟内正确算出 secp128r1，
 *           两个多小时多正确算出 secp160r1，两个半小时多正确算出 secp192r1，
 *           但 secp224r1 尚未验证。
+*
+*           在MACOS 的 x64 的 fpc 编译时宜加上 -O4 -CpCOREAVX2 开关优化，可提速
+*           定义 SEA_TRACE 可打印中间步骤
+*           SEA_TRACE2 后期有更多打印，但略影响速度
+*
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
@@ -2194,7 +2199,7 @@ begin
     // 尝试多个点，避免小阶点引起的误报。
     // For a 48-bit prime, trying 3 points gives false-positive probability
     // < 1/2^48, which is sufficient.
-    {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT] T=%s N=%s', [T.ToDec, N.ToDec])); {$ENDIF}
+    {$IFDEF SEA_TRACE2} _SeaT(Format('[DbgVT] T=%s N=%s', [T.ToDec, N.ToDec])); {$ENDIF}
     PointCount := 0;
     StartX := 0;
     while (StartX < 10000) and (PointCount < 3) do
@@ -2233,7 +2238,7 @@ begin
       BigNumberCopy(SY, Y);
       SZ.SetWord(1);
       Inc(PointCount);
-      {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT] Point #%d: (%s, %s)', [PointCount, SX.ToDec, SY.ToDec])); {$ENDIF}
+      {$IFDEF SEA_TRACE2} _SeaT(Format('[DbgVT] Point #%d: (%s, %s)', [PointCount, SX.ToDec, SY.ToDec])); {$ENDIF}
       // 使用倍加算法（MSB 到 LSB）计算 [N]P
       RZ.SetZero; // R = O, Z = 0
       Bits := BigNumberGetBitsCount(N);
@@ -2317,10 +2322,10 @@ begin
       // 若任意点 [N]P != O，则拒绝此迹
       if not RZ.IsZero then
       begin
-        {$IFDEF SEA_DEBUG} WriteLn(Format('[DbgVT]   [N]P != O, R=(%s,%s,%s)', [RX.ToDec, RY.ToDec, RZ.ToDec])); {$ENDIF}
+        {$IFDEF SEA_TRACE2} _SeaT(Format('[DbgVT]   [N]P != O, R=(%s,%s,%s)', [RX.ToDec, RY.ToDec, RZ.ToDec])); {$ENDIF}
         Exit;
-    end;
-      {$IFDEF SEA_DEBUG} WriteLn('[DbgVT]   [N]P = O, pass.'); {$ENDIF}
+      end;
+      {$IFDEF SEA_TRACE2} _SeaT('[DbgVT]   [N]P = O, pass.'); {$ENDIF}
     end;
     // 所有点验证通过：对所有测试点 [N]P = O
     Result := PointCount > 0;
@@ -3423,7 +3428,7 @@ begin
       _SeaT('[Combine] BruteForce mode, N=%d', [N]);
     {$ENDIF}
 
-    {$IFDEF SEA_DEBUG} WriteLn(Format('[Dbg] T_E=%s M_E=%s QMax=%s N=%d UseBSGS=%d SkipVerify=%d', [T_E.ToDec, M_E.ToDec, QMax.ToDec, N, Ord(UseBSGS), Ord(SkipVerify)])); {$ENDIF}
+    {$IFDEF SEA_TRACE2} _SeaT(Format('[Dbg] T_E=%s M_E=%s QMax=%s N=%d UseBSGS=%d SkipVerify=%d', [T_E.ToDec, M_E.ToDec, QMax.ToDec, N, Ord(UseBSGS), Ord(SkipVerify)])); {$ENDIF}
     if not UseBSGS then
     begin
       // ---- Brute force search: t = t_E + k*M_E for k = -N..N ----
@@ -3456,7 +3461,7 @@ begin
 
         if Found then
         begin
-          {$IFDEF SEA_DEBUG} WriteLn(Format('[Dbg] Candidate K=%d T=%s', [K, T.ToDec])); {$ENDIF}
+          {$IFDEF SEA_TRACE2} _SeaT(Format('[Dbg] Candidate K=%d T=%s', [K, T.ToDec])); {$ENDIF}
           if SkipVerify then
           begin
             // Atkin 过滤足够强：这是唯一答案
@@ -3465,7 +3470,7 @@ begin
             Exit;
           end;
           Verified := SeaVerifyTrace(A, B, P, T);
-          {$IFDEF SEA_DEBUG} WriteLn(Format('[Dbg]   Verify=%d', [Ord(Verified)])); {$ENDIF}
+          {$IFDEF SEA_TRACE2} _SeaT(Format('[Dbg]   Verify=%d', [Ord(Verified)])); {$ENDIF}
           if Verified then
           begin
             BigNumberCopy(Res, T);
