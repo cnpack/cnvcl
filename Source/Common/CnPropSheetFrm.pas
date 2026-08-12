@@ -623,7 +623,7 @@ implementation
 {$R CnPropSheet.res}
 
 uses
-  CnDebug {$IFDEF ENABLE_FMX}, CnFmxUtils {$ENDIF};
+  CnDebug {$IFDEF ENABLE_FMX}, CnFmxUtils, CnVclFmxMixed {$ENDIF};
 
 const
   CN_TREE_TYPE_COMPONENT  = 0;
@@ -2845,6 +2845,12 @@ begin
     begin // 处理图像数据
       FGraphics.Graphic := ObjectInstance;
       Include(FContentTypes, pctGraphics);
+    end
+    else if CnFmxIsFmxBitmap(ObjectInstance) then
+    begin
+      // FMX 的位图
+      FGraphics.Graphic := ObjectInstance;
+      Include(FContentTypes, pctGraphics);
     end;
   end;
 
@@ -3608,6 +3614,11 @@ begin
           end;
         end;
       end;
+    end
+    else if CnFmxIsFmxBitmap(FGraphicObject) then
+    begin
+      // 把 FMX 的 TBitmap 绘制到 Vcl 的 FGraphicBmp 中
+      FmxBitmapToVclBitmap(FGraphicObject, FGraphicBmp);
     end;
     pbGraphic.Invalidate;
   end;
@@ -4891,6 +4902,8 @@ var
 begin
   if not FGraphicBmp.Empty and (pbGraphic.Width <> FGraphicBmp.Width) then
     pbGraphic.Width := FGraphicBmp.Width;
+  if not FGraphicBmp.Empty and (pbGraphic.Height <> FGraphicBmp.Height) then
+    pbGraphic.Height := FGraphicBmp.Height;
 
   R := Rect(0, 0, pbGraphic.Width, pbGraphic.Height);
   pbGraphic.Canvas.Brush.Color := pbGraphic.Color;

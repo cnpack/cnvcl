@@ -195,6 +195,9 @@ procedure CnFmxSetControlFont(AControl: TComponent; AFont: TFont);
 function CnFmxGetControlParentFont(AControl: TComponent): TFont;
 {* 获取 FMX Control 的 Parent 的 Font}
 
+function CnFmxIsFmxBitmap(AObject: TObject): Boolean;
+{* 返回一对象是否是 FMX 的 TBitmap}
+
 implementation
 
 const
@@ -869,6 +872,11 @@ begin
 {$ENDIF}
     end;
   end;
+end;
+
+function CnFmxIsFmxBitmap(AObject: TObject): Boolean;
+begin
+  Result := (AObject <> nil) and (AObject is TBitmap);
 end;
 
 procedure CreateFmxSetFixArray;

@@ -94,7 +94,20 @@ function GetWindowPlatformHandle(AForm: TComponent): HWND;
 procedure InvalidateControl(AControl: TComponent);
 {* 封装的重画 Control 的过程，封装了 FMX 的实现}
 
+{$IFDEF SUPPORT_FMX}
+
+function FmxBitmapToVclBitmap(FmxBmp: TObject; VclBmp: TObject): Boolean;
+{* 将 FMX 的位图绘制到 VCL 的位图的过程，返回是否成功。
+   注意参数是 TObject，以做到 interface 部分不引用 FMX 单元，内部强制转换}
+
+{$ENDIF}
+
 implementation
+
+{$IFDEF SUPPORT_FMX}
+uses
+  System.UITypes, FMX.Types, FMX.Graphics, FMX.Utils;
+{$ENDIF}
 
 // 返回控件在屏幕上的坐标区域
 function GetControlScreenRect(AControl: TComponent): TRect;
@@ -338,5 +351,55 @@ begin
   CnFmxInvalidateControl(AControl);
 {$ENDIF}
 end;
+
+{$IFDEF SUPPORT_FMX}
+
+function FmxBitmapToVclBitmap(FmxBmp: TObject; VclBmp: TObject): Boolean;
+type
+  PRGBTripleArray = ^TRGBTripleArray;
+  TRGBTripleArray = array[0..32767] of TRGBTriple;
+var
+  FB: FMX.Graphics.TBitmap;
+  VB: Vcl.Graphics.TBitmap;
+  Data: FMX.Graphics.TBitmapData;
+  X, Y: Integer;
+  SrcLine: PAlphaColorArray;     // FMX 每行像素的指针（32 位 ARGB）
+  DestLine: PRGBTripleArray;     // VCL 每行像素的指针（24 位 RGB）
+begin
+  // 强制转换为具体类型（调用方需保证类型正确）
+  Result := False;
+  FB := FMX.Graphics.TBitmap(FmxBmp);
+  VB := Vcl.Graphics.TBitmap(VclBmp);
+
+  if (FB = nil) or (VB = nil) or (FB.PixelFormat <> FMX.Types.TPixelFormat.BGRA) then
+    Exit;
+
+  // 设置 VCL 位图的尺寸和像素格式为 24 位，与 Scanline 搭配）
+  VB.SetSize(FB.Width, FB.Height);
+  VB.PixelFormat := pf24bit;   // 确保每像素 3 字节（R,G,B）
+
+  // 映射 FMX 位图以便读取像素
+  if FB.Map(TMapAccess.Read, Data) then
+  try
+    // 逐行遍历
+    for Y := 0 to Data.Height - 1 do
+    begin
+      SrcLine := Data.GetScanline(Y);       // 获取 FMX 当前行指针（指向 TAlphaColor 数组）
+      DestLine := VB.Scanline[Y];           // 获取 VCL 当前行指针（指向 TRGBTriple 数组）
+
+      // 逐像素复制（忽略 Alpha 通道）
+      for X := 0 to Data.Width - 1 do
+      begin
+        DestLine[X].rgbtRed   := TAlphaColorRec(SrcLine[X]).R;
+        DestLine[X].rgbtGreen := TAlphaColorRec(SrcLine[X]).G;
+        DestLine[X].rgbtBlue  := TAlphaColorRec(SrcLine[X]).B;
+      end;
+    end;
+  finally
+    FB.Unmap(Data);   // 解除映射
+  end;
+end;
+
+{$ENDIF}
 
 end.
