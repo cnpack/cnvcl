@@ -3359,6 +3359,24 @@ procedure BigNumberPolynomialGaloisMonic(P: TCnBigNumberPolynomial; Prime: TCnBi
    返回值：（无）
 }
 
+procedure BigNumberPolynomialGaloisHalfGcd(M11, M12, M21, M22: TCnBigNumberPolynomial;
+  A, B: TCnBigNumberPolynomial; Prime: TCnBigNumber; K: Integer);
+function BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res: TCnBigNumberPolynomial;
+  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+{* 使用 Half-GCD（半欧几里得算法）计算一元多项式在 Prime 域上的最大公因式。
+   时间复杂度 O(M(n))（M(n) 为多项式乘法复杂度），远优于传统欧几里得算法的 O(n * M(n))。
+   当多项式次数较大（超过内部阈值 CN_POLY_GCD_FAST_THRESHOLD）时会被
+   BigNumberPolynomialGaloisGreatestCommonDivisor 内部自动调用。Res 不能等于 P1 或 P2。
+
+   参数:
+     Res: TCnBigNumberPolynomial          - 返回计算结果的一元多项式
+     P1: TCnBigNumberPolynomial           - 参与计算的多项式一
+     P2: TCnBigNumberPolynomial           - 参与计算的多项式二
+     Prime: TCnBigNumber                  - 有限域阶
+
+   返回值: Boolean                        - 计算是否成功
+}
+
 function BigNumberPolynomialGaloisGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
   P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
 {* 计算两个一元大整系数多项式在 Prime 次方阶有限域上的最大公因式，返回是否计算成功，Res 可以是 P1 或 P2。
@@ -10077,6 +10095,7 @@ begin
     BigNumberPolynomialNonNegativeModBigNumber(Res, Prime);
     if Primitive <> nil then
       BigNumberPolynomialGaloisMod(Res, Res, Primitive, Prime);
+    Res.CorrectTop;
   end;
 end;
 
@@ -10090,6 +10109,7 @@ begin
     BigNumberPolynomialNonNegativeModBigNumber(Res, Prime);
     if Primitive <> nil then
       BigNumberPolynomialGaloisMod(Res, Res, Primitive, Prime);
+    Res.CorrectTop;
   end;
 end;
 
@@ -11059,11 +11079,332 @@ begin
     BigNumberPolynomialGaloisDivBigNumber(P, P[P.MaxDegree], Prime);
 end;
 
+const
+  CN_POLY_GCD_FAST_THRESHOLD = 256;
+  // HGCD 窗口大小：VZG Algorithm 11.1 的固定 2k 截断窗。递归输入次数恒为 2K，
+  // 顶层才在完整输入上做 4 次小矩阵乘法，因此整体复杂度 O(M(n)) 而不是 O(M(n) * log n)。
+  CN_POLY_HALF_GCD_K = 32;
+
+// Half-GCD 内部过程，计算 2x2 变换矩阵 M = [[M11,M12],[M21,M22]]，
+// 使 (C,D)^T = M * (A,B)^T 满足 gcd(A,B) = gcd(C,D)，且 deg(D) <= deg(A)/2 + 1。
+// 实现 VZG (von zur Gathen & Gerhard) Algorithm 11.1 的固定 2k 截断窗版本：
+// 递归输入恒为 ~2k 次多项式，只在顶层做一次完整的 O(M(n)) 乘法。
+procedure BigNumberPolynomialGaloisHalfGcd(M11, M12, M21, M22: TCnBigNumberPolynomial;
+  A, B: TCnBigNumberPolynomial; Prime: TCnBigNumber; K: Integer);
+var
+  N, M, M2, K2, I: Integer;
+  A0, B0, C, D, Q, R, R0, R1: TCnBigNumberPolynomial;
+  TA, TB, T21, T22: TCnBigNumberPolynomial;
+  X1, X2, X3, X4: TCnBigNumberPolynomial;
+  Y1, Y2, Y3, Y4: TCnBigNumberPolynomial;
+begin
+  N := A.MaxDegree;
+  M := B.MaxDegree;
+  M11.SetOne;
+  M12.SetZero;
+  M21.SetZero;
+  M22.SetOne;
+  if B.IsZero then Exit;
+
+  // Thull-Yap/FLINT style: window m = ceil(lenA/2)
+  M2 := (N + 1) div 2;
+  if M < M2 then Exit;
+
+  if N <= 2 * K then
+  begin
+    R0 := FLocalBigNumberPolynomialPool.Obtain;
+    R1 := FLocalBigNumberPolynomialPool.Obtain;
+    Q := FLocalBigNumberPolynomialPool.Obtain;
+    R := FLocalBigNumberPolynomialPool.Obtain;
+    T21 := FLocalBigNumberPolynomialPool.Obtain;
+    T22 := FLocalBigNumberPolynomialPool.Obtain;
+    TA := FLocalBigNumberPolynomialPool.Obtain;
+    TB := FLocalBigNumberPolynomialPool.Obtain;
+    try
+      BigNumberPolynomialCopy(R0, A);
+      BigNumberPolynomialCopy(R1, B);
+      while (not R1.IsZero) and (R1.MaxDegree >= M2) do
+      begin
+        if not BigNumberPolynomialGaloisDiv(Q, R, R0, R1, Prime) then Exit;
+        // M <- [[0,1],[1,-Q]] * M
+        BigNumberPolynomialGaloisMul(TA, Q, M21, Prime);
+        BigNumberPolynomialGaloisSub(T21, M11, TA, Prime);
+        BigNumberPolynomialGaloisMul(TB, Q, M22, Prime);
+        BigNumberPolynomialGaloisSub(T22, M12, TB, Prime);
+        BigNumberPolynomialCopy(M11, M21);
+        BigNumberPolynomialCopy(M12, M22);
+        BigNumberPolynomialCopy(M21, T21);
+        BigNumberPolynomialCopy(M22, T22);
+        BigNumberPolynomialCopy(R0, R1);
+        BigNumberPolynomialCopy(R1, R);
+      end;
+    finally
+      FLocalBigNumberPolynomialPool.Recycle(R0);
+      FLocalBigNumberPolynomialPool.Recycle(R1);
+      FLocalBigNumberPolynomialPool.Recycle(Q);
+      FLocalBigNumberPolynomialPool.Recycle(R);
+      FLocalBigNumberPolynomialPool.Recycle(T21);
+      FLocalBigNumberPolynomialPool.Recycle(T22);
+      FLocalBigNumberPolynomialPool.Recycle(TA);
+      FLocalBigNumberPolynomialPool.Recycle(TB);
+    end;
+    Exit;
+  end;
+
+  A0 := FLocalBigNumberPolynomialPool.Obtain;
+  B0 := FLocalBigNumberPolynomialPool.Obtain;
+  C := nil; D := nil; Q := nil; R := nil;
+  TA := nil; TB := nil; T21 := nil; T22 := nil;
+  X1 := nil; X2 := nil; X3 := nil; X4 := nil;
+  Y1 := nil; Y2 := nil; Y3 := nil; Y4 := nil;
+  try
+    // Recursion 1: a0 = high part of A (skip low m terms), b0 likewise
+    A0.MaxDegree := N - M2;
+    for I := 0 to A0.MaxDegree do
+      BigNumberCopy(A0[I], A[M2 + I]);
+    A0.CorrectTop;
+    B0.MaxDegree := M - M2;
+    for I := 0 to B0.MaxDegree do
+      BigNumberCopy(B0[I], B[M2 + I]);
+    B0.CorrectTop;
+
+    X1 := FLocalBigNumberPolynomialPool.Obtain;
+    X2 := FLocalBigNumberPolynomialPool.Obtain;
+    X3 := FLocalBigNumberPolynomialPool.Obtain;
+    X4 := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialGaloisHalfGcd(X1, X2, X3, X4, A0, B0, Prime, K);
+
+    // (C, D) = X * (A, B)
+    C := FLocalBigNumberPolynomialPool.Obtain;
+    D := FLocalBigNumberPolynomialPool.Obtain;
+    TA := FLocalBigNumberPolynomialPool.Obtain;
+    TB := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialGaloisMul(TA, X1, A, Prime);
+    BigNumberPolynomialGaloisMul(TB, X2, B, Prime);
+    BigNumberPolynomialGaloisAdd(C, TA, TB, Prime);
+    BigNumberPolynomialGaloisMul(TA, X3, A, Prime);
+    BigNumberPolynomialGaloisMul(TB, X4, B, Prime);
+    BigNumberPolynomialGaloisAdd(D, TA, TB, Prime);
+
+    if D.IsZero or (D.MaxDegree < M2) then
+    begin
+      BigNumberPolynomialCopy(M11, X1);
+      BigNumberPolynomialCopy(M12, X2);
+      BigNumberPolynomialCopy(M21, X3);
+      BigNumberPolynomialCopy(M22, X4);
+      Exit;
+    end;
+
+    // One euclidean step: C = Q * D + R
+    Q := FLocalBigNumberPolynomialPool.Obtain;
+    R := FLocalBigNumberPolynomialPool.Obtain;
+    if not BigNumberPolynomialGaloisDiv(Q, R, C, D, Prime) then Exit;
+
+    // T = [[0,1],[1,-Q]]; T*X = [X3 X4; X1-Q*X3 X2-Q*X4]
+    T21 := FLocalBigNumberPolynomialPool.Obtain;
+    T22 := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialGaloisMul(TA, Q, X3, Prime);
+    BigNumberPolynomialGaloisSub(T21, X1, TA, Prime);
+    BigNumberPolynomialGaloisMul(TB, Q, X4, Prime);
+    BigNumberPolynomialGaloisSub(T22, X2, TB, Prime);
+    BigNumberPolynomialCopy(X1, X3);
+    BigNumberPolynomialCopy(X2, X4);
+    BigNumberPolynomialCopy(X3, T21);
+    BigNumberPolynomialCopy(X4, T22);
+    if R.IsZero or (R.MaxDegree < M2) then
+    begin
+      BigNumberPolynomialCopy(M11, X1);
+      BigNumberPolynomialCopy(M12, X2);
+      BigNumberPolynomialCopy(M21, X3);
+      BigNumberPolynomialCopy(M22, X4);
+      Exit;
+    end;
+
+    // Recursion 2: skip low k2 terms of (D, R); k2 = 2m - deg(D)
+    K2 := 2 * M2 - D.MaxDegree;
+    A0.MaxDegree := D.MaxDegree - K2;
+    if A0.MaxDegree < 0 then A0.SetZero
+    else
+    begin
+      for I := 0 to A0.MaxDegree do
+        BigNumberCopy(A0[I], D[K2 + I]);
+      A0.CorrectTop;
+    end;
+    if R.MaxDegree < K2 then B0.SetZero
+    else
+    begin
+      B0.MaxDegree := R.MaxDegree - K2;
+      for I := 0 to B0.MaxDegree do
+        BigNumberCopy(B0[I], R[K2 + I]);
+      B0.CorrectTop;
+    end;
+
+    Y1 := FLocalBigNumberPolynomialPool.Obtain;
+    Y2 := FLocalBigNumberPolynomialPool.Obtain;
+    Y3 := FLocalBigNumberPolynomialPool.Obtain;
+    Y4 := FLocalBigNumberPolynomialPool.Obtain;
+    if B0.IsZero then
+    begin
+      Y1.SetOne;
+      Y2.SetZero;
+      Y3.SetZero;
+      Y4.SetOne;
+    end
+    else
+    begin
+      BigNumberPolynomialGaloisHalfGcd(Y1, Y2, Y3, Y4, A0, B0, Prime, K);
+    end;
+
+    // M = Y * (T*X) = Y * [X1 X2; X3 X4]
+    BigNumberPolynomialGaloisMul(TA, Y1, X1, Prime);
+    BigNumberPolynomialGaloisMul(TB, Y2, X3, Prime);
+    BigNumberPolynomialGaloisAdd(M11, TA, TB, Prime);
+    BigNumberPolynomialGaloisMul(TA, Y1, X2, Prime);
+    BigNumberPolynomialGaloisMul(TB, Y2, X4, Prime);
+    BigNumberPolynomialGaloisAdd(M12, TA, TB, Prime);
+    BigNumberPolynomialGaloisMul(TA, Y3, X1, Prime);
+    BigNumberPolynomialGaloisMul(TB, Y4, X3, Prime);
+    BigNumberPolynomialGaloisAdd(M21, TA, TB, Prime);
+    BigNumberPolynomialGaloisMul(TA, Y3, X2, Prime);
+    BigNumberPolynomialGaloisMul(TB, Y4, X4, Prime);
+    BigNumberPolynomialGaloisAdd(M22, TA, TB, Prime);
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(A0);
+    FLocalBigNumberPolynomialPool.Recycle(B0);
+    FLocalBigNumberPolynomialPool.Recycle(C);
+    FLocalBigNumberPolynomialPool.Recycle(D);
+    FLocalBigNumberPolynomialPool.Recycle(Q);
+    FLocalBigNumberPolynomialPool.Recycle(R);
+    FLocalBigNumberPolynomialPool.Recycle(TA);
+    FLocalBigNumberPolynomialPool.Recycle(TB);
+    FLocalBigNumberPolynomialPool.Recycle(T21);
+    FLocalBigNumberPolynomialPool.Recycle(T22);
+    FLocalBigNumberPolynomialPool.Recycle(X1);
+    FLocalBigNumberPolynomialPool.Recycle(X2);
+    FLocalBigNumberPolynomialPool.Recycle(X3);
+    FLocalBigNumberPolynomialPool.Recycle(X4);
+    FLocalBigNumberPolynomialPool.Recycle(Y1);
+    FLocalBigNumberPolynomialPool.Recycle(Y2);
+    FLocalBigNumberPolynomialPool.Recycle(Y3);
+    FLocalBigNumberPolynomialPool.Recycle(Y4);
+  end;
+end;
+
+function BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res: TCnBigNumberPolynomial;
+  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+var
+  A, B, C, D, R: TCnBigNumberPolynomial;
+  TA, TB: TCnBigNumberPolynomial;
+  M11, M12, M21, M22: TCnBigNumberPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P1 = nil) or (P2 = nil) then Exit;
+  if P1.IsZero then
+  begin
+    BigNumberPolynomialCopy(Res, P2);
+    BigNumberPolynomialGaloisMonic(Res, Prime);
+    Result := True;
+    Exit;
+  end;
+  if P2.IsZero then
+  begin
+    BigNumberPolynomialCopy(Res, P1);
+    BigNumberPolynomialGaloisMonic(Res, Prime);
+    Result := True;
+    Exit;
+  end;
+
+  A := FLocalBigNumberPolynomialPool.Obtain;
+  B := FLocalBigNumberPolynomialPool.Obtain;
+  C := FLocalBigNumberPolynomialPool.Obtain;
+  D := FLocalBigNumberPolynomialPool.Obtain;
+  R := FLocalBigNumberPolynomialPool.Obtain;
+  TA := FLocalBigNumberPolynomialPool.Obtain;
+  TB := FLocalBigNumberPolynomialPool.Obtain;
+  M11 := FLocalBigNumberPolynomialPool.Obtain;
+  M12 := FLocalBigNumberPolynomialPool.Obtain;
+  M21 := FLocalBigNumberPolynomialPool.Obtain;
+  M22 := FLocalBigNumberPolynomialPool.Obtain;
+  try
+    // 保证 deg(A) >= deg(B)
+    if P1.MaxDegree >= P2.MaxDegree then
+    begin
+      BigNumberPolynomialCopy(A, P1);
+      BigNumberPolynomialCopy(B, P2);
+    end
+    else
+    begin
+      BigNumberPolynomialCopy(A, P2);
+      BigNumberPolynomialCopy(B, P1);
+    end;
+
+      while (not B.IsZero) and (B.MaxDegree > CN_POLY_GCD_FAST_THRESHOLD) do
+    begin
+      BigNumberPolynomialGaloisHalfGcd(M11, M12, M21, M22, A, B, Prime, CN_POLY_HALF_GCD_K);
+
+      // (C, D) = M * (A, B)
+      BigNumberPolynomialGaloisMul(TA, M11, A, Prime);
+      BigNumberPolynomialGaloisMul(TB, M12, B, Prime);
+      BigNumberPolynomialGaloisAdd(C, TA, TB, Prime);
+      BigNumberPolynomialGaloisMul(TA, M21, A, Prime);
+      BigNumberPolynomialGaloisMul(TB, M22, B, Prime);
+      BigNumberPolynomialGaloisAdd(D, TA, TB, Prime);
+
+      if D.IsZero then
+      begin
+        BigNumberPolynomialCopy(A, C);
+        BigNumberPolynomialSetZero(B);
+        Break;
+      end;
+
+      // 一次普通取模：R = C mod D
+      if not BigNumberPolynomialGaloisMod(R, C, D, Prime) then
+        Exit;
+
+      BigNumberPolynomialCopy(A, D);
+      BigNumberPolynomialCopy(B, R);
+    end;
+
+    if B.IsZero then
+      BigNumberPolynomialCopy(Res, A)
+    else
+    begin
+      // 余下小多项式使用普通欧几里得算法
+      if not BigNumberPolynomialGaloisGreatestCommonDivisor(Res, A, B, Prime) then
+        Exit;
+    end;
+
+    BigNumberPolynomialGaloisMonic(Res, Prime);
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(A);
+    FLocalBigNumberPolynomialPool.Recycle(B);
+    FLocalBigNumberPolynomialPool.Recycle(C);
+    FLocalBigNumberPolynomialPool.Recycle(D);
+    FLocalBigNumberPolynomialPool.Recycle(R);
+    FLocalBigNumberPolynomialPool.Recycle(TA);
+    FLocalBigNumberPolynomialPool.Recycle(TB);
+    FLocalBigNumberPolynomialPool.Recycle(M11);
+    FLocalBigNumberPolynomialPool.Recycle(M12);
+    FLocalBigNumberPolynomialPool.Recycle(M21);
+    FLocalBigNumberPolynomialPool.Recycle(M22);
+  end;
+end;
+
+
 function BigNumberPolynomialGaloisGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
   P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
 var
   A, B, C: TCnBigNumberPolynomial;
 begin
+  // 次数较大时自动使用 Half-GCD 快速算法
+  if (P1.MaxDegree > CN_POLY_GCD_FAST_THRESHOLD) and
+     (P2.MaxDegree > CN_POLY_GCD_FAST_THRESHOLD) then
+  begin
+    Result := BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, P1, P2, Prime);
+    Exit;
+  end;
+
   A := nil;
   B := nil;
   C := nil;

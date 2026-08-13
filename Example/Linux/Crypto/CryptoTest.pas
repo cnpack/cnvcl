@@ -311,6 +311,7 @@ function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
 function TestBigNumberPolynomialGaloisPowerWindowed: Boolean;
+function TestBigNumberPolynomialGaloisHalfGcd: Boolean;
 function TestBigNumberPolynomialLoadSaveMem: Boolean;
 function TestBigNumberRationalPolynomialLoadSaveMem: Boolean;
 function TestBigNumberPolynomialListLoadSaveMem: Boolean;
@@ -2049,6 +2050,7 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisFactorCantorZassenhaus, 'TestBigNumberPolynomialGaloisFactorCantorZassenhaus');
   MyAssert(TestBigNumberPolynomialGaloisPowerBarrett, 'TestBigNumberPolynomialGaloisPowerBarrett');
   MyAssert(TestBigNumberPolynomialGaloisPowerWindowed, 'TestBigNumberPolynomialGaloisPowerWindowed');
+  MyAssert(TestBigNumberPolynomialGaloisHalfGcd, 'TestBigNumberPolynomialGaloisHalfGcd');
   MyAssert(TestBigNumberPolynomialLoadSaveMem, 'TestBigNumberPolynomialLoadSaveMem');
   MyAssert(TestBigNumberRationalPolynomialLoadSaveMem, 'TestBigNumberRationalPolynomialLoadSaveMem');
   MyAssert(TestBigNumberPolynomialListLoadSaveMem, 'TestBigNumberPolynomialListLoadSaveMem');
@@ -9046,6 +9048,156 @@ begin
     Factors.Free;
   end;
 end;
+
+// 测试辅助：用确定性伪随机系数填充 deg 次多项式（首项系数为 1，即 monic）
+procedure FillRandomTestPolynomial(P: TCnBigNumberPolynomial; Deg: Integer;
+  Prime: TCnBigNumber; Seed: Cardinal);
+var
+  I: Integer;
+  S: Int64;
+  V: TCnBigNumber;
+begin
+  V := TCnBigNumber.Create;
+  try
+    P.MaxDegree := Deg;
+    S := Seed;
+    for I := 0 to Deg - 1 do
+    begin
+      S := (S * 1664525 + 1013904223) mod 1000000007;
+      V.SetWord(Cardinal(S));
+      BigNumberNonNegativeMod(P[I], V, Prime);
+    end;
+    P[Deg].SetOne;
+    P.CorrectTop;
+  finally
+    V.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGaloisHalfGcd: Boolean;
+var
+  Prime: TCnBigNumber;
+  A, B, G, R1, R2, Res: TCnBigNumberPolynomial;
+begin
+  Result := False;
+  Prime := TCnBigNumber.Create;
+  A := TCnBigNumberPolynomial.Create;
+  B := TCnBigNumberPolynomial.Create;
+  G := TCnBigNumberPolynomial.Create;
+  R1 := TCnBigNumberPolynomial.Create;
+  R2 := TCnBigNumberPolynomial.Create;
+  Res := TCnBigNumberPolynomial.Create;
+  try
+    // =====================================================================
+    // Test 1: F7 上的基本 gcd
+    // =====================================================================
+    Prime.SetWord(7);
+    A.SetCoefficients([2, 5, 4, 1]);    // (X+1)^2*(X+2) = X^3+4X^2+5X+2 in F7
+    B.SetCoefficients([0, 6, 0, 1]);    // X^3 - X = X(X-1)(X+1) in F7
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    // gcd = X+1
+    if (Res.MaxDegree <> 1) or (not Res[1].IsOne) or (not Res[0].IsOne) then Exit;
+
+    A.SetCoefficients([1, 0, 1]);       // X^2 + 1（不可约）
+    B.SetCoefficients([0, 6, 0, 1]);   // X^3 - X
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    if (Res.MaxDegree <> 0) or (not Res[0].IsOne) then Exit;   // 互素，gcd = 1
+
+    A.SetCoefficients([6, 0, 1]);      // X^2 - 1
+    B.SetCoefficients([6, 0, 1]);      // X^2 - 1
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    if (Res.MaxDegree <> 2) or (not Res[2].IsOne) or (Res[0].ToDec <> '6') then Exit;
+
+    // =====================================================================
+    // Test 2: 大素数域（2^224-2^96+1）构造已知 gcd，次数刚过阈值
+    //         A = G*R1, B = G*R2 -> gcd = G
+    // =====================================================================
+    Prime.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001');
+    FillRandomTestPolynomial(G, 200, Prime, 12345);
+    FillRandomTestPolynomial(R1, 60, Prime, 6789);
+    FillRandomTestPolynomial(R2, 60, Prime, 24680);
+    if not BigNumberPolynomialGaloisMul(A, G, R1, Prime) then Exit;   // deg ~260
+    if not BigNumberPolynomialGaloisMul(B, G, R2, Prime) then Exit;   // deg ~260
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    BigNumberPolynomialGaloisMonic(G, Prime);
+    if not BigNumberPolynomialEqual(Res, G) then Exit;
+
+    // =====================================================================
+    // Test 3: 更大次数（deg ~600）的已知 gcd
+    // =====================================================================
+    FillRandomTestPolynomial(G, 300, Prime, 111);
+    FillRandomTestPolynomial(R1, 300, Prime, 222);
+    FillRandomTestPolynomial(R2, 300, Prime, 333);
+    if not BigNumberPolynomialGaloisMul(A, G, R1, Prime) then Exit;   // deg ~600
+    if not BigNumberPolynomialGaloisMul(B, G, R2, Prime) then Exit;   // deg ~600
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    BigNumberPolynomialGaloisMonic(G, Prime);
+    if not BigNumberPolynomialEqual(Res, G) then Exit;
+
+    // =====================================================================
+    // Test 4: 互素大多项式，gcd = 1
+    // =====================================================================
+    FillRandomTestPolynomial(A, 700, Prime, 444);
+    FillRandomTestPolynomial(B, 650, Prime, 555);
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    if (Res.MaxDegree <> 0) or (not Res[0].IsOne) then Exit;
+
+    // =====================================================================
+    // Test 5: 大次数（deg ~2000）已知 gcd，验证 Fast 性能与正确性
+    // =====================================================================
+    FillRandomTestPolynomial(G, 900, Prime, 666);
+    FillRandomTestPolynomial(R1, 1100, Prime, 777);
+    FillRandomTestPolynomial(R2, 700, Prime, 888);
+    if not BigNumberPolynomialGaloisMul(A, G, R1, Prime) then Exit;   // deg ~2000
+    if not BigNumberPolynomialGaloisMul(B, G, R2, Prime) then Exit;   // deg ~1600
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    BigNumberPolynomialGaloisMonic(G, Prime);
+    if not BigNumberPolynomialEqual(Res, G) then Exit;
+
+    // =====================================================================
+    // Test 6: 边界情况
+    // =====================================================================
+    // gcd(A, A) = A
+    FillRandomTestPolynomial(A, 400, Prime, 999);
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, A, Prime) then Exit;
+    BigNumberPolynomialGaloisMonic(A, Prime);
+    if not BigNumberPolynomialEqual(Res, A) then Exit;
+
+    // gcd(A, 0) = A
+    FillRandomTestPolynomial(A, 300, Prime, 1011);
+    BigNumberPolynomialSetZero(B);
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    BigNumberPolynomialGaloisMonic(A, Prime);
+    if not BigNumberPolynomialEqual(Res, A) then Exit;
+
+    // gcd(A, 常数) = 1
+    FillRandomTestPolynomial(A, 400, Prime, 1212);
+    B.SetCoefficients([5]);
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    if (Res.MaxDegree <> 0) or (not Res[0].IsOne) then Exit;
+
+    // 次数悬殊：gcd(A, X^3+X+1)，验证 gcd 同时整除 A 和 B
+    FillRandomTestPolynomial(A, 800, Prime, 1313);
+    B.SetCoefficients([1, 1, 0, 1]);
+    BigNumberPolynomialCopy(R1, B);
+    if not BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, A, B, Prime) then Exit;
+    if not BigNumberPolynomialGaloisMod(B, A, Res, Prime) then Exit;
+    if not B.IsZero then Exit;
+    if not BigNumberPolynomialGaloisMod(B, R1, Res, Prime) then Exit;
+    if not B.IsZero then Exit;
+
+    Result := True;
+  finally
+    Prime.Free;
+    A.Free;
+    B.Free;
+    G.Free;
+    R1.Free;
+    R2.Free;
+    Res.Free;
+  end;
+end;
+
 
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
 var
