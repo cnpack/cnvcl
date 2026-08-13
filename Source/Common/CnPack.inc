@@ -3565,10 +3565,6 @@
   {$DEFINE IDE_HAS_INSIGHT}             // XE5 及以上有 IDE Insight Bar
 {$ENDIF}
 
-{$IFDEF DELPHIXE5}
-  {$DEFINE FMX_PIXELFORMATS}            // XE5 FMX 有独立的 PixelFormats 单元，XE 6 才没
-{$ENDIF}
-
 {$IFDEF DELPHIXE4_UP}
   {$IFNDEF DISABLE_FMX}
     {$DEFINE SUPPORT_FMX_FRAME}         // XE4 及以上的 FMX 支持 FMX Frame
@@ -3577,20 +3573,16 @@
   {$DEFINE MEMO_CARETPOS_BUG}           // XE3 及以下的 Memo CaretPos 在碰到大文件时会出现负值
 {$ENDIF}
 
-{$IFDEF DELPHIXE4}
-  {$DEFINE FMX_PIXELFORMATS}            // XE4 FMX 有独立的 PixelFormats 单元，XE 6 才没
-{$ENDIF}
-
 {$IFDEF DELPHIXE3_UP}
+  {$IFNDEF DELPHIXE6_UP}
+    {$DEFINE FMX_PIXELFORMATS}          // XE3/4/5 FMX 有独立的 PixelFormats 单元，XE 6 才没
+  {$ENDIF}
+
   {$DEFINE SUPPORT_ATOMIC}              // XE3 有 Atomic 相关函数
   {$DEFINE TCONTROL_HAS_STYLEELEMENTS}  // XE3 的 TControl 开始有 StyleElements 属性
   {$DEFINE FMX_TBITMAP_MAP}             // XE3 及以上 FMX 的 TBitmap 能 Map 成 TBitmapData
   {$DEFINE NEW_SETTING_DELIMITER}       // FormatSettings 和 TStringHelper.LastDelimiter 带来了不兼容问题
   {$DEFINE IDE_NP_FMX_DESIGN_BUG}       // XE3 FMX Designer Cut/Copy/Paste cause AV Bug for -np switch
-{$ENDIF}
-
-{$IFDEF DELPHIXE3}
-  {$DEFINE FMX_PIXELFORMATS}            // XE3 FMX 有独立的 PixelFormats 单元，XE6 才没
 {$ENDIF}
 
 {$IFDEF DELPHIXE2_UP}
