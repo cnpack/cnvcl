@@ -97,16 +97,24 @@ procedure InvalidateControl(AControl: TComponent);
 {$IFDEF SUPPORT_FMX}
 
 function FmxBitmapToVclBitmap(FmxBmp: TObject; VclBmp: TObject): Boolean;
-{* 将 FMX 的位图绘制到 VCL 的位图的过程，返回是否成功。
+{* 将 FMX 的位图绘制到 VCL 的位图的过程，返回是否成功。XE2/3 下有问题因而啥都不做。
    注意参数是 TObject，以做到 interface 部分不引用 FMX 单元，内部强制转换}
 
 {$ENDIF}
 
+
 implementation
 
 {$IFDEF SUPPORT_FMX}
+{$IFDEF DELPHIXE4_UP}
+
 uses
-  System.UITypes, FMX.Types, FMX.Graphics, FMX.Utils;
+  System.UITypes, Vcl.Graphics, FMX.Types // XE2/3 下该单元会影响 TControl
+  {$IFDEF FMX_HAS_GRAPHICS}, FMX.Graphics {$ENDIF}
+  {$IFDEF FMX_PIXELFORMATS}, FMX.PixelFormats {$ENDIF}
+  {$IFDEF DELPHIXE8_UP}, FMX.Utils {$ENDIF}
+  ;
+{$ENDIF}
 {$ENDIF}
 
 // 返回控件在屏幕上的坐标区域
@@ -355,31 +363,57 @@ end;
 {$IFDEF SUPPORT_FMX}
 
 function FmxBitmapToVclBitmap(FmxBmp: TObject; VclBmp: TObject): Boolean;
+{$IFDEF DELPHIXE4_UP}
 type
   PRGBTripleArray = ^TRGBTripleArray;
   TRGBTripleArray = array[0..32767] of TRGBTriple;
 var
+{$IFDEF FMX_HAS_GRAPHICS}
   FB: FMX.Graphics.TBitmap;
-  VB: Vcl.Graphics.TBitmap;
   Data: FMX.Graphics.TBitmapData;
+{$ELSE}
+  FB: FMX.Types.TBitmap;
+  Data: FMX.Types.TBitmapData;
+{$ENDIF}
+  VB: Vcl.Graphics.TBitmap;
   X, Y: Integer;
+  B: Boolean;
   SrcLine: PAlphaColorArray;     // FMX 每行像素的指针（32 位 ARGB）
   DestLine: PRGBTripleArray;     // VCL 每行像素的指针（24 位 RGB）
+{$ENDIF}
 begin
-  // 强制转换为具体类型（调用方需保证类型正确）
   Result := False;
+{$IFDEF DELPHIXE4_UP}
+  // 强制转换为具体类型（调用方需保证类型正确）
+{$IFDEF FMX_HAS_GRAPHICS}
   FB := FMX.Graphics.TBitmap(FmxBmp);
+{$ELSE}
+  FB := FMX.Types.TBitmap(FmxBmp);
+{$ENDIF}
   VB := Vcl.Graphics.TBitmap(VclBmp);
 
-  if (FB = nil) or (VB = nil) or (FB.PixelFormat <> FMX.Types.TPixelFormat.BGRA) then
+  if (FB = nil) or (VB = nil) then
     Exit;
+
+{$IFDEF FMX_PIXELFORMATS}
+  if FB.PixelFormat <> FMX.PixelFormats.pfA8R8G8B8 then
+    Exit;
+{$ELSE}
+  if FB.PixelFormat <> FMX.Types.TPixelFormat.BGRA then
+    Exit;
+{$ENDIF}
 
   // 设置 VCL 位图的尺寸和像素格式为 24 位，与 Scanline 搭配）
   VB.SetSize(FB.Width, FB.Height);
   VB.PixelFormat := pf24bit;   // 确保每像素 3 字节（R,G,B）
 
   // 映射 FMX 位图以便读取像素
-  if FB.Map(TMapAccess.Read, Data) then
+{$IFDEF DELPHIXE6_UP}
+  B := FB.Map(TMapAccess.Read, Data);
+{$ELSE}
+  B := FB.Map(TMapAccess.maRead, Data);
+{$ENDIF}
+  if B then
   try
     // 逐行遍历
     for Y := 0 to Data.Height - 1 do
@@ -395,9 +429,11 @@ begin
         DestLine[X].rgbtBlue  := TAlphaColorRec(SrcLine[X]).B;
       end;
     end;
+    Result := True;
   finally
     FB.Unmap(Data);   // 解除映射
   end;
+{$ENDIF}
 end;
 
 {$ENDIF}
