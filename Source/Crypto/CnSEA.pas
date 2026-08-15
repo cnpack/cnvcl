@@ -25,8 +25,8 @@ unit CnSEA;
 * 单元名称：Schoof-Elkies-Atkin 算法与模多项式相关计算
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：目前在模多项式系数预存为文件的情况下，能在十分钟内正确算出 secp128r1，
-*           两个多小时多正确算出 secp160r1，两个半小时多正确算出 secp192r1，
-*           但 secp224r1 尚未验证。
+*           一个半小时不到正确算出 secp160r1，两个小时左右正确算出 secp192r1，
+*           六个多小时正确算出 secp224r1。
 *
 *           在MACOS 的 x64 的 fpc 编译时宜加上 -O4 -CpCOREAVX2 开关优化，可提速
 *           定义 SEA_TRACE 可打印中间步骤
@@ -35,10 +35,12 @@ unit CnSEA;
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
 * 本 地 化：该单元中的字符串均符合标准
-* 修改记录：2026.07.30 V1.5
-*               不断优化，能算完 224 位素数域上的椭圆曲线的阶但未验证
+* 修改记录：2026.08.15 V1.6
+*               不断优化，能算完 224 位素数域上的椭圆曲线的阶且验证通过
+*           2026.07.30 V1.5
+*               不断优化，能勉强算完 224 位素数域上的椭圆曲线的阶但未验证
 *           2026.07.23 V1.4
-*               不断优化，能准确算出 192 位素数域上的椭圆曲线的阶了
+*               不断优化，能准确算出 192 位素数域上的椭圆曲线的阶了但都挺慢
 *           2026.07.15 V1.3
 *               不断优化，能准确算出 160 位素数域上的椭圆曲线的阶了
 *           2026.07.10 V1.2
@@ -272,6 +274,9 @@ const
 
   CN_SEA_MAX_BABY_STEPS = 5000;
   {* CRT baby-step 表的最大条目数。超过则停止添加 Atkin 素数。}
+
+  CN_SEA_MAX_BABY_STEPS_BIG = 5000000;
+  {* Large-field (224bit+) baby cap: select more CRT primes to shrink giant steps.*}
 
   CN_SEA_MAX_CRT_L_PRODUCT: Int64 = $20000000000000;  // 2^53
   {* CRT 组合 L 乘积上限，保证 baby-step r 值不溢出 Int64。}
@@ -1643,10 +1648,12 @@ begin
         // whole Psi_L (catastrophically slow CZ).
         if (H.MaxDegree = PsiL.MaxDegree) and (ScalarLam = 0) then
         begin
+          // Record ScalarLam but do NOT set Found := True. The actual
+          // eigenvalue (1 vs L-1) must be verified via Y2^((p-1)/2)
+          // in the post-loop fallback below. Breaking early with the
+          // unverified Lambda would skip that verification, causing
+          // wrong trace when the true eigenvalue is L-1.
           ScalarLam := Lambda;
-          BigNumberPolynomialCopy(Res, PsiL);
-          Found := True;
-          Break;
         end;
         // GCD degree is a multiple of TargetDeg - both eigenvalue kernels
         // are in F_p (e.g. when t = 0 mod L and -p is QR mod L).
@@ -1708,9 +1715,14 @@ begin
       Exit;
     end;
 
-    // Normal success: also pass scalar eigenvalue if available
-    if (ScalarLambda <> nil) and (ScalarLam > 0) then
-      ScalarLambda^ := ScalarLam;
+    // Normal success: pass scalar eigenvalue only when Res = PsiL
+    // (Frobenius is truly scalar). If Res is a proper factor from CZ
+    // decomposition, ScalarLam is stale and must not be used.
+    if (ScalarLambda <> nil) and (ScalarLam > 0) and
+       (Res.MaxDegree = PsiL.MaxDegree) then
+      ScalarLambda^ := ScalarLam
+    else if ScalarLambda <> nil then
+      ScalarLambda^ := 0;
 
     Result := True;
   finally
@@ -2154,6 +2166,192 @@ begin
 end;
 
 // 通过检查 E/F_p 上一点 P 满足 [p+1-t]P = O 来验证候选迹 t
+var
+  SeaVTCacheValid: Boolean;
+  SeaVTCacheKeyA, SeaVTCacheKeyB, SeaVTCacheKeyP: TCnBigNumber;
+  SeaVTPtTabX: TCnBigNumberList;
+  SeaVTPtTabY: TCnBigNumberList;
+
+procedure SeaVTFreeCache;
+begin
+  SeaVTPtTabX.Free;
+  SeaVTPtTabY.Free;
+  SeaVTPtTabX := nil;
+  SeaVTPtTabY := nil;
+  SeaVTCacheKeyA.Free;
+  SeaVTCacheKeyB.Free;
+  SeaVTCacheKeyP.Free;
+  SeaVTCacheKeyA := nil;
+  SeaVTCacheKeyB := nil;
+  SeaVTCacheKeyP := nil;
+  SeaVTCacheValid := False;
+end;
+
+function SeaVTFindPoint(X, Y, A, B, P: TCnBigNumber;
+  var StartX: Int64): Boolean;
+var
+  Y2, D1, D2: TCnBigNumber;
+begin
+  Result := False;
+  Y2 := FSeaBigNumberPool.Obtain;
+  D1 := FSeaBigNumberPool.Obtain;
+  D2 := FSeaBigNumberPool.Obtain;
+  try
+    while (StartX < 10000) and (not Result) do
+    begin
+      X.SetWord(StartX);
+      if BigNumberCompare(X, P) >= 0 then
+        Break;
+      // y^2 = x^3 + Ax + B mod p
+      BigNumberDirectMulMod(Y2, X, X, P);
+      BigNumberDirectMulMod(Y2, Y2, X, P);
+      BigNumberDirectMulMod(D1, A, X, P);
+      BigNumberAddMod(Y2, Y2, D1, P);
+      BigNumberAddMod(Y2, Y2, B, P);
+      Inc(StartX);
+      if Y2.IsZero then
+        Continue;
+
+      BigNumberCopy(D1, P);
+      D1.SubWord(1);
+      BigNumberShiftRightOne(D1, D1);
+      BigNumberPowerMod(D2, Y2, D1, P);
+      if not D2.IsOne then
+        Continue;
+      if BigNumberTonelliShanks(Y, Y2, P) then
+        Result := True;
+    end;
+  finally
+    FSeaBigNumberPool.Recycle(D2);
+    FSeaBigNumberPool.Recycle(D1);
+    FSeaBigNumberPool.Recycle(Y2);
+  end;
+end;
+
+function SeaVTBuildTable(A, B, P: TCnBigNumber): Boolean;
+var
+  X, Y: TCnBigNumber;
+  RX, RY, RZ: TCnBigNumber;
+  ZInv, TX, TY: TCnBigNumber;
+  D1, D2, D3, D4, D5, D6, D7, D8, D9: TCnBigNumber;
+  I, Bits: Integer;
+  StartX: Int64;
+  GoodPoint: Boolean;
+begin
+  Result := False;
+  SeaVTFreeCache;
+  X := FSeaBigNumberPool.Obtain;
+  Y := FSeaBigNumberPool.Obtain;
+  RX := FSeaBigNumberPool.Obtain;
+  RY := FSeaBigNumberPool.Obtain;
+  RZ := FSeaBigNumberPool.Obtain;
+  ZInv := FSeaBigNumberPool.Obtain;
+  TX := FSeaBigNumberPool.Obtain;
+  TY := FSeaBigNumberPool.Obtain;
+  D1 := FSeaBigNumberPool.Obtain;
+  D2 := FSeaBigNumberPool.Obtain;
+  D3 := FSeaBigNumberPool.Obtain;
+  D4 := FSeaBigNumberPool.Obtain;
+  D5 := FSeaBigNumberPool.Obtain;
+  D6 := FSeaBigNumberPool.Obtain;
+  D7 := FSeaBigNumberPool.Obtain;
+  D8 := FSeaBigNumberPool.Obtain;
+  D9 := FSeaBigNumberPool.Obtain;
+  try
+    Bits := BigNumberGetBitsCount(P);
+    StartX := 0;
+    GoodPoint := False;
+    while not GoodPoint do
+    begin
+      SeaVTPtTabX.Free;
+      SeaVTPtTabY.Free;
+      SeaVTPtTabX := nil;
+      SeaVTPtTabY := nil;
+      if not SeaVTFindPoint(X, Y, A, B, P, StartX) then
+        Exit;
+      SeaVTPtTabX := TCnBigNumberList.Create;
+      SeaVTPtTabY := TCnBigNumberList.Create;
+      BigNumberCopy(SeaVTPtTabX.Add, X);
+      BigNumberCopy(SeaVTPtTabY.Add, Y);
+      // Jacobian? R = [2^0]P = (X, Y, 1)
+      BigNumberCopy(RX, X);
+      BigNumberCopy(RY, Y);
+      RZ.SetWord(1);
+      GoodPoint := True;
+      for I := 0 to Bits - 1 do
+      begin
+        BigNumberDirectMulMod(D1, RX, RX, P);           // D1 = XX
+        BigNumberDirectMulMod(D2, RY, RY, P);           // D2 = YY
+        BigNumberDirectMulMod(D3, D2, D2, P);           // D3 = YYYY
+        BigNumberDirectMulMod(D4, RZ, RZ, P);           // D4 = ZZ
+        BigNumberAddMod(D5, RX, D2, P);                 // X + YY
+        BigNumberDirectMulMod(D5, D5, D5, P);           // (X+YY)^2
+        BigNumberSubMod(D5, D5, D1, P);                 // - XX
+        BigNumberSubMod(D5, D5, D3, P);                 // - YYYY
+        BigNumberAddMod(D5, D5, D5, P);                 // D5 = S
+        BigNumberDirectMulMod(D6, D4, D4, P);           // Z^4
+        BigNumberDirectMulMod(D6, D6, A, P);            // a*Z^4
+        BigNumberMulWordNonNegativeMod(D1, D1, 3, P);   // 3*XX
+        BigNumberAddMod(D6, D6, D1, P);                 // D6 = M
+        BigNumberAddMod(D7, RY, RZ, P);                 // Y + Z
+        BigNumberDirectMulMod(D7, D7, D7, P);           // (Y+Z)^2
+        BigNumberSubMod(D7, D7, D2, P);                 // - YY
+        BigNumberSubMod(D7, D7, D4, P);                 // D7 = Z3
+        BigNumberDirectMulMod(D8, D6, D6, P);           // M^2
+        BigNumberSubMod(D8, D8, D5, P);                 // M^2 - S
+        BigNumberSubMod(D8, D8, D5, P);                 // D8 = X3
+        BigNumberSubMod(D9, D5, D8, P);                 // S - X3
+        BigNumberDirectMulMod(D9, D9, D6, P);           // M*(S-X3)
+        BigNumberMulWordNonNegativeMod(D3, D3, 8, P);   // 8*YYYY
+        BigNumberSubMod(D9, D9, D3, P);                 // D9 = Y3
+        BigNumberCopy(RX, D8);
+        BigNumberCopy(RY, D9);
+        BigNumberCopy(RZ, D7);
+        if RZ.IsZero then
+        begin
+          GoodPoint := False;
+          Break;
+        end;
+
+        BigNumberModularInverse(ZInv, RZ, P);
+        BigNumberDirectMulMod(TX, RX, ZInv, P);
+        BigNumberDirectMulMod(TX, TX, ZInv, P);
+        BigNumberDirectMulMod(TY, RY, ZInv, P);
+        BigNumberDirectMulMod(TY, TY, ZInv, P);
+        BigNumberDirectMulMod(TY, TY, ZInv, P);
+        BigNumberCopy(SeaVTPtTabX.Add, TX);
+        BigNumberCopy(SeaVTPtTabY.Add, TY);
+      end;
+    end;
+    SeaVTCacheKeyA := TCnBigNumber.Create;
+    SeaVTCacheKeyB := TCnBigNumber.Create;
+    SeaVTCacheKeyP := TCnBigNumber.Create;
+    BigNumberCopy(SeaVTCacheKeyA, A);
+    BigNumberCopy(SeaVTCacheKeyB, B);
+    BigNumberCopy(SeaVTCacheKeyP, P);
+    SeaVTCacheValid := True;
+    Result := True;
+  finally
+    FSeaBigNumberPool.Recycle(D9);
+    FSeaBigNumberPool.Recycle(D8);
+    FSeaBigNumberPool.Recycle(D7);
+    FSeaBigNumberPool.Recycle(D6);
+    FSeaBigNumberPool.Recycle(D5);
+    FSeaBigNumberPool.Recycle(D4);
+    FSeaBigNumberPool.Recycle(D3);
+    FSeaBigNumberPool.Recycle(D2);
+    FSeaBigNumberPool.Recycle(D1);
+    FSeaBigNumberPool.Recycle(TY);
+    FSeaBigNumberPool.Recycle(TX);
+    FSeaBigNumberPool.Recycle(ZInv);
+    FSeaBigNumberPool.Recycle(RZ);
+    FSeaBigNumberPool.Recycle(RY);
+    FSeaBigNumberPool.Recycle(RX);
+    FSeaBigNumberPool.Recycle(Y);
+    FSeaBigNumberPool.Recycle(X);
+  end;
+end;
+
 function SeaVerifyTrace(A, B, P, T: TCnBigNumber): Boolean;
 var
   N, X, Y2, Y: TCnBigNumber;
@@ -2200,134 +2398,73 @@ begin
     // For a 48-bit prime, trying 3 points gives false-positive probability
     // < 1/2^48, which is sufficient.
     {$IFDEF SEA_TRACE2} _SeaT(Format('[DbgVT] T=%s N=%s', [T.ToDec, N.ToDec])); {$ENDIF}
-    PointCount := 0;
-    StartX := 0;
-    while (StartX < 10000) and (PointCount < 3) do
+    if not (SeaVTCacheValid and (SeaVTCacheKeyA <> nil) and
+            (BigNumberCompare(SeaVTCacheKeyA, A) = 0) and
+            (BigNumberCompare(SeaVTCacheKeyB, B) = 0) and
+            (BigNumberCompare(SeaVTCacheKeyP, P) = 0)) then
+      SeaVTBuildTable(A, B, P);
+
+    if SeaVTCacheValid then
     begin
-      X.SetWord(StartX);
-      if BigNumberCompare(X, P) >= 0 then
-        Exit; // Ran out of x values
-
-      // y^2 = x^3 + Ax + B mod p
-      BigNumberDirectMulMod(Y2, X, X, P);
-      BigNumberDirectMulMod(Y2, Y2, X, P);
-      BigNumberDirectMulMod(D1, A, X, P);
-      BigNumberAddMod(Y2, Y2, D1, P);
-      BigNumberAddMod(Y2, Y2, B, P);
-
-      Inc(StartX);
-      if Y2.IsZero then
-      begin
-        // Point (X, 0) — order 2, skip (too small)
-        Continue;
-      end;
-
-      // 通过欧拉准则检查是否为二次剩余
-      BigNumberCopy(D1, P);
-      D1.SubWord(1);
-      BigNumberShiftRightOne(D1, D1);
-      BigNumberPowerMod(D2, Y2, D1, P);
-      if not D2.IsOne then
-        Continue; // 不是二次剩余，此 x 坐标无对应点
-
-      if not BigNumberTonelliShanks(Y, Y2, P) then
-        Continue;
-
-      // S = (X : Y : 1) in Jacobian coordinates
-      BigNumberCopy(SX, X);
-      BigNumberCopy(SY, Y);
+      BigNumberCopy(SX, SeaVTPtTabX[0]);
+      BigNumberCopy(SY, SeaVTPtTabY[0]);
       SZ.SetWord(1);
-      Inc(PointCount);
-      {$IFDEF SEA_TRACE2} _SeaT(Format('[DbgVT] Point #%d: (%s, %s)', [PointCount, SX.ToDec, SY.ToDec])); {$ENDIF}
-      // 使用倍加算法（MSB 到 LSB）计算 [N]P
-      RZ.SetZero; // R = O, Z = 0
+      PointCount := 1;
+      RZ.SetZero;
       Bits := BigNumberGetBitsCount(N);
-
       for I := Bits - 1 downto 0 do
       begin
-        if not RZ.IsZero then
+        if not BigNumberIsBitSet(N, I) then
+          Continue;
+        if RZ.IsZero then
         begin
-          BigNumberDirectMulMod(D1, RX, RX, P);           // D1 = XX
-          BigNumberDirectMulMod(D2, RY, RY, P);           // D2 = YY
-          BigNumberDirectMulMod(D3, D2, D2, P);           // D3 = YYYY
-          BigNumberDirectMulMod(D4, RZ, RZ, P);           // D4 = ZZ
-          BigNumberAddMod(D5, RX, D2, P);                 // X + YY
-          BigNumberDirectMulMod(D5, D5, D5, P);           // (X+YY)^2
-          BigNumberSubMod(D5, D5, D1, P);                 // - XX
-          BigNumberSubMod(D5, D5, D3, P);                 // - YYYY
-          BigNumberAddMod(D5, D5, D5, P);                 // D5 = S
-          BigNumberDirectMulMod(D6, D4, D4, P);           // Z^4
-          BigNumberDirectMulMod(D6, D6, A, P);            // a*Z^4
-          BigNumberMulWordNonNegativeMod(D1, D1, 3, P);   // 3*XX
-          BigNumberAddMod(D6, D6, D1, P);                 // D6 = M
-          BigNumberAddMod(D7, RY, RZ, P);                 // Y + Z
-          BigNumberDirectMulMod(D7, D7, D7, P);           // (Y+Z)^2
-          BigNumberSubMod(D7, D7, D2, P);                 // - YY
-          BigNumberSubMod(D7, D7, D4, P);                 // D7 = Z3
-          BigNumberDirectMulMod(D8, D6, D6, P);           // M^2
-          BigNumberSubMod(D8, D8, D5, P);                 // M^2 - S
-          BigNumberSubMod(D8, D8, D5, P);                 // D8 = X3 = M^2 - 2*S
-          BigNumberSubMod(D9, D5, D8, P);                 // S - X3
-          BigNumberDirectMulMod(D9, D9, D6, P);           // M*(S-X3)
-          BigNumberMulWordNonNegativeMod(D3, D3, 8, P);   // 8*YYYY
-          BigNumberSubMod(D9, D9, D3, P);                 // D9 = Y3
-          BigNumberCopy(RX, D8);
-          BigNumberCopy(RY, D9);
-          BigNumberCopy(RZ, D7);
-        end;
-
-        if BigNumberIsBitSet(N, I) then
+          BigNumberCopy(RX, SeaVTPtTabX[I]);
+          BigNumberCopy(RY, SeaVTPtTabY[I]);
+          BigNumberCopy(RZ, SZ);
+        end
+        else
         begin
-          if RZ.IsZero then
-          begin
-            BigNumberCopy(RX, SX);
-            BigNumberCopy(RY, SY);
-            BigNumberCopy(RZ, SZ);
-          end
-          else
-          begin
-            // R = R + S (Jacobian addition)
-            BigNumberDirectMulMod(D1, RZ, RZ, P);         // D1 = Z1^2
-            BigNumberDirectMulMod(D2, SX, D1, P);         // D2 = U2 = X2*Z1^2
-            BigNumberSubMod(D3, D2, RX, P);               // D3 = H = U2 - U1
-            BigNumberDirectMulMod(D4, RZ, D1, P);         // Z1^3
-            BigNumberDirectMulMod(D4, D4, SY, P);         // D4 = S2 = Y2*Z1^3
-            BigNumberSubMod(D5, D4, RY, P);               // S2 - S1
-            BigNumberAddMod(D5, D5, D5, P);               // D5 = r = 2*(S2-S1)
-            BigNumberAddMod(D6, D3, D3, P);               // 2*H
-            BigNumberDirectMulMod(D6, D6, D6, P);         // D6 = I = (2*H)^2
-            BigNumberDirectMulMod(D7, D6, D3, P);         // D7 = J = H^3
-            BigNumberDirectMulMod(D8, RX, D6, P);         // D8 = V = U1*I
-            BigNumberDirectMulMod(D9, D5, D5, P);         // r^2
-            BigNumberSubMod(D9, D9, D7, P);               // r^2 - J
-            BigNumberSubMod(D9, D9, D8, P);               // - V
-            BigNumberSubMod(D9, D9, D8, P);               // D9 = X3 = r^2 - J - 2*V
-            BigNumberSubMod(D6, D8, D9, P);               // V - X3
-            BigNumberDirectMulMod(D6, D6, D5, P);         // r*(V-X3)
-            BigNumberDirectMulMod(D7, D7, RY, P);         // S1*J
-            BigNumberAddMod(D7, D7, D7, P);               // 2*S1*J
-            BigNumberSubMod(D6, D6, D7, P);               // D6 = Y3
-            BigNumberAddMod(D4, RZ, SZ, P);               // Z1 + Z2
-            BigNumberDirectMulMod(D4, D4, D4, P);         // (Z1+Z2)^2
-            BigNumberSubMod(D4, D4, D1, P);               // - Z1^2
-            BigNumberSubMod(D4, D4, SZ, P);               // - Z2^2 (= 1)
-            BigNumberDirectMulMod(D4, D4, D3, P);         // D4 = Z3 = ((Z1+Z2)^2 - Z1^2 - Z2^2)*H
-            BigNumberCopy(RX, D9);
-            BigNumberCopy(RY, D6);
-            BigNumberCopy(RZ, D4);
-          end;
+          BigNumberCopy(SX, SeaVTPtTabX[I]);
+          BigNumberCopy(SY, SeaVTPtTabY[I]);
+          SZ.SetWord(1);
+          BigNumberDirectMulMod(D1, RZ, RZ, P);
+          BigNumberDirectMulMod(D2, SX, D1, P);
+          BigNumberSubMod(D3, D2, RX, P);
+          BigNumberDirectMulMod(D4, RZ, D1, P);
+          BigNumberDirectMulMod(D4, D4, SY, P);
+          BigNumberSubMod(D5, D4, RY, P);
+          BigNumberAddMod(D5, D5, D5, P);
+          BigNumberAddMod(D6, D3, D3, P);
+          BigNumberDirectMulMod(D6, D6, D6, P);
+          BigNumberDirectMulMod(D7, D6, D3, P);
+          BigNumberDirectMulMod(D8, RX, D6, P);
+          BigNumberDirectMulMod(D9, D5, D5, P);
+          BigNumberSubMod(D9, D9, D7, P);
+          BigNumberSubMod(D9, D9, D8, P);
+          BigNumberSubMod(D9, D9, D8, P);
+          BigNumberSubMod(D6, D8, D9, P);
+          BigNumberDirectMulMod(D6, D6, D5, P);
+          BigNumberDirectMulMod(D7, D7, RY, P);
+          BigNumberAddMod(D7, D7, D7, P);
+          BigNumberSubMod(D6, D6, D7, P);
+          BigNumberAddMod(D4, RZ, SZ, P);
+          BigNumberDirectMulMod(D4, D4, D4, P);
+          BigNumberSubMod(D4, D4, D1, P);
+          BigNumberSubMod(D4, D4, SZ, P);
+          BigNumberDirectMulMod(D4, D4, D3, P);
+          BigNumberCopy(RX, D9);
+          BigNumberCopy(RY, D6);
+          BigNumberCopy(RZ, D4);
         end;
       end;
-
-      // 若任意点 [N]P != O，则拒绝此迹
       if not RZ.IsZero then
-      begin
-        {$IFDEF SEA_TRACE2} _SeaT(Format('[DbgVT]   [N]P != O, R=(%s,%s,%s)', [RX.ToDec, RY.ToDec, RZ.ToDec])); {$ENDIF}
-        Exit;
-      end;
-      {$IFDEF SEA_TRACE2} _SeaT('[DbgVT]   [N]P = O, pass.'); {$ENDIF}
-    end;
-    // 所有点验证通过：对所有测试点 [N]P = O
+        PointCount := 0
+      else
+        PointCount := 1;
+    end
+    else
+      PointCount := 0;
+
     Result := PointCount > 0;
   finally
     FSeaBigNumberPool.Recycle(D9);
@@ -3309,31 +3446,36 @@ var
   BestIdx, Dir: Integer;
   BabyR: Int64;
   // 多素数 CRT 选取
-  SelIdx: array[0..5] of Integer;
-  SelL: array[0..5] of Int64;
-  SelC: array[0..5] of Integer;
-  SelCount, SelBestIdx: Integer;
+  SelIdx: array[0..63] of Integer;
+  SelL: array[0..63] of Int64;
+  SelC: array[0..63] of Integer;
+  SelCount, SelBestIdx, SelMaxLoop: Integer;
+  SelMaxBaby: Int64;
   SelBestR, SelR: Double;
   SelFound: Boolean;
-  SelK, SelJ, SelPrev: Integer;
+  SelK, SelJ: Integer;
+  SelPrev: Int64;
   CRT_LProd, CRT_Lk, CRT_InvMk, CRT_TModK, CRT_R2, CRT_R1, CRT_Diff: Int64;
   CRTOldCnt: Integer;
   S1, S2: TCnInt64List;  // CRT 临时列表
 
   // Int64 预计算
-  RmL: array of Int64;
-  RmTE: array of Int64;       // T_E mod L (read-only)
-  RmGS: array of Int64;
-  RmBaby0: array of Int64;
-  RmBase: array of Int64;     // per-direction base_t mod L (scratch)
+  RmL: array of Integer;
+  RmTE: array of Integer;       // T_E mod L (read-only)
+  RmGS: array of Integer;
+  RmBaby0: array of Integer;
+  RmBase: array of Integer;     // per-direction base_t mod L (scratch)
   RmLUT: array of Boolean;        // flattened 1D O(1) membership
   RmLUTOff: array of Integer;     // RmLUT 的行起始偏移
-  BabyMod1D: array of Int64;  // flattened: [K * BabyCnt + I]
+  BabyMod1D: array of Integer;  // flattened: [K * BabyCnt + I]
+  RmOrder: array of Integer;
+  TmpI, J: Integer;
   BabyCnt: Integer;
   Survive: array of Boolean;
   RmCount, RmIdx: Integer;
   RmSkp: Boolean;
-  RmTModL, RmBm, RmLk: Int64;
+  RmTModL, RmBm, RmLk, RmBaseK: Integer;
+  RmBm64: Int64;
 
   // BSGS 变量
   BabyRs: TCnInt64List;
@@ -3507,7 +3649,16 @@ begin
       // 贪心策略：选取 |S|/L 比值最小的素数。
       // 当小步 > 5000 或 L_prod > 2^60 时停止。
       SelCount := 0; CRT_LProd := 1;
-      for SelBestIdx := 0 to 5 do
+      SelMaxLoop := 6; SelMaxBaby := CN_SEA_MAX_BABY_STEPS;
+      // Large fields (224bit+): many Atkin primes, relax baby cap and select
+      // up to Count-3 primes to shrink giant-step count dramatically.
+      // Small fields (192bit and below): keep original behavior unchanged.
+      if AtkinInfos.Count >= 17 then
+      begin
+        SelMaxLoop := AtkinInfos.Count - 3;
+        SelMaxBaby := CN_SEA_MAX_BABY_STEPS_BIG;
+      end;
+      while (SelCount < SelMaxLoop) do
       begin
         BestIdx := -1; SelBestR := 1e99;
         for K := 0 to AtkinInfos.Count - 1 do
@@ -3525,7 +3676,7 @@ begin
         // 在提交前先检查小步上限
         SelC[SelCount] := TCnSeaAtkinInfo(AtkinInfos[BestIdx]).PossibleTraces.Count;
         SelPrev := 1; for SelJ := 0 to SelCount do SelPrev := SelPrev * SelC[SelJ];
-        if (SelCount > 0) and (SelPrev > CN_SEA_MAX_BABY_STEPS) then Break;
+        if (SelCount > 0) and (SelPrev > SelMaxBaby) then Break;
         // Int64 safety: L_prod < 2^60
         if (SelCount > 0) and (CRT_LProd > CN_SEA_MAX_CRT_L_PRODUCT div TCnSeaAtkinInfo(AtkinInfos[BestIdx]).L) then Break;
         // 确认提交
@@ -3590,6 +3741,11 @@ begin
       // only covered positive direction; negative was short by ~T_E+M_E,
       // causing GiantMax to be 1 step too small and missing correct trace.
       BigNumberAdd(Threshold, QMax, QMax);
+      BigNumberSetInt64(Tmp, CRT_LProd);
+      BigNumberSubWord(Tmp, 1);                   // CRT_LProd - 1
+      BigNumberMul(Tmp, Tmp, M_E);                // (CRT_LProd - 1) * M_E
+      BigNumberAdd(Threshold, Threshold, Tmp);    // + (CRT_LProd - 1) * M_E
+      BigNumberAdd(Threshold, Threshold, M_E);    // + M_E (safety margin)
 
       // ---- Int64 precompute: remaining Atkin constraints ----
       // Build O(1) lookup table per prime for fast membership check
@@ -3601,9 +3757,8 @@ begin
           if I = SelIdx[SelJ] then begin RmSkp := True; Break; end;
         if not RmSkp then Inc(RmCount);
       end;
-      SetLength(RmL, RmCount); SetLength(RmTE, RmCount);
-      SetLength(RmGS, RmCount); SetLength(RmBaby0, RmCount);
-      SetLength(RmBase, RmCount);
+      SetLength(RmOrder, RmCount);
+
       // 第一遍：填充 RmL 和候选列表
       RmIdx := 0;
       for I := 0 to AtkinInfos.Count - 1 do
@@ -3611,35 +3766,51 @@ begin
         RmSkp := False;
         for SelJ := 0 to SelCount - 1 do
           if I = SelIdx[SelJ] then begin RmSkp := True; Break; end;
-        if RmSkp then Continue;
-        RmL[RmIdx] := TCnSeaAtkinInfo(AtkinInfos[I]).L;
-        RmTModL := BigNumberModWord(T_E, RmL[RmIdx]);
-        if T_E.IsNegative then RmTModL := (RmL[RmIdx] - RmTModL) mod RmL[RmIdx];
-        RmTE[RmIdx] := RmTModL;
-        RmGS[RmIdx] := BigNumberModWord(GStep, RmL[RmIdx]);
-        RmBaby0[RmIdx] := BigNumberModWord(M_E, RmL[RmIdx]);
-        Inc(RmIdx);
+        if not RmSkp then begin RmOrder[RmIdx] := I; Inc(RmIdx); end;
+      end;
+      for J := 1 to RmCount - 1 do
+      begin
+        TmpI := RmOrder[J];
+        K := J - 1;
+        while (K >= 0) and
+              (TCnSeaAtkinInfo(AtkinInfos[RmOrder[K]]).PossibleTraces.Count *
+               TCnSeaAtkinInfo(AtkinInfos[TmpI]).L >
+               TCnSeaAtkinInfo(AtkinInfos[TmpI]).PossibleTraces.Count *
+               TCnSeaAtkinInfo(AtkinInfos[RmOrder[K]]).L) do
+        begin
+          RmOrder[K + 1] := RmOrder[K];
+          Dec(K);
+        end;
+        RmOrder[K + 1] := TmpI;
+      end;
+      SetLength(RmL, RmCount); SetLength(RmTE, RmCount);
+      SetLength(RmGS, RmCount); SetLength(RmBaby0, RmCount);
+      SetLength(RmBase, RmCount);
+      for SelJ := 0 to RmCount - 1 do
+      begin
+        I := RmOrder[SelJ];
+        RmL[SelJ] := Integer(TCnSeaAtkinInfo(AtkinInfos[I]).L);
+        RmTModL := Integer(BigNumberModWord(T_E, RmL[SelJ]));
+        if T_E.IsNegative then RmTModL := (RmL[SelJ] - RmTModL) mod RmL[SelJ];
+        RmTE[SelJ] := RmTModL;
+        RmGS[SelJ] := Integer(BigNumberModWord(GStep, RmL[SelJ]));
+        RmBaby0[SelJ] := Integer(BigNumberModWord(M_E, RmL[SelJ]));
       end;
       // 从已知 L 值计算一维查找表偏移
       SetLength(RmLUTOff, RmCount + 1);
       RmLUTOff[0] := 0;
       for K := 0 to RmCount - 1 do
-        RmLUTOff[K + 1] := RmLUTOff[K] + Integer(RmL[K]) + 1;
+        RmLUTOff[K + 1] := RmLUTOff[K] + RmL[K] + 1;
       SetLength(RmLUT, RmLUTOff[RmCount]);
       for K := 0 to High(RmLUT) do RmLUT[K] := False;
       // 用候选值填充查找表 LUT
-      RmIdx := 0;
-      for I := 0 to AtkinInfos.Count - 1 do
+      for SelJ := 0 to RmCount - 1 do
       begin
-        RmSkp := False;
-        for SelJ := 0 to SelCount - 1 do
-          if I = SelIdx[SelJ] then begin RmSkp := True; Break; end;
-        if RmSkp then Continue;
+        I := RmOrder[SelJ];
         S1 := TCnSeaAtkinInfo(AtkinInfos[I]).PossibleTraces;
-        SelPrev := RmLUTOff[RmIdx]; // base offset for this row
-        for SelJ := 0 to S1.Count - 1 do
-          RmLUT[SelPrev + S1[SelJ]] := True;
-        Inc(RmIdx);
+        SelPrev := RmLUTOff[SelJ]; // base offset for this row
+        for J := 0 to S1.Count - 1 do
+          RmLUT[SelPrev + Integer(S1[J])] := True;
       end;
       // 预计算 (BabyRs[i] * RmBaby0[k]) mod RmL[k] → 展开为一维数组
       BabyCnt := BabyRs.Count;
@@ -3648,7 +3819,8 @@ begin
       begin
         SelPrev := K * BabyCnt; // row offset
         for I := 0 to BabyCnt - 1 do
-          BabyMod1D[SelPrev + I] := (BabyRs[I] * RmBaby0[K]) mod RmL[K];
+          BabyMod1D[SelPrev + I] :=
+            Integer((BabyRs[I] * RmBaby0[K]) mod RmL[K]);
       end;
 
       // ---- Int64-optimized BSGS loop ----
@@ -3679,13 +3851,13 @@ begin
           for I := 0 to RmCount - 1 do
           begin
             RmLk := RmL[I];
-            RmBm := ((GiantSize mod RmLk) * RmGS[I]) mod RmLk;
-            if Dir = 0 then RmBm := (RmTE[I] + RmBm) mod RmLk
+            RmBm64 := ((GiantSize mod RmLk) * RmGS[I]) mod RmLk;
+            if Dir = 0 then RmBm64 := (RmTE[I] + RmBm64) mod RmLk
             else begin
-              RmBm := (RmTE[I] - RmBm) mod RmLk;
-              if RmBm < 0 then RmBm := RmBm + RmLk;
+              RmBm64 := (RmTE[I] - RmBm64) mod RmLk;
+              if RmBm64 < 0 then RmBm64 := RmBm64 + RmLk;
             end;
-            RmBase[I] := RmBm;
+            RmBase[I] := Integer(RmBm64);
           end;
           {$IFDEF SEA_TRACE}
           if GiantSize = 0 then _SeaT('[Combine] baset done, baby loop start count=%d', [BabyRs.Count]);
@@ -3700,12 +3872,12 @@ begin
           begin
             RmLk := RmL[K];
             SelPrev := K * BabyCnt; // row start in BabyMod1D
-            CRT_TModK := RmBase[K];  // base mod this prime
+            RmBaseK := RmBase[K];  // base mod this prime
             RmTModL := RmLUTOff[K];
             for I := 0 to BabyCnt - 1 do
             begin
               if not Survive[I] then Continue;
-              RmBm := CRT_TModK + BabyMod1D[SelPrev + I];
+              RmBm := RmBaseK + BabyMod1D[SelPrev + I];
               if RmBm >= RmLk then
                 RmBm := RmBm - RmLk;
               if not RmLUT[RmTModL + RmBm] then
@@ -3802,6 +3974,7 @@ initialization
   FSeaRationalPolynomialPool := TCnBigNumberRationalPolynomialPool.Create;
 
 finalization
+  SeaVTFreeCache;
   FSeaRationalPolynomialPool.Free;
   FSeaPolynomialPool.Free;
   FSeaBigNumberPool.Free;

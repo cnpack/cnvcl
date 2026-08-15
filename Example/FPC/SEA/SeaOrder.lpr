@@ -473,13 +473,28 @@ begin
            'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001',
            '224-bit secp224r1', True);
   end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = '256bit') then
+  begin
+    // SM2 curve parameters (GM/T 0003.5-2012)
+    // p = FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF
+    // a = FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC
+    // b = 28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93
+    // n = FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123
+    WriteLn('Running SM2 (256-bit) test...');
+    WriteLn('NOTE: This may take a long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC',
+           '28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93',
+           'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF',
+           '256-bit SM2 curve', True);
+  end
   else
   begin
     WriteLn('No parameters. Running built-in test cases from 48-bit to 192-bit.');
     WriteLn('Usage: SeaOrder <A> <B> <P>');
     WriteLn('  A, B: Weierstrass coefficients (decimal or hex string)');
     WriteLn('  P:    field prime (decimal or hex string)');
-    WriteLn('  Special: SeaOrder 48bit / 64bit / 72bit / 96bit / 112bit / 128bit / 160bit / 192bit / 224bit  for standard curves');
+    WriteLn('  Special: SeaOrder 48bit / 64bit / 72bit / 96bit / 112bit / 128bit / 160bit / 192bit / 224bit / 256bit  for standard curves');
     WriteLn;
 
     // 48-bit CM curve: p = 16777213^2 + 38^2, a=1, b=0
