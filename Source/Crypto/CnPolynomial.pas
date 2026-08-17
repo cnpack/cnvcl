@@ -3361,8 +3361,10 @@ procedure BigNumberPolynomialGaloisMonic(P: TCnBigNumberPolynomial; Prime: TCnBi
 
 procedure BigNumberPolynomialGaloisHalfGcd(M11, M12, M21, M22: TCnBigNumberPolynomial;
   A, B: TCnBigNumberPolynomial; Prime: TCnBigNumber; K: Integer);
+
 function BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res: TCnBigNumberPolynomial;
-  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  MinGcdDeg: Integer = 0): Boolean;
 {* 使用 Half-GCD（半欧几里得算法）计算一元多项式在 Prime 域上的最大公因式。
    时间复杂度 O(M(n))（M(n) 为多项式乘法复杂度），远优于传统欧几里得算法的 O(n * M(n))。
    当多项式次数较大（超过内部阈值 CN_POLY_GCD_FAST_THRESHOLD）时会被
@@ -3373,12 +3375,16 @@ function BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res: TCnBigNumberPol
      P1: TCnBigNumberPolynomial           - 参与计算的多项式一
      P2: TCnBigNumberPolynomial           - 参与计算的多项式二
      Prime: TCnBigNumber                  - 有限域阶
+     MinGcdDeg: Integer                   - 提前终止阈值：若计算过程中
+                                           可断定最终 GCD 度数小于此值，
+                                           立即返回 False
 
    返回值: Boolean                        - 计算是否成功
 }
 
 function BigNumberPolynomialGaloisGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
-  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  MinGcdDeg: Integer = 0): Boolean;
 {* 计算两个一元大整系数多项式在 Prime 次方阶有限域上的最大公因式，返回是否计算成功，Res 可以是 P1 或 P2。
 
    参数：
@@ -3386,6 +3392,9 @@ function BigNumberPolynomialGaloisGreatestCommonDivisor(Res: TCnBigNumberPolynom
      P1: TCnBigNumberPolynomial           - 待计算最大公因式的一元大整系数多项式一
      P2: TCnBigNumberPolynomial           - 待计算最大公因式的一元大整系数多项式二
      Prime: TCnBigNumber                  - 有限域上界
+     MinGcdDeg: Integer                   - 提前终止阈值（传给快速 GCD）：
+                                           若可断定最终 GCD 度数小于此值，
+                                           立即返回 False
 
    返回值：Boolean                        - 返回是否计算成功
 }
@@ -11291,7 +11300,8 @@ begin
 end;
 
 function BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res: TCnBigNumberPolynomial;
-  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+  P1: TCnBigNumberPolynomial; P2: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  MinGcdDeg: Integer): Boolean;
 var
   A, B, C, D, R: TCnBigNumberPolynomial;
   TA, TB: TCnBigNumberPolynomial;
@@ -11338,6 +11348,11 @@ begin
       BigNumberPolynomialCopy(B, P1);
     end;
 
+    // 优化：若较小者的度数已低于 MinGcdDeg，则最终 GCD
+    // 度数必然小于 MinGcdDeg，直接返回失败以提前终止。
+    if (MinGcdDeg > 0) and (B.MaxDegree < MinGcdDeg) then
+      Exit;
+
       while (not B.IsZero) and (B.MaxDegree > CN_POLY_GCD_FAST_THRESHOLD) do
     begin
       BigNumberPolynomialGaloisHalfGcd(M11, M12, M21, M22, A, B, Prime, CN_POLY_HALF_GCD_K);
@@ -11356,6 +11371,11 @@ begin
         BigNumberPolynomialSetZero(B);
         Break;
       end;
+
+      // 优化：若当前约化结果度数已低于 MinGcdDeg，
+      // 则最终 GCD 度数必然小于 MinGcdDeg，无需继续计算。
+      if (MinGcdDeg > 0) and (D.MaxDegree < MinGcdDeg) then
+        Exit;
 
       // 一次普通取模：R = C mod D
       if not BigNumberPolynomialGaloisMod(R, C, D, Prime) then
@@ -11393,7 +11413,8 @@ end;
 
 
 function BigNumberPolynomialGaloisGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
-  P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+  P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  MinGcdDeg: Integer): Boolean;
 var
   A, B, C: TCnBigNumberPolynomial;
 begin
@@ -11401,7 +11422,7 @@ begin
   if (P1.MaxDegree > CN_POLY_GCD_FAST_THRESHOLD) and
      (P2.MaxDegree > CN_POLY_GCD_FAST_THRESHOLD) then
   begin
-    Result := BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, P1, P2, Prime);
+    Result := BigNumberPolynomialGaloisGreatestCommonDivisorFast(Res, P1, P2, Prime, MinGcdDeg);
     Exit;
   end;
 
