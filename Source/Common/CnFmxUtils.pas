@@ -50,6 +50,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+  System.TypInfo,
   FMX.Types, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF} FMX.Controls, FMX.Forms,
   FMX.Dialogs, FMX.Grid {$IFDEF DELPHIXE8_UP}, FMX.StdCtrls {$ENDIF}
   {$IFDEF MSWINDOWS}, FMX.Platform.Win {$ENDIF} {$IFDEF MACOS}, FMX.Platform.Mac {$ENDIF};
@@ -130,6 +131,11 @@ function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;
 
 function CnFmxFixSetValue(const PType: string; const PValue: string): string;
 {* 为高版本语法的 set 赋值增加类名，如 [seTop] 变成 [TSide.seTop]}
+
+function CnFmxFixScopedEnumValue(const PType: string; ATypeKind: TTypeKind;
+  const PValue: string): string;
+{* FMX ScopedEnums 下给枚举/集合赋值时加类型名前缀，例如 Styled 变 TControlType.Styled，
+   [crTopLeft, crTopRight] 变 [TCorner.crTopLeft, TCorner.crTopRight]}
 
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string): Boolean;
@@ -602,6 +608,76 @@ begin
           CnFmxFixEnumTypeArray[Idx] + '.' + FCnFmxFixEnumNameArray[Idx][I],
           [rfReplaceAll]);
       end;
+    end;
+  end;
+end;
+
+function CnFmxFixScopedEnumValue(const PType: string; ATypeKind: TTypeKind;
+  const PValue: string): string;
+var
+  Inner: string;
+  Parts: TStringList;
+  I: Integer;
+  Parsed: string;
+begin
+  Result := PValue;
+  if (PType = '') or (PValue = '') then
+    Exit;
+
+  // Only fix tkEnumeration and tkSet for FMX ScopedEnums
+  if not (ATypeKind in [tkEnumeration, tkSet]) then
+    Exit;
+
+  // Boolean and ByteBool/WordBool/LongBool are tkEnumeration but NOT scoped
+  if (PType = 'Boolean') or (PType = 'ByteBool') or
+    (PType = 'WordBool') or (PType = 'LongBool') then
+    Exit;
+
+  if ATypeKind = tkEnumeration then
+  begin
+    // Single enum value, e.g. "Styled" -> "TControlType.Styled"
+    // Skip if already has a dot (already scoped)
+    if Pos('.', PValue) > 0 then
+      Exit;
+    // Skip numeric values (should not happen for tkEnumeration, just in case)
+    if PValue[1] in ['0'..'9', '-'] then
+      Exit;
+    Result := PType + '.' + PValue;
+  end
+  else if ATypeKind = tkSet then
+  begin
+    // Set value, e.g. "[crTopLeft, crTopRight]" -> "[TCorner.crTopLeft, TCorner.crTopRight]"
+    if (Length(PValue) < 2) or (PValue[1] <> '[') then
+      Exit;
+
+    if PValue = '[]' then
+      Exit; // Empty set, nothing to fix
+
+    // Extract inner content between [ and ]
+    Inner := Trim(Copy(PValue, 2, Length(PValue) - 2));
+
+    Parts := TStringList.Create;
+    try
+      // Split by comma using ExtractStrings
+      ExtractStrings([','], [' '], PChar(Inner), Parts);
+
+      Parsed := '';
+      for I := 0 to Parts.Count - 1 do
+      begin
+        if I > 0 then
+          Parsed := Parsed + ', ';
+
+        // Trim each element and add type prefix if it doesn't already have one
+        Parts[I] := Trim(Parts[I]);
+        if (Parts[I] <> '') and (Pos('.', Parts[I]) = 0) then
+          Parsed := Parsed + PType + '.' + Parts[I]
+        else
+          Parsed := Parsed + Parts[I];
+      end;
+
+      Result := '[' + Parsed + ']';
+    finally
+      Parts.Free;
     end;
   end;
 end;
