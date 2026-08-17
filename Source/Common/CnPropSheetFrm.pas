@@ -2846,12 +2846,15 @@ begin
       FGraphics.Graphic := ObjectInstance;
       Include(FContentTypes, pctGraphics);
     end
+{$IFDEF ENABLE_FMX}
     else if CnFmxIsFmxBitmap(ObjectInstance) then
     begin
       // FMX 的位图
       FGraphics.Graphic := ObjectInstance;
       Include(FContentTypes, pctGraphics);
-    end;
+    end
+{$ENDIF}
+;
   end;
 
   if FContentTypes = [] then
@@ -3615,11 +3618,14 @@ begin
         end;
       end;
     end
+{$IFDEF ENABLE_FMX}
     else if CnFmxIsFmxBitmap(FGraphicObject) then
     begin
       // 把 FMX 的 TBitmap 绘制到 Vcl 的 FGraphicBmp 中
       FmxBitmapToVclBitmap(FGraphicObject, FGraphicBmp);
-    end;
+    end
+{$ENDIF}
+;
     pbGraphic.Invalidate;
   end;
 
