@@ -50,7 +50,7 @@ type
   {* RC4 相关异常}
 
 procedure RC4Encrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
-  Output: Pointer; ByteLength: Integer);
+  Output: Pointer; ByteLength: Integer); {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 对 Input 所指的字节长度为 ByteLength 的明文数据块，使用 Key 所指的字节长度 KeyByteLength 的
    RC4 密钥进行加密，密文内容放 Output 所指的数据区，该区要求字节长度至少也为 ByteLength。
    Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容。
@@ -67,6 +67,7 @@ procedure RC4Encrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
 
 procedure RC4Decrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
   Output: Pointer; ByteLength: Integer);
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 对 Input 所指的字节长度为 ByteLength 的密文数据块，使用 Key 所指的字节长度 KeyByteLength 的
    RC4 密钥进行解密，明文内容放 Output 所指的数据区，该区要求字节长度至少也为 ByteLength。
    Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容。
@@ -82,6 +83,7 @@ procedure RC4Decrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
 }
 
 function RC4EncryptBytes(const Key: TBytes; const Input: TBytes): TBytes;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* RC4 加密字节数组，返回密文字节数组。
 
    参数：
@@ -92,6 +94,7 @@ function RC4EncryptBytes(const Key: TBytes; const Input: TBytes): TBytes;
 }
 
 function RC4DecryptBytes(const Key: TBytes; const Input: TBytes): TBytes;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* RC4 解密字节数组，返回明文字节数组。
 
    参数：
@@ -102,6 +105,7 @@ function RC4DecryptBytes(const Key: TBytes; const Input: TBytes): TBytes;
 }
 
 function RC4EncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入字符串形式的明文与密钥，RC4 加密返回转换成十六进制的密文。
 
    参数：
@@ -112,6 +116,7 @@ function RC4EncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiS
 }
 
 function RC4DecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入十六进制的密文与字符串形式的密钥，RC4 解密返回明文。
 
    参数：
