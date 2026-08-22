@@ -972,6 +972,49 @@ begin
     BigNumberClearBit(X, I);
 end;
 
+// 安全修复：校验协同流程中对手方传来的中间点——非无穷远、坐标在合法范围、
+// 位于 SM2 曲线上且属于正确子群（n·P 为无穷远点），
+// 防止恶意对端利用无效曲线点或小子群点实施密钥泄露攻击。
+// 复用 CnECC 的完整公钥校验逻辑；TCnSM2 本身即配置好推荐曲线的 TCnECC
+function InternalCheckCollaborativePoint(PointFromPeer: TCnEccPoint;
+  SM2: TCnSM2): Boolean;
+var
+  OwnEcc: Boolean;
+  Ecc: TCnEcc;
+  PubKey: TCnEccPublicKey;
+begin
+  Result := False;
+
+  if PointFromPeer = nil then
+    Exit;
+
+  OwnEcc := SM2 = nil;
+  if OwnEcc then
+    Ecc := TCnSM2.Create   // TCnSM2 继承自配置好推荐曲线的 TCnECC
+  else
+    Ecc := SM2;
+  try
+    // 无穷远点直接拒绝
+    if PointFromPeer.IsZero then
+      Exit;
+
+    PubKey := TCnEccPublicKey.Create;
+    try
+      BigNumberCopy(PubKey.X, PointFromPeer.X);
+      BigNumberCopy(PubKey.Y, PointFromPeer.Y);
+      // 复用 CnECC 完整校验：坐标范围、曲线方程、n·P 子群归属
+      if not CheckEccPublicKey(Ecc, PubKey) then
+        Exit;
+      Result := True;
+    finally
+      PubKey.Free;
+    end;
+  finally
+    if OwnEcc then
+      Ecc.Free;
+  end;
+end;
+
 { TCnSM2PublicKey }
 
 procedure TCnSM2PublicKey.SetHex(const Buf: AnsiString);
@@ -2632,6 +2675,13 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
+    // 安全修复：校验 A 方传来的中间点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InPointFromA, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     if not BigNumberRandRange(PrivateKeyB, SM2.Order) then
     begin
       _CnSetLastError(ECN_SM2_RANDOM_ERROR);
@@ -2740,6 +2790,13 @@ begin
     Q := TCnEccPoint.Create;
     P := TCnEccPoint.Create;
     Inv := TCnBigNumber.Create;
+
+    // 安全修复：校验 A 方传来的 Q 点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InQFromA, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     while True do
     begin
@@ -2923,6 +2980,14 @@ begin
       Exit;
     end;
 
+    // 安全修复：C1 来自密文（攻击者可控），必须先校验在曲线上且属于正确子群
+    // 再用私钥进行标量乘，否则存在无效曲线攻击风险
+    if not InternalCheckCollaborativePoint(OutTToB, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     SM2.MultiplePoint(PrivateKeyA, OutTToB); // C1 点乘私钥发给 B
 
     Result := True;
@@ -2950,6 +3015,13 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    // 安全修复：校验 A 方传来的 T 点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InTFromA, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     OutTToA.Assign(InTFromA);
     SM2.MultiplePoint(PrivateKeyB, OutTToA);
@@ -2989,6 +3061,13 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    // 安全修复：校验 B 方传来的 T 点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InTFromB, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     MLen := DataByteLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
@@ -3183,6 +3262,13 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
+    // 安全修复：校验 A 方传来的中间点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InPointFromA, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     if not BigNumberRandRange(PrivateKeyB, SM2.Order) then
     begin
       _CnSetLastError(ECN_SM2_RANDOM_ERROR);
@@ -3247,6 +3333,13 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
+    // 安全修复：校验 A 方传来的 Q 点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InQFromA, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     if not BigNumberRandRange(OutRandKB, SM2.Order) then
     begin
       _CnSetLastError(ECN_SM2_RANDOM_ERROR);
@@ -3303,6 +3396,13 @@ begin
     P := TCnEccPoint.Create;
     Q := TCnEccPoint.Create;
     Inv := TCnBigNumber.Create;
+
+    // 安全修复：校验 B 方传来的 Q 点在曲线上且属于正确子群
+    if not InternalCheckCollaborativePoint(InQFromB, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     while True do
     begin
