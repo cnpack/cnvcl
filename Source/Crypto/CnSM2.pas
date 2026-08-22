@@ -1337,8 +1337,11 @@ begin
     if CnSM2EncryptData(@PlainData[0], Length(PlainData), Stream, PublicKey, SM2,
       SequenceType, IncludePrefixByte, C1UseCompress) then
     begin
-      SetLength(Result, Stream.Size);
-      Move(Stream.Memory^, Result[0], Stream.Size);
+      if Stream.Size > 0 then
+      begin
+        SetLength(Result, Stream.Size);
+        Move(Stream.Memory^, Result[0], Stream.Size);
+      end;
     end;
   finally
     Stream.Free;
@@ -1523,8 +1526,11 @@ begin
     if CnSM2DecryptData(@EnData[0], Length(EnData), Stream, PrivateKey, SM2,
       SequenceType) then
     begin
-      SetLength(Result, Stream.Size);
-      Move(Stream.Memory^, Result[0], Stream.Size);
+      if Stream.Size > 0 then
+      begin
+        SetLength(Result, Stream.Size);
+        Move(Stream.Memory^, Result[0], Stream.Size);
+      end;
     end;
   finally
     Stream.Free;

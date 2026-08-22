@@ -1156,12 +1156,18 @@ begin
     raise ECnMLKEMException.Create(SCnErrorMLKEMInvalidHexLength);
 
   if Length(RandDHex) = 0 then
-    CnRandomFillBytes(@D[0], SizeOf(TCnMLKEMSeed))
+  begin
+    if not CnRandomFillBytes(@D[0], SizeOf(TCnMLKEMSeed)) then
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+  end
   else
     PutBytesToMemory(HexToBytes(RandDHex), @D[0], SizeOf(TCnMLKEMSeed));
 
   if Length(RandZHex) = 0 then
-    CnRandomFillBytes(@DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMSeed))
+  begin
+    if not CnRandomFillBytes(@DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMSeed)) then
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+  end
   else
     PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMSeed));
 
@@ -1334,7 +1340,10 @@ begin
     Move(Msg[0], M[0], SizeOf(TCnMLKEMBlock)); // 准备好 Msg
 
     if RandHex = '' then
-      CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed))
+    begin
+      if not CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed)) then
+        raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+    end
     else
     begin
       B := HexToBytes(RandHex);
@@ -1348,7 +1357,10 @@ begin
         Move(B[0], Seed[0], L);
       end
       else
-        CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed));
+      begin
+        if not CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed)) then
+          raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+      end;
     end;
 
     // 准备好了消息种子 M 和随机种子 R，调用内部加密方法，返回 U V

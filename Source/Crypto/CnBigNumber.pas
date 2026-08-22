@@ -3864,14 +3864,14 @@ var
 begin
   Result := False;
   L := 0;
-  N := ByteLen;
-  if N = 0 then
+  if ByteLen <= 0 then
   begin
     Res.FTop := 0;
     Res.FNeg := 0;
     Exit;
   end;
 
+  N := ByteLen;
   I := ((N - 1) div BN_BYTES) + 1;
   M := (N - 1) mod BN_BYTES;
 
@@ -4314,13 +4314,15 @@ begin
 
   if BigNumberWordExpand(Num, (BytesCount + BN_BYTES - 1) div BN_BYTES) <> nil then
   begin
-    // 改用非重复初始化的快速版本，不知道有无副作用？
+    // 用非重复初始化的快速版本
     Result := CnRandomFillBytes2(PAnsiChar(Num.FD), BytesCount);
     if Result then
     begin
       Num.FTop := (BytesCount + BN_BYTES - 1) div BN_BYTES;
       BigNumberCorrectTop(Num);
-    end;
+    end
+    else
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
   end;
 end;
 

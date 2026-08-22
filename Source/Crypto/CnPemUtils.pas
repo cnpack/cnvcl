@@ -871,7 +871,8 @@ begin
 
   // 生成随机 Iv
   SetLength(IvStr, ENC_TYPE_BLOCK_SIZE[KeyEncrypt]);
-  CnRandomFillBytes(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt]);
+  if not CnRandomFillBytes(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt]) then
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
   HexIv := DataToHex(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt], True); // 要求大写
 
   EncryptedHead := ENC_HEAD_PROCTYPE + ' ' +  ENC_HEAD_PROCTYPE_NUM + ',' + ENC_HEAD_ENCRYPTED + CRLF;

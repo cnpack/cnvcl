@@ -4390,7 +4390,13 @@ begin
 
     SetLength(Salt, sLen);
     if sLen > 0 then
-      CnRandomFillBytes2(PAnsiChar(@Salt[0]), sLen);
+    begin
+      if not CnRandomFillBytes2(PAnsiChar(@Salt[0]), sLen) then
+      begin
+        _CnSetLastError(ECN_RSA_RANDOM_ERROR);
+        Exit;
+      end;
+    end;
     SetLength(H, hLen);
     MPrimeLen := 8 + hLen + sLen;
     SetLength(MPrime, MPrimeLen);

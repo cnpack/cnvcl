@@ -774,7 +774,10 @@ begin
   end;
 
   Result := L = R;
-  _CnSetLastError(ECN_SECRET_OK);
+  if Result then
+    _CnSetLastError(ECN_SECRET_OK)
+  else
+    _CnSetLastError(ECN_SECRET_FELDMAN_CHECKERROR);
 end;
 
 function CnInt64FeldmanVssReconstruct(Prime, Generator: Int64; InOrders, InShares,
