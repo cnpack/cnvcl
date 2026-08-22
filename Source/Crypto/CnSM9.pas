@@ -4867,12 +4867,19 @@ function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
 var
   C: Boolean;
 begin
+  Result := False;
   C := SM9 = nil;
   if C then
     SM9 := TCnSM9.Create;
 
   try
-    BigNumberRandRange(EncryptionMasterKey.PrivateKey, SM9.Order);
+    // 安全修复：检查随机数生成结果，RNG 失败时不得使用未初始化或零值主密钥
+    if not BigNumberRandRange(EncryptionMasterKey.PrivateKey, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+      Exit;
+    end;
+
     if EncryptionMasterKey.PrivateKey.IsZero then
       EncryptionMasterKey.PrivateKey.SetOne;
 

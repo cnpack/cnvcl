@@ -93,6 +93,9 @@ const
   {* CCM 的 Nonce 长度}
 
 type
+  ECnAEADError = class(Exception);
+  {* AEAD 参数非法或计算错误异常}
+
   TCn128BitsBuffer = array[0..CN_AEAD_BLOCK - 1] of Byte;
   {* AEAD 中所有 128 位计算的分块}
 
@@ -1174,6 +1177,32 @@ implementation
 uses
   CnSM4, CnAES, CnChaCha20;
 
+resourcestring
+  SCnErrorAEADAES128KeyLength = 'Invalid AES-128 Key Length %d, must be %d.';
+  {* AES-128 密钥长度非法}
+  SCnErrorAEADAES192KeyLength = 'Invalid AES-192 Key Length %d, must be %d.';
+  {* AES-192 密钥长度非法}
+  SCnErrorAEADAES256KeyLength = 'Invalid AES-256 Key Length %d, must be %d.';
+  {* AES-256 密钥长度非法}
+  SCnErrorAEADSM4KeyLength = 'Invalid SM4 Key Length %d, must be %d.';
+  {* SM4 密钥长度非法}
+  SCnErrorAEADGCMIVLength = 'GCM Iv Byte Length must be Positive.';
+  {* GCM 的 IV 长度必须为正}
+  SCnErrorAEADCCMNonceLength = 'Invalid CCM Nonce Length %d, must be %d.';
+  {* CCM 的 Nonce 长度非法}
+  SCnErrorAEADCCMPlainDataTooLong = 'CCM Plain Data too Long: %d.';
+  {* CCM 明文长度超出上限}
+  SCnErrorAEADCCMEnDataTooLong = 'CCM En Data too Long: %d.';
+  {* CCM 密文长度超出上限}
+  SCnErrorAEADChaCha20KeyLength = 'Invalid ChaCha20 Key Length %d, must be %d.';
+  {* ChaCha20 密钥长度非法}
+  SCnErrorAEADChaCha20Poly1305IVLength = 'Invalid ChaCha20-Poly1305 Iv Length %d, must be %d.';
+  {* ChaCha20-Poly1305 的 IV 长度非法}
+  SCnErrorAEADXChaCha20KeyLength = 'Invalid XChaCha20 Key Length %d, must be %d.';
+  {* XChaCha20 密钥长度非法}
+  SCnErrorAEADXChaCha20Poly1305IVLength = 'Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.';
+  {* XChaCha20-Poly1305 的 IV 长度非法}
+
 const
   GHASH_POLY: TCn128BitsBuffer = ($E1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
@@ -1464,6 +1493,26 @@ var
   Key256: TCnAESKey256;
   SM4Key: TCnSM4Key;
 begin
+  // 安全修复：严格校验密钥长度，禁止静默补零或截断导致密钥强度被无声降级
+  case EncryptType of
+    aetAES128:
+      if (Key = nil) or (KeyByteLength <> SizeOf(TCnAESKey128)) then
+        raise ECnAEADError.CreateFmt(SCnErrorAEADAES128KeyLength,
+          [KeyByteLength, SizeOf(TCnAESKey128)]);
+    aetAES192:
+      if (Key = nil) or (KeyByteLength <> SizeOf(TCnAESKey192)) then
+        raise ECnAEADError.CreateFmt(SCnErrorAEADAES192KeyLength,
+          [KeyByteLength, SizeOf(TCnAESKey192)]);
+    aetAES256:
+      if (Key = nil) or (KeyByteLength <> SizeOf(TCnAESKey256)) then
+        raise ECnAEADError.CreateFmt(SCnErrorAEADAES256KeyLength,
+          [KeyByteLength, SizeOf(TCnAESKey256)]);
+    aetSM4:
+      if (Key = nil) or (KeyByteLength <> SizeOf(TCnSM4Key)) then
+        raise ECnAEADError.CreateFmt(SCnErrorAEADSM4KeyLength,
+          [KeyByteLength, SizeOf(TCnSM4Key)]);
+  end;
+
   FillChar(Context, SizeOf(TAEADContext), 0);
 
   case EncryptType of
@@ -1521,6 +1570,11 @@ begin
     IvByteLength := 0;
   if AAD = nil then
     AADByteLength := 0;
+
+  // 安全修复：拒绝空 IV，空 IV 会退化为 J0 = 0 的确定性加密，
+  // 同一密钥下所有消息共用密钥流
+  if (Iv = nil) or (IvByteLength <= 0) then
+    raise ECnAEADError.Create('GCM Iv Byte Length must be Positive.');
 
   AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
@@ -1628,6 +1682,10 @@ begin
     IvByteLength := 0;
   if AAD = nil then
     AADByteLength := 0;
+
+  // 安全修复：拒绝空 IV，与加密端保持一致的参数约束
+  if (Iv = nil) or (IvByteLength <= 0) then
+    raise ECnAEADError.Create('GCM Iv Byte Length must be Positive.');
 
   OldPlain := PlainData;
 
@@ -2106,6 +2164,16 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
+  // 安全修复：严格校验 Nonce 长度与明文长度上限，
+  // 静默补零 Nonce 会导致跨系统互通失败，超长明文会使 B0 长度域截断、
+  // CTR 计数器回绕重用密钥流（SP 800-38C 要求 len(P) < 2^(8L)）
+  if (Nonce = nil) or (NonceByteLength <> CN_CCM_NONCE) then
+    raise ECnAEADError.CreateFmt('Invalid CCM Nonce Length %d, must be %d.',
+      [NonceByteLength, CN_CCM_NONCE]);
+
+  if DataByteLength > (1 shl (8 * CN_CCM_L_LEN)) - (1 shl (4 * CN_CCM_L_LEN)) then
+    raise ECnAEADError.CreateFmt('CCM Plain Data too Long: %d.', [DataByteLength]);
+
   FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
   FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
 
@@ -2383,6 +2451,14 @@ begin
     EnByteLength := 0;
   if AAD = nil then
     AADByteLength := 0;
+
+  // 安全修复：严格校验 Nonce 长度与密文长度上限，与加密端保持一致
+  if (Nonce = nil) or (NonceByteLength <> CN_CCM_NONCE) then
+    raise ECnAEADError.CreateFmt('Invalid CCM Nonce Length %d, must be %d.',
+      [NonceByteLength, CN_CCM_NONCE]);
+
+  if EnByteLength > (1 shl (8 * CN_CCM_L_LEN)) - (1 shl (4 * CN_CCM_L_LEN)) + CN_CCM_M_LEN then
+    raise ECnAEADError.CreateFmt('CCM En Data too Long: %d.', [EnByteLength]);
 
   OldPlain := PlainData;
 
@@ -2756,6 +2832,14 @@ var
   PadLen: Integer;
   Zeros: array[0..15] of Byte;
 begin
+  // 安全修复：严格校验密钥与 Nonce 长度，禁止静默补零或截断
+  if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
+    raise ECnAEADError.CreateFmt('Invalid ChaCha20 Key Length %d, must be %d.',
+      [KeyByteLength, SizeOf(TCnChaChaKey)]);
+  if (Iv = nil) or (IvByteLength <> CN_CHACHA_NONCE_SIZE) then
+    raise ECnAEADError.CreateFmt('Invalid ChaCha20-Poly1305 Iv Length %d, must be %d.',
+      [IvByteLength, CN_CHACHA_NONCE_SIZE]);
+
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
 
@@ -2823,6 +2907,15 @@ var
 begin
   OrigEnByteLength := EnByteLength;
   OldOutPlain := OutPlainData;
+
+  // 安全修复：严格校验密钥与 Nonce 长度，与加密端保持一致
+  if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
+    raise ECnAEADError.CreateFmt('Invalid ChaCha20 Key Length %d, must be %d.',
+      [KeyByteLength, SizeOf(TCnChaChaKey)]);
+  if (Iv = nil) or (IvByteLength <> CN_CHACHA_NONCE_SIZE) then
+    raise ECnAEADError.CreateFmt('Invalid ChaCha20-Poly1305 Iv Length %d, must be %d.',
+      [IvByteLength, CN_CHACHA_NONCE_SIZE]);
+
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
 
@@ -2996,6 +3089,14 @@ var
   OutKey: TCnHChaChaSubKey;
   P: PByte;
 begin
+  // 安全修复：严格校验密钥与 IV 长度，短 IV 原先会从 Iv[16..23] 越界读取
+  if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
+    raise ECnAEADError.CreateFmt('Invalid XChaCha20 Key Length %d, must be %d.',
+      [KeyByteLength, SizeOf(TCnChaChaKey)]);
+  if (Iv = nil) or (IvByteLength <> CN_XCHACHA_NONCE_SIZE) then
+    raise ECnAEADError.CreateFmt('Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.',
+      [IvByteLength, CN_XCHACHA_NONCE_SIZE]);
+
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
 
@@ -3023,6 +3124,14 @@ var
   OutKey: TCnHChaChaSubKey;
   P: PByte;
 begin
+  // 安全修复：严格校验密钥与 IV 长度，与加密端保持一致
+  if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
+    raise ECnAEADError.CreateFmt('Invalid XChaCha20 Key Length %d, must be %d.',
+      [KeyByteLength, SizeOf(TCnChaChaKey)]);
+  if (Iv = nil) or (IvByteLength <> CN_XCHACHA_NONCE_SIZE) then
+    raise ECnAEADError.CreateFmt('Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.',
+      [IvByteLength, CN_XCHACHA_NONCE_SIZE]);
+
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
 

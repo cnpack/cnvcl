@@ -556,6 +556,21 @@ begin
   P2 := nil;
 
   try
+    // 安全修复：FIPS 186 要求验证签名值范围 R、S ∈ [1, Q - 1]，
+    // 缺失该检查会导致签名可延展（R' = R + kQ 等价签名均能通过）
+    if Signature = nil then
+      Exit;
+
+    if Signature.R.IsNegative or Signature.R.IsZero then
+      Exit;
+    if BigNumberCompare(Signature.R, DSAParameter.Q) >= 0 then
+      Exit;
+
+    if Signature.S.IsNegative or Signature.S.IsZero then
+      Exit;
+    if BigNumberCompare(Signature.S, DSAParameter.Q) >= 0 then
+      Exit;
+
     W := TCnBigNumber.Create;
     // S 的模拟元搁入 W
     if not BigNumberModularInverse(W, Signature.S, DSAParameter.Q) then Exit;

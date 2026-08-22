@@ -1452,7 +1452,9 @@ begin
      Y := (UInt64Div(-PrivKeyExponent, Product) + 1) * Product;
      PrivKeyExponent := PrivKeyExponent + Y;
   end;
-  Result := True;
+
+  // 安全修复：校验 e * d ≡ 1 (mod (p-1)(q-1))，不满足说明 gcd(e, r) > 1，此组密钥无效
+  Result := MultipleMod(PubKeyExponent, PrivKeyExponent, Product) = 1;
 end;
 
 function CnInt64RSAVerifyKeys(PrimeKey1: Cardinal; PrimeKey2: Cardinal;
@@ -1579,6 +1581,13 @@ begin
       if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
 
+      // 安全修复：校验 e * d ≡ 1 (mod R)，gcd(e, R) > 1 时辗转相除法得到的并非模反元素，
+      // 不满足时此组素数不可用，需重新生成
+      BigNumberMul(Rem, PublicKey.PubKeyExponent, PrivateKey.PrivKeyExponent);
+      BigNumberMod(Rem, Rem, R);
+      if not Rem.IsOne then
+        Continue;
+
       // TODO: d 不能太小，不满足时得 Continue
       PrivateKey.UpdateCRT;
     finally
@@ -1697,6 +1706,13 @@ begin
       // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上积二 R
       if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
+
+      // 安全修复：校验 e * d ≡ 1 (mod R)，gcd(e, R) > 1 时辗转相除法得到的并非模反元素，
+      // 不满足时此组素数不可用，需重新生成
+      BigNumberMul(Rem, PublicKey.PubKeyExponent, PrivateKey.PrivKeyExponent);
+      BigNumberMod(Rem, Rem, R);
+      if not Rem.IsOne then
+        Continue;
 
       // d 不能太小，使用 n^0.3 作为最小值
       MinD.SetOne;
@@ -2536,7 +2552,10 @@ begin
     BigNumberMod(FDQ1, FPrivKeyExponent, T);
 
     // 计算 QInv = Prime2 对 Prime1 的模逆元
-    BigNumberModularInverse(FQInv, FPrimeKey2, FPrimeKey1);
+    // 安全修复：检查求逆结果，失败时清零 QInv，避免沿用陈旧值，
+    // 后续 CRT 解密自带的故障攻击校验会拒绝错误结果
+    if not BigNumberModularInverse(FQInv, FPrimeKey2, FPrimeKey1) then
+      FQInv.Clear;
   finally
     T.Free;
   end;

@@ -5136,6 +5136,10 @@ begin
     OutPointToAnother.Assign(Curve25519.Generator);
     Curve25519.MultiplePoint(SelfPrivateKey, OutPointToAnother);
 
+    // 安全修复：私钥异常时可能得到零点公钥，后续密钥协商将退化为已知常量，必须拒绝
+    if OutPointToAnother.IsZero then
+      Exit;
+
     Result := True;
   finally
     if Is25519Nil then
@@ -5160,6 +5164,11 @@ begin
 
     OutKey.Assign(InPointFromAnother);
     Curve25519.MultiplePoint(SelfPrivateKey, OutKey);
+
+    // 安全修复：RFC 7748 6.1 要求检查共享密钥，对方发来 small-order 低阶点时
+    // 标量乘结果为无穷远点（全零），若不拒绝将导致共享密钥退化为已知常量
+    if OutKey.IsZero then
+      Exit;
 
     Result := True;
   finally

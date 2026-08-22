@@ -601,7 +601,7 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; CASignType:
-  TCnCASignType = ctSha1Ecc): Boolean; overload;
+  TCnCASignType = ctSha256Ecc): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求文件。
 
    参数：
@@ -794,66 +794,76 @@ function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
    返回值：Boolean                        - 返回是否合乎签名
 }
 
-function CnCAVerifySelfSignedCertificateFile(const FileName: string): Boolean;
+function CnCAVerifySelfSignedCertificateFile(const FileName: string;
+  ACheckTime: Boolean = True): Boolean;
 {* 验证一自签名的 CRT 文件的内容是否合乎签名。
 
    参数：
      const FileName: string               - 待验证的自签名证书文件
+     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
-function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
+function CnCAVerifySelfSignedCertificateStream(Stream: TStream;
+  ACheckTime: Boolean = True): Boolean;
 {* 验证一自签名的 CRT 流的内容是否合乎签名。
 
    参数：
      Stream: TStream                      - 待验证的自签名证书流
+     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
-  TCnRSAPublicKey): Boolean; overload;
+  TCnRSAPublicKey; ACheckTime: Boolean = True): Boolean; overload;
 {* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名。
 
    参数：
      const FileName: string               - 待验证的证书文件
      ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
+     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
-  TCnEccPublicKey; ParentCurveType: TCnEccCurveType): Boolean; overload;
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  ACheckTime: Boolean = True): Boolean; overload;
 {* 用 ECC 签发者公钥验证一 CRT 文件的内容是否合乎签名。
 
    参数：
      const FileName: string               - 待验证的证书文件
      ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
      ParentCurveType: TCnEccCurveType     - 用于验证的签发者的椭圆曲线类型
+     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
-  TCnRSAPublicKey): Boolean; overload;
+  TCnRSAPublicKey; ACheckTime: Boolean = True): Boolean; overload;
 {* 用 RSA 签发者公钥验证一 CRT 流的内容是否合乎签名。
 
    参数：
      Stream: TStream                      - 待验证的证书流
      ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
+     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
-  TCnEccPublicKey; ParentCurveType: TCnEccCurveType): Boolean; overload;
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  ACheckTime: Boolean = True): Boolean; overload;
 {* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名。
 
    参数：
      Stream: TStream                      - 待验证的证书流
      ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
      ParentCurveType: TCnEccCurveType     - 用于验证的签发者的椭圆曲线类型
+     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
@@ -917,7 +927,7 @@ function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; const CRTFile: string; const CSRFile: string; const
   OutCRTFile: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter:
-  TDateTime; CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
+  TDateTime; CASignType: TCnCASignType = ctSha256Ecc): Boolean; overload;
 {* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v1 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
@@ -2929,6 +2939,7 @@ begin
       on E: ECnBerException do
         Exit;
     end;
+
     if (Reader.TotalCount >= 42) and (Reader.Items[2].BerTag = CN_BER_TAG_INTEGER)
       and (Reader.Items[2].AsInteger = 0) then // 就是有这么多项，版本号必须为 0
     begin
@@ -3114,19 +3125,21 @@ begin
   end;
 end;
 
-function CnCAVerifySelfSignedCertificateFile(const FileName: string): Boolean;
+function CnCAVerifySelfSignedCertificateFile(const FileName: string;
+  ACheckTime: Boolean): Boolean;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifySelfSignedCertificateStream(Stream);
+    Result := CnCAVerifySelfSignedCertificateStream(Stream, ACheckTime);
   finally
     Stream.Free;
   end;
 end;
 
-function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
+function CnCAVerifySelfSignedCertificateStream(Stream: TStream;
+  ACheckTime: Boolean): Boolean;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -3145,6 +3158,16 @@ begin
     CRT := TCnCertificate.Create;
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
+
+    // 安全修复：验证证书时检查有效期，过期与未生效的证书一律拒绝
+    if ACheckTime then
+    begin
+      if (CRT.BasicCertificate.NotBefore = nil)
+        or (CRT.BasicCertificate.NotAfter = nil)
+        or (Now < CRT.BasicCertificate.NotBefore.DateTime)
+        or (Now > CRT.BasicCertificate.NotAfter.DateTime) then
+        Exit;
+    end;
 
     if not CRT.IsSelfSigned then
       raise ECnCAException.Create(SCnErrorNotSelfSignCanNotVerify);
@@ -3199,33 +3222,34 @@ begin
 end;
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
-  TCnRSAPublicKey): Boolean; overload;
+  TCnRSAPublicKey; ACheckTime: Boolean): Boolean; overload;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey);
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey, ACheckTime);
   finally
     Stream.Free;
   end;
 end;
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
-  TCnEccPublicKey; ParentCurveType: TCnEccCurveType): Boolean; overload;
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  ACheckTime: Boolean): Boolean; overload;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey, ParentCurveType);
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey, ParentCurveType, ACheckTime);
   finally
     Stream.Free;
   end;
 end;
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
-  TCnRSAPublicKey): Boolean; overload;
+  TCnRSAPublicKey; ACheckTime: Boolean): Boolean; overload;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -3247,6 +3271,16 @@ begin
     CRT := TCnCertificate.Create;
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
+
+    // 安全修复：验证证书时检查有效期，过期与未生效的证书一律拒绝
+    if ACheckTime then
+    begin
+      if (CRT.BasicCertificate.NotBefore = nil)
+        or (CRT.BasicCertificate.NotAfter = nil)
+        or (Now < CRT.BasicCertificate.NotBefore.DateTime)
+        or (Now > CRT.BasicCertificate.NotAfter.DateTime) then
+        Exit;
+    end;
 
     if not CRT.IsRSA then
       raise ECnCAException.Create(SCnErrorNotRsaCanNotVerify);
@@ -3298,7 +3332,8 @@ begin
 end;
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
-  TCnEccPublicKey; ParentCurveType: TCnEccCurveType): Boolean; overload;
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  ACheckTime: Boolean): Boolean; overload;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -3319,6 +3354,16 @@ begin
     CRT := TCnCertificate.Create;
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
+
+    // 安全修复：验证证书时检查有效期，过期与未生效的证书一律拒绝
+    if ACheckTime then
+    begin
+      if (CRT.BasicCertificate.NotBefore = nil)
+        or (CRT.BasicCertificate.NotAfter = nil)
+        or (Now < CRT.BasicCertificate.NotBefore.DateTime)
+        or (Now > CRT.BasicCertificate.NotAfter.DateTime) then
+        Exit;
+    end;
 
     if CRT.IsRSA then
       raise ECnCAException.Create(SCnErrorNotEccCanNotVerify);
@@ -3659,6 +3704,11 @@ begin
       on E: ECnBerException do
         Exit;
     end;
+
+    // 安全修复：畸形数据解析后可能得到空树（越界节点被拒绝），必须先检查
+    // 节点数再访问，防止 Items[0] 越界导致 AV
+    if Reader.TotalCount <= 0 then
+      Exit;
 
     Root := Reader.Items[0];
     if Root.Count <> 3 then
