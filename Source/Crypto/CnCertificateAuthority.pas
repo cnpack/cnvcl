@@ -2358,7 +2358,6 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
 var
   B: Byte;
-  OutBuf: TBytes;
   Writer, HashWriter: TCnBerWriter;
   Stream: TMemoryStream;
   Root, DNRoot, InfoRoot, PubNode: TCnBerWriteNode;
@@ -2421,7 +2420,6 @@ begin
     Writer.Free;
     HashWriter.Free;
     Stream.Free;
-    SetLength(OutBuf, 0);
   end;
 end;
 
@@ -2433,7 +2431,6 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnCASignType): Boolean;
 var
   B: Byte;
-  OutBuf: TBytes;
   Writer, HashWriter: TCnBerWriter;
   Stream: TMemoryStream;
   Root, DNRoot, InfoRoot, PubNode: TCnBerWriteNode;
@@ -2496,7 +2493,6 @@ begin
     Writer.Free;
     HashWriter.Free;
     Stream.Free;
-    SetLength(OutBuf, 0);
   end;
 end;
 

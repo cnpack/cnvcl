@@ -1418,6 +1418,20 @@ function MemorySafeZero(Buffer: Pointer; ByteLength: Integer): Boolean;
    返回值：Boolean                        - 是否安全擦除完毕
 }
 
+function MemorySafeFree(var Arr: TBytes): Boolean;
+{* 安全地清空并释放一个动态字节数组：先以带防优化措施的擦除将全部内容置零，
+   再释放本参数持有的数组引用，用于密钥、口令、派生中间量等敏感数据用毕后的
+   彻底销毁，防止残留内容经内存转储、休眠文件或堆复用而泄露。
+   若该数组存在其他引用（引用计数大于一），置零对所有引用同时生效，
+   本函数仅负责释放当前参数所持有的这一个引用。
+   数组本身为空时无内容可擦除，直接返回 False，但参数仍会被置空。
+
+   参数：
+     var Arr: TBytes                      - 待销毁的动态字节数组，返回后必为空
+
+   返回值：Boolean                        - 是否执行了内容清零；数组为空时返回 False
+}
+
 function MemoryCheckZero(Buffer: Pointer; ByteLength: Integer): Boolean;
 {* 检查内存块内容是否全零。
 
@@ -3193,6 +3207,25 @@ begin
     VolatileSink := VolatileSink or P^;
   end;
   Result := VolatileSink = 0;
+end;
+
+function MemorySafeFree(var Arr: TBytes): Boolean;
+var
+  Len: Integer;
+begin
+  Result := False;
+  Len := Length(Arr);
+  if Len <= 0 then
+    Exit;
+
+  // 先以带防优化措施的擦除将全部内容置零，再释放引用；
+  // 置零必须先于释放完成，否则无法保证堆块交还前被覆盖。
+  Result := MemorySafeZero(@Arr[0], Len);
+  SetLength(Arr, 0);
+
+  // 释放本参数持有的引用；若引用计数归一，内存交还堆管理器，
+  // 其他引用（若有）看到的也已是全零内容。
+  Arr := nil;
 end;
 
 function MemoryCheckZero(Buffer: Pointer; ByteLength: Integer): Boolean;

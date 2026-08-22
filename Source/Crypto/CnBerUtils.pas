@@ -175,6 +175,9 @@ type
   ECnBerException = class(Exception);
   {* BER 相关异常}
 
+  ECnBerDepthOverflowError = class(ECnBerException);
+  {* 嵌套深度超限异常，属于致命错误，内层解析失败时不得吞掉该类异常}
+
   TCnBerTagRange = CN_BER_TAG_BOOLEAN..CN_BER_TAG_BMPSTRING;
   {* BER 的 Tag 范围}
 
@@ -1124,10 +1127,17 @@ begin
                    (Cardinal(AData^[Run + 1]) shl 8) or
                    Cardinal(AData^[Run + 2])
       else if LenLen = SizeOf(Cardinal) then
+      begin
+        // 安全修复：最高位为 1 时长度必然超过 MaxInt，强转 Integer 会得到负数，
+        // 负数长度会导致 Inc(Run, DataLen) 回退与后续解析越界，必须拒绝
+        if AData^[Run] > $7F then
+          raise ECnBerException.CreateFmt(SCnErrorLengthTooLongOrIncorrect, [AStartOffset, LenLen]);
+
         DataLen := Integer((Cardinal(AData^[Run]) shl 24) or
                    (Cardinal(AData^[Run + 1]) shl 16) or
                    (Cardinal(AData^[Run + 2]) shl 8) or
                    Cardinal(AData^[Run + 3]))
+      end
       else if LenLen > SizeOf(Cardinal) then  // TODO: LenLen = 0 时是不定长编码，BER 中支持，以 00 00 结尾
         raise ECnBerException.CreateFmt(SCnErrorLengthTooLongOrIncorrect, [AStartOffset, LenLen]);
 
@@ -1199,7 +1209,11 @@ begin
     begin
       // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
       try
-        if (TagClass = 0) and (ALeaf.BerTag = CN_BER_TAG_BIT_STRING) then
+        // 安全修复：不定长 BIT STRING 的 DataLength 为 0，若走下方分支会把
+        // BerDataLength - 1 下溢为巨大无符号数传给子解析导致越界读，
+        // 故仅对确定长度的 BIT STRING 跳过首字节，不定长的按普通区域解析
+        if (TagClass = 0) and (ALeaf.BerTag = CN_BER_TAG_BIT_STRING)
+          and (ALeaf.BerDataLength >= 1) then
         begin
           // 凑成 8 的倍数所缺少的 Bit 数照理应小于 8，但不能加这个额外条件 and (AData^[Run + 1] < 8)
           FCurrentIsBitString := True;
@@ -1226,7 +1240,12 @@ begin
             ADepth + 1, ALeaf.BerDataLength);
         end;
       except
-        ; // 如果内嵌解析失败，不终止，当做普通节点
+        on E: ECnBerDepthOverflowError do
+          raise; // 安全修复：深度超限属于致命错误，必须终止整个解析，不得被吞掉
+        on E: ECnBerException do
+          ; // 如果内嵌解析失败，不终止，当做普通节点（仅限 BER 解析类异常）
+        else
+          raise; // 内存访问违例等其他异常必须上抛，不得吞掉
       end;
     end;
 

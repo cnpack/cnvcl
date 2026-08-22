@@ -439,7 +439,7 @@ end;
 
 procedure MLKEMCheckEncodeDigit(D: Integer);
 begin
-  if not D in [1.. 12] then
+  if not (D in [1.. 12]) then
     raise ECnMLKEMException.Create(SCnErrorMLKEMInvalidEncodeDigit);
 end;
 

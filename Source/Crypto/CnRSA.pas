@@ -160,6 +160,8 @@ const
   {* RSA 错误码之 PEM 格式错误}
   ECN_RSA_PEM_CRYPT_ERROR              = ECN_RSA_ERROR_BASE + 8;
   {* RSA 错误码之 PEM 加解密错误}
+  ECN_RSA_RANDOM_ERROR                 = ECN_RSA_ERROR_BASE + 9;
+  {* RSA 错误码之安全随机数获取失败}
 
 type
   TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA224,
@@ -2425,8 +2427,9 @@ begin
   Result := RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res);
 end;
 
-// 利用私钥对数据进行解密，返回解密是否成功
-function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
+// 私钥运算核心：CRT 或非 CRT 的模幂实现，仅供带消息盲化的对外入口内部调用，
+// 请勿在其他位置直接调用本函数
+function RSADecryptCore(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean;
 var
   M1, M2, H, V1, V2: TCnBigNumber;
@@ -2489,6 +2492,115 @@ begin
   end
   else
     Result := RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res);
+end;
+
+// 利用私钥对数据进行解密，返回解密是否成功
+// 安全修复：对私钥模幂运算整体实施消息盲化——生成与密文无关的随机盲化因子 r，
+// 以 c' = c·r^e mod n 作为实际参与运算的输入，运算完成后乘以 r^{-1} mod n 还原：
+//   (c · r^e)^d mod n = c^d · r^(ed) mod n = m · r mod n
+// 使私钥运算期间接触的中间值与目标明文脱钩，缓解计时与缓存侧信道攻击。
+// 公钥指数 e 由 e = d^{-1} mod φ(n)（φ(n) = (p-1)(q-1)）现场推导；
+// 随机数取自系统安全随机源，任一环节失败即整体失败并返回 False，
+// 不降级为无盲化运算。
+function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
+  Data: TCnBigNumber): Boolean;
+var
+  BlindedData, RFactor, RInverse, PubExponent: TCnBigNumber;
+  S1, S2: TCnBigNumber;
+  TryCount: Integer;
+begin
+  Result := False;
+
+  if PrivateKey = nil then
+    Exit;
+
+  BlindedData := nil;
+  RFactor := nil;
+  RInverse := nil;
+  PubExponent := nil;
+  S1 := nil;
+  S2 := nil;
+
+  try
+    // 公钥指数 e = d^{-1} mod φ(n)，φ(n) = (p - 1)(q - 1)
+    // 注意大数库禁止目标参数与源/模数参数为同一对象，需经临时量中转
+    PubExponent := TCnBigNumber.Create;
+    S1 := TCnBigNumber.Create;
+    S2 := TCnBigNumber.Create;
+
+    BigNumberCopy(S1, PrivateKey.PrimeKey1);
+    BigNumberSubWord(S1, 1);
+    BigNumberCopy(S2, PrivateKey.PrimeKey2);
+    BigNumberSubWord(S2, 1);
+    BigNumberMul(PubExponent, S1, S2);
+
+    if not BigNumberModularInverse(S2, PrivateKey.PrivKeyExponent, PubExponent, True) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+    BigNumberCopy(PubExponent, S2);
+
+    // 盲化因子 r ∈ [2, n-2]，且 gcd(r, n) = 1（以模逆求取成功与否判定互素）
+    RFactor := TCnBigNumber.Create;
+    RInverse := TCnBigNumber.Create;
+    TryCount := 0;
+    repeat
+      Inc(TryCount);
+      if TryCount > MAX_ITERATIONS then
+      begin
+        _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+        Exit;
+      end;
+
+      if not BigNumberRandRange(RFactor, PrivateKey.PrivKeyProduct) then
+      begin
+        _CnSetLastError(ECN_RSA_RANDOM_ERROR);
+        Exit;
+      end;
+
+      if RFactor.IsZero or RFactor.IsOne then
+        Continue;
+    until BigNumberModularInverse(RInverse, RFactor, PrivateKey.PrivKeyProduct, True);
+
+    // 盲化：BlindedData = Data · r^e mod n，r^e 先入临时量避免目标与指数对象重合
+    BlindedData := TCnBigNumber.Create;
+    S2.Free;
+    S2 := TCnBigNumber.Create;
+    if not BigNumberPowerMod(S2, RFactor, PubExponent, PrivateKey.PrivKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
+    if not BigNumberDirectMulMod(BlindedData, Data, S2, PrivateKey.PrivKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
+    // 核心私钥运算作用于盲化后的输入
+    if not RSADecryptCore(Res, PrivateKey, BlindedData) then
+      Exit;
+
+    // 还原：m = (m · r) · r^{-1} mod n，复用已废弃的 BlindedData 作乘积临时量
+    if not BigNumberDirectMulMod(BlindedData, Res, RInverse, PrivateKey.PrivKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+    BigNumberCopy(Res, BlindedData);
+
+    Result := True;
+    _CnSetLastError(ECN_RSA_OK);
+  finally
+    S2.Free;
+    S1.Free;
+    PubExponent.Free;
+    BlindedData.Free;
+    RInverse.Free;
+    RFactor.Free;
+  end;
 end;
 
 // 利用公钥对数据进行解密，返回解密是否成功
@@ -3662,7 +3774,8 @@ begin
     Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
     Res := TCnBigNumber.Create;
 
-    if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
+    // 安全修复：签名私钥运算改经带消息盲化的统一入口
+    if CnRSADecrypt(Res, PrivateKey, Data) then
     begin
       // 注意 Res 可能存在前导 0，所以此处必须以 PrivateKey.GetBytesCount 为准，才能确保不漏前导 0
       SetLength(ResBuf, PrivateKey.GetBytesCount);
@@ -3900,7 +4013,8 @@ begin
     Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
     Res := TCnBigNumber.Create;
 
-    if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
+    // 安全修复：签名私钥运算改经带消息盲化的统一入口
+    if CnRSADecrypt(Res, PrivateKey, Data) then
     begin
       // 注意 Res 可能存在前导 0，所以此处必须以 PrivateKey.GetBytesCount 为准，才能确保不漏前导 0
       SetLength(ResBuf, PrivateKey.GetBytesCount);
@@ -4347,7 +4461,8 @@ begin
     Data := TCnBigNumber.FromBinary(PAnsiChar(@EM[0]), emLen);
     Res := TCnBigNumber.Create;
 
-    if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
+    // 安全修复：签名私钥运算改经带消息盲化的统一入口
+    if CnRSADecrypt(Res, PrivateKey, Data) then
     begin
       SetLength(ResBuf, PrivateKey.GetBytesCount);
       Res.ToBinary(@ResBuf[0], PrivateKey.GetBytesCount);

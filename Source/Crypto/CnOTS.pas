@@ -27,6 +27,20 @@ unit CnOTS;
 * 备    注：本单元实现了基于 SM3 与 SHA256 的 OTS/M-OTS/W-OTS/W-OTS+ 一次性杂凑签名算法
 *           （Hash Based One Time Signature），其他长度的杂凑算法暂未实现。
 *           其中 W-OTS+ 采用 w = 16 也就是 4 位一块的分块方式，NIST 在 SLHDSA 中推荐的。
+*
+*           说明：本单元为无状态设计，类结构上不提供私钥使用状态
+*           的跟踪、计数或一次性签名次数的限制。
+*
+*           一次性（One Time Signature）私钥对同一消息只能签名一次！
+*           每签一个不同消息，就会按位暴露对应的私钥碎片，
+*           攻击者收集两条以上签名即可拼凑出对任意新消息的完全伪造。
+*
+*           因此本实现内部不含任何使用计数标志与重用检测机制，
+*           密钥生命周期管理需要调用方负责：
+*           必须保证每个私钥至多执行一次签名操作，严禁复用。
+*           如需多次签名，请为每条消息生成独立密钥，
+*           或采用 Merkle 树等聚合方案进行多索引管理。
+*
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -1479,7 +1493,7 @@ begin
   Result := False;
 
   // 生成私钥 - 67 个完全随机的 SHA256 摘要
-  if not CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSPlusSHA256PrivateKey)) then
+  if not CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSPlusSM3PrivateKey)) then
     Exit;
 
   // 生成掩码 - 15 个完全随机的 SHA256 摘要
@@ -1501,7 +1515,7 @@ begin
   Result := False;
 
   // 生成私钥 - 67 个完全随机的 SHA256 摘要
-  if not CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSPlusSHA256PrivateKey)) then
+  if not CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSPlusSM3PrivateKey)) then
     Exit;
 
   // 对每个私钥元素应用完整的杂凑链（w-1 = 15 步）

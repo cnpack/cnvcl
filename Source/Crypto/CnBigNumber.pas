@@ -3486,9 +3486,9 @@ begin
 end;
 
 function BigNumberGetInteger(Num: TCnBigNumber): Integer;
+{$IFDEF BN_DATA_USE_64}
 const
   MAX_INT_32 = $7FFFFFFF;
-{$IFDEF BN_DATA_USE_64}
 var
   T: TCnBigNumberElement;
 {$ENDIF}

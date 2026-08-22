@@ -146,6 +146,7 @@ type
 
 function CnGenerateInt64PaillierKeys(var PrivateKey: TCnInt64PaillierPrivateKey;
   var PublicKey: TCnInt64PaillierPublicKey): Boolean;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 随机生成一对 Int64 范围内的 Paillier 公私钥，返回生成是否成功。
 
    参数：
@@ -157,6 +158,7 @@ function CnGenerateInt64PaillierKeys(var PrivateKey: TCnInt64PaillierPrivateKey;
 
 function CnInt64PaillierEncrypt(var PublicKey: TCnInt64PaillierPublicKey;
   Data: Int64; out Res: Int64; RandFactor: Int64 = 0): Boolean;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* Int64 范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功。
    允许外部传入随机数，0 表示内部生成。
 
@@ -171,6 +173,7 @@ function CnInt64PaillierEncrypt(var PublicKey: TCnInt64PaillierPublicKey;
 
 function CnInt64PaillierDecrypt(var PrivateKey: TCnInt64PaillierPrivateKey;
   var PublicKey: TCnInt64PaillierPublicKey; EnData: Int64; out Res: Int64): Boolean;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* Int64 范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功。
 
    参数：
@@ -184,6 +187,7 @@ function CnInt64PaillierDecrypt(var PrivateKey: TCnInt64PaillierPrivateKey;
 
 function CnInt64PaillierAddPlain(Data1: Int64; Data2: Int64;
   var PublicKey: TCnInt64PaillierPublicKey): Int64;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* Int64 范围内 Paillier 加法同态的明文加法，内部是模 N 加。
 
    参数：
@@ -196,6 +200,7 @@ function CnInt64PaillierAddPlain(Data1: Int64; Data2: Int64;
 
 function CnInt64PaillierAddCipher(EnData1: Int64; EnData2: Int64;
   var PublicKey: TCnInt64PaillierPublicKey): Int64;
+  {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* Int64 范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘。
 
    参数：
