@@ -2449,11 +2449,23 @@ begin
 
     try
       M1 := TCnBigNumber.Create;
-      BigNumberPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1);
+      // 安全修复：私钥模幂接入蒙哥马利实现，每比特固定两次约减乘；
+      // 素数模数必为奇数满足前提；失败即中止不降级
+      if not BigNumberMontgomeryPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1) then
+      begin
+        Result := False;
+        _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+        Exit;
+      end;
       // m1 = c^dP mod p
 
       M2 := TCnBigNumber.Create;
-      BigNumberPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2);
+      if not BigNumberMontgomeryPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2) then
+      begin
+        Result := False;
+        _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+        Exit;
+      end;
       // m2 = c^dQ mod q
 
       H := TCnBigNumber.Create;
@@ -2491,7 +2503,8 @@ begin
     end;
   end
   else
-    Result := RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res);
+    // 安全修复：非 CRT 路径同样接入蒙哥马利模幂
+    Result := BigNumberMontgomeryPowerMod(Res, Data, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
 // 利用私钥对数据进行解密，返回解密是否成功
