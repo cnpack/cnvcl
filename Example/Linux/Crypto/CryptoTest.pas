@@ -180,6 +180,7 @@ function TestBigNumberBPSWIsPrime: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
 function TestBigNumberMontgomery: Boolean;
+function TestBigNumberMontgomeryPowerMod: Boolean;
 function TestBigNumberLoadSaveMem: Boolean;
 
 // ============================== BigRational ==================================
@@ -1919,6 +1920,7 @@ begin
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
   MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
   MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
+  MyAssert(TestBigNumberMontgomeryPowerMod, 'TestBigNumberMontgomeryPowerMod');
   MyAssert(TestBigNumberLoadSaveMem, 'TestBigNumberLoadSaveMem');
 
 // ============================== BigRational ==================================
@@ -5434,6 +5436,94 @@ begin
     BigNumberFree(Expected);
     BigNumberFree(Res);
     BigNumberFree(B);
+    BigNumberFree(A);
+    BigNumberFree(NNegInv);
+    BigNumberFree(R2ModN);
+    BigNumberFree(R);
+    BigNumberFree(N);
+  end;
+end;
+
+function TestBigNumberMontgomeryPowerMod: Boolean;
+var
+  N, R, R2ModN, NNegInv, A, E, ResM, Ref: TCnBigNumber;
+  WordBits, NWords, RBits: Integer;
+
+  procedure SetupContext;
+  begin
+    NWords := (N.GetBitsCount + WordBits - 1) div WordBits;
+    RBits := NWords * WordBits;
+    BigNumberSetOne(R);
+    BigNumberShiftLeft(R, R, RBits);
+    BigNumberMulMod(R2ModN, R, R, N);
+    BigNumberModularInverse(NNegInv, N, R, False);
+    BigNumberSub(NNegInv, R, NNegInv);
+  end;
+
+  function CheckPair: Boolean;
+  begin
+    Result := False;
+    if not BigNumberMontgomeryPowerMod(ResM, A, E, N) then
+      Exit;
+    if not BigNumberPowerMod(Ref, A, E, N) then
+      Exit;
+    Result := BigNumberCompare(ResM, Ref) = 0;
+  end;
+
+begin
+  Result := False;
+  N := BigNumberNew;
+  R := BigNumberNew;
+  R2ModN := BigNumberNew;
+  NNegInv := BigNumberNew;
+  A := BigNumberNew;
+  E := BigNumberNew;
+  ResM := BigNumberNew;
+  Ref := BigNumberNew;
+
+  try
+    WordBits := SizeOf(TCnBigNumberElement) * 8;
+
+    N.SetHex('FFFFFFFB');
+    SetupContext;
+    A.SetHex('5A9B7C3D');
+
+    E.SetZero;
+    if not CheckPair then Exit;
+    BigNumberSetOne(E);
+    if not CheckPair then Exit;
+    E.AddWord(1);
+    if not CheckPair then Exit;
+    E.SetHex('0F0E0D0C');
+    if not CheckPair then Exit;
+
+    N.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
+    SetupContext;
+    E.SetHex('1A2B3C4D5E6F778899AABBCCDDEEFF00123456789ABCDEF0123456789ABCDEF0');
+
+    BigNumberSetZero(A);
+    if not CheckPair then Exit;
+
+    BigNumberSetOne(A);
+    if not CheckPair then Exit;
+
+    BigNumberCopy(A, N);
+    A.SubWord(1);
+    if not CheckPair then Exit;
+
+    A.SetHex('5A9B7C3D1E2F3A4B5C6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B');
+    if not CheckPair then Exit;
+
+    N.SetHex('FFFFFFFE');
+    SetupContext;
+    E.SetHex('01020304');
+    if BigNumberMontgomeryPowerMod(ResM, A, E, N) then Exit;
+
+    Result := True;
+  finally
+    BigNumberFree(Ref);
+    BigNumberFree(ResM);
+    BigNumberFree(E);
     BigNumberFree(A);
     BigNumberFree(NNegInv);
     BigNumberFree(R2ModN);

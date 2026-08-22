@@ -2378,6 +2378,23 @@ function BigNumberMontgomeryMulMod(Res: TCnBigNumber; A: TCnBigNumber;
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function BigNumberMontgomeryPowerMod(Res: TCnBigNumber; A: TCnBigNumber;
+  B: TCnBigNumber; C: TCnBigNumber): Boolean;
+{* 基于蒙哥马利约减的模幂运算，快速计算 (A ^ B) mod C，返回运算是否成功。
+   内部自动推导蒙哥马利上下文，包括 R、R^2 mod C 以及 C 对 R 的负模逆元，
+   整个双寄存器梯循环保持数值处于蒙哥马利域内，每比特固定两次约减乘，
+   运算次数与指数位取值无关。要求模数 C 必须为奇数，
+   Res 不得与 A、B、C 为同一对象。
+
+   参数：
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 幂运算底数
+     B: TCnBigNumber                      - 幂运算指数
+     C: TCnBigNumber                      - 模数，必须为奇数
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
 function BigNumberPowerWordMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: Cardinal; C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod。
@@ -7849,6 +7866,138 @@ begin
     FLocalBigNumberPool.Recycle(RB);
     FLocalBigNumberPool.Recycle(RA);
     FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+// 基于蒙哥马利约减的模幂运算：内部自动推导上下文，包括 R、NNegInv 与 R^2 mod C，
+// 双寄存器梯循环全程保持蒙哥马利域，每比特固定两次约减乘，运算次数与指数位取值无关
+function BigNumberMontgomeryPowerMod(Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+var
+  Bits, WordBits, NWords, RBits, I: Integer;
+  R0, R1, TmpR, R2ModN, NNegInv, T: TCnBigNumber;
+begin
+  Result := False;
+  if (Res = A) or (Res = B) or (Res = C) then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
+
+  // 蒙哥马利约减要求模数为奇数，偶数模数直接失败
+  if not C.IsOdd then
+    Exit;
+
+  Bits := BigNumberGetBitsCount(B);
+
+  // 指数为 0 时结果为 1 mod C
+  if Bits = 0 then
+  begin
+    if BigNumberAbsIsWord(C, 1) then
+      BigNumberSetZero(Res)
+    else
+      BigNumberSetOne(Res);
+    Result := True;
+    Exit;
+  end;
+
+  WordBits := SizeOf(TCnBigNumberElement) * 8;
+  NWords := (C.GetBitsCount + WordBits - 1) div WordBits;
+  RBits := NWords * WordBits;
+
+  R0 := nil;
+  R1 := nil;
+  TmpR := nil;
+  R2ModN := nil;
+  NNegInv := nil;
+  T := nil;
+
+  try
+    // 推导蒙哥马利上下文：R = 2 的 NWords*WordBits 次幂
+    TmpR := FLocalBigNumberPool.Obtain;
+    R2ModN := FLocalBigNumberPool.Obtain;
+    NNegInv := FLocalBigNumberPool.Obtain;
+
+    BigNumberSetOne(TmpR);
+    BigNumberShiftLeft(TmpR, TmpR, RBits);
+
+    // 先求 C 在模 R 意义下的逆元，再取负得到 NNegInv；C 为奇数故逆元必然存在
+    if not BigNumberModularInverse(NNegInv, C, TmpR, False) then
+      Exit;
+    BigNumberSub(NNegInv, TmpR, NNegInv);
+
+    // R2ModN = R^2 mod C
+    BigNumberSetOne(R2ModN);
+    BigNumberShiftLeft(R2ModN, R2ModN, RBits * 2);
+    if not BigNumberNonNegativeMod(R2ModN, R2ModN, C) then
+      Exit;
+
+    T := FLocalBigNumberPool.Obtain;
+    R0 := FLocalBigNumberPool.Obtain;
+    R1 := FLocalBigNumberPool.Obtain;
+
+    // 基底归约到蒙哥马利域：AM = REDC((A mod C) * R^2 mod C) = (A mod C) * R mod C
+    if not BigNumberNonNegativeMod(R1, A, C) then
+      Exit;
+
+    if BigNumberIsZero(R1) then
+    begin
+      if not BigNumberSetZero(Res) then
+        Exit;
+      Result := True;
+      Exit;
+    end;
+
+    if not BigNumberMul(T, R1, R2ModN) then
+      Exit;
+    if not BigNumberMontgomeryReduction(R1, T, TmpR, C, NNegInv) then
+      Exit;
+
+    // R0 = 蒙哥马利域中的数值 1，即 R mod C
+    if not BigNumberNonNegativeMod(R0, TmpR, C) then
+      Exit;
+
+    // 双寄存器梯：每比特固定两次约减乘，与既有 BigNumberPowerMod 结构一致
+    for I := Bits - 1 downto 0 do
+    begin
+      if BigNumberIsBitSet(B, I) then
+      begin
+        if not BigNumberMul(T, R0, R1) then
+          Exit;
+        if not BigNumberMontgomeryReduction(R0, T, TmpR, C, NNegInv) then
+          Exit;
+        if not BigNumberMul(T, R1, R1) then
+          Exit;
+        if not BigNumberMontgomeryReduction(R1, T, TmpR, C, NNegInv) then
+          Exit;
+      end
+      else
+      begin
+        if not BigNumberMul(T, R0, R1) then
+          Exit;
+        if not BigNumberMontgomeryReduction(R1, T, TmpR, C, NNegInv) then
+          Exit;
+        if not BigNumberMul(T, R0, R0) then
+          Exit;
+        if not BigNumberMontgomeryReduction(R0, T, TmpR, C, NNegInv) then
+          Exit;
+      end;
+    end;
+
+    // 出蒙哥马利域：对 R0 再做一次约减即得普通域结果
+    if not BigNumberMontgomeryReduction(Res, R0, TmpR, C, NNegInv) then
+      Exit;
+
+    Result := True;
+  finally
+    if T <> nil then
+      FLocalBigNumberPool.Recycle(T);
+    if NNegInv <> nil then
+      FLocalBigNumberPool.Recycle(NNegInv);
+    if R2ModN <> nil then
+      FLocalBigNumberPool.Recycle(R2ModN);
+    if TmpR <> nil then
+      FLocalBigNumberPool.Recycle(TmpR);
+    if R1 <> nil then
+      FLocalBigNumberPool.Recycle(R1);
+    if R0 <> nil then
+      FLocalBigNumberPool.Recycle(R0);
   end;
 end;
 
