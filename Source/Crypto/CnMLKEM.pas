@@ -87,6 +87,7 @@ type
     {* 用于隐式拒绝的随机种子，不参与密钥生成，相当于规范里的 Z}
     EnKeyHash: TCnMLKEMSeed;
     {* 对应公开密钥的杂凑值} 
+    destructor Destroy; override;
   end;
 
   TCnMLKEMEncapsulationKey = class
@@ -974,6 +975,23 @@ end;
 destructor TCnMLKEM.Destroy;
 begin
 
+  inherited;
+end;
+
+// 析构时擦除秘密向量与种子，防止残留内容经内存转储或堆复用而泄露
+destructor TCnMLKEMDecapsulationKey.Destroy;
+var
+  I: Integer;
+begin
+  // 擦除秘密多项式向量的每个分量
+  if Length(SecretVector) > 0 then
+    for I := 0 to High(SecretVector) do
+      if Length(SecretVector[I]) > 0 then
+        MemorySafeZero(@SecretVector[I][0], Length(SecretVector[I]) * SizeOf(Word));
+
+  // 擦除隐式拒绝种子与公钥杂凑值
+  MemorySafeZero(@InjectionSeed[0], SizeOf(TCnMLKEMSeed));
+  MemorySafeZero(@EnKeyHash[0], SizeOf(TCnMLKEMSeed));
   inherited;
 end;
 

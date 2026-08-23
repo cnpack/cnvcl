@@ -113,6 +113,7 @@ type
     {* 秘密多项式向量 S2，维度为矩阵行数，系数为非 NTT 形式}
     T0: TCnMLDSAPolyVector;
     {* 矩阵运算得到的多项式向量 T 的分离私钥部分 T0，维度为矩阵行数，系数为非 NTT 形式}
+    destructor Destroy; override;
   end;
 
   TCnMLDSAPublicKey = class
@@ -1717,6 +1718,31 @@ end;
 destructor TCnMLDSA.Destroy;
 begin
 
+  inherited;
+end;
+
+// 析构时擦除种子与秘密向量，防止残留内容经内存转储或堆复用而泄露
+destructor TCnMLDSAPrivateKey.Destroy;
+var
+  I: Integer;
+
+  procedure WipeVector(var V: TCnMLDSAPolyVector);
+  var J: Integer;
+  begin
+    if Length(V) > 0 then
+      for J := 0 to High(V) do
+        if Length(V[J]) > 0 then
+          MemorySafeZero(@V[J][0], Length(V[J]) * SizeOf(Integer));
+    SetLength(V, 0);
+  end;
+
+begin
+  MemorySafeZero(@GenerationSeed[0], SizeOf(TCnMLDSASeed));
+  MemorySafeZero(@Key[0], SizeOf(TCnMLDSASeed));
+  MemorySafeZero(@Trace[0], SizeOf(TCnMLDSAKeyDigest));
+  WipeVector(S1);
+  WipeVector(S2);
+  WipeVector(T0);
   inherited;
 end;
 

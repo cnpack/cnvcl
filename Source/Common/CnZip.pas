@@ -1824,9 +1824,8 @@ begin
   FKeys.InitKeys(FPassword);
 
   // 随机凑 12 个字节的头
-  if not CnRandomFillBytes2(@H[0], CN_ZIP_CRYPT_HEAD_SIZE - 1) then
+  if not CnRandomFillBytes2(@H[0], CN_ZIP_CRYPT_HEAD_SIZE - 2) then
     raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
-
   H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
 
   // 加密并写入
@@ -1906,8 +1905,8 @@ begin
 {$ENDIF}
 
   // 随机凑 12 个字节的头
-  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 2 do
-    H[I] := Random(256);
+  if not CnRandomFillBytes2(@H[0], CN_ZIP_CRYPT_HEAD_SIZE - 2) then
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
   H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
 
   // 加密并写入

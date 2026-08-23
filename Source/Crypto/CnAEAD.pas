@@ -1655,6 +1655,8 @@ begin
   // 再和开始的内容异或得到最终 Tag
   MemoryXor(@OutTag[0], @Y0[0], SizeOf(TCnGHash128Tag), @OutTag[0]);
   MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
+  // 出口擦除扩展轮密钥，防止栈残留被后续利用
+  MemorySafeZero(@AeadCtx, SizeOf(TAEADContext));
 end;
 
 // 根据 Key、Iv、明文和附加数据，计算 GCM 加密密文与认证结果
@@ -1801,6 +1803,8 @@ begin
     FreeMemory(TempBuf);
 
   MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
+  // 出口擦除扩展轮密钥，防止栈残留被后续利用
+  MemorySafeZero(@AeadCtx, SizeOf(TAEADContext));
 end;
 
 function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag;
@@ -2327,6 +2331,10 @@ begin
   // 移动至 OutTag 中返回
   FillChar(OutTag[0], SizeOf(TCnCCM128Tag), 0);
   Move(CX[0], OutTag[0], CN_CCM_M_LEN);
+
+  // 出口擦除 CMAC/CTR 扩展轮密钥
+  MemorySafeZero(@CMacCtx, SizeOf(TAEADContext));
+  MemorySafeZero(@CtrCtx, SizeOf(TAEADContext));
 end;
 
 function CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCnCCM128Tag;

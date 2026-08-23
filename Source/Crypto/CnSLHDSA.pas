@@ -175,6 +175,7 @@ type
     {* 公钥种子副本（n 字节）}
     PKRoot: TBytes;
     {* 公钥根值副本（n 字节）}
+    destructor Destroy; override;
   end;
   {* SLH-DSA 私钥类型}
 
@@ -1903,6 +1904,18 @@ end;
 
 destructor TCnSLHDSA.Destroy;
 begin
+  inherited;
+end;
+
+// 析构时擦除私钥种子与伪随机函数种子，防止残留泄露
+destructor TCnSlhSecretKey.Destroy;
+begin
+  if Length(Seed) > 0 then
+    MemorySafeZero(@Seed[0], Length(Seed));
+  SetLength(Seed, 0);
+  if Length(Prf) > 0 then
+    MemorySafeZero(@Prf[0], Length(Prf));
+  SetLength(Prf, 0);
   inherited;
 end;
 
