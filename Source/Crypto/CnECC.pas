@@ -3926,7 +3926,9 @@ begin
                 Ecc.PointInverse(P);
                 BigNumberCopy(FY, P.Y);
               end;
-            end;
+            end
+            else
+              raise ECnEccException.Create(SCnErrorEccKeyData);
           finally
             P.Free;
           end;

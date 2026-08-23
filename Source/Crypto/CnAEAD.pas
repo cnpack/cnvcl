@@ -2762,15 +2762,12 @@ var
   L: Integer;
 begin
   Res := AES256GCMEncryptBytes(Key, Iv, Input, AD, OutTag);
-  if Length(Res) > 0 then
-  begin
-    L := Length(Res);
-    SetLength(Res, L + SizeOf(TCnGCM128Tag));
-    Move(OutTag[0], Res[L], SizeOf(TCnGCM128Tag));
-    Result := BytesToHex(Res);
-  end
-  else
-    Result := '';
+  // 无论密文是否为空，认证标签必须追加到输出末尾，
+  // 否则空明文的完整性保护信息丢失，且无法与 Java AES/GCM 等标准实现互通
+  L := Length(Res);
+  SetLength(Res, L + SizeOf(TCnGCM128Tag));
+  Move(OutTag[0], Res[L], SizeOf(TCnGCM128Tag));
+  Result := BytesToHex(Res);
 end;
 
 function AESGCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
