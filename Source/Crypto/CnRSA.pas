@@ -4401,6 +4401,7 @@ begin
         Exit;
       end;
     end;
+
     SetLength(H, hLen);
     MPrimeLen := 8 + hLen + sLen;
     SetLength(MPrime, MPrimeLen);

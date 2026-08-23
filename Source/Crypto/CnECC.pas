@@ -5663,6 +5663,7 @@ begin
         on E: ECnBerException do
           Exit;
       end;
+
       if Reader.TotalCount >= 5 then
       begin
         // 2 要判断是否公钥
@@ -5776,6 +5777,7 @@ begin
           on E: ECnBerException do
             Exit;
         end;
+
         if Reader.TotalCount >= 7 then
         begin
           Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -5812,6 +5814,7 @@ begin
           on E: ECnBerException do
             Exit;
         end;
+
         if Reader.TotalCount >= 11 then // 有 PKCS#8 标记且数量够
         begin
           Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version

@@ -1243,7 +1243,7 @@ begin
         on E: ECnBerDepthOverflowError do
           raise; // 深度超限属于致命错误，必须终止整个解析，不得被吞掉
         on E: ECnBerException do
-          ; // 如果内嵌解析失败，不终止，当做普通节点（仅限 BER 解析类异常）
+          ;      // 如果内嵌解析失败，不终止，当做普通节点（仅限 BER 解析类异常）
         else
           raise; // 内存访问违例等其他异常必须上抛，不得吞掉
       end;
