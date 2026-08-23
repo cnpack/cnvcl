@@ -2794,15 +2794,11 @@ var
   L: Integer;
 begin
   Res := SM4GCMEncryptBytes(Key, Iv, Input, AD, OutTag);
-  if Length(Res) > 0 then
-  begin
-    L := Length(Res);
-    SetLength(Res, L + SizeOf(TCnGCM128Tag));
-    Move(OutTag[0], Res[L], SizeOf(TCnGCM128Tag));
-    Result := BytesToHex(Res);
-  end
-  else
-    Result := '';
+  // 同 AES-GCM，空密文也必须追加 Tag
+  L := Length(Res);
+  SetLength(Res, L + SizeOf(TCnGCM128Tag));
+  Move(OutTag[0], Res[L], SizeOf(TCnGCM128Tag));
+  Result := BytesToHex(Res);
 end;
 
 function SM4GCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;

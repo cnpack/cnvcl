@@ -211,13 +211,14 @@ procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Integer);
    返回值：（无）
 }
 
-procedure RemovePKCS7Padding(Stream: TMemoryStream);
-{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据。
+function RemovePKCS7Padding(Stream: TMemoryStream): Boolean;
+{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据，返回去除是否成功。
 
    参数：
      Stream: TMemoryStream                - 待去除对齐的内存流
 
-   返回值：（无）}
+   返回值：Boolean                        - 返回去除是否成功
+}
 
 function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
 {* 给字符串末尾加上 PKCS7 规定的填充“几个几”的填充数据。
@@ -248,13 +249,13 @@ procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Integer);
    返回值：（无）
 }
 
-procedure BytesRemovePKCS7Padding(var Data: TBytes);
-{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据。
+function BytesRemovePKCS7Padding(var Data: TBytes): Boolean;
+{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，返回去除是否成功。
 
    参数：
      var Data: TBytes                     - 待去除对齐的字节数组
 
-   返回值：（无）
+   返回值：Boolean                        - 返回去除是否成功
 }
 
 procedure AddPKCS5Padding(Stream: TMemoryStream);
@@ -266,13 +267,14 @@ procedure AddPKCS5Padding(Stream: TMemoryStream);
    返回值：（无）
 }
 
-procedure RemovePKCS5Padding(Stream: TMemoryStream);
+function RemovePKCS5Padding(Stream: TMemoryStream): Boolean;
 {* 去除 PKCS7 规定的末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+   返回去除是否成功。
 
    参数：
      Stream: TMemoryStream                - 待去除对齐的内存流
 
-   返回值：（无）
+   返回值：Boolean                        - 返回去除是否成功
 }
 
 function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
@@ -302,13 +304,13 @@ procedure BytesAddPKCS5Padding(var Data: TBytes);
    返回值：（无）
 }
 
-procedure BytesRemovePKCS5Padding(var Data: TBytes);
+function BytesRemovePKCS5Padding(var Data: TBytes): Boolean;
 {* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
 
    参数：
      var Data: TBytes                     - 待去除对齐的字节数组
 
-   返回值：（无）
+   返回值：Boolean                        - 返回去除是否成功
 }
 
 function GetISO10126PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
@@ -331,13 +333,13 @@ procedure AddISO10126Padding(Stream: TMemoryStream; BlockSize: Integer);
    返回值：（无）
 }
 
-procedure RemoveISO10126Padding(Stream: TMemoryStream);
-{* 去除 ISO10126Padding 规定的末尾填充“零和几”的填充数据。
+function RemoveISO10126Padding(Stream: TMemoryStream): Boolean;
+{* 去除 ISO10126Padding 规定的末尾填充“零和几”的填充数据，返回去除是否成功。
 
    参数：
      Stream: TMemoryStream                - 待去除对齐的内存流
 
-   返回值：（无）
+   返回值：Boolean                        - 返回去除是否成功
 }
 
 function StrAddISO10126Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
@@ -369,13 +371,13 @@ procedure BytesAddISO10126Padding(var Data: TBytes; BlockSize: Integer);
    返回值：（无）
 }
 
-procedure BytesRemoveISO10126Padding(var Data: TBytes);
-{* 去除 ISO10126Padding 规定的字节数组末尾填充“零和几”的填充数据。
+function BytesRemoveISO10126Padding(var Data: TBytes): Boolean;
+{* 去除 ISO10126Padding 规定的字节数组末尾填充“零和几”的填充数据，返回去除是否成功。
 
    参数：
      var Data: TBytes                     - 待去除对齐的字节数组
 
-   返回值：（无）
+   返回值：Boolean                        - 返回去除是否成功
 }
 
 implementation
@@ -598,13 +600,14 @@ begin
   Stream.Write(Buf[0], R);
 end;
 
-procedure RemovePKCS7Padding(Stream: TMemoryStream);
+function RemovePKCS7Padding(Stream: TMemoryStream): Boolean;
 var
   L, I: Byte;
   Len: Cardinal;
   Mem, PBuf: Pointer;
   Valid: Boolean;
 begin
+  Result := False;
   // 去掉 Stream 末尾的 9 个 9 这种 Padding
   if Stream.Size > 1 then
   begin
@@ -635,6 +638,7 @@ begin
       Stream.Clear;
       Stream.Write(Mem^, Len);
       FreeMemory(Mem);
+      Result := True;
     end;
   end;
 end;
@@ -693,9 +697,9 @@ begin
   AddPKCS7Padding(Stream, CN_PKCS5_BLOCK_SIZE);
 end;
 
-procedure RemovePKCS5Padding(Stream: TMemoryStream);
+function RemovePKCS5Padding(Stream: TMemoryStream): Boolean;
 begin
-  RemovePKCS7Padding(Stream);
+  Result := RemovePKCS7Padding(Stream);
 end;
 
 function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
@@ -724,11 +728,12 @@ begin
     Data[L + I] := R;
 end;
 
-procedure BytesRemovePKCS7Padding(var Data: TBytes);
+function BytesRemovePKCS7Padding(var Data: TBytes): Boolean;
 var
   L, I, V: Integer;
   Valid: Boolean;
 begin
+  Result := False;
   L := Length(Data);
   if L = 0 then
     Exit;
@@ -749,7 +754,10 @@ begin
     end;
 
   if Valid then
+  begin
     SetLength(Data, L - V);
+    Result := True;
+  end;
 end;
 
 procedure BytesAddPKCS5Padding(var Data: TBytes);
@@ -757,9 +765,9 @@ begin
   BytesAddPKCS7Padding(Data, CN_PKCS5_BLOCK_SIZE);
 end;
 
-procedure BytesRemovePKCS5Padding(var Data: TBytes);
+function BytesRemovePKCS5Padding(var Data: TBytes): Boolean;
 begin
-  BytesRemovePKCS7Padding(Data);
+  Result := BytesRemovePKCS7Padding(Data);
 end;
 
 function GetISO10126PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
@@ -786,9 +794,9 @@ begin
   Stream.Write(RandBuf[0], R);
 end;
 
-procedure RemoveISO10126Padding(Stream: TMemoryStream);
+function RemoveISO10126Padding(Stream: TMemoryStream): Boolean;
 begin
-  RemovePKCS7Padding(Stream); // 行为等同，可直接调用
+  Result := RemovePKCS7Padding(Stream); // 行为等同，可直接调用
 end;
 
 function StrAddISO10126Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
@@ -839,9 +847,9 @@ begin
   Data[L - 1 + R] := R;
 end;
 
-procedure BytesRemoveISO10126Padding(var Data: TBytes);
+function BytesRemoveISO10126Padding(var Data: TBytes): Boolean;
 begin
-  BytesRemovePKCS7Padding(Data); // 行为等同，可直接调用
+  Result := BytesRemovePKCS7Padding(Data); // 行为等同，可直接调用
 end;
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
@@ -1015,8 +1023,8 @@ begin
       Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
       DecryptAES256StreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
-      RemovePKCS7Padding(Stream);
-      Result := True;
+      if RemovePKCS7Padding(Stream) then
+        Result := True;
     end
     else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
     begin
@@ -1025,8 +1033,8 @@ begin
       Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
       DecryptAES192StreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
-      RemovePKCS7Padding(Stream);
-      Result := True;
+      if RemovePKCS7Padding(Stream) then
+        Result := True;
     end
     else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
     begin
@@ -1035,8 +1043,8 @@ begin
       Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
       DecryptAES128StreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
-      RemovePKCS7Padding(Stream);
-      Result := True;
+      if RemovePKCS7Padding(Stream) then
+        Result := True;
     end
     else if (M1 = ENC_TYPE_DES) and (M2 = ENC_BLOCK_CBC) then
     begin
@@ -1055,8 +1063,8 @@ begin
       Move(IvStr[1], DesIv[0], Min(SizeOf(TCn3DESIv), Length(IvStr)));
 
       TripleDESDecryptStreamCBC(DS, DS.Size, Des3Key, DesIv, Stream);
-      RemovePKCS7Padding(Stream);
-      Result := True;
+      if RemovePKCS7Padding(Stream) then
+        Result := True;
     end
     else if (M1 = ENC_TYPE_SM4) and (M2 = ENC_BLOCK_CBC) then
     begin
@@ -1065,9 +1073,9 @@ begin
       Move(IvStr[1], Sm4Iv[0], Min(SizeOf(TCnSM4Iv), Length(IvStr)));
 
       SM4DecryptStreamCBC(DS, DS.Size, Sm4Key, Sm4Iv, Stream);
-      RemovePKCS7Padding(Stream);
-      Result := True;
-    end
+      if RemovePKCS7Padding(Stream) then
+        Result := True;
+    end;
   finally
     DS.Free;
   end;

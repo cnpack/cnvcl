@@ -1544,16 +1544,16 @@ procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);
    返回值：（无）
 }
 
-procedure CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean);
+function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean): Boolean;
 {* 按 Ed25519 标准将 32 字节数组转换为椭圆曲线点压缩方式。
-  P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X
+   P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X。
 
    参数：
      Data: TCnEd25519Data                 - 待转换的数组
      P: TCnEccPoint                       - 转换而来的 Ed25519 坐标点
      out XOdd: Boolean                    - 返回对应的 X 值是否为奇数
 
-   返回值：（无）
+   返回值：Boolean                        - 编码是否为规范格式（y 严格小于素数 p）
 }
 
 procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
@@ -3920,7 +3920,9 @@ procedure TCnCurve25519PublicKey.LoadFromData(Data: TCnCurve25519Data);
 var
   XOdd: Boolean;
 begin
-  CnEd25519DataToPoint(TCnEd25519Data(Data), Self, XOdd);   // 复用 Ed25519 的，只加载 Y 和奇偶性后者还省略了
+  // 拒绝非规范编码（y >= p），防止签名延展
+  if not CnEd25519DataToPoint(TCnEd25519Data(Data), Self, XOdd) then
+    raise ECnEccException.Create(SCnErrorPointNotOnCurve);
 end;
 
 procedure TCnCurve25519PublicKey.LoadFromHex(const Hex: string);
@@ -4605,7 +4607,9 @@ begin
     Exit;
 
   // 先从 Plain 中还原 Y 坐标以及 X 点的奇偶性
-  CnEd25519DataToPoint(Plain, OutPoint, XOdd);
+  // 拒绝非规范编码（y >= p）
+  if not CnEd25519DataToPoint(Plain, OutPoint, XOdd) then
+    raise ECnEccException.Create(SCnErrorPointNotOnCurve);
 
   // 得到 Y 后求解 X， 注意素数 25519 是 8u5 的形式
   if not CalcXFromY(OutPoint.Y, OutPoint.X, XOdd) then
@@ -4829,11 +4833,13 @@ begin
     Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] and $7F; // 高位清 0
 end;
 
-procedure CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint;
-  out XOdd: Boolean);
+function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint;
+  out XOdd: Boolean): Boolean;
 var
   D: TCnEd25519Data;
+  Tmp: TCnBigNumber;
 begin
+  Result := False;
   if P = nil then
     Exit;
 
@@ -4848,6 +4854,22 @@ begin
 
   // 最高位得清零
   P.Y.ClearBit(8 * CN_25519_BLOCK_BYTESIZE - 1);
+
+  // RFC 8032 §5.1.3 要求拒绝非规范编码。
+  // 清除符号位后 Y 最大为 2^255 - 1，但素数 p = 2^255 - 19，
+  // 若 Y >= p 则该编码非唯一（y 与 y-p 在域中等价但字节不同），必须拒绝。
+  // 判定方法：Y 加 19 后若第 255 位被置位则说明发生了进位，即原 Y >= p
+  Tmp := TCnBigNumber.Create;
+  try
+    BigNumberCopy(Tmp, P.Y);
+    Tmp.AddWord(19);
+    if Tmp.IsBitSet(8 * CN_25519_BLOCK_BYTESIZE - 1) then
+      Exit;   // 非规范编码：Y >= p
+  finally
+    Tmp.Free;
+  end;
+
+  Result := True;
 end;
 
 procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
@@ -5122,19 +5144,28 @@ function CnCurve25519KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
   OutPointToAnother: TCnEccPoint; Curve25519: TCnCurve25519): Boolean;
 var
   Is25519Nil: Boolean;
+  ClampedKey: TCnBigNumber;
 begin
   Result := False;
   if (SelfPrivateKey = nil) or (OutPointToAnother = nil) then
     Exit;
 
+  ClampedKey := nil;
   Is25519Nil := Curve25519 = nil;
 
   try
     if Is25519Nil then
       Curve25519 := TCnCurve25519.Create;
 
+    // 按 RFC 7748 对私钥执行 clamp（清低 3 位、置第 254 位、清第 255 位），
+    // 消除小子群分量并固定梯循环长度，防止计时侧信道泄露私钥位长。
+    // 使用副本避免修改调用方的原始私钥对象
+    ClampedKey := TCnBigNumber.Create;
+    BigNumberCopy(ClampedKey, SelfPrivateKey);
+    CnProcess25519ScalarNumber(ClampedKey);
+
     OutPointToAnother.Assign(Curve25519.Generator);
-    Curve25519.MultiplePoint(SelfPrivateKey, OutPointToAnother);
+    Curve25519.MultiplePoint(ClampedKey, OutPointToAnother);
 
     // 安全修复：私钥异常时可能得到零点公钥，后续密钥协商将退化为已知常量，必须拒绝
     if OutPointToAnother.IsZero then
@@ -5142,6 +5173,7 @@ begin
 
     Result := True;
   finally
+    ClampedKey.Free;
     if Is25519Nil then
       Curve25519.Free;
   end;
@@ -5151,19 +5183,26 @@ function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve25519: TCnCurve25519): Boolean;
 var
   Is25519Nil: Boolean;
+  ClampedKey: TCnBigNumber;
 begin
   Result := False;
   if (SelfPrivateKey = nil) or (InPointFromAnother = nil) or (OutKey = nil) then
     Exit;
 
+  ClampedKey := nil;
   Is25519Nil := Curve25519 = nil;
 
   try
     if Is25519Nil then
       Curve25519 := TCnCurve25519.Create;
 
+    // 同 Step1，对私钥执行 RFC 7748 clamp 后再参与标量乘
+    ClampedKey := TCnBigNumber.Create;
+    BigNumberCopy(ClampedKey, SelfPrivateKey);
+    CnProcess25519ScalarNumber(ClampedKey);
+
     OutKey.Assign(InPointFromAnother);
-    Curve25519.MultiplePoint(SelfPrivateKey, OutKey);
+    Curve25519.MultiplePoint(ClampedKey, OutKey);
 
     // 安全修复：RFC 7748 6.1 要求检查共享密钥，对方发来 small-order 低阶点时
     // 标量乘结果为无穷远点（全零），若不拒绝将导致共享密钥退化为已知常量
@@ -5172,6 +5211,7 @@ begin
 
     Result := True;
   finally
+    ClampedKey.Free;
     if Is25519Nil then
       Curve25519.Free;
   end;
