@@ -556,7 +556,7 @@ begin
   P2 := nil;
 
   try
-    // 安全修复：FIPS 186 要求验证签名值范围 R、S ∈ [1, Q - 1]，
+    // FIPS 186 要求验证签名值范围 R、S ∈ [1, Q - 1]，
     // 缺失该检查会导致签名可延展（R' = R + kQ 等价签名均能通过）
     if Signature = nil then
       Exit;

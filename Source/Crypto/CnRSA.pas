@@ -1455,7 +1455,7 @@ begin
      PrivKeyExponent := PrivKeyExponent + Y;
   end;
 
-  // 安全修复：校验 e * d ≡ 1 (mod (p-1)(q-1))，不满足说明 gcd(e, r) > 1，此组密钥无效
+  // 校验 e * d ≡ 1 (mod (p-1)(q-1))，不满足说明 gcd(e, r) > 1，此组密钥无效
   Result := MultipleMod(PubKeyExponent, PrivKeyExponent, Product) = 1;
 end;
 
@@ -1583,7 +1583,7 @@ begin
       if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
 
-      // 安全修复：校验 e * d ≡ 1 (mod R)，gcd(e, R) > 1 时辗转相除法得到的并非模反元素，
+      // 校验 e * d ≡ 1 (mod R)，gcd(e, R) > 1 时辗转相除法得到的并非模反元素，
       // 不满足时此组素数不可用，需重新生成
       BigNumberMul(Rem, PublicKey.PubKeyExponent, PrivateKey.PrivKeyExponent);
       BigNumberMod(Rem, Rem, R);
@@ -1709,7 +1709,7 @@ begin
       if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
 
-      // 安全修复：校验 e * d ≡ 1 (mod R)，gcd(e, R) > 1 时辗转相除法得到的并非模反元素，
+      // 校验 e * d ≡ 1 (mod R)，gcd(e, R) > 1 时辗转相除法得到的并非模反元素，
       // 不满足时此组素数不可用，需重新生成
       BigNumberMul(Rem, PublicKey.PubKeyExponent, PrivateKey.PrivKeyExponent);
       BigNumberMod(Rem, Rem, R);
@@ -2125,6 +2125,7 @@ begin
           Exit;
         end;
       end;
+
       if Reader.TotalCount >= 7 then
       begin
         // 6 和 7 整成公钥
@@ -2159,6 +2160,7 @@ begin
           Exit;
         end;
       end;
+
       if Reader.TotalCount in [3, 4] then // 大于等于 5 的话不像 PKCS1 格式
       begin
         // 1 和 2 整成公钥
@@ -2449,7 +2451,7 @@ begin
 
     try
       M1 := TCnBigNumber.Create;
-      // 安全修复：私钥模幂接入蒙哥马利实现，每比特固定两次约减乘；
+      // 私钥模幂接入蒙哥马利实现，每比特固定两次约减乘；
       // 素数模数必为奇数满足前提；失败即中止不降级
       if not BigNumberMontgomeryPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1) then
       begin
@@ -2503,12 +2505,12 @@ begin
     end;
   end
   else
-    // 安全修复：非 CRT 路径同样接入蒙哥马利模幂
+    // 非 CRT 路径同样接入蒙哥马利模幂
     Result := BigNumberMontgomeryPowerMod(Res, Data, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
 // 利用私钥对数据进行解密，返回解密是否成功
-// 安全修复：对私钥模幂运算整体实施消息盲化——生成与密文无关的随机盲化因子 r，
+// 对私钥模幂运算整体实施消息盲化——生成与密文无关的随机盲化因子 r，
 // 以 c' = c·r^e mod n 作为实际参与运算的输入，运算完成后乘以 r^{-1} mod n 还原：
 //   (c · r^e)^d mod n = c^d · r^(ed) mod n = m · r mod n
 // 使私钥运算期间接触的中间值与目标明文脱钩，缓解计时与缓存侧信道攻击。
@@ -2677,7 +2679,7 @@ begin
     BigNumberMod(FDQ1, FPrivKeyExponent, T);
 
     // 计算 QInv = Prime2 对 Prime1 的模逆元
-    // 安全修复：检查求逆结果，失败时清零 QInv，避免沿用陈旧值，
+    // 检查求逆结果，失败时清零 QInv，避免沿用陈旧值，
     // 后续 CRT 解密自带的故障攻击校验会拒绝错误结果
     if not BigNumberModularInverse(FQInv, FPrimeKey2, FPrimeKey1) then
       FQInv.Clear;
@@ -3787,7 +3789,7 @@ begin
     Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
     Res := TCnBigNumber.Create;
 
-    // 安全修复：签名私钥运算改经带消息盲化的统一入口
+    // 签名私钥运算改经带消息盲化的统一入口
     if CnRSADecrypt(Res, PrivateKey, Data) then
     begin
       // 注意 Res 可能存在前导 0，所以此处必须以 PrivateKey.GetBytesCount 为准，才能确保不漏前导 0
@@ -3883,6 +3885,7 @@ begin
             Exit;
           end;
         end;
+
         if Reader.TotalCount < 5 then
         begin
           // Padding 合法但 BER 解析失败时，同样统一以“验签不通过”返回，不暴露 BER 错误码
@@ -4026,7 +4029,7 @@ begin
     Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
     Res := TCnBigNumber.Create;
 
-    // 安全修复：签名私钥运算改经带消息盲化的统一入口
+    // 签名私钥运算改经带消息盲化的统一入口
     if CnRSADecrypt(Res, PrivateKey, Data) then
     begin
       // 注意 Res 可能存在前导 0，所以此处必须以 PrivateKey.GetBytesCount 为准，才能确保不漏前导 0
@@ -4124,6 +4127,7 @@ begin
             Exit;
           end;
         end;
+
         if Reader.TotalCount < 5 then
         begin
           // Padding 合法但 BER 解析失败时，同样统一以“验签不通过”返回，不暴露 BER 错误码
@@ -4480,7 +4484,7 @@ begin
     Data := TCnBigNumber.FromBinary(PAnsiChar(@EM[0]), emLen);
     Res := TCnBigNumber.Create;
 
-    // 安全修复：签名私钥运算改经带消息盲化的统一入口
+    // 签名私钥运算改经带消息盲化的统一入口
     if CnRSADecrypt(Res, PrivateKey, Data) then
     begin
       SetLength(ResBuf, PrivateKey.GetBytesCount);

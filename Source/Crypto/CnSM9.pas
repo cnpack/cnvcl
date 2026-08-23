@@ -4873,7 +4873,7 @@ begin
     SM9 := TCnSM9.Create;
 
   try
-    // 安全修复：检查随机数生成结果，RNG 失败时不得使用未初始化或零值主密钥
+    // 检查随机数生成结果，RNG 失败时不得使用未初始化或零值主密钥
     if not BigNumberRandRange(EncryptionMasterKey.PrivateKey, SM9.Order) then
     begin
       _CnSetLastError(ECN_SM9_RANDOM_ERROR);

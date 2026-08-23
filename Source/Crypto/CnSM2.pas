@@ -972,7 +972,7 @@ begin
     BigNumberClearBit(X, I);
 end;
 
-// 安全修复：校验协同流程中对手方传来的中间点——非无穷远、坐标在合法范围、
+// 校验协同流程中对手方传来的中间点——非无穷远、坐标在合法范围、
 // 位于 SM2 曲线上且属于正确子群（n·P 为无穷远点），
 // 防止恶意对端利用无效曲线点或小子群点实施密钥泄露攻击。
 // 复用 CnECC 的完整公钥校验逻辑；TCnSM2 本身即配置好推荐曲线的 TCnECC
@@ -2675,7 +2675,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    // 安全修复：校验 A 方传来的中间点在曲线上且属于正确子群
+    // 校验 A 方传来的中间点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InPointFromA, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2791,7 +2791,7 @@ begin
     P := TCnEccPoint.Create;
     Inv := TCnBigNumber.Create;
 
-    // 安全修复：校验 A 方传来的 Q 点在曲线上且属于正确子群
+    // 校验 A 方传来的 Q 点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InQFromA, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2980,7 +2980,7 @@ begin
       Exit;
     end;
 
-    // 安全修复：C1 来自密文（攻击者可控），必须先校验在曲线上且属于正确子群
+    // C1 来自密文（攻击者可控），必须先校验在曲线上且属于正确子群
     // 再用私钥进行标量乘，否则存在无效曲线攻击风险
     if not InternalCheckCollaborativePoint(OutTToB, SM2) then
     begin
@@ -3016,7 +3016,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    // 安全修复：校验 A 方传来的 T 点在曲线上且属于正确子群
+    // 校验 A 方传来的 T 点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InTFromA, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -3062,7 +3062,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    // 安全修复：校验 B 方传来的 T 点在曲线上且属于正确子群
+    // 校验 B 方传来的 T 点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InTFromB, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -3262,7 +3262,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    // 安全修复：校验 A 方传来的中间点在曲线上且属于正确子群
+    // 校验 A 方传来的中间点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InPointFromA, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -3333,7 +3333,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    // 安全修复：校验 A 方传来的 Q 点在曲线上且属于正确子群
+    // 校验 A 方传来的 Q 点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InQFromA, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -3397,7 +3397,7 @@ begin
     Q := TCnEccPoint.Create;
     Inv := TCnBigNumber.Create;
 
-    // 安全修复：校验 B 方传来的 Q 点在曲线上且属于正确子群
+    // 校验 B 方传来的 Q 点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InQFromB, SM2) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);

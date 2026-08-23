@@ -1493,7 +1493,7 @@ var
   Key256: TCnAESKey256;
   SM4Key: TCnSM4Key;
 begin
-  // 安全修复：严格校验密钥长度，禁止静默补零或截断导致密钥强度被无声降级
+  // 严格校验密钥长度，禁止静默补零或截断导致密钥强度被无声降级
   case EncryptType of
     aetAES128:
       if (Key = nil) or (KeyByteLength <> SizeOf(TCnAESKey128)) then
@@ -1571,7 +1571,7 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
-  // 安全修复：拒绝空 IV，空 IV 会退化为 J0 = 0 的确定性加密，
+  // 拒绝空 IV，空 IV 会退化为 J0 = 0 的确定性加密，
   // 同一密钥下所有消息共用密钥流
   if (Iv = nil) or (IvByteLength <= 0) then
     raise ECnAEADError.Create('GCM Iv Byte Length must be Positive.');
@@ -1685,7 +1685,7 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
-  // 安全修复：拒绝空 IV，与加密端保持一致的参数约束
+  // 拒绝空 IV，与加密端保持一致的参数约束
   if (Iv = nil) or (IvByteLength <= 0) then
     raise ECnAEADError.Create('GCM Iv Byte Length must be Positive.');
 
@@ -2168,7 +2168,7 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
-  // 安全修复：严格校验 Nonce 长度与明文长度上限，
+  // 严格校验 Nonce 长度与明文长度上限，
   // 静默补零 Nonce 会导致跨系统互通失败，超长明文会使 B0 长度域截断、
   // CTR 计数器回绕重用密钥流（SP 800-38C 要求 len(P) < 2^(8L)）
   if (Nonce = nil) or (NonceByteLength <> CN_CCM_NONCE) then
@@ -2460,7 +2460,7 @@ begin
   if AAD = nil then
     AADByteLength := 0;
 
-  // 安全修复：严格校验 Nonce 长度与密文长度上限，与加密端保持一致
+  // 严格校验 Nonce 长度与密文长度上限，与加密端保持一致
   if (Nonce = nil) or (NonceByteLength <> CN_CCM_NONCE) then
     raise ECnAEADError.CreateFmt('Invalid CCM Nonce Length %d, must be %d.',
       [NonceByteLength, CN_CCM_NONCE]);
@@ -2833,7 +2833,7 @@ var
   PadLen: Integer;
   Zeros: array[0..15] of Byte;
 begin
-  // 安全修复：严格校验密钥与 Nonce 长度，禁止静默补零或截断
+  // 严格校验密钥与 Nonce 长度，禁止静默补零或截断
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
     raise ECnAEADError.CreateFmt('Invalid ChaCha20 Key Length %d, must be %d.',
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
@@ -2909,7 +2909,7 @@ begin
   OrigEnByteLength := EnByteLength;
   OldOutPlain := OutPlainData;
 
-  // 安全修复：严格校验密钥与 Nonce 长度，与加密端保持一致
+  // 严格校验密钥与 Nonce 长度，与加密端保持一致
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
     raise ECnAEADError.CreateFmt('Invalid ChaCha20 Key Length %d, must be %d.',
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
@@ -3090,7 +3090,7 @@ var
   OutKey: TCnHChaChaSubKey;
   P: PByte;
 begin
-  // 安全修复：严格校验密钥与 IV 长度，短 IV 原先会从 Iv[16..23] 越界读取
+  // 严格校验密钥与 IV 长度，短 IV 原先会从 Iv[16..23] 越界读取
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
     raise ECnAEADError.CreateFmt('Invalid XChaCha20 Key Length %d, must be %d.',
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
@@ -3125,7 +3125,7 @@ var
   OutKey: TCnHChaChaSubKey;
   P: PByte;
 begin
-  // 安全修复：严格校验密钥与 IV 长度，与加密端保持一致
+  // 严格校验密钥与 IV 长度，与加密端保持一致
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
     raise ECnAEADError.CreateFmt('Invalid XChaCha20 Key Length %d, must be %d.',
       [KeyByteLength, SizeOf(TCnChaChaKey)]);

@@ -88,6 +88,7 @@ type
     EnKeyHash: TCnMLKEMSeed;
     {* 对应公开密钥的杂凑值} 
     destructor Destroy; override;
+    {* 析构函数}
   end;
 
   TCnMLKEMEncapsulationKey = class

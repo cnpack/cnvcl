@@ -176,6 +176,7 @@ type
     PKRoot: TBytes;
     {* 公钥根值副本（n 字节）}
     destructor Destroy; override;
+    {* 析构函数}
   end;
   {* SLH-DSA 私钥类型}
 

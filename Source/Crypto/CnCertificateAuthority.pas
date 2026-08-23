@@ -3155,7 +3155,7 @@ begin
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
 
-    // 安全修复：验证证书时检查有效期，过期与未生效的证书一律拒绝
+    // 验证证书时检查有效期，过期与未生效的证书一律拒绝
     if ACheckTime then
     begin
       if (CRT.BasicCertificate.NotBefore = nil)
@@ -3268,7 +3268,7 @@ begin
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
 
-    // 安全修复：验证证书时检查有效期，过期与未生效的证书一律拒绝
+    // 验证证书时检查有效期，过期与未生效的证书一律拒绝
     if ACheckTime then
     begin
       if (CRT.BasicCertificate.NotBefore = nil)
@@ -3351,7 +3351,7 @@ begin
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
 
-    // 安全修复：验证证书时检查有效期，过期与未生效的证书一律拒绝
+    // 验证证书时检查有效期，过期与未生效的证书一律拒绝
     if ACheckTime then
     begin
       if (CRT.BasicCertificate.NotBefore = nil)
@@ -3701,7 +3701,7 @@ begin
         Exit;
     end;
 
-    // 安全修复：畸形数据解析后可能得到空树（越界节点被拒绝），必须先检查
+    // 畸形数据解析后可能得到空树（越界节点被拒绝），必须先检查
     // 节点数再访问，防止 Items[0] 越界导致 AV
     if Reader.TotalCount <= 0 then
       Exit;

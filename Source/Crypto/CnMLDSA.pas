@@ -114,6 +114,7 @@ type
     T0: TCnMLDSAPolyVector;
     {* 矩阵运算得到的多项式向量 T 的分离私钥部分 T0，维度为矩阵行数，系数为非 NTT 形式}
     destructor Destroy; override;
+    {* 析构函数}
   end;
 
   TCnMLDSAPublicKey = class

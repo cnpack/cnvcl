@@ -1128,7 +1128,7 @@ begin
                    Cardinal(AData^[Run + 2])
       else if LenLen = SizeOf(Cardinal) then
       begin
-        // 安全修复：最高位为 1 时长度必然超过 MaxInt，强转 Integer 会得到负数，
+        // 最高位为 1 时长度必然超过 MaxInt，强转 Integer 会得到负数，
         // 负数长度会导致 Inc(Run, DataLen) 回退与后续解析越界，必须拒绝
         if AData^[Run] > $7F then
           raise ECnBerException.CreateFmt(SCnErrorLengthTooLongOrIncorrect, [AStartOffset, LenLen]);
@@ -1209,7 +1209,7 @@ begin
     begin
       // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
       try
-        // 安全修复：不定长 BIT STRING 的 DataLength 为 0，若走下方分支会把
+        // 不定长 BIT STRING 的 DataLength 为 0，若走下方分支会把
         // BerDataLength - 1 下溢为巨大无符号数传给子解析导致越界读，
         // 故仅对确定长度的 BIT STRING 跳过首字节，不定长的按普通区域解析
         if (TagClass = 0) and (ALeaf.BerTag = CN_BER_TAG_BIT_STRING)
@@ -1241,7 +1241,7 @@ begin
         end;
       except
         on E: ECnBerDepthOverflowError do
-          raise; // 安全修复：深度超限属于致命错误，必须终止整个解析，不得被吞掉
+          raise; // 深度超限属于致命错误，必须终止整个解析，不得被吞掉
         on E: ECnBerException do
           ; // 如果内嵌解析失败，不终止，当做普通节点（仅限 BER 解析类异常）
         else
