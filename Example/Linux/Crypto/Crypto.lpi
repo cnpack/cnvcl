@@ -148,6 +148,10 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnOTS.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
         <Filename Value="..\..\..\Source\Crypto\CnPaillier.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>

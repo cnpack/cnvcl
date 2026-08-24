@@ -2048,8 +2048,10 @@ begin
   ForsSigLen := P.K * (P.A + 1) * P.N;
   HtSigLen := P.D * (P.LenTotal * P.N + P.Hp * P.N);
 
-  // Check minimum signature size
-  if Length(SIG) < P.N + ForsSigLen + HtSigLen then
+  // FIPS 205 签名为定长字节串（R || SIG_FORS || SIG_HT），此处必须用 <> 严格相等：
+  // 若用 < 仅检查下限，尾部附加任意字节的超长签名也会被接受，造成签名可延展性，
+  // 破坏以签名字节串为索引的系统（交易去重、内容寻址等）。
+  if Length(SIG) <> P.N + ForsSigLen + HtSigLen then
     Exit;
 
   // Parse signature

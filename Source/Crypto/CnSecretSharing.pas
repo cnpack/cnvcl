@@ -499,6 +499,26 @@ begin
     Exit;
   end;
 
+  // 份额索引必须两两互异且均落在 [1, Prime) 内。
+  // 旧实现不做校验：重复索引会导致拉格朗日分母连乘出 0，而底层 CnInt64ModularInverse2
+  // 对 gcd<>1 静默返回 0，函数最终仍返回 True 并输出一个看似合法的错误"秘密"；
+  // 索引 0 则等价于允许注入伪造点 (0, Y)，可直接把秘密改写为攻击者指定的值。
+  // 注意 BigNumber 版的 BigNumberModularInverse 失败会正确报错，此处对齐其行为。
+  for I := 0 to InOrders.Count - 1 do
+  begin
+    if (InOrders[I] < 1) or (InOrders[I] >= Prime) then
+    begin
+      _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+      Exit;
+    end;
+    for J := I + 1 to InOrders.Count - 1 do
+      if InOrders[J] = InOrders[I] then
+      begin
+        _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+        Exit;
+      end;
+  end;
+
   // 拉格朗日插值公式，InOrder 是一堆 X 坐标，InShares 是一堆 Y 坐标
   // 有 T 个 Shares，则要累加 T 项，每项针对一个 X Y 坐标，有以下计算方法：
   // 每项 = 本Y * (-其他所有 X 的积) / (本X - 其他所有X) 的积)
@@ -521,6 +541,12 @@ begin
       end;
     end;
     D := CnInt64ModularInverse2(D, Prime);
+    if D = 0 then  // 模逆失败按输入非法处理，不再静默产出错误结果
+    begin
+      Secret := 0;
+      _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+      Exit;
+    end;
 
     N := Int64NonNegativeMulMod(N, D, Prime);
     Secret := Int64AddMod(Secret, N, Prime);

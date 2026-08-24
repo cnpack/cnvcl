@@ -1790,6 +1790,10 @@ begin
     // Tag 验证通过，将临时缓冲区中的明文复制到输出
     if (OldPlain <> nil) and (OrigEnByteLength > 0) then
       Move(TempBuf^, OldPlain^, OrigEnByteLength);
+    // 成功路径同样必须擦除临时缓冲区：拷出后堆块中仍留有完整明文，
+    // FreeMemory 后残留直至该块被复用，可被堆扫描/转储回收
+    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
+      MemorySafeZero(TempBuf, OrigEnByteLength);
   end
   else
   begin
@@ -2648,6 +2652,9 @@ begin
     // Tag 验证通过，将临时缓冲区中的明文复制到输出
     if (OldPlain <> nil) and (OrigEnByteLength > 0) then
       Move(TempBuf^, OldPlain^, OrigEnByteLength);
+    // 成功路径同样必须擦除临时缓冲区，防止明文随堆块释放后残留被回收
+    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
+      MemorySafeZero(TempBuf, OrigEnByteLength);
   end
   else
   begin
@@ -2983,6 +2990,9 @@ begin
     // Tag 验证通过，将临时缓冲区中的明文复制到输出
     if (OldOutPlain <> nil) and (OrigEnByteLength > 0) then
       Move(TempBuf^, OldOutPlain^, OrigEnByteLength);
+    // 成功路径同样必须擦除临时缓冲区，防止明文随堆块释放后残留被回收
+    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
+      MemorySafeZero(TempBuf, OrigEnByteLength);
   end
   else
   begin

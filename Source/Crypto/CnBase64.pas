@@ -577,6 +577,16 @@ begin
 {$ENDIF}
   end;
 
+  // 过滤（FilterLine）后可能得到空串，例如输入全部为非法字符。
+  // 此时必须直接返回空结果，否则后续 Data[SrcLen] 等价于对 nil AnsiString 取下标
+  // （SrcLen=0 时访问 Data[0]），将触发空指针访问崩溃，且可被外部构造的输入远程触发。
+  if Data = '' then
+  begin
+    SetLength(OutputData, 0);
+    Result := ECN_BASE64_OK;
+    Exit;
+  end;
+
   // 如果是 Base64URL 编码的结果去掉了尾部的 =，则需要根据长度是否是 4 的倍数而补上
   if (Length(Data) and $03) <> 0 then
     Data := Data + StringOfChar(AnsiChar('='), 4 - (Length(Data) and $03));
@@ -624,8 +634,8 @@ begin
     Inc(C);
   end;
 
-  // 根据补的等号数目决定是否删除尾部 #0
-  while (ToDec > 0) and (OutputData[DstLen - 1] = 0) do
+  // 根据补的等号数目决定是否删除尾部 #0（补 DstLen > 0 条件防止空输出数组时的负下标访问）
+  while (ToDec > 0) and (DstLen > 0) and (OutputData[DstLen - 1] = 0) do
   begin
     Dec(ToDec);
     Dec(DstLen);

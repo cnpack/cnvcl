@@ -2522,7 +2522,7 @@ begin
   SetLength(Plain, in_len);
   if in_len > 0 then
     Move(in_ptr^, Plain[0], in_len);
-  En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, '', C1Compress);
+  En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, C1Compress);
   out_len := Length(En);
   if cap < out_len then
   begin
@@ -2593,7 +2593,7 @@ begin
   Sig := TCnSM2Signature.Create;
   try
     if not CnSM2SignData(UID, Plain, Sig, TCnSM2PrivateKey(priv),
-      TCnSM2PublicKey(pub), nil, '') then
+      TCnSM2PublicKey(pub), nil) then
     begin
       Result := CN_E_INTERNAL;
       Exit;

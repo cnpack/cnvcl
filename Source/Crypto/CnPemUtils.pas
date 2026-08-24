@@ -730,8 +730,7 @@ end;
 
 function BytesRemovePKCS7Padding(var Data: TBytes): Boolean;
 var
-  L, I, V: Integer;
-  Valid: Boolean;
+  L, I, V, Diff: Integer;
 begin
   Result := False;
   L := Length(Data);
@@ -744,16 +743,14 @@ begin
   if (V < 1) or (V > CN_PKCS7_BLOCK_SIZE) or (V > L) then
     Exit;
 
-  // 验证所有填充字节都等于 V（防止 Padding Oracle 攻击）
-  Valid := True;
+  // 验证所有填充字节都等于 V。
+  // 恒定时间实现：固定扫描全部 V 个填充字节，差异按位 OR 累加，
+  // 不因首个失配字节提前退出，避免耗时依赖失配位置而被用于 Padding Oracle 计时侧信道。
+  Diff := 0;
   for I := 1 to V do
-    if Data[L - I] <> V then
-    begin
-      Valid := False;
-      Break;
-    end;
+    Diff := Diff or (Ord(Data[L - I]) xor V);
 
-  if Valid then
+  if Diff = 0 then
   begin
     SetLength(Data, L - V);
     Result := True;
@@ -1053,8 +1050,8 @@ begin
       Move(IvStr[1], DesIv[0], Min(SizeOf(TCnDESIv), Length(IvStr)));
 
       DESDecryptStreamCBC(DS, DS.Size, DesKey, DesIv, Stream);
-      RemovePKCS7Padding(Stream);
-      Result := True;
+      if RemovePKCS7Padding(Stream) then
+        Result := True;
     end
     else if (M1 = ENC_TYPE_3DES) and (M2 = ENC_BLOCK_CBC) then
     begin

@@ -138,7 +138,8 @@ type
   {* Int64 范围内的椭圆曲线的私钥，计算次数 k 次}
 
   TCnInt64Ecc = class
-  {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Int64 范围内}
+  {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p，
+     参数均在 Int64 范围内，安全程度不足，仅用于教学示例}
   private
     FGenerator: TCnInt64EccPoint;
     FCoefficientA: Int64;
@@ -1701,7 +1702,9 @@ function CnInt64EccGenerateParams(out FiniteFieldSize: Int64; out CoefficientA: 
   out CoefficientB: Int64; out GX: Int64; out GY: Int64; out Order: Int64): Boolean;
   {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数。
-   注意，该机制难以完整实现，只能先靠系统随机库生成系数很小的，也不涉及密码应用。
+   注意，该机制难以完整实现，只能生成系数很小的演示用曲线。随机参数选取已改用
+   操作系统 CSPRNG（不再使用可预测的 Randomize/Random），但曲线阶仍仅约 2^32，
+   ECDLP 可被瞬间穷举，因此本函数严禁用于任何密码学用途，仅限教学演示。
 
    参数：
      out FiniteFieldSize: Int64           - 生成的魏尔斯特拉斯椭圆曲线方程的有限域上界
@@ -2858,11 +2861,13 @@ begin
 
   repeat
     // FiniteFieldSize := CnGenerateUInt32Prime; // 先用小点儿的素数，但也不能太小
-    Randomize;
-    I := Trunc(Random * (High(CN_PRIME_NUMBERS_SQRT_UINT32) - 100)) + 100;
+    // 弃用 Delphi 弱随机的 Randomize/Random（Mersenne Twister，状态可预测），
+    // 改用 CnRandom 单元的操作系统 CSPRNG 拒绝采样接口，取值均匀无模偏差，
+    // 范围与原实现完全一致：素数表索引 I ∈ [100, High - 101]，A ∈ [0,15]，B ∈ [0,255]
+    I := RandomInt32LessThan(High(CN_PRIME_NUMBERS_SQRT_UINT32) - 100) + 100;
     FiniteFieldSize := CN_PRIME_NUMBERS_SQRT_UINT32[I];
-    CoefficientA := Trunc(Random * 16);
-    CoefficientB := Trunc(Random * 256);
+    CoefficientA := RandomInt64LessThan(16);
+    CoefficientB := RandomInt64LessThan(256);
     N := 1; // 0,0 天然就算
 
     // A、B 都比较小，这里不用担心溢出
@@ -2887,7 +2892,7 @@ begin
   Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
   try
     repeat
-      P.X := Trunc(Random * (FiniteFieldSize - 1)) + 1;
+      P.X := RandomInt64LessThan(FiniteFieldSize - 1) + 1;
       for I := 0 to FiniteFieldSize - 1 do
       begin
         P.Y := I;

@@ -3917,12 +3917,11 @@ end;
 { TCnCurve25519PublicKey }
 
 procedure TCnCurve25519PublicKey.LoadFromData(Data: TCnCurve25519Data);
-var
-  XOdd: Boolean;
 begin
-  // 拒绝非规范编码（y >= p），防止签名延展
-  if not CnEd25519DataToPoint(TCnEd25519Data(Data), Self, XOdd) then
-    raise ECnEccException.Create(SCnErrorPointNotOnCurve);
+  // Curve25519 公钥是 RFC 7748 的 u 坐标（存于本库 TCnEccPoint.X 槽），
+  // 允许任意 32 字节输入（含非规范值，由接收掩码处理），不得沿用 Ed25519 的
+  // "y 解码 + 扭曲爱德华曲线方程检查 + y>=p 拒绝"逻辑。
+  CnCurve25519DataToPoint(Data, Self);
 end;
 
 procedure TCnCurve25519PublicKey.LoadFromHex(const Hex: string);
@@ -3938,7 +3937,10 @@ end;
 
 procedure TCnCurve25519PublicKey.SaveToData(var Data: TCnCurve25519Data);
 begin
-  CnEd25519PointToData(Self, TCnEd25519Data(Data));   // 复用 Ed25519 的，只存 Y，以及 X 的奇偶性
+  // 与 LoadFromData 对称，输出 X 槽中的 u 坐标（小端）。
+  // 不能用 CnEd25519PointToData 输出 Y+X 奇偶位，否则导致
+  // cn_curve25519_derive_public_to_bytes 等接口导出的根本不是 u 坐标。
+  CnCurve25519PointToData(Self, Data);
 end;
 
 function TCnCurve25519PublicKey.SaveToHex(UseUpperCase: Boolean): string;
@@ -4814,7 +4816,16 @@ begin
   ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
   // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
 
-  P.Y.SetBinary(@D[0], SizeOf(TCnCurve25519Data));
+  // u 坐标必须装入 X 槽——库内 Montgomery 曲线约定 u 存放于 TCnEccPoint.X
+  // （生成器 FGenerator.X=9、PointToXAffinePoint/XAffinePointToPoint/PointToData 均
+  // 读写 X 槽，孪生的 CnCurve448DataToPoint 也是写 X）。旧实现误写 Y 槽导致 peer 点
+  // 实际 u=0（曲线上 2 阶小阶点），clamp 后的偶数标量乘之必得无穷远点，
+  // Step2 的贡献性检查随即拒绝，cn_curve25519_dh_bytes 等字节级 DH 恒定失败。
+  P.X.SetBinary(@D[0], SizeOf(TCnCurve25519Data));
+  P.Y.SetZero;
+
+  // RFC 7748 §5：接收方必须屏蔽最高有效位（本库 X 槽按大端 Binary 存储，故屏蔽首字节最高位）
+  P.X.ClearBit(8 * SizeOf(TCnCurve25519Data) - 1);
 end;
 
 procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);

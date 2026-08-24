@@ -1032,9 +1032,11 @@ var
   TagName: string;
 {$ENDIF}
 begin
-  // Depth limit to prevent stack overflow from malicious nesting
+  // 抛出专用子类 ECnBerDepthOverflowError：外层递归解析的 except 分支依赖该类型
+  // re-raise 以终止整个解析；若抛基类 ECnBerException，超限异常会被内层
+  // "on E: ECnBerException do ;" 吞掉，导致深层子树被静默丢弃而非整体报错。
   if ADepth > CN_BER_MAX_DEPTH then
-    raise ECnBerException.CreateFmt(SCnErrorBerParseDepthOverflow, [ADepth]);
+    raise ECnBerDepthOverflowError.CreateFmt(SCnErrorBerParseDepthOverflow, [ADepth]);
 
   Run := 0;  // Run 是基于 AData 起始处的偏移量
   Result := ADataByteLen;

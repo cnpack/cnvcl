@@ -1497,7 +1497,7 @@ begin
     Exit;
 
   // 生成掩码 - 15 个完全随机的 SHA256 摘要
-  if not CnRandomFillBytes(@Mask[0], SizeOf(TCnWOTSPlusSHA256Mask)) then
+  if not CnRandomFillBytes(@Mask[0], SizeOf(TCnWOTSPlusSM3Mask)) then
     Exit;
 
   // 对每个私钥元素应用完整的杂凑链（w-1 = 15 步）
