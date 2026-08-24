@@ -1416,21 +1416,38 @@ var
 begin
   S := string(InternalAsString(CN_TAG_SET_TIME));
   // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
-  if (Length(S) in [11, 13]) and (S[Length(S)] = 'Z') then
+  if (Length(S) >= 11) and (S[Length(S)] = 'Z') then
   begin
-    Y := StrToInt(Copy(S, 1, 2));
-    if Y >= 50 then
-      Y := Y + 1900
+    if FBerTag = CN_BER_TAG_GENERALIZEDTIME then
+    begin
+      // GeneralizedTime
+      Y := StrToInt(Copy(S, 1, 4));
+      M := StrToInt(Copy(S, 5, 2));
+      D := StrToInt(Copy(S, 7, 2));
+      H := StrToInt(Copy(S, 9, 2));
+      Mi := StrToInt(Copy(S, 11, 2));
+      if Length(S) >= 15 then
+        Se := StrToInt(Copy(S, 13, 2))
+      else
+        Se := 0;
+    end
     else
-      Y := Y + 2000;
-    M := StrToInt(Copy(S, 3, 2));
-    D := StrToInt(Copy(S, 5, 2));
-    H := StrToInt(Copy(S, 7, 2));
-    Mi := StrToInt(Copy(S, 9, 2));
-    if Length(S) = 13 then
-      Se := StrToInt(Copy(S, 11, 2))
-    else
-      Se := 0;
+    begin
+      // UTCTime
+      Y := StrToInt(Copy(S, 1, 2));
+      if Y >= 50 then
+        Y := Y + 1900
+      else
+        Y := Y + 2000;
+      M := StrToInt(Copy(S, 3, 2));
+      D := StrToInt(Copy(S, 5, 2));
+      H := StrToInt(Copy(S, 7, 2));
+      Mi := StrToInt(Copy(S, 9, 2));
+      if Length(S) = 13 then
+        Se := StrToInt(Copy(S, 11, 2))
+      else
+        Se := 0;
+    end;
 
     Result := EncodeDate(Y, M, D) + EncodeTime(H, Mi, Se, 0);
   end

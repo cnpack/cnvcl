@@ -1240,6 +1240,7 @@ begin
   U32To8Big(@Digest[16], Context.H[4]);
   U32To8Big(@Digest[20], Context.H[5]);
   U32To8Big(@Digest[24], Context.H[6]);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 procedure BLAKE256Init(var Context: TCnBLAKE256Context);
@@ -1324,6 +1325,7 @@ begin
   U32To8Big(@Digest[20], Context.H[5]);
   U32To8Big(@Digest[24], Context.H[6]);
   U32To8Big(@Digest[28], Context.H[7]);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 procedure BLAKE384512Update(var Context: TCnBLAKE512Context; Input: PAnsiChar; ByteLength: Cardinal);
@@ -1472,6 +1474,7 @@ begin
   U64To8Big(@Digest[24], Context.H[3]);
   U64To8Big(@Digest[32], Context.H[4]);
   U64To8Big(@Digest[40], Context.H[5]);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 procedure BLAKE512Init(var Context: TCnBLAKE512Context);
@@ -1556,6 +1559,7 @@ begin
   U64To8Big(@Digest[40], Context.H[5]);
   U64To8Big(@Digest[48], Context.H[6]);
   U64To8Big(@Digest[56], Context.H[7]);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 // 对数据块进行 BLAKE224 计算

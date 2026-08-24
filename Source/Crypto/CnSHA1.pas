@@ -449,6 +449,7 @@ begin
   Context.Hash[3] := RB(Context.Hash[3]);
   Context.Hash[4] := RB(Context.Hash[4]);
   Move(Context.Hash, Digest, Sizeof(Digest));
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 // 对数据块进行 SHA1 计算

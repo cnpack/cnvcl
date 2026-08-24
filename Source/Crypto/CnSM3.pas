@@ -541,6 +541,7 @@ begin
   PutULongBe(Context.State[5], @Digest, 20);
   PutULongBe(Context.State[6], @Digest, 24);
   PutULongBe(Context.State[7], @Digest, 28);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 function SM3(Input: PAnsiChar; ByteLength: Cardinal): TCnSM3Digest;

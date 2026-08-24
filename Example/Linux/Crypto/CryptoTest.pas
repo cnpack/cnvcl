@@ -212,6 +212,8 @@ function TestPEMCorruptedBase64: Boolean;
 function TestPEMEncryptedMissingDekInfo: Boolean;
 function TestPEMEncryptedCorruptedBase64: Boolean;
 function TestCARejectInvalidCert: Boolean;
+function TestCAUTCTimeGeneralizedTime: Boolean;
+function TestCAValidityCheckSign: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -1954,6 +1956,8 @@ begin
   MyAssert(TestPEMEncryptedMissingDekInfo, 'TestPEMEncryptedMissingDekInfo');
   MyAssert(TestPEMEncryptedCorruptedBase64, 'TestPEMEncryptedCorruptedBase64');
   MyAssert(TestCARejectInvalidCert, 'TestCARejectInvalidCert');
+  MyAssert(TestCAUTCTimeGeneralizedTime, 'TestCAUTCTimeGeneralizedTime');
+  MyAssert(TestCAValidityCheckSign, 'TestCAValidityCheckSign');
 
 // =============================== Int128 ======================================
 
@@ -6252,6 +6256,144 @@ begin
   end;
 end;
 
+// 测试 TCnUTCTime 的 UTCTime/GeneralizedTime 格式转换
+function TestCAUTCTimeGeneralizedTime: Boolean;
+var
+  UTCTime: TCnUTCTime;
+  Y, M, D: Word;
+begin
+  Result := True;
+  UTCTime := TCnUTCTime.Create;
+  try
+    // 测试 1: 2049 年应使用 UTCTime 格式（2 位年份）
+    UTCTime.DateTime := EncodeDate(2049, 6, 15) + EncodeTime(10, 30, 0, 0);
+    Result := Result and (not UTCTime.UseGeneralizedTime);
+    Result := Result and (Length(UTCTime.UTCTimeString) >= 11);
+    // UTCTime 格式以 49 开头
+    Result := Result and (Copy(UTCTime.UTCTimeString, 1, 2) = '49');
+
+    // 测试 2: 2050 年应使用 GeneralizedTime 格式（4 位年份）
+    UTCTime.DateTime := EncodeDate(2050, 1, 1) + EncodeTime(0, 0, 0, 0);
+    Result := Result and UTCTime.UseGeneralizedTime;
+    // GeneralizedTime 格式以 2050 开头
+    Result := Result and (Copy(UTCTime.UTCTimeString, 1, 4) = '2050');
+
+    // 测试 3: 2099 年也应使用 GeneralizedTime 格式
+    UTCTime.DateTime := EncodeDate(2099, 12, 31) + EncodeTime(23, 59, 59, 0);
+    Result := Result and UTCTime.UseGeneralizedTime;
+    Result := Result and (Copy(UTCTime.UTCTimeString, 1, 4) = '2099');
+
+    // 测试 4: 解析 UTCTime 格式字符串（2 位年份 49 → 2049）
+    UTCTime.UTCTimeString := '490615103000Z';
+    Result := Result and (not UTCTime.UseGeneralizedTime);
+    DecodeDate(UTCTime.DateTime, Y, M, D);
+    Result := Result and (Y = 2049) and (M = 6) and (D = 15);
+
+    // 测试 5: 解析 UTCTime 格式字符串（2 位年份 50 → 1950，RFC 5280 规则）
+    UTCTime.UTCTimeString := '500101000000Z';
+    Result := Result and (not UTCTime.UseGeneralizedTime);
+    DecodeDate(UTCTime.DateTime, Y, M, D);
+    Result := Result and (Y = 1950);
+
+    // 测试 6: 解析 GeneralizedTime 格式字符串（4 位年份）
+    UTCTime.SetTimeStringWithTag('20500101000000Z', CN_BER_TAG_GENERALIZEDTIME);
+    Result := Result and UTCTime.UseGeneralizedTime;
+    DecodeDate(UTCTime.DateTime, Y, M, D);
+    Result := Result and (Y = 2050) and (M = 1) and (D = 1);
+
+    // 测试 7: 解析 GeneralizedTime 格式字符串（2099 年）
+    UTCTime.SetTimeStringWithTag('20991231235959Z', CN_BER_TAG_GENERALIZEDTIME);
+    Result := Result and UTCTime.UseGeneralizedTime;
+    DecodeDate(UTCTime.DateTime, Y, M, D);
+    Result := Result and (Y = 2099) and (M = 12) and (D = 31);
+
+    // 测试 8: 往返一致性——写入 2050 后再读回
+    UTCTime.DateTime := EncodeDate(2077, 3, 20) + EncodeTime(12, 0, 0, 0);
+    Result := Result and UTCTime.UseGeneralizedTime;
+    UTCTime.SetTimeStringWithTag(UTCTime.UTCTimeString, CN_BER_TAG_GENERALIZEDTIME);
+    DecodeDate(UTCTime.DateTime, Y, M, D);
+    Result := Result and (Y = 2077) and (M = 3) and (D = 20);
+  finally
+    UTCTime.Free;
+  end;
+end;
+
+// 测试签发函数的 NotAfter > NotBefore 有效期校验
+function TestCAValidityCheckSign: Boolean;
+var
+  PrivKey: TCnRSAPrivateKey;
+  PubKey: TCnRSAPublicKey;
+  TmpDir, CRTFile, CSRFile, OutFile: string;
+  StdExt: TCnCertificateStandardExtensions;
+begin
+  Result := True;
+  PrivKey := nil;
+  PubKey := nil;
+  StdExt := nil;
+
+  // 获取临时目录
+  TmpDir := GetEnvironmentVariable('TEMP');
+  if TmpDir = '' then
+    TmpDir := '.';
+  TmpDir := IncludeTrailingPathDelimiter(TmpDir);
+  CRTFile := TmpDir + 'CnTestCA_v1.crt';
+  CSRFile := TmpDir + 'CnTestCA_v1.csr';
+  OutFile := TmpDir + 'CnTestCA_v1_out.crt';
+
+  try
+    // 生成 RSA 密钥对
+    PrivKey := TCnRSAPrivateKey.Create;
+    PubKey := TCnRSAPublicKey.Create;
+    StdExt := TCnCertificateStandardExtensions.Create;
+
+    if not CnRSAGenerateKeys(1024, PrivKey, PubKey) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 生成自签名根证书（用于后续签发）
+    if not CnCANewSelfSignedCertificate(PrivKey, PubKey, CRTFile,
+      'CN', 'State', 'City', 'Org', 'Unit', 'TestCA', 'a@b.com', '1',
+      Now - 1, Now + 365, ctSha256RSA) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 生成 CSR
+    if not CnCANewCertificateSignRequest(PrivKey, PubKey, CSRFile,
+      'CN', 'State', 'City', 'Org', 'Unit', 'TestSubj', 'b@c.com', ctSha256RSA) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 测试 1: NotAfter <= NotBefore 应被拒绝（旧版 Sign）
+    Result := Result and not CnCASignCertificate(PrivKey, CRTFile, CSRFile,
+      OutFile, '100', Now + 10, Now, ctSha256RSA);
+
+    // 测试 2: NotAfter <= NotBefore 应被拒绝（新版 Sign2）
+    Result := Result and not CnCASignCertificate2(PrivKey, CRTFile, CSRFile,
+      OutFile, '100', Now + 10, Now, StdExt, nil, ctSha256RSA);
+
+    // 测试 3: NotAfter = NotBefore 应被拒绝
+    Result := Result and not CnCASignCertificate(PrivKey, CRTFile, CSRFile,
+      OutFile, '101', Now, Now, ctSha256RSA);
+
+    // 测试 4: 正常有效期（NotAfter > NotBefore）应成功
+    Result := Result and CnCASignCertificate(PrivKey, CRTFile, CSRFile,
+      OutFile, '102', Now, Now + 30, ctSha256RSA);
+  finally
+    StdExt.Free;
+    PubKey.Free;
+    PrivKey.Free;
+    // 清理临时文件
+    DeleteFile(CRTFile);
+    DeleteFile(CSRFile);
+    DeleteFile(OutFile);
+  end;
+end;
 // =============================== Int128 ======================================
 
 function TestInt128Add: Boolean;

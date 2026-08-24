@@ -930,6 +930,7 @@ begin
   // 按需输出
   FillChar(Digest[0], SizeOf(TCnBLAKE2SDigest), 0);
   Move(Dig[0], Digest[0], Context.OutLen);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 function BLAKE2S(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar;
@@ -1111,6 +1112,7 @@ begin
   // 按需输出
   FillChar(Digest[0], SizeOf(TCnBLAKE2BDigest), 0);
   Move(Dig[0], Digest[0], Context.OutLen);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 function BLAKE2B(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar;

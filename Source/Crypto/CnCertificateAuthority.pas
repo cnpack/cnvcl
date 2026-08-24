@@ -284,13 +284,19 @@ type
   private
     FUTCTimeString: string;
     FDateTime: TDateTime;
+    FUseGeneralizedTime: Boolean;
     procedure SetDateTime(const Value: TDateTime);
     procedure SetUTCTimeString(const Value: string);
+    procedure ParseTimeString(const Value: string; IsGeneralizedTime: Boolean);
   public
     property DateTime: TDateTime read FDateTime write SetDateTime;
     {* 日期时间类型}
     property UTCTimeString: string read FUTCTimeString write SetUTCTimeString;
     {* UTC 日期时间}
+    property UseGeneralizedTime: Boolean read FUseGeneralizedTime;
+    {* 写入时是否使用 GeneralizedTime 格式（年份 >= 2050 时自动为 True）}
+    procedure SetTimeStringWithTag(const Value: string; BerTag: Integer);
+    {* 根据 BER Tag 设置时间字符串，BerTag 为 CN_BER_TAG_UTCTIME 或 CN_BER_TAG_GENERALIZEDTIME}
   end;
 
 {
@@ -1255,6 +1261,21 @@ begin
   AWriter.AddAnsiStringNode(BerTag, AnsiString(DN), Result);
 end;
 
+{ 根据 RFC 5280，将日期时间写入 Validity 节点：
+  年份 < 2050 使用 UTCTime 格式（Tag $17），
+  年份 >= 2050 使用 GeneralizedTime 格式（Tag $18） }
+procedure AddTimeNodeToWriter(AWriter: TCnBerWriter; ValidNode: TCnBerWriteNode;
+  ATime: TCnUTCTime);
+var
+  BerTag: Integer;
+begin
+  if ATime.UseGeneralizedTime then
+    BerTag := CN_BER_TAG_GENERALIZEDTIME
+  else
+    BerTag := CN_BER_TAG_UTCTIME;
+  AWriter.AddAnsiStringNode(BerTag, AnsiString(ATime.UTCTimeString), ValidNode);
+end;
+
 { 写如下格式的 RSA 公钥节点
   SEQUENCE(2 elem)    - PubNode
     SEQUENCE(2 elem)
@@ -1892,11 +1913,9 @@ begin
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME),
       CountryName);
@@ -2015,11 +2034,9 @@ begin
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME),
       CountryName);
@@ -2094,6 +2111,9 @@ begin
   if not (CASignType in RSA_CA_TYPES) then
     Exit;
 
+  if NotAfter <= NotBefore then
+    Exit;
+
   CSR := nil;
   CRT := nil;
   Writer := nil;
@@ -2153,11 +2173,9 @@ begin
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
       SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
@@ -2235,6 +2253,9 @@ begin
   if not (CASignType in ECC_CA_TYPES) then
     Exit;
 
+  if NotAfter <= NotBefore then
+    Exit;
+
   CSR := nil;
   CRT := nil;
   Writer := nil;
@@ -2294,11 +2315,9 @@ begin
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
       SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
@@ -3562,62 +3581,97 @@ var
 begin
   FDateTime := Value;
 
-  // 将时间日期转换成字符串并给 FUTCTimeString，使用 YYMMDDhhmm[ss]Z 的格式
+  // 根据 RFC 5280，年份 < 2050 使用 UTCTime 格式（YYMMDDhhmm[ss]Z），
+  // 年份 >= 2050 使用 GeneralizedTime 格式（YYYYMMDDhhmm[ss]Z）
   DecodeDate(FDateTime, Year, Month, Day);
   DecodeTime(FDateTime, Hour, Minute, Sec, MSec);
 
-  Year := Year mod 100; // 只取后两位
-  FUTCTimeString := Format('%2.2d%2.2d%2.2d%2.2d%2.2d', [Year, Month, Day, Hour, Minute]);
-  if Sec <> 0 then
-    FUTCTimeString := FUTCTimeString + Format('%2.2d', [Sec]);
+  if Year >= 2050 then
+  begin
+    FUseGeneralizedTime := True;
+    // GeneralizedTime 使用四位年份
+    FUTCTimeString := Format('%4.4d%2.2d%2.2d%2.2d%2.2d%2.2d', [Year, Month, Day, Hour, Minute, Sec]);
+  end
+  else
+  begin
+    FUseGeneralizedTime := False;
+    // UTCTime 使用两位年份
+    Year := Year mod 100; // 只取后两位
+    FUTCTimeString := Format('%2.2d%2.2d%2.2d%2.2d%2.2d', [Year, Month, Day, Hour, Minute]);
+    if Sec <> 0 then
+      FUTCTimeString := FUTCTimeString + Format('%2.2d', [Sec]);
+  end;
   FUTCTimeString := FUTCTimeString + 'Z';
 end;
 
-procedure TCnUTCTime.SetUTCTimeString(const Value: string);
+procedure TCnUTCTime.ParseTimeString(const Value: string; IsGeneralizedTime: Boolean);
 var
   Year, Month, Day, Hour, Minute, Sec, DeltaHour, DeltaMin: Word;
   Idx: Integer;
   Plus: Boolean;
   DeltaTime: TDateTime;
+  S: string;
 begin
-  FUTCTimeString := Value;
-  //  解析 String 到时间并给 FDateTime，格式是 YYMMDDhhmm[ss]Z 或 YYMMDDhhmm[ss](+|-)hhmm
-  if Length(FUTCTimeString) > 10 then // 至少得有 11 个
+  S := Value;
+  FUTCTimeString := S;
+  FUseGeneralizedTime := IsGeneralizedTime;
+
+  // 解析 String 到时间并给 FDateTime，支持以下格式：
+  //   UTCTime:         YYMMDDhhmm[ss]Z 或 YYMMDDhhmm[ss](+|-)hhmm
+  //   GeneralizedTime: YYYYMMDDhhmm[ss]Z 或 YYYYMMDDhhmm[ss](+|-)hhmm
+  if Length(S) > 10 then // 至少得有 11 个
   begin
     Idx := 1;
-    Year := StrToInt(Copy(FUTCTimeString, Idx, 2)) + 2000;  // 1
+
+    if IsGeneralizedTime then
+    begin
+      // GeneralizedTime，四位年份
+      Year := StrToInt(Copy(S, Idx, 4));
+      Inc(Idx, 4);
+    end
+    else
+    begin
+      // UTCTime，两位年份
+      Year := StrToInt(Copy(S, Idx, 2));
+      Inc(Idx, 2);
+      // 根据 RFC 5280，UTCTime 中年份 00-49 对应 2000-2049，50-99 对应 1950-1999
+      if Year >= 50 then
+        Year := Year + 1900
+      else
+        Year := Year + 2000;
+    end;
+
+    Month := StrToInt(Copy(S, Idx, 2));
     Inc(Idx, 2);
-    Month := StrToInt(Copy(FUTCTimeString, Idx, 2));        // 3
+    Day := StrToInt(Copy(S, Idx, 2));
     Inc(Idx, 2);
-    Day := StrToInt(Copy(FUTCTimeString, Idx, 2));          // 5
+    Hour := StrToInt(Copy(S, Idx, 2));
     Inc(Idx, 2);
-    Hour := StrToInt(Copy(FUTCTimeString, Idx, 2));         // 7
-    Inc(Idx, 2);
-    Minute := StrToInt(Copy(FUTCTimeString, Idx, 2));       // 9
+    Minute := StrToInt(Copy(S, Idx, 2));
     Inc(Idx, 2);
 
     Sec := 0;
-    if FUTCTimeString[Idx] in ['0'..'9'] then   // 有 ss    // 11
+    if (Idx <= Length(S)) and (S[Idx] in ['0'..'9']) then  // 有 ss
     begin
-      Sec := StrToInt(Copy(FUTCTimeString, Idx, 2));
+      Sec := StrToInt(Copy(S, Idx, 2));
       Inc(Idx, 2);
     end;
 
-    if Idx <= Length(FUTCTimeString) then
+    if Idx <= Length(S) then
     begin
       // 此时 Idx 直接（或越过可能的 ss）指向 Z 或 +-
-      if FUTCTimeString[Idx] in ['+', '-'] then
+      if S[Idx] in ['+', '-'] then
       begin
-        Plus := FUTCTimeString[Idx] = '+';
+        Plus := S[Idx] = '+';
         Inc(Idx);
         DeltaHour := 0;
         DeltaMin := 0;
-        if Idx <= Length(FUTCTimeString) then
+        if Idx <= Length(S) then
         begin
-          DeltaHour := StrToInt(Copy(FUTCTimeString, Idx, 2));
+          DeltaHour := StrToInt(Copy(S, Idx, 2));
           Inc(Idx, 2);
-          if Idx <= Length(FUTCTimeString) then
-            DeltaMin := StrToInt(Copy(FUTCTimeString, Idx, 2));
+          if Idx <= Length(S) then
+            DeltaMin := StrToInt(Copy(S, Idx, 2));
         end;
 
         FDateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Sec, 0);
@@ -3628,10 +3682,22 @@ begin
         else
           FDateTime := FDateTime - DeltaTime;
       end
-      else if FUTCTimeString[Idx] = 'Z' then
+      else if S[Idx] = 'Z' then
         FDateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Sec, 0);
     end;
   end;
+end;
+
+procedure TCnUTCTime.SetUTCTimeString(const Value: string);
+begin
+  // 不带 Tag 信息时，按 UTCTime 格式解析（兼容旧行为）
+  ParseTimeString(Value, False);
+end;
+
+procedure TCnUTCTime.SetTimeStringWithTag(const Value: string; BerTag: Integer);
+begin
+  // 根据 BER Tag 判断是 GeneralizedTime 还是 UTCTime
+  ParseTimeString(Value, BerTag = CN_BER_TAG_GENERALIZEDTIME);
 end;
 
 function CnCALoadCertificateFromFile(const FileName: string; Certificate:
@@ -3800,8 +3866,10 @@ begin
       Node := Node.GetNextSibling; // Issuer 节点后的同级节点是俩 UTC Time
       if Node.Count = 2 then
       begin
-        Certificate.BasicCertificate.NotBefore.UTCTimeString := Node.Items[0].AsString;
-        Certificate.BasicCertificate.NotAfter.UTCTimeString := Node.Items[1].AsString;
+        Certificate.BasicCertificate.NotBefore.SetTimeStringWithTag(
+          Node.Items[0].AsString, Node.Items[0].BerTag);
+        Certificate.BasicCertificate.NotAfter.SetTimeStringWithTag(
+          Node.Items[1].AsString, Node.Items[1].BerTag);
       end;
 
       Node := Node.GetNextSibling; // UTC Time 节点后的同级节点是 Subject
@@ -4133,11 +4201,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME),
@@ -4250,11 +4316,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME),
@@ -4320,6 +4384,9 @@ begin
   if not (CASignType in RSA_CA_TYPES) then
     Exit;
 
+  if NotAfter <= NotBefore then
+    Exit;
+
   CSR := nil;
   CRT := nil;
   Writer := nil;
@@ -4383,11 +4450,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
@@ -4457,6 +4522,9 @@ begin
   if not (CASignType in ECC_CA_TYPES) then
     Exit;
 
+  if NotAfter <= NotBefore then
+    Exit;
+
   CSR := nil;
   CRT := nil;
   Writer := nil;
@@ -4520,11 +4588,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString),
-      ValidNode);
+    AddTimeNodeToWriter(Writer, ValidNode, UTCTime);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],

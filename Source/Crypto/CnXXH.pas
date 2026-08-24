@@ -614,6 +614,7 @@ begin
 
   // 将结果存入Digest
   PCardinal(@Digest[0])^ := UInt32HostToNetwork(Hash);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 procedure XXH64Init(var Context: TCnXXH64Context; Seed: TUInt64);
@@ -784,6 +785,7 @@ begin
 
   // 将结果存入 Digest
   PUInt64(@Digest[0])^ := UInt64HostToNetwork(Hash);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 // 对数据块进行 XXH32 计算

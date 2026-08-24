@@ -594,6 +594,7 @@ begin
   MD5Update(Context, @PADDING, PadLen);
   MD5Update(Context, @Bits, 8);
   Decode(@Context.State, @Digest, 4);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 function InternalMD5Stream(Stream: TStream; const BufSize: Cardinal; var D:

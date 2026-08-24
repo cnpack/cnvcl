@@ -1647,6 +1647,7 @@ begin
     Digest[I + 24] := (Context.State[6] shr (24 - I * 8)) and $000000FF;
     Digest[I + 28] := (Context.State[7] shr (24 - I * 8)) and $000000FF;
   end;
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 {$WARNINGS OFF}
@@ -1804,6 +1805,7 @@ begin
     Digest[I + 48] := (Context.State[6] shr (56 - I * 8)) and $000000FF;
     Digest[I + 56] := (Context.State[7] shr (56 - I * 8)) and $000000FF;
   end;
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 procedure SHA512_224Init(var Context: TCnSHA512_224Context);

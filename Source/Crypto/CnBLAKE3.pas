@@ -812,6 +812,7 @@ var
 begin
   BLAKE3GetRootOutput(Context, 0, OutWords);
   WordsToBytes(OutWords, @Digest[0], 8);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 procedure BLAKE3FinalXOF(var Context: TCnBLAKE3Context; OutBuf: PByte; OutLength: Integer);
@@ -837,8 +838,8 @@ begin
     Inc(Written, Take);
     Inc(BlockCounter);
   end;
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
-// ============ 普通哈希便捷函数实现 ============
 
 function BLAKE3(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar;
   KeyLength: Integer): TCnBLAKE3Digest;

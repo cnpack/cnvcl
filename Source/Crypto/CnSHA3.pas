@@ -1473,6 +1473,7 @@ begin
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
   Move(Context.State[0], Digest[0], Context.DigestLen);
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 // SHAKE128 ºÍ SHAKE256 ×¨ÓÃ
@@ -1508,6 +1509,7 @@ begin
     if DL > 0 then
       Move(Context.State[0], Digest[Idx], DL);
   end;
+  MemorySafeZero(@Context, SizeOf(Context));
 end;
 
 function SHAKE3Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
