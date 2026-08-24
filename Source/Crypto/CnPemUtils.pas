@@ -510,12 +510,18 @@ begin
   // 第一个字节必须是 0x00（前导字节固定，常量时间判断）
   // 不计算连续前导零，因为 Type 0 的类型字节本身也是 0x00，
   // 会与前导零混淆。PKCS#1 规定前导字节固定为一个 0x00。
-  Cond := Ord(Ord(P[0]) = 0);
+  if InDataByteLen >= 2 then
+    Cond := Ord(Ord(P[0]) = 0)
+  else
+    Cond := 0;
   Good := Good and Cond;
   LeadingZeros := 1;
 
   // 读取 PaddingType
-  PaddingType := Ord(P[LeadingZeros]);
+  if InDataByteLen >= 2 then
+    PaddingType := Ord(P[LeadingZeros])
+  else
+    PaddingType := 0;
 
   // PaddingType 合法性（常量时间，不使用 if/else 分支）
   IsType0 := Ord(PaddingType = CN_PKCS1_BLOCK_TYPE_PRIVATE_00);
