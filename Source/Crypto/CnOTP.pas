@@ -369,6 +369,7 @@ resourcestring
   SCnErrorOTPInvalidDataLength = 'Invalid Data or Length';
   SCnErrorOTPInvalidDigits = 'Invalid Digits';
   SCnErrorOTPInvalidPeriod = 'Invalid Period';
+  SCnErrorOTPInvalidSeed = 'Invalid Seed';
 
 // 常量时间比较两串口令：长度不等直接 False，否则用 ConstTimeCompareMem 逐字节比较，
 // 避免验证分支因长度/内容差异产生可被利用的时序差异
@@ -468,6 +469,9 @@ var
   end;
 
 begin
+  if Length(FSeedKey) <= 0 then
+    raise ECnOneTimePasswordException.Create(SCnErrorOTPInvalidSeed);
+
   // 计算动态口令过程
   T := Int64HostToNetwork(TimeStep);
 
@@ -669,6 +673,9 @@ var
   TenPow: Integer;
   Fmt: string;
 begin
+  if Length(FSeedKey) <= 0 then
+    raise ECnOneTimePasswordException.Create(SCnErrorOTPInvalidSeed);
+
   Cnt := Int64HostToNetwork(Counter);
   SHA1Hmac(@FSeedKey[0], Length(FSeedKey), @Cnt, SizeOf(Cnt), Dig);
 
@@ -762,6 +769,9 @@ var
   TenPow: Integer;
   Fmt: string;
 begin
+  if Length(FSeedKey) <= 0 then
+    raise ECnOneTimePasswordException.Create(SCnErrorOTPInvalidSeed);
+
   T := Int64HostToNetwork(TimeStep);
   case FPasswordType of
     tptSHA1:
