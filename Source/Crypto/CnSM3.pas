@@ -587,17 +587,16 @@ procedure SM3HmacFinal(var Context: TCnSM3Context; var Output: TCnSM3Digest);
 var
   Len: Integer;
   TmpBuf: TCnSM3Digest;
+  OP: array[0..63] of Byte;
 begin
   Len := HMAC_SM3_OUTPUT_LENGTH_BYTE;
+  Move(Context.Opad[0], OP[0], HMAC_SM3_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   SM3Final(Context, TmpBuf);
   SM3Init(Context);
+  Move(OP[0], Context.Opad[0], HMAC_SM3_BLOCK_SIZE_BYTE);
   SM3Update(Context, @(Context.Opad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
   SM3Update(Context, @(TmpBuf[0]), Len);
   SM3Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
 end;
 
 procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;

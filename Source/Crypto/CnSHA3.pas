@@ -2772,68 +2772,76 @@ procedure SHA3_224HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3Gene
 var
   Len: Integer;
   TmpBuf: TCnSHA3GeneralDigest;
+  OP: array[0..143] of Byte;
+  OldDigestLen: Cardinal;
 begin
   Len := HMAC_SHA3_224_OUTPUT_LENGTH_BYTE;
+  OldDigestLen := Context.DigestLen;
+  Move(Context.Opad[0], OP[0], HMAC_SHA3_224_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   SHA3Final(Context, TmpBuf);
   SHA3Init(Context, stSHA3_224);
+  Move(OP[0], Context.Opad[0], HMAC_SHA3_224_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
+  Context.DigestLen := OldDigestLen; // Final 擦除了整个 Context，恢复 DigestLen 供调用方使用
 end;
 
 procedure SHA3_256HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3GeneralDigest);
 var
   Len: Integer;
   TmpBuf: TCnSHA3GeneralDigest;
+  OP: array[0..143] of Byte;
+  OldDigestLen: Cardinal;
 begin
   Len := HMAC_SHA3_256_OUTPUT_LENGTH_BYTE;
+  OldDigestLen := Context.DigestLen;
+  Move(Context.Opad[0], OP[0], HMAC_SHA3_256_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   SHA3Final(Context, TmpBuf);
   SHA3Init(Context, stSHA3_256);
+  Move(OP[0], Context.Opad[0], HMAC_SHA3_256_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
+  Context.DigestLen := OldDigestLen; // Final 擦除了整个 Context，恢复 DigestLen 供调用方使用
 end;
 
 procedure SHA3_384HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3GeneralDigest);
 var
   Len: Integer;
   TmpBuf: TCnSHA3GeneralDigest;
+  OP: array[0..143] of Byte;
+  OldDigestLen: Cardinal;
 begin
   Len := HMAC_SHA3_384_OUTPUT_LENGTH_BYTE;
+  OldDigestLen := Context.DigestLen;
+  Move(Context.Opad[0], OP[0], HMAC_SHA3_384_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   SHA3Final(Context, TmpBuf);
   SHA3Init(Context, stSHA3_384);
+  Move(OP[0], Context.Opad[0], HMAC_SHA3_384_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
+  Context.DigestLen := OldDigestLen; // Final 擦除了整个 Context，恢复 DigestLen 供调用方使用
 end;
 
 procedure SHA3_512HmacFinal(var Context: TCnSHA3Context; var Output: TCnSHA3GeneralDigest);
 var
   Len: Integer;
   TmpBuf: TCnSHA3GeneralDigest;
+  OP: array[0..143] of Byte;
+  OldDigestLen: Cardinal;
 begin
   Len := HMAC_SHA3_512_OUTPUT_LENGTH_BYTE;
+  OldDigestLen := Context.DigestLen;
+  Move(Context.Opad[0], OP[0], HMAC_SHA3_512_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   SHA3Final(Context, TmpBuf);
   SHA3Init(Context, stSHA3_512);
+  Move(OP[0], Context.Opad[0], HMAC_SHA3_512_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
   SHA3Update(Context, @(TmpBuf[0]), Len);
   SHA3Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
+  Context.DigestLen := OldDigestLen; // Final 擦除了整个 Context，恢复 DigestLen 供调用方使用
 end;
 
 procedure SHA3_224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;

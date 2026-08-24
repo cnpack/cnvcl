@@ -587,6 +587,7 @@ function TestReedSolomon: Boolean;
 function TestDSA1: Boolean;
 function TestDSA2: Boolean;
 function TestDSA3: Boolean;
+function TestDSA4: Boolean;
 
 // ================================ PDF ========================================
 
@@ -2331,6 +2332,7 @@ begin
   MyAssert(TestDSA1, 'TestDSA1');
   MyAssert(TestDSA2, 'TestDSA2');
   MyAssert(TestDSA3, 'TestDSA3');
+  MyAssert(TestDSA4, 'TestDSA4');
 
 // ================================ PDF ========================================
 
@@ -6394,6 +6396,7 @@ begin
     DeleteFile(OutFile);
   end;
 end;
+
 // =============================== Int128 ======================================
 
 function TestInt128Add: Boolean;
@@ -16339,6 +16342,59 @@ begin
   Param.Free;
 end;
 
+// 测试 FIPS 186-4 左截断：Q=160bit 时用 SHA-256（256bit），摘要应被截断到 160bit
+function TestDSA4: Boolean;
+var
+  Param: TCnDSADomainParameter;
+  Priv: TCnDSAPrivateKey;
+  Pub: TCnDSAPublicKey;
+  Data: TBytes;
+  Sig: TCnDSASignature;
+  Dig: TCnBigNumber;
+  DigBits: Integer;
+begin
+  Result := False;
+  Param := TCnDSADomainParameter.Create;
+  // 1024-160 参数（与 TestDSA1 相同）
+  Param.P.SetHex('95D8E3C9FC1E748F63C83EFD90EB7ED6871AF087F975FF64048028880C0365C505506FFB6EF74911F1164B24EDDACF2D07B14BA84E38A0AC39C4FB8A4'
+    + 'C9B816EA36C2EE2CF4E276D7BBA5F6A76EC3447C7BC4EBD190575C54814FEDB84FC4EEA456921CC1E3FAAA4B96FFABC7A8C00E6427D47A032C5EBEBF0F86192BF25635B');
+  Param.Q.SetHex('B18265035E348B7F9993893D99E9CECFC45AFA33');
+  Param.G.SetHex('67636611F85C6706C1C53D33553050941A1B5399AA6EA6C9A398ACE01862E6AF491A2BC9B65B977756EAAE11CB3755CDC45905AACD10290A1BC1E99AF'
+    + '819A9A9EC8C987F98171EADD4F952EAE538B312612EBD68A88054E6F6D0B5B4EA253A033636F56C007D4FA5454CC40EBEE1794B7B3DACC41878FFC899A457899DF95994');
+
+  if not CnDSAVerifyParameter(Param) then Exit;
+
+  Priv := TCnDSAPrivateKey.Create;
+  Pub := TCnDSAPublicKey.Create;
+  if not CnDSAGenerateKeys(Param, Priv, Pub) then Exit;
+
+  // 验证用 SHA-256 签名+验证能通过（内部应截断到 160bit）
+  Data := AnsiToBytes('CnPack DSA Truncation Test');
+  Sig := TCnDSASignature.Create;
+
+  if not CnDSASignBytes(Data, Param, Priv, Sig, dhtSHA256) then Exit;
+  if not CnDSAVerifyBytes(Data, Param, Pub, Sig, dhtSHA256) then Exit;
+
+  // 验证截断确实发生了：手动调用 DSAHashData，检查摘要位数 <= Q 位数
+  Dig := TCnBigNumber.Create;
+  try
+    if Length(Data) > 0 then
+      DSAHashData(@Data[0], Length(Data), Dig, Param, dhtSHA256)
+    else
+      DSAHashData(nil, 0, Dig, Param, dhtSHA256);
+
+    DigBits := Dig.GetBitsCount;
+    // SHA-256 输出 256bit，Q 为 160bit，截断后 Dig 位数应 <= 160
+    Result := (DigBits <= Param.Q.GetBitsCount);
+  finally
+    Dig.Free;
+    Sig.Free;
+    Pub.Free;
+    Priv.Free;
+    Param.Free;
+  end;
+end;
+
 // ================================ PDF ========================================
 
 function TestPDFCalcOwnerPassword: Boolean;
@@ -20072,6 +20128,7 @@ begin
 end;
 
 // ================================ SEA ========================================
+
 const
   MIT_L2: string =
     '[3,0] 1' + SCRLF +

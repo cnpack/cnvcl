@@ -217,6 +217,21 @@ function CnDSAVerifyBytes(Data: TBytes; DSAParameter: TCnDSADomainParameter;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
+function DSAHashData(Data: Pointer; DataByteLen: Integer; OutDigest: TCnBigNumber;
+  Parameter: TCnDSADomainParameter; HashType: TCnDSAHashType = dhtAuto): Boolean;
+{* 使用指定或自动选择的哈希算法计算数据摘要，并按 FIPS 186-4 要求左截断到 Q 位数。
+   当 HashType 为 dhtAuto 时，根据 Q 的位数自动选择匹配的 SHA 算法。
+
+   参数：
+     Data: Pointer                        - 待哈希的数据地址
+     DataByteLen: Integer                 - 待哈希的数据字节长度
+     OutDigest: TCnBigNumber              - 输出的摘要大数（已截断到 Q 位数）
+     Parameter: TCnDSADomainParameter     - DSA 域参数（用于确定 Q 位数）
+     HashType: TCnDSAHashType             - 哈希算法
+
+   返回值：Boolean                        - 是否哈希成功
+}
+
 implementation
 
 { TCnDSADomainParameters }
@@ -341,6 +356,11 @@ begin
   else
     Exit;
   end;
+
+  // FIPS 186-4 4.2: 摘要位数超过 Q 位数时，取最左 min(N, outlen) 位
+  // 即截断到 Q 位长（丢弃低位多余的 bit），保证与 OpenSSL 等主流实现互操作
+  if (Parameter <> nil) and (OutDigest.GetBitsCount > Parameter.Q.GetBitsCount) then
+    OutDigest.ShiftRight(OutDigest.GetBitsCount - Parameter.Q.GetBitsCount);
 
   Result := True;
 end;

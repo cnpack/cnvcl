@@ -725,17 +725,16 @@ procedure SHA1HmacFinal(var Context: TCnSHA1Context; var Output: TCnSHA1Digest);
 var
   Len: Integer;
   TmpBuf: TCnSHA1Digest;
+  OP: array[0..63] of Byte;
 begin
   Len := HMAC_SHA1_OUTPUT_LENGTH_BYTE;
+  Move(Context.Opad[0], OP[0], HMAC_SHA1_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   SHA1Final(Context, TmpBuf);
   SHA1Init(Context);
+  Move(OP[0], Context.Opad[0], HMAC_SHA1_BLOCK_SIZE_BYTE);
   SHA1Update(Context, @(Context.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
   SHA1Update(Context, @(TmpBuf[0]), Len);
   SHA1Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;

@@ -2325,17 +2325,16 @@ procedure BLAKE224HmacFinal(var Context: TCnBLAKE224Context; var Output: TCnBLAK
 var
   Len: Integer;
   TmpBuf: TCnBLAKE224Digest;
+  OP: array[0..63] of Byte;
 begin
   Len := HMAC_BLAKE_224_OUTPUT_LENGTH_BYTE;
+  Move(Context.Opad[0], OP[0], HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   BLAKE224Final(Context, TmpBuf);
   BLAKE224Init(Context);
+  Move(OP[0], Context.Opad[0], HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
   BLAKE224Update(Context, @(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
   BLAKE224Update(Context, @(TmpBuf[0]), Len);
   BLAKE224Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE256HmacInit(var Context: TCnBLAKE256Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2373,17 +2372,16 @@ procedure BLAKE256HmacFinal(var Context: TCnBLAKE256Context; var Output: TCnBLAK
 var
   Len: Integer;
   TmpBuf: TCnBLAKE256Digest;
+  OP: array[0..63] of Byte;
 begin
   Len := HMAC_BLAKE_256_OUTPUT_LENGTH_BYTE;
+  Move(Context.Opad[0], OP[0], HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   BLAKE256Final(Context, TmpBuf);
   BLAKE256Init(Context);
+  Move(OP[0], Context.Opad[0], HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
   BLAKE256Update(Context, @(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
   BLAKE256Update(Context, @(TmpBuf[0]), Len);
   BLAKE256Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -2459,17 +2457,16 @@ procedure BLAKE384HmacFinal(var Context: TCnBLAKE384Context; var Output: TCnBLAK
 var
   Len: Integer;
   TmpBuf: TCnBLAKE384Digest;
+  OP: array[0..127] of Byte;
 begin
   Len := HMAC_BLAKE_384_OUTPUT_LENGTH_BYTE;
+  Move(Context.Opad[0], OP[0], HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   BLAKE384Final(Context, TmpBuf);
   BLAKE384Init(Context);
+  Move(OP[0], Context.Opad[0], HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
   BLAKE384Update(Context, @(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
   BLAKE384Update(Context, @(TmpBuf[0]), Len);
   BLAKE384Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE384Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -2526,17 +2523,16 @@ procedure BLAKE512HmacFinal(var Context: TCnBLAKE512Context; var Output: TCnBLAK
 var
   Len: Integer;
   TmpBuf: TCnBLAKE512Digest;
+  OP: array[0..127] of Byte;
 begin
   Len := HMAC_BLAKE_512_OUTPUT_LENGTH_BYTE;
+  Move(Context.Opad[0], OP[0], HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE); // 保存 Opad 待继续使用
   BLAKE512Final(Context, TmpBuf);
   BLAKE512Init(Context);
+  Move(OP[0], Context.Opad[0], HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
   BLAKE512Update(Context, @(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
   BLAKE512Update(Context, @(TmpBuf[0]), Len);
   BLAKE512Final(Context, Output);
-
-  // 清除 Ipad 和 Opad 避免 Key 相关信息泄露
-  MemorySafeZero(@(Context.Ipad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
-  MemorySafeZero(@(Context.Opad[0]), HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure BLAKE512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
