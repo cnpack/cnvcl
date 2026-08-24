@@ -2540,30 +2540,33 @@ begin
   end;
 end;
 
-function ExtractCASignType(ObjectIdentifierNode: TCnBerReadNode): TCnCASignType;
+function ExtractCASignType(ObjectIdentifierNode: TCnBerReadNode;
+  out CASignType: TCnCASignType): Boolean;
 begin
-  Result := ctSha256RSA; // Default
+  Result := True;
   if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA1_RSAENCRYPTION[0],
     SizeOf(OID_SHA1_RSAENCRYPTION)) then
-    Result := ctSha1RSA
+    CASignType := ctSha1RSA
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA256_RSAENCRYPTION[0],
     SizeOf(OID_SHA256_RSAENCRYPTION)) then
-    Result := ctSha256RSA
+    CASignType := ctSha256RSA
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA1_ECDSA[0],
     SizeOf(OID_SHA1_ECDSA)) then
-    Result := ctSha1Ecc
+    CASignType := ctSha1Ecc
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA256_ECDSA[0],
     SizeOf(OID_SHA256_ECDSA)) then
-    Result := ctSha256Ecc
+    CASignType := ctSha256Ecc
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SM2_SM3ENCRYPTION[0],
     SizeOf(OID_SM2_SM3ENCRYPTION)) then
-    Result := ctSM2withSM3
+    CASignType := ctSM2withSM3
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA384_ECDSA[0],
     SizeOf(OID_SHA384_ECDSA)) then
-    Result := ctSha384Ecc
+    CASignType := ctSha384Ecc
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA512_ECDSA[0],
     SizeOf(OID_SHA512_ECDSA)) then
-    Result := ctSha512Ecc;
+    CASignType := ctSha512Ecc
+  else
+    Result := False;
 end;
 
 // 从以下结构中解出 RSA 公钥
@@ -2611,9 +2614,9 @@ var
 begin
   Result := False;
 
-  // 找到签名算法
-  if HashNode.Count >= 1 then
-    CASignType := ExtractCASignType(HashNode.Items[0]);
+  // 找到签名算法：外层 OID 必须可识别，否则整体拒绝。
+  if (HashNode.Count < 1) or not ExtractCASignType(HashNode.Items[0], CASignType) then
+      Exit;
 
   // 无公钥时不解密
   if IsRSA and (RSAPublicKey = nil) then
@@ -3251,6 +3254,7 @@ var
   Reader: TCnBerReader;
   Root, InfoRoot, SignAlgNode, SignValueNode: TCnBerReadNode;
   MemStream, SignStream, InfoStream: TMemoryStream;
+  OuterType: TCnCASignType;
   P: Pointer;
 begin
   Result := False;
@@ -3285,7 +3289,11 @@ begin
     Stream.Position := 0;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, MemStream) then
-      Exit;
+    begin
+      // 非 PEM 输入按二进制 ASN.1(CER) 处理，由后面加载
+      Stream.Position := 0;
+      MemStream.LoadFromStream(Stream);
+    end;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
     try
@@ -3300,6 +3308,16 @@ begin
       Root := Reader.Items[0];
       SignAlgNode := Root.Items[1];
       SignValueNode := Root.Items[2];
+
+      // 外层 signatureAlgorithm 不受签名保护，必须校验其可识别，且与
+      // TBS 内层 signature 字段（已由加载器从被签名的内层数据解析到 CRT.CASignType）
+      // 完全一致，杜绝通过篡改外层 OID 进行算法替换/降级
+      if (Root.Count <> 3) or (SignAlgNode.Count < 1) then
+        Exit;
+      if not ExtractCASignType(SignAlgNode.Items[0], OuterType) then
+        Exit;
+      if OuterType <> CRT.CASignType then
+        Exit;
 
       // 计算其杂凑值
       InfoRoot := Reader.Items[1];
@@ -3334,7 +3352,8 @@ var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
   MemStream, SignStream, InfoStream: TMemoryStream;
-  InfoRoot: TCnBerReadNode;
+  InfoRoot, Root: TCnBerReadNode;
+  OuterType: TCnCASignType;
 begin
   Result := False;
   if (ParentPublicKey = nil) or (ParentCurveType = ctCustomized) then
@@ -3368,7 +3387,11 @@ begin
     Stream.Position := 0;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, MemStream) then
-      Exit;
+    begin
+      // 非 PEM 输入按二进制 ASN.1(CER) 处理，由下面加载
+      Stream.Position := 0;
+      MemStream.LoadFromStream(Stream);
+    end;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
     try
@@ -3380,6 +3403,17 @@ begin
 
     if Reader.TotalCount > 2 then
     begin
+      // 外层 signatureAlgorithm 必须可识别，且与 TBS 内层 signature
+      // 字段一致（内层值已由加载器从被签名数据解析到 CRT.CASignType），
+      // 防止通过篡改外层 OID 进行算法替换/降级
+      Root := Reader.Items[0];
+      if (Root.Count <> 3) or (Root.Items[1].Count < 1) then
+        Exit;
+      if not ExtractCASignType(Root.Items[1].Items[0], OuterType) then
+        Exit;
+      if OuterType <> CRT.CASignType then
+        Exit;
+
       InfoRoot := Reader.Items[1];
 
       // ECC 证书里没有杂凑值，字段里的杂凑值是我们计算出来的没有对比意义，需要按 ECC 的方式把原始数据塞进去验证签名值
@@ -3643,6 +3677,7 @@ var
   OldPos: Int64;
   IsPem: Boolean;
   Peek5: array[0..4] of AnsiChar;
+  SignTypeTmp: TCnCASignType;
 begin
   Result := False;
 
@@ -3743,13 +3778,11 @@ begin
 
     // 基本信息中的签名算法字段
     Node := SerialNode.GetNextSibling;
-    if (Node <> nil) and (Node.Count >= 1) then
-    begin
-      Certificate.CASignType := ExtractCASignType(Node.Items[0]);
-      Certificate.IsRSA := Certificate.CASignType in RSA_CA_TYPES;
-    end
-    else
-      Exit;
+    if (Node = nil) or (Node.Count < 1)
+      or not ExtractCASignType(Node.Items[0], SignTypeTmp) then
+        Exit;
+    Certificate.CASignType := SignTypeTmp;
+    Certificate.IsRSA := Certificate.CASignType in RSA_CA_TYPES;
 
     // 解析众多其他字段
     List := TStringList.Create;
