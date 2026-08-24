@@ -567,6 +567,8 @@ function TestRC4: Boolean;
 function TestTea: Boolean;
 function TestXTea: Boolean;
 function TestXXTea: Boolean;
+function TestTeaRoundCountInvertible: Boolean;
+function TestXTeaRoundCountInvertible: Boolean;
 
 // ================================ FNV ========================================
 
@@ -2307,6 +2309,8 @@ begin
   MyAssert(TestTea, 'TestTea');
   MyAssert(TestXTea, 'TestXTea');
   MyAssert(TestXXTea, 'TestXXTea');
+  MyAssert(TestTeaRoundCountInvertible, 'TestTeaRoundCountInvertible');
+  MyAssert(TestXTeaRoundCountInvertible, 'TestXTeaRoundCountInvertible');
 
 // ================================ FNV ========================================
 
@@ -15829,6 +15833,71 @@ begin
 
   CnXXTeaDecrypt(TeaKey, @TeaData[0], SizeOf(TCnTeaData) div SizeOf(Cardinal));
   Result := (TeaData[0] = $12345678) and (TeaData[1] = $9ABCDEF0);
+end;
+
+function TestTeaRoundCountInvertible: Boolean;
+const
+  Rounds: array[0..7] of Integer = (8, 16, 17, 24, 31, 32, 33, 64);
+var
+  TeaKey: TCnTeaKey;
+  Src, Enc, Dec: TCnTeaData;
+  I: Integer;
+begin
+  TeaKey[0] := $A0B1C2D3;
+  TeaKey[1] := $E4F5A6B7;
+  TeaKey[2] := $C8D9EAFB;
+  TeaKey[3] := $ACBDCEDF;
+
+  Result := True;
+  for I := Low(Rounds) to High(Rounds) do
+  begin
+    // 每种轮数使用不同明文，避免巧合对称掩盖问题
+    Src[0] := $12345678 + Cardinal(I);
+    Src[1] := $9ABCDEF0 - Cardinal(I);
+
+    Enc := Src;
+    CnTeaEncrypt(TeaKey, Enc, Rounds[I]);
+    Dec := Enc;
+    CnTeaDecrypt(TeaKey, Dec, Rounds[I]);
+
+    if not ConstTimeCompareMem(@Src[0], @Dec[0], SizeOf(TCnTeaData)) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+function TestXTeaRoundCountInvertible: Boolean;
+const
+  Rounds: array[0..7] of Integer = (8, 16, 17, 24, 31, 32, 33, 64);
+var
+  TeaKey: TCnTeaKey;
+  Src, Enc, Dec: TCnTeaData;
+  I: Integer;
+begin
+  TeaKey[0] := $A0B1C2D3;
+  TeaKey[1] := $E4F5A6B7;
+  TeaKey[2] := $C8D9EAFB;
+  TeaKey[3] := $ACBDCEDF;
+
+  Result := True;
+  for I := Low(Rounds) to High(Rounds) do
+  begin
+    Src[0] := $12345678 + Cardinal(I);
+    Src[1] := $9ABCDEF0 - Cardinal(I);
+
+    Enc := Src;
+    CnXTeaEncrypt(TeaKey, Enc, Rounds[I]);
+    Dec := Enc;
+    CnXTeaDecrypt(TeaKey, Dec, Rounds[I]);
+
+    if not ConstTimeCompareMem(@Src[0], @Dec[0], SizeOf(TCnTeaData)) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
 end;
 
 // ================================ FNV ========================================

@@ -175,10 +175,8 @@ begin
     raise ECnTeaException.Create(SCnErrorTeaRoundCount);
 
   D := CN_TEA_DELTA;
-  if RoundCount >= CN_TEA_ROUND_COUNT then // 32 轮要移动 5 位，16 轮要 4 位
-    S := D shl 5
-  else
-    S := D shl 4;
+  // 初始 sum 必须等于加密端 N 轮累计出的 DELTA * RoundCount。
+  S := D * Cardinal(RoundCount);
 
   for I := 1 to RoundCount do
   begin
