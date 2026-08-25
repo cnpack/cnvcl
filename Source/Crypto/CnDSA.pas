@@ -219,17 +219,17 @@ function CnDSAVerifyBytes(Data: TBytes; DSAParameter: TCnDSADomainParameter;
 
 function DSAHashData(Data: Pointer; DataByteLen: Integer; OutDigest: TCnBigNumber;
   Parameter: TCnDSADomainParameter; HashType: TCnDSAHashType = dhtAuto): Boolean;
-{* 使用指定或自动选择的哈希算法计算数据摘要，并按 FIPS 186-4 要求左截断到 Q 位数。
+{* 使用指定或自动选择的杂凑算法计算数据摘要，并按 FIPS 186-4 要求左截断到 Q 位数。
    当 HashType 为 dhtAuto 时，根据 Q 的位数自动选择匹配的 SHA 算法。
 
    参数：
-     Data: Pointer                        - 待哈希的数据地址
-     DataByteLen: Integer                 - 待哈希的数据字节长度
+     Data: Pointer                        - 待杂凑的数据地址
+     DataByteLen: Integer                 - 待杂凑的数据字节长度
      OutDigest: TCnBigNumber              - 输出的摘要大数（已截断到 Q 位数）
      Parameter: TCnDSADomainParameter     - DSA 域参数（用于确定 Q 位数）
-     HashType: TCnDSAHashType             - 哈希算法
+     HashType: TCnDSAHashType             - 杂凑算法
 
-   返回值：Boolean                        - 是否哈希成功
+   返回值：Boolean                        - 是否杂凑成功
 }
 
 implementation

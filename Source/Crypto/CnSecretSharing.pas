@@ -512,11 +512,13 @@ begin
       Exit;
     end;
     for J := I + 1 to InOrders.Count - 1 do
+    begin
       if InOrders[J] = InOrders[I] then
       begin
         _CnSetLastError(ECN_SECRET_INVALID_INPUT);
         Exit;
       end;
+    end;
   end;
 
   // 拉格朗日插值公式，InOrder 是一堆 X 坐标，InShares 是一堆 Y 坐标

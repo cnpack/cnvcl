@@ -76,6 +76,9 @@ var
   Hotp: array[0..31] of Byte;
   Totp: array[0..31] of Byte;
   Ctx: array[0..63] of Byte;
+  PrvA: array[0..31] of Byte;
+  Sh2: array[0..31] of Byte;
+  TmpH: TCnCryptoHandle;
 begin
   Passed := 0;
   Failed := 0;
@@ -458,16 +461,39 @@ begin
 
   R := cn_curve25519_generate_keys(Priv, Pub);
   Check(R = CN_OK, 'cn_curve25519_generate_keys', Passed, Failed);
+  R := cn_curve25519_privkey_to_bytes(Priv, @PrvA[0], SizeOf(PrvA), OutLen);
+  Check((R = CN_OK) and (OutLen = 32), 'cn_curve25519_privkey_to_bytes', Passed, Failed);
   R := cn_curve25519_derive_public_to_bytes(Priv, @Buf[0], SizeOf(Buf), OutLen);
   Check((R = CN_OK) and (OutLen = 32), 'cn_curve25519_derive_public_to_bytes', Passed, Failed);
+  // 公钥自洽：derive_public 的输出必须等于 dh_bytes(本私钥, u=9)
+  FillChar(Sh2[0], SizeOf(Sh2), 0);
+  FillChar(Hex[0], 32, 0); Hex[0] := $09; // u = 9 小端
+  RSALen := 0;
+  R := cn_curve25519_dh_bytes(@PrvA[0], 32, @Hex[0], 32, @Sh2[0], SizeOf(Sh2), RSALen);
+  Check((R = CN_OK) and (RSALen = 32), 'cn_curve25519_pubkey_selfconsistent', Passed, Failed);
+  Check(BytesEqual(@Sh2[0], @Buf[0], 32), 'cn_curve25519_derive_matches_dh', Passed, Failed);
   R := cn_curve25519_dh_step1(Priv, @OutBlock[0], SizeOf(OutBlock), OutLen);
   Check((R = CN_OK) and (OutLen = 32), 'cn_curve25519_dh_step1_self', Passed, Failed);
   R := cn_curve25519_generate_keys(Priv, Pub);
   Check(R = CN_OK, 'cn_curve25519_generate_keys_peer', Passed, Failed);
   R := cn_curve25519_dh_step1(Priv, @Decoded[0], SizeOf(Decoded), EncLen);
   Check((R = CN_OK) and (EncLen = 32), 'cn_curve25519_dh_step1_peer', Passed, Failed);
-  R := cn_curve25519_dh_bytes(@Buf[0], 32, @Decoded[0], 32, @Cipher[0], SizeOf(Cipher), RSALen);
+  R := cn_curve25519_dh_bytes(@PrvA[0], 32, @Decoded[0], 32, @Cipher[0], SizeOf(Cipher), RSALen);
   Check((R = CN_OK) and (RSALen = 32), 'cn_curve25519_dh_bytes', Passed, Failed);
+  // 交叉验证：从字节重建 A 私钥句柄后，句柄版 step2 必须得到同一共享密钥
+  TmpH := nil;
+  R := cn_curve25519_privkey_from_bytes(@PrvA[0], 32, TmpH);
+  Check(R = CN_OK, 'cn_curve25519_privkey_from_bytes', Passed, Failed);
+  if R = CN_OK then
+  begin
+    FillChar(Sh2[0], SizeOf(Sh2), 0);
+    RSALen := 0;
+    R := cn_curve25519_dh_step2(TmpH, @Decoded[0], 32, @Sh2[0], SizeOf(Sh2), RSALen);
+    Check((R = CN_OK) and (RSALen = 32), 'cn_curve25519_dh_step2_reimported', Passed, Failed);
+    Check(BytesEqual(@Cipher[0], @Sh2[0], 32), 'cn_curve25519_dh_bytes_matches_step2', Passed, Failed);
+    R := cn_curve25519_key_free(TmpH);
+    Check(R = CN_OK, 'cn_curve25519_key_free_tmp', Passed, Failed);
+  end;
   R := cn_curve25519_key_free(Pub);
   Check(R = CN_OK, 'cn_curve25519_key_free_pub', Passed, Failed);
   R := cn_curve25519_key_free(Priv);
