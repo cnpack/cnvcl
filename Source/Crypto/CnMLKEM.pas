@@ -987,8 +987,7 @@ begin
   // 擦除秘密多项式向量的每个分量
   if Length(SecretVector) > 0 then
     for I := 0 to High(SecretVector) do
-      if Length(SecretVector[I]) > 0 then
-        MemorySafeZero(@SecretVector[I][0], Length(SecretVector[I]) * SizeOf(Word));
+      MemorySafeZero(@SecretVector[I][0], SizeOf(TCnMLKEMPolynomial));
 
   // 擦除隐式拒绝种子与公钥杂凑值
   MemorySafeZero(@InjectionSeed[0], SizeOf(TCnMLKEMSeed));

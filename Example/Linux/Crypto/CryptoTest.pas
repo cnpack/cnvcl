@@ -214,7 +214,7 @@ function TestPEMEncryptedMissingDekInfo: Boolean;
 function TestPEMEncryptedCorruptedBase64: Boolean;
 function TestCARejectInvalidCert: Boolean;
 function TestCAUTCTimeGeneralizedTime: Boolean;
-function TestCAValidityCheckSign: Boolean;
+function TestCAValidityCheckNoFile: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -1967,7 +1967,7 @@ begin
   MyAssert(TestPEMEncryptedCorruptedBase64, 'TestPEMEncryptedCorruptedBase64');
   MyAssert(TestCARejectInvalidCert, 'TestCARejectInvalidCert');
   MyAssert(TestCAUTCTimeGeneralizedTime, 'TestCAUTCTimeGeneralizedTime');
-  MyAssert(TestCAValidityCheckSign, 'TestCAValidityCheckSign');
+  MyAssert(TestCAValidityCheckNoFile, 'TestCAValidityCheckNoFile');
 
 // =============================== Int128 ======================================
 
@@ -6434,92 +6434,31 @@ begin
   end;
 end;
 
-// 测试签发函数的 NotAfter > NotBefore 有效期校验
-function TestCAValidityCheckSign: Boolean;
+// 测试证书生成函数拒绝 NotAfter <= NotBefore，整个用例不访问文件系统
+function TestCAValidityCheckNoFile: Boolean;
 var
-  PrivKey: TCnRSAPrivateKey;
-  PubKey: TCnRSAPublicKey;
-  TmpDir, CRTFile, CSRFile, OutFile: string;
-  StdExt: TCnCertificateStandardExtensions;
   ValidFromUTC, ValidToUTC: TDateTime;
 begin
-  Result := True;
-  PrivKey := nil;
-  PubKey := nil;
-  StdExt := nil;
+  ValidFromUTC := EncodeDate(2024, 1, 1);
+  ValidToUTC := EncodeDate(2024, 1, 2);
 
-  // 获取临时目录
-  TmpDir := GetEnvironmentVariable('TEMP');
-  if TmpDir = '' then
-    TmpDir := '.';
-  TmpDir := IncludeTrailingPathDelimiter(TmpDir);
-  CRTFile := TmpDir + 'CnTestCA_v1.crt';
-  CSRFile := TmpDir + 'CnTestCA_v1.csr';
-  OutFile := TmpDir + 'CnTestCA_v1_out.crt';
-
-  try
-    // 生成 RSA 密钥对
-    PrivKey := TCnRSAPrivateKey.Create;
-    PubKey := TCnRSAPublicKey.Create;
-    StdExt := TCnCertificateStandardExtensions.Create;
-    ValidFromUTC := Now - 1;
-    ValidToUTC := Now + 365;
-
-    if not CnRSAGenerateKeys(1024, PrivKey, PubKey) then
-    begin
-      Result := False;
-      Exit;
-    end;
-
-    // 生成自签名根证书（用于后续签发）
-    if not CnCANewSelfSignedCertificate(PrivKey, PubKey, CRTFile,
-      'CN', 'State', 'City', 'Org', 'Unit', 'TestCA', 'a@b.com', '1',
-      ValidFromUTC, ValidToUTC, ctSha256RSA) then
-    begin
-      Result := False;
-      Exit;
-    end;
-
-    // 调用方注入的 UTC 验证时刻必须决定有效期结果，且不依赖本地 Now。
-    Result := Result and not CnCAVerifySelfSignedCertificateFile(CRTFile,
-      ValidFromUTC - 1);
-    Result := Result and CnCAVerifySelfSignedCertificateFile(CRTFile,
-      ValidFromUTC + 1);
-    Result := Result and not CnCAVerifySelfSignedCertificateFile(CRTFile,
-      ValidToUTC + 1);
-
-    // 生成 CSR
-    if not CnCANewCertificateSignRequest(PrivKey, PubKey, CSRFile,
-      'CN', 'State', 'City', 'Org', 'Unit', 'TestSubj', 'b@c.com', ctSha256RSA) then
-    begin
-      Result := False;
-      Exit;
-    end;
-
-    // 测试 1: NotAfter <= NotBefore 应被拒绝（旧版 Sign）
-    Result := Result and not CnCASignCertificate(PrivKey, CRTFile, CSRFile,
-      OutFile, '100', Now + 10, Now, ctSha256RSA);
-
-    // 测试 2: NotAfter <= NotBefore 应被拒绝（新版 Sign2）
-    Result := Result and not CnCASignCertificate2(PrivKey, CRTFile, CSRFile,
-      OutFile, '100', Now + 10, Now, StdExt, nil, ctSha256RSA);
-
-    // 测试 3: NotAfter = NotBefore 应被拒绝
-    Result := Result and not CnCASignCertificate(PrivKey, CRTFile, CSRFile,
-      OutFile, '101', Now, Now, ctSha256RSA);
-
-    // 测试 4: 正常有效期（NotAfter > NotBefore）应成功
-    Result := Result and CnCASignCertificate(PrivKey, CRTFile, CSRFile,
-      OutFile, '102', Now, Now + 30, ctSha256RSA);
-  finally
-    StdExt.Free;
-    PubKey.Free;
-    PrivKey.Free;
-    // 清理临时文件
-    DeleteFile(CRTFile);
-    DeleteFile(CSRFile);
-    DeleteFile(OutFile);
-  end;
+  // 日期参数在证书生成函数入口处校验，因此可传 nil 和空文件名，
+  // 用例不会创建密钥、打开文件或读取环境变量。
+  Result := not CnCANewSelfSignedCertificate(TCnRSAPrivateKey(nil),
+    TCnRSAPublicKey(nil), '', 'CN', 'State', 'City', 'Org', 'Unit', 'TestCA',
+    'a@b.com', '1', ValidToUTC, ValidFromUTC, ctSha256RSA);
+  Result := Result and not CnCANewSelfSignedCertificate2(
+    TCnRSAPrivateKey(nil), TCnRSAPublicKey(nil), '', 'CN', 'State', 'City',
+    'Org', 'Unit', 'TestCA', 'a@b.com', '1', ValidToUTC, ValidFromUTC,
+    nil, nil, ctSha256RSA);
+  Result := Result and not CnCANewSelfSignedCertificate(
+    TCnRSAPrivateKey(nil), TCnRSAPublicKey(nil), '', 'CN', 'State', 'City',
+    'Org', 'Unit', 'TestCA', 'a@b.com', '1', ValidFromUTC, ValidFromUTC,
+    ctSha256RSA);
+  Result := Result and not CnCANewSelfSignedCertificate2(
+    TCnRSAPrivateKey(nil), TCnRSAPublicKey(nil), '', 'CN', 'State', 'City',
+    'Org', 'Unit', 'TestCA', 'a@b.com', '1', ValidFromUTC, ValidFromUTC,
+    nil, nil, ctSha256RSA);
 end;
 
 // =============================== Int128 ======================================

@@ -1733,8 +1733,7 @@ var
   begin
     if Length(V) > 0 then
       for J := 0 to High(V) do
-        if Length(V[J]) > 0 then
-          MemorySafeZero(@V[J][0], Length(V[J]) * SizeOf(Integer));
+        MemorySafeZero(@V[J][0], SizeOf(TCnMLDSAPolynomial));
     SetLength(V, 0);
   end;
 
