@@ -199,7 +199,8 @@ type
     function VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Msg: TBytes;
       const Signature: TBytes; const Ctx: AnsiString = ''; HashType: TCnMLDSAHashType = cmhtNone): Boolean;
     {* 使用公钥验证字节数组的签名，Ctx 是附加字符串，长度不能大于 255。
-       签名字节数组长度随三种规范不同分别是 2420、3309、4627}
+       签名字节数组长度随三种规范不同分别是 2420、3309、4627。
+       畸形签名输入返回 False，不向调用方抛出解析异常}
 
     property MLDSAType: TCnMLDSAType read FMLDSAType;
     {* MLDSA 的算法类型，44、65、87 三种}
@@ -2006,6 +2007,8 @@ var
   CP, CPN: TCnMLDSAPolynomial;
 begin
   Result := False;
+  if PublicKey = nil then
+    Exit;
   SigDecode(Signature, C, Z, H);
   if H = nil then
     Exit;
@@ -2212,14 +2215,23 @@ function TCnMLDSA.VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Msg: TBytes;
 var
   Data: TBytes;
 begin
+  Result := False;
   if Length(Msg) <= 0 then
     raise ECnMLDSAException.Create(SCnErrorMLDSAInvalidMsgLength);
 
   if Length(Ctx) > 255 then
     raise ECnMLDSAException.Create(SCnErrorMLDSAInvalidCtxLength);
 
+  if PublicKey = nil then
+    Exit;
+
   Data := CalcSignHashBytes(Msg, HashType, Ctx);
-  Result := InternalVerify(PublicKey, Data, Signature);
+  try
+    Result := InternalVerify(PublicKey, Data, Signature);
+  except
+    on ECnMLDSAException do
+      Result := False;
+  end;
 end;
 
 end.

@@ -1096,7 +1096,8 @@ var
   HT: TCnMLDSAHashType;
   Ok: Boolean;
 begin
-  if (pk = nil) or (msg = nil) or (sig = nil) then
+  if (pk_len < 0) or (msg_len < 0) or (sig_len < 0) or (ctx_len < 0)
+    or (pk = nil) or (msg = nil) or (sig = nil) then
   begin
     Result := 0;
     Exit;
@@ -1155,7 +1156,12 @@ begin
       Result := 0;
       Exit;
     end;
-    Ok := D.VerifyBytes(PubK, MsgB, SigB, CtxS, HT);
+    try
+      Ok := D.VerifyBytes(PubK, MsgB, SigB, CtxS, HT);
+    except
+      Result := 0;
+      Exit;
+    end;
     if Ok then
       Result := 1
     else
@@ -2740,7 +2746,7 @@ end;
 
 function cn_alloc(size: TCnSize): TCnCryptoHandle; cdecl;
 begin
-  if size = 0 then
+  if size <= 0 then
   begin
     Result := nil;
     Exit;
@@ -2762,7 +2768,17 @@ end;
 
 function cn_memzero(ptr: TCnCryptoHandle; size: TCnSize): TCnResult; cdecl;
 begin
-  if (ptr = nil) or (size = 0) then
+  if size < 0 then
+  begin
+    Result := CN_E_INVALID_ARG;
+    Exit;
+  end;
+  if size = 0 then
+  begin
+    Result := CN_OK;
+    Exit;
+  end;
+  if ptr = nil then
   begin
     Result := CN_E_INVALID_ARG;
     Exit;
@@ -2793,7 +2809,9 @@ var
   S: string;
   L: TCnSize;
 begin
-  if (in_ptr = nil) and (in_len <> 0) then
+  out_len := 0;
+  if (in_len < 0) or (cap < 0) or
+    ((in_ptr = nil) and (in_len > 0)) then
   begin
     Result := CN_E_INVALID_ARG;
     Exit;
@@ -2806,6 +2824,11 @@ begin
     Result := CN_E_BUFFER_TOO_SMALL;
     Exit;
   end;
+  if (L > 0) and (out_hex = nil) then
+  begin
+    Result := CN_E_INVALID_ARG;
+    Exit;
+  end;
   if L > 0 then
     Move(S[1], out_hex^, L);
   Result := CN_OK;
@@ -2815,6 +2838,16 @@ function cn_const_time_equal(a: Pointer; b: Pointer; len: TCnSize): TBool32; cde
 var
   BA, BB: TBytes;
 begin
+  if len < 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  if len = 0 then
+  begin
+    Result := 1;
+    Exit;
+  end;
   if (a = nil) or (b = nil) then
   begin
     Result := 0;
@@ -2836,6 +2869,16 @@ var
   I: Integer;
   VA, VB: Byte;
 begin
+  if len < 0 then
+  begin
+    Result := CN_E_INVALID_ARG;
+    Exit;
+  end;
+  if len = 0 then
+  begin
+    Result := CN_OK;
+    Exit;
+  end;
   if (a = nil) or (b = nil) or (out_ptr = nil) then
   begin
     Result := CN_E_INVALID_ARG;
@@ -2855,14 +2898,18 @@ function cn_str_to_uint64(ascii_ptr: PByte; len: TCnSize; var out_value: TUInt64
 var
   S: string;
 begin
-  if (ascii_ptr = nil) or (len = 0) then
+  if (ascii_ptr = nil) or (len <= 0) then
   begin
     Result := CN_E_INVALID_ARG;
     Exit;
   end;
   SetString(S, PChar(ascii_ptr), len div SizeOf(Char));
-  out_value := StrToUInt64(S);
-  Result := CN_OK;
+  try
+    out_value := StrToUInt64(S);
+    Result := CN_OK;
+  except
+    Result := CN_E_INVALID_ARG;
+  end;
 end;
 
 function cn_base64_encode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:

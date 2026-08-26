@@ -439,6 +439,12 @@ function SlhForsPKFromSig(Params: PCnSlhParams; var ADRS: TCnSlhAddr;
 
 implementation
 
+resourcestring
+  SCnErrorSLHUnknownParameterSetFmt = 'Unknown SLH-DSA Parameter Set: %s';
+  SCnErrorSLHUnknownPrehashID = 'Unknown Prehash ID';
+  SCnErrorSLHInvalidPublicKeyLength = 'Invalid Public Key Data Length';
+  SCnErrorSLHInvalidSecretKeyLength = 'Invalid Secret Key Data Length';
+
 // ===================================================================
 // ²ÎÊý±í
 // ===================================================================
@@ -537,7 +543,7 @@ begin
       Exit;
     end;
   end;
-  raise ECnSlhException.Create('Unknown SLH-DSA parameter set: ' + AName);
+  raise ECnSlhException.CreateFmt(SCnErrorSLHUnknownParameterSetFmt, [AName]);
 end;
 
 // -------------------------------------------------------------------
@@ -2120,7 +2126,7 @@ begin
     shiSHA2_512, shiSHA3_512: Result := 64;
     shiSHAKE256: Result := 64;
   else
-    raise ECnSlhException.Create('Unknown Prehash ID');
+    raise ECnSlhException.Create(SCnErrorSLHUnknownPrehashID);
   end;
 end;
 
@@ -2168,7 +2174,7 @@ begin
     shiSM3:
       begin DSM3 := SM3Bytes(M); SetLength(D, 32); Move(DSM3, D[0], 32); end;
   else
-    raise ECnSlhException.Create('Unknown Prehash ID');
+    raise ECnSlhException.Create(SCnErrorSLHUnknownPrehashID);
   end;
 
   HashIDByte := SlhGetPrehashHashIDByte(HashID);
@@ -2219,8 +2225,8 @@ end;
 procedure TCnSLHDSA.BytesToPublicKey(
   PK: TCnSlhPublicKey; const Data: TBytes);
 begin
-  if Length(Data) < FParams.N * 2 then
-    raise ECnSlhException.Create('Invalid public key data length');
+  if Length(Data) <> FParams.N * 2 then
+    raise ECnSlhException.Create(SCnErrorSLHInvalidPublicKeyLength);
   SetLength(PK.Seed, FParams.N);
   SetLength(PK.Root, FParams.N);
   Move(Data[0], PK.Seed[0], FParams.N);
@@ -2240,8 +2246,8 @@ end;
 procedure TCnSLHDSA.BytesToSecretKey(
   SK: TCnSlhSecretKey; const Data: TBytes);
 begin
-  if Length(Data) < FParams.N * 4 then
-    raise ECnSlhException.Create('Invalid secret key data length');
+  if Length(Data) <> FParams.N * 4 then
+    raise ECnSlhException.Create(SCnErrorSLHInvalidSecretKeyLength);
   SetLength(SK.Seed, FParams.N);
   SetLength(SK.Prf, FParams.N);
   SetLength(SK.PKSeed, FParams.N);
