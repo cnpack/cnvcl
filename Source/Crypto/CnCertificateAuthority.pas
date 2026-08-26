@@ -80,7 +80,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, TypInfo, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative,
+  SysUtils, Classes, TypInfo, {$IFDEF MSWINDOWS} Windows, {$ELSE}
+  {$IFDEF FPC} BaseUnix, Unix, {$ELSE}
+  {$IFNDEF LINUX} DateUtils, {$ENDIF}
+  {$ENDIF} {$ENDIF} CnNative,
   CnBigNumber, CnRSA, CnECC, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2,
   CnSM3;
 
@@ -290,13 +293,14 @@ type
     procedure ParseTimeString(const Value: string; IsGeneralizedTime: Boolean);
   public
     property DateTime: TDateTime read FDateTime write SetDateTime;
-    {* 日期时间类型}
+    {* UTC 日期时间类型。写入时按 RFC 5280 生成带秒且以 Z 结尾的 DER 时间字符串。}
     property UTCTimeString: string read FUTCTimeString write SetUTCTimeString;
-    {* UTC 日期时间}
+    {* RFC 5280 UTC 时间字符串。直接赋值按 UTCTime 严格解析，格式错误抛 ECnBerException。}
     property UseGeneralizedTime: Boolean read FUseGeneralizedTime;
-    {* 写入时是否使用 GeneralizedTime 格式（年份 >= 2050 时自动为 True）}
+    {* 写入时是否使用 GeneralizedTime 格式（年份不在 1950 至 2049 时为 True）。}
     procedure SetTimeStringWithTag(const Value: string; BerTag: Integer);
-    {* 根据 BER Tag 设置时间字符串，BerTag 为 CN_BER_TAG_UTCTIME 或 CN_BER_TAG_GENERALIZEDTIME}
+    {* 根据 BER Tag 严格设置证书时间字符串。BerTag 只能为 CN_BER_TAG_UTCTIME 或
+       CN_BER_TAG_GENERALIZEDTIME；格式或 Tag 错误抛 ECnBerException。}
   end;
 
 {
@@ -801,25 +805,46 @@ function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
 }
 
 function CnCAVerifySelfSignedCertificateFile(const FileName: string;
-  ACheckTime: Boolean = True): Boolean;
+  ACheckTime: Boolean = True): Boolean; overload;
 {* 验证一自签名的 CRT 文件的内容是否合乎签名。
 
    参数：
      const FileName: string               - 待验证的自签名证书文件
-     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
+     ACheckTime: Boolean                  - 是否按系统当前 UTC 时刻检查证书有效期，默认检查
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
+
+function CnCAVerifySelfSignedCertificateFile(const FileName: string;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+{* 使用调用方给出的 UTC 时刻验证一自签名 CRT 文件。
+
+   参数：
+     const FileName: string               - 待验证的自签名证书文件
+     AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+   返回值：Boolean                        - 返回签名和所选有效期检查是否通过
+}
+
+function CnCAVerifySelfSignedCertificateStream(Stream: TStream;
+  ACheckTime: Boolean = True): Boolean; overload;
+{* 验证一自签名的 CRT 流的内容是否合乎签名。
+
+   参数：
+     Stream: TStream                      - 待验证的自签名证书流
+     ACheckTime: Boolean                  - 是否按系统当前 UTC 时刻检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifySelfSignedCertificateStream(Stream: TStream;
-  ACheckTime: Boolean = True): Boolean;
-{* 验证一自签名的 CRT 流的内容是否合乎签名。
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+{* 使用调用方给出的 UTC 时刻验证一自签名 CRT 流。
 
    参数：
      Stream: TStream                      - 待验证的自签名证书流
-     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
+     AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
 
-   返回值：Boolean                        - 返回是否合乎签名
+   返回值：Boolean                        - 返回签名和所选有效期检查是否通过
 }
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
@@ -829,9 +854,21 @@ function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
    参数：
      const FileName: string               - 待验证的证书文件
      ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
-     ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
+     ACheckTime: Boolean                  - 是否按系统当前 UTC 时刻检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
+}
+
+function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
+  TCnRSAPublicKey; AValidationTimeUTC: TDateTime): Boolean; overload;
+{* 使用 RSA 签发者公钥和调用方给出的 UTC 时刻验证一 CRT 文件。
+
+   参数：
+     const FileName: string               - 待验证的证书文件
+     ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
+     AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+
+   返回值：Boolean                        - 返回签名和所选有效期检查是否通过
 }
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
@@ -848,6 +885,20 @@ function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
    返回值：Boolean                        - 返回是否合乎签名
 }
 
+function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+{* 使用 ECC 签发者公钥和调用方给出的 UTC 时刻验证一 CRT 文件。
+
+   参数：
+     const FileName: string               - 待验证的证书文件
+     ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
+     ParentCurveType: TCnEccCurveType     - 签发者使用的椭圆曲线类型
+     AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+
+   返回值：Boolean                        - 返回签名和所选有效期检查是否通过
+}
+
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnRSAPublicKey; ACheckTime: Boolean = True): Boolean; overload;
 {* 用 RSA 签发者公钥验证一 CRT 流的内容是否合乎签名。
@@ -858,6 +909,18 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
      ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
+}
+
+function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
+  TCnRSAPublicKey; AValidationTimeUTC: TDateTime): Boolean; overload;
+{* 使用 RSA 签发者公钥和调用方给出的 UTC 时刻验证一 CRT 流。
+
+   参数：
+     Stream: TStream                      - 待验证的证书流
+     ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
+     AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+
+   返回值：Boolean                        - 返回签名和所选有效期检查是否通过
 }
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
@@ -872,6 +935,20 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
      ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
    返回值：Boolean                        - 返回是否合乎签名
+}
+
+function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+{* 使用 ECC 签发者公钥和调用方给出的 UTC 时刻验证一 CRT 流。
+
+   参数：
+     Stream: TStream                      - 待验证的证书流
+     ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
+     ParentCurveType: TCnEccCurveType     - 签发者使用的椭圆曲线类型
+     AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+
+   返回值：Boolean                        - 返回签名和所选有效期检查是否通过
 }
 
 function CnCALoadCertificateFromFile(const FileName: string; Certificate:
@@ -1047,6 +1124,7 @@ resourcestring
   SCnErrorNotSelfSignCanNotVerify = 'NOT Self-Sign. Can NOT Verify.';
   SCnErrorNotRsaCanNotVerify = 'NOT RSA. Can NOT Verify using RSA Key.';
   SCnErrorNotEccCanNotVerify = 'NOT ECC. Can NOT Verify.';
+  SCnErrorGetCurrentUTCFailed = 'Can NOT Get Current UTC Time.';
 
 const
   // PKCS#10
@@ -1155,10 +1233,95 @@ const
   ECC_CA_TYPES: TCnCASignTypes = [ctMd5Ecc, ctSha1Ecc, ctSha256Ecc, ctSM2withSM3,
     ctSha384Ecc, ctSha512Ecc];
 
+{$IFDEF LINUX}
+{$IFNDEF FPC}
+type
+  TCnCAUnixTimeVal = record
+{$IFDEF CPU64BITS}
+    TVSec: Int64;
+    TVUSec: Int64;
+{$ELSE}
+    TVSec: Longint;
+    TVUSec: Longint;
+{$ENDIF}
+  end;
+
+const
+  CN_CA_LIBC = 'libc.so.6';
+
+function CnCAGetTimeOfDay(ATV: Pointer; ATZ: Pointer): Integer; cdecl;
+  external CN_CA_LIBC name 'gettimeofday';
+{$ENDIF}
+{$ENDIF}
+
 var
   DummyPointer: Pointer;
   DummyInteger: Integer;
   DummyDigestType: TCnRSASignDigestType;
+
+function InternalCurrentUTCDateTime: TDateTime;
+{$IFDEF MSWINDOWS}
+var
+  SystemTime: TSystemTime;
+{$ELSE}
+{$IFDEF FPC}
+var
+  TV: timeval;
+  TZ: timezone;
+{$ELSE}
+{$IFDEF LINUX}
+var
+  TV: TCnCAUnixTimeVal;
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  GetSystemTime(SystemTime);
+  Result := EncodeDate(SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay) +
+    EncodeTime(SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond,
+      SystemTime.wMilliseconds);
+{$ELSE}
+{$IFDEF FPC}
+  if fpGetTimeOfDay(@TV, @TZ) <> 0 then
+    raise ECnCAException.Create(SCnErrorGetCurrentUTCFailed);
+  Result := EncodeDate(1970, 1, 1) + TV.tv_sec / 86400.0 +
+    TV.tv_usec / 86400000000.0;
+{$ELSE}
+{$IFDEF LINUX}
+  if CnCAGetTimeOfDay(@TV, nil) <> 0 then
+    raise ECnCAException.Create(SCnErrorGetCurrentUTCFailed);
+  Result := EncodeDate(1970, 1, 1) + TV.TVSec / 86400.0 +
+    TV.TVUSec / 86400000000.0;
+{$ELSE}
+  Result := TTimeZone.Local.ToUniversalTime(Now);
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
+end;
+
+function InternalCertificateTimeIsValid(BasicCertificate: TCnBasicCertificate;
+  AValidationTimeUTC: TDateTime): Boolean;
+begin
+  Result := False;
+  if BasicCertificate = nil then
+    Exit;
+  if (BasicCertificate.NotBefore = nil) or
+    (BasicCertificate.NotAfter = nil) then
+    Exit;
+  if BasicCertificate.NotAfter.DateTime < BasicCertificate.NotBefore.DateTime then
+    Exit;
+  Result := (AValidationTimeUTC >= BasicCertificate.NotBefore.DateTime) and
+    (AValidationTimeUTC <= BasicCertificate.NotAfter.DateTime);
+end;
+
+function InternalDefaultValidationTimeUTC(ACheckTime: Boolean): TDateTime;
+begin
+  if ACheckTime then
+    Result := InternalCurrentUTCDateTime
+  else
+    Result := 0;
+end;
 
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType:
   TCnCASignType; AParent: TCnBerWriteNode): TCnBerWriteNode;
@@ -3143,8 +3306,19 @@ begin
   end;
 end;
 
+function InternalCAVerifySelfSignedCertificateStream(Stream: TStream;
+  AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean; forward;
+
+function InternalCAVerifyRSACertificateStream(Stream: TStream;
+  ParentPublicKey: TCnRSAPublicKey; AValidationTimeUTC: TDateTime;
+  ACheckTime: Boolean): Boolean; forward;
+
+function InternalCAVerifyEccCertificateStream(Stream: TStream;
+  ParentPublicKey: TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean; forward;
+
 function CnCAVerifySelfSignedCertificateFile(const FileName: string;
-  ACheckTime: Boolean): Boolean;
+  ACheckTime: Boolean): Boolean; overload;
 var
   Stream: TStream;
 begin
@@ -3156,8 +3330,36 @@ begin
   end;
 end;
 
+function CnCAVerifySelfSignedCertificateFile(const FileName: string;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifySelfSignedCertificateStream(Stream,
+      AValidationTimeUTC);
+  finally
+    Stream.Free;
+  end;
+end;
+
 function CnCAVerifySelfSignedCertificateStream(Stream: TStream;
-  ACheckTime: Boolean): Boolean;
+  ACheckTime: Boolean): Boolean; overload;
+begin
+  Result := InternalCAVerifySelfSignedCertificateStream(Stream,
+    InternalDefaultValidationTimeUTC(ACheckTime), ACheckTime);
+end;
+
+function CnCAVerifySelfSignedCertificateStream(Stream: TStream;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+begin
+  Result := InternalCAVerifySelfSignedCertificateStream(Stream,
+    AValidationTimeUTC, True);
+end;
+
+function InternalCAVerifySelfSignedCertificateStream(Stream: TStream;
+  AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -3178,14 +3380,9 @@ begin
       Exit;
 
     // 验证证书时检查有效期，过期与未生效的证书一律拒绝
-    if ACheckTime then
-    begin
-      if (CRT.BasicCertificate.NotBefore = nil)
-        or (CRT.BasicCertificate.NotAfter = nil)
-        or (Now < CRT.BasicCertificate.NotBefore.DateTime)
-        or (Now > CRT.BasicCertificate.NotAfter.DateTime) then
-        Exit;
-    end;
+    if ACheckTime and not InternalCertificateTimeIsValid(CRT.BasicCertificate,
+      AValidationTimeUTC) then
+      Exit;
 
     if not CRT.IsSelfSigned then
       raise ECnCAException.Create(SCnErrorNotSelfSignCanNotVerify);
@@ -3246,7 +3443,22 @@ var
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey, ACheckTime);
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey,
+      ACheckTime);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
+  TCnRSAPublicKey; AValidationTimeUTC: TDateTime): Boolean; overload;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey,
+      AValidationTimeUTC);
   finally
     Stream.Free;
   end;
@@ -3260,7 +3472,23 @@ var
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey, ParentCurveType, ACheckTime);
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey,
+      ParentCurveType, ACheckTime);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey,
+      ParentCurveType, AValidationTimeUTC);
   finally
     Stream.Free;
   end;
@@ -3268,6 +3496,21 @@ end;
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnRSAPublicKey; ACheckTime: Boolean): Boolean; overload;
+begin
+  Result := InternalCAVerifyRSACertificateStream(Stream, ParentPublicKey,
+    InternalDefaultValidationTimeUTC(ACheckTime), ACheckTime);
+end;
+
+function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
+  TCnRSAPublicKey; AValidationTimeUTC: TDateTime): Boolean; overload;
+begin
+  Result := InternalCAVerifyRSACertificateStream(Stream, ParentPublicKey,
+    AValidationTimeUTC, True);
+end;
+
+function InternalCAVerifyRSACertificateStream(Stream: TStream;
+  ParentPublicKey: TCnRSAPublicKey; AValidationTimeUTC: TDateTime;
+  ACheckTime: Boolean): Boolean;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -3292,14 +3535,9 @@ begin
       Exit;
 
     // 验证证书时检查有效期，过期与未生效的证书一律拒绝
-    if ACheckTime then
-    begin
-      if (CRT.BasicCertificate.NotBefore = nil)
-        or (CRT.BasicCertificate.NotAfter = nil)
-        or (Now < CRT.BasicCertificate.NotBefore.DateTime)
-        or (Now > CRT.BasicCertificate.NotAfter.DateTime) then
-        Exit;
-    end;
+    if ACheckTime and not InternalCertificateTimeIsValid(CRT.BasicCertificate,
+      AValidationTimeUTC) then
+      Exit;
 
     if not CRT.IsRSA then
       raise ECnCAException.Create(SCnErrorNotRsaCanNotVerify);
@@ -3367,6 +3605,22 @@ end;
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
   ACheckTime: Boolean): Boolean; overload;
+begin
+  Result := InternalCAVerifyEccCertificateStream(Stream, ParentPublicKey,
+    ParentCurveType, InternalDefaultValidationTimeUTC(ACheckTime), ACheckTime);
+end;
+
+function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
+  TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  AValidationTimeUTC: TDateTime): Boolean; overload;
+begin
+  Result := InternalCAVerifyEccCertificateStream(Stream, ParentPublicKey,
+    ParentCurveType, AValidationTimeUTC, True);
+end;
+
+function InternalCAVerifyEccCertificateStream(Stream: TStream;
+  ParentPublicKey: TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
+  AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -3390,14 +3644,9 @@ begin
       Exit;
 
     // 验证证书时检查有效期，过期与未生效的证书一律拒绝
-    if ACheckTime then
-    begin
-      if (CRT.BasicCertificate.NotBefore = nil)
-        or (CRT.BasicCertificate.NotAfter = nil)
-        or (Now < CRT.BasicCertificate.NotBefore.DateTime)
-        or (Now > CRT.BasicCertificate.NotAfter.DateTime) then
-        Exit;
-    end;
+    if ACheckTime and not InternalCertificateTimeIsValid(CRT.BasicCertificate,
+      AValidationTimeUTC) then
+      Exit;
 
     if CRT.IsRSA then
       raise ECnCAException.Create(SCnErrorNotEccCanNotVerify);
@@ -3581,12 +3830,12 @@ var
 begin
   FDateTime := Value;
 
-  // 根据 RFC 5280，年份 < 2050 使用 UTCTime 格式（YYMMDDhhmm[ss]Z），
-  // 年份 >= 2050 使用 GeneralizedTime 格式（YYYYMMDDhhmm[ss]Z）
+  // 根据 RFC 5280，1950 至 2049 使用 UTCTime，范围之外使用 GeneralizedTime。
+  // 证书 DER 时间必须包含秒并以 Z 结尾。
   DecodeDate(FDateTime, Year, Month, Day);
   DecodeTime(FDateTime, Hour, Minute, Sec, MSec);
 
-  if Year >= 2050 then
+  if (Year < 1950) or (Year >= 2050) then
   begin
     FUseGeneralizedTime := True;
     // GeneralizedTime 使用四位年份
@@ -3597,95 +3846,27 @@ begin
     FUseGeneralizedTime := False;
     // UTCTime 使用两位年份
     Year := Year mod 100; // 只取后两位
-    FUTCTimeString := Format('%2.2d%2.2d%2.2d%2.2d%2.2d', [Year, Month, Day, Hour, Minute]);
-    if Sec <> 0 then
-      FUTCTimeString := FUTCTimeString + Format('%2.2d', [Sec]);
+    FUTCTimeString := Format('%2.2d%2.2d%2.2d%2.2d%2.2d%2.2d',
+      [Year, Month, Day, Hour, Minute, Sec]);
   end;
   FUTCTimeString := FUTCTimeString + 'Z';
 end;
 
 procedure TCnUTCTime.ParseTimeString(const Value: string; IsGeneralizedTime: Boolean);
 var
-  Year, Month, Day, Hour, Minute, Sec, DeltaHour, DeltaMin: Word;
-  Idx: Integer;
-  Plus: Boolean;
-  DeltaTime: TDateTime;
-  S: string;
+  BerTag: Integer;
+  ParsedDateTime: TDateTime;
 begin
-  S := Value;
-  FUTCTimeString := S;
+  if IsGeneralizedTime then
+    BerTag := CN_BER_TAG_GENERALIZEDTIME
+  else
+    BerTag := CN_BER_TAG_UTCTIME;
+
+  // 证书有效期按 RFC 5280/DER 严格解析：固定长度、必须有秒、必须以 Z 结尾。
+  ParsedDateTime := CnBerParseDateTime(AnsiString(Value), BerTag, True);
+  FDateTime := ParsedDateTime;
+  FUTCTimeString := Value;
   FUseGeneralizedTime := IsGeneralizedTime;
-
-  // 解析 String 到时间并给 FDateTime，支持以下格式：
-  //   UTCTime:         YYMMDDhhmm[ss]Z 或 YYMMDDhhmm[ss](+|-)hhmm
-  //   GeneralizedTime: YYYYMMDDhhmm[ss]Z 或 YYYYMMDDhhmm[ss](+|-)hhmm
-  if Length(S) > 10 then // 至少得有 11 个
-  begin
-    Idx := 1;
-
-    if IsGeneralizedTime then
-    begin
-      // GeneralizedTime，四位年份
-      Year := StrToInt(Copy(S, Idx, 4));
-      Inc(Idx, 4);
-    end
-    else
-    begin
-      // UTCTime，两位年份
-      Year := StrToInt(Copy(S, Idx, 2));
-      Inc(Idx, 2);
-      // 根据 RFC 5280，UTCTime 中年份 00-49 对应 2000-2049，50-99 对应 1950-1999
-      if Year >= 50 then
-        Year := Year + 1900
-      else
-        Year := Year + 2000;
-    end;
-
-    Month := StrToInt(Copy(S, Idx, 2));
-    Inc(Idx, 2);
-    Day := StrToInt(Copy(S, Idx, 2));
-    Inc(Idx, 2);
-    Hour := StrToInt(Copy(S, Idx, 2));
-    Inc(Idx, 2);
-    Minute := StrToInt(Copy(S, Idx, 2));
-    Inc(Idx, 2);
-
-    Sec := 0;
-    if (Idx <= Length(S)) and (S[Idx] in ['0'..'9']) then  // 有 ss
-    begin
-      Sec := StrToInt(Copy(S, Idx, 2));
-      Inc(Idx, 2);
-    end;
-
-    if Idx <= Length(S) then
-    begin
-      // 此时 Idx 直接（或越过可能的 ss）指向 Z 或 +-
-      if S[Idx] in ['+', '-'] then
-      begin
-        Plus := S[Idx] = '+';
-        Inc(Idx);
-        DeltaHour := 0;
-        DeltaMin := 0;
-        if Idx <= Length(S) then
-        begin
-          DeltaHour := StrToInt(Copy(S, Idx, 2));
-          Inc(Idx, 2);
-          if Idx <= Length(S) then
-            DeltaMin := StrToInt(Copy(S, Idx, 2));
-        end;
-
-        FDateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Sec, 0);
-        DeltaTime := EncodeTime(DeltaHour, DeltaMin, 0, 0);
-
-        if Plus then
-          FDateTime := FDateTime + DeltaTime
-        else
-          FDateTime := FDateTime - DeltaTime;
-      end
-      else if S[Idx] = 'Z' then
-        FDateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Sec, 0);
-    end;
-  end;
 end;
 
 procedure TCnUTCTime.SetUTCTimeString(const Value: string);
@@ -3697,7 +3878,13 @@ end;
 procedure TCnUTCTime.SetTimeStringWithTag(const Value: string; BerTag: Integer);
 begin
   // 根据 BER Tag 判断是 GeneralizedTime 还是 UTCTime
-  ParseTimeString(Value, BerTag = CN_BER_TAG_GENERALIZEDTIME);
+  if BerTag = CN_BER_TAG_UTCTIME then
+    ParseTimeString(Value, False)
+  else if BerTag = CN_BER_TAG_GENERALIZEDTIME then
+    ParseTimeString(Value, True)
+  else
+    // 复用统一解析器产生 ECnBerException，不能把未知 Tag 当成 UTCTime。
+    CnBerParseDateTime(AnsiString(Value), BerTag, True);
 end;
 
 function CnCALoadCertificateFromFile(const FileName: string; Certificate:
@@ -3863,14 +4050,29 @@ begin
       Certificate.BasicCertificate.Issuer.CommonName := List.Values[SDN_COMMONNAME];
       Certificate.BasicCertificate.Issuer.EmailAddress := List.Values[SDN_EMAILADDRESS];
 
-      Node := Node.GetNextSibling; // Issuer 节点后的同级节点是俩 UTC Time
-      if Node.Count = 2 then
-      begin
+      Node := Node.GetNextSibling; // Issuer 节点后的同级节点是有效期
+      if Node = nil then
+        Exit;
+      if Node.Count <> 2 then
+        Exit;
+      if not (Node.Items[0].BerTag in [CN_BER_TAG_UTCTIME,
+        CN_BER_TAG_GENERALIZEDTIME]) then
+        Exit;
+      if not (Node.Items[1].BerTag in [CN_BER_TAG_UTCTIME,
+        CN_BER_TAG_GENERALIZEDTIME]) then
+        Exit;
+      try
         Certificate.BasicCertificate.NotBefore.SetTimeStringWithTag(
           Node.Items[0].AsString, Node.Items[0].BerTag);
         Certificate.BasicCertificate.NotAfter.SetTimeStringWithTag(
           Node.Items[1].AsString, Node.Items[1].BerTag);
+      except
+        on E: ECnBerException do
+          Exit;
       end;
+      if Certificate.BasicCertificate.NotAfter.DateTime <
+        Certificate.BasicCertificate.NotBefore.DateTime then
+        Exit;
 
       Node := Node.GetNextSibling; // UTC Time 节点后的同级节点是 Subject
       ExtractDNValuesToList(Node, List);

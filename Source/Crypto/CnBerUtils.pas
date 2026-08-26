@@ -379,7 +379,8 @@ type
     }
 
     function AsDateTime: TDateTime;
-    {* 返回 UTCTime 或 GeneralizedTime。
+    {* 严格解析并返回 UTCTime 或 GeneralizedTime 对应的 UTC 日期时间。
+       输入必须被完整消费并显式包含 Z 或 +hhmm/-hhmm 时区；不使用本地化日期格式。
 
        参数：
          （无）
@@ -824,6 +825,24 @@ function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
    返回值：TCnBerWriteNode                - 返回新增的节点
 }
 
+function CnBerParseDateTime(const Value: AnsiString; BerTag: Integer;
+  RequireDERCertificateFormat: Boolean = False): TDateTime;
+{* 严格解析 ASN.1 UTCTime 或 GeneralizedTime，并返回对应的 UTC 时间。
+   本函数不依赖操作系统区域设置，要求时间字符串被完整消费，且必须显式包含
+   Z 或 +hhmm/-hhmm 时区。RequireDERCertificateFormat 为 True 时按 RFC 5280
+   证书时间规则，只接受带秒并以 Z 结尾的规范 DER 格式。
+
+   参数：
+     const Value: AnsiString              - 待解析的 ASCII 时间字符串
+     BerTag: Integer                      - CN_BER_TAG_UTCTIME 或 CN_BER_TAG_GENERALIZEDTIME
+     RequireDERCertificateFormat: Boolean - 是否强制 RFC 5280 证书 DER 时间格式
+
+   返回值：TDateTime                      - 解析并换算后的 UTC 日期时间
+
+   异常：
+     ECnBerException                      - Tag、语法、日期、时区或年份编码不合法
+}
+
 procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
 {* 将一个 Ber 整型格式的节点内容写到一个大数中。
 
@@ -852,6 +871,7 @@ resourcestring
   SCnErrorDataLengthOverflowForCommonInteger = 'Data Length %d Overflow for Common Integer.';
   SCnErrorBerParseDepthOverflow = 'BER Parse Depth Overflow %d';
   SCnErrorBerDataLengthExceeds = 'BER Data Length Exceeds Available Buffer (Base %d, Offset %d, Len %d, Available %d).';
+  SCnErrorBerInvalidTime = 'Invalid ASN.1 Time for Tag %d.';
 
 const
   CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_UFT8STRING, CN_BER_TAG_NUMERICSTRING,
@@ -1409,53 +1429,150 @@ begin
   Result := string(InternalAsString(CN_TAG_SET_STRING + CN_TAG_SET_TIME));
 end;
 
-function TCnBerReadNode.AsDateTime: TDateTime;
+function InternalParseTimeDigits(const S: AnsiString; StartIndex,
+  DigitCount: Integer; out Value: Integer): Boolean;
 var
-  S: string;
-  Y, M, D, H, Mi, Se: Word;
+  I: Integer;
+  C: AnsiChar;
 begin
-  S := string(InternalAsString(CN_TAG_SET_TIME));
-  // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
-  if (Length(S) >= 11) and (S[Length(S)] = 'Z') then
-  begin
-    if FBerTag = CN_BER_TAG_GENERALIZEDTIME then
-    begin
-      // GeneralizedTime
-      Y := StrToInt(Copy(S, 1, 4));
-      M := StrToInt(Copy(S, 5, 2));
-      D := StrToInt(Copy(S, 7, 2));
-      H := StrToInt(Copy(S, 9, 2));
-      Mi := StrToInt(Copy(S, 11, 2));
-      if Length(S) >= 15 then
-        Se := StrToInt(Copy(S, 13, 2))
-      else
-        Se := 0;
-    end
-    else
-    begin
-      // UTCTime
-      Y := StrToInt(Copy(S, 1, 2));
-      if Y >= 50 then
-        Y := Y + 1900
-      else
-        Y := Y + 2000;
-      M := StrToInt(Copy(S, 3, 2));
-      D := StrToInt(Copy(S, 5, 2));
-      H := StrToInt(Copy(S, 7, 2));
-      Mi := StrToInt(Copy(S, 9, 2));
-      if Length(S) = 13 then
-        Se := StrToInt(Copy(S, 11, 2))
-      else
-        Se := 0;
-    end;
+  Result := False;
+  Value := 0;
+  if (StartIndex < 1) or (DigitCount <= 0) or
+    (StartIndex > Length(S) - DigitCount + 1) then
+    Exit;
 
-    Result := EncodeDate(Y, M, D) + EncodeTime(H, Mi, Se, 0);
+  for I := 0 to DigitCount - 1 do
+  begin
+    C := S[StartIndex + I];
+    if (C < '0') or (C > '9') then
+      Exit;
+    Value := Value * 10 + Ord(C) - Ord('0');
+  end;
+  Result := True;
+end;
+
+procedure InternalRaiseInvalidBerTime(BerTag: Integer);
+begin
+  raise ECnBerException.CreateFmt(SCnErrorBerInvalidTime, [BerTag]);
+end;
+
+function CnBerParseDateTime(const Value: AnsiString; BerTag: Integer;
+  RequireDERCertificateFormat: Boolean): TDateTime;
+var
+  L, BaseLen, ZoneSign: Integer;
+  Year, Month, Day, Hour, Minute, Second: Integer;
+  OffsetHour, OffsetMinute, OffsetMinutes: Integer;
+  IsZulu: Boolean;
+  LocalTime: TDateTime;
+begin
+  if (BerTag <> CN_BER_TAG_UTCTIME) and
+    (BerTag <> CN_BER_TAG_GENERALIZEDTIME) then
+    InternalRaiseInvalidBerTime(BerTag);
+
+  L := Length(Value);
+  if L <= 0 then
+    InternalRaiseInvalidBerTime(BerTag);
+
+  ZoneSign := 0;
+  OffsetHour := 0;
+  OffsetMinute := 0;
+  IsZulu := Value[L] = 'Z';
+  if IsZulu then
+    BaseLen := L - 1
+  else if (L >= 5) and ((Value[L - 4] = '+') or (Value[L - 4] = '-')) then
+  begin
+    BaseLen := L - 5;
+    if Value[L - 4] = '+' then
+      ZoneSign := 1
+    else
+      ZoneSign := -1;
+    if not InternalParseTimeDigits(Value, L - 3, 2, OffsetHour) or
+      not InternalParseTimeDigits(Value, L - 1, 2, OffsetMinute) or
+      (OffsetHour > 23) or (OffsetMinute > 59) then
+      InternalRaiseInvalidBerTime(BerTag);
   end
   else
-    Result := StrToDateTime(S);
+  begin
+    BaseLen := 0;
+    InternalRaiseInvalidBerTime(BerTag);
+  end;
 
-  // TODO: 也可能是 Integer 的 Binary Time 格式，
-  // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
+  if BerTag = CN_BER_TAG_UTCTIME then
+  begin
+    if (BaseLen <> 10) and (BaseLen <> 12) then
+      InternalRaiseInvalidBerTime(BerTag);
+    if not InternalParseTimeDigits(Value, 1, 2, Year) then
+      InternalRaiseInvalidBerTime(BerTag);
+    if Year >= 50 then
+      Inc(Year, 1900)
+    else
+      Inc(Year, 2000);
+    if not InternalParseTimeDigits(Value, 3, 2, Month) or
+      not InternalParseTimeDigits(Value, 5, 2, Day) or
+      not InternalParseTimeDigits(Value, 7, 2, Hour) or
+      not InternalParseTimeDigits(Value, 9, 2, Minute) then
+      InternalRaiseInvalidBerTime(BerTag);
+    if BaseLen = 12 then
+    begin
+      if not InternalParseTimeDigits(Value, 11, 2, Second) then
+        InternalRaiseInvalidBerTime(BerTag);
+    end
+    else
+      Second := 0;
+
+    if RequireDERCertificateFormat and
+      ((BaseLen <> 12) or not IsZulu) then
+      InternalRaiseInvalidBerTime(BerTag);
+  end
+  else
+  begin
+    if (BaseLen <> 12) and (BaseLen <> 14) then
+      InternalRaiseInvalidBerTime(BerTag);
+    if not InternalParseTimeDigits(Value, 1, 4, Year) or
+      not InternalParseTimeDigits(Value, 5, 2, Month) or
+      not InternalParseTimeDigits(Value, 7, 2, Day) or
+      not InternalParseTimeDigits(Value, 9, 2, Hour) or
+      not InternalParseTimeDigits(Value, 11, 2, Minute) then
+      InternalRaiseInvalidBerTime(BerTag);
+    if BaseLen = 14 then
+    begin
+      if not InternalParseTimeDigits(Value, 13, 2, Second) then
+        InternalRaiseInvalidBerTime(BerTag);
+    end
+    else
+      Second := 0;
+
+    if RequireDERCertificateFormat then
+    begin
+      if (BaseLen <> 14) or not IsZulu then
+        InternalRaiseInvalidBerTime(BerTag);
+      // RFC 5280 要求 1950 至 2049 使用 UTCTime，范围之外使用 GeneralizedTime。
+      if (Year >= 1950) and (Year <= 2049) then
+        InternalRaiseInvalidBerTime(BerTag);
+    end;
+  end;
+
+  try
+    LocalTime := EncodeDate(Year, Month, Day) +
+      EncodeTime(Hour, Minute, Second, 0);
+  except
+    on E: Exception do
+      raise ECnBerException.CreateFmt(SCnErrorBerInvalidTime, [BerTag]);
+  end;
+
+  OffsetMinutes := OffsetHour * 60 + OffsetMinute;
+  if ZoneSign > 0 then
+    Result := LocalTime - OffsetMinutes / 1440.0
+  else if ZoneSign < 0 then
+    Result := LocalTime + OffsetMinutes / 1440.0
+  else
+    Result := LocalTime;
+end;
+
+function TCnBerReadNode.AsDateTime: TDateTime;
+begin
+  Result := CnBerParseDateTime(InternalAsString(CN_TAG_SET_TIME), FBerTag,
+    False);
 end;
 
 function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): AnsiString;

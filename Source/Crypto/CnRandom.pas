@@ -256,6 +256,7 @@ const
 const
   libc = 'libc.so.6';
   EINTR = 4;
+
 function getrandom(buf: Pointer; buflen: NativeUInt; flags: Cardinal): Integer; cdecl; external libc name 'getrandom';
 function __errno_location: PInteger; cdecl; external libc name '__errno_location';
 {$ENDIF}

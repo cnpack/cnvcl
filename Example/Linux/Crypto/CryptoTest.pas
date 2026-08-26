@@ -6314,6 +6314,8 @@ function TestCAUTCTimeGeneralizedTime: Boolean;
 var
   UTCTime: TCnUTCTime;
   Y, M, D: Word;
+  ParsedTime, ExpectedTime: TDateTime;
+  InvalidRejected: Boolean;
 begin
   Result := True;
   UTCTime := TCnUTCTime.Create;
@@ -6321,13 +6323,14 @@ begin
     // 测试 1: 2049 年应使用 UTCTime 格式（2 位年份）
     UTCTime.DateTime := EncodeDate(2049, 6, 15) + EncodeTime(10, 30, 0, 0);
     Result := Result and (not UTCTime.UseGeneralizedTime);
-    Result := Result and (Length(UTCTime.UTCTimeString) >= 11);
+    Result := Result and (Length(UTCTime.UTCTimeString) = 13);
     // UTCTime 格式以 49 开头
     Result := Result and (Copy(UTCTime.UTCTimeString, 1, 2) = '49');
 
     // 测试 2: 2050 年应使用 GeneralizedTime 格式（4 位年份）
     UTCTime.DateTime := EncodeDate(2050, 1, 1) + EncodeTime(0, 0, 0, 0);
     Result := Result and UTCTime.UseGeneralizedTime;
+    Result := Result and (Length(UTCTime.UTCTimeString) = 15);
     // GeneralizedTime 格式以 2050 开头
     Result := Result and (Copy(UTCTime.UTCTimeString, 1, 4) = '2050');
 
@@ -6366,6 +6369,66 @@ begin
     UTCTime.SetTimeStringWithTag(UTCTime.UTCTimeString, CN_BER_TAG_GENERALIZEDTIME);
     DecodeDate(UTCTime.DateTime, Y, M, D);
     Result := Result and (Y = 2077) and (M = 3) and (D = 20);
+
+    // 测试 9: 通用 BER 解析允许规范的显式偏移，并正确换算到 UTC。
+    ParsedTime := CnBerParseDateTime('240101120000+0800',
+      CN_BER_TAG_UTCTIME, False);
+    ExpectedTime := EncodeDate(2024, 1, 1) + EncodeTime(4, 0, 0, 0);
+    Result := Result and (Abs(ParsedTime - ExpectedTime) < 1 / 86400000.0);
+
+    ParsedTime := CnBerParseDateTime('240101120000-0230',
+      CN_BER_TAG_UTCTIME, False);
+    ExpectedTime := EncodeDate(2024, 1, 1) + EncodeTime(14, 30, 0, 0);
+    Result := Result and (Abs(ParsedTime - ExpectedTime) < 1 / 86400000.0);
+
+    // 测试 10: 证书 DER 时间必须包含秒并以 Z 结尾。
+    InvalidRejected := False;
+    try
+      UTCTime.UTCTimeString := '4906151030Z';
+    except
+      on E: ECnBerException do
+        InvalidRejected := True;
+    end;
+    Result := Result and InvalidRejected;
+
+    InvalidRejected := False;
+    try
+      UTCTime.SetTimeStringWithTag('20500101000000+0800',
+        CN_BER_TAG_GENERALIZEDTIME);
+    except
+      on E: ECnBerException do
+        InvalidRejected := True;
+    end;
+    Result := Result and InvalidRejected;
+
+    // 测试 11: 尾随字符、非法日期和错误的年份 Tag 必须统一拒绝。
+    InvalidRejected := False;
+    try
+      UTCTime.UTCTimeString := '490615103000ZX';
+    except
+      on E: ECnBerException do
+        InvalidRejected := True;
+    end;
+    Result := Result and InvalidRejected;
+
+    InvalidRejected := False;
+    try
+      UTCTime.UTCTimeString := '490231103000Z';
+    except
+      on E: ECnBerException do
+        InvalidRejected := True;
+    end;
+    Result := Result and InvalidRejected;
+
+    InvalidRejected := False;
+    try
+      UTCTime.SetTimeStringWithTag('20491231235959Z',
+        CN_BER_TAG_GENERALIZEDTIME);
+    except
+      on E: ECnBerException do
+        InvalidRejected := True;
+    end;
+    Result := Result and InvalidRejected;
   finally
     UTCTime.Free;
   end;
@@ -6378,6 +6441,7 @@ var
   PubKey: TCnRSAPublicKey;
   TmpDir, CRTFile, CSRFile, OutFile: string;
   StdExt: TCnCertificateStandardExtensions;
+  ValidFromUTC, ValidToUTC: TDateTime;
 begin
   Result := True;
   PrivKey := nil;
@@ -6398,6 +6462,8 @@ begin
     PrivKey := TCnRSAPrivateKey.Create;
     PubKey := TCnRSAPublicKey.Create;
     StdExt := TCnCertificateStandardExtensions.Create;
+    ValidFromUTC := Now - 1;
+    ValidToUTC := Now + 365;
 
     if not CnRSAGenerateKeys(1024, PrivKey, PubKey) then
     begin
@@ -6408,11 +6474,19 @@ begin
     // 生成自签名根证书（用于后续签发）
     if not CnCANewSelfSignedCertificate(PrivKey, PubKey, CRTFile,
       'CN', 'State', 'City', 'Org', 'Unit', 'TestCA', 'a@b.com', '1',
-      Now - 1, Now + 365, ctSha256RSA) then
+      ValidFromUTC, ValidToUTC, ctSha256RSA) then
     begin
       Result := False;
       Exit;
     end;
+
+    // 调用方注入的 UTC 验证时刻必须决定有效期结果，且不依赖本地 Now。
+    Result := Result and not CnCAVerifySelfSignedCertificateFile(CRTFile,
+      ValidFromUTC - 1);
+    Result := Result and CnCAVerifySelfSignedCertificateFile(CRTFile,
+      ValidFromUTC + 1);
+    Result := Result and not CnCAVerifySelfSignedCertificateFile(CRTFile,
+      ValidToUTC + 1);
 
     // 生成 CSR
     if not CnCANewCertificateSignRequest(PrivKey, PubKey, CSRFile,
