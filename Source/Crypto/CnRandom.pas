@@ -183,6 +183,8 @@ function CnRandomFloat: Extended;
 resourcestring
   SCnErrorNoSecureRandom = 'NO Secure Random Generator!';
   {* 随机数生成器出错信息}
+  SCnErrorInvalidRandomLength = 'Invalid Random Buffer Length: %d.';
+  {* 随机缓冲区长度非法}
 
 implementation
 
@@ -201,6 +203,10 @@ const
   BCRYPT_USE_SYSTEM_PREFERRED_RNG = $00000002;
   bcryptdll = 'bcrypt.dll';
 
+type
+  TBCryptGenRandomFunc = function(hAlgorithm: THandle; pbBuffer: Pointer;
+    cbBuffer: ULONG; dwFlags: ULONG): LongInt; stdcall;
+
 function CryptAcquireContext(phProv: PHandle; pszContainer: PAnsiChar;
   pszProvider: PAnsiChar; dwProvType: LongWord; dwFlags: LongWord): BOOL;
   stdcall; external ADVAPI32 name 'CryptAcquireContextA';
@@ -214,10 +220,32 @@ function CryptGenRandom(hProv: THandle; dwLen: LongWord; pbBuffer: PAnsiChar): B
 var
   FHProv: THandle = 0;
   FBCryptHandle: THandle = 0;
-  FBCryptGenRandom: function(hAlgorithm: THandle; pbBuffer: Pointer; cbBuffer: ULONG; dwFlags: ULONG): LongInt; stdcall = nil;
+  FBCryptGenRandom: TBCryptGenRandomFunc = nil;
   FBCryptInitAttempted: Boolean = False;
   FBCryptCS: TRTLCriticalSection;
   // Critical section to protect BCrypt initialization from race conditions
+
+function TryBCryptRandom(Buf: Pointer; BufByteLen: Integer): Boolean;
+var
+  Gen: TBCryptGenRandomFunc;
+begin
+  Result := False;
+  EnterCriticalSection(FBCryptCS);
+  try
+    if not FBCryptInitAttempted then
+    begin
+      FBCryptHandle := LoadLibrary(bcryptdll);
+      if FBCryptHandle <> 0 then
+        @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
+      FBCryptInitAttempted := True;
+    end;
+    Gen := FBCryptGenRandom;
+    if Assigned(Gen) then
+      Result := Gen(0, Buf, BufByteLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG) = 0;
+  finally
+    LeaveCriticalSection(FBCryptCS);
+  end;
+end;
 
 {$ELSE}
 
@@ -227,7 +255,9 @@ const
 {$IFDEF LINUX}
 const
   libc = 'libc.so.6';
+  EINTR = 4;
 function getrandom(buf: Pointer; buflen: NativeUInt; flags: Cardinal): Integer; cdecl; external libc name 'getrandom';
+function __errno_location: PInteger; cdecl; external libc name '__errno_location';
 {$ENDIF}
 
 {$IFDEF MACOS}
@@ -251,30 +281,20 @@ var
 {$ENDIF}
 begin
   Result := False;
+  if BufByteLen < 0 then
+    Exit;
+  if BufByteLen = 0 then
+  begin
+    Result := True;
+    Exit;
+  end;
+  if Buf = nil then
+    Exit;
 {$IFDEF MSWINDOWS}
   // 使用 Windows API 实现区块随机填充
-  if not FBCryptInitAttempted then
-  begin
-    EnterCriticalSection(FBCryptCS);
-    try
-      if not FBCryptInitAttempted then
-      begin
-        FBCryptHandle := LoadLibrary(bcryptdll);
-        if FBCryptHandle <> 0 then
-          @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
-        FBCryptInitAttempted := True;
-      end;
-    finally
-      LeaveCriticalSection(FBCryptCS);
-    end;
-  end;
-
-  if Assigned(FBCryptGenRandom) then
-  begin
-    Result := FBCryptGenRandom(0, Buf, BufByteLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG) = 0;
-    if Result then
-      Exit;
-  end;
+  Result := TryBCryptRandom(Buf, BufByteLen);
+  if Result then
+    Exit;
 
   // 降级
   HProv := 0;
@@ -312,8 +332,20 @@ begin
 {$ENDIF}
 {$IFDEF LINUX}
   try
-    R := getrandom(Buf, BufByteLen, 0);
-    Result := (R = BufByteLen);
+    while BufByteLen > 0 do
+    begin
+      R := getrandom(Buf, TCnNativeUInt(BufByteLen), 0);
+      if R > 0 then
+      begin
+        Dec(BufByteLen, R);
+        Inc(Buf, R);
+      end
+      else if (R < 0) and (__errno_location^ = EINTR) then
+        Continue
+      else
+        Break;
+    end;
+    Result := BufByteLen = 0;
     if Result then
       Exit;
   except
@@ -353,29 +385,20 @@ var
 {$ENDIF}
 {$ENDIF}
 begin
+  Result := False;
+  if BufByteLen < 0 then
+    Exit;
+  if BufByteLen = 0 then
+  begin
+    Result := True;
+    Exit;
+  end;
+  if Buf = nil then
+    Exit;
 {$IFDEF MSWINDOWS}
-  if not FBCryptInitAttempted then
-  begin
-    EnterCriticalSection(FBCryptCS);
-    try
-      if not FBCryptInitAttempted then
-      begin
-        FBCryptHandle := LoadLibrary(bcryptdll);
-        if FBCryptHandle <> 0 then
-          @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
-        FBCryptInitAttempted := True;
-      end;
-    finally
-      LeaveCriticalSection(FBCryptCS);
-    end;
-  end;
-
-  if Assigned(FBCryptGenRandom) then
-  begin
-    Result := FBCryptGenRandom(0, Buf, BufByteLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG) = 0;
-    if Result then
-      Exit;
-  end;
+  Result := TryBCryptRandom(Buf, BufByteLen);
+  if Result then
+    Exit;
 
   // 检查 FHProv 是否有效初始化，避免在句柄为 0 时调用 CryptGenRandom
   if FHProv <> 0 then
@@ -390,8 +413,20 @@ begin
 {$ENDIF}
 {$IFDEF LINUX}
   try
-    R := getrandom(Buf, BufByteLen, 0);
-    Result := (R = BufByteLen);
+    while BufByteLen > 0 do
+    begin
+      R := getrandom(Buf, TCnNativeUInt(BufByteLen), 0);
+      if R > 0 then
+      begin
+        Dec(BufByteLen, R);
+        Inc(Buf, R);
+      end
+      else if (R < 0) and (__errno_location^ = EINTR) then
+        Continue
+      else
+        Break;
+    end;
+    Result := BufByteLen = 0;
     if Result then
       Exit;
   except
@@ -423,12 +458,17 @@ end;
 
 function CnRandomBytes(ByteLen: Integer): TBytes;
 begin
-  if ByteLen > 0 then
+  if ByteLen < 0 then
+    raise ECnRandomAPIError.CreateFmt(SCnErrorInvalidRandomLength, [ByteLen]);
+  if ByteLen = 0 then
   begin
-    SetLength(Result, ByteLen);
-    if not CnRandomFillBytes2(PAnsiChar(@Result[0]), ByteLen) then
-      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+    Result := nil;
+    Exit;
   end;
+
+  SetLength(Result, ByteLen);
+  if not CnRandomFillBytes2(PAnsiChar(@Result[0]), ByteLen) then
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
 end;
 
 function CnRandomFloat: Extended;
@@ -555,6 +595,9 @@ begin
   Result := False;
   if (ArrayBase = nil) or (ElementByteSize <= 0) or (ElementCount < 0) then // 超大的数组先不处理
     Exit;
+  if TCnNativeUInt(ElementCount) >
+    High(TCnNativeUInt) div TCnNativeUInt(ElementByteSize) then
+    Exit;
 
   Result := True;
   if ElementCount <= 1 then // 没元素或只有一个元素时不用洗
@@ -563,8 +606,10 @@ begin
   for I := ElementCount - 1 downto 0 do
   begin
     R := RandomInt32LessThan(I + 1);  // 0 到 I 这个闭区间内的随机数，所以上限要加 1
-    B1 := Pointer(TCnNativeUInt(ArrayBase) + TCnNativeUInt(I * ElementByteSize));
-    B2 := Pointer(TCnNativeUInt(ArrayBase) + TCnNativeUInt(R * ElementByteSize));
+    B1 := Pointer(TCnNativeUInt(ArrayBase) +
+      TCnNativeUInt(I) * TCnNativeUInt(ElementByteSize));
+    B2 := Pointer(TCnNativeUInt(ArrayBase) +
+      TCnNativeUInt(R) * TCnNativeUInt(ElementByteSize));
     MemorySwap(B1, B2, ElementByteSize);
   end;
   Result := True;

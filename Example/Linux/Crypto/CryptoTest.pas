@@ -156,6 +156,7 @@ function TestFFT2IFFT2RoundTrip: Boolean;
 
 function TestBigNumberHex: Boolean;
 function TestBigNumberDec: Boolean;
+function TestBigNumberConstTimeEqual: Boolean;
 function TestBigNumberExpandWord: Boolean;
 function TestBigNumberMulWord: Boolean;
 function TestBigNumberModWord: Boolean;
@@ -534,6 +535,11 @@ function TestAEADAESGCMTamperedAAD: Boolean;
 function TestAEADAESGCMTamperedTag: Boolean;
 function TestAEADAESGCMInvalidNonceLen: Boolean;
 function TestAEADChaCha20Poly1305TamperedTag: Boolean;
+function TestAEADInvalidPointerLengths: Boolean;
+function TestAEADGHashLengthOverflow: Boolean;
+function TestAEADCCMPayloadLengthBoundary: Boolean;
+function TestAEADAuthFailureKeepsOutput: Boolean;
+function TestAEADCMACKeyLengths: Boolean;
 
 // ================================ ChaCha20 ===================================
 
@@ -668,12 +674,14 @@ function Test25519KeyExchange: Boolean;
 function Test25519CalcKey: Boolean;
 function Test25519Sign: Boolean;
 function Test25519InvalidPublicKeyHandling: Boolean;
+function Test25519RejectSmallOrderForgery: Boolean;
 function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
 function Test448KeyExchange: Boolean;
 function Test448CalcKey: Boolean;
 function Test448Sign1: Boolean;
 function Test448Sign2: Boolean;
+function Test448RejectSmallOrderForgery: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -1901,6 +1909,7 @@ begin
 
   MyAssert(TestBigNumberHex, 'TestBigNumberHex');
   MyAssert(TestBigNumberDec, 'TestBigNumberDec');
+  MyAssert(TestBigNumberConstTimeEqual, 'TestBigNumberConstTimeEqual');
   MyAssert(TestBigNumberExpandWord, 'TestBigNumberExpandWord');
   MyAssert(TestBigNumberModWord, 'TestBigNumberModWord');
   MyAssert(TestBigNumberMulWord, 'TestBigNumberMulWord');
@@ -2279,6 +2288,11 @@ begin
   MyAssert(TestAEADAESGCMTamperedTag, 'TestAEADAESGCMTamperedTag');
   MyAssert(TestAEADAESGCMInvalidNonceLen, 'TestAEADAESGCMInvalidNonceLen');
   MyAssert(TestAEADChaCha20Poly1305TamperedTag, 'TestAEADChaCha20Poly1305TamperedTag');
+  MyAssert(TestAEADInvalidPointerLengths, 'TestAEADInvalidPointerLengths');
+  MyAssert(TestAEADGHashLengthOverflow, 'TestAEADGHashLengthOverflow');
+  MyAssert(TestAEADCCMPayloadLengthBoundary, 'TestAEADCCMPayloadLengthBoundary');
+  MyAssert(TestAEADAuthFailureKeepsOutput, 'TestAEADAuthFailureKeepsOutput');
+  MyAssert(TestAEADCMACKeyLengths, 'TestAEADCMACKeyLengths');
 
 // ================================ ChaCha20 ===================================
 
@@ -2414,12 +2428,14 @@ begin
   MyAssert(Test25519CalcKey, 'Test25519CalcKey');
   MyAssert(Test25519Sign, 'Test25519Sign');
   MyAssert(Test25519InvalidPublicKeyHandling, 'Test25519InvalidPublicKeyHandling');
+  MyAssert(Test25519RejectSmallOrderForgery, 'Test25519RejectSmallOrderForgery');
   MyAssert(Test448CurveMul, 'Test448CurveMul');
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
   MyAssert(Test448KeyExchange, 'Test448KeyExchange');
   MyAssert(Test448CalcKey, 'Test448CalcKey');
   MyAssert(Test448Sign1, 'Test448Sign1');
   MyAssert(Test448Sign2, 'Test448Sign2');
+  MyAssert(Test448RejectSmallOrderForgery, 'Test448RejectSmallOrderForgery');
 
 // =============================== Paillier ====================================
 
@@ -4433,6 +4449,41 @@ begin
   T.SetDec(DEC_STR);
   Result := (T.ToDec() = DEC_STR);
   BigNumberFree(T);
+end;
+
+function TestBigNumberConstTimeEqual: Boolean;
+var
+  A, B: TCnBigNumber;
+begin
+  Result := False;
+  if not BigNumberConstTimeEqual(nil, nil) then Exit;
+
+  A := BigNumberNew;
+  B := BigNumberNew;
+  try
+    if BigNumberConstTimeEqual(A, nil) or BigNumberConstTimeEqual(nil, B) then Exit;
+    if not BigNumberConstTimeEqual(A, B) then Exit;
+
+    A.SetHex('10000000000000000');
+    if BigNumberConstTimeEqual(A, B) then Exit;
+
+    B.SetHex('10000000000000000');
+    if not BigNumberConstTimeEqual(A, B) then Exit;
+
+    B.SetNegative(True);
+    if BigNumberConstTimeEqual(A, B) then Exit;
+    B.SetNegative(False);
+
+    A.SetHex('10000000000000001');
+    B.SetHex('20000000000000002');
+    if BigNumberConstTimeEqual(A, B) then Exit;
+
+    B.SetHex('10000000000000001');
+    Result := BigNumberConstTimeEqual(A, B);
+  finally
+    BigNumberFree(B);
+    BigNumberFree(A);
+  end;
 end;
 
 function TestBigNumberExpandWord: Boolean;
@@ -15531,6 +15582,231 @@ begin
   Result := (Length(DeData) = 0) and (not CompareBytes(DeData, Plain));
 end;
 
+function TestAEADInvalidPointerLengths: Boolean;
+var
+  Key128, HashKey: TCnGHash128Key;
+  Key256: TCnChaChaKey;
+  Iv: TCnChaChaNonce;
+  CcmNonce: array[0..CN_CCM_NONCE - 1] of Byte;
+  OutBuf: array[0..31] of Byte;
+  GcmTag: TCnGCM128Tag;
+  CcmTag: TCnCCM128Tag;
+  PolyTag: TCnPoly1305Digest;
+  Caught: Integer;
+begin
+  FillChar(Key128[0], SizeOf(Key128), 0);
+  FillChar(HashKey[0], SizeOf(HashKey), 0);
+  FillChar(Key256[0], SizeOf(Key256), 0);
+  FillChar(Iv[0], SizeOf(Iv), 0);
+  FillChar(CcmNonce[0], SizeOf(CcmNonce), 0);
+  FillChar(OutBuf[0], SizeOf(OutBuf), 0);
+  FillChar(GcmTag[0], SizeOf(GcmTag), 0);
+  FillChar(CcmTag[0], SizeOf(CcmTag), 0);
+  FillChar(PolyTag[0], SizeOf(PolyTag), 0);
+  Caught := 0;
+
+  try
+    GHash128(HashKey, nil, -1, nil, 0, TCnGHash128Tag(GcmTag));
+  except
+    on ECnAEADError do Inc(Caught);
+  end;
+  try
+    AES128GCMEncrypt(@Key128[0], SizeOf(Key128), @Iv[0], SizeOf(Iv),
+      nil, 1, nil, 0, @OutBuf[0], GcmTag);
+  except
+    on ECnAEADError do Inc(Caught);
+  end;
+  try
+    AES128GCMEncrypt(@Key128[0], SizeOf(Key128), @Iv[0], SizeOf(Iv),
+      nil, 0, nil, -1, nil, GcmTag);
+  except
+    on ECnAEADError do Inc(Caught);
+  end;
+  try
+    AES128CCMEncrypt(@Key128[0], SizeOf(Key128), @CcmNonce[0], SizeOf(CcmNonce),
+      nil, 1, nil, 0, @OutBuf[0], CcmTag);
+  except
+    on ECnAEADError do Inc(Caught);
+  end;
+  try
+    ChaCha20Poly1305Encrypt(@Key256[0], SizeOf(Key256), @Iv[0], SizeOf(Iv),
+      nil, 1, nil, 0, @OutBuf[0], PolyTag);
+  except
+    on ECnAEADError do Inc(Caught);
+  end;
+  try
+    AESGCMNoPaddingEncrypt(@Key256[0], SizeOf(Key256), @Iv[0], SizeOf(Iv),
+      nil, 0, nil, 0, nil);
+  except
+    on ECnAEADError do Inc(Caught);
+  end;
+
+  Result := Caught = 6;
+end;
+
+function TestAEADGHashLengthOverflow: Boolean;
+var
+  Key: TCnGHash128Key;
+  Tag: TCnGHash128Tag;
+  Ctx: TCnGHash128Context;
+  CtxByte: PByte;
+  B: Byte;
+  I: Integer;
+  Caught, Cleared: Boolean;
+begin
+  FillChar(Key[0], SizeOf(Key), 0);
+  B := $A5;
+  GHash128Start(Ctx, Key, nil, 0);
+  Ctx.DataByteLen := CN_GHASH_MAX_BYTE_LENGTH;
+  Caught := False;
+  try
+    GHash128Update(Ctx, @B, 1);
+  except
+    on ECnAEADError do Caught := True;
+  end;
+
+  Cleared := True;
+  CtxByte := @Ctx;
+  for I := 0 to SizeOf(Ctx) - 1 do
+  begin
+    Cleared := Cleared and (CtxByte^ = 0);
+    Inc(CtxByte);
+  end;
+  if not (Caught and Cleared) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  GHash128Start(Ctx, Key, nil, 0);
+  GHash128Update(Ctx, @B, 1);
+  GHash128Finish(Ctx, Tag);
+  Cleared := True;
+  CtxByte := @Ctx;
+  for I := 0 to SizeOf(Ctx) - 1 do
+  begin
+    Cleared := Cleared and (CtxByte^ = 0);
+    Inc(CtxByte);
+  end;
+  Result := Cleared;
+end;
+
+function TestAEADCCMPayloadLengthBoundary: Boolean;
+var
+  Key, Nonce, Plain, Cipher, Decrypted: TBytes;
+  Tag: TCnCCM128Tag;
+  MaxPayloadLength: Integer;
+  EncryptTooLong, DecryptTooLong: Boolean;
+begin
+  Result := False;
+  MaxPayloadLength := Integer(CN_CCM_MAX_DATA_BYTE_LENGTH);
+
+  Key := HexToBytes('000102030405060708090A0B0C0D0E0F');
+  Nonce := HexToBytes('000102030405060708090A0B0C');
+  SetLength(Plain, MaxPayloadLength);
+  FillChar(Plain[0], Length(Plain), $A5);
+
+  // Tag 由独立参数返回；达到 Q 字段上限的 65535 字节 Payload 仍必须可处理。
+  Cipher := AES128CCMEncryptBytes(Key, Nonce, Plain, nil, Tag);
+  if Length(Cipher) <> MaxPayloadLength then
+    Exit;
+  Decrypted := AES128CCMDecryptBytes(Key, Nonce, Cipher, nil, Tag);
+  if not CompareBytes(Decrypted, Plain) then
+    Exit;
+
+  // 65536 字节无法写入 L=2 的 Q 字段；加密和分离标签解密都必须在处理前拒绝。
+  SetLength(Plain, MaxPayloadLength + 1);
+  EncryptTooLong := False;
+  try
+    Cipher := AES128CCMEncryptBytes(Key, Nonce, Plain, nil, Tag);
+  except
+    on ECnAEADError do EncryptTooLong := True;
+  end;
+
+  DecryptTooLong := False;
+  try
+    AES128CCMDecrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce),
+      @Plain[0], Length(Plain), nil, 0, @Plain[0], Tag);
+  except
+    on ECnAEADError do DecryptTooLong := True;
+  end;
+  Result := EncryptTooLong and DecryptTooLong;
+end;
+
+function TestAEADAuthFailureKeepsOutput: Boolean;
+var
+  Key128, Iv, CcmNonce, Plain, AAD, Cipher: TBytes;
+  Key256: TBytes;
+  GcmTag: TCnGCM128Tag;
+  CcmTag: TCnCCM128Tag;
+  PolyTag: TCnPoly1305Digest;
+  OutBuf: array[0..31] of Byte;
+  I: Integer;
+
+  function OutputUnchanged: Boolean;
+  var
+    J: Integer;
+  begin
+    Result := True;
+    for J := 0 to Length(Plain) - 1 do
+      Result := Result and (OutBuf[J] = $A5);
+  end;
+begin
+  Result := False;
+  Key128 := HexToBytes('000102030405060708090A0B0C0D0E0F');
+  Key256 := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F');
+  Iv := HexToBytes('000102030405060708090A0B');
+  CcmNonce := HexToBytes('000102030405060708090A0B0C');
+  Plain := HexToBytes('00112233445566778899AABBCCDDEEFF');
+  AAD := HexToBytes('A0A1A2A3A4A5');
+
+  Cipher := AES128GCMEncryptBytes(Key128, Iv, Plain, AAD, GcmTag);
+  GcmTag[0] := GcmTag[0] xor 1;
+  FillChar(OutBuf[0], SizeOf(OutBuf), $A5);
+  if AES128GCMDecrypt(@Key128[0], Length(Key128), @Iv[0], Length(Iv),
+    @Cipher[0], Length(Cipher), @AAD[0], Length(AAD), @OutBuf[0], GcmTag)
+    or not OutputUnchanged then Exit;
+
+  Cipher := AES128CCMEncryptBytes(Key128, CcmNonce, Plain, AAD, CcmTag);
+  CcmTag[0] := CcmTag[0] xor 1;
+  FillChar(OutBuf[0], SizeOf(OutBuf), $A5);
+  if AES128CCMDecrypt(@Key128[0], Length(Key128), @CcmNonce[0], Length(CcmNonce),
+    @Cipher[0], Length(Cipher), @AAD[0], Length(AAD), @OutBuf[0], CcmTag)
+    or not OutputUnchanged then Exit;
+
+  Cipher := ChaCha20Poly1305EncryptBytes(Key256, Iv, Plain, AAD, PolyTag);
+  PolyTag[0] := PolyTag[0] xor 1;
+  FillChar(OutBuf[0], SizeOf(OutBuf), $A5);
+  if ChaCha20Poly1305Decrypt(@Key256[0], Length(Key256), @Iv[0], Length(Iv),
+    @Cipher[0], Length(Cipher), @AAD[0], Length(AAD), @OutBuf[0], PolyTag)
+    or not OutputUnchanged then Exit;
+
+  // 防止编译器认为循环辅助变量未使用，同时确认测试缓冲区尾部也未被越界改写。
+  for I := Length(Plain) to High(OutBuf) do
+    if OutBuf[I] <> $A5 then Exit;
+  Result := True;
+end;
+
+function TestAEADCMACKeyLengths: Boolean;
+var
+  Key128, Key192, Key256: TBytes;
+  Tag: TCnCMAC128Tag;
+begin
+  Key128 := HexToBytes('2B7E151628AED2A6ABF7158809CF4F3C');
+  Tag := AES128CMAC128Bytes(Key128, nil);
+  Result := DataToHex(@Tag[0], SizeOf(Tag)) = 'BB1D6929E95937287FA37D129B756746';
+  if not Result then Exit;
+
+  Key192 := HexToBytes('8E73B0F7DA0E6452C810F32B809079E562F8EAD2522C6B7B');
+  Tag := AES192CMAC128Bytes(Key192, nil);
+  Result := DataToHex(@Tag[0], SizeOf(Tag)) = 'D17DDF46ADAACDE531CAC483DE7A9367';
+  if not Result then Exit;
+
+  Key256 := HexToBytes('603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4');
+  Tag := AES256CMAC128Bytes(Key256, nil);
+  Result := DataToHex(@Tag[0], SizeOf(Tag)) = '028962F61B7BF89EFC6B551F4667D983';
+end;
+
 // ================================ ChaCha20 ===================================
 
 function TestChaCha20: Boolean;
@@ -18133,14 +18409,34 @@ function TestRSAVerifyCorruptedSignature: Boolean;
 var
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
-  Data, Sign: TMemoryStream;
-  S: AnsiString;
-  B: Byte;
+  SignValue, EncodedValue: TCnBigNumber;
+  Message, ValidSign, BadSign, LongSign, Encoded, BadEncoded: TBytes;
+  K, SepPos: Integer;
+
+  function SignEncodedMessage(const EM: TBytes): TBytes;
+  var
+    M, S: TCnBigNumber;
+  begin
+    Result := nil;
+    M := TCnBigNumber.FromBinary(@EM[0], Length(EM));
+    S := TCnBigNumber.Create;
+    try
+      if CnRSADecrypt(S, Priv, M) then
+      begin
+        SetLength(Result, Priv.BytesCount);
+        S.ToBinary(@Result[0], Length(Result));
+      end;
+    finally
+      S.Free;
+      M.Free;
+    end;
+  end;
 begin
+  Result := False;
   Priv := TCnRSAPrivateKey.Create;
   Pub := TCnRSAPublicKey.Create;
-  Data := TMemoryStream.Create;
-  Sign := TMemoryStream.Create;
+  SignValue := nil;
+  EncodedValue := nil;
   try
     Priv.PrimeKey1.SetDec('11926501752010836305573547055010388132818881584424893368438260986340083815661726132764041431839102912426991427194974395769462431410735199955905343985824903');
     Priv.PrimeKey2.SetDec('8573695372469847739125271816213638824277647604717881633559571969225574325225015620887808957893360658142977333484565099818973457402882454768789495637432799');
@@ -18152,24 +18448,66 @@ begin
     Pub.PubKeyProduct.SetDec('10225419288096883881080138286838918125600253434914838666479087943212846947600893059264595214567006331638788631070720179226982381387547190496976500547165'
       + '5784895966560585402535313253239266974336591272564426699631037042766443337890644687331420209218848611174173514131044514861915637897961332996331736169243193497');
 
-    S := 'Data To Sign.';
-    Data.Write(S[1], Length(S));
-    Data.Position := 0;
-    Result := CnRSASignStream(Data, Sign, Priv, rsdtSHA256);
-    if not Result then Exit;
+    Message := AnsiToBytes('Data To Sign.');
+    ValidSign := CnRSASignBytes(Message, Priv, rsdtSHA256);
+    K := Pub.BytesCount;
+    if (Length(ValidSign) <> K)
+      or not CnRSAVerifyBytes(Message, ValidSign, Pub, rsdtSHA256) then Exit;
 
-    Sign.Position := 0;
-    Sign.Read(B, 1);
-    B := B xor $01;
-    Sign.Position := 0;
-    Sign.Write(B, 1);
+    // 调用方指定的摘要算法不可由签名中自带的 OID 覆盖。
+    BadSign := CnRSASignBytes(Message, Priv, rsdtSHA1);
+    if CnRSAVerifyBytes(Message, BadSign, Pub, rsdtSHA256) then Exit;
 
-    Data.Position := 0;
-    Sign.Position := 0;
-    Result := not CnRSAVerifyStream(Data, Sign, Pub, rsdtSHA256);
+    // 签名长度必须恰为 k；前置 00 的同一整数代表值也必须拒绝。
+    SetLength(LongSign, K + 1);
+    LongSign[0] := 0;
+    Move(ValidSign[0], LongSign[1], K);
+    if CnRSAVerifyBytes(Message, LongSign, Pub, rsdtSHA256) then Exit;
+    SetLength(BadSign, K - 1);
+    Move(ValidSign[1], BadSign[0], K - 1);
+    if CnRSAVerifyBytes(Message, BadSign, Pub, rsdtSHA256) then Exit;
+
+    // 签名代表值 s >= n 必须由公钥原语拒绝。
+    SetLength(BadSign, K);
+    Pub.PubKeyProduct.ToBinary(@BadSign[0], K);
+    if CnRSAVerifyBytes(Message, BadSign, Pub, rsdtSHA256) then Exit;
+
+    // 取出一份有效 EM，随后构造旧宽松解析器会接受的畸形编码。
+    SignValue := TCnBigNumber.FromBinary(@ValidSign[0], K);
+    EncodedValue := TCnBigNumber.Create;
+    if not CnRSADecrypt(EncodedValue, Pub, SignValue) then Exit;
+    SetLength(Encoded, K);
+    EncodedValue.ToBinary(@Encoded[0], K);
+
+    SepPos := 2;
+    while (SepPos < K) and (Encoded[SepPos] = $FF) do
+      Inc(SepPos);
+    if (SepPos < 10) or (SepPos >= K) or (Encoded[SepPos] <> 0) then Exit;
+
+    // type 1 的 PS 中混入非 FF 非零字节，旧实现只找 00 分隔符因而会接受。
+    BadEncoded := Copy(Encoded, 0, K);
+    BadEncoded[5] := $7E;
+    BadSign := SignEncodedMessage(BadEncoded);
+    if CnRSAVerifyBytes(Message, BadSign, Pub, rsdtSHA256) then Exit;
+
+    // 签名编码不得接受 RSAES 的 type 2。
+    BadEncoded := Copy(Encoded, 0, K);
+    BadEncoded[1] := CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM;
+    BadSign := SignEncodedMessage(BadEncoded);
+    if CnRSAVerifyBytes(Message, BadSign, Pub, rsdtSHA256) then Exit;
+
+    // DigestInfo 后附加尾随字节，即使 BER 解析器忽略它也必须拒绝。
+    BadEncoded := Copy(Encoded, 0, K);
+    BadEncoded[SepPos - 1] := 0;
+    Move(Encoded[SepPos + 1], BadEncoded[SepPos], K - SepPos - 1);
+    BadEncoded[K - 1] := 0;
+    BadSign := SignEncodedMessage(BadEncoded);
+    if CnRSAVerifyBytes(Message, BadSign, Pub, rsdtSHA256) then Exit;
+
+    Result := True;
   finally
-    Sign.Free;
-    Data.Free;
+    EncodedValue.Free;
+    SignValue.Free;
     Pub.Free;
     Priv.Free;
   end;
@@ -18197,7 +18535,8 @@ var
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
   InStream, EnStream, DeStream: TMemoryStream;
-  Plain: TBytes;
+  Plain, Cipher, InvalidEncoded, InvalidCipher, Fallback, Decrypted: TBytes;
+  K: Integer;
   B: Byte;
 begin
   Result := False;
@@ -18221,7 +18560,47 @@ begin
     EnStream.Write(B, 1);
 
     EnStream.Position := 0;
-    Result := CnRSADecryptLongStream(EnStream, DeStream, Priv); // 失败也伪装成功以防攻击
+    Result := not CnRSADecryptLongStream(EnStream, DeStream, Priv)
+      and (DeStream.Size = 0);
+    if not Result then Exit;
+
+    // 普通变长 API 不再用随机长度伪明文冒充成功。
+    K := Pub.BytesCount;
+    SetLength(InvalidEncoded, K);
+    FillChar(InvalidEncoded[0], K, $A5);
+    InvalidEncoded[0] := 0;
+    InvalidEncoded[1] := CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM;
+    InvalidEncoded[2] := 0; // PS 长度为 0，严格解析必须拒绝
+    InvalidCipher := CnRSAEncryptRawBytes(InvalidEncoded, Pub);
+    Decrypted := CnRSADecryptBytes(InvalidCipher, Priv, cpmPKCS1);
+    if Length(Decrypted) <> 0 then Exit;
+
+    // 固定长度隐式拒绝：有效密文返回真实明文，无效密文返回同长度回退值。
+    Cipher := CnRSAEncryptBytes(Plain, Pub, cpmPKCS1);
+    SetLength(Fallback, Length(Plain));
+    FillChar(Fallback[0], Length(Fallback), $5A);
+    Decrypted := CnRSADecryptPKCS1ImplicitBytes(Cipher, Fallback, Priv);
+    if not CompareBytes(Decrypted, Plain) then Exit;
+
+    // 第一块有效、第二块无效时也必须整体失败，不能先向调用方泄出第一块明文。
+    EnStream.Size := 0;
+    EnStream.Write(Cipher[0], Length(Cipher));
+    EnStream.Write(InvalidCipher[0], Length(InvalidCipher));
+    EnStream.Position := 0;
+    DeStream.Size := 0;
+    if CnRSADecryptLongStream(EnStream, DeStream, Priv)
+      or (DeStream.Size <> 0) then Exit;
+
+    Decrypted := CnRSADecryptPKCS1ImplicitBytes(InvalidCipher, Fallback, Priv);
+    if (Length(Decrypted) <> Length(Fallback))
+      or not CompareBytes(Decrypted, Fallback) then Exit;
+
+    // 公开可判定但超出 RSA 代表值范围的 c=n 也不得变成填充有效性返回通道。
+    SetLength(InvalidCipher, K);
+    Pub.PubKeyProduct.ToBinary(@InvalidCipher[0], K);
+    Decrypted := CnRSADecryptPKCS1ImplicitBytes(InvalidCipher, Fallback, Priv);
+    Result := (Length(Decrypted) = Length(Fallback))
+      and CompareBytes(Decrypted, Fallback);
   finally
     DeStream.Free;
     EnStream.Free;
@@ -18264,12 +18643,15 @@ const
 var
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
-  Plain, En, De: TBytes;
+  InvalidNum, InvalidRes: TCnBigNumber;
+  Plain, En, De, InvalidCipher, Truncated: TBytes;
 begin
   Result := False;
 
   Priv := TCnRSAPrivateKey.Create;
   Pub := TCnRSAPublicKey.Create;
+  InvalidNum := nil;
+  InvalidRes := nil;
 
   try
     CnRSALoadKeysFromPemStr(KEY, Priv, Pub);
@@ -18295,7 +18677,29 @@ begin
     De := CnRSADecryptBytes(En, Priv, cpmOAEP_SHA512);
     Result := CompareBytes(De, Plain);
     if not Result then Exit;
+
+    // 普通 RSA 密文必须恰为模数长度，不能把截断输入隐式当成整数处理。
+    SetLength(Truncated, Length(En) - 1);
+    Move(En[0], Truncated[0], Length(Truncated));
+    De := CnRSADecryptBytes(Truncated, Priv, cpmOAEP_SHA512);
+    Result := Length(De) = 0;
+    if not Result then Exit;
+
+    // RSA 私钥原语必须拒绝 c >= n，并清空调用方预置的输出。
+    InvalidNum := TCnBigNumber.Create;
+    InvalidRes := TCnBigNumber.Create;
+    BigNumberCopy(InvalidNum, Priv.PrivKeyProduct);
+    InvalidRes.SetOne;
+    Result := not CnRSADecrypt(InvalidRes, Priv, InvalidNum) and InvalidRes.IsZero;
+    if not Result then Exit;
+
+    SetLength(InvalidCipher, Priv.BytesCount);
+    Priv.PrivKeyProduct.ToBinary(@InvalidCipher[0], Length(InvalidCipher));
+    De := CnRSADecryptRawBytes(InvalidCipher, Priv);
+    Result := Length(De) = 0;
   finally
+    InvalidRes.Free;
+    InvalidNum.Free;
     Pub.Free;
     Priv.Free;
   end;
@@ -18832,6 +19236,61 @@ begin
   end;
 end;
 
+function Test25519RejectSmallOrderForgery: Boolean;
+var
+  Ed: TCnEd25519;
+  PubKey: TCnEd25519PublicKey;
+  Sig: TCnEd25519Signature;
+  D: TCnEd25519Data;
+  B: Byte;
+  Rejected: Boolean;
+begin
+  Result := False;
+  Ed := TCnEd25519.Create;
+  PubKey := TCnEd25519PublicKey.Create;
+  Sig := TCnEd25519Signature.Create;
+  try
+    // 旧验签式会接受 A=(0,1)、R=B、S=1，且对任意消息都成立。
+    Ed.SetNeutualPoint(PubKey);
+    Sig.R.Assign(Ed.Generator);
+    Sig.S.SetOne;
+    B := $41;
+    if CnEd25519VerifyData(@B, 1, Sig, PubKey, Ed) then Exit;
+    B := $42;
+    if CnEd25519VerifyData(@B, 1, Sig, PubKey, Ed) then Exit;
+
+    // 二阶点 (0,-1) 同样会被余因子 8 消掉，旧实现也可用同一伪造通过。
+    PubKey.X.SetZero;
+    BigNumberCopy(PubKey.Y, Ed.FiniteFieldSize);
+    PubKey.Y.SubWord(1);
+    if CnEd25519VerifyData(@B, 1, Sig, PubKey, Ed) then Exit;
+
+    // R 也必须是非零主子群点，不能只校验公钥 A。
+    PubKey.Assign(Ed.Generator);
+    Ed.SetNeutualPoint(Sig.R);
+    Sig.S.SetZero;
+    if CnEd25519VerifyData(@B, 1, Sig, PubKey, Ed) then Exit;
+
+    // x=0 时符号位为 1 是同一点的非规范编码，解码阶段必须拒绝。
+    FillChar(D[0], SizeOf(D), 0);
+    D[0] := 1;
+    D[High(D)] := $80;
+    Rejected := False;
+    try
+      PubKey.LoadFromData(D);
+    except
+      on ECnEccException do Rejected := True;
+    end;
+    if not Rejected then Exit;
+
+    Result := True;
+  finally
+    Sig.Free;
+    PubKey.Free;
+    Ed.Free;
+  end;
+end;
+
 function Test448CurveMul: Boolean;
 var
   Curve: TCnCurve448;
@@ -19070,6 +19529,72 @@ begin
     Sig.Free;
     PubKey.Free;
     PrivKey.Free;
+    Ed.Free;
+  end;
+end;
+
+function Test448RejectSmallOrderForgery: Boolean;
+var
+  Ed: TCnEd448;
+  PubKey: TCnEd448PublicKey;
+  Sig: TCnEd448Signature;
+  D: TCnEd448Data;
+  B: Byte;
+  Rejected: Boolean;
+begin
+  Result := False;
+  Ed := TCnEd448.Create;
+  PubKey := TCnEd448PublicKey.Create;
+  Sig := TCnEd448Signature.Create;
+  try
+    // 旧验签式会接受 A=(0,1)、R=B、S=1，且对任意消息都成立。
+    Ed.SetNeutualPoint(PubKey);
+    Sig.R.Assign(Ed.Generator);
+    Sig.S.SetOne;
+    B := $41;
+    if CnEd448VerifyData(@B, 1, Sig, PubKey, nil, Ed) then Exit;
+    B := $42;
+    if CnEd448VerifyData(@B, 1, Sig, PubKey, nil, Ed) then Exit;
+
+    // 二阶点 (0,-1) 同样会被余因子 4 消掉，旧实现也可用同一伪造通过。
+    PubKey.X.SetZero;
+    BigNumberCopy(PubKey.Y, Ed.FiniteFieldSize);
+    PubKey.Y.SubWord(1);
+    if CnEd448VerifyData(@B, 1, Sig, PubKey, nil, Ed) then Exit;
+
+    // R 也必须是非零主子群点，不能只校验公钥 A。
+    PubKey.Assign(Ed.Generator);
+    Ed.SetNeutualPoint(Sig.R);
+    Sig.S.SetZero;
+    if CnEd448VerifyData(@B, 1, Sig, PubKey, nil, Ed) then Exit;
+
+    // Ed448 的 57 字节编码含 7 个未使用高位，y >= p 必须在解码阶段拒绝。
+    FillChar(D[0], SizeOf(D), $FF);
+    D[High(D)] := $7F;
+    Rejected := False;
+    try
+      PubKey.LoadFromData(D);
+    except
+      on ECnEccException do Rejected := True;
+    end;
+    if not Rejected then Exit;
+
+    // x=0 时符号位为 1 也是非规范编码。
+    FillChar(D[0], SizeOf(D), 0);
+    D[0] := 1;
+    D[High(D)] := $80;
+    Rejected := False;
+    try
+      PubKey.LoadFromData(D);
+    except
+      on ECnEccException do Rejected := True;
+    end;
+    if not Rejected then Exit;
+
+    Result := True;
+  finally
+    Sig.Free;
+    PubKey.Free;
     Ed.Free;
   end;
 end;

@@ -2694,6 +2694,36 @@ begin
   BigNumberKeepLowBits(Num, (CN_448_EDWARDS_BLOCK_BYTESIZE - 1) * 8);   // 最高字节置 0
 end;
 
+// 严格验证外部传入的 EdDSA 点。仅检查“在曲线上”或仅乘余因子都不够：
+// 单位元和小阶点会被余因子消掉，含扭率分量的混合阶点也不属于基点生成的主子群。
+// 因而同时要求坐标规范、点非单位元，并满足 [L]P = 0，其中 L 是基点的素数阶。
+function CnEdDSAIsStrictVerificationPoint(Curve: TCnTwistedEdwardsCurve;
+  Point: TCnEccPoint): Boolean;
+var
+  Q: TCnEccPoint;
+begin
+  Result := False;
+  if (Curve = nil) or (Point = nil) then
+    Exit;
+
+  if BigNumberIsNegative(Point.X) or BigNumberIsNegative(Point.Y)
+    or (BigNumberCompare(Point.X, Curve.FiniteFieldSize) >= 0)
+    or (BigNumberCompare(Point.Y, Curve.FiniteFieldSize) >= 0) then
+    Exit;
+
+  if not Curve.IsPointOnCurve(Point) or Curve.IsNeutualPoint(Point) then
+    Exit;
+
+  Q := TCnEccPoint.Create;
+  try
+    Q.Assign(Point);
+    Curve.MultiplePoint(Curve.Order, Q);
+    Result := Curve.IsNeutualPoint(Q);
+  finally
+    Q.Free;
+  end;
+end;
+
 function CnEd448SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignature: TCnEd448Signature;
   const UserContext: TBytes; Ed448: TCnEd448): Boolean;
@@ -2842,6 +2872,12 @@ begin
     // RFC 8032 §5.2.7：S 必须满足 0 <= S < L
     if (InSignature.S = nil) or BigNumberIsNegative(InSignature.S)
       or (BigNumberCompare(InSignature.S, Ed448.Order) >= 0) then
+      Exit;
+
+    // 公钥 A 和签名点 R 必须是规范编码所代表的非零主子群点。
+    // 否则单位元/小阶点会在下面乘余因子 4 时消失，形成通用签名伪造。
+    if not CnEdDSAIsStrictVerificationPoint(Ed448, PublicKey)
+      or not CnEdDSAIsStrictVerificationPoint(Ed448, InSignature.R) then
       Exit;
 
     // 验证 4*S*基点 是否 = 4*R点 + 4*Hash(R57位||公钥点57位||明文) * 公钥点
@@ -3374,9 +3410,14 @@ begin
 
     Result := BigNumberSquareRootModPrime(OutX, Y, FFiniteFieldSize);
 
-    // 算出 X 了
-    if Result and OutX.IsBitSet(0) <> XOdd then
-      BigNumberSub(OutX, FFiniteFieldSize, OutX);
+    // 算出 X 了。RFC 8032 要求 x = 0 时符号位必须为 0，否则同一点会有两个编码。
+    if Result then
+    begin
+      if OutX.IsZero and XOdd then
+        Result := False
+      else if OutX.IsBitSet(0) <> XOdd then
+        BigNumberSub(OutX, FFiniteFieldSize, OutX);
+    end;
   finally
     FBigNumberPool.Recycle(Inv);
     FBigNumberPool.Recycle(Y);
@@ -5042,6 +5083,12 @@ begin
       or (BigNumberCompare(InSignature.S, Ed25519.Order) >= 0) then
       Exit;
 
+    // 公钥 A 和签名点 R 必须是规范编码所代表的非零主子群点。
+    // 否则单位元/小阶点会在下面乘余因子 8 时消失，形成通用签名伪造。
+    if not CnEdDSAIsStrictVerificationPoint(Ed25519, PublicKey)
+      or not CnEdDSAIsStrictVerificationPoint(Ed25519, InSignature.R) then
+      Exit;
+
     // 验证 8*S*基点 是否 = 8*R点 + 8*Hash(R32位||公钥点32位||明文) * 公钥点
     L := TCnEccPoint.Create;
     R := TCnEccPoint.Create;
@@ -6391,6 +6438,11 @@ begin
 
   // 先从 Plain 中还原 Y 坐标以及 X 点的奇偶性
   CnEd448DataToPoint(Plain, OutPoint, XOdd);
+
+  // RFC 8032 §5.2.3：清除符号位后的 y 必须小于 p。
+  // Ed448 的 57 字节编码还包含 7 个未使用高位，非零时也会由此被拒绝。
+  if BigNumberCompare(OutPoint.Y, FFiniteFieldSize) >= 0 then
+    raise ECnEccException.Create(SCnErrorPointNotOnCurve);
 
   // 再求解 X 坐标
   if not CalcXFromY(OutPoint.Y, OutPoint.X, XOdd) then

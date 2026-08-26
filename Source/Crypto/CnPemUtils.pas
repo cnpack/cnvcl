@@ -191,6 +191,32 @@ function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Poi
    返回值：Boolean                        - 返回对齐内容是否去除成功
 }
 
+function RemovePKCS1PaddingByType(InData: Pointer; InDataByteLen: Integer;
+  ExpectedPaddingType: Integer; OutBuf: Pointer; OutBufByteLen: Integer;
+  out OutByteLen: Integer): Boolean;
+{* 严格按调用方指定的块类型去除 PKCS#1 v1.5 填充。输入格式必须完整符合
+   EB = 00 || BT || PS || 00 || D。
+
+   只接受类型 1（CN_PKCS1_BLOCK_TYPE_PRIVATE_FF）或类型 2
+   （CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM）。类型 1 的每个 PS 字节必须为 FF；
+   类型 2 的每个 PS 字节必须非零；两种类型的 PS 均不得少于 8 字节。
+   函数扫描完整输入块，并检查输出缓冲区容量，不自动接受输入中声明的其他块类型。
+
+   注意：该函数通过 Boolean 返回填充有效性，本身不是隐式拒绝接口。对不可信网络密文
+   不应把返回值、错误信息或处理时间直接暴露给远端调用者。
+
+   参数：
+     InData: Pointer                      - 完整 PKCS#1 v1.5 编码块的起始地址，不可为空
+     InDataByteLen: Integer               - 完整编码块的总字节长度，最少为 11
+     ExpectedPaddingType: Integer         - 期待的块类型，只能为上述类型 1 或类型 2
+     OutBuf: Pointer                      - 接收去除填充后数据 D 的输出缓冲区，不可为空
+     OutBufByteLen: Integer               - OutBuf 实际可写容量，单位为字节，不可为负数
+     out OutByteLen: Integer              - 成功时返回 D 的字节长度；失败时固定返回 0
+
+   返回值：Boolean                        - 块类型、PS、分隔符和输出容量全部有效时返回 True；
+                                            任一检查失败均返回 False，且不复制输出数据
+}
+
 function GetPKCS7PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
 {* 根据原始长度与块长度计算 PKCS7 对齐后的长度。
 
@@ -474,110 +500,69 @@ begin
   Result := True;
 end;
 
-function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Pointer;
+function RemovePKCS1PaddingByType(InData: Pointer; InDataByteLen: Integer;
+  ExpectedPaddingType: Integer; OutBuf: Pointer; OutBufByteLen: Integer;
   out OutByteLen: Integer): Boolean;
 var
-  P: PAnsiChar;
-  I: Integer;
-  Good: Integer;            // 累积有效标志 (0=无效, 1=有效)
-  LeadingZeros: Integer;
-  PaddingType: Byte;
-  SepPos: Integer;         // 分隔符位置（数据起始偏移）
-  FoundSep: Integer;       // 是否已找到分隔符 (0/1)
-  IsType0: Integer;        // PaddingType = 0 时的掩码
-  IsType1or2: Integer;     // PaddingType = 1 or 2 时的掩码
-  Cond: Integer;           // 通用条件表达式
-  NotYetFound: Integer;    // 当前字节尚未找到分隔符的标志
-  InPaddingRange: Integer; // 当前字节在填充/数据区域内的标志
-  HitType0: Integer;       // Type 0 分隔符命中
-  HitType1or2: Integer;    // Type 1/2 分隔符命中
-  Hit: Integer;            // 本字节命中分隔符
-  PadLen: Integer;
-  B: Byte;
+  P: PByteArray;
+  I, Good, FoundSep, SepPos, BeforeSep, IsZero, Hit, BadPad, DataLen: Integer;
 begin
-  // 常量时间去填充：始终遍历全部字节，用整数 OR 累积错误标志
-  // 避免 Bleichenbacher 变体计时攻击
   Result := False;
   OutByteLen := 0;
-  Good := 1; // 默认有效，遇到非法条件 OR 置 0
+  if (InData = nil) or (OutBuf = nil) or (InDataByteLen < 11)
+    or (OutBufByteLen < 0)
+    or not (ExpectedPaddingType in [CN_PKCS1_BLOCK_TYPE_PRIVATE_FF,
+      CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM]) then
+    Exit;
 
-  // PKCS#1 v1.5 最少 11 字节: 00 + type + >=8 pad + sep + >=1 data
-  Cond := Ord(InDataByteLen >= 11);
-  Good := Good and Cond;
-
-  P := PAnsiChar(InData);
-
-  // 第一个字节必须是 0x00（前导字节固定，常量时间判断）
-  // 不计算连续前导零，因为 Type 0 的类型字节本身也是 0x00，
-  // 会与前导零混淆。PKCS#1 规定前导字节固定为一个 0x00。
-  if InDataByteLen >= 2 then
-    Cond := Ord(Ord(P[0]) = 0)
-  else
-    Cond := 0;
-  Good := Good and Cond;
-  LeadingZeros := 1;
-
-  // 读取 PaddingType
-  if InDataByteLen >= 2 then
-    PaddingType := Ord(P[LeadingZeros])
-  else
-    PaddingType := 0;
-
-  // PaddingType 合法性（常量时间，不使用 if/else 分支）
-  IsType0 := Ord(PaddingType = CN_PKCS1_BLOCK_TYPE_PRIVATE_00);
-  IsType1or2 := Ord((PaddingType = CN_PKCS1_BLOCK_TYPE_PRIVATE_FF)
-    or (PaddingType = CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM));
-  Good := Good and (IsType0 or IsType1or2);
-
-  // 常量时间单遍遍历：始终遍历从 1 到 InDataByteLen-1 全部字节，
-  // 跳过前导零区域的条件用掩码实现，保证无论 LeadingZeros 值如何，
-  // 循环迭代次数完全固定
-  SepPos := 0;
+  P := PByteArray(InData);
+  Good := Ord(P^[0] = 0) and Ord(P^[1] = ExpectedPaddingType);
   FoundSep := 0;
+  SepPos := 0;
+  BadPad := 0;
 
-  for I := 1 to InDataByteLen - 1 do
+  // 对整个剩余块做单遍扫描。类型 1 的 PS 必须逐字节为 FF；类型 2 的
+  // 第一个 00 是分隔符，因此在它之前的所有字节按定义均为非零。
+  for I := 2 to InDataByteLen - 1 do
   begin
-    B := Ord(P[I]);
+    BeforeSep := 1 - FoundSep;
+    IsZero := Ord(P^[I] = 0);
+    Hit := BeforeSep and IsZero;
+    SepPos := SepPos + I * Hit;
 
-    // 前导零区域的字节跳过（J <= LeadingZeros 时仍在前导零范围）
-    NotYetFound := 1 - FoundSep;
-    InPaddingRange := Ord(I > LeadingZeros) and NotYetFound;
+    if ExpectedPaddingType = CN_PKCS1_BLOCK_TYPE_PRIVATE_FF then
+      BadPad := BadPad or (BeforeSep and (1 - IsZero) and Ord(P^[I] <> $FF));
 
-    // 是否在本字节命中分隔符
-    HitType0 := IsType0 and Ord(B <> 0) and InPaddingRange;
-    HitType1or2 := IsType1or2 and Ord(B = 0) and InPaddingRange;
-    Hit := HitType0 or HitType1or2;
-
-    // 记录分隔符位置：Type 0 = J, Type 1/2 = J+1
-    // 注意：不能用 (J and HitType0)，因为 Pascal 的 and 是按位与，
-    // 当 J 较大时 (J and 1) 只取最低位。用乘法实现"命中时累加"，
-    // HitType0/HitType1or2 均为 {0,1}，乘积为 0 或 J/(J+1)
-    SepPos := SepPos + I * HitType0 + (I + 1) * HitType1or2;
-
-    // 更新 FoundSep（下一轮使用）
     FoundSep := FoundSep or Hit;
   end;
 
-  // 必须找到了分隔符
-  Good := Good and FoundSep;
+  Good := Good and FoundSep and Ord(BadPad = 0);
+  Good := Good and Ord(SepPos >= 10); // 00 || BT || 至少 8 字节 PS || 00
+  DataLen := InDataByteLen - SepPos - 1;
+  Good := Good and Ord(DataLen >= 0) and Ord(DataLen <= OutBufByteLen);
 
-  // Type 1/2 填充长度至少 8 字节（RFC 3447 §9.1.2）
-  // Type 0: 数据起始 = SepPos，填充区 [LeadingZeros+1 .. SepPos-1]，长度 = SepPos - LeadingZeros - 1
-  // Type 1/2: 分隔符 0x00 在 SepPos-1，填充区 [LeadingZeros+1 .. SepPos-2]，长度 = SepPos - LeadingZeros - 2
-  PadLen := SepPos - LeadingZeros - 1 - IsType1or2;
-  Good := Good and (IsType0 or Ord(PadLen >= 8));
-
-  // SepPos 必须在合法范围内
-  Good := Good and Ord(SepPos > LeadingZeros);
-  Good := Good and Ord(SepPos < InDataByteLen);
-
-  // 仅当验证全部通过时，将数据复制到输出缓冲区
-  if (OutBuf <> nil) and (Good = 1) then
+  if Good = 1 then
   begin
-    Move(P[SepPos], OutBuf^, InDataByteLen - SepPos);
-    OutByteLen := InDataByteLen - SepPos;
+    if DataLen > 0 then
+      Move(P^[SepPos + 1], OutBuf^, DataLen);
+    OutByteLen := DataLen;
     Result := True;
   end;
+end;
+
+function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Pointer;
+  out OutByteLen: Integer): Boolean;
+var
+  PaddingType: Integer;
+begin
+  Result := False;
+  OutByteLen := 0;
+  if (InData = nil) or (InDataByteLen < 2) then
+    Exit;
+
+  PaddingType := PByteArray(InData)^[1];
+  Result := RemovePKCS1PaddingByType(InData, InDataByteLen, PaddingType,
+    OutBuf, InDataByteLen, OutByteLen);
 end;
 
 function GetPKCS7PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;

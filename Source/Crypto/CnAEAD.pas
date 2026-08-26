@@ -83,14 +83,27 @@ const
   CN_GCM_NONCE_LENGTH = 12;
   {* 12 字节的 Nonce 与计数器拼成完整的 Iv}
 
+  // TUInt64 在 Delphi 5/6/7 兼容分支中是 Int64；使用 CnNative 的
+  // 可移植正数上限，避免依赖 High(Int64) 的编译器行为。
+  CN_GHASH_MAX_BYTE_LENGTH = $0FFFFFFFFFFFFFFF;
+  {* GHASH 末块以 64 位无符号数记录位长度，因此单个输入域最多为此字节数}
+
+  CN_GCM_MAX_DATA_BYTE_LENGTH = (TUInt64(1) shl 36) - 32;
+  {* SP 800-38D 对单次 GCM 明文/密文规定的上限：(2^32 - 2) 个 16 字节块}
+
   CN_CCM_M_LEN = 8;
-  {* CCM 认证 Tag 默认长 12 字节，取值范围 4 到 16，实际存放的是 (M - 2) / 2}
+  {* CCM 认证 Tag 默认长 8 字节，取值范围为 4、6、8、10、12、14、16 字节，
+     B0 的 M' 字段实际编码的是 (M - 2) / 2}
 
   CN_CCM_L_LEN = 2;
   {* 明文长度所占的字节数，取值范围 2 到 8，8 代表 Int64，实际存放的是 L - 1}
 
   CN_CCM_NONCE = 15 - CN_CCM_L_LEN;
   {* CCM 的 Nonce 长度}
+
+  CN_CCM_MAX_DATA_BYTE_LENGTH = (TUInt64(1) shl (8 * CN_CCM_L_LEN)) - 1;
+  {* CCM 的 L 字节长度域所能无截断表示的最大 Payload 字节数。
+     对本单元的分离标签 API，它等于明文长度和实际密文主体长度，独立 Tag 不计入此上限}
 
 type
   ECnAEADError = class(Exception);
@@ -109,8 +122,8 @@ type
   {* 用于多次分块计算的 GHash128 上下文结构}
     HashKey:     TCn128BitsBuffer;
     State:       TCn128BitsBuffer;
-    AADByteLen:  Integer;
-    DataByteLen: Integer;
+    AADByteLen:  TUInt64;
+    DataByteLen: TUInt64;
     Buf:         TCn128BitsBuffer;
     BufLen:      Integer;
   end;
@@ -1202,6 +1215,26 @@ resourcestring
   {* XChaCha20 密钥长度非法}
   SCnErrorAEADXChaCha20Poly1305IVLength = 'Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.';
   {* XChaCha20-Poly1305 的 IV 长度非法}
+  SCnErrorAEADBufferLengthNegative = '%s Byte Length must not be negative: %d.';
+  {* AEAD 缓冲区长度不能为负数}
+  SCnErrorAEADBufferNilPositiveLength = '%s must not be nil when Byte Length is positive.';
+  {* AEAD 正长度缓冲区不能为 nil}
+  SCnErrorAEADGCMDataTooLong = '%s is too long for one GCM invocation: %d bytes.';
+  {* 单次 GCM 输入长度超出上限}
+  SCnErrorAEADGHASHDataTooLong = 'GHASH Data is too long: %d bytes.';
+  {* GHASH 数据长度超出上限}
+  SCnErrorAEADGHASHAADTooLong = 'GHASH AAD is too long: %d bytes.';
+  {* GHASH AAD 长度超出上限}
+  SCnErrorAEADGHASHContextDataOverflow = 'Invalid GHASH context or accumulated Data length overflow.';
+  {* GHASH 上下文非法或累计数据长度溢出}
+  SCnErrorAEADGHASHContextInvalid = 'Invalid or overflowed GHASH context.';
+  {* GHASH 上下文非法或已溢出}
+  SCnErrorAEADGCMIVLengthNegative = 'GCM Iv Byte Length must not be negative: %d.';
+  {* GCM IV 长度不能为负数}
+  SCnErrorAEADGCMOutputTagLengthOverflow = 'GCM ciphertext and Tag length overflow.';
+  {* GCM 密文和 Tag 总长度溢出}
+  SCnErrorAEADCCMNonceLengthNegative = 'CCM Nonce Length must not be negative: %d.';
+  {* CCM Nonce 长度不能为负数}
 
 const
   GHASH_POLY: TCn128BitsBuffer = ($E1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -1219,6 +1252,40 @@ type
     aetAES256: (ExpandedKey256: TCnAESExpandedKey256);
     aetSM4:    (SM4Context: TCnSM4Context);
   end;
+
+procedure ValidateAEADBuffer(Buffer: Pointer; ByteLength: Integer;
+  const BufferName: string);
+begin
+  if ByteLength < 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADBufferLengthNegative,
+      [BufferName, ByteLength]);
+  if (ByteLength > 0) and (Buffer = nil) then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADBufferNilPositiveLength,
+      [BufferName]);
+end;
+
+procedure ValidateGCMDataLength(ByteLength: Integer; const BufferName: string);
+begin
+  if ByteLength < 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADBufferLengthNegative,
+      [BufferName, ByteLength]);
+  if UInt64Compare(TUInt64(ByteLength), CN_GCM_MAX_DATA_BYTE_LENGTH) > 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADGCMDataTooLong,
+      [BufferName, ByteLength]);
+end;
+
+procedure ValidateCCMPayloadLength(ByteLength: Integer; IsCiphertext: Boolean);
+begin
+  // CCM 的 Q 字段编码 Payload 长度。分离标签 API 的密文长度仅指密文主体，
+  // 其值与对应明文长度相同，不能把独立的 Tag 长度加进来或从中减去。
+  if UInt64Compare(TUInt64(ByteLength), CN_CCM_MAX_DATA_BYTE_LENGTH) <= 0 then
+    Exit;
+
+  if IsCiphertext then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADCCMEnDataTooLong, [ByteLength])
+  else
+    raise ECnAEADError.CreateFmt(SCnErrorAEADCCMPlainDataTooLong, [ByteLength]);
+end;
 
 // 注意此处判断字节内 Bit 的顺序也是字节内的高位是 0
 function AeadIsBitSet(AMem: Pointer; N: Integer): Boolean;
@@ -1277,79 +1344,89 @@ procedure GHash128(var HashKey: TCnGHash128Key; Data: Pointer; DataByteLength: I
   AAD: Pointer; AADByteLength: Integer; var OutTag: TCnGHash128Tag);
 var
   AL, DL: Integer;
-  AL64, DL64: Int64;
+  AL64, DL64: TUInt64;
   X, Y, H: TCn128BitsBuffer;
 begin
-  // 对比 GHash(H, A, C)，Data 是 C，AAD 是 A，Key 是 H
-  // 按 16 字节分，C 有 m 块，A 有 n 块（末块都可能不满），
-  // 共有 m + n 轮针对数据的 GaloisMulBlock，再加一轮位长度
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(Data, DataByteLength, 'GHASH Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'GHASH AAD');
+  if UInt64Compare(TUInt64(DataByteLength), CN_GHASH_MAX_BYTE_LENGTH) > 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADGHASHDataTooLong, [DataByteLength]);
+  if UInt64Compare(TUInt64(AADByteLength), CN_GHASH_MAX_BYTE_LENGTH) > 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADGHASHAADTooLong, [AADByteLength]);
 
-  FillChar(X[0], SizeOf(TCn128BitsBuffer), 0);  // 初始全 0
-  Move(HashKey[0], H[0], SizeOf(TCn128BitsBuffer));
+  FillChar(X[0], SizeOf(X), 0);
+  FillChar(Y[0], SizeOf(Y), 0);
+  FillChar(H[0], SizeOf(H), 0);
+  try
+    // 对比 GHash(H, A, C)，Data 是 C，AAD 是 A，Key 是 H
+    Move(HashKey[0], H[0], SizeOf(H));
 
-  AL := AADByteLength;
-  DL := DataByteLength;
-  if Data = nil then
-    DL := 0;
-  if AAD = nil then
-    AL := 0;
+    AL := AADByteLength;
+    DL := DataByteLength;
 
-  // 算整块 A
-  while AL >= CN_AEAD_BLOCK do
-  begin
-    Move(AAD^, Y[0], CN_AEAD_BLOCK);
+    // 算整块 A
+    while AL >= CN_AEAD_BLOCK do
+    begin
+      Move(AAD^, Y[0], CN_AEAD_BLOCK);
 
-    MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, H, X);  // 一轮计算结果再次放入 X
+      MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, H, X);  // 一轮计算结果再次放入 X
 
-    AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
-    Dec(AL, CN_AEAD_BLOCK);
-  end;
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
+      Dec(AL, CN_AEAD_BLOCK);
+    end;
 
-  // 算余块 A，如果有的话
-  if AL > 0 then
-  begin
+    // 算余块 A，如果有的话
+    if AL > 0 then
+    begin
+      FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
+      Move(AAD^, Y[0], AL);
+
+      MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, H, X);
+    end;
+
+    // 算整块 C
+    while DL >= CN_AEAD_BLOCK do
+    begin
+      Move(Data^, Y[0], CN_AEAD_BLOCK);
+
+      MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, H, X);  // 一轮计算结果再次放入 X
+
+      Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
+      Dec(DL, CN_AEAD_BLOCK);
+    end;
+
+    // 算余块 C，如果有的话
+    if DL > 0 then
+    begin
+      FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
+      Move(Data^, Y[0], DL);
+
+      MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, H, X);
+    end;
+
+    // 最后再算一轮长度，A 和 C 各八字节拼起来，拼接要求符合网络标准与阅读习惯也就是 BigEndian
     FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-    Move(AAD^, Y[0], AL);
+    // 必须先扩展到 64 位再乘 8，不能让 Integer 在赋值前溢出。
+    AL64 := UInt64HostToNetwork(TUInt64(AADByteLength) * 8);
+    DL64 := UInt64HostToNetwork(TUInt64(DataByteLength) * 8);
+
+    Move(AL64, Y[0], SizeOf(TUInt64));
+    Move(DL64, Y[SizeOf(TUInt64)], SizeOf(TUInt64));
 
     MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, H, X);
+    GMulBlock128(Y, H, X); // 再乘一轮
+
+    Move(X[0], OutTag[0], SizeOf(TCnGHash128Tag));
+  finally
+    MemorySafeZero(@X[0], SizeOf(X));
+    MemorySafeZero(@Y[0], SizeOf(Y));
+    MemorySafeZero(@H[0], SizeOf(H));
   end;
-
-  // 算整块 C
-  while DL >= CN_AEAD_BLOCK do
-  begin
-    Move(Data^, Y[0], CN_AEAD_BLOCK);
-
-    MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, H, X);  // 一轮计算结果再次放入 X
-
-    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
-    Dec(DL, CN_AEAD_BLOCK);
-  end;
-
-  // 算余块 C，如果有的话
-  if DL > 0 then
-  begin
-    FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-    Move(Data^, Y[0], DL);
-
-    MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, H, X);
-  end;
-
-  // 最后再算一轮长度，A 和 C 各四字节拼起来，拼接要求符合网络标准与阅读习惯也就是 BigEndian
-  FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-  AL64 := Int64HostToNetwork(AADByteLength * 8);
-  DL64 := Int64HostToNetwork(DataByteLength * 8);
-
-  Move(AL64, Y[0], SizeOf(Int64));
-  Move(DL64, Y[SizeOf(Int64)], SizeOf(Int64));
-
-  MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-  GMulBlock128(Y, H, X); // 再乘一轮
-
-  Move(X[0], OutTag[0], SizeOf(TCnGHash128Tag));
 end;
 
 function GHash128Bytes(var HashKey: TCnGHash128Key; Data, AAD: TBytes): TCnGHash128Tag;
@@ -1374,37 +1451,43 @@ procedure GHash128Start(var Ctx: TCnGHash128Context; var HashKey: TCnGHash128Key
 var
   Y: TCn128BitsBuffer;
 begin
-  FillChar(Ctx.State[0], SizeOf(TCn128BitsBuffer), 0);  // 初始全 0
-  Move(HashKey[0], Ctx.HashKey[0], SizeOf(TCn128BitsBuffer));
-  FillChar(Ctx.Buf[0], SizeOf(TCn128BitsBuffer), 0);
-  Ctx.BufLen := 0;
+  FillChar(Ctx, SizeOf(Ctx), 0);
+  FillChar(Y[0], SizeOf(Y), 0);
+  try
+    ValidateAEADBuffer(AAD, AADByteLength, 'GHASH AAD');
+    if UInt64Compare(TUInt64(AADByteLength), CN_GHASH_MAX_BYTE_LENGTH) > 0 then
+      raise ECnAEADError.CreateFmt(SCnErrorAEADGHASHAADTooLong, [AADByteLength]);
 
-  Ctx.DataByteLen := 0;
-  Ctx.AADByteLen := AADByteLength;
-  if AAD = nil then
-    Ctx.AADByteLen := 0;
+    Move(HashKey[0], Ctx.HashKey[0], SizeOf(TCn128BitsBuffer));
+    Ctx.AADByteLen := TUInt64(AADByteLength);
 
-  // 算整块 A
-  while AADByteLength >= CN_AEAD_BLOCK do
-  begin
-    Move(AAD^, Y[0], CN_AEAD_BLOCK);
+    // 算整块 A
+    while AADByteLength >= CN_AEAD_BLOCK do
+    begin
+      Move(AAD^, Y[0], CN_AEAD_BLOCK);
 
-    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
+      MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
 
-    AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
-    Dec(AADByteLength, CN_AEAD_BLOCK);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
+      Dec(AADByteLength, CN_AEAD_BLOCK);
+    end;
+
+    // 算余块 A，如果有的话
+    if AADByteLength > 0 then
+    begin
+      FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
+      Move(AAD^, Y[0], AADByteLength);
+
+      MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+    end;
+  except
+    MemorySafeZero(@Ctx, SizeOf(Ctx));
+    MemorySafeZero(@Y[0], SizeOf(Y));
+    raise;
   end;
-
-  // 算余块 A，如果有的话
-  if AADByteLength > 0 then
-  begin
-    FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-    Move(AAD^, Y[0], AADByteLength);
-
-    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, Ctx.HashKey, Ctx.State);
-  end;
+  MemorySafeZero(@Y[0], SizeOf(Y));
 end;
 
 procedure GHash128Update(var Ctx: TCnGHash128Context; Data: Pointer; DataByteLength: Integer);
@@ -1412,76 +1495,100 @@ var
   Y: TCn128BitsBuffer;
   Need: Integer;
 begin
-  if (Data = nil) or (DataByteLength <= 0) then
+  if DataByteLength = 0 then
     Exit;
 
-  Ctx.DataByteLen := Ctx.DataByteLen + DataByteLength;
+  FillChar(Y[0], SizeOf(Y), 0);
+  try
+    try
+      ValidateAEADBuffer(Data, DataByteLength, 'GHASH Data');
+      if (Ctx.BufLen < 0) or (Ctx.BufLen >= CN_AEAD_BLOCK) or
+        (UInt64Compare(Ctx.DataByteLen, CN_GHASH_MAX_BYTE_LENGTH) > 0) or
+        (UInt64Compare(TUInt64(DataByteLength),
+          CN_GHASH_MAX_BYTE_LENGTH - Ctx.DataByteLen) > 0) then
+        raise ECnAEADError.Create(SCnErrorAEADGHASHContextDataOverflow);
 
-  if Ctx.BufLen > 0 then
-  begin
-    Need := CN_AEAD_BLOCK - Ctx.BufLen;
-    if Need > DataByteLength then
-      Need := DataByteLength;
+      Ctx.DataByteLen := Ctx.DataByteLen + TUInt64(DataByteLength);
 
-    Move(Data^, Ctx.Buf[Ctx.BufLen], Need);
-    Inc(Ctx.BufLen, Need);
+      if Ctx.BufLen > 0 then
+      begin
+        Need := CN_AEAD_BLOCK - Ctx.BufLen;
+        if Need > DataByteLength then
+          Need := DataByteLength;
+        Move(Data^, Ctx.Buf[Ctx.BufLen], Need);
+        Inc(Ctx.BufLen, Need);
+        Data := Pointer(TCnNativeUInt(Data) + TCnNativeUInt(Need));
+        Dec(DataByteLength, Need);
 
-    Data := Pointer(TCnNativeUInt(Data) + TCnNativeUInt(Need));
-    Dec(DataByteLength, Need);
+        if Ctx.BufLen = CN_AEAD_BLOCK then
+        begin
+          Move(Ctx.Buf[0], Y[0], CN_AEAD_BLOCK);
+          MemoryXor(@Y[0], @Ctx.State[0], SizeOf(Y), @Y[0]);
+          GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+          Ctx.BufLen := 0;
+        end
+        else
+          Exit;
+      end;
 
-    if Ctx.BufLen = CN_AEAD_BLOCK then
-    begin
-      Move(Ctx.Buf[0], Y[0], CN_AEAD_BLOCK);
-      MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-      GMulBlock128(Y, Ctx.HashKey, Ctx.State);
-      Ctx.BufLen := 0;
-    end
-    else
-      Exit;
+      while DataByteLength >= CN_AEAD_BLOCK do
+      begin
+        Move(Data^, Y[0], CN_AEAD_BLOCK);
+        MemoryXor(@Y[0], @Ctx.State[0], SizeOf(Y), @Y[0]);
+        GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+        Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
+        Dec(DataByteLength, CN_AEAD_BLOCK);
+      end;
+
+      if DataByteLength > 0 then
+        Move(Data^, Ctx.Buf[0], DataByteLength);
+      Ctx.BufLen := DataByteLength;
+    except
+      MemorySafeZero(@Ctx, SizeOf(Ctx));
+      raise;
+    end;
+  finally
+    MemorySafeZero(@Y[0], SizeOf(Y));
   end;
-
-  while DataByteLength >= CN_AEAD_BLOCK do
-  begin
-    Move(Data^, Y[0], CN_AEAD_BLOCK);
-
-    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
-
-    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
-    Dec(DataByteLength, CN_AEAD_BLOCK);
-  end;
-
-  // 保留余块 C，如果有的话
-  if DataByteLength > 0 then
-    Move(Data^, Ctx.Buf[0], DataByteLength);
-  Ctx.BufLen := DataByteLength;
 end;
 
 procedure GHash128Finish(var Ctx: TCnGHash128Context; var Output: TCnGHash128Tag);
 var
   Y: TCn128BitsBuffer;
-  AL64, DL64: Int64;
+  AL64, DL64: TUInt64;
 begin
-  if Ctx.BufLen > 0 then
-  begin
+  FillChar(Output[0], SizeOf(Output), 0);
+  FillChar(Y[0], SizeOf(Y), 0);
+  try
+    if (Ctx.BufLen < 0) or (Ctx.BufLen >= CN_AEAD_BLOCK) or
+      (UInt64Compare(Ctx.AADByteLen, CN_GHASH_MAX_BYTE_LENGTH) > 0) or
+      (UInt64Compare(Ctx.DataByteLen, CN_GHASH_MAX_BYTE_LENGTH) > 0) then
+      raise ECnAEADError.Create(SCnErrorAEADGHASHContextInvalid);
+
+    if Ctx.BufLen > 0 then
+    begin
+      Move(Ctx.Buf[0], Y[0], Ctx.BufLen);
+      MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+    end;
+
+    // 最后再算一轮长度，A 和 C 各八字节拼起来
     FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-    Move(Ctx.Buf[0], Y[0], Ctx.BufLen);
+    AL64 := UInt64HostToNetwork(Ctx.AADByteLen * 8);
+    DL64 := UInt64HostToNetwork(Ctx.DataByteLen * 8);
+
+    Move(AL64, Y[0], SizeOf(TUInt64));
+    Move(DL64, Y[SizeOf(TUInt64)], SizeOf(TUInt64));
+
     MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
     GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+
+    Move(Ctx.State[0], Output[0], SizeOf(TCnGHash128Tag));
+  finally
+    MemorySafeZero(@Y[0], SizeOf(Y));
+    // Finish 消耗上下文；无论成功或异常均不保留 Hash 子密钥和累计状态。
+    MemorySafeZero(@Ctx, SizeOf(Ctx));
   end;
-
-  // 最后再算一轮长度，A 和 C 各四字节拼起来
-  FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-  AL64 := Int64HostToNetwork(Ctx.AADByteLen * 8);
-  DL64 := Int64HostToNetwork(Ctx.DataByteLen * 8);
-
-  Move(AL64, Y[0], SizeOf(Int64));
-  Move(DL64, Y[SizeOf(Int64)], SizeOf(Int64));
-
-  MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-  GMulBlock128(Y, Ctx.HashKey, Ctx.State); // 再乘一轮，
-
-  Move(Ctx.State[0], Output[0], SizeOf(TCnGHash128Tag)); // 结果放 Output
 end;
 
 // 根据对称加密算法类型初始化加密密钥结构，注意不需要解密密钥结构
@@ -1493,6 +1600,10 @@ var
   Key256: TCnAESKey256;
   SM4Key: TCnSM4Key;
 begin
+  FillChar(Key128[0], SizeOf(Key128), 0);
+  FillChar(Key192[0], SizeOf(Key192), 0);
+  FillChar(Key256[0], SizeOf(Key256), 0);
+  FillChar(SM4Key[0], SizeOf(SM4Key), 0);
   // 严格校验密钥长度，禁止静默补零或截断导致密钥强度被无声降级
   case EncryptType of
     aetAES128:
@@ -1515,27 +1626,34 @@ begin
 
   FillChar(Context, SizeOf(TAEADContext), 0);
 
-  case EncryptType of
-    aetAES128:
-      begin
-        MoveMost(Key^, Key128[0], KeyByteLength, SizeOf(TCnAESKey128));
-        ExpandAESKeyForEncryption128(Key128, Context.ExpandedKey128);
-      end;
-    aetAES192:
-      begin
-        MoveMost(Key^, Key192[0], KeyByteLength, SizeOf(TCnAESKey192));
-        ExpandAESKeyForEncryption192(Key192, Context.ExpandedKey192);
-      end;
-    aetAES256:
-      begin
-        MoveMost(Key^, Key256[0], KeyByteLength, SizeOf(TCnAESKey256));
-        ExpandAESKeyForEncryption256(Key256, Context.ExpandedKey256);
-      end;
-    aetSM4:
-      begin
-        MoveMost(Key^, SM4Key[0], KeyByteLength, SizeOf(TCnSM4Key));
-        SM4SetKeyEnc(Context.SM4Context, @SM4Key[0]);
-      end;
+  try
+    case EncryptType of
+      aetAES128:
+        begin
+          MoveMost(Key^, Key128[0], KeyByteLength, SizeOf(TCnAESKey128));
+          ExpandAESKeyForEncryption128(Key128, Context.ExpandedKey128);
+        end;
+      aetAES192:
+        begin
+          MoveMost(Key^, Key192[0], KeyByteLength, SizeOf(TCnAESKey192));
+          ExpandAESKeyForEncryption192(Key192, Context.ExpandedKey192);
+        end;
+      aetAES256:
+        begin
+          MoveMost(Key^, Key256[0], KeyByteLength, SizeOf(TCnAESKey256));
+          ExpandAESKeyForEncryption256(Key256, Context.ExpandedKey256);
+        end;
+      aetSM4:
+        begin
+          MoveMost(Key^, SM4Key[0], KeyByteLength, SizeOf(TCnSM4Key));
+          SM4SetKeyEnc(Context.SM4Context, @SM4Key[0]);
+        end;
+    end;
+  finally
+    MemorySafeZero(@Key128[0], SizeOf(Key128));
+    MemorySafeZero(@Key192[0], SizeOf(Key192));
+    MemorySafeZero(@Key256[0], SizeOf(Key256));
+    MemorySafeZero(@SM4Key[0], SizeOf(SM4Key));
   end;
 end;
 
@@ -1563,100 +1681,124 @@ var
   C: TCn128BitsBuffer;     // 加密中间数据存储地
   AeadCtx: TAEADContext;
   GHashCtx: TCnGHash128Context;
+  OrigEnData: Pointer;
+  OrigPlainByteLength: Integer;
+  Completed: Boolean;
 begin
-  if Key = nil then
-    KeyByteLength := 0;
-  if Iv = nil then
-    IvByteLength := 0;
-  if AAD = nil then
-    AADByteLength := 0;
-
-  // 拒绝空 IV，空 IV 会退化为 J0 = 0 的确定性加密，
-  // 同一密钥下所有消息共用密钥流
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(PlainData, PlainByteLength, 'GCM Plain Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'GCM AAD');
+  ValidateAEADBuffer(EnData, PlainByteLength, 'GCM Output');
+  ValidateGCMDataLength(PlainByteLength, 'GCM Plain Data');
+  if IvByteLength < 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADGCMIVLengthNegative,
+      [IvByteLength]);
   if (Iv = nil) or (IvByteLength <= 0) then
-    raise ECnAEADError.Create('GCM Iv Byte Length must be Positive.');
+    raise ECnAEADError.Create(SCnErrorAEADGCMIVLength);
 
-  AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
-
-  // 计算 Enc(Key, 128 个 0)，得到 H
+  OrigEnData := EnData;
+  OrigPlainByteLength := PlainByteLength;
+  Completed := False;
   FillChar(H[0], SizeOf(H), 0);
-  AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(H), TCn128BitsBuffer(H), EncryptType);
+  FillChar(Y[0], SizeOf(Y), 0);
+  FillChar(Y0[0], SizeOf(Y0), 0);
+  FillChar(C[0], SizeOf(C), 0);
+  FillChar(AeadCtx, SizeOf(AeadCtx), 0);
+  FillChar(GHashCtx, SizeOf(GHashCtx), 0);
+  try
+    AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
-  // 初始化计数器，以后 Cnt 自增并塞进 Y 的后 32 位中
-  if IvByteLength = CN_GCM_NONCE_LENGTH then
-  begin
-    Move(Iv^, Y[0], CN_GCM_NONCE_LENGTH);
-    Cnt := 1;
-    M := UInt32HostToNetwork(Cnt);
-    Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
-  end
-  else
-  begin
-    GHash128(H, Iv, IvByteLength, nil, 0, TCnGHash128Tag(Y));
-    Move(Y[CN_GCM_NONCE_LENGTH], Cnt, SizeOf(Cardinal));
-    ReverseMemory(@Cnt, SizeOf(Cardinal));
+    // 计算 Enc(Key, 128 个 0)，得到 H
+    FillChar(H[0], SizeOf(H), 0);
+    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(H), TCn128BitsBuffer(H), EncryptType);
+
+    // 初始化计数器，以后 Cnt 自增并塞进 Y 的后 32 位中
+    if IvByteLength = CN_GCM_NONCE_LENGTH then
+    begin
+      Move(Iv^, Y[0], CN_GCM_NONCE_LENGTH);
+      Cnt := 1;
+      M := UInt32HostToNetwork(Cnt);
+      Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
+    end
+    else
+    begin
+      GHash128(H, Iv, IvByteLength, nil, 0, TCnGHash128Tag(Y));
+      Move(Y[CN_GCM_NONCE_LENGTH], Cnt, SizeOf(Cardinal));
+      ReverseMemory(@Cnt, SizeOf(Cardinal));
+    end;
+
+    // 先把最开始的 Y 值的加密结果计算出来
+    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), TCn128BitsBuffer(Y0), EncryptType);
+
+    // 初始化 GHash
+    GHash128Start(GHashCtx, H, AAD, AADByteLength);
+
+    // 开始循环加密整块
+    while PlainByteLength >= CN_AEAD_BLOCK do
+    begin
+      // 递增计数器并更新 Y
+      Inc(Cnt);
+      M := UInt32HostToNetwork(Cnt);
+      Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
+
+      // 对 Y 加密 C 暂时得到本块的加密结果
+      AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
+
+      // 和明文异或，C 得到异或后的结果，完整块
+      MemoryXor(PlainData, @C[0], SizeOf(TCn128BitsBuffer), @C[0]);
+
+      // 存起密文
+      Move(C[0], EnData^, SizeOf(TCn128BitsBuffer));
+
+      // C 进行 GHash
+      GHash128Update(GHashCtx, @C[0], SizeOf(TCn128BitsBuffer));
+
+      // 准备下一步
+      PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
+      EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
+      Dec(PlainByteLength, CN_AEAD_BLOCK);
+    end;
+
+    if PlainByteLength > 0 then
+    begin
+      // 递增计数器并更新 Y
+      Inc(Cnt);
+      M := UInt32HostToNetwork(Cnt);
+      Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
+
+      // 对 Y 加密 C 暂时得到本块的加密结果
+      AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
+
+      // 和明文异或，C 得到异或后的结果，但长度只有 PlainByteLength
+      MemoryXor(PlainData, @C[0], PlainByteLength, @C[0]);
+
+      // 存起密文，完毕
+      Move(C[0], EnData^, PlainByteLength);
+
+      // C 进行 GHash
+      GHash128Update(GHashCtx, @C[0], PlainByteLength);
+    end;
+
+    // 算出最终 GHash 的 Tag
+    GHash128Finish(GHashCtx, TCnGHash128Tag(OutTag));
+
+    // 再和开始的内容异或得到最终 Tag
+    MemoryXor(@OutTag[0], @Y0[0], SizeOf(TCnGHash128Tag), @OutTag[0]);
+    Completed := True;
+  finally
+    MemorySafeZero(@H[0], SizeOf(H));
+    MemorySafeZero(@Y[0], SizeOf(Y));
+    MemorySafeZero(@Y0[0], SizeOf(Y0));
+    MemorySafeZero(@C[0], SizeOf(C));
+    MemorySafeZero(@GHashCtx, SizeOf(GHashCtx));
+    MemorySafeZero(@AeadCtx, SizeOf(AeadCtx));
+    if not Completed then
+    begin
+      FillChar(OutTag[0], SizeOf(OutTag), 0);
+      if (OrigEnData <> nil) and (OrigPlainByteLength > 0) then
+        MemorySafeZero(OrigEnData, OrigPlainByteLength);
+    end;
   end;
-
-  // 先把最开始的 Y 值的加密结果计算出来
-  AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), TCn128BitsBuffer(Y0), EncryptType);
-
-  // 初始化 GHash
-  GHash128Start(GHashCtx, H, AAD, AADByteLength);
-
-  // 开始循环加密整块
-  while PlainByteLength >= CN_AEAD_BLOCK do
-  begin
-    // 递增计数器并更新 Y
-    Inc(Cnt);
-    M := UInt32HostToNetwork(Cnt);
-    Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
-
-    // 对 Y 加密 C 暂时得到本块的加密结果
-    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
-
-    // 和明文异或，C 得到异或后的结果，完整块
-    MemoryXor(PlainData, @C[0], SizeOf(TCn128BitsBuffer), @C[0]);
-
-    // 存起密文
-    Move(C[0], EnData^, SizeOf(TCn128BitsBuffer));
-
-    // C 进行 GHash
-    GHash128Update(GHashCtx, @C[0], SizeOf(TCn128BitsBuffer));
-
-    // 准备下一步
-    PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
-    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
-    Dec(PlainByteLength, CN_AEAD_BLOCK);
-  end;
-
-  if PlainByteLength > 0 then
-  begin
-    // 递增计数器并更新 Y
-    Inc(Cnt);
-    M := UInt32HostToNetwork(Cnt);
-    Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
-
-    // 对 Y 加密 C 暂时得到本块的加密结果
-    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
-
-    // 和明文异或，C 得到异或后的结果，但长度只有 PlainByteLength
-    MemoryXor(PlainData, @C[0], PlainByteLength, @C[0]);
-
-    // 存起密文，完毕
-    Move(C[0], EnData^, PlainByteLength);
-
-    // C 进行 GHash
-    GHash128Update(GHashCtx, @C[0], PlainByteLength);
-  end;
-
-  // 算出最终 GHash 的 Tag
-  GHash128Finish(GHashCtx, TCnGHash128Tag(OutTag));
-
-  // 再和开始的内容异或得到最终 Tag
-  MemoryXor(@OutTag[0], @Y0[0], SizeOf(TCnGHash128Tag), @OutTag[0]);
-  MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
-  // 出口擦除扩展轮密钥，防止栈残留被后续利用
-  MemorySafeZero(@AeadCtx, SizeOf(TAEADContext));
 end;
 
 // 根据 Key、Iv、明文和附加数据，计算 GCM 加密密文与认证结果
@@ -1677,138 +1819,134 @@ var
   TempBuf: Pointer;         // 临时缓冲区，先验证 Tag 后再拷贝到输出
   TempPlain: Pointer;       // 临时缓冲区的游标指针
 begin
+  Result := False;
   OrigEnByteLength := EnByteLength;
-  if Key = nil then
-    KeyByteLength := 0;
-  if Iv = nil then
-    IvByteLength := 0;
-  if AAD = nil then
-    AADByteLength := 0;
-
-  // 拒绝空 IV，与加密端保持一致的参数约束
+  ValidateAEADBuffer(EnData, EnByteLength, 'GCM Encrypted Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'GCM AAD');
+  ValidateAEADBuffer(PlainData, EnByteLength, 'GCM Output');
+  ValidateGCMDataLength(EnByteLength, 'GCM Encrypted Data');
+  if IvByteLength < 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADGCMIVLengthNegative,
+      [IvByteLength]);
   if (Iv = nil) or (IvByteLength <= 0) then
-    raise ECnAEADError.Create('GCM Iv Byte Length must be Positive.');
+    raise ECnAEADError.Create(SCnErrorAEADGCMIVLength);
 
   OldPlain := PlainData;
-
-  // 分配临时缓冲区，解密结果先写入此处，避免未认证数据暴露在输出缓冲区
   TempBuf := nil;
-  if EnByteLength > 0 then
-  begin
-    TempBuf := GetMemory(EnByteLength);
-    if TempBuf = nil then
-    begin
-      Result := False;
-      Exit;
-    end;
-  end;
-  TempPlain := TempBuf;
-
-  AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
-
-  // 计算 Enc(Key, 128 个 0)，得到 H
+  TempPlain := nil;
   FillChar(H[0], SizeOf(H), 0);
-  AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(H), TCn128BitsBuffer(H), EncryptType);
+  FillChar(Y[0], SizeOf(Y), 0);
+  FillChar(Y0[0], SizeOf(Y0), 0);
+  FillChar(C[0], SizeOf(C), 0);
+  FillChar(Tag[0], SizeOf(Tag), 0);
+  FillChar(AeadCtx, SizeOf(AeadCtx), 0);
+  FillChar(GHashCtx, SizeOf(GHashCtx), 0);
+  try
+    // 解密结果只进入临时缓冲区，认证成功后才提交给调用方。
+    if EnByteLength > 0 then
+    begin
+      TempBuf := GetMemory(EnByteLength);
+      if TempBuf = nil then
+        Exit;
+    end;
+    TempPlain := TempBuf;
 
-  // 初始化计数器，以后 Cnt 自增并塞进 Y 的后 32 位中
-  if IvByteLength = CN_GCM_NONCE_LENGTH then
-  begin
-    Move(Iv^, Y[0], CN_GCM_NONCE_LENGTH);
-    Cnt := 1;
-    M := Int32HostToNetwork(Cnt);
-    Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
-  end
-  else
-  begin
-    GHash128(H, Iv, IvByteLength, nil, 0, TCnGHash128Tag(Y));
-    Move(Y[CN_GCM_NONCE_LENGTH], Cnt, SizeOf(Cardinal));
-    ReverseMemory(@Cnt, SizeOf(Cardinal));
-  end;
+    AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
-  // 先把最开始的 Y 值的加密结果计算出来
-  AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), TCn128BitsBuffer(Y0), EncryptType);
+    // 计算 Enc(Key, 128 个 0)，得到 H
+    FillChar(H[0], SizeOf(H), 0);
+    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(H), TCn128BitsBuffer(H), EncryptType);
 
-  // 初始化 GHash
-  GHash128Start(GHashCtx, H, AAD, AADByteLength);
+    // 初始化计数器，以后 Cnt 自增并塞进 Y 的后 32 位中
+    if IvByteLength = CN_GCM_NONCE_LENGTH then
+    begin
+      Move(Iv^, Y[0], CN_GCM_NONCE_LENGTH);
+      Cnt := 1;
+      M := Int32HostToNetwork(Cnt);
+      Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
+    end
+    else
+    begin
+      GHash128(H, Iv, IvByteLength, nil, 0, TCnGHash128Tag(Y));
+      Move(Y[CN_GCM_NONCE_LENGTH], Cnt, SizeOf(Cardinal));
+      ReverseMemory(@Cnt, SizeOf(Cardinal));
+    end;
 
-  // 开始循环加密整块
-  while EnByteLength >= CN_AEAD_BLOCK do
-  begin
-    // 递增计数器并更新 Y
-    Inc(Cnt);
-    M := UInt32HostToNetwork(Cnt);
-    Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
+    // 先把最开始的 Y 值的加密结果计算出来
+    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), TCn128BitsBuffer(Y0), EncryptType);
 
-    // 密文先进行 GHash
-    GHash128Update(GHashCtx, EnData, SizeOf(TCn128BitsBuffer));
+    // 初始化 GHash
+    GHash128Start(GHashCtx, H, AAD, AADByteLength);
 
-    // 对 Y 加密 C 暂时得到本块的加密结果
-    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
+    // 开始循环加密整块
+    while EnByteLength >= CN_AEAD_BLOCK do
+    begin
+      // 递增计数器并更新 Y
+      Inc(Cnt);
+      M := UInt32HostToNetwork(Cnt);
+      Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
 
-    // 和密文异或，C 得到异或后的结果，完整块
-    MemoryXor(EnData, @C[0], SizeOf(TCn128BitsBuffer), @C[0]);
+      // 密文先进行 GHash
+      GHash128Update(GHashCtx, EnData, SizeOf(TCn128BitsBuffer));
 
-    // 存起明文到临时缓冲区
-    Move(C[0], TempPlain^, SizeOf(TCn128BitsBuffer));
+      // 对 Y 加密 C 暂时得到本块的加密结果
+      AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
 
-    // 准备下一步
-    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
-    TempPlain := Pointer(TCnNativeUInt(TempPlain) + CN_AEAD_BLOCK);
-    Dec(EnByteLength, CN_AEAD_BLOCK);
-  end;
+      // 和密文异或，C 得到异或后的结果，完整块
+      MemoryXor(EnData, @C[0], SizeOf(TCn128BitsBuffer), @C[0]);
 
-  if EnByteLength > 0 then
-  begin
-    // 递增计数器并更新 Y
-    Inc(Cnt);
-    M := UInt32HostToNetwork(Cnt);
-    Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
+      // 存起明文到临时缓冲区
+      Move(C[0], TempPlain^, SizeOf(TCn128BitsBuffer));
 
-    // 密文先进行 GHash
-    GHash128Update(GHashCtx, EnData, EnByteLength);
+      // 准备下一步
+      EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
+      TempPlain := Pointer(TCnNativeUInt(TempPlain) + CN_AEAD_BLOCK);
+      Dec(EnByteLength, CN_AEAD_BLOCK);
+    end;
 
-    // 对 Y 加密 C 暂时得到本块的加密结果
-    AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
+    if EnByteLength > 0 then
+    begin
+      // 递增计数器并更新 Y
+      Inc(Cnt);
+      M := UInt32HostToNetwork(Cnt);
+      Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
 
-    // 和密文异或，C 得到异或后的结果，但长度只有 EnByteLength
-    MemoryXor(EnData, @C[0], EnByteLength, @C[0]);
+      // 密文先进行 GHash
+      GHash128Update(GHashCtx, EnData, EnByteLength);
 
-    // 存起明文到临时缓冲区，完毕
-    Move(C[0], TempPlain^, EnByteLength);
-  end;
+      // 对 Y 加密 C 暂时得到本块的加密结果
+      AEADEncryptBlock(AeadCtx, TCn128BitsBuffer(Y), C, EncryptType);
 
-  // 算出最终 GHash 的 Tag
-  GHash128Finish(GHashCtx, TCnGHash128Tag(Tag));
+      // 和密文异或，C 得到异或后的结果，但长度只有 EnByteLength
+      MemoryXor(EnData, @C[0], EnByteLength, @C[0]);
 
-  // 再和开始的内容异或得到最终 Tag
-  MemoryXor(@Tag[0], @Y0[0], SizeOf(TCnGHash128Tag), @Tag[0]);
+      // 存起明文到临时缓冲区，完毕
+      Move(C[0], TempPlain^, EnByteLength);
+    end;
 
-  // 先验证 Tag，通过后才将明文复制到输出缓冲区
-  Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
-  if Result then
-  begin
-    // Tag 验证通过，将临时缓冲区中的明文复制到输出
-    if (OldPlain <> nil) and (OrigEnByteLength > 0) then
+    // 算出最终 GHash 的 Tag
+    GHash128Finish(GHashCtx, TCnGHash128Tag(Tag));
+
+    // 再和开始的内容异或得到最终 Tag
+    MemoryXor(@Tag[0], @Y0[0], SizeOf(TCnGHash128Tag), @Tag[0]);
+
+    // 先验证 Tag，通过后才将明文复制到输出缓冲区
+    Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
+    if Result and (OrigEnByteLength > 0) then
       Move(TempBuf^, OldPlain^, OrigEnByteLength);
-    // 成功路径同样必须擦除临时缓冲区：拷出后堆块中仍留有完整明文，
-    // FreeMemory 后残留直至该块被复用，可被堆扫描/转储回收
+  finally
     if (TempBuf <> nil) and (OrigEnByteLength > 0) then
       MemorySafeZero(TempBuf, OrigEnByteLength);
-  end
-  else
-  begin
-    // Tag 验证失败，擦除临时缓冲区中的明文
-    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
-      MemorySafeZero(TempBuf, OrigEnByteLength);
+    if TempBuf <> nil then
+      FreeMemory(TempBuf);
+    MemorySafeZero(@H[0], SizeOf(H));
+    MemorySafeZero(@Y[0], SizeOf(Y));
+    MemorySafeZero(@Y0[0], SizeOf(Y0));
+    MemorySafeZero(@C[0], SizeOf(C));
+    MemorySafeZero(@Tag[0], SizeOf(Tag));
+    MemorySafeZero(@GHashCtx, SizeOf(GHashCtx));
+    MemorySafeZero(@AeadCtx, SizeOf(AeadCtx));
   end;
-
-  // 释放临时缓冲区
-  if TempBuf <> nil then
-    FreeMemory(TempBuf);
-
-  MemorySafeZero(@H[0], SizeOf(TCnGHash128Key));
-  // 出口擦除扩展轮密钥，防止栈残留被后续利用
-  MemorySafeZero(@AeadCtx, SizeOf(TAEADContext));
 end;
 
 function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag;
@@ -1946,10 +2084,22 @@ procedure AESGCMNoPaddingEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Po
   AADByteLength: Integer; OutEnData: Pointer);
 var
   OutTag: TCnGCM128Tag;
+  TotalByteLength: Integer;
 begin
-  GCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
-    AAD, AADByteLength, OutEnData, OutTag, aetAES256);
-  Move(OutTag[0], Pointer(TCnIntAddress(OutEnData) +PlainByteLength)^, SizeOf(TCnGCM128Tag));
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(PlainData, PlainByteLength, 'GCM Plain Data');
+  if PlainByteLength > High(Integer) - SizeOf(TCnGCM128Tag) then
+    raise ECnAEADError.Create(SCnErrorAEADGCMOutputTagLengthOverflow);
+  TotalByteLength := PlainByteLength + SizeOf(TCnGCM128Tag);
+  ValidateAEADBuffer(OutEnData, TotalByteLength, 'GCM Output and Tag');
+  try
+    GCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
+      AAD, AADByteLength, OutEnData, OutTag, aetAES256);
+    Move(OutTag[0], Pointer(TCnIntAddress(OutEnData) + PlainByteLength)^,
+      SizeOf(TCnGCM128Tag));
+  finally
+    MemorySafeZero(@OutTag[0], SizeOf(OutTag));
+  end;
 end;
 
 function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
@@ -2010,85 +2160,119 @@ function AESGCMNoPaddingDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Poi
 var
   InTag: TCnGCM128Tag;
 begin
+  FillChar(InTag[0], SizeOf(InTag), 0);
+  ValidateAEADBuffer(EnData, EnByteLength, 'GCM Encrypted Data and Tag');
   if EnByteLength < SizeOf(TCnGCM128Tag) then // 太短说明没 Tag
   begin
     Result := False;
     Exit;
   end;
 
-  Move(Pointer(TCnIntAddress(EnData) + EnByteLength - SizeOf(TCnGCM128Tag))^, InTag[0], SizeOf(TCnGCM128Tag));
-  Result := GCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength - SizeOf(TCnGCM128Tag),
-    AAD, AADByteLength, OutPlainData, InTag, aetAES256);
+  ValidateAEADBuffer(OutPlainData, EnByteLength - SizeOf(TCnGCM128Tag), 'GCM Output');
+  try
+    Move(Pointer(TCnIntAddress(EnData) + EnByteLength - SizeOf(TCnGCM128Tag))^,
+      InTag[0], SizeOf(TCnGCM128Tag));
+    Result := GCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData,
+      EnByteLength - SizeOf(TCnGCM128Tag), AAD, AADByteLength, OutPlainData,
+      InTag, aetAES256);
+  finally
+    MemorySafeZero(@InTag[0], SizeOf(InTag));
+  end;
 end;
 
-procedure CMAC128(var Key: TCnCMAC128Key; Data: Pointer; DataByteLength: Integer;
+procedure CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer; DataByteLength: Integer;
   EncryptType: TAEADEncryptType; var OutTag: TCnCMAC128Tag);
 var
   K1, K2: TCnCMAC128Key;
   L, X, Y: TCn128BitsBuffer;
   AeadCtx: TAEADContext;
   LastFull: Boolean;
+  Completed: Boolean;
 begin
-  AEADEncryptInit(AeadCtx, @Key[0], Length(Key), EncryptType);
-
-  // 计算 Enc(Key, 128 个 0)，得到 L
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(Data, DataByteLength, 'CMAC Data');
+  Completed := False;
+  FillChar(K1[0], SizeOf(K1), 0);
+  FillChar(K2[0], SizeOf(K2), 0);
   FillChar(L[0], SizeOf(L), 0);
-  AEADEncryptBlock(AeadCtx, L, L, EncryptType);
+  FillChar(X[0], SizeOf(X), 0);
+  FillChar(Y[0], SizeOf(Y), 0);
+  FillChar(AeadCtx, SizeOf(AeadCtx), 0);
+  try
+    AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
-  // 根据 L 计算俩子密钥
-  MemoryShiftLeft(@L[0], @K1[0], SizeOf(TCnCMAC128Key), 1);
-  if AeadIsBitSet(@L[0], 0) then
-    MemoryXor(@K1[0], @CMAC_POLY[0], SizeOf(TCnCMAC128Key), @K1[0]);
+    // 计算 Enc(Key, 128 个 0)，得到 L
+    FillChar(L[0], SizeOf(L), 0);
+    AEADEncryptBlock(AeadCtx, L, L, EncryptType);
 
-  MemoryShiftLeft(@K1[0], @K2[0], SizeOf(TCnCMAC128Key), 1);
-  if AeadIsBitSet(@K1[0], 0) then
-    MemoryXor(@K2[0], @CMAC_POLY[0], SizeOf(TCnCMAC128Key), @K2[0]);
+    // 根据 L 计算俩子密钥
+    MemoryShiftLeft(@L[0], @K1[0], SizeOf(TCnCMAC128Key), 1);
+    if AeadIsBitSet(@L[0], 0) then
+      MemoryXor(@K1[0], @CMAC_POLY[0], SizeOf(TCnCMAC128Key), @K1[0]);
 
-  // 开始分块计算，末块要额外处理
-  LastFull := (DataByteLength mod CN_AEAD_BLOCK) = 0;
+    MemoryShiftLeft(@K1[0], @K2[0], SizeOf(TCnCMAC128Key), 1);
+    if AeadIsBitSet(@K1[0], 0) then
+      MemoryXor(@K2[0], @CMAC_POLY[0], SizeOf(TCnCMAC128Key), @K2[0]);
 
-  // 算整块 A
-  FillChar(X[0], SizeOf(TCn128BitsBuffer), 0);
-  while DataByteLength >= CN_AEAD_BLOCK do
-  begin
-    Move(Data^, L[0], CN_AEAD_BLOCK); // 复用 L 作为每块原始数据
-    if LastFull and (DataByteLength = CN_AEAD_BLOCK) then // 最后一个整块
+    // 开始分块计算，末块要额外处理
+    LastFull := (DataByteLength mod CN_AEAD_BLOCK) = 0;
+
+    // 算整块 A
+    FillChar(X[0], SizeOf(TCn128BitsBuffer), 0);
+    while DataByteLength >= CN_AEAD_BLOCK do
     begin
-      MemoryXor(@K1[0], @L[0], CN_AEAD_BLOCK, @L[0]);
-      MemoryXor(@X[0], @L[0], CN_AEAD_BLOCK, @Y[0]);
-      AEADEncryptBlock(AeadCtx, Y, TCn128BitsBuffer(OutTag), EncryptType); // 算出最终 Tag
-      Exit;
+      Move(Data^, L[0], CN_AEAD_BLOCK); // 复用 L 作为每块原始数据
+      if LastFull and (DataByteLength = CN_AEAD_BLOCK) then // 最后一个整块
+      begin
+        MemoryXor(@K1[0], @L[0], CN_AEAD_BLOCK, @L[0]);
+        MemoryXor(@X[0], @L[0], CN_AEAD_BLOCK, @Y[0]);
+        AEADEncryptBlock(AeadCtx, Y, TCn128BitsBuffer(OutTag), EncryptType); // 算出最终 Tag
+        Completed := True;
+        Exit;
+      end;
+
+      MemoryXor(@L[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      AEADEncryptBlock(AeadCtx, Y, X, EncryptType); // 一轮计算结果再次放入 X
+
+      Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
+      Dec(DataByteLength, CN_AEAD_BLOCK);
     end;
 
-    MemoryXor(@L[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    AEADEncryptBlock(AeadCtx, Y, X, EncryptType); // 一轮计算结果再次放入 X
+    FillChar(L[0], SizeOf(TCn128BitsBuffer), 0);
+    if DataByteLength > 0 then
+    Move(Data^, L[0], DataByteLength);
+    L[DataByteLength] := $80;         // 最后一块非整块，加上 Padding
 
-    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
-    Dec(DataByteLength, CN_AEAD_BLOCK);
+    MemoryXor(@K2[0], @L[0], CN_AEAD_BLOCK, @L[0]);
+    MemoryXor(@X[0], @L[0], CN_AEAD_BLOCK, @Y[0]);
+    AEADEncryptBlock(AeadCtx, Y, TCn128BitsBuffer(OutTag), EncryptType); // 算出最终 Tag
+    Completed := True;
+  finally
+    MemorySafeZero(@K1[0], SizeOf(K1));
+    MemorySafeZero(@K2[0], SizeOf(K2));
+    MemorySafeZero(@L[0], SizeOf(L));
+    MemorySafeZero(@X[0], SizeOf(X));
+    MemorySafeZero(@Y[0], SizeOf(Y));
+    MemorySafeZero(@AeadCtx, SizeOf(AeadCtx));
+    if not Completed then
+      FillChar(OutTag[0], SizeOf(OutTag), 0);
   end;
-
-  FillChar(L[0], SizeOf(TCn128BitsBuffer), 0);
-  if DataByteLength > 0 then
-  Move(Data^, L[0], DataByteLength);
-  L[DataByteLength] := $80;         // 最后一块非整块，加上 Padding
-
-  MemoryXor(@K2[0], @L[0], CN_AEAD_BLOCK, @L[0]);
-  MemoryXor(@X[0], @L[0], CN_AEAD_BLOCK, @Y[0]);
-  AEADEncryptBlock(AeadCtx, Y, TCn128BitsBuffer(OutTag), EncryptType); // 算出最终 Tag
 end;
 
 function CMAC128Bytes(Key, Data: TBytes; EncryptType: TAEADEncryptType): TCnCMAC128Tag;
 var
-  D: Pointer;
-  Key128: TCnCMAC128Key;
+  K, D: Pointer;
 begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
   if Data = nil then
     D := nil
   else
     D := @Data[0];
 
-  MoveMost128(Key[0], Key128[0], Length(Key));
-  CMAC128(Key128, D, Length(Data), EncryptType, Result);
+  CMAC128(K, Length(Key), D, Length(Data), EncryptType, Result);
 end;
 
 function AES128CMAC128Bytes(Key, Data: TBytes): TCnCMAC128Tag;
@@ -2113,38 +2297,26 @@ end;
 
 function AES128CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-var
-  Key128: TCnCMAC128Key;
 begin
-  MoveMost128(Key^, Key128[0], KeyByteLength);
-  CMAC128(Key128, Data, DataByteLength, aetAES128, Result);
+  CMAC128(Key, KeyByteLength, Data, DataByteLength, aetAES128, Result);
 end;
 
 function AES192CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-var
-  Key128: TCnCMAC128Key;
 begin
-  MoveMost128(Key^, Key128[0], KeyByteLength);
-  CMAC128(Key128, Data, DataByteLength, aetAES192, Result);
+  CMAC128(Key, KeyByteLength, Data, DataByteLength, aetAES192, Result);
 end;
 
 function AES256CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-var
-  Key128: TCnCMAC128Key;
 begin
-  MoveMost128(Key^, Key128[0], KeyByteLength);
-  CMAC128(Key128, Data, DataByteLength, aetAES256, Result);
+  CMAC128(Key, KeyByteLength, Data, DataByteLength, aetAES256, Result);
 end;
 
 function SM4CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-var
-  Key128: TCnCMAC128Key;
 begin
-  MoveMost128(Key^, Key128[0], KeyByteLength);
-  CMAC128(Key128, Data, DataByteLength, aetSM4, Result);
+  CMAC128(Key, KeyByteLength, Data, DataByteLength, aetSM4, Result);
 end;
 
 procedure CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
@@ -2162,183 +2334,206 @@ var
   Ctr: TCn128BitsBuffer;  // CTR 的计数块
   Cnt, T: Int64;
   P: PByte;
+  OrigEnData: Pointer;
+  OrigDataByteLength: Integer;
+  Completed: Boolean;
 begin
-  if Key = nil then
-    KeyByteLength := 0;
-  if Nonce = nil then
-    NonceByteLength := 0;
-  if Data = nil then
-    DataByteLength := 0;
-  if AAD = nil then
-    AADByteLength := 0;
-
-  // 严格校验 Nonce 长度与明文长度上限，
-  // 静默补零 Nonce 会导致跨系统互通失败，超长明文会使 B0 长度域截断、
-  // CTR 计数器回绕重用密钥流（SP 800-38C 要求 len(P) < 2^(8L)）
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(Data, DataByteLength, 'CCM Plain Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'CCM AAD');
+  ValidateAEADBuffer(EnData, DataByteLength, 'CCM Output');
+  if NonceByteLength < 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADCCMNonceLengthNegative,
+      [NonceByteLength]);
   if (Nonce = nil) or (NonceByteLength <> CN_CCM_NONCE) then
-    raise ECnAEADError.CreateFmt('Invalid CCM Nonce Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADCCMNonceLength,
       [NonceByteLength, CN_CCM_NONCE]);
 
-  if DataByteLength > (1 shl (8 * CN_CCM_L_LEN)) - (1 shl (4 * CN_CCM_L_LEN)) then
-    raise ECnAEADError.CreateFmt('CCM Plain Data too Long: %d.', [DataByteLength]);
+  ValidateCCMPayloadLength(DataByteLength, False);
 
-  FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
-  FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
+  OrigEnData := EnData;
+  OrigDataByteLength := DataByteLength;
+  Completed := False;
+  FillChar(CMacCtx, SizeOf(CMacCtx), 0);
+  FillChar(CtrCtx, SizeOf(CtrCtx), 0);
+  FillChar(B0[0], SizeOf(B0), 0);
+  FillChar(CX[0], SizeOf(CX), 0);
+  FillChar(A0[0], SizeOf(A0), 0);
+  FillChar(S0[0], SizeOf(S0), 0);
+  FillChar(SX[0], SizeOf(SX), 0);
+  FillChar(Ctr[0], SizeOf(Ctr), 0);
+  try
+    FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
+    FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
 
-//   +----+-+-+-+-+-+-+-+-+    |L'(L) 决定
-//   | 位 |7|6|5|4|3|2|1|0|    |Nonce 的长度
-//   +----+-+-+-+-+-+-+-+-+
-//   |    |0|A|  M' |  L' |
-//   +----+-+-+-+-+-+-+-+-+
+    //   +----+-+-+-+-+-+-+-+-+    |L'(L) 决定
+    //   | 位 |7|6|5|4|3|2|1|0|    |Nonce 的长度
+    //   +----+-+-+-+-+-+-+-+-+
+    //   |    |0|A|  M' |  L' |
+    //   +----+-+-+-+-+-+-+-+-+
 
-  B0[0] := 4 * (CN_CCM_M_LEN - 2) + CN_CCM_L_LEN - 1;
-  if (AAD <> nil) and (AADByteLength > 0) then
-    B0[0] := B0[0] + 64;   // B0 块的第一个字节准备好，A 位是 1 表示有 AAD
+    B0[0] := 4 * (CN_CCM_M_LEN - 2) + CN_CCM_L_LEN - 1;
+    if (AAD <> nil) and (AADByteLength > 0) then
+      B0[0] := B0[0] + 64;   // B0 块的第一个字节准备好，A 位是 1 表示有 AAD
 
-  Ctr[0] := CN_CCM_L_LEN - 1;
+    Ctr[0] := CN_CCM_L_LEN - 1;
 
-  // 填充 15 - L 个 Nonce
-  MoveMost(Nonce^, B0[1], NonceByteLength, CN_CCM_NONCE);
-  MoveMost(Nonce^, Ctr[1], NonceByteLength, CN_CCM_NONCE);
+    // 填充 15 - L 个 Nonce
+    MoveMost(Nonce^, B0[1], NonceByteLength, CN_CCM_NONCE);
+    MoveMost(Nonce^, Ctr[1], NonceByteLength, CN_CCM_NONCE);
 
-  // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
-  P := PByte(@T);
-  Inc(P, SizeOf(Int64) - CN_CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
+    // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
+    P := PByte(@T);
+    Inc(P, SizeOf(Int64) - CN_CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
 
-  T := Int64HostToNetwork(DataByteLength);
-  Move(P^, B0[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+    T := Int64HostToNetwork(DataByteLength);
+    Move(P^, B0[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
 
-  // 初始化 CMAC/CTR 的 Key 等，准备做 CMAC/CTR
-  AEADEncryptInit(CMacCtx, Key, KeyByteLength, EncryptType);
-  AEADEncryptInit(CtrCtx, Key, KeyByteLength, EncryptType);
+    // 初始化 CMAC/CTR 的 Key 等，准备做 CMAC/CTR
+    AEADEncryptInit(CMacCtx, Key, KeyByteLength, EncryptType);
+    AEADEncryptInit(CtrCtx, Key, KeyByteLength, EncryptType);
 
-  // Ctr 的后八个字节是计数器，现初始化为 0，并且计算 S0 作为验证字段之一
-  Cnt := 0;
-  AEADEncryptBlock(CtrCtx, Ctr, S0, EncryptType);
+    // Ctr 的后八个字节是计数器，现初始化为 0，并且计算 S0 作为验证字段之一
+    Cnt := 0;
+    AEADEncryptBlock(CtrCtx, Ctr, S0, EncryptType);
 
-  // CMAC 先算 B0，中间结果放 CX，也就是 RFC 中的 CBC Iv Out
-  AEADEncryptBlock(CMacCtx, B0, CX, EncryptType);
+    // CMAC 先算 B0，中间结果放 CX，也就是 RFC 中的 CBC Iv Out
+    AEADEncryptBlock(CMacCtx, B0, CX, EncryptType);
 
-  // 有 AAD 的话接着造 A0
-  if (B0[0] and $40 <> 0) then
-  begin
-    FillChar(A0[0], CN_AEAD_BLOCK, 0);
-
-    if AADByteLength < $1000 - $100 then
+    // 有 AAD 的话接着造 A0
+    if (B0[0] and $40 <> 0) then
     begin
-      PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
+      FillChar(A0[0], CN_AEAD_BLOCK, 0);
 
-      // 第一块准备好，可能有塞不满、满以及超，三种情况
-      MoveMost(AAD^, A0[2], AADByteLength, CN_AEAD_BLOCK - 2);
+      if AADByteLength < $1000 - $100 then
+      begin
+        PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
 
-      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
-      MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+        // 第一块准备好，可能有塞不满、满以及超，三种情况
+        MoveMost(AAD^, A0[2], AADByteLength, CN_AEAD_BLOCK - 2);
 
-      // 递增准备处理后面的
-      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 2);
-      Dec(AADByteLength, CN_AEAD_BLOCK - 2);
-    end
-    else
-    begin
-      // A0[0] 前俩字节准备好
-      A0[0] := $FF;
-      A0[1] := $FE;
-      PCardinal(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
+        // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
-      // 第一块准备好，可能有塞不满、满以及超，三种情况
-      MoveMost(AAD^, A0[6], AADByteLength, CN_AEAD_BLOCK - 6);
+        // 递增准备处理后面的
+        AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 2);
+        Dec(AADByteLength, CN_AEAD_BLOCK - 2);
+      end
+      else
+      begin
+        // A0[0] 前俩字节准备好
+        A0[0] := $FF;
+        A0[1] := $FE;
+        PCardinal(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
 
-      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
-      MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+        // 第一块准备好，可能有塞不满、满以及超，三种情况
+        MoveMost(AAD^, A0[6], AADByteLength, CN_AEAD_BLOCK - 6);
 
-      // 递增准备处理后面的
-      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 6);
-      Dec(AADByteLength, CN_AEAD_BLOCK - 6);
+        // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+        // 递增准备处理后面的
+        AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 6);
+        Dec(AADByteLength, CN_AEAD_BLOCK - 6);
+      end;
+
+      // 不满或刚满的话，AADByteLength 此时小于等于 0，不继续
+      while AADByteLength >= CN_AEAD_BLOCK do
+      begin
+        Move(AAD^, A0[0], CN_AEAD_BLOCK);
+
+        // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+        // 递增准备处理后面的
+        AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
+        Dec(AADByteLength, CN_AEAD_BLOCK);
+      end;
+
+      if AADByteLength > 0 then // 还有剩余时才再多一块
+      begin
+        FillChar(A0[0], CN_AEAD_BLOCK, 0);
+        Move(AAD^, A0[0], AADByteLength);
+
+        // CMAC 最后一块
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+      end;
     end;
 
-    // 不满或刚满的话，AADByteLength 此时小于等于 0，不继续
-    while AADByteLength >= CN_AEAD_BLOCK do
+    // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
+    // 并且开始加密块
+    while DataByteLength >= CN_AEAD_BLOCK do
     begin
-      Move(AAD^, A0[0], CN_AEAD_BLOCK);
+      Move(Data^, A0[0], CN_AEAD_BLOCK); // 明文放 A0
+
+      // 计数器加一并生成加密块
+      Inc(Cnt);
+      T := Int64HostToNetwork(Cnt);
+      Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+
+      // 得到本块的加密结果，放 SX 中
+      AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+      // 并与明文异或得到密文
+      MemoryXor(@SX[0], @A0[0], CN_AEAD_BLOCK, EnData);
 
       // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
       MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
-      Dec(AADByteLength, CN_AEAD_BLOCK);
+      Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
+      EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
+      Dec(DataByteLength, CN_AEAD_BLOCK);
     end;
 
-    if AADByteLength > 0 then // 还有剩余时才再多一块
+    if DataByteLength > 0 then // 还有剩余时才再多一块
     begin
       FillChar(A0[0], CN_AEAD_BLOCK, 0);
-      Move(AAD^, A0[0], AADByteLength);
+      Move(Data^, A0[0], DataByteLength);
+
+      // 计数器加一并生成加密块
+      Inc(Cnt);
+      T := Int64HostToNetwork(Cnt);
+      Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+
+      // 得到本块的加密结果，放 SX 中
+      AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+      // 并与最后一块明文异或得到密文
+      MemoryXor(@SX[0], @A0[0], DataByteLength, EnData);
 
       // CMAC 最后一块
       MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
     end;
+
+    // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
+    MemoryXor(@CX[0], @S0[0], CN_AEAD_BLOCK, @CX[0]);
+
+    // 移动至 OutTag 中返回
+    FillChar(OutTag[0], SizeOf(TCnCCM128Tag), 0);
+    Move(CX[0], OutTag[0], CN_CCM_M_LEN);
+
+    Completed := True;
+  finally
+    MemorySafeZero(@CMacCtx, SizeOf(CMacCtx));
+    MemorySafeZero(@CtrCtx, SizeOf(CtrCtx));
+    MemorySafeZero(@B0[0], SizeOf(B0));
+    MemorySafeZero(@CX[0], SizeOf(CX));
+    MemorySafeZero(@A0[0], SizeOf(A0));
+    MemorySafeZero(@S0[0], SizeOf(S0));
+    MemorySafeZero(@SX[0], SizeOf(SX));
+    MemorySafeZero(@Ctr[0], SizeOf(Ctr));
+    if not Completed then
+    begin
+      FillChar(OutTag[0], SizeOf(OutTag), 0);
+      if (OrigEnData <> nil) and (OrigDataByteLength > 0) then
+        MemorySafeZero(OrigEnData, OrigDataByteLength);
+    end;
   end;
-
-  // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
-  // 并且开始加密块
-  while DataByteLength >= CN_AEAD_BLOCK do
-  begin
-    Move(Data^, A0[0], CN_AEAD_BLOCK); // 明文放 A0
-
-    // 计数器加一并生成加密块
-    Inc(Cnt);
-    T := Int64HostToNetwork(Cnt);
-    Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
-
-    // 得到本块的加密结果，放 SX 中
-    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
-    // 并与明文异或得到密文
-    MemoryXor(@SX[0], @A0[0], CN_AEAD_BLOCK, EnData);
-
-    // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
-    MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
-
-    // 递增准备处理后面的
-    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
-    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
-    Dec(DataByteLength, CN_AEAD_BLOCK);
-  end;
-
-  if DataByteLength > 0 then // 还有剩余时才再多一块
-  begin
-    FillChar(A0[0], CN_AEAD_BLOCK, 0);
-    Move(Data^, A0[0], DataByteLength);
-
-    // 计数器加一并生成加密块
-    Inc(Cnt);
-    T := Int64HostToNetwork(Cnt);
-    Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
-
-    // 得到本块的加密结果，放 SX 中
-    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
-    // 并与最后一块明文异或得到密文
-    MemoryXor(@SX[0], @A0[0], DataByteLength, EnData);
-
-    // CMAC 最后一块
-    MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
-  end;
-
-  // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
-  MemoryXor(@CX[0], @S0[0], CN_AEAD_BLOCK, @CX[0]);
-
-  // 移动至 OutTag 中返回
-  FillChar(OutTag[0], SizeOf(TCnCCM128Tag), 0);
-  Move(CX[0], OutTag[0], CN_CCM_M_LEN);
-
-  // 出口擦除 CMAC/CTR 扩展轮密钥
-  MemorySafeZero(@CMacCtx, SizeOf(TAEADContext));
-  MemorySafeZero(@CtrCtx, SizeOf(TAEADContext));
 end;
 
 function CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCnCCM128Tag;
@@ -2454,218 +2649,219 @@ var
   TempBuf: Pointer;         // 临时缓冲区，先验证 Tag 后再拷贝到输出
   TempPlain: Pointer;       // 临时缓冲区的游标指针
 begin
+  Result := False;
   OrigEnByteLength := EnByteLength;
-  if Key = nil then
-    KeyByteLength := 0;
-  if Nonce = nil then
-    NonceByteLength := 0;
-  if EnData = nil then
-    EnByteLength := 0;
-  if AAD = nil then
-    AADByteLength := 0;
-
-  // 严格校验 Nonce 长度与密文长度上限，与加密端保持一致
+  ValidateAEADBuffer(EnData, EnByteLength, 'CCM Encrypted Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'CCM AAD');
+  ValidateAEADBuffer(PlainData, EnByteLength, 'CCM Output');
+  if NonceByteLength < 0 then
+    raise ECnAEADError.CreateFmt(SCnErrorAEADCCMNonceLengthNegative,
+      [NonceByteLength]);
   if (Nonce = nil) or (NonceByteLength <> CN_CCM_NONCE) then
-    raise ECnAEADError.CreateFmt('Invalid CCM Nonce Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADCCMNonceLength,
       [NonceByteLength, CN_CCM_NONCE]);
 
-  if EnByteLength > (1 shl (8 * CN_CCM_L_LEN)) - (1 shl (4 * CN_CCM_L_LEN)) + CN_CCM_M_LEN then
-    raise ECnAEADError.CreateFmt('CCM En Data too Long: %d.', [EnByteLength]);
+  ValidateCCMPayloadLength(EnByteLength, True);
 
   OldPlain := PlainData;
 
   // 分配临时缓冲区，解密结果先写入此处，避免未认证数据暴露在输出缓冲区
   TempBuf := nil;
   TempPlain := nil;
-  if EnByteLength > 0 then
-  begin
-    TempBuf := GetMemory(EnByteLength);
-    if TempBuf = nil then
+  FillChar(CMacCtx, SizeOf(CMacCtx), 0);
+  FillChar(CtrCtx, SizeOf(CtrCtx), 0);
+  FillChar(B0[0], SizeOf(B0), 0);
+  FillChar(CX[0], SizeOf(CX), 0);
+  FillChar(A0[0], SizeOf(A0), 0);
+  FillChar(S0[0], SizeOf(S0), 0);
+  FillChar(SX[0], SizeOf(SX), 0);
+  FillChar(Ctr[0], SizeOf(Ctr), 0);
+  FillChar(Tag[0], SizeOf(Tag), 0);
+  try
+    if EnByteLength > 0 then
     begin
-      Result := False;
-      Exit;
-    end;
-    TempPlain := TempBuf;
-  end;
-
-  FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
-  FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
-
-//   +----+-+-+-+-+-+-+-+-+    |L'(L) 决定
-//   | 位 |7|6|5|4|3|2|1|0|    |Nonce 的长度
-//   +----+-+-+-+-+-+-+-+-+
-//   |    |0|A|  M' |  L' |
-//   +----+-+-+-+-+-+-+-+-+
-
-  B0[0] := 4 * (CN_CCM_M_LEN - 2) + CN_CCM_L_LEN - 1;
-  if (AAD <> nil) and (AADByteLength > 0) then
-    B0[0] := B0[0] + 64;   // B0 块的第一个字节准备好，A 位是 1 表示有 AAD
-
-  Ctr[0] := CN_CCM_L_LEN - 1;
-
-  // 填充 15 - L 个 Nonce
-  MoveMost(Nonce^, B0[1], NonceByteLength, CN_CCM_NONCE);
-  MoveMost(Nonce^, Ctr[1], NonceByteLength, CN_CCM_NONCE);
-
-  // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
-  P := PByte(@T);
-  Inc(P, SizeOf(Int64) - CN_CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
-
-  T := Int64HostToNetwork(EnByteLength);
-  Move(P^, B0[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
-
-  // 初始化 CMAC/CTR 的 Key 等，准备做 CMAC/CTR
-  AEADEncryptInit(CMacCtx, Key, KeyByteLength, EncryptType);
-  AEADEncryptInit(CtrCtx, Key, KeyByteLength, EncryptType);
-
-  // Ctr 的后八个字节是计数器，现初始化为 0，并且计算 S0 作为验证字段之一
-  Cnt := 0;
-  AEADEncryptBlock(CtrCtx, Ctr, S0, EncryptType);
-
-  // CMAC 先算 B0，中间结果放 CX，也就是 RFC 中的 CBC Iv Out
-  AEADEncryptBlock(CMacCtx, B0, CX, EncryptType);
-
-  // 有 AAD 的话接着造 A0
-  if (B0[0] and $40 <> 0) then
-  begin
-    FillChar(A0[0], CN_AEAD_BLOCK, 0);
-
-    if AADByteLength < $1000 - $100 then
-    begin
-      PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
-
-      // 第一块准备好，可能有塞不满、满以及超，三种情况
-      MoveMost(AAD^, A0[2], AADByteLength, CN_AEAD_BLOCK - 2);
-
-      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
-      MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
-
-      // 递增准备处理后面的
-      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 2);
-      Dec(AADByteLength, CN_AEAD_BLOCK - 2);
-    end
-    else
-    begin
-      // A0[0] 前俩字节准备好
-      A0[0] := $FF;
-      A0[1] := $FE;
-      PCardinal(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
-
-      // 第一块准备好，可能有塞不满、满以及超，三种情况
-      MoveMost(AAD^, A0[6], AADByteLength, CN_AEAD_BLOCK - 6);
-
-      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
-      MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
-
-      // 递增准备处理后面的
-      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 6);
-      Dec(AADByteLength, CN_AEAD_BLOCK - 6);
+      TempBuf := GetMemory(EnByteLength);
+      if TempBuf = nil then
+        Exit;
+      TempPlain := TempBuf;
     end;
 
-    // 不满或刚满的话，AADByteLength 此时小于等于 0，不继续
-    while AADByteLength >= CN_AEAD_BLOCK do
-    begin
-      Move(AAD^, A0[0], CN_AEAD_BLOCK);
+    FillChar(B0[0], SizeOf(TCn128BitsBuffer), 0);
+    FillChar(Ctr[0], SizeOf(TCn128BitsBuffer), 0);
 
-      // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
-      MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+    //   +----+-+-+-+-+-+-+-+-+    |L'(L) 决定
+    //   | 位 |7|6|5|4|3|2|1|0|    |Nonce 的长度
+    //   +----+-+-+-+-+-+-+-+-+
+    //   |    |0|A|  M' |  L' |
+    //   +----+-+-+-+-+-+-+-+-+
 
-      // 递增准备处理后面的
-      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
-      Dec(AADByteLength, CN_AEAD_BLOCK);
-    end;
+    B0[0] := 4 * (CN_CCM_M_LEN - 2) + CN_CCM_L_LEN - 1;
+    if (AAD <> nil) and (AADByteLength > 0) then
+      B0[0] := B0[0] + 64;   // B0 块的第一个字节准备好，A 位是 1 表示有 AAD
 
-    if AADByteLength > 0 then // 还有剩余时才再多一块
+    Ctr[0] := CN_CCM_L_LEN - 1;
+
+    // 填充 15 - L 个 Nonce
+    MoveMost(Nonce^, B0[1], NonceByteLength, CN_CCM_NONCE);
+    MoveMost(Nonce^, Ctr[1], NonceByteLength, CN_CCM_NONCE);
+
+    // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
+    P := PByte(@T);
+    Inc(P, SizeOf(Int64) - CN_CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
+
+    T := Int64HostToNetwork(EnByteLength);
+    Move(P^, B0[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+
+    // 初始化 CMAC/CTR 的 Key 等，准备做 CMAC/CTR
+    AEADEncryptInit(CMacCtx, Key, KeyByteLength, EncryptType);
+    AEADEncryptInit(CtrCtx, Key, KeyByteLength, EncryptType);
+
+    // Ctr 的后八个字节是计数器，现初始化为 0，并且计算 S0 作为验证字段之一
+    Cnt := 0;
+    AEADEncryptBlock(CtrCtx, Ctr, S0, EncryptType);
+
+    // CMAC 先算 B0，中间结果放 CX，也就是 RFC 中的 CBC Iv Out
+    AEADEncryptBlock(CMacCtx, B0, CX, EncryptType);
+
+    // 有 AAD 的话接着造 A0
+    if (B0[0] and $40 <> 0) then
     begin
       FillChar(A0[0], CN_AEAD_BLOCK, 0);
-      Move(AAD^, A0[0], AADByteLength);
+
+      if AADByteLength < $1000 - $100 then
+      begin
+        PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
+
+        // 第一块准备好，可能有塞不满、满以及超，三种情况
+        MoveMost(AAD^, A0[2], AADByteLength, CN_AEAD_BLOCK - 2);
+
+        // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+        // 递增准备处理后面的
+        AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 2);
+        Dec(AADByteLength, CN_AEAD_BLOCK - 2);
+      end
+      else
+      begin
+        // A0[0] 前俩字节准备好
+        A0[0] := $FF;
+        A0[1] := $FE;
+        PCardinal(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
+
+        // 第一块准备好，可能有塞不满、满以及超，三种情况
+        MoveMost(AAD^, A0[6], AADByteLength, CN_AEAD_BLOCK - 6);
+
+        // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+        // 递增准备处理后面的
+        AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 6);
+        Dec(AADByteLength, CN_AEAD_BLOCK - 6);
+      end;
+
+      // 不满或刚满的话，AADByteLength 此时小于等于 0，不继续
+      while AADByteLength >= CN_AEAD_BLOCK do
+      begin
+        Move(AAD^, A0[0], CN_AEAD_BLOCK);
+
+        // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+        // 递增准备处理后面的
+        AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
+        Dec(AADByteLength, CN_AEAD_BLOCK);
+      end;
+
+      if AADByteLength > 0 then // 还有剩余时才再多一块
+      begin
+        FillChar(A0[0], CN_AEAD_BLOCK, 0);
+        Move(AAD^, A0[0], AADByteLength);
+
+        // CMAC 最后一块
+        MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
+        AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+      end;
+    end;
+
+    // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
+    // 并且开始加密块并异或解密（结果写入临时缓冲区）
+    while EnByteLength >= CN_AEAD_BLOCK do
+    begin
+      Move(EnData^, A0[0], CN_AEAD_BLOCK); // 密文放 A0
+
+      // 计数器加一并生成加密块
+      Inc(Cnt);
+      T := Int64HostToNetwork(Cnt);
+      Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+
+      // 得到本块的加密结果，放 SX 中
+      AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+      // 并与密文异或得到明文，写入临时缓冲区
+      MemoryXor(@SX[0], @A0[0], CN_AEAD_BLOCK, TempPlain);
+
+      // 后续块（也可能是最后一块）明文和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(TempPlain, @CX[0], CN_AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
+      TempPlain := Pointer(TCnNativeUInt(TempPlain) + CN_AEAD_BLOCK);
+      Dec(EnByteLength, CN_AEAD_BLOCK);
+    end;
+
+    if EnByteLength > 0 then // 还有剩余时才再多一块
+    begin
+      FillChar(A0[0], CN_AEAD_BLOCK, 0);
+      Move(EnData^, A0[0], EnByteLength);
+
+      // 计数器加一并生成加密块
+      Inc(Cnt);
+      T := Int64HostToNetwork(Cnt);
+      Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+
+      // 得到本块的加密结果，放 SX 中
+      AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+      // 并与最后一块密文异或得到明文先放 A0 里供整块计算
+      MemoryXor(@SX[0], @A0[0], EnByteLength, @A0[0]);
 
       // CMAC 最后一块
       MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 存下最后一块明文到临时缓冲区
+      Move(A0[0], TempPlain^, EnByteLength);
     end;
-  end;
 
-  // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
-  // 并且开始加密块并异或解密（结果写入临时缓冲区）
-  while EnByteLength >= CN_AEAD_BLOCK do
-  begin
-    Move(EnData^, A0[0], CN_AEAD_BLOCK); // 密文放 A0
+    // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
+    MemoryXor(@CX[0], @S0[0], CN_AEAD_BLOCK, @CX[0]);
 
-    // 计数器加一并生成加密块
-    Inc(Cnt);
-    T := Int64HostToNetwork(Cnt);
-    Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
+    // CMAC 结果移动至 Tag 中
+    FillChar(Tag[0], SizeOf(TCnCCM128Tag), 0);
+    Move(CX[0], Tag[0], CN_CCM_M_LEN);
 
-    // 得到本块的加密结果，放 SX 中
-    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
-    // 并与密文异或得到明文，写入临时缓冲区
-    MemoryXor(@SX[0], @A0[0], CN_AEAD_BLOCK, TempPlain);
-
-    // 后续块（也可能是最后一块）明文和 CX 异或，再 CMAC 之，结果放回 CX
-    MemoryXor(TempPlain, @CX[0], CN_AEAD_BLOCK, @CX[0]);
-    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
-
-    // 递增准备处理后面的
-    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
-    TempPlain := Pointer(TCnNativeUInt(TempPlain) + CN_AEAD_BLOCK);
-    Dec(EnByteLength, CN_AEAD_BLOCK);
-  end;
-
-  if EnByteLength > 0 then // 还有剩余时才再多一块
-  begin
-    FillChar(A0[0], CN_AEAD_BLOCK, 0);
-    Move(EnData^, A0[0], EnByteLength);
-
-    // 计数器加一并生成加密块
-    Inc(Cnt);
-    T := Int64HostToNetwork(Cnt);
-    Move(P^, Ctr[CN_CCM_NONCE + 1], CN_CCM_L_LEN);
-
-    // 得到本块的加密结果，放 SX 中
-    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
-    // 并与最后一块密文异或得到明文先放 A0 里供整块计算
-    MemoryXor(@SX[0], @A0[0], EnByteLength, @A0[0]);
-
-    // CMAC 最后一块
-    MemoryXor(@A0[0], @CX[0], CN_AEAD_BLOCK, @CX[0]);
-    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
-
-    // 存下最后一块明文到临时缓冲区
-    Move(A0[0], TempPlain^, EnByteLength);
-  end;
-
-  // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
-  MemoryXor(@CX[0], @S0[0], CN_AEAD_BLOCK, @CX[0]);
-
-  // CMAC 结果移动至 Tag 中
-  FillChar(Tag[0], SizeOf(TCnCCM128Tag), 0);
-  Move(CX[0], Tag[0], CN_CCM_M_LEN);
-
-  // 先验证 Tag，通过后才将明文复制到输出缓冲区
-  Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
-  if Result then
-  begin
-    // Tag 验证通过，将临时缓冲区中的明文复制到输出
-    if (OldPlain <> nil) and (OrigEnByteLength > 0) then
+    // 先验证 Tag，通过后才将明文复制到输出缓冲区
+    Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
+    if Result and (OrigEnByteLength > 0) then
       Move(TempBuf^, OldPlain^, OrigEnByteLength);
-    // 成功路径同样必须擦除临时缓冲区，防止明文随堆块释放后残留被回收
+  finally
     if (TempBuf <> nil) and (OrigEnByteLength > 0) then
       MemorySafeZero(TempBuf, OrigEnByteLength);
-  end
-  else
-  begin
-    // Tag 验证失败，擦除临时缓冲区中的明文
-    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
-      MemorySafeZero(TempBuf, OrigEnByteLength);
+    if TempBuf <> nil then
+      FreeMemory(TempBuf);
+    MemorySafeZero(@CMacCtx, SizeOf(CMacCtx));
+    MemorySafeZero(@CtrCtx, SizeOf(CtrCtx));
+    MemorySafeZero(@B0[0], SizeOf(B0));
+    MemorySafeZero(@CX[0], SizeOf(CX));
+    MemorySafeZero(@A0[0], SizeOf(A0));
+    MemorySafeZero(@S0[0], SizeOf(S0));
+    MemorySafeZero(@SX[0], SizeOf(SX));
+    MemorySafeZero(@Ctr[0], SizeOf(Ctr));
+    MemorySafeZero(@Tag[0], SizeOf(Tag));
   end;
-
-  // 释放临时缓冲区
-  if TempBuf <> nil then
-    FreeMemory(TempBuf);
 end;
 
 function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
@@ -2836,64 +3032,96 @@ var
   OutKey: TCnChaChaState;
   Poly1305Key: TCnPoly1305Key;
   Poly1305Context: TCnPoly1305Context;
-  Lens: array[0..1] of Int64;
+  Lens: array[0..1] of TUInt64;
   PadLen: Integer;
   Zeros: array[0..15] of Byte;
+  OrigOutEnData: Pointer;
+  OrigPlainByteLength: Integer;
+  Completed: Boolean;
 begin
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(PlainData, PlainByteLength, 'ChaCha20-Poly1305 Plain Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'ChaCha20-Poly1305 AAD');
+  ValidateAEADBuffer(OutEnData, PlainByteLength, 'ChaCha20-Poly1305 Output');
   // 严格校验密钥与 Nonce 长度，禁止静默补零或截断
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
-    raise ECnAEADError.CreateFmt('Invalid ChaCha20 Key Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADChaCha20KeyLength,
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
   if (Iv = nil) or (IvByteLength <> CN_CHACHA_NONCE_SIZE) then
-    raise ECnAEADError.CreateFmt('Invalid ChaCha20-Poly1305 Iv Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADChaCha20Poly1305IVLength,
       [IvByteLength, CN_CHACHA_NONCE_SIZE]);
 
-  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
-  MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
-
-  ChaCha20Block(ChaChaKey, Nonce, 0, OutKey); // 注意这里的计数器是 0
-
-  // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
-  Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
-
-  ChaCha20EncryptData(ChaChaKey, Nonce, PlainData, PlainByteLength, OutEnData);
-
-  // 开始分块计算 Poly1305
-  Poly1305Init(Poly1305Context, Poly1305Key);
+  OrigOutEnData := OutEnData;
+  OrigPlainByteLength := PlainByteLength;
+  Completed := False;
+  FillChar(ChaChaKey[0], SizeOf(ChaChaKey), 0);
+  FillChar(Nonce[0], SizeOf(Nonce), 0);
+  FillChar(OutKey[0], SizeOf(OutKey), 0);
+  FillChar(Poly1305Key[0], SizeOf(Poly1305Key), 0);
+  FillChar(Poly1305Context, SizeOf(Poly1305Context), 0);
+  FillChar(Lens[0], SizeOf(Lens), 0);
   FillChar(Zeros[0], SizeOf(Zeros), 0);
-  // 先算 AAD 及其 Padding
-  if AADByteLength > 0 then
-    Poly1305Update(Poly1305Context, AAD, AADByteLength);
-  PadLen := AADByteLength mod 16;
-  if PadLen <> 0 then
-  begin
-    PadLen := 16 - PadLen;
-    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+  try
+    MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+    MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
+
+    ChaCha20Block(ChaChaKey, Nonce, 0, OutKey); // 注意这里的计数器是 0
+
+    // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
+    Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
+
+    ChaCha20EncryptData(ChaChaKey, Nonce, PlainData, PlainByteLength, OutEnData);
+
+    // 开始分块计算 Poly1305
+    Poly1305Init(Poly1305Context, Poly1305Key);
+    FillChar(Zeros[0], SizeOf(Zeros), 0);
+    // 先算 AAD 及其 Padding
+    if AADByteLength > 0 then
+      Poly1305Update(Poly1305Context, AAD, AADByteLength);
+    PadLen := AADByteLength mod 16;
+    if PadLen <> 0 then
+    begin
+      PadLen := 16 - PadLen;
+      Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+    end;
+
+    // 再算密文及其 Padding
+    if PlainByteLength > 0 then
+      Poly1305Update(Poly1305Context, OutEnData, PlainByteLength);
+    PadLen := PlainByteLength mod 16;
+    if PadLen <> 0 then
+    begin
+      PadLen := 16 - PadLen;
+      Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+    end;
+
+    Lens[0] := AADByteLength;
+    Lens[1] := PlainByteLength;
+    Lens[0] := UInt64ToLittleEndian(Lens[0]); // RFC 规定要走小端
+    Lens[1] := UInt64ToLittleEndian(Lens[1]);
+
+    // 再算两个长度
+    Poly1305Update(Poly1305Context, @Lens[0], SizeOf(Lens));
+
+    // 最后得到结果
+    Poly1305Final(Poly1305Context, OutTag);
+
+    Completed := True;
+  finally
+    MemorySafeZero(@ChaChaKey[0], SizeOf(ChaChaKey));
+    MemorySafeZero(@Nonce[0], SizeOf(Nonce));
+    MemorySafeZero(@OutKey[0], SizeOf(OutKey));
+    MemorySafeZero(@Poly1305Key[0], SizeOf(Poly1305Key));
+    MemorySafeZero(@Poly1305Context, SizeOf(Poly1305Context));
+    MemorySafeZero(@Lens[0], SizeOf(Lens));
+    MemorySafeZero(@Zeros[0], SizeOf(Zeros));
+    if not Completed then
+    begin
+      FillChar(OutTag[0], SizeOf(OutTag), 0);
+      if (OrigOutEnData <> nil) and (OrigPlainByteLength > 0) then
+        MemorySafeZero(OrigOutEnData, OrigPlainByteLength);
+    end;
   end;
-
-  // 再算密文及其 Padding
-  if PlainByteLength > 0 then
-    Poly1305Update(Poly1305Context, OutEnData, PlainByteLength);
-  PadLen := PlainByteLength mod 16;
-  if PadLen <> 0 then
-  begin
-    PadLen := 16 - PadLen;
-    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
-  end;
-
-  Lens[0] := AADByteLength;
-  Lens[1] := PlainByteLength;
-  Lens[0] := Int64ToLittleEndian(Lens[0]); // RFC 规定要走小端
-  Lens[1] := Int64ToLittleEndian(Lens[1]);
-
-  // 再算两个长度
-  Poly1305Update(Poly1305Context, @Lens[0], SizeOf(Lens));
-
-  // 最后得到结果
-  Poly1305Final(Poly1305Context, OutTag);
-
-  MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
-  MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));
 end;
 
 function ChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
@@ -2906,107 +3134,106 @@ var
   Poly1305Key: TCnPoly1305Key;
   Poly1305Context: TCnPoly1305Context;
   Tag: TCnPoly1305Digest;
-  Lens: array[0..1] of Int64;
+  Lens: array[0..1] of TUInt64;
   PadLen: Integer;
   Zeros: array[0..15] of Byte;
   OrigEnByteLength: Integer;
   OldOutPlain: Pointer;
   TempBuf: Pointer;         // 临时缓冲区，先验证 Tag 后再拷贝到输出
 begin
+  Result := False;
   OrigEnByteLength := EnByteLength;
   OldOutPlain := OutPlainData;
 
+  ValidateAEADBuffer(EnData, EnByteLength, 'ChaCha20-Poly1305 Encrypted Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'ChaCha20-Poly1305 AAD');
+  ValidateAEADBuffer(OutPlainData, EnByteLength, 'ChaCha20-Poly1305 Output');
   // 严格校验密钥与 Nonce 长度，与加密端保持一致
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
-    raise ECnAEADError.CreateFmt('Invalid ChaCha20 Key Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADChaCha20KeyLength,
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
   if (Iv = nil) or (IvByteLength <> CN_CHACHA_NONCE_SIZE) then
-    raise ECnAEADError.CreateFmt('Invalid ChaCha20-Poly1305 Iv Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADChaCha20Poly1305IVLength,
       [IvByteLength, CN_CHACHA_NONCE_SIZE]);
 
-  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
-  MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
-
-  ChaCha20Block(ChaChaKey, Nonce, 0, OutKey); // 注意这里的计数器是 0
-
-  // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
-  Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
-
-  // 分配临时缓冲区，解密结果先写入此处，避免未认证数据暴露在输出缓冲区
   TempBuf := nil;
-  if EnByteLength > 0 then
-  begin
-    TempBuf := GetMemory(EnByteLength);
-    if TempBuf = nil then
-    begin
-      MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
-      MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));
-      Result := False;
-      Exit;
-    end;
-  end;
-
-  ChaCha20DecryptData(ChaChaKey, Nonce, EnData, EnByteLength, TempBuf);
-
-  // 开始分块计算 Poly1305
-  Poly1305Init(Poly1305Context, Poly1305Key);
+  FillChar(ChaChaKey[0], SizeOf(ChaChaKey), 0);
+  FillChar(Nonce[0], SizeOf(Nonce), 0);
+  FillChar(OutKey[0], SizeOf(OutKey), 0);
+  FillChar(Poly1305Key[0], SizeOf(Poly1305Key), 0);
+  FillChar(Poly1305Context, SizeOf(Poly1305Context), 0);
+  FillChar(Tag[0], SizeOf(Tag), 0);
+  FillChar(Lens[0], SizeOf(Lens), 0);
   FillChar(Zeros[0], SizeOf(Zeros), 0);
+  try
+    MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+    MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
 
-  // 先算 AAD 及其 Padding
-  if AADByteLength > 0 then
-    Poly1305Update(Poly1305Context, AAD, AADByteLength);
-  PadLen := AADByteLength mod 16;
-  if PadLen <> 0 then
-  begin
-    PadLen := 16 - PadLen;
-    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
-  end;
+    ChaCha20Block(ChaChaKey, Nonce, 0, OutKey);
+    Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
 
-  // 再算密文及其 Padding
-  if EnByteLength > 0 then
-    Poly1305Update(Poly1305Context, EnData, EnByteLength);
-  PadLen := EnByteLength mod 16;
-  if PadLen <> 0 then
-  begin
-    PadLen := 16 - PadLen;
-    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
-  end;
+    if EnByteLength > 0 then
+    begin
+      TempBuf := GetMemory(EnByteLength);
+      if TempBuf = nil then
+        Exit;
+    end;
 
-  Lens[0] := AADByteLength;
-  Lens[1] := EnByteLength;
-  Lens[0] := Int64ToLittleEndian(Lens[0]); // RFC 规定要走小端
-  Lens[1] := Int64ToLittleEndian(Lens[1]);
+    ChaCha20DecryptData(ChaChaKey, Nonce, EnData, EnByteLength, TempBuf);
 
-  // 再算两个长度
-  Poly1305Update(Poly1305Context, @Lens[0], SizeOf(Lens));
+    // 开始分块计算 Poly1305
+    Poly1305Init(Poly1305Context, Poly1305Key);
+    FillChar(Zeros[0], SizeOf(Zeros), 0);
 
-  // 最后得到结果
-  Poly1305Final(Poly1305Context, Tag);
+    // 先算 AAD 及其 Padding
+    if AADByteLength > 0 then
+      Poly1305Update(Poly1305Context, AAD, AADByteLength);
+    PadLen := AADByteLength mod 16;
+    if PadLen <> 0 then
+    begin
+      PadLen := 16 - PadLen;
+      Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+    end;
 
-  // 先验证 Tag，通过后才将明文复制到输出缓冲区
-  Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
-  if Result then
-  begin
-    // Tag 验证通过，将临时缓冲区中的明文复制到输出
-    if (OldOutPlain <> nil) and (OrigEnByteLength > 0) then
+    // 再算密文及其 Padding
+    if EnByteLength > 0 then
+      Poly1305Update(Poly1305Context, EnData, EnByteLength);
+    PadLen := EnByteLength mod 16;
+    if PadLen <> 0 then
+    begin
+      PadLen := 16 - PadLen;
+      Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+    end;
+
+    Lens[0] := AADByteLength;
+    Lens[1] := EnByteLength;
+    Lens[0] := UInt64ToLittleEndian(Lens[0]); // RFC 规定要走小端
+    Lens[1] := UInt64ToLittleEndian(Lens[1]);
+
+    // 再算两个长度
+    Poly1305Update(Poly1305Context, @Lens[0], SizeOf(Lens));
+
+    // 最后得到结果
+    Poly1305Final(Poly1305Context, Tag);
+
+    // 先验证 Tag，通过后才将明文复制到输出缓冲区
+    Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
+    if Result and (OrigEnByteLength > 0) then
       Move(TempBuf^, OldOutPlain^, OrigEnByteLength);
-    // 成功路径同样必须擦除临时缓冲区，防止明文随堆块释放后残留被回收
+  finally
     if (TempBuf <> nil) and (OrigEnByteLength > 0) then
       MemorySafeZero(TempBuf, OrigEnByteLength);
-  end
-  else
-  begin
-    // Tag 验证失败，擦除临时缓冲区中的明文
-    if (TempBuf <> nil) and (OrigEnByteLength > 0) then
-      MemorySafeZero(TempBuf, OrigEnByteLength);
+    if TempBuf <> nil then
+      FreeMemory(TempBuf);
+    MemorySafeZero(@ChaChaKey[0], SizeOf(ChaChaKey));
+    MemorySafeZero(@Nonce[0], SizeOf(Nonce));
+    MemorySafeZero(@OutKey[0], SizeOf(OutKey));
+    MemorySafeZero(@Poly1305Key[0], SizeOf(Poly1305Key));
+    MemorySafeZero(@Poly1305Context, SizeOf(Poly1305Context));
+    MemorySafeZero(@Tag[0], SizeOf(Tag));
+    MemorySafeZero(@Lens[0], SizeOf(Lens));
+    MemorySafeZero(@Zeros[0], SizeOf(Zeros));
   end;
-
-  // 释放临时缓冲区
-  if TempBuf <> nil then
-    FreeMemory(TempBuf);
-
-  MemorySafeZero(@ChaChaKey[0], SizeOf(TCnChaChaKey));
-  MemorySafeZero(@Poly1305Key[0], SizeOf(TCnPoly1305Key));
 end;
 
 // ================== ChaCha20_Poly1305 字节数组加解密函数 =====================
@@ -3100,29 +3327,39 @@ var
   OutKey: TCnHChaChaSubKey;
   P: PByte;
 begin
+  FillChar(OutTag[0], SizeOf(OutTag), 0);
+  ValidateAEADBuffer(PlainData, PlainByteLength, 'XChaCha20-Poly1305 Plain Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'XChaCha20-Poly1305 AAD');
+  ValidateAEADBuffer(OutEnData, PlainByteLength, 'XChaCha20-Poly1305 Output');
   // 严格校验密钥与 IV 长度，短 IV 原先会从 Iv[16..23] 越界读取
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
-    raise ECnAEADError.CreateFmt('Invalid XChaCha20 Key Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADXChaCha20KeyLength,
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
   if (Iv = nil) or (IvByteLength <> CN_XCHACHA_NONCE_SIZE) then
-    raise ECnAEADError.CreateFmt('Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADXChaCha20Poly1305IVLength,
       [IvByteLength, CN_XCHACHA_NONCE_SIZE]);
 
-  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
-  MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
+  FillChar(ChaChaKey[0], SizeOf(ChaChaKey), 0);
+  FillChar(H[0], SizeOf(H), 0);
+  FillChar(N[0], SizeOf(N), 0);
+  FillChar(OutKey[0], SizeOf(OutKey), 0);
+  try
+    MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+    MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
 
-  HChaCha20SubKey(ChaChaKey, H, OutKey); // 算出一个新的 Key
-  N[0] := 0;                             // 四字节 0 加上 XChaCha20 的剩下 8 字节共 12 字节作为 ChaCha20_Poly1305 的 Nonce
-  N[1] := 0;
-  N[2] := 0;
-  N[3] := 0;
+    HChaCha20SubKey(ChaChaKey, H, OutKey);
+    P := PByte(Iv);
+    Inc(P, 16);
+    Move(P^, N[4], CN_XCHACHA_NONCE_SIZE - CN_HCHACHA_NONCE_SIZE);
 
-  P := PByte(Iv);
-  Inc(P, 16);
-  Move(P^, N[4], CN_XCHACHA_NONCE_SIZE - CN_HCHACHA_NONCE_SIZE);
-
-  ChaCha20Poly1305Encrypt(@OutKey[0], SizeOf(TCnHChaChaSubKey), @N[0], SizeOf(TCnChaChaNonce),
-    PlainData, PlainByteLength, AAD, AADByteLength, OutEnData, OutTag);
+    ChaCha20Poly1305Encrypt(@OutKey[0], SizeOf(TCnHChaChaSubKey), @N[0], SizeOf(TCnChaChaNonce),
+      PlainData, PlainByteLength, AAD, AADByteLength, OutEnData, OutTag);
+  finally
+    MemorySafeZero(@ChaChaKey[0], SizeOf(ChaChaKey));
+    MemorySafeZero(@H[0], SizeOf(H));
+    MemorySafeZero(@N[0], SizeOf(N));
+    MemorySafeZero(@OutKey[0], SizeOf(OutKey));
+  end;
 end;
 
 function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
@@ -3135,29 +3372,39 @@ var
   OutKey: TCnHChaChaSubKey;
   P: PByte;
 begin
+  Result := False;
+  ValidateAEADBuffer(EnData, EnByteLength, 'XChaCha20-Poly1305 Encrypted Data');
+  ValidateAEADBuffer(AAD, AADByteLength, 'XChaCha20-Poly1305 AAD');
+  ValidateAEADBuffer(OutPlainData, EnByteLength, 'XChaCha20-Poly1305 Output');
   // 严格校验密钥与 IV 长度，与加密端保持一致
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
-    raise ECnAEADError.CreateFmt('Invalid XChaCha20 Key Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADXChaCha20KeyLength,
       [KeyByteLength, SizeOf(TCnChaChaKey)]);
   if (Iv = nil) or (IvByteLength <> CN_XCHACHA_NONCE_SIZE) then
-    raise ECnAEADError.CreateFmt('Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.',
+    raise ECnAEADError.CreateFmt(SCnErrorAEADXChaCha20Poly1305IVLength,
       [IvByteLength, CN_XCHACHA_NONCE_SIZE]);
 
-  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
-  MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
+  FillChar(ChaChaKey[0], SizeOf(ChaChaKey), 0);
+  FillChar(H[0], SizeOf(H), 0);
+  FillChar(N[0], SizeOf(N), 0);
+  FillChar(OutKey[0], SizeOf(OutKey), 0);
+  try
+    MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+    MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
 
-  HChaCha20SubKey(ChaChaKey, H, OutKey); // 算出一个新的 Key
-  N[0] := 0;                             // 四字节 0 加上 XChaCha20 的剩下 8 字节共 12 字节作为 ChaCha20_Poly1305 的 Nonce
-  N[1] := 0;
-  N[2] := 0;
-  N[3] := 0;
+    HChaCha20SubKey(ChaChaKey, H, OutKey);
+    P := PByte(Iv);
+    Inc(P, 16);
+    Move(P^, N[4], CN_XCHACHA_NONCE_SIZE - CN_HCHACHA_NONCE_SIZE);
 
-  P := PByte(Iv);
-  Inc(P, 16);
-  Move(P^, N[4], CN_XCHACHA_NONCE_SIZE - CN_HCHACHA_NONCE_SIZE);
-
-  Result := ChaCha20Poly1305Decrypt(@OutKey[0], SizeOf(TCnHChaChaSubKey), @N[0], SizeOf(TCnChaChaNonce),
-    EnData, EnByteLength, AAD, AADByteLength, OutPlainData, InTag);
+    Result := ChaCha20Poly1305Decrypt(@OutKey[0], SizeOf(TCnHChaChaSubKey), @N[0], SizeOf(TCnChaChaNonce),
+      EnData, EnByteLength, AAD, AADByteLength, OutPlainData, InTag);
+  finally
+    MemorySafeZero(@ChaChaKey[0], SizeOf(ChaChaKey));
+    MemorySafeZero(@H[0], SizeOf(H));
+    MemorySafeZero(@N[0], SizeOf(N));
+    MemorySafeZero(@OutKey[0], SizeOf(OutKey));
+  end;
 end;
 
 // ================== XChaCha20_Poly1305 字节数组加解密函数 ====================

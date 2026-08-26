@@ -4086,8 +4086,8 @@ end;
 
 function BigNumberConstTimeEqual(Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
 var
-  I, T1, T2, Top, NegDiff: Integer;
-  Diff, E1, E2, E: TCnBigNumberElement;
+  I, Top: Integer;
+  Diff: TCnBigNumberElement;
 begin
   Result := False;
   if (Num1 = nil) or (Num2 = nil) then
@@ -4097,37 +4097,18 @@ begin
     Exit;
   end;
 
-  Diff := 0;
-  NegDiff := Num1.FNeg xor Num2.FNeg;
+  Diff := TCnBigNumberElement(Num1.FNeg xor Num2.FNeg);
+  Diff := Diff or TCnBigNumberElement(Num1.FTop xor Num2.FTop);
 
-  T1 := Num1.FTop;
-  T2 := Num2.FTop;
-  ConstTimeConditionalSwap32(T1 < T2, Cardinal(T1), Cardinal(T2));
-  Top := T1;
+  Top := Num1.FTop;
+  if Num2.FTop < Top then
+    Top := Num2.FTop;
 
-  E2 := 0;
   for I := 0 to Top - 1 do
-  begin
-    E1 := PCnBigNumberElementArray(Num1.FD)^[I];
-{$IFDEF BN_DATA_USE_64}
-    ConstTimeConditionalSwap64(I >= Num1.FTop, E1, E2);
-{$ELSE}
-    ConstTimeConditionalSwap32(I >= Num1.FTop, E1, E2);
-{$ENDIF}
-    E := E1;
-    Diff := Diff xor E;
+    Diff := Diff or (PCnBigNumberElementArray(Num1.FD)^[I] xor
+      PCnBigNumberElementArray(Num2.FD)^[I]);
 
-    E1 := PCnBigNumberElementArray(Num2.FD)^[I];
-{$IFDEF BN_DATA_USE_64}
-    ConstTimeConditionalSwap64(I >= Num2.FTop, E1, E2);
-{$ELSE}
-    ConstTimeConditionalSwap32(I >= Num2.FTop, E1, E2);
-{$ENDIF}
-    E := E1;
-    Diff := Diff xor E;
-  end;
-
-  Result := (Diff = 0) and (NegDiff = 0);
+  Result := Diff = 0;
 end;
 
 procedure BigNumberConstTimeConditionalSwap(CanSwap: Boolean; Num1: TCnBigNumber; Num2: TCnBigNumber);
