@@ -286,7 +286,7 @@ type
     function SecretKeyToBytes(const SK: TCnSlhSecretKey): TBytes;
     {* 将私钥序列化为字节数组（4n 字节）}
     procedure BytesToSecretKey(SK: TCnSlhSecretKey; const Data: TBytes);
-    {* 从字节数组反序列化为私钥}
+    {* 从字节数组反序列化为私钥。Data 必须精确为 4*N 字节，并会校验 PK.root 与 SK.seed、PK.seed 及参数集一致。不一致时抛出 ECnSlhException。}
     function SignatureToBytes(const SIG: TCnSlhSignature): TBytes;
     {* 将签名序列化为字节数组}
     function BytesToSignature(const Data: TBytes): TCnSlhSignature;
@@ -444,6 +444,7 @@ resourcestring
   SCnErrorSLHUnknownPrehashID = 'Unknown Prehash ID';
   SCnErrorSLHInvalidPublicKeyLength = 'Invalid Public Key Data Length';
   SCnErrorSLHInvalidSecretKeyLength = 'Invalid Secret Key Data Length';
+  SCnErrorSLHInvalidSecretKeyRoot = 'Invalid SLH-DSA Secret Key Root';
 
 // ===================================================================
 // 参数表
@@ -2245,17 +2246,68 @@ end;
 
 procedure TCnSLHDSA.BytesToSecretKey(
   SK: TCnSlhSecretKey; const Data: TBytes);
+var
+  Seed, Prf, PKSeed, PKRoot, ComputedRoot: TBytes;
+  ADRS: TCnSlhAddr;
+  Committed: Boolean;
 begin
   if Length(Data) <> FParams.N * 4 then
     raise ECnSlhException.Create(SCnErrorSLHInvalidSecretKeyLength);
-  SetLength(SK.Seed, FParams.N);
-  SetLength(SK.Prf, FParams.N);
-  SetLength(SK.PKSeed, FParams.N);
-  SetLength(SK.PKRoot, FParams.N);
-  Move(Data[0], SK.Seed[0], FParams.N);
-  Move(Data[FParams.N], SK.Prf[0], FParams.N);
-  Move(Data[FParams.N * 2], SK.PKSeed[0], FParams.N);
-  Move(Data[FParams.N * 3], SK.PKRoot[0], FParams.N);
+  Seed := nil;
+  Prf := nil;
+  PKSeed := nil;
+  PKRoot := nil;
+  ComputedRoot := nil;
+  Committed := False;
+  try
+    SetLength(Seed, FParams.N);
+    SetLength(Prf, FParams.N);
+    SetLength(PKSeed, FParams.N);
+    SetLength(PKRoot, FParams.N);
+    Move(Data[0], Seed[0], FParams.N);
+    Move(Data[FParams.N], Prf[0], FParams.N);
+    Move(Data[FParams.N * 2], PKSeed[0], FParams.N);
+    Move(Data[FParams.N * 3], PKRoot[0], FParams.N);
+
+    // PK.root is determined by SK.seed, PK.seed and the parameter set.
+    SlhAddrInit(ADRS);
+    SlhAddrSetLayer(ADRS, FParams.D - 1);
+    SlhAddrSetTree(ADRS, 0);
+    ComputedRoot := SlhXmssKeyGen(FParams, ADRS, Seed, PKSeed);
+    if Length(ComputedRoot) <> FParams.N then
+      raise ECnSlhException.Create(SCnErrorSLHInvalidSecretKeyRoot);
+    if not ConstTimeCompareMem(@ComputedRoot[0], @PKRoot[0], FParams.N) then
+      raise ECnSlhException.Create(SCnErrorSLHInvalidSecretKeyRoot);
+
+    SK.Seed := Seed;
+    SK.Prf := Prf;
+    SK.PKSeed := PKSeed;
+    SK.PKRoot := PKRoot;
+    Committed := True;
+    Seed := nil;
+    Prf := nil;
+    PKSeed := nil;
+    PKRoot := nil;
+  finally
+    if Length(ComputedRoot) > 0 then
+      MemorySafeZero(@ComputedRoot[0], Length(ComputedRoot));
+    SetLength(ComputedRoot, 0);
+    if not Committed then
+    begin
+      if Length(Seed) > 0 then
+        MemorySafeZero(@Seed[0], Length(Seed));
+      if Length(Prf) > 0 then
+        MemorySafeZero(@Prf[0], Length(Prf));
+      if Length(PKSeed) > 0 then
+        MemorySafeZero(@PKSeed[0], Length(PKSeed));
+      if Length(PKRoot) > 0 then
+        MemorySafeZero(@PKRoot[0], Length(PKRoot));
+    end;
+    SetLength(Seed, 0);
+    SetLength(Prf, 0);
+    SetLength(PKSeed, 0);
+    SetLength(PKRoot, 0);
+  end;
 end;
 
 function TCnSLHDSA.SignatureToBytes(

@@ -12678,7 +12678,21 @@ var
   SK1, SK2: TCnSlhSecretKey;
   Sig1, Sig2: TCnSlhSignature;
   Msg: TBytes;
-  PKBytes, SKBytes, SigBytes: TBytes;
+  PKBytes, SKBytes, SigBytes, TamperedBytes: TBytes;
+  Raised: Boolean;
+
+  function ImportSecretKeyRaises(const Data: TBytes): Boolean;
+  begin
+    SK2.Free;
+    SK2 := TCnSlhSecretKey.Create;
+    try
+      Ctx.BytesToSecretKey(SK2, Data);
+      Result := False;
+    except
+      on E: ECnSlhException do
+        Result := True;
+    end;
+  end;
 begin
   Ctx := nil;
   PK1 := nil;
@@ -12714,6 +12728,44 @@ begin
     Sig2 := Ctx.SignBytes(SK2, Msg, False);
     Result := Ctx.VerifyBytes(PK2, Msg, Sig2);
     if not Result then Exit;
+
+    // The root must match Seed and PKSeed, while Prf is independent of it.
+    TamperedBytes := Copy(SKBytes, 0, Length(SKBytes));
+    TamperedBytes[0] := TamperedBytes[0] xor $01;
+    if not ImportSecretKeyRaises(TamperedBytes) then Exit;
+
+    TamperedBytes := Copy(SKBytes, 0, Length(SKBytes));
+    TamperedBytes[Ctx.Params.N * 2] :=
+      TamperedBytes[Ctx.Params.N * 2] xor $01;
+    if not ImportSecretKeyRaises(TamperedBytes) then Exit;
+
+    TamperedBytes := Copy(SKBytes, 0, Length(SKBytes));
+    TamperedBytes[Ctx.Params.N * 3] :=
+      TamperedBytes[Ctx.Params.N * 3] xor $01;
+    if not ImportSecretKeyRaises(TamperedBytes) then Exit;
+
+    TamperedBytes := Copy(SKBytes, 0, Length(SKBytes));
+    TamperedBytes[Ctx.Params.N] := TamperedBytes[Ctx.Params.N] xor $01;
+    Raised := ImportSecretKeyRaises(TamperedBytes);
+    if Raised then Exit;
+    Sig2 := Ctx.SignBytes(SK2, Msg, False);
+    if not Ctx.VerifyBytes(PK2, Msg, Sig2) then Exit;
+
+    // A failed re-import must not replace an already valid key object.
+    Ctx.BytesToSecretKey(SK2, SKBytes);
+    TamperedBytes := Copy(SKBytes, 0, Length(SKBytes));
+    TamperedBytes[Ctx.Params.N * 3] :=
+      TamperedBytes[Ctx.Params.N * 3] xor $01;
+    Raised := False;
+    try
+      Ctx.BytesToSecretKey(SK2, TamperedBytes);
+    except
+      on E: ECnSlhException do
+        Raised := True;
+    end;
+    if not Raised then Exit;
+    Sig2 := Ctx.SignBytes(SK2, Msg, False);
+    if not Ctx.VerifyBytes(PK2, Msg, Sig2) then Exit;
 
     // Verify byte sizes
     Result := (Length(PKBytes) = Ctx.PublicKeySize)
