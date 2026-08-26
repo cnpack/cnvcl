@@ -80,7 +80,7 @@ type
 
   TBool32         = Integer;
 
-  TCnSize         = Integer;
+  TCnSize         = Cardinal;
 
   TCnCryptoHandle = Pointer;
 
@@ -98,7 +98,11 @@ const
   CN_E_NO_MEMORY        = -4;
   CN_E_STATE            = -5;
   CN_E_VERIFY_FAIL      = -6;
+  CN_E_SIZE_OVERFLOW    = -7;
   CN_E_INTERNAL         = -100;
+
+  CN_ABI_VERSION        = 4;
+  CN_CAPI_MAX_INT_SIZE  = $7FFFFFFF;
 
 const
   CN_HASH_MD5                = 1;
@@ -215,11 +219,23 @@ function cn_lib_finalize: TCnResult; cdecl;
    返回值：TCnResult                       - 错误码，CN_OK 表示成功
 }
 
+function cn_get_last_error: TCnResult; cdecl;
+{* 获取当前线程最近一次 C ABI 补充错误码。
+
+   参数：
+     （无）
+
+   返回值：TCnResult                       - 最近一次补充错误码；CN_OK 表示当前没有已记录错误
+
+   说明：该值记录被异常屏障捕获的异常，以及非错误码返回函数的长度上限拒绝。
+         普通验签或认证失败仍通过对应函数返回 0 表示，不会记录为 ABI 异常。
+}
+
 function cn_alloc(size: TCnSize): TCnCryptoHandle; cdecl;
 {* 分配指定大小的安全内存。
 
    参数：
-     size: TCnSize                          - 需要分配的字节数；负数返回 nil，0 返回 nil
+     size: TCnSize                          - 需要分配的字节数
 
    返回值：TCnCryptoHandle                  - 返回内存对象标识，失败为 nil
 }
@@ -238,7 +254,7 @@ function cn_memzero(ptr: TCnCryptoHandle; size: TCnSize): TCnResult; cdecl;
 
    参数：
      ptr: TCnCryptoHandle                   - 目标内存对象标识
-     size: TCnSize                          - 清零的字节数；负数返回 CN_E_INVALID_ARG，0 是成功的空操作，允许 ptr 为 nil
+     size: TCnSize                          - 清零的字节数
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功
 }
@@ -267,9 +283,9 @@ function cn_data_to_hex(in_ptr: Pointer; in_len: TCnSize; out_hex: PByte; cap:
 
    参数：
      in_ptr: Pointer                        - 输入数据指针
-     in_len: TCnSize                        - 输入数据字节长度；负数返回 CN_E_INVALID_ARG，0 时允许 in_ptr 为 nil
+     in_len: TCnSize                        - 输入数据字节长度
      out_hex: PByte                         - 输出缓冲区。如 DLL 是 Unicode 编译，则此处输出双字节字符串内容，否则为单字节字符串内容
-     cap: TCnSize                           - 输出缓冲区容量，单位字节；负数返回 CN_E_INVALID_ARG，输出非空时 out_hex 不能为 nil
+     cap: TCnSize                           - 输出缓冲区容量，单位字节
      out_len: TCnSize                       - 实际输出字节长度
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功，缓冲区不足返回 CN_E_BUFFER_TOO_SMALL
@@ -281,7 +297,7 @@ function cn_const_time_equal(a: Pointer; b: Pointer; len: TCnSize): TBool32; cde
    参数：
      a: Pointer                             - 缓冲区 A
      b: Pointer                             - 缓冲区 B
-     len: TCnSize                           - 比较字节长度；负数返回 0，0 返回 1 且允许两个指针均为 nil
+     len: TCnSize                           - 比较字节长度
 
    返回值：TBool32                          - 1 表示相等，0 表示不等
 }
@@ -294,7 +310,7 @@ function cn_const_time_select(flag: TBool32; a: Pointer; b: Pointer; len:
      flag: TBool32                          - 选择标志，非零选 a，零选 b
      a: Pointer                             - 源缓冲区 A
      b: Pointer                             - 源缓冲区 B
-     len: TCnSize                           - 复制字节长度；负数返回 CN_E_INVALID_ARG，0 是成功的空操作
+     len: TCnSize                           - 复制字节长度
      out_ptr: Pointer                       - 输出缓冲区
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功
@@ -306,7 +322,7 @@ function cn_str_to_uint64(ascii_ptr: PByte; len: TCnSize; var out_value: TUInt64
 
    参数：
      ascii_ptr: PByte                       - 输入 ASCII 字符串指针
-     len: TCnSize                           - 字符串字节长度；必须大于 0，转换失败返回 CN_E_INVALID_ARG
+     len: TCnSize                           - 字符串字节长度
      out_value: TUInt64                     - 输出转换后的数值
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功，非法输入返回 CN_E_INVALID_ARG

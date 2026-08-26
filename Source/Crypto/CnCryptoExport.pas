@@ -77,7 +77,7 @@ type
 
   TBool32         = Integer;
 
-  TCnSize         = Integer;
+  TCnSize         = Cardinal;
 
   TCnCryptoHandle = Pointer;
 
@@ -95,7 +95,11 @@ const
   CN_E_NO_MEMORY        = -4;
   CN_E_STATE            = -5;
   CN_E_VERIFY_FAIL      = -6;
+  CN_E_SIZE_OVERFLOW    = -7;
   CN_E_INTERNAL         = -100;
+
+  CN_ABI_VERSION        = 4;
+  CN_CAPI_MAX_INT_SIZE  = $7FFFFFFF;
 
 const
   CN_HASH_MD5                = 1;
@@ -181,6 +185,8 @@ function cn_get_abi_version: TUInt32; cdecl;
 function cn_lib_init: TCnResult; cdecl;
 
 function cn_lib_finalize: TCnResult; cdecl;
+
+function cn_get_last_error: TCnResult; cdecl;
 
 function cn_alloc(size: TCnSize): TCnCryptoHandle; cdecl;
 
@@ -509,12 +515,118 @@ uses
   CnBLAKE, CnBLAKE3, CnXXH, CnRSA, CnPemUtils, CnKDF, CnOTP, CnECC, CnSM2, Cn25519,
   CnBigNumber, CnMLKEM, CnMLDSA, CnRandom;
 
+threadvar
+  GCnExportLastError: TCnResult;
+
+procedure CnExportClearLastError;
+begin
+  GCnExportLastError := CN_OK;
+end;
+
+procedure CnExportSetLastError(AError: TCnResult);
+begin
+  GCnExportLastError := AError;
+end;
+
+function CnExportMapException(E: Exception): TCnResult;
+begin
+  Result := CN_E_INTERNAL;
+  if E is EOutOfMemory then
+    Result := CN_E_NO_MEMORY
+  else if (E is ERangeError) or (E is EIntOverflow) then
+    Result := CN_E_SIZE_OVERFLOW
+  else if E is EConvertError then
+    Result := CN_E_INVALID_ARG;
+  CnExportSetLastError(Result);
+end;
+
+function CnExportSizeToInteger(AValue: TCnSize;
+  out AResult: Integer): Boolean;
+begin
+  if AValue > CN_CAPI_MAX_INT_SIZE then
+  begin
+    AResult := 0;
+    CnExportSetLastError(CN_E_SIZE_OVERFLOW);
+    Result := False;
+    Exit;
+  end;
+  AResult := Integer(AValue);
+  Result := True;
+end;
+
+function CnExportInt64ToSize(AValue: Int64;
+  out AResult: TCnSize): Boolean;
+begin
+  if (AValue < 0) or (AValue > Int64(CN_CAPI_MAX_INT_SIZE)) then
+  begin
+    AResult := 0;
+    CnExportSetLastError(CN_E_SIZE_OVERFLOW);
+    Result := False;
+    Exit;
+  end;
+  AResult := TCnSize(AValue);
+  Result := True;
+end;
+
+function CnExportSizesFitInteger(const AValues: array of TCnSize): Boolean;
+var
+  I, Dummy: Integer;
+begin
+  Result := True;
+  for I := 0 to Length(AValues) - 1 do
+    if not CnExportSizeToInteger(AValues[I], Dummy) then
+    begin
+      Result := False;
+      Exit;
+    end;
+end;
+
+function CnExportExpandedSizeFitsInteger(AValue, AInputBlock,
+  AOutputBlock: TCnSize): Boolean;
+var
+  MaxBlockCount: TCnSize;
+begin
+  Result := False;
+  if (AInputBlock = 0) or (AOutputBlock = 0) then
+  begin
+    CnExportSetLastError(CN_E_INTERNAL);
+    Exit;
+  end;
+  MaxBlockCount := CN_CAPI_MAX_INT_SIZE div AOutputBlock;
+  if Int64(AValue) > Int64(MaxBlockCount) * Int64(AInputBlock) then
+  begin
+    CnExportSetLastError(CN_E_SIZE_OVERFLOW);
+    Exit;
+  end;
+  Result := True;
+end;
+
+function CnExportAddedSizeFitsInteger(AValue, AIncrement: TCnSize): Boolean;
+begin
+  Result := AIncrement <= CN_CAPI_MAX_INT_SIZE;
+  if Result then
+    Result := AValue <= CN_CAPI_MAX_INT_SIZE - AIncrement;
+  if not Result then
+    CnExportSetLastError(CN_E_SIZE_OVERFLOW);
+end;
+
 function cn_get_version(var out_major, out_minor, out_patch: TUInt32): TCnResult; cdecl;
 begin
-  out_major := 0;
-  out_minor := 1;
-  out_patch := 7;
-  Result := CN_OK;
+  CnExportClearLastError;
+  try
+    out_major := 0;
+    out_minor := 0;
+    out_patch := 0;
+    out_major := 0;
+    out_minor := 1;
+    out_patch := 7;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
+  end;
 end;
 
 function cn_kdf_pbkdf2(hash_id: TInt32; password: PByte; pwd_len: TCnSize; salt:
@@ -524,42 +636,56 @@ var
   P, S, DK: TBytes;
   KH: TCnPBKDF2KeyHash;
 begin
-  if ((password = nil) and (pwd_len <> 0)) or ((salt = nil) and (salt_len <> 0))
-    or (count <= 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case hash_id of
-    CN_HASH_SHA1:
-      KH := cpdfSha1Hmac;
-    CN_HASH_SHA2_256:
-      KH := cpdfSha256Hmac;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(P, pwd_len);
-  SetLength(S, salt_len);
-  if pwd_len > 0 then
-    Move(password^, P[0], pwd_len);
-  if salt_len > 0 then
-    Move(salt^, S[0], salt_len);
+  CnExportClearLastError;
   try
-    DK := CnPBKDF2Bytes(P, S, count, cap, KH);
+    out_len := 0;
+    if not CnExportSizesFitInteger([pwd_len, salt_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if ((password = nil) and (pwd_len <> 0)) or ((salt = nil) and (salt_len <> 0))
+      or (count <= 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case hash_id of
+      CN_HASH_SHA1:
+        KH := cpdfSha1Hmac;
+      CN_HASH_SHA2_256:
+        KH := cpdfSha256Hmac;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetLength(P, pwd_len);
+    SetLength(S, salt_len);
+    if pwd_len > 0 then
+      Move(password^, P[0], pwd_len);
+    if salt_len > 0 then
+      Move(salt^, S[0], salt_len);
+    try
+      DK := CnPBKDF2Bytes(P, S, count, cap, KH);
+    except
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    out_len := Length(DK);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if out_len > 0 then
+      Move(DK[0], out_key^, out_len);
+    Result := CN_OK;
   except
-    Result := CN_E_INTERNAL;
-    Exit;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_len := Length(DK);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if out_len > 0 then
-    Move(DK[0], out_key^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_kdf_hkdf(hash_id: TInt32; ikm: PByte; ikm_len: TCnSize; salt: PByte;
@@ -569,41 +695,55 @@ var
   HK: TCnHKDFHash;
   DK: TBytes;
 begin
-  case hash_id of
-    CN_HASH_MD5:
-      HK := chkMd5;
-    CN_HASH_SHA1:
-      HK := chkSha1;
-    CN_HASH_SHA2_256:
-      HK := chkSha256;
-    CN_HASH_SHA3_256:
-      HK := chkSha3_256;
-    CN_HASH_SM3:
-      HK := chkSm3;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := dk_len;
-  if cap < dk_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
+  CnExportClearLastError;
   try
-    DK := CnHKDF(HK, ikm, ikm_len, salt, salt_len, info, info_len, dk_len);
+    out_len := 0;
+    if not CnExportSizesFitInteger([ikm_len, salt_len, info_len, dk_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    case hash_id of
+      CN_HASH_MD5:
+        HK := chkMd5;
+      CN_HASH_SHA1:
+        HK := chkSha1;
+      CN_HASH_SHA2_256:
+        HK := chkSha256;
+      CN_HASH_SHA3_256:
+        HK := chkSha3_256;
+      CN_HASH_SM3:
+        HK := chkSm3;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := dk_len;
+    if cap < dk_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    try
+      DK := CnHKDF(HK, ikm, ikm_len, salt, salt_len, info, info_len, dk_len);
+    except
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    if Length(DK) <> dk_len then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    if dk_len > 0 then
+      Move(DK[0], out_key^, dk_len);
+    Result := CN_OK;
   except
-    Result := CN_E_INTERNAL;
-    Exit;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  if Length(DK) <> dk_len then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-  if dk_len > 0 then
-    Move(DK[0], out_key^, dk_len);
-  Result := CN_OK;
 end;
 
 function cn_mlkem_generate_keys(type_id: TInt32; rand_d_hex: PByte; rand_d_len:
@@ -616,47 +756,62 @@ var
   EnKey, DeKey: TBytes;
   RD, RZ: AnsiString;
 begin
-  if (out_encap_key = nil) or (out_decap_key = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if (rand_d_hex <> nil) and (rand_d_len > 0) then
-    SetString(RD, PAnsiChar(rand_d_hex), Integer(rand_d_len))
-  else
-    RD := '';
-  if (rand_z_hex <> nil) and (rand_z_len > 0) then
-    SetString(RZ, PAnsiChar(rand_z_hex), Integer(rand_z_len))
-  else
-    RZ := '';
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    M.GenerateKeys(EnKey, DeKey, RD, RZ);
-    out_encap_len := Length(EnKey);
-    out_decap_len := Length(DeKey);
-    if (encap_cap < out_encap_len) or (decap_cap < out_decap_len) then
+    out_encap_len := 0;
+    out_decap_len := 0;
+    if not CnExportSizesFitInteger([rand_d_len, rand_z_len, encap_cap, out_encap_len, decap_cap, out_decap_len]) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    if out_encap_len > 0 then
-      Move(EnKey[0], out_encap_key^, out_encap_len);
-    if out_decap_len > 0 then
-      Move(DeKey[0], out_decap_key^, out_decap_len);
-    Result := CN_OK;
-  finally
-    M.Free;
+    if (out_encap_key = nil) or (out_decap_key = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if (rand_d_hex <> nil) and (rand_d_len > 0) then
+      SetString(RD, PAnsiChar(rand_d_hex), Integer(rand_d_len))
+    else
+      RD := '';
+    if (rand_z_hex <> nil) and (rand_z_len > 0) then
+      SetString(RZ, PAnsiChar(rand_z_hex), Integer(rand_z_len))
+    else
+      RZ := '';
+    M := TCnMLKEM.Create(T);
+    try
+      M.GenerateKeys(EnKey, DeKey, RD, RZ);
+      out_encap_len := Length(EnKey);
+      out_decap_len := Length(DeKey);
+      if (encap_cap < out_encap_len) or (decap_cap < out_decap_len) then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_encap_len > 0 then
+        Move(EnKey[0], out_encap_key^, out_encap_len);
+      if out_decap_len > 0 then
+        Move(DeKey[0], out_decap_key^, out_decap_len);
+      Result := CN_OK;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -665,22 +820,31 @@ var
   M: TCnMLKEM;
   T: TCnMLKEMType;
 begin
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := 0;
-    Exit;
-  end;
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    Result := M.GetEncapKeyByteLength;
-  finally
-    M.Free;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := 0;
+      Exit;
+    end;
+    M := TCnMLKEM.Create(T);
+    try
+      Result := M.GetEncapKeyByteLength;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -689,22 +853,31 @@ var
   M: TCnMLKEM;
   T: TCnMLKEMType;
 begin
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := 0;
-    Exit;
-  end;
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    Result := M.GetDecapKeyByteLength;
-  finally
-    M.Free;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := 0;
+      Exit;
+    end;
+    M := TCnMLKEM.Create(T);
+    try
+      Result := M.GetDecapKeyByteLength;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -713,28 +886,46 @@ var
   M: TCnMLKEM;
   T: TCnMLKEMType;
 begin
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := 0;
-    Exit;
-  end;
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    Result := M.GetCipherByteLength;
-  finally
-    M.Free;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := 0;
+      Exit;
+    end;
+    M := TCnMLKEM.Create(T);
+    try
+      Result := M.GetCipherByteLength;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
 function cn_mlkem_share_key_bytes: TCnSize; cdecl;
 begin
-  Result := 32;
+  CnExportClearLastError;
+  try
+    Result := 32;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
+  end;
 end;
 
 function cn_mldsa_expected_privkey_len(type_id: TInt32): TCnSize; cdecl;
@@ -743,33 +934,42 @@ var
   T: TCnMLDSAType;
   Rows, Cols, NoiseBits: Integer;
 begin
-  case type_id of
-    44, CN_MLDSA_TYPE_44:
-      T := cmdt44;
-    65, CN_MLDSA_TYPE_65:
-      T := cmdt65;
-    87, CN_MLDSA_TYPE_87:
-      T := cmdt87;
-  else
-    Result := 0;
-    Exit;
-  end;
-  D := TCnMLDSA.Create(T);
+  CnExportClearLastError;
   try
-    Rows := D.MatrixRowCount;
-    Cols := D.MatrixColCount;
-    case D.Noise of
-      2:
-        NoiseBits := 2;
-      4:
-        NoiseBits := 3;
+    case type_id of
+      44, CN_MLDSA_TYPE_44:
+        T := cmdt44;
+      65, CN_MLDSA_TYPE_65:
+        T := cmdt65;
+      87, CN_MLDSA_TYPE_87:
+        T := cmdt87;
     else
-      NoiseBits := 2;
+      Result := 0;
+      Exit;
     end;
-    Result := 2 * 32 + 64 + 32 * (Rows + Cols) * (NoiseBits + 1) + 32 * Rows *
-      CN_MLDSA_DROPBIT;
-  finally
-    D.Free;
+    D := TCnMLDSA.Create(T);
+    try
+      Rows := D.MatrixRowCount;
+      Cols := D.MatrixColCount;
+      case D.Noise of
+        2:
+          NoiseBits := 2;
+        4:
+          NoiseBits := 3;
+      else
+        NoiseBits := 2;
+      end;
+      Result := 2 * 32 + 64 + 32 * (Rows + Cols) * (NoiseBits + 1) + 32 * Rows *
+        CN_MLDSA_DROPBIT;
+    finally
+      D.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -778,22 +978,31 @@ var
   D: TCnMLDSA;
   T: TCnMLDSAType;
 begin
-  case type_id of
-    44, CN_MLDSA_TYPE_44:
-      T := cmdt44;
-    65, CN_MLDSA_TYPE_65:
-      T := cmdt65;
-    87, CN_MLDSA_TYPE_87:
-      T := cmdt87;
-  else
-    Result := 0;
-    Exit;
-  end;
-  D := TCnMLDSA.Create(T);
+  CnExportClearLastError;
   try
-    Result := 32 + 32 * D.MatrixRowCount * CN_MLDSA_PUBKEY_BIT;
-  finally
-    D.Free;
+    case type_id of
+      44, CN_MLDSA_TYPE_44:
+        T := cmdt44;
+      65, CN_MLDSA_TYPE_65:
+        T := cmdt65;
+      87, CN_MLDSA_TYPE_87:
+        T := cmdt87;
+    else
+      Result := 0;
+      Exit;
+    end;
+    D := TCnMLDSA.Create(T);
+    try
+      Result := 32 + 32 * D.MatrixRowCount * CN_MLDSA_PUBKEY_BIT;
+    finally
+      D.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -803,23 +1012,32 @@ var
   T: TCnMLDSAType;
   Bits: Integer;
 begin
-  case type_id of
-    44, CN_MLDSA_TYPE_44:
-      T := cmdt44;
-    65, CN_MLDSA_TYPE_65:
-      T := cmdt65;
-    87, CN_MLDSA_TYPE_87:
-      T := cmdt87;
-  else
-    Result := 0;
-    Exit;
-  end;
-  D := TCnMLDSA.Create(T);
+  CnExportClearLastError;
   try
-    Bits := 1 + GetUInt32BitLength(D.Gamma1 - 1);
-    Result := D.Lambda div 4 + D.MatrixColCount * 32 * Bits + D.Omega + D.MatrixRowCount;
-  finally
-    D.Free;
+    case type_id of
+      44, CN_MLDSA_TYPE_44:
+        T := cmdt44;
+      65, CN_MLDSA_TYPE_65:
+        T := cmdt65;
+      87, CN_MLDSA_TYPE_87:
+        T := cmdt87;
+    else
+      Result := 0;
+      Exit;
+    end;
+    D := TCnMLDSA.Create(T);
+    try
+      Bits := 1 + GetUInt32BitLength(D.Gamma1 - 1);
+      Result := D.Lambda div 4 + D.MatrixColCount * 32 * Bits + D.Omega + D.MatrixRowCount;
+    finally
+      D.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -832,57 +1050,72 @@ var
   T: TCnMLKEMType;
   EnKey, MsgB, ShareKey, CipherText: TBytes;
 begin
-  if (encap_key = nil) or (msg = nil) or (out_share_key = nil) or (out_cipher =
-    nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if msg_len <> 32 then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(EnKey, encap_len);
-  if encap_len > 0 then
-    Move(encap_key^, EnKey[0], encap_len);
-  SetLength(MsgB, msg_len);
-  if msg_len > 0 then
-    Move(msg^, MsgB[0], msg_len);
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    try
-      M.CheckEncapKey(EnKey);
-    except
+    out_share_len := 0;
+    out_cipher_len := 0;
+    if not CnExportSizesFitInteger([encap_len, msg_len, share_cap, out_share_len, cipher_cap, out_cipher_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (encap_key = nil) or (msg = nil) or (out_share_key = nil) or (out_cipher =
+      nil) then
+    begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    M.MLKEMEncaps(EnKey, MsgB, ShareKey, CipherText);
-    out_share_len := Length(ShareKey);
-    out_cipher_len := Length(CipherText);
-    if (share_cap < out_share_len) or (cipher_cap < out_cipher_len) then
+    if msg_len <> 32 then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_share_len > 0 then
-      Move(ShareKey[0], out_share_key^, out_share_len);
-    if out_cipher_len > 0 then
-      Move(CipherText[0], out_cipher^, out_cipher_len);
-    Result := CN_OK;
-  finally
-    M.Free;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetLength(EnKey, encap_len);
+    if encap_len > 0 then
+      Move(encap_key^, EnKey[0], encap_len);
+    SetLength(MsgB, msg_len);
+    if msg_len > 0 then
+      Move(msg^, MsgB[0], msg_len);
+    M := TCnMLKEM.Create(T);
+    try
+      try
+        M.CheckEncapKey(EnKey);
+      except
+        Result := CN_E_INVALID_ARG;
+        Exit;
+      end;
+      M.MLKEMEncaps(EnKey, MsgB, ShareKey, CipherText);
+      out_share_len := Length(ShareKey);
+      out_cipher_len := Length(CipherText);
+      if (share_cap < out_share_len) or (cipher_cap < out_cipher_len) then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_share_len > 0 then
+        Move(ShareKey[0], out_share_key^, out_share_len);
+      if out_cipher_len > 0 then
+        Move(CipherText[0], out_cipher^, out_cipher_len);
+      Result := CN_OK;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -894,48 +1127,62 @@ var
   T: TCnMLKEMType;
   DeKey, CipherText, ShareKey: TBytes;
 begin
-  if (decap_key = nil) or (cipher = nil) or (out_share_key = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(DeKey, decap_len);
-  if decap_len > 0 then
-    Move(decap_key^, DeKey[0], decap_len);
-  SetLength(CipherText, cipher_len);
-  if cipher_len > 0 then
-    Move(cipher^, CipherText[0], cipher_len);
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    try
-      M.CheckDecapKey(DeKey);
-    except
+    out_share_len := 0;
+    if not CnExportSizesFitInteger([decap_len, cipher_len, share_cap, out_share_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (decap_key = nil) or (cipher = nil) or (out_share_key = nil) then
+    begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    ShareKey := M.MLKEMDecaps(DeKey, CipherText);
-    out_share_len := Length(ShareKey);
-    if share_cap < out_share_len then
-    begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_share_len > 0 then
-      Move(ShareKey[0], out_share_key^, out_share_len);
-    Result := CN_OK;
-  finally
-    M.Free;
+    SetLength(DeKey, decap_len);
+    if decap_len > 0 then
+      Move(decap_key^, DeKey[0], decap_len);
+    SetLength(CipherText, cipher_len);
+    if cipher_len > 0 then
+      Move(cipher^, CipherText[0], cipher_len);
+    M := TCnMLKEM.Create(T);
+    try
+      try
+        M.CheckDecapKey(DeKey);
+      except
+        Result := CN_E_INVALID_ARG;
+        Exit;
+      end;
+      ShareKey := M.MLKEMDecaps(DeKey, CipherText);
+      out_share_len := Length(ShareKey);
+      if share_cap < out_share_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_share_len > 0 then
+        Move(ShareKey[0], out_share_key^, out_share_len);
+      Result := CN_OK;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -950,49 +1197,64 @@ var
   Rand: AnsiString;
   SKB, PKB: TBytes;
 begin
-  if (out_priv = nil) or (out_pub = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    44, CN_MLDSA_TYPE_44:
-      T := cmdt44;
-    65, CN_MLDSA_TYPE_65:
-      T := cmdt65;
-    87, CN_MLDSA_TYPE_87:
-      T := cmdt87;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if (rand_hex <> nil) and (rand_len > 0) then
-    SetString(Rand, PAnsiChar(rand_hex), Integer(rand_len))
-  else
-    Rand := '';
-  D := TCnMLDSA.Create(T);
-  SK := TCnMLDSAPrivateKey.Create;
-  PK := TCnMLDSAPublicKey.Create;
+  CnExportClearLastError;
   try
-    D.GenerateKeys(SK, PK, Rand);
-    SKB := D.SavePrivateKeyToBytes(SK);
-    PKB := D.SavePublicKeyToBytes(PK);
-    out_priv_len := Length(SKB);
-    out_pub_len := Length(PKB);
-    if (priv_cap < out_priv_len) or (pub_cap < out_pub_len) then
+    out_priv_len := 0;
+    out_pub_len := 0;
+    if not CnExportSizesFitInteger([rand_len, priv_cap, out_priv_len, pub_cap, out_pub_len]) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    if out_priv_len > 0 then
-      Move(SKB[0], out_priv^, out_priv_len);
-    if out_pub_len > 0 then
-      Move(PKB[0], out_pub^, out_pub_len);
-    Result := CN_OK;
-  finally
-    PK.Free;
-    SK.Free;
-    D.Free;
+    if (out_priv = nil) or (out_pub = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case type_id of
+      44, CN_MLDSA_TYPE_44:
+        T := cmdt44;
+      65, CN_MLDSA_TYPE_65:
+        T := cmdt65;
+      87, CN_MLDSA_TYPE_87:
+        T := cmdt87;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if (rand_hex <> nil) and (rand_len > 0) then
+      SetString(Rand, PAnsiChar(rand_hex), Integer(rand_len))
+    else
+      Rand := '';
+    D := TCnMLDSA.Create(T);
+    SK := TCnMLDSAPrivateKey.Create;
+    PK := TCnMLDSAPublicKey.Create;
+    try
+      D.GenerateKeys(SK, PK, Rand);
+      SKB := D.SavePrivateKeyToBytes(SK);
+      PKB := D.SavePublicKeyToBytes(PK);
+      out_priv_len := Length(SKB);
+      out_pub_len := Length(PKB);
+      if (priv_cap < out_priv_len) or (pub_cap < out_pub_len) then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_priv_len > 0 then
+        Move(SKB[0], out_priv^, out_priv_len);
+      if out_pub_len > 0 then
+        Move(PKB[0], out_pub^, out_pub_len);
+      Result := CN_OK;
+    finally
+      PK.Free;
+      SK.Free;
+      D.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1008,79 +1270,93 @@ var
   CtxS, RandS: AnsiString;
   HT: TCnMLDSAHashType;
 begin
-  if (sk = nil) or (msg = nil) or (out_sig = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    44, CN_MLDSA_TYPE_44:
-      T := cmdt44;
-    65, CN_MLDSA_TYPE_65:
-      T := cmdt65;
-    87, CN_MLDSA_TYPE_87:
-      T := cmdt87;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case hash_id of
-    0:
-      HT := cmhtNone;
-    CN_HASH_SHA2_256:
-      HT := cmhtSHA256;
-    CN_HASH_SHA2_512:
-      HT := cmhtSHA512;
-    CN_HASH_SHA3_256:
-      HT := cmhtSHA3_256;
-    CN_HASH_SHA3_512:
-      HT := cmhtSHA3_512;
-    CN_HASH_SM3:
-      HT := cmhtSM3;
-    CN_HASH_SHAKE128:
-      HT := cmhtSHAKE128;
-    CN_HASH_SHAKE256:
-      HT := cmhtSHAKE256;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if (ctx <> nil) and (ctx_len > 0) then
-    SetString(CtxS, PAnsiChar(ctx), Integer(ctx_len))
-  else
-    CtxS := '';
-  if (rand_hex <> nil) and (rand_len > 0) then
-    SetString(RandS, PAnsiChar(rand_hex), Integer(rand_len))
-  else
-    RandS := '';
-  SetLength(SKB, sk_len);
-  if sk_len > 0 then
-    Move(sk^, SKB[0], sk_len);
-  SetLength(MsgB, msg_len);
-  if msg_len > 0 then
-    Move(msg^, MsgB[0], msg_len);
-  D := TCnMLDSA.Create(T);
-  PrivK := TCnMLDSAPrivateKey.Create;
+  CnExportClearLastError;
   try
-    try
-      D.LoadPrivateKeyFromBytes(PrivK, SKB);
-    except
+    out_sig_len := 0;
+    if not CnExportSizesFitInteger([sk_len, msg_len, ctx_len, rand_len, sig_cap, out_sig_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (sk = nil) or (msg = nil) or (out_sig = nil) then
+    begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    SigB := D.SignBytes(PrivK, MsgB, CtxS, HT, RandS);
-    out_sig_len := Length(SigB);
-    if sig_cap < out_sig_len then
-    begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+    case type_id of
+      44, CN_MLDSA_TYPE_44:
+        T := cmdt44;
+      65, CN_MLDSA_TYPE_65:
+        T := cmdt65;
+      87, CN_MLDSA_TYPE_87:
+        T := cmdt87;
+    else
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_sig_len > 0 then
-      Move(SigB[0], out_sig^, out_sig_len);
-    Result := CN_OK;
-  finally
-    PrivK.Free;
-    D.Free;
+    case hash_id of
+      0:
+        HT := cmhtNone;
+      CN_HASH_SHA2_256:
+        HT := cmhtSHA256;
+      CN_HASH_SHA2_512:
+        HT := cmhtSHA512;
+      CN_HASH_SHA3_256:
+        HT := cmhtSHA3_256;
+      CN_HASH_SHA3_512:
+        HT := cmhtSHA3_512;
+      CN_HASH_SM3:
+        HT := cmhtSM3;
+      CN_HASH_SHAKE128:
+        HT := cmhtSHAKE128;
+      CN_HASH_SHAKE256:
+        HT := cmhtSHAKE256;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if (ctx <> nil) and (ctx_len > 0) then
+      SetString(CtxS, PAnsiChar(ctx), Integer(ctx_len))
+    else
+      CtxS := '';
+    if (rand_hex <> nil) and (rand_len > 0) then
+      SetString(RandS, PAnsiChar(rand_hex), Integer(rand_len))
+    else
+      RandS := '';
+    SetLength(SKB, sk_len);
+    if sk_len > 0 then
+      Move(sk^, SKB[0], sk_len);
+    SetLength(MsgB, msg_len);
+    if msg_len > 0 then
+      Move(msg^, MsgB[0], msg_len);
+    D := TCnMLDSA.Create(T);
+    PrivK := TCnMLDSAPrivateKey.Create;
+    try
+      try
+        D.LoadPrivateKeyFromBytes(PrivK, SKB);
+      except
+        Result := CN_E_INVALID_ARG;
+        Exit;
+      end;
+      SigB := D.SignBytes(PrivK, MsgB, CtxS, HT, RandS);
+      out_sig_len := Length(SigB);
+      if sig_cap < out_sig_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_sig_len > 0 then
+        Move(SigB[0], out_sig^, out_sig_len);
+      Result := CN_OK;
+    finally
+      PrivK.Free;
+      D.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1096,79 +1372,92 @@ var
   HT: TCnMLDSAHashType;
   Ok: Boolean;
 begin
-  if (pk_len < 0) or (msg_len < 0) or (sig_len < 0) or (ctx_len < 0)
-    or (pk = nil) or (msg = nil) or (sig = nil) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  case type_id of
-    44, CN_MLDSA_TYPE_44:
-      T := cmdt44;
-    65, CN_MLDSA_TYPE_65:
-      T := cmdt65;
-    87, CN_MLDSA_TYPE_87:
-      T := cmdt87;
-  else
-    Result := 0;
-    Exit;
-  end;
-  case hash_id of
-    0:
-      HT := cmhtNone;
-    CN_HASH_SHA2_256:
-      HT := cmhtSHA256;
-    CN_HASH_SHA2_512:
-      HT := cmhtSHA512;
-    CN_HASH_SHA3_256:
-      HT := cmhtSHA3_256;
-    CN_HASH_SHA3_512:
-      HT := cmhtSHA3_512;
-    CN_HASH_SM3:
-      HT := cmhtSM3;
-    CN_HASH_SHAKE128:
-      HT := cmhtSHAKE128;
-    CN_HASH_SHAKE256:
-      HT := cmhtSHAKE256;
-  else
-    Result := 0;
-    Exit;
-  end;
-  if (ctx <> nil) and (ctx_len > 0) then
-    SetString(CtxS, PAnsiChar(ctx), Integer(ctx_len))
-  else
-    CtxS := '';
-  SetLength(PKB, pk_len);
-  if pk_len > 0 then
-    Move(pk^, PKB[0], pk_len);
-  SetLength(MsgB, msg_len);
-  if msg_len > 0 then
-    Move(msg^, MsgB[0], msg_len);
-  SetLength(SigB, sig_len);
-  if sig_len > 0 then
-    Move(sig^, SigB[0], sig_len);
-  D := TCnMLDSA.Create(T);
-  PubK := TCnMLDSAPublicKey.Create;
+  CnExportClearLastError;
   try
-    try
-      D.LoadPublicKeyFromBytes(PubK, PKB);
-    except
+    if not CnExportSizesFitInteger([pk_len, msg_len, sig_len, ctx_len]) then
+    begin
       Result := 0;
       Exit;
     end;
-    try
-      Ok := D.VerifyBytes(PubK, MsgB, SigB, CtxS, HT);
-    except
+    if (pk = nil) or (msg = nil) or (sig = nil) then
+    begin
       Result := 0;
       Exit;
     end;
-    if Ok then
-      Result := 1
+    case type_id of
+      44, CN_MLDSA_TYPE_44:
+        T := cmdt44;
+      65, CN_MLDSA_TYPE_65:
+        T := cmdt65;
+      87, CN_MLDSA_TYPE_87:
+        T := cmdt87;
     else
       Result := 0;
-  finally
-    PubK.Free;
-    D.Free;
+      Exit;
+    end;
+    case hash_id of
+      0:
+        HT := cmhtNone;
+      CN_HASH_SHA2_256:
+        HT := cmhtSHA256;
+      CN_HASH_SHA2_512:
+        HT := cmhtSHA512;
+      CN_HASH_SHA3_256:
+        HT := cmhtSHA3_256;
+      CN_HASH_SHA3_512:
+        HT := cmhtSHA3_512;
+      CN_HASH_SM3:
+        HT := cmhtSM3;
+      CN_HASH_SHAKE128:
+        HT := cmhtSHAKE128;
+      CN_HASH_SHAKE256:
+        HT := cmhtSHAKE256;
+    else
+      Result := 0;
+      Exit;
+    end;
+    if (ctx <> nil) and (ctx_len > 0) then
+      SetString(CtxS, PAnsiChar(ctx), Integer(ctx_len))
+    else
+      CtxS := '';
+    SetLength(PKB, pk_len);
+    if pk_len > 0 then
+      Move(pk^, PKB[0], pk_len);
+    SetLength(MsgB, msg_len);
+    if msg_len > 0 then
+      Move(msg^, MsgB[0], msg_len);
+    SetLength(SigB, sig_len);
+    if sig_len > 0 then
+      Move(sig^, SigB[0], sig_len);
+    D := TCnMLDSA.Create(T);
+    PubK := TCnMLDSAPublicKey.Create;
+    try
+      try
+        D.LoadPublicKeyFromBytes(PubK, PKB);
+      except
+        Result := 0;
+        Exit;
+      end;
+      try
+        Ok := D.VerifyBytes(PubK, MsgB, SigB, CtxS, HT);
+      except
+        Result := 0;
+        Exit;
+      end;
+      if Ok then
+        Result := 1
+      else
+        Result := 0;
+    finally
+      PubK.Free;
+      D.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -1179,35 +1468,48 @@ var
   T: TCnMLKEMType;
   EnKey: TBytes;
 begin
-  if (encap_key = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(EnKey, encap_len);
-  if encap_len > 0 then
-    Move(encap_key^, EnKey[0], encap_len);
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    try
-      M.CheckEncapKey(EnKey);
-      Result := CN_OK;
-    except
-      Result := CN_E_INVALID_ARG;
+    if not CnExportSizesFitInteger([encap_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
     end;
-  finally
-    M.Free;
+    if (encap_key = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetLength(EnKey, encap_len);
+    if encap_len > 0 then
+      Move(encap_key^, EnKey[0], encap_len);
+    M := TCnMLKEM.Create(T);
+    try
+      try
+        M.CheckEncapKey(EnKey);
+        Result := CN_OK;
+      except
+        Result := CN_E_INVALID_ARG;
+      end;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1218,35 +1520,48 @@ var
   T: TCnMLKEMType;
   DeKey: TBytes;
 begin
-  if (decap_key = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(DeKey, decap_len);
-  if decap_len > 0 then
-    Move(decap_key^, DeKey[0], decap_len);
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    try
-      M.CheckDecapKey(DeKey);
-      Result := CN_OK;
-    except
-      Result := CN_E_INVALID_ARG;
+    if not CnExportSizesFitInteger([decap_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
     end;
-  finally
-    M.Free;
+    if (decap_key = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetLength(DeKey, decap_len);
+    if decap_len > 0 then
+      Move(decap_key^, DeKey[0], decap_len);
+    M := TCnMLKEM.Create(T);
+    try
+      try
+        M.CheckDecapKey(DeKey);
+        Result := CN_OK;
+      except
+        Result := CN_E_INVALID_ARG;
+      end;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1258,50 +1573,65 @@ var
   T: TCnMLKEMType;
   EnKey, MsgB, ShareKey, CipherText: TBytes;
 begin
-  if (encap_key = nil) or (out_share_key = nil) or (out_cipher = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case type_id of
-    512, CN_MLKEM_TYPE_512:
-      T := cmkt512;
-    768, CN_MLKEM_TYPE_768:
-      T := cmkt768;
-    1024, CN_MLKEM_TYPE_1024:
-      T := cmkt1024;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(EnKey, encap_len);
-  if encap_len > 0 then
-    Move(encap_key^, EnKey[0], encap_len);
-  SetLength(MsgB, 32);
-  CnRandomFillBytes(@MsgB[0], Length(MsgB));
-  M := TCnMLKEM.Create(T);
+  CnExportClearLastError;
   try
-    try
-      M.CheckEncapKey(EnKey);
-    except
+    out_share_len := 0;
+    out_cipher_len := 0;
+    if not CnExportSizesFitInteger([encap_len, share_cap, out_share_len, cipher_cap, out_cipher_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (encap_key = nil) or (out_share_key = nil) or (out_cipher = nil) then
+    begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    M.MLKEMEncaps(EnKey, MsgB, ShareKey, CipherText);
-    out_share_len := Length(ShareKey);
-    out_cipher_len := Length(CipherText);
-    if (share_cap < out_share_len) or (cipher_cap < out_cipher_len) then
-    begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+    case type_id of
+      512, CN_MLKEM_TYPE_512:
+        T := cmkt512;
+      768, CN_MLKEM_TYPE_768:
+        T := cmkt768;
+      1024, CN_MLKEM_TYPE_1024:
+        T := cmkt1024;
+    else
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_share_len > 0 then
-      Move(ShareKey[0], out_share_key^, out_share_len);
-    if out_cipher_len > 0 then
-      Move(CipherText[0], out_cipher^, out_cipher_len);
-    Result := CN_OK;
-  finally
-    M.Free;
+    SetLength(EnKey, encap_len);
+    if encap_len > 0 then
+      Move(encap_key^, EnKey[0], encap_len);
+    SetLength(MsgB, 32);
+    CnRandomFillBytes(@MsgB[0], Length(MsgB));
+    M := TCnMLKEM.Create(T);
+    try
+      try
+        M.CheckEncapKey(EnKey);
+      except
+        Result := CN_E_INVALID_ARG;
+        Exit;
+      end;
+      M.MLKEMEncaps(EnKey, MsgB, ShareKey, CipherText);
+      out_share_len := Length(ShareKey);
+      out_cipher_len := Length(CipherText);
+      if (share_cap < out_share_len) or (cipher_cap < out_cipher_len) then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_share_len > 0 then
+        Move(ShareKey[0], out_share_key^, out_share_len);
+      if out_cipher_len > 0 then
+        Move(CipherText[0], out_cipher^, out_cipher_len);
+      Result := CN_OK;
+    finally
+      M.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1309,8 +1639,22 @@ function cn_curve25519_dh(self_priv: TCnCryptoHandle; peer_point_bytes: PByte;
   peer_len: TCnSize; out_shared_bytes: PByte; cap: TCnSize; var out_len: TCnSize):
   TCnResult; cdecl;
 begin
-  Result := cn_curve25519_dh_step2(self_priv, peer_point_bytes, peer_len,
-    out_shared_bytes, cap, out_len);
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([peer_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    Result := cn_curve25519_dh_step2(self_priv, peer_point_bytes, peer_len,
+      out_shared_bytes, cap, out_len);
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
+  end;
 end;
 
 function cn_curve25519_dh_bytes(self_priv_bytes: PByte; self_len: TCnSize;
@@ -1325,44 +1669,58 @@ var
   K: TCnCurve25519PrivateKey;
   Ok: Boolean;
 begin
-  if (self_priv_bytes = nil) or (peer_point_bytes = nil) or (out_shared_bytes =
-    nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if (self_len <> SizeOf(SelfData)) or (peer_len <> SizeOf(PeerData)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(OutData);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  Move(self_priv_bytes^, SelfData[0], SizeOf(SelfData));
-  Move(peer_point_bytes^, PeerData[0], SizeOf(PeerData));
-  K := TCnCurve25519PrivateKey.Create;
-  Peer := TCnEccPoint.Create;
-  Shared := TCnEccPoint.Create;
+  CnExportClearLastError;
   try
-    K.LoadFromData(SelfData);
-    CnCurve25519DataToPoint(PeerData, Peer);
-    Ok := CnCurve25519KeyExchangeStep2(K, Peer, Shared);
-    if not Ok then
+    out_len := 0;
+    if not CnExportSizesFitInteger([self_len, peer_len, cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    CnCurve25519PointToData(Shared, OutData);
-    Move(OutData[0], out_shared_bytes^, out_len);
-    Result := CN_OK;
-  finally
-    Shared.Free;
-    Peer.Free;
-    K.Free;
+    if (self_priv_bytes = nil) or (peer_point_bytes = nil) or (out_shared_bytes =
+      nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if (self_len <> SizeOf(SelfData)) or (peer_len <> SizeOf(PeerData)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(OutData);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    Move(self_priv_bytes^, SelfData[0], SizeOf(SelfData));
+    Move(peer_point_bytes^, PeerData[0], SizeOf(PeerData));
+    K := TCnCurve25519PrivateKey.Create;
+    Peer := TCnEccPoint.Create;
+    Shared := TCnEccPoint.Create;
+    try
+      K.LoadFromData(SelfData);
+      CnCurve25519DataToPoint(PeerData, Peer);
+      Ok := CnCurve25519KeyExchangeStep2(K, Peer, Shared);
+      if not Ok then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      CnCurve25519PointToData(Shared, OutData);
+      Move(OutData[0], out_shared_bytes^, out_len);
+      Result := CN_OK;
+    finally
+      Shared.Free;
+      Peer.Free;
+      K.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1382,122 +1740,136 @@ var
   DomNeeded: Boolean;
   B: Byte;
 begin
-  if (priv = nil) or (pub = nil) or (out_sig = nil) or ((data = nil) and (len <>
-    0)) or ((ctx = nil) and (ctx_len <> 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if ctx_len > 255 then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(SigData);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  Sig := TCnEd25519Signature.Create;
-  E := TCnEd25519.Create;
-  R := TCnBigNumber.Create;
-  S := TCnBigNumber.Create;
-  K := TCnBigNumber.Create;
-  HP := TCnBigNumber.Create;
-  Dom := TMemoryStream.Create;
-  Stream := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    DomNeeded := (ph_flag <> 0) or (ctx_len <> 0);
-    if DomNeeded then
+    out_len := 0;
+    if not CnExportSizesFitInteger([ctx_len, len, cap, out_len]) then
     begin
-      B := Ord('S');
-      Dom.Write(B, 1);
-      B := Ord('i');
-      Dom.Write(B, 1);
-      B := Ord('g');
-      Dom.Write(B, 1);
-      B := Ord('E');
-      Dom.Write(B, 1);
-      B := Ord('d');
-      Dom.Write(B, 1);
-      B := Ord('2');
-      Dom.Write(B, 1);
-      B := Ord('5');
-      Dom.Write(B, 1);
-      B := Ord('5');
-      Dom.Write(B, 1);
-      B := Ord('1');
-      Dom.Write(B, 1);
-      B := Ord('9');
-      Dom.Write(B, 1);
-      B := $01;
-      Dom.Write(B, 1);
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or (pub = nil) or (out_sig = nil) or ((data = nil) and (len <>
+      0)) or ((ctx = nil) and (ctx_len <> 0)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if ctx_len > 255 then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(SigData);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    Sig := TCnEd25519Signature.Create;
+    E := TCnEd25519.Create;
+    R := TCnBigNumber.Create;
+    S := TCnBigNumber.Create;
+    K := TCnBigNumber.Create;
+    HP := TCnBigNumber.Create;
+    Dom := TMemoryStream.Create;
+    Stream := TMemoryStream.Create;
+    try
+      DomNeeded := (ph_flag <> 0) or (ctx_len <> 0);
+      if DomNeeded then
+      begin
+        B := Ord('S');
+        Dom.Write(B, 1);
+        B := Ord('i');
+        Dom.Write(B, 1);
+        B := Ord('g');
+        Dom.Write(B, 1);
+        B := Ord('E');
+        Dom.Write(B, 1);
+        B := Ord('d');
+        Dom.Write(B, 1);
+        B := Ord('2');
+        Dom.Write(B, 1);
+        B := Ord('5');
+        Dom.Write(B, 1);
+        B := Ord('5');
+        Dom.Write(B, 1);
+        B := Ord('1');
+        Dom.Write(B, 1);
+        B := Ord('9');
+        Dom.Write(B, 1);
+        B := $01;
+        Dom.Write(B, 1);
+        if ph_flag <> 0 then
+          B := $01
+        else
+          B := $00;
+        Dom.Write(B, 1);
+        B := Byte(ctx_len and $FF);
+        Dom.Write(B, 1);
+        if ctx_len > 0 then
+          Dom.Write(ctx^, ctx_len);
+      end;
+      CnCalcKeysFromEd25519PrivateKey(TCnEd25519PrivateKey(priv), S, HP);
       if ph_flag <> 0 then
-        B := $01
+      begin
+        Dig := SHA512Buffer(data^, len);
+        MsgPtr := @Dig[0];
+        MsgLen := SizeOf(TCnSHA512Digest);
+      end
       else
-        B := $00;
-      Dom.Write(B, 1);
-      B := Byte(ctx_len and $FF);
-      Dom.Write(B, 1);
-      if ctx_len > 0 then
-        Dom.Write(ctx^, ctx_len);
+      begin
+        MsgPtr := data;
+        MsgLen := len;
+      end;
+      Stream.Clear;
+      if DomNeeded then
+        Stream.Write(Dom.Memory^, Dom.Size);
+      BigNumberWriteBinaryToStream(HP, Stream, CN_25519_BLOCK_BYTESIZE);
+      if MsgLen > 0 then
+        Stream.Write(MsgPtr^, MsgLen);
+      Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
+      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+      R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
+      BigNumberNonNegativeMod(R, R, E.Order);
+      Sig.R.Assign(E.Generator);
+      E.MultiplePoint(R, Sig.R);
+      E.PointToPlain(Sig.R, RData);
+      Stream.Clear;
+      if DomNeeded then
+        Stream.Write(Dom.Memory^, Dom.Size);
+      Stream.Write(RData[0], SizeOf(TCnEd25519Data));
+      E.PointToPlain(TCnEd25519PublicKey(pub), PubData);
+      Stream.Write(PubData[0], SizeOf(TCnEd25519Data));
+      if MsgLen > 0 then
+        Stream.Write(MsgPtr^, MsgLen);
+      Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
+      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+      K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
+      BigNumberNonNegativeMod(K, K, E.Order);
+      BigNumberDirectMulMod(Sig.S, K, S, E.Order);
+      BigNumberAddMod(Sig.S, R, Sig.S, E.Order);
+      Sig.SaveToData(SigData);
+      Move(SigData[0], out_sig^, out_len);
+      Result := CN_OK;
+    finally
+      Stream.Free;
+      Dom.Free;
+      HP.Clear;
+      HP.Free;
+      K.Clear;
+      K.Free;
+      S.Clear;
+      S.Free;
+      R.Clear;
+      R.Free;
+      E.Free;
+      Sig.Free;
     end;
-    CnCalcKeysFromEd25519PrivateKey(TCnEd25519PrivateKey(priv), S, HP);
-    if ph_flag <> 0 then
+  except
+    on E: Exception do
     begin
-      Dig := SHA512Buffer(data^, len);
-      MsgPtr := @Dig[0];
-      MsgLen := SizeOf(TCnSHA512Digest);
-    end
-    else
-    begin
-      MsgPtr := data;
-      MsgLen := len;
+      Result := CnExportMapException(E);
     end;
-    Stream.Clear;
-    if DomNeeded then
-      Stream.Write(Dom.Memory^, Dom.Size);
-    BigNumberWriteBinaryToStream(HP, Stream, CN_25519_BLOCK_BYTESIZE);
-    if MsgLen > 0 then
-      Stream.Write(MsgPtr^, MsgLen);
-    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
-    R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
-    BigNumberNonNegativeMod(R, R, E.Order);
-    Sig.R.Assign(E.Generator);
-    E.MultiplePoint(R, Sig.R);
-    E.PointToPlain(Sig.R, RData);
-    Stream.Clear;
-    if DomNeeded then
-      Stream.Write(Dom.Memory^, Dom.Size);
-    Stream.Write(RData[0], SizeOf(TCnEd25519Data));
-    E.PointToPlain(TCnEd25519PublicKey(pub), PubData);
-    Stream.Write(PubData[0], SizeOf(TCnEd25519Data));
-    if MsgLen > 0 then
-      Stream.Write(MsgPtr^, MsgLen);
-    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
-    K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
-    BigNumberNonNegativeMod(K, K, E.Order);
-    BigNumberDirectMulMod(Sig.S, K, S, E.Order);
-    BigNumberAddMod(Sig.S, R, Sig.S, E.Order);
-    Sig.SaveToData(SigData);
-    Move(SigData[0], out_sig^, out_len);
-    Result := CN_OK;
-  finally
-    Stream.Free;
-    Dom.Free;
-    HP.Clear;
-    HP.Free;
-    K.Clear;
-    K.Free;
-    S.Clear;
-    S.Free;
-    R.Clear;
-    R.Free;
-    E.Free;
-    Sig.Free;
   end;
 end;
 
@@ -1518,131 +1890,171 @@ var
   DomNeeded: Boolean;
   B: Byte;
 begin
-  if (pub = nil) or ((data = nil) and (len <> 0)) or (sig = nil) or (sig_len <>
-    SizeOf(TCnEd25519SignatureData)) or ((ctx = nil) and (ctx_len <> 0)) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  if ctx_len > 255 then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  SigObj := TCnEd25519Signature.Create;
-  E := TCnEd25519.Create;
-  L := TCnEccPoint.Create;
-  R := TCnEccPoint.Create;
-  M := TCnEccPoint.Create;
-  T := TCnBigNumber.Create;
-  Dom := TMemoryStream.Create;
-  Stream := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    Move(sig^, SigBytes[0], SizeOf(TCnEd25519SignatureData));
-    SigObj.LoadFromData(SigBytes);
-    DomNeeded := (ph_flag <> 0) or (ctx_len <> 0);
-    if DomNeeded then
+    if not CnExportSizesFitInteger([ctx_len, len, sig_len]) then
     begin
-      B := Ord('S');
-      Dom.Write(B, 1);
-      B := Ord('i');
-      Dom.Write(B, 1);
-      B := Ord('g');
-      Dom.Write(B, 1);
-      B := Ord('E');
-      Dom.Write(B, 1);
-      B := Ord('d');
-      Dom.Write(B, 1);
-      B := Ord('2');
-      Dom.Write(B, 1);
-      B := Ord('5');
-      Dom.Write(B, 1);
-      B := Ord('5');
-      Dom.Write(B, 1);
-      B := Ord('1');
-      Dom.Write(B, 1);
-      B := Ord('9');
-      Dom.Write(B, 1);
-      B := $01;
-      Dom.Write(B, 1);
-      if ph_flag <> 0 then
-        B := $01
-      else
-        B := $00;
-      Dom.Write(B, 1);
-      B := Byte(ctx_len and $FF);
-      Dom.Write(B, 1);
-      if ctx_len > 0 then
-        Dom.Write(ctx^, ctx_len);
-    end;
-    if ph_flag <> 0 then
-    begin
-      Dig := SHA512Buffer(data^, len);
-      MsgPtr := @Dig[0];
-      MsgLen := SizeOf(TCnSHA512Digest);
-    end
-    else
-    begin
-      MsgPtr := data;
-      MsgLen := len;
-    end;
-    L.Assign(E.Generator);
-    E.MultiplePoint(SigObj.S, L);
-    E.MultiplePoint(8, L);
-    R.Assign(SigObj.R);
-    E.MultiplePoint(8, R);
-    Stream.Clear;
-    if DomNeeded then
-      Stream.Write(Dom.Memory^, Dom.Size);
-    CnEd25519PointToData(SigObj.R, DataR);
-    Stream.Write(DataR[0], SizeOf(TCnEd25519Data));
-    CnEd25519PointToData(TCnEd25519PublicKey(pub), DataPub);
-    Stream.Write(DataPub[0], SizeOf(TCnEd25519Data));
-    if MsgLen > 0 then
-      Stream.Write(MsgPtr^, MsgLen);
-    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
-    T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
-    T.MulWord(8);
-    BigNumberNonNegativeMod(T, T, E.Order);
-    M.Assign(TCnEd25519PublicKey(pub));
-    E.MultiplePoint(T, M);
-    E.PointAddPoint(R, M, R);
-    if CnEccPointsEqual(L, R) then
-      Result := 1
-    else
       Result := 0;
-  finally
-    Stream.Free;
-    Dom.Free;
-    T.Free;
-    M.Free;
-    R.Free;
-    L.Free;
-    E.Free;
-    SigObj.Free;
+      Exit;
+    end;
+    if (pub = nil) or ((data = nil) and (len <> 0)) or (sig = nil) or (sig_len <>
+      SizeOf(TCnEd25519SignatureData)) or ((ctx = nil) and (ctx_len <> 0)) then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    if ctx_len > 255 then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    SigObj := TCnEd25519Signature.Create;
+    E := TCnEd25519.Create;
+    L := TCnEccPoint.Create;
+    R := TCnEccPoint.Create;
+    M := TCnEccPoint.Create;
+    T := TCnBigNumber.Create;
+    Dom := TMemoryStream.Create;
+    Stream := TMemoryStream.Create;
+    try
+      Move(sig^, SigBytes[0], SizeOf(TCnEd25519SignatureData));
+      SigObj.LoadFromData(SigBytes);
+      DomNeeded := (ph_flag <> 0) or (ctx_len <> 0);
+      if DomNeeded then
+      begin
+        B := Ord('S');
+        Dom.Write(B, 1);
+        B := Ord('i');
+        Dom.Write(B, 1);
+        B := Ord('g');
+        Dom.Write(B, 1);
+        B := Ord('E');
+        Dom.Write(B, 1);
+        B := Ord('d');
+        Dom.Write(B, 1);
+        B := Ord('2');
+        Dom.Write(B, 1);
+        B := Ord('5');
+        Dom.Write(B, 1);
+        B := Ord('5');
+        Dom.Write(B, 1);
+        B := Ord('1');
+        Dom.Write(B, 1);
+        B := Ord('9');
+        Dom.Write(B, 1);
+        B := $01;
+        Dom.Write(B, 1);
+        if ph_flag <> 0 then
+          B := $01
+        else
+          B := $00;
+        Dom.Write(B, 1);
+        B := Byte(ctx_len and $FF);
+        Dom.Write(B, 1);
+        if ctx_len > 0 then
+          Dom.Write(ctx^, ctx_len);
+      end;
+      if ph_flag <> 0 then
+      begin
+        Dig := SHA512Buffer(data^, len);
+        MsgPtr := @Dig[0];
+        MsgLen := SizeOf(TCnSHA512Digest);
+      end
+      else
+      begin
+        MsgPtr := data;
+        MsgLen := len;
+      end;
+      L.Assign(E.Generator);
+      E.MultiplePoint(SigObj.S, L);
+      E.MultiplePoint(8, L);
+      R.Assign(SigObj.R);
+      E.MultiplePoint(8, R);
+      Stream.Clear;
+      if DomNeeded then
+        Stream.Write(Dom.Memory^, Dom.Size);
+      CnEd25519PointToData(SigObj.R, DataR);
+      Stream.Write(DataR[0], SizeOf(TCnEd25519Data));
+      CnEd25519PointToData(TCnEd25519PublicKey(pub), DataPub);
+      Stream.Write(DataPub[0], SizeOf(TCnEd25519Data));
+      if MsgLen > 0 then
+        Stream.Write(MsgPtr^, MsgLen);
+      Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
+      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+      T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
+      T.MulWord(8);
+      BigNumberNonNegativeMod(T, T, E.Order);
+      M.Assign(TCnEd25519PublicKey(pub));
+      E.MultiplePoint(T, M);
+      E.PointAddPoint(R, M, R);
+      if CnEccPointsEqual(L, R) then
+        Result := 1
+      else
+        Result := 0;
+    finally
+      Stream.Free;
+      Dom.Free;
+      T.Free;
+      M.Free;
+      R.Free;
+      L.Free;
+      E.Free;
+      SigObj.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
 function cn_rsa_privkey_new(use_crt: TBool32): TCnCryptoHandle; cdecl;
 begin
-  Result := TCnRSAPrivateKey.Create(use_crt <> 0);
+  CnExportClearLastError;
+  try
+    Result := TCnRSAPrivateKey.Create(use_crt <> 0);
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_rsa_pubkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnRSAPublicKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnRSAPublicKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_rsa_key_free(key: TCnCryptoHandle): TCnResult; cdecl;
 begin
-  if key = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    if key = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    TObject(key).Free;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  TObject(key).Free;
-  Result := CN_OK;
 end;
 
 function cn_rsa_generate_keys(modulus_bits: TInt32; use_crt: TBool32; var
@@ -1653,39 +2065,67 @@ var
   Pub: TCnRSAPublicKey;
   Ok: Boolean;
 begin
-  Priv := TCnRSAPrivateKey.Create(use_crt <> 0);
-  Pub := TCnRSAPublicKey.Create;
-  Ok := CnRSAGenerateKeys(modulus_bits, Priv, Pub, use3 <> 0);
-  if not Ok then
-  begin
-    Priv.Free;
-    Pub.Free;
-    Result := CN_E_INTERNAL;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_priv := nil;
+    out_pub := nil;
+    Priv := TCnRSAPrivateKey.Create(use_crt <> 0);
+    Pub := TCnRSAPublicKey.Create;
+    Ok := CnRSAGenerateKeys(modulus_bits, Priv, Pub, use3 <> 0);
+    if not Ok then
+    begin
+      Priv.Free;
+      Pub.Free;
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    out_priv := Priv;
+    out_pub := Pub;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_priv := Priv;
-  out_pub := Pub;
-  Result := CN_OK;
 end;
 
 function cn_rsa_pubkey_get_modulus_bytes(pub: TCnCryptoHandle): TCnSize; cdecl;
 begin
-  if pub = nil then
-  begin
-    Result := 0;
-    Exit;
+  CnExportClearLastError;
+  try
+    if pub = nil then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    Result := TCnRSAPublicKey(pub).BytesCount;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
-  Result := TCnRSAPublicKey(pub).BytesCount;
 end;
 
 function cn_rsa_privkey_get_modulus_bytes(priv: TCnCryptoHandle): TCnSize; cdecl;
 begin
-  if priv = nil then
-  begin
-    Result := 0;
-    Exit;
+  CnExportClearLastError;
+  try
+    if priv = nil then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    Result := TCnRSAPrivateKey(priv).BytesCount;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
-  Result := TCnRSAPrivateKey(priv).BytesCount;
 end;
 
 function cn_rsa_encrypt_with_public(padding: TInt32; pub: TCnCryptoHandle;
@@ -1694,54 +2134,82 @@ function cn_rsa_encrypt_with_public(padding: TInt32; pub: TCnCryptoHandle;
 var
   Pad: TCnRSAPaddingMode;
 begin
-  if (pub = nil) or (in_ptr = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (pub = nil) or (in_ptr = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case padding of
+      CN_RSA_PAD_PKCS1:
+        Pad := cpmPKCS1;
+      CN_RSA_PAD_OAEP:
+        Pad := cpmOAEP;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := TCnRSAPublicKey(pub).BytesCount;
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if not CnRSAEncryptData(in_ptr, in_len, out_ptr, TCnRSAPublicKey(pub), Pad) then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  case padding of
-    CN_RSA_PAD_PKCS1:
-      Pad := cpmPKCS1;
-    CN_RSA_PAD_OAEP:
-      Pad := cpmOAEP;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := TCnRSAPublicKey(pub).BytesCount;
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if not CnRSAEncryptData(in_ptr, in_len, out_ptr, TCnRSAPublicKey(pub), Pad) then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-  Result := CN_OK;
 end;
 
 function cn_rsa_encrypt_with_private(priv: TCnCryptoHandle; in_ptr: PByte;
   in_len: TCnSize; out_ptr: PByte; cap: TCnSize; var out_len: TCnSize): TCnResult; cdecl;
 begin
-  if (priv = nil) or (in_ptr = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or (in_ptr = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := TCnRSAPrivateKey(priv).BytesCount;
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if not CnRSAEncryptData(in_ptr, in_len, out_ptr, TCnRSAPrivateKey(priv)) then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_len := TCnRSAPrivateKey(priv).BytesCount;
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if not CnRSAEncryptData(in_ptr, in_len, out_ptr, TCnRSAPrivateKey(priv)) then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-  Result := CN_OK;
 end;
 
 function cn_rsa_decrypt_with_public(pub: TCnCryptoHandle; in_ptr: PByte; in_len:
@@ -1750,30 +2218,44 @@ var
   OutBytes: Integer;
   Tmp: Pointer;
 begin
-  if (pub = nil) or (in_ptr = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  GetMem(Tmp, in_len);
+  CnExportClearLastError;
   try
-    if not CnRSADecryptData(in_ptr, in_len, Tmp, OutBytes, TCnRSAPublicKey(pub))
-      then
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := OutBytes;
-    if cap < out_len then
+    if (pub = nil) or (in_ptr = nil) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(Tmp^, out_ptr^, out_len);
-    Result := CN_OK;
-  finally
-    FreeMem(Tmp);
+    GetMem(Tmp, in_len);
+    try
+      if not CnRSADecryptData(in_ptr, in_len, Tmp, OutBytes, TCnRSAPublicKey(pub))
+        then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      out_len := OutBytes;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(Tmp^, out_ptr^, out_len);
+      Result := CN_OK;
+    finally
+      FreeMem(Tmp);
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1785,39 +2267,53 @@ var
   OutBytes: Integer;
   Tmp: Pointer;
 begin
-  if (priv = nil) or (in_ptr = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case padding of
-    CN_RSA_PAD_PKCS1:
-      Pad := cpmPKCS1;
-    CN_RSA_PAD_OAEP:
-      Pad := cpmOAEP;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  GetMem(Tmp, in_len);
+  CnExportClearLastError;
   try
-    if not CnRSADecryptData(in_ptr, in_len, Tmp, OutBytes, TCnRSAPrivateKey(priv),
-      Pad) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := OutBytes;
-    if cap < out_len then
+    if (priv = nil) or (in_ptr = nil) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(Tmp^, out_ptr^, out_len);
-    Result := CN_OK;
-  finally
-    FreeMem(Tmp);
+    case padding of
+      CN_RSA_PAD_PKCS1:
+        Pad := cpmPKCS1;
+      CN_RSA_PAD_OAEP:
+        Pad := cpmOAEP;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    GetMem(Tmp, in_len);
+    try
+      if not CnRSADecryptData(in_ptr, in_len, Tmp, OutBytes, TCnRSAPrivateKey(priv),
+        Pad) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      out_len := OutBytes;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(Tmp^, out_ptr^, out_len);
+      Result := CN_OK;
+    finally
+      FreeMem(Tmp);
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1827,53 +2323,71 @@ var
   InS, OutS: TMemoryStream;
   SignType: TCnRSASignDigestType;
 begin
-  if (priv = nil) or ((data = nil) and (len <> 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case digest_alg_id of
-    0:
-      SignType := rsdtNone;
-    CN_HASH_MD5:
-      SignType := rsdtMD5;
-    CN_HASH_SHA1:
-      SignType := rsdtSHA1;
-    CN_HASH_SHA2_256:
-      SignType := rsdtSHA256;
-    CN_HASH_SM3:
-      SignType := rsdtSM3;
-    CN_HASH_SHA2_512:
-      SignType := rsdtSHA512;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  InS := TMemoryStream.Create;
-  OutS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if len > 0 then
+    out_len := 0;
+    if not CnExportSizesFitInteger([len, cap, out_len]) then
     begin
-      InS.Size := len;
-      Move(data^, InS.Memory^, len);
-    end;
-    if not CnRSASignStream(InS, OutS, TCnRSAPrivateKey(priv), SignType) then
-    begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := OutS.Size;
-    if cap < out_len then
+    if (priv = nil) or ((data = nil) and (len <> 0)) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(OutS.Memory^, out_sig^, out_len);
-    Result := CN_OK;
-  finally
-    InS.Free;
-    OutS.Free;
+    case digest_alg_id of
+      0:
+        SignType := rsdtNone;
+      CN_HASH_MD5:
+        SignType := rsdtMD5;
+      CN_HASH_SHA1:
+        SignType := rsdtSHA1;
+      CN_HASH_SHA2_256:
+        SignType := rsdtSHA256;
+      CN_HASH_SM3:
+        SignType := rsdtSM3;
+      CN_HASH_SHA2_512:
+        SignType := rsdtSHA512;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    InS := TMemoryStream.Create;
+    OutS := TMemoryStream.Create;
+    try
+      if len > 0 then
+      begin
+        InS.Size := len;
+        Move(data^, InS.Memory^, len);
+      end;
+      if not CnRSASignStream(InS, OutS, TCnRSAPrivateKey(priv), SignType) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(OutS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(OutS.Memory^, out_sig^, out_len);
+      Result := CN_OK;
+    finally
+      InS.Free;
+      OutS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -1883,48 +2397,62 @@ var
   InS, SigS: TMemoryStream;
   SignType: TCnRSASignDigestType;
 begin
-  if (pub = nil) or ((data = nil) and (len <> 0)) or (sig_ptr = nil) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  case digest_alg_id of
-    0:
-      SignType := rsdtNone;
-    CN_HASH_MD5:
-      SignType := rsdtMD5;
-    CN_HASH_SHA1:
-      SignType := rsdtSHA1;
-    CN_HASH_SHA2_256:
-      SignType := rsdtSHA256;
-    CN_HASH_SM3:
-      SignType := rsdtSM3;
-    CN_HASH_SHA2_512:
-      SignType := rsdtSHA512;
-  else
-    Result := 0;
-    Exit;
-  end;
-  InS := TMemoryStream.Create;
-  SigS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if len > 0 then
+    if not CnExportSizesFitInteger([len, sig_len]) then
     begin
-      InS.Size := len;
-      Move(data^, InS.Memory^, len);
+      Result := 0;
+      Exit;
     end;
-    if sig_len > 0 then
+    if (pub = nil) or ((data = nil) and (len <> 0)) or (sig_ptr = nil) then
     begin
-      SigS.Size := sig_len;
-      Move(sig_ptr^, SigS.Memory^, sig_len);
+      Result := 0;
+      Exit;
     end;
-    if CnRSAVerifyStream(InS, SigS, TCnRSAPublicKey(pub), SignType) then
-      Result := 1
+    case digest_alg_id of
+      0:
+        SignType := rsdtNone;
+      CN_HASH_MD5:
+        SignType := rsdtMD5;
+      CN_HASH_SHA1:
+        SignType := rsdtSHA1;
+      CN_HASH_SHA2_256:
+        SignType := rsdtSHA256;
+      CN_HASH_SM3:
+        SignType := rsdtSM3;
+      CN_HASH_SHA2_512:
+        SignType := rsdtSHA512;
     else
       Result := 0;
-  finally
-    InS.Free;
-    SigS.Free;
+      Exit;
+    end;
+    InS := TMemoryStream.Create;
+    SigS := TMemoryStream.Create;
+    try
+      if len > 0 then
+      begin
+        InS.Size := len;
+        Move(data^, InS.Memory^, len);
+      end;
+      if sig_len > 0 then
+      begin
+        SigS.Size := sig_len;
+        Move(sig_ptr^, SigS.Memory^, sig_len);
+      end;
+      if CnRSAVerifyStream(InS, SigS, TCnRSAPublicKey(pub), SignType) then
+        Result := 1
+      else
+        Result := 0;
+    finally
+      InS.Free;
+      SigS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -1937,29 +2465,44 @@ var
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
 begin
-  if (pem_ptr = nil) or (pem_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetString(PemStr, PAnsiChar(pem_ptr), pem_len);
-  if (password_ptr <> nil) and (password_len > 0) then
-    SetString(PwdStr, PChar(password_ptr), password_len div SizeOf(Char))
-  else
-    PwdStr := '';
+  CnExportClearLastError;
+  try
+    out_priv := nil;
+    out_pub := nil;
+    if not CnExportSizesFitInteger([pem_len, password_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (pem_ptr = nil) or (pem_len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetString(PemStr, PAnsiChar(pem_ptr), pem_len);
+    if (password_ptr <> nil) and (password_len > 0) then
+      SetString(PwdStr, PChar(password_ptr), password_len div SizeOf(Char))
+    else
+      PwdStr := '';
 
-  Priv := TCnRSAPrivateKey.Create(False);
-  Pub := TCnRSAPublicKey.Create;
-  if not CnRSALoadKeysFromPemStr(PemStr, Priv, Pub, ckhMd5, PwdStr) then
-  begin
-    Priv.Free;
-    Pub.Free;
-    Result := CN_E_INTERNAL;
-    Exit;
+    Priv := TCnRSAPrivateKey.Create(False);
+    Pub := TCnRSAPublicKey.Create;
+    if not CnRSALoadKeysFromPemStr(PemStr, Priv, Pub, ckhMd5, PwdStr) then
+    begin
+      Priv.Free;
+      Pub.Free;
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    out_priv := Priv;
+    out_pub := Pub;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_priv := Priv;
-  out_pub := Pub;
-  Result := CN_OK;
 end;
 
 function cn_rsa_save_keys_to_pem(key_type_id: TInt32; priv: TCnCryptoHandle; pub:
@@ -1968,39 +2511,57 @@ var
   MS: TMemoryStream;
   KT: TCnRSAKeyType;
 begin
-  if (priv = nil) or (pub = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case key_type_id of
-    CN_RSA_KEY_PKCS1:
-      KT := CnRSA.cktPKCS1;
-    CN_RSA_KEY_PKCS8:
-      KT := CnRSA.cktPKCS8;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if not CnRSASaveKeysToPem(MS, TCnRSAPrivateKey(priv), TCnRSAPublicKey(pub),
-      KT) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := MS.Size;
-    if cap < out_len then
+    if (priv = nil) or (pub = nil) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(MS.Memory^, out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    MS.Free;
+    case key_type_id of
+      CN_RSA_KEY_PKCS1:
+        KT := CnRSA.cktPKCS1;
+      CN_RSA_KEY_PKCS8:
+        KT := CnRSA.cktPKCS8;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    MS := TMemoryStream.Create;
+    try
+      if not CnRSASaveKeysToPem(MS, TCnRSAPrivateKey(priv), TCnRSAPublicKey(pub),
+        KT) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(MS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(MS.Memory^, out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      MS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -2010,87 +2571,140 @@ var
   MS: TMemoryStream;
   KT: TCnRSAKeyType;
 begin
-  if pub = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case key_type_id of
-    CN_RSA_KEY_PKCS1:
-      KT := CnRSA.cktPKCS1;
-    CN_RSA_KEY_PKCS8:
-      KT := CnRSA.cktPKCS8;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if not CnRSASavePublicKeyToPem(MS, TCnRSAPublicKey(pub), KT) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := MS.Size;
-    if cap < out_len then
+    if pub = nil then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(MS.Memory^, out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    MS.Free;
+    case key_type_id of
+      CN_RSA_KEY_PKCS1:
+        KT := CnRSA.cktPKCS1;
+      CN_RSA_KEY_PKCS8:
+        KT := CnRSA.cktPKCS8;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    MS := TMemoryStream.Create;
+    try
+      if not CnRSASavePublicKeyToPem(MS, TCnRSAPublicKey(pub), KT) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(MS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(MS.Memory^, out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      MS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
 function cn_ecc_privkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnEccPrivateKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnEccPrivateKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_ecc_pubkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnEccPublicKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnEccPublicKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_ecc_key_free(key: TCnCryptoHandle): TCnResult; cdecl;
 begin
-  if key = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    if key = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    TObject(key).Free;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  TObject(key).Free;
-  Result := CN_OK;
 end;
 
 function cn_ecc_curve_bytes(curve_id: TInt32): TCnSize; cdecl;
 var
   E: TCnEcc;
 begin
-  case curve_id of
-    CN_ECC_CURVE_SM2:
-      E := TCnSM2.Create;
-    CN_ECC_CURVE_SECP256K1:
-      E := TCnEcc.Create(ctSecp256k1);
-    CN_ECC_CURVE_SECP256R1:
-      E := TCnEcc.Create(ctSecp256r1);
-    CN_ECC_CURVE_PRIME256V1:
-      E := TCnEcc.Create(ctPrime256v1);
-    CN_ECC_CURVE_SECP384R1:
-      E := TCnEcc.Create(ctSecp384r1);
-    CN_ECC_CURVE_SECP521R1:
-      E := TCnEcc.Create(ctSecp521r1);
-  else
-    Result := 0;
-    Exit;
-  end;
+  CnExportClearLastError;
   try
-    Result := E.BytesCount;
-  finally
-    E.Free;
+    case curve_id of
+      CN_ECC_CURVE_SM2:
+        E := TCnSM2.Create;
+      CN_ECC_CURVE_SECP256K1:
+        E := TCnEcc.Create(ctSecp256k1);
+      CN_ECC_CURVE_SECP256R1:
+        E := TCnEcc.Create(ctSecp256r1);
+      CN_ECC_CURVE_PRIME256V1:
+        E := TCnEcc.Create(ctPrime256v1);
+      CN_ECC_CURVE_SECP384R1:
+        E := TCnEcc.Create(ctSecp384r1);
+      CN_ECC_CURVE_SECP521R1:
+        E := TCnEcc.Create(ctSecp521r1);
+    else
+      Result := 0;
+      Exit;
+    end;
+    try
+      Result := E.BytesCount;
+    finally
+      E.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -2101,38 +2715,48 @@ var
   Priv: TCnEccPrivateKey;
   Pub: TCnEccPublicKey;
 begin
-  case curve_id of
-    CN_ECC_CURVE_SM2:
-      E := TCnSM2.Create;
-    CN_ECC_CURVE_SECP256K1:
-      E := TCnEcc.Create(ctSecp256k1);
-    CN_ECC_CURVE_SECP256R1:
-      E := TCnEcc.Create(ctSecp256r1);
-    CN_ECC_CURVE_PRIME256V1:
-      E := TCnEcc.Create(ctPrime256v1);
-    CN_ECC_CURVE_SECP384R1:
-      E := TCnEcc.Create(ctSecp384r1);
-    CN_ECC_CURVE_SECP521R1:
-      E := TCnEcc.Create(ctSecp521r1);
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Priv := TCnEccPrivateKey.Create;
-  Pub := TCnEccPublicKey.Create;
+  CnExportClearLastError;
   try
-    E.GenerateKeys(Priv, Pub);
-    out_priv := Priv;
-    out_pub := Pub;
-    Result := CN_OK;
-  except
-    Priv.Free;
-    Pub.Free;
+    out_priv := nil;
+    out_pub := nil;
+    case curve_id of
+      CN_ECC_CURVE_SM2:
+        E := TCnSM2.Create;
+      CN_ECC_CURVE_SECP256K1:
+        E := TCnEcc.Create(ctSecp256k1);
+      CN_ECC_CURVE_SECP256R1:
+        E := TCnEcc.Create(ctSecp256r1);
+      CN_ECC_CURVE_PRIME256V1:
+        E := TCnEcc.Create(ctPrime256v1);
+      CN_ECC_CURVE_SECP384R1:
+        E := TCnEcc.Create(ctSecp384r1);
+      CN_ECC_CURVE_SECP521R1:
+        E := TCnEcc.Create(ctSecp521r1);
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Priv := TCnEccPrivateKey.Create;
+    Pub := TCnEccPublicKey.Create;
+    try
+      E.GenerateKeys(Priv, Pub);
+      out_priv := Priv;
+      out_pub := Pub;
+      Result := CN_OK;
+    except
+      Priv.Free;
+      Pub.Free;
+      E.Free;
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
     E.Free;
-    Result := CN_E_INTERNAL;
-    Exit;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  E.Free;
 end;
 
 function cn_ecc_sign(digest_alg_id: TInt32; curve_id: TInt32; priv:
@@ -2143,68 +2767,86 @@ var
   SignType: TCnEccSignDigestType;
   Ok: Boolean;
 begin
-  if (priv = nil) or ((data = nil) and (len <> 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case digest_alg_id of
-    CN_HASH_MD5:
-      SignType := esdtMD5;
-    CN_HASH_SHA1:
-      SignType := esdtSHA1;
-    CN_HASH_SHA2_256:
-      SignType := esdtSHA256;
-    CN_HASH_SHA2_512:
-      SignType := esdtSHA512;
-    CN_HASH_SM3:
-      SignType := esdtSM3;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  InS := TMemoryStream.Create;
-  OutS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if len > 0 then
+    out_len := 0;
+    if not CnExportSizesFitInteger([len, cap, out_len]) then
     begin
-      InS.Size := len;
-      Move(data^, InS.Memory^, len);
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
     end;
-    case curve_id of
-      CN_ECC_CURVE_SM2:
-        Ok := CnEccSignStream(InS, OutS, ctSM2, TCnEccPrivateKey(priv), SignType);
-      CN_ECC_CURVE_SECP256K1:
-        Ok := CnEccSignStream(InS, OutS, ctSecp256k1, TCnEccPrivateKey(priv), SignType);
-      CN_ECC_CURVE_SECP256R1:
-        Ok := CnEccSignStream(InS, OutS, ctSecp256r1, TCnEccPrivateKey(priv), SignType);
-      CN_ECC_CURVE_PRIME256V1:
-        Ok := CnEccSignStream(InS, OutS, ctPrime256v1, TCnEccPrivateKey(priv), SignType);
-      CN_ECC_CURVE_SECP384R1:
-        Ok := CnEccSignStream(InS, OutS, ctSecp384r1, TCnEccPrivateKey(priv), SignType);
-      CN_ECC_CURVE_SECP521R1:
-        Ok := CnEccSignStream(InS, OutS, ctSecp521r1, TCnEccPrivateKey(priv), SignType);
+    if (priv = nil) or ((data = nil) and (len <> 0)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case digest_alg_id of
+      CN_HASH_MD5:
+        SignType := esdtMD5;
+      CN_HASH_SHA1:
+        SignType := esdtSHA1;
+      CN_HASH_SHA2_256:
+        SignType := esdtSHA256;
+      CN_HASH_SHA2_512:
+        SignType := esdtSHA512;
+      CN_HASH_SM3:
+        SignType := esdtSM3;
     else
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if not Ok then
-    begin
-      Result := CN_E_INTERNAL;
-      Exit;
+    InS := TMemoryStream.Create;
+    OutS := TMemoryStream.Create;
+    try
+      if len > 0 then
+      begin
+        InS.Size := len;
+        Move(data^, InS.Memory^, len);
+      end;
+      case curve_id of
+        CN_ECC_CURVE_SM2:
+          Ok := CnEccSignStream(InS, OutS, ctSM2, TCnEccPrivateKey(priv), SignType);
+        CN_ECC_CURVE_SECP256K1:
+          Ok := CnEccSignStream(InS, OutS, ctSecp256k1, TCnEccPrivateKey(priv), SignType);
+        CN_ECC_CURVE_SECP256R1:
+          Ok := CnEccSignStream(InS, OutS, ctSecp256r1, TCnEccPrivateKey(priv), SignType);
+        CN_ECC_CURVE_PRIME256V1:
+          Ok := CnEccSignStream(InS, OutS, ctPrime256v1, TCnEccPrivateKey(priv), SignType);
+        CN_ECC_CURVE_SECP384R1:
+          Ok := CnEccSignStream(InS, OutS, ctSecp384r1, TCnEccPrivateKey(priv), SignType);
+        CN_ECC_CURVE_SECP521R1:
+          Ok := CnEccSignStream(InS, OutS, ctSecp521r1, TCnEccPrivateKey(priv), SignType);
+      else
+        Result := CN_E_INVALID_ARG;
+        Exit;
+      end;
+      if not Ok then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(OutS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(OutS.Memory^, out_sig_der^, out_len);
+      Result := CN_OK;
+    finally
+      InS.Free;
+      OutS.Free;
     end;
-    out_len := OutS.Size;
-    if cap < out_len then
+  except
+    on E: Exception do
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
-      Exit;
+      Result := CnExportMapException(E);
     end;
-    if out_len > 0 then
-      Move(OutS.Memory^, out_sig_der^, out_len);
-    Result := CN_OK;
-  finally
-    InS.Free;
-    OutS.Free;
   end;
 end;
 
@@ -2216,63 +2858,77 @@ var
   SignType: TCnEccSignDigestType;
   Ok: Boolean;
 begin
-  if (pub = nil) or ((data = nil) and (len <> 0)) or (sig_der = nil) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  case digest_alg_id of
-    CN_HASH_MD5:
-      SignType := esdtMD5;
-    CN_HASH_SHA1:
-      SignType := esdtSHA1;
-    CN_HASH_SHA2_256:
-      SignType := esdtSHA256;
-    CN_HASH_SHA2_512:
-      SignType := esdtSHA512;
-    CN_HASH_SM3:
-      SignType := esdtSM3;
-  else
-    Result := 0;
-    Exit;
-  end;
-  InS := TMemoryStream.Create;
-  SigS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if len > 0 then
+    if not CnExportSizesFitInteger([len, sig_len]) then
     begin
-      InS.Size := len;
-      Move(data^, InS.Memory^, len);
+      Result := 0;
+      Exit;
     end;
-    if sig_len > 0 then
+    if (pub = nil) or ((data = nil) and (len <> 0)) or (sig_der = nil) then
     begin
-      SigS.Size := sig_len;
-      Move(sig_der^, SigS.Memory^, sig_len);
+      Result := 0;
+      Exit;
     end;
-    case curve_id of
-      CN_ECC_CURVE_SM2:
-        Ok := CnEccVerifyStream(InS, SigS, ctSM2, TCnEccPublicKey(pub), SignType);
-      CN_ECC_CURVE_SECP256K1:
-        Ok := CnEccVerifyStream(InS, SigS, ctSecp256k1, TCnEccPublicKey(pub), SignType);
-      CN_ECC_CURVE_SECP256R1:
-        Ok := CnEccVerifyStream(InS, SigS, ctSecp256r1, TCnEccPublicKey(pub), SignType);
-      CN_ECC_CURVE_PRIME256V1:
-        Ok := CnEccVerifyStream(InS, SigS, ctPrime256v1, TCnEccPublicKey(pub), SignType);
-      CN_ECC_CURVE_SECP384R1:
-        Ok := CnEccVerifyStream(InS, SigS, ctSecp384r1, TCnEccPublicKey(pub), SignType);
-      CN_ECC_CURVE_SECP521R1:
-        Ok := CnEccVerifyStream(InS, SigS, ctSecp521r1, TCnEccPublicKey(pub), SignType);
+    case digest_alg_id of
+      CN_HASH_MD5:
+        SignType := esdtMD5;
+      CN_HASH_SHA1:
+        SignType := esdtSHA1;
+      CN_HASH_SHA2_256:
+        SignType := esdtSHA256;
+      CN_HASH_SHA2_512:
+        SignType := esdtSHA512;
+      CN_HASH_SM3:
+        SignType := esdtSM3;
     else
       Result := 0;
       Exit;
     end;
-    if Ok then
-      Result := 1
-    else
+    InS := TMemoryStream.Create;
+    SigS := TMemoryStream.Create;
+    try
+      if len > 0 then
+      begin
+        InS.Size := len;
+        Move(data^, InS.Memory^, len);
+      end;
+      if sig_len > 0 then
+      begin
+        SigS.Size := sig_len;
+        Move(sig_der^, SigS.Memory^, sig_len);
+      end;
+      case curve_id of
+        CN_ECC_CURVE_SM2:
+          Ok := CnEccVerifyStream(InS, SigS, ctSM2, TCnEccPublicKey(pub), SignType);
+        CN_ECC_CURVE_SECP256K1:
+          Ok := CnEccVerifyStream(InS, SigS, ctSecp256k1, TCnEccPublicKey(pub), SignType);
+        CN_ECC_CURVE_SECP256R1:
+          Ok := CnEccVerifyStream(InS, SigS, ctSecp256r1, TCnEccPublicKey(pub), SignType);
+        CN_ECC_CURVE_PRIME256V1:
+          Ok := CnEccVerifyStream(InS, SigS, ctPrime256v1, TCnEccPublicKey(pub), SignType);
+        CN_ECC_CURVE_SECP384R1:
+          Ok := CnEccVerifyStream(InS, SigS, ctSecp384r1, TCnEccPublicKey(pub), SignType);
+        CN_ECC_CURVE_SECP521R1:
+          Ok := CnEccVerifyStream(InS, SigS, ctSecp521r1, TCnEccPublicKey(pub), SignType);
+      else
+        Result := 0;
+        Exit;
+      end;
+      if Ok then
+        Result := 1
+      else
+        Result := 0;
+    finally
+      InS.Free;
+      SigS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
       Result := 0;
-  finally
-    InS.Free;
-    SigS.Free;
+    end;
   end;
 end;
 
@@ -2286,53 +2942,69 @@ var
   Curve: TCnEccCurveType;
   Pwd, PemStr: string;
 begin
-  if (pem_ptr = nil) or (pem_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if (password_ptr <> nil) and (password_len > 0) then
-    SetString(Pwd, PChar(password_ptr), Integer(password_len) div SizeOf(Char))
-  else
-    Pwd := '';
-
-  SetString(PemStr, PChar(pem_ptr), pem_len div SizeOf(Char));
-  Result := CN_OK;
-  Priv := TCnEccPrivateKey.Create;
-  Pub := TCnEccPublicKey.Create;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    MS.Write(PAnsiChar(PemStr)^, Length(PemStr) * SizeOf(Char));
-    MS.Position := 0;
-    if not CnEccLoadKeysFromPem(MS, Priv, Pub, Curve, ckhMd5, Pwd) then
+    out_priv := nil;
+    out_pub := nil;
+    out_curve_id := 0;
+    if not CnExportSizesFitInteger([pem_len, password_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_priv := Priv;
-    out_pub := Pub;
-    case Curve of
-      ctSM2:
-        out_curve_id := CN_ECC_CURVE_SM2;
-      ctSecp256k1:
-        out_curve_id := CN_ECC_CURVE_SECP256K1;
-      ctSecp256r1:
-        out_curve_id := CN_ECC_CURVE_SECP256R1;
-      ctPrime256v1:
-        out_curve_id := CN_ECC_CURVE_PRIME256V1;
-      ctSecp384r1:
-        out_curve_id := CN_ECC_CURVE_SECP384R1;
-      ctSecp521r1:
-        out_curve_id := CN_ECC_CURVE_SECP521R1;
-    else
-      out_curve_id := 0;
-    end;
-  finally
-    MS.Free;
-    if Result <> CN_OK then
+    if (pem_ptr = nil) or (pem_len = 0) then
     begin
-      Priv.Free;
-      Pub.Free;
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if (password_ptr <> nil) and (password_len > 0) then
+      SetString(Pwd, PChar(password_ptr), Integer(password_len) div SizeOf(Char))
+    else
+      Pwd := '';
+
+    SetString(PemStr, PChar(pem_ptr), pem_len div SizeOf(Char));
+    Result := CN_OK;
+    Priv := TCnEccPrivateKey.Create;
+    Pub := TCnEccPublicKey.Create;
+    MS := TMemoryStream.Create;
+    try
+      MS.Write(PAnsiChar(PemStr)^, Length(PemStr) * SizeOf(Char));
+      MS.Position := 0;
+      if not CnEccLoadKeysFromPem(MS, Priv, Pub, Curve, ckhMd5, Pwd) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      out_priv := Priv;
+      out_pub := Pub;
+      case Curve of
+        ctSM2:
+          out_curve_id := CN_ECC_CURVE_SM2;
+        ctSecp256k1:
+          out_curve_id := CN_ECC_CURVE_SECP256K1;
+        ctSecp256r1:
+          out_curve_id := CN_ECC_CURVE_SECP256R1;
+        ctPrime256v1:
+          out_curve_id := CN_ECC_CURVE_PRIME256V1;
+        ctSecp384r1:
+          out_curve_id := CN_ECC_CURVE_SECP384R1;
+        ctSecp521r1:
+          out_curve_id := CN_ECC_CURVE_SECP521R1;
+      else
+        out_curve_id := 0;
+      end;
+    finally
+      MS.Free;
+      if Result <> CN_OK then
+      begin
+        Priv.Free;
+        Pub.Free;
+      end;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
     end;
   end;
 end;
@@ -2345,56 +3017,74 @@ var
   KT: TCnEccKeyType;
   Curve: TCnEccCurveType;
 begin
-  if (priv = nil) or (pub = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case key_type_id of
-    CN_ECC_KEY_PKCS1:
-      KT := cktPKCS1;
-    CN_ECC_KEY_PKCS8:
-      KT := cktPKCS8;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case curve_id of
-    CN_ECC_CURVE_SM2:
-      Curve := ctSM2;
-    CN_ECC_CURVE_SECP256K1:
-      Curve := ctSecp256k1;
-    CN_ECC_CURVE_SECP256R1:
-      Curve := ctSecp256r1;
-    CN_ECC_CURVE_PRIME256V1:
-      Curve := ctPrime256v1;
-    CN_ECC_CURVE_SECP384R1:
-      Curve := ctSecp384r1;
-    CN_ECC_CURVE_SECP521R1:
-      Curve := ctSecp521r1;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if not CnEccSaveKeysToPem(MS, TCnEccPrivateKey(priv), TCnEccPublicKey(pub),
-      Curve, KT) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := MS.Size;
-    if cap < out_len then
+    if (priv = nil) or (pub = nil) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(MS.Memory^, out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    MS.Free;
+    case key_type_id of
+      CN_ECC_KEY_PKCS1:
+        KT := cktPKCS1;
+      CN_ECC_KEY_PKCS8:
+        KT := cktPKCS8;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case curve_id of
+      CN_ECC_CURVE_SM2:
+        Curve := ctSM2;
+      CN_ECC_CURVE_SECP256K1:
+        Curve := ctSecp256k1;
+      CN_ECC_CURVE_SECP256R1:
+        Curve := ctSecp256r1;
+      CN_ECC_CURVE_PRIME256V1:
+        Curve := ctPrime256v1;
+      CN_ECC_CURVE_SECP384R1:
+        Curve := ctSecp384r1;
+      CN_ECC_CURVE_SECP521R1:
+        Curve := ctSecp521r1;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    MS := TMemoryStream.Create;
+    try
+      if not CnEccSaveKeysToPem(MS, TCnEccPrivateKey(priv), TCnEccPublicKey(pub),
+        Curve, KT) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(MS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(MS.Memory^, out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      MS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -2406,77 +3096,121 @@ var
   KT: TCnEccKeyType;
   Curve: TCnEccCurveType;
 begin
-  if pub = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case key_type_id of
-    CN_ECC_KEY_PKCS1:
-      KT := cktPKCS1;
-    CN_ECC_KEY_PKCS8:
-      KT := cktPKCS8;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case curve_id of
-    CN_ECC_CURVE_SM2:
-      Curve := ctSM2;
-    CN_ECC_CURVE_SECP256K1:
-      Curve := ctSecp256k1;
-    CN_ECC_CURVE_SECP256R1:
-      Curve := ctSecp256r1;
-    CN_ECC_CURVE_PRIME256V1:
-      Curve := ctPrime256v1;
-    CN_ECC_CURVE_SECP384R1:
-      Curve := ctSecp384r1;
-    CN_ECC_CURVE_SECP521R1:
-      Curve := ctSecp521r1;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if not CnEccSavePublicKeyToPem(MS, TCnEccPublicKey(pub), Curve, KT) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := MS.Size;
-    if cap < out_len then
+    if pub = nil then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(MS.Memory^, out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    MS.Free;
+    case key_type_id of
+      CN_ECC_KEY_PKCS1:
+        KT := cktPKCS1;
+      CN_ECC_KEY_PKCS8:
+        KT := cktPKCS8;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case curve_id of
+      CN_ECC_CURVE_SM2:
+        Curve := ctSM2;
+      CN_ECC_CURVE_SECP256K1:
+        Curve := ctSecp256k1;
+      CN_ECC_CURVE_SECP256R1:
+        Curve := ctSecp256r1;
+      CN_ECC_CURVE_PRIME256V1:
+        Curve := ctPrime256v1;
+      CN_ECC_CURVE_SECP384R1:
+        Curve := ctSecp384r1;
+      CN_ECC_CURVE_SECP521R1:
+        Curve := ctSecp521r1;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    MS := TMemoryStream.Create;
+    try
+      if not CnEccSavePublicKeyToPem(MS, TCnEccPublicKey(pub), Curve, KT) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(MS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(MS.Memory^, out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      MS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
 function cn_sm2_privkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnSM2PrivateKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnSM2PrivateKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_sm2_pubkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnSM2PublicKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnSM2PublicKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_sm2_key_free(key: TCnCryptoHandle): TCnResult; cdecl;
 begin
-  if key = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    if key = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    TObject(key).Free;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  TObject(key).Free;
-  Result := CN_OK;
 end;
 
 function cn_sm2_generate_keys(var out_priv: TCnCryptoHandle; var out_pub:
@@ -2485,18 +3219,28 @@ var
   Priv: TCnSM2PrivateKey;
   Pub: TCnSM2PublicKey;
 begin
-  Priv := TCnSM2PrivateKey.Create;
-  Pub := TCnSM2PublicKey.Create;
-  if not CnSM2GenerateKeys(Priv, Pub) then
-  begin
-    Priv.Free;
-    Pub.Free;
-    Result := CN_E_INTERNAL;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_priv := nil;
+    out_pub := nil;
+    Priv := TCnSM2PrivateKey.Create;
+    Pub := TCnSM2PublicKey.Create;
+    if not CnSM2GenerateKeys(Priv, Pub) then
+    begin
+      Priv.Free;
+      Pub.Free;
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    out_priv := Priv;
+    out_pub := Pub;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_priv := Priv;
-  out_pub := Pub;
-  Result := CN_OK;
 end;
 
 function cn_sm2_encrypt(seq_type_flag: TInt32; include_prefix: TBool32; pub:
@@ -2508,36 +3252,55 @@ var
   Plain: TBytes;
   En: TBytes;
 begin
-  if (pub = nil) or ((in_ptr = nil) and (in_len <> 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  C1Compress := (seq_type_flag and CN_SM2_C1_COMPRESS) <> 0;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if not CnExportAddedSizeFitsInteger(in_len, 512) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (pub = nil) or ((in_ptr = nil) and (in_len <> 0)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    C1Compress := (seq_type_flag and CN_SM2_C1_COMPRESS) <> 0;
 
-  case seq_type_flag and 3 of
-    CN_SM2_SEQ_C1C3C2:
-      ST := cstC1C3C2;
-    CN_SM2_SEQ_C1C2C3:
-      ST := cstC1C2C3;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
+    case seq_type_flag and 3 of
+      CN_SM2_SEQ_C1C3C2:
+        ST := cstC1C3C2;
+      CN_SM2_SEQ_C1C2C3:
+        ST := cstC1C2C3;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    IncludePrefix := include_prefix <> 0;
+    SetLength(Plain, in_len);
+    if in_len > 0 then
+      Move(in_ptr^, Plain[0], in_len);
+    En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, C1Compress);
+    out_len := Length(En);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if out_len > 0 then
+      Move(En[0], out_ptr^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  IncludePrefix := include_prefix <> 0;
-  SetLength(Plain, in_len);
-  if in_len > 0 then
-    Move(in_ptr^, Plain[0], in_len);
-  En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, C1Compress);
-  out_len := Length(En);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if out_len > 0 then
-    Move(En[0], out_ptr^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_sm2_decrypt(seq_type_id: TInt32; priv: TCnCryptoHandle; in_ptr:
@@ -2547,33 +3310,47 @@ var
   ST: TCnSM2CryptSequenceType;
   En, Plain: TBytes;
 begin
-  if (priv = nil) or ((in_ptr = nil) and (in_len <> 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or ((in_ptr = nil) and (in_len <> 0)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case seq_type_id of
+      CN_SM2_SEQ_C1C3C2:
+        ST := cstC1C3C2;
+      CN_SM2_SEQ_C1C2C3:
+        ST := cstC1C2C3;
+    else
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetLength(En, in_len);
+    if in_len > 0 then
+      Move(in_ptr^, En[0], in_len);
+    Plain := CnSM2DecryptData(En, TCnSM2PrivateKey(priv), nil, ST);
+    out_len := Length(Plain);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if out_len > 0 then
+      Move(Plain[0], out_ptr^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  case seq_type_id of
-    CN_SM2_SEQ_C1C3C2:
-      ST := cstC1C3C2;
-    CN_SM2_SEQ_C1C2C3:
-      ST := cstC1C2C3;
-  else
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(En, in_len);
-  if in_len > 0 then
-    Move(in_ptr^, En[0], in_len);
-  Plain := CnSM2DecryptData(En, TCnSM2PrivateKey(priv), nil, ST);
-  out_len := Length(Plain);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if out_len > 0 then
-    Move(Plain[0], out_ptr^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_sm2_sign(user_id: PByte; user_id_len: TCnSize; priv: TCnCryptoHandle;
@@ -2586,41 +3363,55 @@ var
   B64: string;
   Der: TBytes;
 begin
-  if (priv = nil) or ((data = nil) and (len <> 0)) or ((user_id = nil) and (user_id_len
-    <> 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetString(UID, PAnsiChar(user_id), Integer(user_id_len));
-  SetLength(Plain, len);
-  if len > 0 then
-    Move(data^, Plain[0], len);
-  Sig := TCnSM2Signature.Create;
+  CnExportClearLastError;
   try
-    if not CnSM2SignData(UID, Plain, Sig, TCnSM2PrivateKey(priv),
-      TCnSM2PublicKey(pub), nil) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([user_id_len, len, cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    B64 := Sig.ToAsn1Base64;
-    if Base64Decode(B64, Der) <> ECN_BASE64_OK then
+    if (priv = nil) or ((data = nil) and (len <> 0)) or ((user_id = nil) and (user_id_len
+      <> 0)) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    out_len := Length(Der);
-    if cap < out_len then
-    begin
-      Result := CN_E_BUFFER_TOO_SMALL;
-      Exit;
+    SetString(UID, PAnsiChar(user_id), Integer(user_id_len));
+    SetLength(Plain, len);
+    if len > 0 then
+      Move(data^, Plain[0], len);
+    Sig := TCnSM2Signature.Create;
+    try
+      if not CnSM2SignData(UID, Plain, Sig, TCnSM2PrivateKey(priv),
+        TCnSM2PublicKey(pub), nil) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      B64 := Sig.ToAsn1Base64;
+      if Base64Decode(B64, Der) <> ECN_BASE64_OK then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      out_len := Length(Der);
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(Der[0], out_sig_der^, out_len);
+      Result := CN_OK;
+    finally
+      Sig.Free;
     end;
-    if out_len > 0 then
-      Move(Der[0], out_sig_der^, out_len);
-    Result := CN_OK;
-  finally
-    Sig.Free;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -2633,36 +3424,50 @@ var
   Plain: TBytes;
   B64: string;
 begin
-  if (pub = nil) or ((data = nil) and (len <> 0)) or (sig_der = nil) or ((user_id
-    = nil) and (user_id_len <> 0)) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  SetString(UID, PAnsiChar(user_id), user_id_len);
-  SetLength(Plain, len);
-  if len > 0 then
-    Move(data^, Plain[0], len);
-  SetLength(B64, 0);
-  B64 := '';
-  if Base64Encode(sig_der, Integer(sig_len), B64, False) <> ECN_BASE64_OK then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  Sig := TCnSM2Signature.Create;
+  CnExportClearLastError;
   try
-    if not Sig.SetAsn1Base64(B64) then
+    if not CnExportSizesFitInteger([user_id_len, len, sig_len]) then
     begin
       Result := 0;
       Exit;
     end;
-    if CnSM2VerifyData(UID, Plain, Sig, TCnSM2PublicKey(pub), nil) then
-      Result := 1
-    else
+    if (pub = nil) or ((data = nil) and (len <> 0)) or (sig_der = nil) or ((user_id
+      = nil) and (user_id_len <> 0)) then
+    begin
       Result := 0;
-  finally
-    Sig.Free;
+      Exit;
+    end;
+    SetString(UID, PAnsiChar(user_id), user_id_len);
+    SetLength(Plain, len);
+    if len > 0 then
+      Move(data^, Plain[0], len);
+    SetLength(B64, 0);
+    B64 := '';
+    if Base64Encode(sig_der, Integer(sig_len), B64, False) <> ECN_BASE64_OK then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    Sig := TCnSM2Signature.Create;
+    try
+      if not Sig.SetAsn1Base64(B64) then
+      begin
+        Result := 0;
+        Exit;
+      end;
+      if CnSM2VerifyData(UID, Plain, Sig, TCnSM2PublicKey(pub), nil) then
+        Result := 1
+      else
+        Result := 0;
+    finally
+      Sig.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -2671,30 +3476,48 @@ function cn_sm2_save_keys_to_pem(priv: TCnCryptoHandle; pub: TCnCryptoHandle;
 var
   MS: TMemoryStream;
 begin
-  if (priv = nil) or (pub = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if not CnEccSaveKeysToPem(MS, TCnSM2PrivateKey(priv), TCnSM2PublicKey(pub),
-      ctSM2, cktPKCS1) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := MS.Size;
-    if cap < out_len then
+    if (priv = nil) or (pub = nil) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(MS.Memory^, out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    MS.Free;
+    MS := TMemoryStream.Create;
+    try
+      if not CnEccSaveKeysToPem(MS, TCnSM2PrivateKey(priv), TCnSM2PublicKey(pub),
+        ctSM2, cktPKCS1) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(MS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(MS.Memory^, out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      MS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -2703,104 +3526,205 @@ function cn_sm2_save_public_key_to_pem(pub: TCnCryptoHandle; out_buf: PByte; cap
 var
   MS: TMemoryStream;
 begin
-  if pub = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  MS := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    if not CnEccSavePublicKeyToPem(MS, TCnSM2PublicKey(pub), ctSM2, cktPKCS1) then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    out_len := MS.Size;
-    if cap < out_len then
+    if pub = nil then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    if out_len > 0 then
-      Move(MS.Memory^, out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    MS.Free;
+    MS := TMemoryStream.Create;
+    try
+      if not CnEccSavePublicKeyToPem(MS, TCnSM2PublicKey(pub), ctSM2, cktPKCS1) then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(MS.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(MS.Memory^, out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      MS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
 function cn_get_abi_version: TUInt32; cdecl;
 begin
-  Result := 3;
+  CnExportClearLastError;
+  try
+    Result := CN_ABI_VERSION;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
+  end;
+end;
+
+function cn_get_last_error: TCnResult; cdecl;
+begin
+  try
+    Result := GCnExportLastError;
+  except
+    on E: Exception do
+      Result := CnExportMapException(E);
+  end;
 end;
 
 function cn_lib_init: TCnResult; cdecl;
 begin
-  Result := CN_OK;
+  CnExportClearLastError;
+  try
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
+  end;
 end;
 
 function cn_lib_finalize: TCnResult; cdecl;
 begin
-  Result := CN_OK;
+  CnExportClearLastError;
+  try
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
+  end;
 end;
 
 function cn_alloc(size: TCnSize): TCnCryptoHandle; cdecl;
 begin
-  if size <= 0 then
-  begin
-    Result := nil;
-    Exit;
+  CnExportClearLastError;
+  try
+    if not CnExportSizesFitInteger([size]) then
+    begin
+      Result := nil;
+      Exit;
+    end;
+    if size = 0 then
+    begin
+      Result := nil;
+      Exit;
+    end;
+    GetMem(Result, size);
+    FillChar(Result^, size, 0);
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
   end;
-  GetMem(Result, size);
-  FillChar(Result^, size, 0);
 end;
 
 function cn_free(ptr: TCnCryptoHandle): TCnResult; cdecl;
 begin
-  if ptr = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    if ptr = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    FreeMem(ptr);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  FreeMem(ptr);
-  Result := CN_OK;
 end;
 
 function cn_memzero(ptr: TCnCryptoHandle; size: TCnSize): TCnResult; cdecl;
 begin
-  if size < 0 then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if size = 0 then
-  begin
+  CnExportClearLastError;
+  try
+    if not CnExportSizesFitInteger([size]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if size = 0 then
+    begin
+      Result := CN_OK;
+      Exit;
+    end;
+    if ptr = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    FillChar(ptr^, size, 0);
     Result := CN_OK;
-    Exit;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  if ptr = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  FillChar(ptr^, size, 0);
-  Result := CN_OK;
 end;
 
 function cn_endian_is_le: TBool32; cdecl;
 begin
-  if CurrentByteOrderIsLittleEndian then
-    Result := 1
-  else
-    Result := 0;
+  CnExportClearLastError;
+  try
+    if CurrentByteOrderIsLittleEndian then
+      Result := 1
+    else
+      Result := 0;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
+  end;
 end;
 
 function cn_endian_is_be: TBool32; cdecl;
 begin
-  if CurrentByteOrderIsBigEndian then
-    Result := 1
-  else
-    Result := 0;
+  CnExportClearLastError;
+  try
+    if CurrentByteOrderIsBigEndian then
+      Result := 1
+    else
+      Result := 0;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
+  end;
 end;
 
 function cn_data_to_hex(in_ptr: Pointer; in_len: TCnSize; out_hex: PByte; cap:
@@ -2809,58 +3733,85 @@ var
   S: string;
   L: TCnSize;
 begin
-  out_len := 0;
-  if (in_len < 0) or (cap < 0) or
-    ((in_ptr = nil) and (in_len > 0)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if not CnExportExpandedSizeFitsInteger(in_len, 1, 2) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    out_len := 0;
+    if (in_ptr = nil) and (in_len > 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    S := DataToHex(in_ptr, in_len, True);
+    L := Length(S);
+    out_len := L;
+    if cap < L then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if (L > 0) and (out_hex = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if L > 0 then
+      Move(S[1], out_hex^, L);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  S := DataToHex(in_ptr, in_len, True);
-  L := Length(S);
-  out_len := L;
-  if cap < L then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if (L > 0) and (out_hex = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if L > 0 then
-    Move(S[1], out_hex^, L);
-  Result := CN_OK;
 end;
 
 function cn_const_time_equal(a: Pointer; b: Pointer; len: TCnSize): TBool32; cdecl;
 var
   BA, BB: TBytes;
 begin
-  if len < 0 then
-  begin
-    Result := 0;
-    Exit;
+  CnExportClearLastError;
+  try
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    if len = 0 then
+    begin
+      Result := 1;
+      Exit;
+    end;
+    if (a = nil) or (b = nil) then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    SetLength(BA, len);
+    SetLength(BB, len);
+    Move(a^, BA[0], len);
+    Move(b^, BB[0], len);
+    if ConstTimeCompareBytes(BA, BB) then
+      Result := 1
+    else
+      Result := 0;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
-  if len = 0 then
-  begin
-    Result := 1;
-    Exit;
-  end;
-  if (a = nil) or (b = nil) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  SetLength(BA, len);
-  SetLength(BB, len);
-  Move(a^, BA[0], len);
-  Move(b^, BB[0], len);
-  if ConstTimeCompareBytes(BA, BB) then
-    Result := 1
-  else
-    Result := 0;
 end;
 
 function cn_const_time_select(flag: TBool32; a: Pointer; b: Pointer; len:
@@ -2869,28 +3820,36 @@ var
   I: Integer;
   VA, VB: Byte;
 begin
-  if len < 0 then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if len = 0 then
-  begin
+  CnExportClearLastError;
+  try
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if len = 0 then
+    begin
+      Result := CN_OK;
+      Exit;
+    end;
+    if (a = nil) or (b = nil) or (out_ptr = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    for I := 0 to len - 1 do
+    begin
+      VA := PByteArray(a)[I];
+      VB := PByteArray(b)[I];
+      PByteArray(out_ptr)[I] := Byte(ConstTimeConditionalSelect8(flag <> 0, VA, VB));
+    end;
     Result := CN_OK;
-    Exit;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  if (a = nil) or (b = nil) or (out_ptr = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  for I := 0 to len - 1 do
-  begin
-    VA := PByteArray(a)[I];
-    VB := PByteArray(b)[I];
-    PByteArray(out_ptr)[I] := Byte(ConstTimeConditionalSelect8(flag <> 0, VA, VB));
-  end;
-  Result := CN_OK;
 end;
 
 function cn_str_to_uint64(ascii_ptr: PByte; len: TCnSize; var out_value: TUInt64):
@@ -2898,17 +3857,31 @@ function cn_str_to_uint64(ascii_ptr: PByte; len: TCnSize; var out_value: TUInt64
 var
   S: string;
 begin
-  if (ascii_ptr = nil) or (len <= 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetString(S, PChar(ascii_ptr), len div SizeOf(Char));
+  CnExportClearLastError;
   try
-    out_value := StrToUInt64(S);
-    Result := CN_OK;
+    out_value := 0;
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (ascii_ptr = nil) or (len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetString(S, PChar(ascii_ptr), len div SizeOf(Char));
+    try
+      out_value := StrToUInt64(S);
+      Result := CN_OK;
+    except
+      Result := CN_E_INVALID_ARG;
+    end;
   except
-    Result := CN_E_INVALID_ARG;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -2918,26 +3891,49 @@ var
   S: string;
   R: Integer;
 begin
-  if (in_ptr = nil) and (in_len <> 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if not CnExportExpandedSizeFitsInteger(in_len, 3, 4) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (in_ptr = nil) and (in_len <> 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    R := Base64Encode(in_ptr, in_len, S, False);
+    if R <> 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    if not CnExportInt64ToSize(Int64(Length(S)) * SizeOf(Char), out_len) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if out_len > 0 then
+      Move(S[1], out_ptr^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  R := Base64Encode(in_ptr, in_len, S, False);
-  if R <> 0 then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-  out_len := Length(S) * SizeOf(Char);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if out_len > 0 then
-    Move(S[1], out_ptr^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_base64_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
@@ -2947,31 +3943,45 @@ var
   R: Integer;
   Data: TBytes;
 begin
-  if (in_ptr = nil) or (in_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (in_ptr = nil) or (in_len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
+
+    R := Base64Decode(S, Data, False);
+    if R <> 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+
+    out_len := Length(Data);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+
+    if out_len > 0 then
+      Move(Data[0], out_ptr^, out_len);
+
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
-
-  R := Base64Decode(S, Data, False);
-  if R <> 0 then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-
-  out_len := Length(Data);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-
-  if out_len > 0 then
-    Move(Data[0], out_ptr^, out_len);
-
-  Result := CN_OK;
 end;
 
 function cn_base64url_encode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
@@ -2980,26 +3990,49 @@ var
   S: string;
   R: Integer;
 begin
-  if (in_ptr = nil) and (in_len <> 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if not CnExportExpandedSizeFitsInteger(in_len, 3, 4) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (in_ptr = nil) and (in_len <> 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    R := Base64Encode(in_ptr, in_len, S, True);
+    if R <> 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    if not CnExportInt64ToSize(Int64(Length(S)) * SizeOf(Char), out_len) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if out_len > 0 then
+      Move(S[1], out_ptr^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  R := Base64Encode(in_ptr, in_len, S, True);
-  if R <> 0 then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-  out_len := Length(S) * SizeOf(Char);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if out_len > 0 then
-    Move(S[1], out_ptr^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_base64url_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
@@ -3009,31 +4042,45 @@ var
   R: Integer;
   Data: TBytes;
 begin
-  if (in_ptr = nil) or (in_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (in_ptr = nil) or (in_len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
+
+    R := Base64Decode(S, Data, False);
+    if R <> 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+
+    out_len := Length(Data);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+
+    if out_len > 0 then
+      Move(Data[0], out_ptr^, out_len);
+
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
-
-  R := Base64Decode(S, Data, False);
-  if R <> 0 then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-
-  out_len := Length(Data);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-
-  if out_len > 0 then
-    Move(Data[0], out_ptr^, out_len);
-
-  Result := CN_OK;
 end;
 
 function cn_base32_encode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
@@ -3042,26 +4089,49 @@ var
   S: string;
   R: Integer;
 begin
-  if (in_ptr = nil) and (in_len <> 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if not CnExportExpandedSizeFitsInteger(in_len, 5, 8) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (in_ptr = nil) and (in_len <> 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    R := Base32Encode(in_ptr, in_len, S);
+    if R <> 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+    if not CnExportInt64ToSize(Int64(Length(S)) * SizeOf(Char), out_len) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if out_len > 0 then
+      Move(S[1], out_ptr^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  R := Base32Encode(in_ptr, in_len, S);
-  if R <> 0 then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-  out_len := Length(S) * SizeOf(Char);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if out_len > 0 then
-    Move(S[1], out_ptr^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_base32_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
@@ -3071,31 +4141,45 @@ var
   R: Integer;
   Data: TBytes;
 begin
-  if (in_ptr = nil) or (in_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([in_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (in_ptr = nil) or (in_len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
+
+    R := Base32Decode(S, Data);
+    if R <> 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
+
+    out_len := Length(Data);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+
+    if out_len > 0 then
+      Move(Data[0], out_ptr^, out_len);
+
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
-
-  R := Base32Decode(S, Data);
-  if R <> 0 then
-  begin
-    Result := CN_E_INTERNAL;
-    Exit;
-  end;
-
-  out_len := Length(Data);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-
-  if out_len > 0 then
-    Move(Data[0], out_ptr^, out_len);
-
-  Result := CN_OK;
 end;
 
 function cn_otp_hotp(seed: PByte; seed_len: TCnSize; counter: TUInt64; digits:
@@ -3104,28 +4188,42 @@ var
   Gen: TCnHOTPGenerator;
   S: string;
 begin
-  if (seed = nil) or (seed_len = 0) or (digits <= 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Gen := TCnHOTPGenerator.Create;
+  CnExportClearLastError;
   try
-    Gen.SetSeedKey(seed, seed_len);
-    Gen.SetCounter(counter);
-    Gen.Digits := digits;
-    S := Gen.OneTimePassword;
-    out_len := Length(S);
-    if cap < out_len then
+    out_len := 0;
+    if not CnExportSizesFitInteger([seed_len, cap, out_len]) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    if out_len > 0 then
-      Move(S[1], out_code_ascii^, out_len);
-    Result := CN_OK;
-  finally
-    Gen.Free;
+    if (seed = nil) or (seed_len = 0) or (digits <= 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Gen := TCnHOTPGenerator.Create;
+    try
+      Gen.SetSeedKey(seed, seed_len);
+      Gen.SetCounter(counter);
+      Gen.Digits := digits;
+      S := Gen.OneTimePassword;
+      out_len := Length(S);
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(S[1], out_code_ascii^, out_len);
+      Result := CN_OK;
+    finally
+      Gen.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -3136,39 +4234,53 @@ var
   Gen: TCnTOTPGenerator;
   S: string;
 begin
-  if (seed = nil) or (seed_len = 0) or (digits <= 0) or (period_sec <= 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Gen := TCnTOTPGenerator.Create;
+  CnExportClearLastError;
   try
-    Gen.SetSeedKey(seed, seed_len);
-    Gen.Period := period_sec;
-    Gen.Digits := digits;
-    case hash_id of
-      CN_HASH_SHA1:
-        Gen.PasswordType := tptSHA1;
-      CN_HASH_SHA2_256:
-        Gen.PasswordType := tptSHA256;
-      CN_HASH_SHA2_512:
-        Gen.PasswordType := tptSHA512;
-    else
+    out_len := 0;
+    if not CnExportSizesFitInteger([seed_len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (seed = nil) or (seed_len = 0) or (digits <= 0) or (period_sec <= 0) then
+    begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
-    S := Gen.OneTimePassword;
-    out_len := Length(S);
-    if cap < out_len then
-    begin
-      Result := CN_E_BUFFER_TOO_SMALL;
-      Exit;
+    Gen := TCnTOTPGenerator.Create;
+    try
+      Gen.SetSeedKey(seed, seed_len);
+      Gen.Period := period_sec;
+      Gen.Digits := digits;
+      case hash_id of
+        CN_HASH_SHA1:
+          Gen.PasswordType := tptSHA1;
+        CN_HASH_SHA2_256:
+          Gen.PasswordType := tptSHA256;
+        CN_HASH_SHA2_512:
+          Gen.PasswordType := tptSHA512;
+      else
+        Result := CN_E_INVALID_ARG;
+        Exit;
+      end;
+      S := Gen.OneTimePassword;
+      out_len := Length(S);
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(S[1], out_code_ascii^, out_len);
+      Result := CN_OK;
+    finally
+      Gen.Free;
     end;
-    if out_len > 0 then
-      Move(S[1], out_code_ascii^, out_len);
-    Result := CN_OK;
-  finally
-    Gen.Free;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -3194,230 +4306,244 @@ var
   XX32: TCnXXH32Digest;
   XX64: TCnXXH64Digest;
 begin
-  if (data = nil) and (len <> 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  case alg_id of
-    CN_HASH_MD5:
-      begin
-        out_len := SizeOf(D16);
-        if cap < out_len then
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (data = nil) and (len <> 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    case alg_id of
+      CN_HASH_MD5:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D16);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D16 := MD5Buffer(data^, len);
+          Move(D16[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        D16 := MD5Buffer(data^, len);
-        Move(D16[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA1:
-      begin
-        out_len := SizeOf(D20);
-        if cap < out_len then
+      CN_HASH_SHA1:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D20);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D20 := SHA1Buffer(data^, len);
+          Move(D20[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        D20 := SHA1Buffer(data^, len);
-        Move(D20[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA2_256:
-      begin
-        out_len := SizeOf(D32);
-        if cap < out_len then
+      CN_HASH_SHA2_256:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D32);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D32 := SHA256Buffer(data^, len);
+          Move(D32[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        D32 := SHA256Buffer(data^, len);
-        Move(D32[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA2_512:
-      begin
-        out_len := SizeOf(D64);
-        if cap < out_len then
+      CN_HASH_SHA2_512:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D64);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D64 := SHA512Buffer(data^, len);
+          Move(D64[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        D64 := SHA512Buffer(data^, len);
-        Move(D64[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_224:
-      begin
-        out_len := SizeOf(S3_224);
-        if cap < out_len then
+      CN_HASH_SHA3_224:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_224);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_224 := SHA3_224Buffer(data^, len);
+          Move(S3_224[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        S3_224 := SHA3_224Buffer(data^, len);
-        Move(S3_224[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_256:
-      begin
-        out_len := SizeOf(S3_256);
-        if cap < out_len then
+      CN_HASH_SHA3_256:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_256);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_256 := SHA3_256Buffer(data^, len);
+          Move(S3_256[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        S3_256 := SHA3_256Buffer(data^, len);
-        Move(S3_256[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_384:
-      begin
-        out_len := SizeOf(S3_384);
-        if cap < out_len then
+      CN_HASH_SHA3_384:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_384);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_384 := SHA3_384Buffer(data^, len);
+          Move(S3_384[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        S3_384 := SHA3_384Buffer(data^, len);
-        Move(S3_384[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_512:
-      begin
-        out_len := SizeOf(S3_512);
-        if cap < out_len then
+      CN_HASH_SHA3_512:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_512);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_512 := SHA3_512Buffer(data^, len);
+          Move(S3_512[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        S3_512 := SHA3_512Buffer(data^, len);
-        Move(S3_512[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SM3:
-      begin
-        out_len := SizeOf(SM3D);
-        if cap < out_len then
+      CN_HASH_SM3:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(SM3D);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          SM3D := SM3Buffer(data^, len);
+          Move(SM3D[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        SM3D := SM3Buffer(data^, len);
-        Move(SM3D[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE224:
-      begin
-        out_len := SizeOf(BK224);
-        if cap < out_len then
+      CN_HASH_BLAKE224:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK224);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK224 := BLAKE224Buffer(data^, len);
+          Move(BK224[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        BK224 := BLAKE224Buffer(data^, len);
-        Move(BK224[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE256:
-      begin
-        out_len := SizeOf(BK256);
-        if cap < out_len then
+      CN_HASH_BLAKE256:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK256);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK256 := BLAKE256Buffer(data^, len);
+          Move(BK256[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        BK256 := BLAKE256Buffer(data^, len);
-        Move(BK256[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE384:
-      begin
-        out_len := SizeOf(BK384);
-        if cap < out_len then
+      CN_HASH_BLAKE384:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK384);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK384 := BLAKE384Buffer(data^, len);
+          Move(BK384[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        BK384 := BLAKE384Buffer(data^, len);
-        Move(BK384[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE512:
-      begin
-        out_len := SizeOf(BK512);
-        if cap < out_len then
+      CN_HASH_BLAKE512:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK512);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK512 := BLAKE512Buffer(data^, len);
+          Move(BK512[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        BK512 := BLAKE512Buffer(data^, len);
-        Move(BK512[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE2S:
-      begin
-        out_len := SizeOf(B2S);
-        if cap < out_len then
+      CN_HASH_BLAKE2S:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(B2S);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          B2S := BLAKE2S(PAnsiChar(data), len, nil, 0, CN_BLAKE2S_OUTBYTES);
+          Move(B2S[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        B2S := BLAKE2S(PAnsiChar(data), len, nil, 0, CN_BLAKE2S_OUTBYTES);
-        Move(B2S[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE2B:
-      begin
-        out_len := SizeOf(B2B);
-        if cap < out_len then
+      CN_HASH_BLAKE2B:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(B2B);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          B2B := BLAKE2B(PAnsiChar(data), len, nil, 0, CN_BLAKE2B_OUTBYTES);
+          Move(B2B[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        B2B := BLAKE2B(PAnsiChar(data), len, nil, 0, CN_BLAKE2B_OUTBYTES);
-        Move(B2B[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE3:
-      begin
-        out_len := SizeOf(B3);
-        if cap < out_len then
+      CN_HASH_BLAKE3:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(B3);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          B3 := BLAKE3(PAnsiChar(data), len, nil, 0);
+          Move(B3[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        B3 := BLAKE3(PAnsiChar(data), len, nil, 0);
-        Move(B3[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_XXH32:
-      begin
-        out_len := SizeOf(XX32);
-        if cap < out_len then
+      CN_HASH_XXH32:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(XX32);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          XX32 := XXH32Buffer(data^, len, 0);
+          Move(XX32[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        XX32 := XXH32Buffer(data^, len, 0);
-        Move(XX32[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_XXH64:
-      begin
-        out_len := SizeOf(XX64);
-        if cap < out_len then
+      CN_HASH_XXH64:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(XX64);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          XX64 := XXH64Buffer(data^, len, 0);
+          Move(XX64[0], out_digest^, out_len);
+          Result := CN_OK;
         end;
-        XX64 := XXH64Buffer(data^, len, 0);
-        Move(XX64[0], out_digest^, out_len);
-        Result := CN_OK;
-      end;
-  else
-    Result := CN_E_UNSUPPORTED;
+    else
+      Result := CN_E_UNSUPPORTED;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -3441,198 +4567,212 @@ var
   B2S: TCnBLAKE2SDigest;
   B2B: TCnBLAKE2BDigest;
 begin
-  if (key = nil) or (data = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  SetLength(K, key_len);
-  SetLength(V, len);
-  Move(key^, K[0], key_len);
-  Move(data^, V[0], len);
-  case alg_id of
-    CN_HASH_MD5:
-      begin
-        out_len := SizeOf(D16);
-        if cap < out_len then
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([key_len, len, cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (key = nil) or (data = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    SetLength(K, key_len);
+    SetLength(V, len);
+    Move(key^, K[0], key_len);
+    Move(data^, V[0], len);
+    case alg_id of
+      CN_HASH_MD5:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D16);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D16 := MD5HmacBytes(K, V);
+          Move(D16[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        D16 := MD5HmacBytes(K, V);
-        Move(D16[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA1:
-      begin
-        out_len := SizeOf(D20);
-        if cap < out_len then
+      CN_HASH_SHA1:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D20);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D20 := SHA1HmacBytes(K, V);
+          Move(D20[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        D20 := SHA1HmacBytes(K, V);
-        Move(D20[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA2_256:
-      begin
-        out_len := SizeOf(D32);
-        if cap < out_len then
+      CN_HASH_SHA2_256:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D32);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D32 := SHA256HmacBytes(K, V);
+          Move(D32[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        D32 := SHA256HmacBytes(K, V);
-        Move(D32[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA2_512:
-      begin
-        out_len := SizeOf(D64);
-        if cap < out_len then
+      CN_HASH_SHA2_512:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(D64);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          D64 := SHA512HmacBytes(K, V);
+          Move(D64[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        D64 := SHA512HmacBytes(K, V);
-        Move(D64[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_224:
-      begin
-        out_len := SizeOf(S3_224);
-        if cap < out_len then
+      CN_HASH_SHA3_224:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_224);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_224 := SHA3_224HmacBytes(K, V);
+          Move(S3_224[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        S3_224 := SHA3_224HmacBytes(K, V);
-        Move(S3_224[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_256:
-      begin
-        out_len := SizeOf(S3_256);
-        if cap < out_len then
+      CN_HASH_SHA3_256:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_256);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_256 := SHA3_256HmacBytes(K, V);
+          Move(S3_256[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        S3_256 := SHA3_256HmacBytes(K, V);
-        Move(S3_256[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_384:
-      begin
-        out_len := SizeOf(S3_384);
-        if cap < out_len then
+      CN_HASH_SHA3_384:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_384);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_384 := SHA3_384HmacBytes(K, V);
+          Move(S3_384[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        S3_384 := SHA3_384HmacBytes(K, V);
-        Move(S3_384[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SHA3_512:
-      begin
-        out_len := SizeOf(S3_512);
-        if cap < out_len then
+      CN_HASH_SHA3_512:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(S3_512);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          S3_512 := SHA3_512HmacBytes(K, V);
+          Move(S3_512[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        S3_512 := SHA3_512HmacBytes(K, V);
-        Move(S3_512[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_SM3:
-      begin
-        out_len := SizeOf(SM3D);
-        if cap < out_len then
+      CN_HASH_SM3:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(SM3D);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          SM3D := SM3HmacBytes(K, V);
+          Move(SM3D[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        SM3D := SM3HmacBytes(K, V);
-        Move(SM3D[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE224:
-      begin
-        out_len := SizeOf(BK224);
-        if cap < out_len then
+      CN_HASH_BLAKE224:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK224);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK224 := BLAKE224HmacBytes(K, V);
+          Move(BK224[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        BK224 := BLAKE224HmacBytes(K, V);
-        Move(BK224[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE256:
-      begin
-        out_len := SizeOf(BK256);
-        if cap < out_len then
+      CN_HASH_BLAKE256:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK256);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK256 := BLAKE256HmacBytes(K, V);
+          Move(BK256[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        BK256 := BLAKE256HmacBytes(K, V);
-        Move(BK256[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE384:
-      begin
-        out_len := SizeOf(BK384);
-        if cap < out_len then
+      CN_HASH_BLAKE384:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK384);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK384 := BLAKE384HmacBytes(K, V);
+          Move(BK384[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        BK384 := BLAKE384HmacBytes(K, V);
-        Move(BK384[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE512:
-      begin
-        out_len := SizeOf(BK512);
-        if cap < out_len then
+      CN_HASH_BLAKE512:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(BK512);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          BK512 := BLAKE512HmacBytes(K, V);
+          Move(BK512[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        BK512 := BLAKE512HmacBytes(K, V);
-        Move(BK512[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE2S:
-      begin
-        out_len := SizeOf(B2S);
-        if cap < out_len then
+      CN_HASH_BLAKE2S:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(B2S);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          B2S := BLAKE2SBytes(V, K, CN_BLAKE2S_OUTBYTES);
+          Move(B2S[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        B2S := BLAKE2SBytes(V, K, CN_BLAKE2S_OUTBYTES);
-        Move(B2S[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-    CN_HASH_BLAKE2B:
-      begin
-        out_len := SizeOf(B2B);
-        if cap < out_len then
+      CN_HASH_BLAKE2B:
         begin
-          Result := CN_E_BUFFER_TOO_SMALL;
-          Exit;
+          out_len := SizeOf(B2B);
+          if cap < out_len then
+          begin
+            Result := CN_E_BUFFER_TOO_SMALL;
+            Exit;
+          end;
+          B2B := BLAKE2BBytes(V, K, CN_BLAKE2B_OUTBYTES);
+          Move(B2B[0], out_mac^, out_len);
+          Result := CN_OK;
         end;
-        B2B := BLAKE2BBytes(V, K, CN_BLAKE2B_OUTBYTES);
-        Move(B2B[0], out_mac^, out_len);
-        Result := CN_OK;
-      end;
-  else
-    Result := CN_E_UNSUPPORTED;
+    else
+      Result := CN_E_UNSUPPORTED;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -3660,366 +4800,395 @@ var
   CK: TCnChaChaKey;
   CN: TCnChaChaNonce;
 begin
-  if (key = nil) or (in_ptr = nil) or (in_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Src := TMemoryStream.Create;
-  Dst := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    Src.Size := in_len;
-    Src.Position := 0;
-    Move(in_ptr^, Src.Memory^, in_len);
-    case alg_id of
-      CN_CIPHER_DES_ECB, CN_CIPHER_DES_CBC:
-        begin
-          if (alg_id = CN_CIPHER_DES_ECB) and (key_len = SizeOf(DKey)) then
-          begin
-            Move(key^, DKey[0], SizeOf(DKey));
-            DESEncryptStreamECB(Src, in_len, DKey, Dst);
-          end
-          else if (alg_id = CN_CIPHER_DES_CBC) and (key_len = SizeOf(DKey)) then
-          begin
-            if iv = nil then
-            begin
-              Result := CN_E_INVALID_ARG;
-              Exit;
-            end;
-            if iv_len < SizeOf(DIVec) then
-            begin
-              Result := CN_E_BUFFER_TOO_SMALL;
-              Exit;
-            end;
-            Move(key^, DKey[0], SizeOf(DKey));
-            Move(iv^, DIVec[0], SizeOf(DIVec));
-            DESEncryptStreamCBC(Src, in_len, DKey, DIVec, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_3DES_ECB, CN_CIPHER_3DES_CBC:
-        begin
-          if (alg_id = CN_CIPHER_3DES_ECB) and (key_len = SizeOf(T3Key)) then
-          begin
-            Move(key^, T3Key[0], SizeOf(T3Key));
-            TripleDESEncryptStreamECB(Src, in_len, T3Key, Dst);
-          end
-          else if (alg_id = CN_CIPHER_3DES_CBC) and (key_len = SizeOf(T3Key))
-            then
-          begin
-            if iv = nil then
-            begin
-              Result := CN_E_INVALID_ARG;
-              Exit;
-            end;
-            if iv_len < SizeOf(DIVec) then
-            begin
-              Result := CN_E_BUFFER_TOO_SMALL;
-              Exit;
-            end;
-            Move(key^, T3Key[0], SizeOf(T3Key));
-            Move(iv^, DIVec[0], SizeOf(DIVec));
-            TripleDESEncryptStreamCBC(Src, in_len, T3Key, DIVec, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_SM4_ECB, CN_CIPHER_SM4_CBC, CN_CIPHER_SM4_CFB, CN_CIPHER_SM4_OFB,
-        CN_CIPHER_SM4_CTR:
-        begin
-          if key_len <> SizeOf(SM4K) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Move(key^, SM4K[0], SizeOf(SM4K));
-          case alg_id of
-            CN_CIPHER_SM4_ECB:
-              SM4EncryptStreamECB(Src, in_len, SM4K, Dst);
-            CN_CIPHER_SM4_CBC:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4IV[0], SizeOf(SM4IV));
-                SM4EncryptStreamCBC(Src, in_len, SM4K, SM4IV, Dst);
-              end;
-            CN_CIPHER_SM4_CFB:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4IV[0], SizeOf(SM4IV));
-                SM4EncryptStreamCFB(Src, in_len, SM4K, SM4IV, Dst);
-              end;
-            CN_CIPHER_SM4_OFB:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4IV[0], SizeOf(SM4IV));
-                SM4EncryptStreamOFB(Src, in_len, SM4K, SM4IV, Dst);
-              end;
-            CN_CIPHER_SM4_CTR:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4Nonce)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4Nonce[0], SizeOf(SM4Nonce));
-                SM4EncryptStreamCTR(Src, in_len, SM4K, SM4Nonce, Dst);
-              end;
-          end;
-        end;
-      CN_CIPHER_RC4:
-        begin
-          if (key_len = 0) or (key_len > CN_RC4_MAX_KEY_BYTE_LENGTH) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Dst.Size := in_len;
-          RC4Encrypt(key, key_len, Src.Memory, Dst.Memory, in_len);
-        end;
-      CN_CIPHER_ZUC:
-        begin
-          if (key_len <> CN_ZUC_KEYSIZE) or (iv = nil) or (iv_len <>
-            CN_ZUC_KEYSIZE) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Dst.Size := in_len;
-          KeyStreamLen := (in_len + SizeOf(Cardinal) - 1) div SizeOf(Cardinal);
-          GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
-          try
-            ZUC(key, iv, KeyStream, KeyStreamLen);
-            for I := 0 to in_len - 1 do
-              PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
-                PByteArray(KeyStream)[I];
-            Result := CN_OK;
-          finally
-            FreeMem(KeyStream);
-          end;
-        end;
-      CN_CIPHER_CHACHA20:
-        begin
-          if (key_len <> SizeOf(CK)) or (iv = nil) or (iv_len <> SizeOf(CN)) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Move(key^, CK[0], SizeOf(CK));
-          Move(iv^, CN[0], SizeOf(CN));
-          Dst.Size := in_len;
-          if not ChaCha20EncryptData(CK, CN, Src.Memory, in_len, Dst.Memory) then
-          begin
-            Result := CN_E_INTERNAL;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_ECB, CN_CIPHER_AES192_ECB, CN_CIPHER_AES256_ECB:
-        begin
-          if (alg_id = CN_CIPHER_AES128_ECB) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            EncryptAESStreamECB(Src, in_len, K128, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_ECB) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            EncryptAESStreamECB(Src, in_len, K192, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_ECB) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            EncryptAESStreamECB(Src, in_len, K256, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_CBC, CN_CIPHER_AES192_CBC, CN_CIPHER_AES256_CBC:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < SizeOf(IVBuf) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, IVBuf[0], SizeOf(IVBuf));
-          if (alg_id = CN_CIPHER_AES128_CBC) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            EncryptAESStreamCBC(Src, in_len, K128, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_CBC) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            EncryptAESStreamCBC(Src, in_len, K192, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_CBC) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            EncryptAESStreamCBC(Src, in_len, K256, IVBuf, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_OFB, CN_CIPHER_AES192_OFB, CN_CIPHER_AES256_OFB:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < SizeOf(IVBuf) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, IVBuf[0], SizeOf(IVBuf));
-          if (alg_id = CN_CIPHER_AES128_OFB) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            EncryptAESStreamOFB(Src, in_len, K128, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_OFB) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            EncryptAESStreamOFB(Src, in_len, K192, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_OFB) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            EncryptAESStreamOFB(Src, in_len, K256, IVBuf, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_CFB, CN_CIPHER_AES192_CFB, CN_CIPHER_AES256_CFB:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < SizeOf(IVBuf) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, IVBuf[0], SizeOf(IVBuf));
-          if (alg_id = CN_CIPHER_AES128_CFB) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            EncryptAESStreamCFB(Src, in_len, K128, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_CFB) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            EncryptAESStreamCFB(Src, in_len, K192, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_CFB) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            EncryptAESStreamCFB(Src, in_len, K256, IVBuf, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_CTR, CN_CIPHER_AES192_CTR, CN_CIPHER_AES256_CTR:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < (SizeOf(Nonce) + SizeOf(CTRIv)) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, Nonce[0], SizeOf(Nonce));
-          IvPos := PByte(iv);
-          Inc(IvPos, SizeOf(Nonce));
-          Move(IvPos^, CTRIv[0], SizeOf(CTRIv));
-          if (alg_id = CN_CIPHER_AES128_CTR) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            EncryptAESStreamCTR(Src, in_len, K128, Nonce, CTRIv, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_CTR) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            EncryptAESStreamCTR(Src, in_len, K192, Nonce, CTRIv, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_CTR) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            EncryptAESStreamCTR(Src, in_len, K256, Nonce, CTRIv, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-    else
-      Result := CN_E_UNSUPPORTED;
-      Exit;
-    end;
-    out_len := Dst.Size;
-    if cap < out_len then
+    out_len := 0;
+    if not CnExportSizesFitInteger([key_len, iv_len, in_len, cap, out_len]) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    if out_len > 0 then
-      Move(Dst.Memory^, out_ptr^, out_len);
-    Result := CN_OK;
-  finally
-    Src.Free;
-    Dst.Free;
+    if not CnExportAddedSizeFitsInteger(in_len, 16) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (key = nil) or (in_ptr = nil) or (in_len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Src := TMemoryStream.Create;
+    Dst := TMemoryStream.Create;
+    try
+      Src.Size := in_len;
+      Src.Position := 0;
+      Move(in_ptr^, Src.Memory^, in_len);
+      case alg_id of
+        CN_CIPHER_DES_ECB, CN_CIPHER_DES_CBC:
+          begin
+            if (alg_id = CN_CIPHER_DES_ECB) and (key_len = SizeOf(DKey)) then
+            begin
+              Move(key^, DKey[0], SizeOf(DKey));
+              DESEncryptStreamECB(Src, in_len, DKey, Dst);
+            end
+            else if (alg_id = CN_CIPHER_DES_CBC) and (key_len = SizeOf(DKey)) then
+            begin
+              if iv = nil then
+              begin
+                Result := CN_E_INVALID_ARG;
+                Exit;
+              end;
+              if iv_len < SizeOf(DIVec) then
+              begin
+                Result := CN_E_BUFFER_TOO_SMALL;
+                Exit;
+              end;
+              Move(key^, DKey[0], SizeOf(DKey));
+              Move(iv^, DIVec[0], SizeOf(DIVec));
+              DESEncryptStreamCBC(Src, in_len, DKey, DIVec, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_3DES_ECB, CN_CIPHER_3DES_CBC:
+          begin
+            if (alg_id = CN_CIPHER_3DES_ECB) and (key_len = SizeOf(T3Key)) then
+            begin
+              Move(key^, T3Key[0], SizeOf(T3Key));
+              TripleDESEncryptStreamECB(Src, in_len, T3Key, Dst);
+            end
+            else if (alg_id = CN_CIPHER_3DES_CBC) and (key_len = SizeOf(T3Key))
+              then
+            begin
+              if iv = nil then
+              begin
+                Result := CN_E_INVALID_ARG;
+                Exit;
+              end;
+              if iv_len < SizeOf(DIVec) then
+              begin
+                Result := CN_E_BUFFER_TOO_SMALL;
+                Exit;
+              end;
+              Move(key^, T3Key[0], SizeOf(T3Key));
+              Move(iv^, DIVec[0], SizeOf(DIVec));
+              TripleDESEncryptStreamCBC(Src, in_len, T3Key, DIVec, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_SM4_ECB, CN_CIPHER_SM4_CBC, CN_CIPHER_SM4_CFB, CN_CIPHER_SM4_OFB,
+          CN_CIPHER_SM4_CTR:
+          begin
+            if key_len <> SizeOf(SM4K) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            Move(key^, SM4K[0], SizeOf(SM4K));
+            case alg_id of
+              CN_CIPHER_SM4_ECB:
+                SM4EncryptStreamECB(Src, in_len, SM4K, Dst);
+              CN_CIPHER_SM4_CBC:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4IV[0], SizeOf(SM4IV));
+                  SM4EncryptStreamCBC(Src, in_len, SM4K, SM4IV, Dst);
+                end;
+              CN_CIPHER_SM4_CFB:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4IV[0], SizeOf(SM4IV));
+                  SM4EncryptStreamCFB(Src, in_len, SM4K, SM4IV, Dst);
+                end;
+              CN_CIPHER_SM4_OFB:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4IV[0], SizeOf(SM4IV));
+                  SM4EncryptStreamOFB(Src, in_len, SM4K, SM4IV, Dst);
+                end;
+              CN_CIPHER_SM4_CTR:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4Nonce)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4Nonce[0], SizeOf(SM4Nonce));
+                  SM4EncryptStreamCTR(Src, in_len, SM4K, SM4Nonce, Dst);
+                end;
+            end;
+          end;
+        CN_CIPHER_RC4:
+          begin
+            if (key_len = 0) or (key_len > CN_RC4_MAX_KEY_BYTE_LENGTH) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            Dst.Size := in_len;
+            RC4Encrypt(key, key_len, Src.Memory, Dst.Memory, in_len);
+          end;
+        CN_CIPHER_ZUC:
+          begin
+            if (key_len <> CN_ZUC_KEYSIZE) or (iv = nil) or (iv_len <>
+              CN_ZUC_KEYSIZE) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if not CnExportExpandedSizeFitsInteger(in_len, SizeOf(Cardinal),
+              SizeOf(Cardinal)) then
+            begin
+              Result := CN_E_SIZE_OVERFLOW;
+              Exit;
+            end;
+            Dst.Size := in_len;
+            KeyStreamLen := (in_len + SizeOf(Cardinal) - 1) div SizeOf(Cardinal);
+            GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
+            try
+              ZUC(key, iv, KeyStream, KeyStreamLen);
+              for I := 0 to in_len - 1 do
+                PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
+                  PByteArray(KeyStream)[I];
+              Result := CN_OK;
+            finally
+              FreeMem(KeyStream);
+            end;
+          end;
+        CN_CIPHER_CHACHA20:
+          begin
+            if (key_len <> SizeOf(CK)) or (iv = nil) or (iv_len <> SizeOf(CN)) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            Move(key^, CK[0], SizeOf(CK));
+            Move(iv^, CN[0], SizeOf(CN));
+            Dst.Size := in_len;
+            if not ChaCha20EncryptData(CK, CN, Src.Memory, in_len, Dst.Memory) then
+            begin
+              Result := CN_E_INTERNAL;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_ECB, CN_CIPHER_AES192_ECB, CN_CIPHER_AES256_ECB:
+          begin
+            if (alg_id = CN_CIPHER_AES128_ECB) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              EncryptAESStreamECB(Src, in_len, K128, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_ECB) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              EncryptAESStreamECB(Src, in_len, K192, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_ECB) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              EncryptAESStreamECB(Src, in_len, K256, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_CBC, CN_CIPHER_AES192_CBC, CN_CIPHER_AES256_CBC:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < SizeOf(IVBuf) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, IVBuf[0], SizeOf(IVBuf));
+            if (alg_id = CN_CIPHER_AES128_CBC) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              EncryptAESStreamCBC(Src, in_len, K128, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_CBC) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              EncryptAESStreamCBC(Src, in_len, K192, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_CBC) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              EncryptAESStreamCBC(Src, in_len, K256, IVBuf, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_OFB, CN_CIPHER_AES192_OFB, CN_CIPHER_AES256_OFB:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < SizeOf(IVBuf) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, IVBuf[0], SizeOf(IVBuf));
+            if (alg_id = CN_CIPHER_AES128_OFB) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              EncryptAESStreamOFB(Src, in_len, K128, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_OFB) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              EncryptAESStreamOFB(Src, in_len, K192, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_OFB) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              EncryptAESStreamOFB(Src, in_len, K256, IVBuf, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_CFB, CN_CIPHER_AES192_CFB, CN_CIPHER_AES256_CFB:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < SizeOf(IVBuf) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, IVBuf[0], SizeOf(IVBuf));
+            if (alg_id = CN_CIPHER_AES128_CFB) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              EncryptAESStreamCFB(Src, in_len, K128, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_CFB) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              EncryptAESStreamCFB(Src, in_len, K192, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_CFB) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              EncryptAESStreamCFB(Src, in_len, K256, IVBuf, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_CTR, CN_CIPHER_AES192_CTR, CN_CIPHER_AES256_CTR:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < (SizeOf(Nonce) + SizeOf(CTRIv)) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, Nonce[0], SizeOf(Nonce));
+            IvPos := PByte(iv);
+            Inc(IvPos, SizeOf(Nonce));
+            Move(IvPos^, CTRIv[0], SizeOf(CTRIv));
+            if (alg_id = CN_CIPHER_AES128_CTR) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              EncryptAESStreamCTR(Src, in_len, K128, Nonce, CTRIv, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_CTR) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              EncryptAESStreamCTR(Src, in_len, K192, Nonce, CTRIv, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_CTR) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              EncryptAESStreamCTR(Src, in_len, K256, Nonce, CTRIv, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+      else
+        Result := CN_E_UNSUPPORTED;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(Dst.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(Dst.Memory^, out_ptr^, out_len);
+      Result := CN_OK;
+    finally
+      Src.Free;
+      Dst.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4047,366 +5216,390 @@ var
   CK: TCnChaChaKey;
   CN: TCnChaChaNonce;
 begin
-  if (key = nil) or (in_ptr = nil) or (in_len = 0) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Src := TMemoryStream.Create;
-  Dst := TMemoryStream.Create;
+  CnExportClearLastError;
   try
-    Src.Size := in_len;
-    Src.Position := 0;
-    Move(in_ptr^, Src.Memory^, in_len);
-    case alg_id of
-      CN_CIPHER_DES_ECB, CN_CIPHER_DES_CBC:
-        begin
-          if (alg_id = CN_CIPHER_DES_ECB) and (key_len = SizeOf(DKey)) then
-          begin
-            Move(key^, DKey[0], SizeOf(DKey));
-            DESDecryptStreamECB(Src, in_len, DKey, Dst);
-          end
-          else if (alg_id = CN_CIPHER_DES_CBC) and (key_len = SizeOf(DKey)) then
-          begin
-            if iv = nil then
-            begin
-              Result := CN_E_INVALID_ARG;
-              Exit;
-            end;
-            if iv_len < SizeOf(DIVec) then
-            begin
-              Result := CN_E_BUFFER_TOO_SMALL;
-              Exit;
-            end;
-            Move(key^, DKey[0], SizeOf(DKey));
-            Move(iv^, DIVec[0], SizeOf(DIVec));
-            DESDecryptStreamCBC(Src, in_len, DKey, DIVec, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_3DES_ECB, CN_CIPHER_3DES_CBC:
-        begin
-          if (alg_id = CN_CIPHER_3DES_ECB) and (key_len = SizeOf(T3Key)) then
-          begin
-            Move(key^, T3Key[0], SizeOf(T3Key));
-            TripleDESDecryptStreamECB(Src, in_len, T3Key, Dst);
-          end
-          else if (alg_id = CN_CIPHER_3DES_CBC) and (key_len = SizeOf(T3Key))
-            then
-          begin
-            if iv = nil then
-            begin
-              Result := CN_E_INVALID_ARG;
-              Exit;
-            end;
-            if iv_len < SizeOf(DIVec) then
-            begin
-              Result := CN_E_BUFFER_TOO_SMALL;
-              Exit;
-            end;
-            Move(key^, T3Key[0], SizeOf(T3Key));
-            Move(iv^, DIVec[0], SizeOf(DIVec));
-            TripleDESDecryptStreamCBC(Src, in_len, T3Key, DIVec, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_SM4_ECB, CN_CIPHER_SM4_CBC, CN_CIPHER_SM4_CFB, CN_CIPHER_SM4_OFB,
-        CN_CIPHER_SM4_CTR:
-        begin
-          if key_len <> SizeOf(SM4K) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Move(key^, SM4K[0], SizeOf(SM4K));
-          case alg_id of
-            CN_CIPHER_SM4_ECB:
-              SM4DecryptStreamECB(Src, in_len, SM4K, Dst);
-            CN_CIPHER_SM4_CBC:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4IV[0], SizeOf(SM4IV));
-                SM4DecryptStreamCBC(Src, in_len, SM4K, SM4IV, Dst);
-              end;
-            CN_CIPHER_SM4_CFB:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4IV[0], SizeOf(SM4IV));
-                SM4DecryptStreamCFB(Src, in_len, SM4K, SM4IV, Dst);
-              end;
-            CN_CIPHER_SM4_OFB:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4IV[0], SizeOf(SM4IV));
-                SM4DecryptStreamOFB(Src, in_len, SM4K, SM4IV, Dst);
-              end;
-            CN_CIPHER_SM4_CTR:
-              begin
-                if (iv = nil) or (iv_len < SizeOf(SM4Nonce)) then
-                begin
-                  Result := CN_E_INVALID_ARG;
-                  Exit;
-                end;
-                Move(iv^, SM4Nonce[0], SizeOf(SM4Nonce));
-                SM4DecryptStreamCTR(Src, in_len, SM4K, SM4Nonce, Dst);
-              end;
-          end;
-        end;
-      CN_CIPHER_RC4:
-        begin
-          if (key_len = 0) or (key_len > CN_RC4_MAX_KEY_BYTE_LENGTH) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Dst.Size := in_len;
-          RC4Decrypt(key, key_len, Src.Memory, Dst.Memory, in_len);
-        end;
-      CN_CIPHER_ZUC:
-        begin
-          if (key_len <> CN_ZUC_KEYSIZE) or (iv = nil) or (iv_len <>
-            CN_ZUC_KEYSIZE) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Dst.Size := in_len;
-          KeyStreamLen := (in_len + SizeOf(Cardinal) - 1) div SizeOf(Cardinal);
-          GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
-          try
-            ZUC(key, iv, KeyStream, KeyStreamLen);
-            for I := 0 to in_len - 1 do
-              PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
-                PByteArray(KeyStream)[I];
-            Result := CN_OK;
-          finally
-            FreeMem(KeyStream);
-          end;
-        end;
-      CN_CIPHER_CHACHA20:
-        begin
-          if (key_len <> SizeOf(CK)) or (iv = nil) or (iv_len <> SizeOf(CN)) then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          Move(key^, CK[0], SizeOf(CK));
-          Move(iv^, CN[0], SizeOf(CN));
-          Dst.Size := in_len;
-          if not ChaCha20EncryptData(CK, CN, Src.Memory, in_len, Dst.Memory) then
-          begin
-            Result := CN_E_INTERNAL;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_ECB, CN_CIPHER_AES192_ECB, CN_CIPHER_AES256_ECB:
-        begin
-          if (alg_id = CN_CIPHER_AES128_ECB) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            DecryptAESStreamECB(Src, in_len, K128, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_ECB) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            DecryptAESStreamECB(Src, in_len, K192, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_ECB) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            DecryptAESStreamECB(Src, in_len, K256, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_CBC, CN_CIPHER_AES192_CBC, CN_CIPHER_AES256_CBC:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < SizeOf(IVBuf) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, IVBuf[0], SizeOf(IVBuf));
-          if (alg_id = CN_CIPHER_AES128_CBC) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            DecryptAESStreamCBC(Src, in_len, K128, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_CBC) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            DecryptAESStreamCBC(Src, in_len, K192, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_CBC) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            DecryptAESStreamCBC(Src, in_len, K256, IVBuf, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_OFB, CN_CIPHER_AES192_OFB, CN_CIPHER_AES256_OFB:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < SizeOf(IVBuf) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, IVBuf[0], SizeOf(IVBuf));
-          if (alg_id = CN_CIPHER_AES128_OFB) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            DecryptAESStreamOFB(Src, in_len, K128, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_OFB) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            DecryptAESStreamOFB(Src, in_len, K192, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_OFB) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            DecryptAESStreamOFB(Src, in_len, K256, IVBuf, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_CFB, CN_CIPHER_AES192_CFB, CN_CIPHER_AES256_CFB:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < SizeOf(IVBuf) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, IVBuf[0], SizeOf(IVBuf));
-          if (alg_id = CN_CIPHER_AES128_CFB) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            DecryptAESStreamCFB(Src, in_len, K128, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_CFB) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            DecryptAESStreamCFB(Src, in_len, K192, IVBuf, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_CFB) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            DecryptAESStreamCFB(Src, in_len, K256, IVBuf, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-      CN_CIPHER_AES128_CTR, CN_CIPHER_AES192_CTR, CN_CIPHER_AES256_CTR:
-        begin
-          if iv = nil then
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-          if iv_len < (SizeOf(Nonce) + SizeOf(CTRIv)) then
-          begin
-            Result := CN_E_BUFFER_TOO_SMALL;
-            Exit;
-          end;
-          Move(iv^, Nonce[0], SizeOf(Nonce));
-          IvPos := PByte(iv);
-          Inc(IvPos, SizeOf(Nonce));
-          Move(IvPos^, CTRIv[0], SizeOf(CTRIv));
-          if (alg_id = CN_CIPHER_AES128_CTR) and (key_len = SizeOf(K128)) then
-          begin
-            Move(key^, K128[0], SizeOf(K128));
-            DecryptAESStreamCTR(Src, in_len, K128, Nonce, CTRIv, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES192_CTR) and (key_len = SizeOf(K192))
-            then
-          begin
-            Move(key^, K192[0], SizeOf(K192));
-            DecryptAESStreamCTR(Src, in_len, K192, Nonce, CTRIv, Dst);
-          end
-          else if (alg_id = CN_CIPHER_AES256_CTR) and (key_len = SizeOf(K256))
-            then
-          begin
-            Move(key^, K256[0], SizeOf(K256));
-            DecryptAESStreamCTR(Src, in_len, K256, Nonce, CTRIv, Dst);
-          end
-          else
-          begin
-            Result := CN_E_INVALID_ARG;
-            Exit;
-          end;
-        end;
-    else
-      Result := CN_E_UNSUPPORTED;
-      Exit;
-    end;
-    out_len := Dst.Size;
-    if cap < out_len then
+    out_len := 0;
+    if not CnExportSizesFitInteger([key_len, iv_len, in_len, cap, out_len]) then
     begin
-      Result := CN_E_BUFFER_TOO_SMALL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    if out_len > 0 then
-      Move(Dst.Memory^, out_ptr^, out_len);
-    Result := CN_OK;
-  finally
-    Src.Free;
-    Dst.Free;
+    if (key = nil) or (in_ptr = nil) or (in_len = 0) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Src := TMemoryStream.Create;
+    Dst := TMemoryStream.Create;
+    try
+      Src.Size := in_len;
+      Src.Position := 0;
+      Move(in_ptr^, Src.Memory^, in_len);
+      case alg_id of
+        CN_CIPHER_DES_ECB, CN_CIPHER_DES_CBC:
+          begin
+            if (alg_id = CN_CIPHER_DES_ECB) and (key_len = SizeOf(DKey)) then
+            begin
+              Move(key^, DKey[0], SizeOf(DKey));
+              DESDecryptStreamECB(Src, in_len, DKey, Dst);
+            end
+            else if (alg_id = CN_CIPHER_DES_CBC) and (key_len = SizeOf(DKey)) then
+            begin
+              if iv = nil then
+              begin
+                Result := CN_E_INVALID_ARG;
+                Exit;
+              end;
+              if iv_len < SizeOf(DIVec) then
+              begin
+                Result := CN_E_BUFFER_TOO_SMALL;
+                Exit;
+              end;
+              Move(key^, DKey[0], SizeOf(DKey));
+              Move(iv^, DIVec[0], SizeOf(DIVec));
+              DESDecryptStreamCBC(Src, in_len, DKey, DIVec, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_3DES_ECB, CN_CIPHER_3DES_CBC:
+          begin
+            if (alg_id = CN_CIPHER_3DES_ECB) and (key_len = SizeOf(T3Key)) then
+            begin
+              Move(key^, T3Key[0], SizeOf(T3Key));
+              TripleDESDecryptStreamECB(Src, in_len, T3Key, Dst);
+            end
+            else if (alg_id = CN_CIPHER_3DES_CBC) and (key_len = SizeOf(T3Key))
+              then
+            begin
+              if iv = nil then
+              begin
+                Result := CN_E_INVALID_ARG;
+                Exit;
+              end;
+              if iv_len < SizeOf(DIVec) then
+              begin
+                Result := CN_E_BUFFER_TOO_SMALL;
+                Exit;
+              end;
+              Move(key^, T3Key[0], SizeOf(T3Key));
+              Move(iv^, DIVec[0], SizeOf(DIVec));
+              TripleDESDecryptStreamCBC(Src, in_len, T3Key, DIVec, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_SM4_ECB, CN_CIPHER_SM4_CBC, CN_CIPHER_SM4_CFB, CN_CIPHER_SM4_OFB,
+          CN_CIPHER_SM4_CTR:
+          begin
+            if key_len <> SizeOf(SM4K) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            Move(key^, SM4K[0], SizeOf(SM4K));
+            case alg_id of
+              CN_CIPHER_SM4_ECB:
+                SM4DecryptStreamECB(Src, in_len, SM4K, Dst);
+              CN_CIPHER_SM4_CBC:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4IV[0], SizeOf(SM4IV));
+                  SM4DecryptStreamCBC(Src, in_len, SM4K, SM4IV, Dst);
+                end;
+              CN_CIPHER_SM4_CFB:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4IV[0], SizeOf(SM4IV));
+                  SM4DecryptStreamCFB(Src, in_len, SM4K, SM4IV, Dst);
+                end;
+              CN_CIPHER_SM4_OFB:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4IV)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4IV[0], SizeOf(SM4IV));
+                  SM4DecryptStreamOFB(Src, in_len, SM4K, SM4IV, Dst);
+                end;
+              CN_CIPHER_SM4_CTR:
+                begin
+                  if (iv = nil) or (iv_len < SizeOf(SM4Nonce)) then
+                  begin
+                    Result := CN_E_INVALID_ARG;
+                    Exit;
+                  end;
+                  Move(iv^, SM4Nonce[0], SizeOf(SM4Nonce));
+                  SM4DecryptStreamCTR(Src, in_len, SM4K, SM4Nonce, Dst);
+                end;
+            end;
+          end;
+        CN_CIPHER_RC4:
+          begin
+            if (key_len = 0) or (key_len > CN_RC4_MAX_KEY_BYTE_LENGTH) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            Dst.Size := in_len;
+            RC4Decrypt(key, key_len, Src.Memory, Dst.Memory, in_len);
+          end;
+        CN_CIPHER_ZUC:
+          begin
+            if (key_len <> CN_ZUC_KEYSIZE) or (iv = nil) or (iv_len <>
+              CN_ZUC_KEYSIZE) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if not CnExportExpandedSizeFitsInteger(in_len, SizeOf(Cardinal),
+              SizeOf(Cardinal)) then
+            begin
+              Result := CN_E_SIZE_OVERFLOW;
+              Exit;
+            end;
+            Dst.Size := in_len;
+            KeyStreamLen := (in_len + SizeOf(Cardinal) - 1) div SizeOf(Cardinal);
+            GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
+            try
+              ZUC(key, iv, KeyStream, KeyStreamLen);
+              for I := 0 to in_len - 1 do
+                PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
+                  PByteArray(KeyStream)[I];
+              Result := CN_OK;
+            finally
+              FreeMem(KeyStream);
+            end;
+          end;
+        CN_CIPHER_CHACHA20:
+          begin
+            if (key_len <> SizeOf(CK)) or (iv = nil) or (iv_len <> SizeOf(CN)) then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            Move(key^, CK[0], SizeOf(CK));
+            Move(iv^, CN[0], SizeOf(CN));
+            Dst.Size := in_len;
+            if not ChaCha20EncryptData(CK, CN, Src.Memory, in_len, Dst.Memory) then
+            begin
+              Result := CN_E_INTERNAL;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_ECB, CN_CIPHER_AES192_ECB, CN_CIPHER_AES256_ECB:
+          begin
+            if (alg_id = CN_CIPHER_AES128_ECB) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              DecryptAESStreamECB(Src, in_len, K128, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_ECB) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              DecryptAESStreamECB(Src, in_len, K192, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_ECB) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              DecryptAESStreamECB(Src, in_len, K256, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_CBC, CN_CIPHER_AES192_CBC, CN_CIPHER_AES256_CBC:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < SizeOf(IVBuf) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, IVBuf[0], SizeOf(IVBuf));
+            if (alg_id = CN_CIPHER_AES128_CBC) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              DecryptAESStreamCBC(Src, in_len, K128, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_CBC) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              DecryptAESStreamCBC(Src, in_len, K192, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_CBC) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              DecryptAESStreamCBC(Src, in_len, K256, IVBuf, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_OFB, CN_CIPHER_AES192_OFB, CN_CIPHER_AES256_OFB:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < SizeOf(IVBuf) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, IVBuf[0], SizeOf(IVBuf));
+            if (alg_id = CN_CIPHER_AES128_OFB) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              DecryptAESStreamOFB(Src, in_len, K128, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_OFB) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              DecryptAESStreamOFB(Src, in_len, K192, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_OFB) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              DecryptAESStreamOFB(Src, in_len, K256, IVBuf, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_CFB, CN_CIPHER_AES192_CFB, CN_CIPHER_AES256_CFB:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < SizeOf(IVBuf) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, IVBuf[0], SizeOf(IVBuf));
+            if (alg_id = CN_CIPHER_AES128_CFB) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              DecryptAESStreamCFB(Src, in_len, K128, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_CFB) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              DecryptAESStreamCFB(Src, in_len, K192, IVBuf, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_CFB) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              DecryptAESStreamCFB(Src, in_len, K256, IVBuf, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+        CN_CIPHER_AES128_CTR, CN_CIPHER_AES192_CTR, CN_CIPHER_AES256_CTR:
+          begin
+            if iv = nil then
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+            if iv_len < (SizeOf(Nonce) + SizeOf(CTRIv)) then
+            begin
+              Result := CN_E_BUFFER_TOO_SMALL;
+              Exit;
+            end;
+            Move(iv^, Nonce[0], SizeOf(Nonce));
+            IvPos := PByte(iv);
+            Inc(IvPos, SizeOf(Nonce));
+            Move(IvPos^, CTRIv[0], SizeOf(CTRIv));
+            if (alg_id = CN_CIPHER_AES128_CTR) and (key_len = SizeOf(K128)) then
+            begin
+              Move(key^, K128[0], SizeOf(K128));
+              DecryptAESStreamCTR(Src, in_len, K128, Nonce, CTRIv, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES192_CTR) and (key_len = SizeOf(K192))
+              then
+            begin
+              Move(key^, K192[0], SizeOf(K192));
+              DecryptAESStreamCTR(Src, in_len, K192, Nonce, CTRIv, Dst);
+            end
+            else if (alg_id = CN_CIPHER_AES256_CTR) and (key_len = SizeOf(K256))
+              then
+            begin
+              Move(key^, K256[0], SizeOf(K256));
+              DecryptAESStreamCTR(Src, in_len, K256, Nonce, CTRIv, Dst);
+            end
+            else
+            begin
+              Result := CN_E_INVALID_ARG;
+              Exit;
+            end;
+          end;
+      else
+        Result := CN_E_UNSUPPORTED;
+        Exit;
+      end;
+      if not CnExportInt64ToSize(Dst.Size, out_len) then
+      begin
+        Result := CN_E_SIZE_OVERFLOW;
+        Exit;
+      end;
+      if cap < out_len then
+      begin
+        Result := CN_E_BUFFER_TOO_SMALL;
+        Exit;
+      end;
+      if out_len > 0 then
+        Move(Dst.Memory^, out_ptr^, out_len);
+      Result := CN_OK;
+    finally
+      Src.Free;
+      Dst.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4418,54 +5611,70 @@ var
   TagG: TCnGCM128Tag;
   TagP: TCnPoly1305Digest;
 begin
-  if (key = nil) or (nonce = nil) or ((aad = nil) and (aad_len <> 0)) or
-    (in_ptr = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if cap_cipher < in_len then
-  begin
+  CnExportClearLastError;
+  try
+    out_cipher_len := 0;
+    out_tag_len := 0;
+    if not CnExportSizesFitInteger([key_len, nonce_len, aad_len, in_len, cap_cipher, out_cipher_len, tag_cap, out_tag_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (key = nil) or (nonce = nil) or ((aad = nil) and (aad_len <> 0)) or
+      ((in_ptr = nil) and (in_len <> 0)) or
+      ((out_cipher = nil) and (in_len <> 0)) or (out_tag = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if cap_cipher < in_len then
+    begin
+      out_cipher_len := in_len;
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if tag_cap < CN_AEAD_TAG_BYTES then
+    begin
+      out_tag_len := CN_AEAD_TAG_BYTES;
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    case alg_id of
+      CN_AEAD_AES128_GCM:
+        AES128GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad,
+          aad_len, out_cipher, TagG);
+      CN_AEAD_AES192_GCM:
+        AES192GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad,
+          aad_len, out_cipher, TagG);
+      CN_AEAD_AES256_GCM:
+        AES256GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad,
+          aad_len, out_cipher, TagG);
+      CN_AEAD_SM4_GCM:
+        SM4GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad, aad_len,
+          out_cipher, TagG);
+      CN_AEAD_CHACHA20_POLY1305:
+        ChaCha20Poly1305Encrypt(key, key_len, nonce, nonce_len, in_ptr, in_len,
+          aad, aad_len, out_cipher, TagP);
+      CN_AEAD_XCHACHA20_POLY1305:
+        XChaCha20Poly1305Encrypt(key, key_len, nonce, nonce_len, in_ptr, in_len,
+          aad, aad_len, out_cipher, TagP);
+    else
+      Result := CN_E_UNSUPPORTED;
+      Exit;
+    end;
     out_cipher_len := in_len;
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  if tag_cap < CN_AEAD_TAG_BYTES then
-  begin
     out_tag_len := CN_AEAD_TAG_BYTES;
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
+    if (alg_id = CN_AEAD_CHACHA20_POLY1305) or (alg_id = CN_AEAD_XCHACHA20_POLY1305) then
+      Move(TagP[0], out_tag^, out_tag_len)
+    else
+      Move(TagG[0], out_tag^, out_tag_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  case alg_id of
-    CN_AEAD_AES128_GCM:
-      AES128GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad,
-        aad_len, out_cipher, TagG);
-    CN_AEAD_AES192_GCM:
-      AES192GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad,
-        aad_len, out_cipher, TagG);
-    CN_AEAD_AES256_GCM:
-      AES256GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad,
-        aad_len, out_cipher, TagG);
-    CN_AEAD_SM4_GCM:
-      SM4GCMEncrypt(key, key_len, nonce, nonce_len, in_ptr, in_len, aad, aad_len,
-        out_cipher, TagG);
-    CN_AEAD_CHACHA20_POLY1305:
-      ChaCha20Poly1305Encrypt(key, key_len, nonce, nonce_len, in_ptr, in_len,
-        aad, aad_len, out_cipher, TagP);
-    CN_AEAD_XCHACHA20_POLY1305:
-      XChaCha20Poly1305Encrypt(key, key_len, nonce, nonce_len, in_ptr, in_len,
-        aad, aad_len, out_cipher, TagP);
-  else
-    Result := CN_E_UNSUPPORTED;
-    Exit;
-  end;
-  out_cipher_len := in_len;
-  out_tag_len := CN_AEAD_TAG_BYTES;
-  if (alg_id = CN_AEAD_CHACHA20_POLY1305) or (alg_id = CN_AEAD_XCHACHA20_POLY1305) then
-    Move(TagP[0], out_tag^, out_tag_len)
-  else
-    Move(TagG[0], out_tag^, out_tag_len);
-  Result := CN_OK;
 end;
 
 function cn_aead_decrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; nonce:
@@ -4477,73 +5686,115 @@ var
   TagP: TCnPoly1305Digest;
   Ok: Boolean;
 begin
-  if (key = nil) or (nonce = nil) or ((aad = nil) and (aad_len <> 0)) or
-    (in_cipher = nil) or (in_tag = nil) or (tag_len <> CN_AEAD_TAG_BYTES) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if cap_plain < in_len then
-  begin
+  CnExportClearLastError;
+  try
+    out_plain_len := 0;
+    if not CnExportSizesFitInteger([key_len, nonce_len, aad_len, in_len, tag_len, cap_plain, out_plain_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (key = nil) or (nonce = nil) or ((aad = nil) and (aad_len <> 0)) or
+      ((in_cipher = nil) and (in_len <> 0)) or (in_tag = nil) or
+      ((out_plain = nil) and (in_len <> 0)) or
+      (tag_len <> CN_AEAD_TAG_BYTES) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if cap_plain < in_len then
+    begin
+      out_plain_len := in_len;
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    if (alg_id = CN_AEAD_CHACHA20_POLY1305) or (alg_id = CN_AEAD_XCHACHA20_POLY1305) then
+      Move(in_tag^, TagP[0], CN_AEAD_TAG_BYTES)
+    else
+      Move(in_tag^, TagG[0], CN_AEAD_TAG_BYTES);
+    case alg_id of
+      CN_AEAD_AES128_GCM:
+        Ok := AES128GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len,
+          aad, aad_len, out_plain, TagG);
+      CN_AEAD_AES192_GCM:
+        Ok := AES192GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len,
+          aad, aad_len, out_plain, TagG);
+      CN_AEAD_AES256_GCM:
+        Ok := AES256GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len,
+          aad, aad_len, out_plain, TagG);
+      CN_AEAD_SM4_GCM:
+        Ok := SM4GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len, aad,
+          aad_len, out_plain, TagG);
+      CN_AEAD_CHACHA20_POLY1305:
+        Ok := ChaCha20Poly1305Decrypt(key, key_len, nonce, nonce_len, in_cipher,
+          in_len, aad, aad_len, out_plain, TagP);
+      CN_AEAD_XCHACHA20_POLY1305:
+        Ok := XChaCha20Poly1305Decrypt(key, key_len, nonce, nonce_len, in_cipher,
+          in_len, aad, aad_len, out_plain, TagP);
+    else
+      Result := CN_E_UNSUPPORTED;
+      Exit;
+    end;
+    if not Ok then
+    begin
+      Result := CN_E_VERIFY_FAIL;
+      Exit;
+    end;
     out_plain_len := in_len;
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  if (alg_id = CN_AEAD_CHACHA20_POLY1305) or (alg_id = CN_AEAD_XCHACHA20_POLY1305) then
-    Move(in_tag^, TagP[0], CN_AEAD_TAG_BYTES)
-  else
-    Move(in_tag^, TagG[0], CN_AEAD_TAG_BYTES);
-  case alg_id of
-    CN_AEAD_AES128_GCM:
-      Ok := AES128GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len,
-        aad, aad_len, out_plain, TagG);
-    CN_AEAD_AES192_GCM:
-      Ok := AES192GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len,
-        aad, aad_len, out_plain, TagG);
-    CN_AEAD_AES256_GCM:
-      Ok := AES256GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len,
-        aad, aad_len, out_plain, TagG);
-    CN_AEAD_SM4_GCM:
-      Ok := SM4GCMDecrypt(key, key_len, nonce, nonce_len, in_cipher, in_len, aad,
-        aad_len, out_plain, TagG);
-    CN_AEAD_CHACHA20_POLY1305:
-      Ok := ChaCha20Poly1305Decrypt(key, key_len, nonce, nonce_len, in_cipher,
-        in_len, aad, aad_len, out_plain, TagP);
-    CN_AEAD_XCHACHA20_POLY1305:
-      Ok := XChaCha20Poly1305Decrypt(key, key_len, nonce, nonce_len, in_cipher,
-        in_len, aad, aad_len, out_plain, TagP);
-  else
-    Result := CN_E_UNSUPPORTED;
-    Exit;
-  end;
-  if not Ok then
-  begin
-    Result := CN_E_VERIFY_FAIL;
-    Exit;
-  end;
-  out_plain_len := in_len;
-  Result := CN_OK;
 end;
 
 function cn_ed25519_privkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnEd25519PrivateKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnEd25519PrivateKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_ed25519_pubkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnEd25519PublicKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnEd25519PublicKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_ed25519_key_free(key: TCnCryptoHandle): TCnResult; cdecl;
 begin
-  if key = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    if key = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    TObject(key).Free;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  TObject(key).Free;
-  Result := CN_OK;
 end;
 
 function cn_ed25519_generate_keys(var out_priv: TCnCryptoHandle; var out_pub:
@@ -4553,22 +5804,32 @@ var
   Priv: TCnEd25519PrivateKey;
   Pub: TCnEd25519PublicKey;
 begin
-  E := TCnEd25519.Create;
-  Priv := TCnEd25519PrivateKey.Create;
-  Pub := TCnEd25519PublicKey.Create;
+  CnExportClearLastError;
   try
-    if not E.GenerateKeys(Priv, Pub) then
-    begin
-      Priv.Free;
-      Pub.Free;
-      Result := CN_E_INTERNAL;
-      Exit;
+    out_priv := nil;
+    out_pub := nil;
+    E := TCnEd25519.Create;
+    Priv := TCnEd25519PrivateKey.Create;
+    Pub := TCnEd25519PublicKey.Create;
+    try
+      if not E.GenerateKeys(Priv, Pub) then
+      begin
+        Priv.Free;
+        Pub.Free;
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      out_priv := Priv;
+      out_pub := Pub;
+      Result := CN_OK;
+    finally
+      E.Free;
     end;
-    out_priv := Priv;
-    out_pub := Pub;
-    Result := CN_OK;
-  finally
-    E.Free;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4580,32 +5841,46 @@ var
   Ok: Boolean;
   SigData: TCnEd25519SignatureData;
 begin
-  if (priv = nil) or (pub = nil) or ((data = nil) and (len <> 0)) or (out_sig =
-    nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(SigData);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  Sig := TCnEd25519Signature.Create;
+  CnExportClearLastError;
   try
-    Ok := CnEd25519SignData(data, len, TCnEd25519PrivateKey(priv),
-      TCnEd25519PublicKey(pub), Sig);
-    if not Ok then
+    out_len := 0;
+    if not CnExportSizesFitInteger([len, cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    Sig.SaveToData(SigData);
-    Move(SigData[0], out_sig^, out_len);
-    Result := CN_OK;
-  finally
-    Sig.Free;
+    if (priv = nil) or (pub = nil) or ((data = nil) and (len <> 0)) or (out_sig =
+      nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(SigData);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    Sig := TCnEd25519Signature.Create;
+    try
+      Ok := CnEd25519SignData(data, len, TCnEd25519PrivateKey(priv),
+        TCnEd25519PublicKey(pub), Sig);
+      if not Ok then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      Sig.SaveToData(SigData);
+      Move(SigData[0], out_sig^, out_len);
+      Result := CN_OK;
+    finally
+      Sig.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4616,23 +5891,37 @@ var
   Ok: Boolean;
   SigData: TCnEd25519SignatureData;
 begin
-  if (pub = nil) or ((data = nil) and (len <> 0)) or (sig = nil) or (sig_len <>
-    SizeOf(SigData)) then
-  begin
-    Result := 0;
-    Exit;
-  end;
-  Move(sig^, SigData[0], SizeOf(SigData));
-  SigObj := TCnEd25519Signature.Create;
+  CnExportClearLastError;
   try
-    SigObj.LoadFromData(SigData);
-    Ok := CnEd25519VerifyData(data, len, SigObj, TCnEd25519PublicKey(pub));
-    if Ok then
-      Result := 1
-    else
+    if not CnExportSizesFitInteger([len, sig_len]) then
+    begin
       Result := 0;
-  finally
-    SigObj.Free;
+      Exit;
+    end;
+    if (pub = nil) or ((data = nil) and (len <> 0)) or (sig = nil) or (sig_len <>
+      SizeOf(SigData)) then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    Move(sig^, SigData[0], SizeOf(SigData));
+    SigObj := TCnEd25519Signature.Create;
+    try
+      SigObj.LoadFromData(SigData);
+      Ok := CnEd25519VerifyData(data, len, SigObj, TCnEd25519PublicKey(pub));
+      if Ok then
+        Result := 1
+      else
+        Result := 0;
+    finally
+      SigObj.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := 0;
+    end;
   end;
 end;
 
@@ -4642,20 +5931,34 @@ var
   D: TCnEd25519Data;
   K: TCnEd25519PrivateKey;
 begin
-  if (data = nil) or (len <> SizeOf(D)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Move(data^, D[0], SizeOf(D));
-  K := TCnEd25519PrivateKey.Create;
+  CnExportClearLastError;
   try
-    K.LoadFromData(D);
-    out_priv := K;
-    Result := CN_OK;
+    out_priv := nil;
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (data = nil) or (len <> SizeOf(D)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Move(data^, D[0], SizeOf(D));
+    K := TCnEd25519PrivateKey.Create;
+    try
+      K.LoadFromData(D);
+      out_priv := K;
+      Result := CN_OK;
+    except
+      K.Free;
+      Result := CN_E_INTERNAL;
+    end;
   except
-    K.Free;
-    Result := CN_E_INTERNAL;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4664,20 +5967,34 @@ function cn_ed25519_privkey_to_bytes(priv: TCnCryptoHandle; out_buf: PByte; cap:
 var
   D: TCnEd25519Data;
 begin
-  if (priv = nil) or (out_buf = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or (out_buf = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(D);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    TCnEd25519PrivateKey(priv).SaveToData(D);
+    Move(D[0], out_buf^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_len := SizeOf(D);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  TCnEd25519PrivateKey(priv).SaveToData(D);
-  Move(D[0], out_buf^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_ed25519_pubkey_from_bytes(data: PByte; len: TCnSize; var out_pub:
@@ -4686,20 +6003,34 @@ var
   D: TCnEd25519Data;
   K: TCnEd25519PublicKey;
 begin
-  if (data = nil) or (len <> SizeOf(D)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Move(data^, D[0], SizeOf(D));
-  K := TCnEd25519PublicKey.Create;
+  CnExportClearLastError;
   try
-    K.LoadFromData(D);
-    out_pub := K;
-    Result := CN_OK;
+    out_pub := nil;
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (data = nil) or (len <> SizeOf(D)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Move(data^, D[0], SizeOf(D));
+    K := TCnEd25519PublicKey.Create;
+    try
+      K.LoadFromData(D);
+      out_pub := K;
+      Result := CN_OK;
+    except
+      K.Free;
+      Result := CN_E_INTERNAL;
+    end;
   except
-    K.Free;
-    Result := CN_E_INTERNAL;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4708,20 +6039,34 @@ function cn_ed25519_pubkey_to_bytes(pub: TCnCryptoHandle; out_buf: PByte; cap:
 var
   D: TCnEd25519Data;
 begin
-  if (pub = nil) or (out_buf = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (pub = nil) or (out_buf = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(D);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    TCnEd25519PublicKey(pub).SaveToData(D);
+    Move(D[0], out_buf^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_len := SizeOf(D);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  TCnEd25519PublicKey(pub).SaveToData(D);
-  Move(D[0], out_buf^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_ed25519_derive_public(priv: TCnCryptoHandle; var out_pub:
@@ -4731,24 +6076,33 @@ var
   Pub: TCnEd25519PublicKey;
   K: TCnBigNumber;
 begin
-  if priv = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  E := TCnEd25519.Create;
-  Pub := TCnEd25519PublicKey.Create;
-  K := TCnBigNumber.Create;
+  CnExportClearLastError;
   try
-    CnCalcKeysFromEd25519PrivateKey(TCnEd25519PrivateKey(priv), K, nil);
-    Pub.Assign(E.Generator);
-    E.MultiplePoint(K, Pub);
-    out_pub := Pub;
-    Result := CN_OK;
-  finally
-    E.Free;
-    K.Clear;
-    K.Free;
+    out_pub := nil;
+    if priv = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    E := TCnEd25519.Create;
+    Pub := TCnEd25519PublicKey.Create;
+    K := TCnBigNumber.Create;
+    try
+      CnCalcKeysFromEd25519PrivateKey(TCnEd25519PrivateKey(priv), K, nil);
+      Pub.Assign(E.Generator);
+      E.MultiplePoint(K, Pub);
+      out_pub := Pub;
+      Result := CN_OK;
+    finally
+      E.Free;
+      K.Clear;
+      K.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4759,51 +6113,91 @@ var
   D: TCnEd25519Data;
   R: TCnResult;
 begin
-  if (priv = nil) or (out_buf = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(D);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  R := cn_ed25519_derive_public(priv, Pub);
-  if R <> CN_OK then
-  begin
-    Result := R;
-    Exit;
-  end;
+  CnExportClearLastError;
   try
-    TCnEd25519PublicKey(Pub).SaveToData(D);
-    Move(D[0], out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    TObject(Pub).Free;
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or (out_buf = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(D);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    R := cn_ed25519_derive_public(priv, Pub);
+    if R <> CN_OK then
+    begin
+      Result := R;
+      Exit;
+    end;
+    try
+      TCnEd25519PublicKey(Pub).SaveToData(D);
+      Move(D[0], out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      TObject(Pub).Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
 function cn_curve25519_privkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnCurve25519PrivateKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnCurve25519PrivateKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_curve25519_pubkey_new: TCnCryptoHandle; cdecl;
 begin
-  Result := TCnCurve25519PublicKey.Create;
+  CnExportClearLastError;
+  try
+    Result := TCnCurve25519PublicKey.Create;
+  except
+    on E: Exception do
+    begin
+      CnExportMapException(E);
+      Result := nil;
+    end;
+  end;
 end;
 
 function cn_curve25519_key_free(key: TCnCryptoHandle): TCnResult; cdecl;
 begin
-  if key = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    if key = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    TObject(key).Free;
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  TObject(key).Free;
-  Result := CN_OK;
 end;
 
 function cn_curve25519_generate_keys(var out_priv: TCnCryptoHandle; var out_pub:
@@ -4813,22 +6207,32 @@ var
   Priv: TCnCurve25519PrivateKey;
   Pub: TCnCurve25519PublicKey;
 begin
-  E := TCnCurve25519.Create;
-  Priv := TCnCurve25519PrivateKey.Create;
-  Pub := TCnCurve25519PublicKey.Create;
+  CnExportClearLastError;
   try
-    if not E.GenerateKeys(Priv, Pub) then
-    begin
-      Priv.Free;
-      Pub.Free;
-      Result := CN_E_INTERNAL;
-      Exit;
+    out_priv := nil;
+    out_pub := nil;
+    E := TCnCurve25519.Create;
+    Priv := TCnCurve25519PrivateKey.Create;
+    Pub := TCnCurve25519PublicKey.Create;
+    try
+      if not E.GenerateKeys(Priv, Pub) then
+      begin
+        Priv.Free;
+        Pub.Free;
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      out_priv := Priv;
+      out_pub := Pub;
+      Result := CN_OK;
+    finally
+      E.Free;
     end;
-    out_priv := Priv;
-    out_pub := Pub;
-    Result := CN_OK;
-  finally
-    E.Free;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4839,30 +6243,44 @@ var
   Data: TCnCurve25519Data;
   Ok: Boolean;
 begin
-  if (self_priv = nil) or (out_point_bytes = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(Data);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  P := TCnEccPoint.Create;
+  CnExportClearLastError;
   try
-    Ok := CnCurve25519KeyExchangeStep1(TCnEccPrivateKey(self_priv), P);
-    if not Ok then
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    CnCurve25519PointToData(P, Data);
-    Move(Data[0], out_point_bytes^, out_len);
-    Result := CN_OK;
-  finally
-    P.Free;
+    if (self_priv = nil) or (out_point_bytes = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(Data);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    P := TCnEccPoint.Create;
+    try
+      Ok := CnCurve25519KeyExchangeStep1(TCnEccPrivateKey(self_priv), P);
+      if not Ok then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      CnCurve25519PointToData(P, Data);
+      Move(Data[0], out_point_bytes^, out_len);
+      Result := CN_OK;
+    finally
+      P.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4876,39 +6294,53 @@ var
   DataOut: TCnCurve25519Data;
   Ok: Boolean;
 begin
-  if (self_priv = nil) or (peer_point_bytes = nil) or (out_shared_bytes = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  if peer_len <> SizeOf(DataIn) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(DataOut);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  Move(peer_point_bytes^, DataIn[0], SizeOf(DataIn));
-  Peer := TCnEccPoint.Create;
-  Shared := TCnEccPoint.Create;
+  CnExportClearLastError;
   try
-    CnCurve25519DataToPoint(DataIn, Peer);
-    Ok := CnCurve25519KeyExchangeStep2(TCnEccPrivateKey(self_priv), Peer, Shared);
-    if not Ok then
+    out_len := 0;
+    if not CnExportSizesFitInteger([peer_len, cap, out_len]) then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
-    CnCurve25519PointToData(Shared, DataOut);
-    Move(DataOut[0], out_shared_bytes^, out_len);
-    Result := CN_OK;
-  finally
-    Peer.Free;
-    Shared.Free;
+    if (self_priv = nil) or (peer_point_bytes = nil) or (out_shared_bytes = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    if peer_len <> SizeOf(DataIn) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(DataOut);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    Move(peer_point_bytes^, DataIn[0], SizeOf(DataIn));
+    Peer := TCnEccPoint.Create;
+    Shared := TCnEccPoint.Create;
+    try
+      CnCurve25519DataToPoint(DataIn, Peer);
+      Ok := CnCurve25519KeyExchangeStep2(TCnEccPrivateKey(self_priv), Peer, Shared);
+      if not Ok then
+      begin
+        Result := CN_E_INTERNAL;
+        Exit;
+      end;
+      CnCurve25519PointToData(Shared, DataOut);
+      Move(DataOut[0], out_shared_bytes^, out_len);
+      Result := CN_OK;
+    finally
+      Peer.Free;
+      Shared.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4918,20 +6350,34 @@ var
   D: TCnCurve25519Data;
   K: TCnCurve25519PrivateKey;
 begin
-  if (data = nil) or (len <> SizeOf(D)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Move(data^, D[0], SizeOf(D));
-  K := TCnCurve25519PrivateKey.Create;
+  CnExportClearLastError;
   try
-    K.LoadFromData(D);
-    out_priv := K;
-    Result := CN_OK;
+    out_priv := nil;
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (data = nil) or (len <> SizeOf(D)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Move(data^, D[0], SizeOf(D));
+    K := TCnCurve25519PrivateKey.Create;
+    try
+      K.LoadFromData(D);
+      out_priv := K;
+      Result := CN_OK;
+    except
+      K.Free;
+      Result := CN_E_INTERNAL;
+    end;
   except
-    K.Free;
-    Result := CN_E_INTERNAL;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4940,20 +6386,34 @@ function cn_curve25519_privkey_to_bytes(priv: TCnCryptoHandle; out_buf: PByte;
 var
   D: TCnCurve25519Data;
 begin
-  if (priv = nil) or (out_buf = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or (out_buf = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(D);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    TCnCurve25519PrivateKey(priv).SaveToData(D);
+    Move(D[0], out_buf^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_len := SizeOf(D);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  TCnCurve25519PrivateKey(priv).SaveToData(D);
-  Move(D[0], out_buf^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_curve25519_pubkey_from_bytes(data: PByte; len: TCnSize; var out_pub:
@@ -4962,20 +6422,34 @@ var
   D: TCnCurve25519Data;
   K: TCnCurve25519PublicKey;
 begin
-  if (data = nil) or (len <> SizeOf(D)) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  Move(data^, D[0], SizeOf(D));
-  K := TCnCurve25519PublicKey.Create;
+  CnExportClearLastError;
   try
-    K.LoadFromData(D);
-    out_pub := K;
-    Result := CN_OK;
+    out_pub := nil;
+    if not CnExportSizesFitInteger([len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (data = nil) or (len <> SizeOf(D)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    Move(data^, D[0], SizeOf(D));
+    K := TCnCurve25519PublicKey.Create;
+    try
+      K.LoadFromData(D);
+      out_pub := K;
+      Result := CN_OK;
+    except
+      K.Free;
+      Result := CN_E_INTERNAL;
+    end;
   except
-    K.Free;
-    Result := CN_E_INTERNAL;
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -4984,20 +6458,34 @@ function cn_curve25519_pubkey_to_bytes(pub: TCnCryptoHandle; out_buf: PByte; cap
 var
   D: TCnCurve25519Data;
 begin
-  if (pub = nil) or (out_buf = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
+  CnExportClearLastError;
+  try
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (pub = nil) or (out_buf = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(D);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    TCnCurve25519PublicKey(pub).SaveToData(D);
+    Move(D[0], out_buf^, out_len);
+    Result := CN_OK;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
-  out_len := SizeOf(D);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  TCnCurve25519PublicKey(pub).SaveToData(D);
-  Move(D[0], out_buf^, out_len);
-  Result := CN_OK;
 end;
 
 function cn_curve25519_derive_public(priv: TCnCryptoHandle; var out_pub:
@@ -5006,20 +6494,29 @@ var
   E: TCnCurve25519;
   Pub: TCnCurve25519PublicKey;
 begin
-  if priv = nil then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  E := TCnCurve25519.Create;
-  Pub := TCnCurve25519PublicKey.Create;
+  CnExportClearLastError;
   try
-    Pub.Assign(E.Generator);
-    E.MultiplePoint(TCnCurve25519PrivateKey(priv), Pub);
-    out_pub := Pub;
-    Result := CN_OK;
-  finally
-    E.Free;
+    out_pub := nil;
+    if priv = nil then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    E := TCnCurve25519.Create;
+    Pub := TCnCurve25519PublicKey.Create;
+    try
+      Pub.Assign(E.Generator);
+      E.MultiplePoint(TCnCurve25519PrivateKey(priv), Pub);
+      out_pub := Pub;
+      Result := CN_OK;
+    finally
+      E.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 
@@ -5030,29 +6527,43 @@ var
   D: TCnCurve25519Data;
   R: TCnResult;
 begin
-  if (priv = nil) or (out_buf = nil) then
-  begin
-    Result := CN_E_INVALID_ARG;
-    Exit;
-  end;
-  out_len := SizeOf(D);
-  if cap < out_len then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  R := cn_curve25519_derive_public(priv, Pub);
-  if R <> CN_OK then
-  begin
-    Result := R;
-    Exit;
-  end;
+  CnExportClearLastError;
   try
-    TCnCurve25519PublicKey(Pub).SaveToData(D);
-    Move(D[0], out_buf^, out_len);
-    Result := CN_OK;
-  finally
-    TObject(Pub).Free;
+    out_len := 0;
+    if not CnExportSizesFitInteger([cap, out_len]) then
+    begin
+      Result := CN_E_SIZE_OVERFLOW;
+      Exit;
+    end;
+    if (priv = nil) or (out_buf = nil) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      Exit;
+    end;
+    out_len := SizeOf(D);
+    if cap < out_len then
+    begin
+      Result := CN_E_BUFFER_TOO_SMALL;
+      Exit;
+    end;
+    R := cn_curve25519_derive_public(priv, Pub);
+    if R <> CN_OK then
+    begin
+      Result := R;
+      Exit;
+    end;
+    try
+      TCnCurve25519PublicKey(Pub).SaveToData(D);
+      Move(D[0], out_buf^, out_len);
+      Result := CN_OK;
+    finally
+      TObject(Pub).Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := CnExportMapException(E);
+    end;
   end;
 end;
 

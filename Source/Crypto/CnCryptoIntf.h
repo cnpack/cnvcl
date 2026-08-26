@@ -51,7 +51,7 @@ typedef int64_t  TInt64;
 typedef int16_t  TInt16;
 typedef int8_t   TInt8;
 typedef int32_t  TBool32;
-typedef int32_t  TCnSize;
+typedef uint32_t TCnSize;
 typedef void*    TCnCryptoHandle;
 typedef TInt32   TCnResult;
 
@@ -62,7 +62,11 @@ typedef TInt32   TCnResult;
 #define CN_E_NO_MEMORY        -4
 #define CN_E_STATE            -5
 #define CN_E_VERIFY_FAIL      -6
+#define CN_E_SIZE_OVERFLOW    -7
 #define CN_E_INTERNAL        -100
+
+#define CN_ABI_VERSION         4u
+#define CN_CAPI_MAX_INT_SIZE   UINT32_C(0x7FFFFFFF)
 
 #define CN_HASH_MD5               1
 #define CN_HASH_SHA1              2
@@ -186,11 +190,23 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_lib_finalize(void);
    返回值：TCnResult                       - 错误码，CN_OK 表示成功
 */
 
+CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_get_last_error(void);
+/* 获取当前线程最近一次 C ABI 补充错误码。
+
+   参数：
+     （无）
+
+   返回值：TCnResult                       - 最近一次补充错误码；CN_OK 表示当前没有已记录错误
+
+   说明：该值记录被异常屏障捕获的异常，以及非错误码返回函数的长度上限拒绝。
+         普通验签或认证失败仍通过对应函数返回 0 表示，不会记录为 ABI 异常。
+*/
+
 CNCRYPTO_API TCnCryptoHandle CNCRYPTO_CALL cn_alloc(TCnSize size);
 /* 分配指定大小的安全内存。
 
    参数：
-     size: TCnSize                          - 需要分配的字节数；负数返回 NULL，0 返回 NULL
+     size: TCnSize                          - 需要分配的字节数
 
    返回值：TCnCryptoHandle                  - 返回内存对象标识，失败为 NULL
 */
@@ -209,7 +225,7 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_memzero(TCnCryptoHandle ptr, TCnSize siz
 
    参数：
      ptr: TCnCryptoHandle                   - 目标内存对象标识
-     size: TCnSize                          - 清零的字节数；负数返回 CN_E_INVALID_ARG，0 是成功的空操作，允许 ptr 为 NULL
+     size: TCnSize                          - 清零的字节数
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功
 */
@@ -237,9 +253,9 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_data_to_hex(void* in_ptr, TCnSize in_len
 
    参数：
      in_ptr: void*                          - 输入数据指针
-     in_len: TCnSize                        - 输入数据字节长度；负数返回 CN_E_INVALID_ARG，0 时允许 in_ptr 为 NULL
+     in_len: TCnSize                        - 输入数据字节长度
      out_hex: uint8_t*                      - 输出缓冲区（ASCII）
-     cap: TCnSize                           - 输出缓冲区容量，单位字节；负数返回 CN_E_INVALID_ARG，输出非空时 out_hex 不能为 NULL
+     cap: TCnSize                           - 输出缓冲区容量，单位字节
      out_len: TCnSize*                      - 实际输出字节长度
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功，缓冲区不足返回 CN_E_BUFFER_TOO_SMALL
@@ -251,7 +267,7 @@ CNCRYPTO_API TBool32   CNCRYPTO_CALL cn_const_time_equal(void* a, void* b, TCnSi
    参数：
      a: void*                               - 缓冲区 A
      b: void*                               - 缓冲区 B
-     len: TCnSize                           - 比较字节长度；负数返回 0，0 返回 1 且允许两个指针均为 NULL
+     len: TCnSize                           - 比较字节长度
 
    返回值：TBool32                          - 1 表示相等，0 表示不等
 */
@@ -263,7 +279,7 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_const_time_select(TBool32 flag, void* a,
      flag: TBool32                          - 选择标志，非零选 a，零选 b
      a: void*                               - 源缓冲区 A
      b: void*                               - 源缓冲区 B
-     len: TCnSize                           - 复制字节长度；负数返回 CN_E_INVALID_ARG，0 是成功的空操作
+     len: TCnSize                           - 复制字节长度
      out_ptr: void*                         - 输出缓冲区
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功
@@ -274,7 +290,7 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_str_to_uint64(uint8_t* ascii_ptr, TCnSiz
 
    参数：
      ascii_ptr: uint8_t*                    - 输入 ASCII 字符串指针
-     len: TCnSize                           - 字符串字节长度；必须大于 0，转换失败返回 CN_E_INVALID_ARG
+     len: TCnSize                           - 字符串字节长度
      out_value: TUInt64*                    - 输出转换后的数值
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功，非法输入返回 CN_E_INVALID_ARG
