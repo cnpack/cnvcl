@@ -1725,15 +1725,14 @@ end;
 
 // 析构时擦除种子与秘密向量，防止残留内容经内存转储或堆复用而泄露
 destructor TCnMLDSAPrivateKey.Destroy;
-var
-  I: Integer;
 
   procedure WipeVector(var V: TCnMLDSAPolyVector);
-  var J: Integer;
+  var
+    I: Integer;
   begin
     if Length(V) > 0 then
-      for J := 0 to High(V) do
-        MemorySafeZero(@V[J][0], SizeOf(TCnMLDSAPolynomial));
+      for I := 0 to High(V) do
+        MemorySafeZero(@V[I][0], SizeOf(TCnMLDSAPolynomial));
     SetLength(V, 0);
   end;
 
