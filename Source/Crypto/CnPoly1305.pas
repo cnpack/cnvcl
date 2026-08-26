@@ -187,6 +187,7 @@ begin
 
   Move(Key[0], AKey[0], L);
   Result := Poly1305Data(@Data[0], Length(Data), AKey);
+  MemorySafeZero(@AKey[0], SizeOf(TCnPoly1305Key));
 end;
 
 function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCnPoly1305Digest;
@@ -260,6 +261,7 @@ begin
     A.ToBinary(@Result[0], CN_POLY1305_DIGSIZE);
     ReverseMemory(@Result[0], SizeOf(TCnPoly1305Digest));
   finally
+    MemorySafeZero(@RKey[0], SizeOf(TCnPoly1305Key));
     N.Free;
     A.Free;
     S.Free;
@@ -322,6 +324,7 @@ begin
   Context.N.SetZero;
   FillChar(Context.Buf[0], SizeOf(Context.Buf), 0);
   Context.BufLen := 0;
+  MemorySafeZero(@RKey[0], SizeOf(TCnPoly1305Key));
 end;
 
 procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar;
