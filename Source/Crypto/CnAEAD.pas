@@ -1833,7 +1833,7 @@ begin
 
   OldPlain := PlainData;
   TempBuf := nil;
-  TempPlain := nil;
+
   FillChar(H[0], SizeOf(H), 0);
   FillChar(Y[0], SizeOf(Y), 0);
   FillChar(Y0[0], SizeOf(Y0), 0);
