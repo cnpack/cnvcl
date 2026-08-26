@@ -372,7 +372,7 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen
      DataByteLen: Integer                 - 待签名的明文数据块字节长度
      OutSignature: TCnSM2Signature        - 输出的签名值
      PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
-     PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
+     PublicKey: TCnSM2PublicKey           - SM2 公钥；可传 nil，此时由私钥计算；传入时建议在密钥加载时使用 CnSM2CheckKeys 校验
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
 
    返回值：Boolean                        - 返回签名是否成功
@@ -389,7 +389,7 @@ function CnSM2SignData(const UserID: AnsiString; const PlainData: TBytes;
      const PlainData: TBytes              - 待签名的明文字节数组
      OutSignature: TCnSM2Signature        - 输出的签名值
      PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
-     PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
+     PublicKey: TCnSM2PublicKey           - SM2 公钥；可传 nil，此时由私钥计算；传入时建议在密钥加载时使用 CnSM2CheckKeys 校验
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
 
    返回值：Boolean                        - 返回签名是否成功
@@ -435,7 +435,7 @@ function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
      const UserID: AnsiString             - 用来签名的用户标识
      const FileName: string               - 待签名的文件名
      PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
-     PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
+     PublicKey: TCnSM2PublicKey           - SM2 公钥；可传 nil，此时由私钥计算；传入时建议在密钥加载时使用 CnSM2CheckKeys 校验
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
 
    返回值：string                         - 返回签名值的十六进制字符串
@@ -1155,6 +1155,118 @@ begin
   Load(ctSM2);
 end;
 
+function InternalSM2IsValidPrivateKey(PrivateKey: TCnSM2PrivateKey;
+  SM2: TCnSM2): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (SM2 = nil) then
+    Exit;
+
+  if (BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0) or
+    (BigNumberCompare(PrivateKey, SM2.Order) >= 0) then
+    Exit;
+
+  { SM2 uses (1 + d)^-1 mod n; d = n - 1 is therefore invalid. }
+  T := TCnBigNumber.Create;
+  try
+    if BigNumberCopy(T, PrivateKey) = nil then
+      Exit;
+    if not BigNumberAddWord(T, 1) then
+      Exit;
+    Result := BigNumberCompare(T, SM2.Order) < 0;
+  finally
+    T.Clear;
+    T.Free;
+  end;
+end;
+
+function InternalSM2IsValidPrivateShare(PrivateKey: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2): Boolean;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (SM2 = nil) then
+    Exit;
+  if BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0 then
+    Exit;
+  Result := BigNumberCompare(PrivateKey, SM2.Order) < 0;
+end;
+
+function InternalSM2ConstantTimeGeneratorMultiplePoint(SM2: TCnSM2;
+  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey): Boolean;
+var
+  Scalar: TCnBigNumber;
+  BasePoint, R0, R1, Sum, Double0, Double1: TCnEcc3Point;
+  I: Integer;
+  Bit: Boolean;
+begin
+  Result := False;
+  if (SM2 = nil) or (PrivateKey = nil) or (PublicKey = nil) then
+    Exit;
+
+  Scalar := nil;
+  BasePoint := nil;
+  R0 := nil;
+  R1 := nil;
+  Sum := nil;
+  Double0 := nil;
+  Double1 := nil;
+
+  try
+    Scalar := TCnBigNumber.Create;
+    BasePoint := TCnEcc3Point.Create;
+    R0 := TCnEcc3Point.Create;
+    R1 := TCnEcc3Point.Create;
+    Sum := TCnEcc3Point.Create;
+    Double0 := TCnEcc3Point.Create;
+    Double1 := TCnEcc3Point.Create;
+
+    { Add 3*n so the ladder always starts with a fixed leading one bit. }
+    if (BigNumberCopy(Scalar, SM2.Order) = nil) or
+      not BigNumberMulWord(Scalar, 3) or
+      not BigNumberAdd(Scalar, Scalar, PrivateKey) then
+      Exit;
+
+    if not CnEccPointToEcc3Point(SM2.Generator, BasePoint) then
+      Exit;
+
+    R0.Assign(BasePoint);
+    R1.Assign(BasePoint);
+    SM2.AffinePointAddPoint(R1, R1, R1);
+
+    { Fixed-schedule ladder. The underlying field operations are still being
+      migrated to fixed-width arithmetic; this path must not call the generic
+      MultiplePoint implementation. }
+    for I := SM2.BitsCount downto 0 do
+    begin
+      SM2.AffinePointAddPoint(R0, R1, Sum);
+      SM2.AffinePointAddPoint(R0, R0, Double0);
+      SM2.AffinePointAddPoint(R1, R1, Double1);
+
+      R0.Assign(Double0);
+      R1.Assign(Sum);
+      Bit := BigNumberIsBitSet(Scalar, I);
+      BigNumberConstTimeConditionalAssign(Bit, Sum.X, R0.X);
+      BigNumberConstTimeConditionalAssign(Bit, Sum.Y, R0.Y);
+      BigNumberConstTimeConditionalAssign(Bit, Sum.Z, R0.Z);
+      BigNumberConstTimeConditionalAssign(Bit, Double1.X, R1.X);
+      BigNumberConstTimeConditionalAssign(Bit, Double1.Y, R1.Y);
+      BigNumberConstTimeConditionalAssign(Bit, Double1.Z, R1.Z);
+    end;
+
+    Result := CnAffinePointToEccPoint(R0, PublicKey, SM2.FiniteFieldSize);
+  finally
+    Double1.Free;
+    Double0.Free;
+    Sum.Free;
+    R1.Free;
+    R0.Free;
+    BasePoint.Free;
+    Scalar.Free;
+  end;
+end;
+
 function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2): Boolean;
 var
@@ -1201,6 +1313,13 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    if not InternalSM2IsValidPrivateKey(PrivateKey, SM2) or
+      not CheckEccPublicKey(SM2, PublicKey) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     Pub := TCnSM2PublicKey.Create;
     Pub.Assign(SM2.Generator);
@@ -1918,17 +2037,32 @@ begin
   E := nil;
   R := nil;
   SM2IsNil := SM2 = nil;
-  PubIsNil := PublicKey = nil;
+  PubIsNil := False;
 
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    if PubIsNil then
+    if not InternalSM2IsValidPrivateKey(PrivateKey, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    if PublicKey = nil then
     begin
       PublicKey := TCnSM2PublicKey.Create;
-      PublicKey.Assign(SM2.Generator);
-      SM2.MultiplePoint(PrivateKey, PublicKey);
+      PubIsNil := True;
+      if not InternalSM2ConstantTimeGeneratorMultiplePoint(SM2, PrivateKey, PublicKey) then
+      begin
+        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+        Exit;
+      end;
+    end
+    else if not CheckEccPublicKey(SM2, PublicKey) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
     end;
 
     Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataByteLen, PublicKey, SM2); // 杂凑值 e
@@ -1967,15 +2101,23 @@ begin
 
       BigNumberCopy(OutSignature.R, R);  // 得到一个签名值 R
 
-      BigNumberCopy(E, PrivateKey);
-      BigNumberAddWord(E, 1);
-      BigNumberModularInverse(R, E, SM2.Order);      // 求逆元得到 (1 + PrivateKey)^-1，放在 R 里
+      if (BigNumberCopy(E, PrivateKey) = nil) or
+        not BigNumberAddWord(E, 1) or
+        not BigNumberModularInverse(R, E, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+        Exit;
+      end;
 
       // 求 K - R * PrivateKey，又用起 E 来
       BigNumberMul(E, OutSignature.R, PrivateKey);
       BigNumberSub(E, K, E);
       BigNumberMul(R, E, R); // (1 + PrivateKey)^-1 * (K - R * PrivateKey) 放在 R 里
-      BigNumberNonNegativeMod(OutSignature.S, R, SM2.Order); // 注意余数不能为负
+      if not BigNumberNonNegativeMod(OutSignature.S, R, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+        Exit;
+      end;
 
       Result := True;
       _CnSetLastError(ECN_SM2_OK);
@@ -2830,7 +2972,12 @@ begin
       if OutRToA.IsZero then                               // 注意到这为止 PrivateKeyB 未起作用
         Continue;
 
-      BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order);
+      if not InternalSM2IsValidPrivateShare(PrivateKeyB, SM2) or
+        not BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+        Exit;
+      end;
       BigNumberDirectMulMod(OutS1ToA, Inv, K2, SM2.Order); // 算出 s1 = k2 / PrivateKeyB
       BigNumberAddMod(K1, K1, OutRToA, SM2.Order);         // K1 + r
       BigNumberDirectMulMod(OutS2ToA, K1, Inv, SM2.Order); // K1 + r / PrivateKeyB
@@ -2890,7 +3037,12 @@ begin
       SM2 := TCnSM2.Create;
 
     Inv := TCnBigNumber.Create;
-    BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order);
+    if not InternalSM2IsValidPrivateShare(PrivateKeyA, SM2) or
+      not BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+      Exit;
+    end;
 
     T := TCnBigNumber.Create;
     BigNumberDirectMulMod(T, Inv, InS2FromB, SM2.Order); // T := S2 / PrivateKeyA
@@ -3436,7 +3588,12 @@ begin
       if OutRToBA.IsZero then                               // 注意到这为止 PrivateKeyC 未起作用
         Continue;
 
-      BigNumberModularInverse(Inv, PrivateKeyC, SM2.Order);
+      if not InternalSM2IsValidPrivateShare(PrivateKeyC, SM2) or
+        not BigNumberModularInverse(Inv, PrivateKeyC, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+        Exit;
+      end;
       BigNumberDirectMulMod(OutS1ToB, Inv, RandKC, SM2.Order); // 算出 S1 = RandKC / PrivateKeyC
       BigNumberAddMod(K1, K1, OutRToBA, SM2.Order);            // K1 + r
       BigNumberDirectMulMod(OutS2ToB, K1, Inv, SM2.Order);     // 算出 S2 = K1 + r / PrivateKeyC
@@ -3488,7 +3645,12 @@ begin
     Inv := TCnBigNumber.Create;
 
     // S1 = S1 * Kb / dB mod N
-    BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order);           // 得到 PrivateKeyB^-1
+    if not InternalSM2IsValidPrivateShare(PrivateKeyB, SM2) or
+      not BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+      Exit;
+    end;
     BigNumberDirectMulMod(OutS1ToA, InS1FromC, Inv, SM2.Order);     // S1c / PrivateKeyB
     BigNumberDirectMulMod(OutS1ToA, OutS1ToA, InRandKB, SM2.Order); // (Kb * S1c) / PrivateKeyB
 
@@ -3547,7 +3709,12 @@ begin
     Inv := TCnBigNumber.Create;
 
     // S1 = S1 * Ka / dA mod N
-    BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order);     // 得到 PrivateKeyA^-1
+    if not InternalSM2IsValidPrivateShare(PrivateKeyA, SM2) or
+      not BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+      Exit;
+    end;
     BigNumberDirectMulMod(S1, InS1FromB, Inv, SM2.Order);     // S1b / PrivateKeyA
     BigNumberDirectMulMod(S1, S1, InRandKA, SM2.Order);       // (Ka * S1b) / PrivateKeyA
 

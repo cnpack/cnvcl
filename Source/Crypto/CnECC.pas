@@ -5409,13 +5409,23 @@ begin
     + BigNumberWriteBinaryToStream(P.Y, Stream, FixedLen);
 end;
 
+function InternalEccIsValidPrivateKey(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey): Boolean;
+begin
+  Result := False;
+  if (Ecc = nil) or (PrivateKey = nil) then
+    Exit;
+  if BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0 then
+    Exit;
+  Result := BigNumberCompare(PrivateKey, Ecc.Order) < 0;
+end;
+
 function CnEccVerifyKeys(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey): Boolean;
 var
   P: TCnEccPoint;
 begin
   Result := False;
-  if (Ecc = nil) or (PrivateKey = nil) or (PublicKey = nil) then
+  if not InternalEccIsValidPrivateKey(Ecc, PrivateKey) or (PublicKey = nil) then
     Exit;
 
   P := TCnEccPoint.Create;
@@ -6156,6 +6166,10 @@ var
   P: TCnEccPoint;
 begin
   Result := False;
+  if not InternalEccIsValidPrivateKey(Ecc, PrivateKey) or
+    (InE = nil) or (OutSignature = nil) then
+    Exit;
+
   BuildShortXValue(InE, Ecc.Order); // InE 现在是 z
 
   K := nil;
@@ -6173,6 +6187,9 @@ begin
     begin
       if not BigNumberRandRange(K, Ecc.Order) then // 生成重要的随机 K
         Exit;
+
+      if K.IsZero then
+        Continue;
 
       P.Assign(Ecc.Generator);
       Ecc.MultiplePoint(K, P);
@@ -6364,7 +6381,8 @@ begin
 
   try
     SInv := TCnBigNumber.Create;
-    BigNumberModularInverse(SInv, InSignature.S, Ecc.Order);
+    if not BigNumberModularInverse(SInv, InSignature.S, Ecc.Order) then
+      Exit;
     U1 := TCnBigNumber.Create;
     if not BigNumberMul(U1, InE, SInv) then
       Exit;
