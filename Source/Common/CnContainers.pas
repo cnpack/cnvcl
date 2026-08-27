@@ -691,6 +691,9 @@ procedure CnRefObjectListCopy(Dst: TCnRefObjectList; Src: TCnRefObjectList);
 
 implementation
 
+uses
+  CnFloat;
+
 resourcestring
   SCnInt64ListError = 'Int64 List Error. %d';
   SCnExtendedListError = 'Float List Error. %d';
@@ -2195,9 +2198,9 @@ begin
   for I := 0 to Count - 1 do
   begin
     if I = 0 then
-      Result := FloatToStr(Items[I])
+      Result := ExtendedToStr(Items[I])
     else
-      Result := Result + ',' + FloatToStr(Items[I]);
+      Result := Result + ',' + ExtendedToStr(Items[I]);
   end;
 end;
 

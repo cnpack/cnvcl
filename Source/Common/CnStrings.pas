@@ -231,6 +231,9 @@ type
     Value: Integer;
   end;
 
+  ECnAnsiStringHashSizeException = class(Exception);
+  {* ANSI ×Ö·û´®¹þÏ£±í´óÐ¡´íÎóÒì³£}
+
   TCnAnsiStringHash = class
   private
     Buckets: array of PCnAnsiHashItem;
@@ -737,6 +740,7 @@ resourcestring
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
   SListCapacityError = 'Error New Capacity or Length Value %d';
+  SCnErrorAnsiStringHashSize = 'AnsiString Hash Size Must be Greater than Zero.';
 
 function NativeStringToUIString(const Str: string): string;
 begin
@@ -2055,6 +2059,8 @@ end;
 
 constructor TCnAnsiStringHash.Create(Size: Cardinal);
 begin
+  if Size = 0 then
+    raise ECnAnsiStringHashSizeException.Create(SCnErrorAnsiStringHashSize);
   inherited Create;
   SetLength(Buckets, Size);
 end;
