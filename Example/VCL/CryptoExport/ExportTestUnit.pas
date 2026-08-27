@@ -110,6 +110,141 @@ begin
     (cn_get_last_error = CN_E_SIZE_OVERFLOW),
     'cn_size_scalar_last_error', Passed, Failed);
 
+  { C ABI 畸形输入回归：所有失败都必须返回错误码，不能把异常泄漏到调用方。 }
+  OutLen := 123;
+  R := cn_data_to_hex(nil, 1, @Hex[0], SizeOf(Hex), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_hex_reject_nil_input', Passed, Failed);
+  OutLen := 0;
+  R := cn_data_to_hex(@Buf[0], 1, @Hex[0], 0, OutLen);
+  Check((R = CN_E_BUFFER_TOO_SMALL) and (OutLen = 2),
+    'cn_hex_report_required_size', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_base64_encode(nil, 1, @Buf[0], SizeOf(Buf), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_base64_reject_nil_input', Passed, Failed);
+  OutLen := 0;
+  R := cn_base64_encode(@Buf[0], 3, @Decoded[0], 0, OutLen);
+  Check((R = CN_E_BUFFER_TOO_SMALL) and (OutLen = 4),
+    'cn_base64_report_required_size', Passed, Failed);
+  OutLen := 123;
+  R := cn_base64_decode(nil, 1, @Decoded[0], SizeOf(Decoded), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_base64_reject_nil_input_decode', Passed, Failed);
+  OutLen := 123;
+  R := cn_base64url_encode(nil, 1, @Buf[0], SizeOf(Buf), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_base64url_reject_nil_input', Passed, Failed);
+  OutLen := 123;
+  R := cn_base64url_decode(nil, 1, @Decoded[0], SizeOf(Decoded), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_base64url_reject_nil_input_decode', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_base32_encode(nil, 1, @Buf[0], SizeOf(Buf), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_base32_reject_nil_input', Passed, Failed);
+  OutLen := 123;
+  R := cn_base32_decode(nil, 1, @Decoded[0], SizeOf(Decoded), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_base32_reject_nil_input_decode', Passed, Failed);
+
+  Buf[0] := Ord('!');
+  OutLen := 123;
+  R := cn_base64_decode(@Buf[0], 1, @Decoded[0], SizeOf(Decoded), OutLen);
+  Check((R <> CN_OK) and (OutLen = 0) and (cn_get_last_error = R),
+    'cn_base64_reject_malformed_input', Passed, Failed);
+  OutLen := 123;
+  R := cn_base32_decode(@Buf[0], 1, @Decoded[0], SizeOf(Decoded), OutLen);
+  Check((R <> CN_OK) and (OutLen = 0) and (cn_get_last_error = R),
+    'cn_base32_reject_malformed_input', Passed, Failed);
+
+  Check(cn_rsa_key_free(nil) = CN_E_INVALID_ARG,
+    'cn_rsa_reject_nil_handle_free', Passed, Failed);
+  Check(cn_ecc_key_free(nil) = CN_E_INVALID_ARG,
+    'cn_ecc_reject_nil_handle_free', Passed, Failed);
+  Check(cn_ed25519_key_free(nil) = CN_E_INVALID_ARG,
+    'cn_ed25519_reject_nil_handle_free', Passed, Failed);
+
+  R := cn_const_time_select(1, nil, nil, 1, @Buf[0]);
+  Check(R = CN_E_INVALID_ARG, 'cn_select_reject_nil_input', Passed, Failed);
+  R := cn_const_time_select(1, nil, nil, 0, nil);
+  Check(R = CN_OK, 'cn_select_accept_empty', Passed, Failed);
+
+  Mu := 123;
+  R := cn_str_to_uint64(nil, 1, Mu);
+  Check((R = CN_E_INVALID_ARG) and (Mu = 0),
+    'cn_uint64_reject_nil_input', Passed, Failed);
+  Mu := 123;
+  R := cn_str_to_uint64(@Buf[0], 0, Mu);
+  Check((R = CN_E_INVALID_ARG) and (Mu = 0),
+    'cn_uint64_reject_empty_input', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_hash_digest(CN_HASH_SHA2_256, nil, 1, @Digest[0], SizeOf(Digest), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_hash_reject_nil_input', Passed, Failed);
+  OutLen := 0;
+  R := cn_hash_digest(CN_HASH_SHA2_256, @Buf[0], 1, @Digest[0], 0, OutLen);
+  Check((R = CN_E_BUFFER_TOO_SMALL) and (OutLen = 32),
+    'cn_hash_report_required_size', Passed, Failed);
+  OutLen := 0;
+  R := cn_hash_digest(CN_HASH_SHA2_256, nil, 0, nil, SizeOf(Digest), OutLen);
+  Check((R <> CN_OK) and (cn_get_last_error = R),
+    'cn_hash_screen_output_pointer', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_hmac(CN_HASH_SHA2_256, nil, 1, @InBlock[0], 1, @Mac[0], SizeOf(Mac), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_hmac_reject_nil_key', Passed, Failed);
+  OutLen := 123;
+  R := cn_hmac(CN_HASH_SHA2_256, @Key[0], 1, nil, 1, @Mac[0], SizeOf(Mac), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_hmac_reject_nil_data', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_kdf_pbkdf2(CN_HASH_SHA2_256, nil, 1, @InBlock[0], 1, 1,
+    @Buf[0], SizeOf(Buf), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_pbkdf2_reject_nil_password', Passed, Failed);
+  OutLen := 123;
+  R := cn_kdf_hkdf(CN_HASH_SHA2_256, nil, 1, @Iv[0], 1, @InBlock[0], 1,
+    32, @Buf[0], SizeOf(Buf), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_hkdf_reject_nil_ikm', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_cipher_encrypt(CN_CIPHER_AES128_ECB, @Key[0], 16, nil, 0,
+    nil, 1, @OutBlock[0], SizeOf(OutBlock), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_cipher_reject_nil_input', Passed, Failed);
+
+  CipherLen := 123;
+  TagLen := 123;
+  R := cn_aead_encrypt(CN_AEAD_AES128_GCM, nil, 16, @Iv[0], 12, nil, 0,
+    @InBlock[0], 1, @OutBlock[0], SizeOf(OutBlock), CipherLen,
+    @Tag[0], SizeOf(Tag), TagLen);
+  Check((R = CN_E_INVALID_ARG) and (CipherLen = 0) and (TagLen = 0),
+    'cn_aead_reject_nil_key', Passed, Failed);
+  CipherLen := 123;
+  TagLen := 123;
+  R := cn_aead_encrypt(CN_AEAD_AES128_GCM, @Key[0], 16, nil, 12, nil, 0,
+    @InBlock[0], 1, @OutBlock[0], SizeOf(OutBlock), CipherLen,
+    @Tag[0], SizeOf(Tag), TagLen);
+  Check((R = CN_E_INVALID_ARG) and (CipherLen = 0) and (TagLen = 0),
+    'cn_aead_reject_nil_nonce', Passed, Failed);
+  OutLen := 123;
+  R := cn_aead_decrypt(CN_AEAD_AES128_GCM, @Key[0], 16, @Iv[0], 12, nil, 0,
+    nil, 1, @Tag[0], CN_AEAD_TAG_BYTES, @PlainBack[0], SizeOf(PlainBack), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_aead_decrypt_reject_nil_cipher', Passed, Failed);
+  OutLen := 123;
+  R := cn_aead_decrypt(CN_AEAD_AES128_GCM, @Key[0], 16, @Iv[0], 12, nil, 0,
+    @InBlock[0], 1, nil, CN_AEAD_TAG_BYTES, @PlainBack[0], SizeOf(PlainBack), OutLen);
+  Check((R = CN_E_INVALID_ARG) and (OutLen = 0),
+    'cn_aead_decrypt_reject_nil_tag', Passed, Failed);
+
   P := cn_alloc(16);
   Check(P <> nil, 'cn_alloc', Passed, Failed);
   R := cn_memzero(P, 16);
@@ -159,6 +294,11 @@ begin
   Check((R = CN_OK) and (CipherLen = 16) and (TagLen = CN_AEAD_TAG_BYTES), 'cn_aead_encrypt_aes128_gcm', Passed, Failed);
   R := cn_aead_decrypt(CN_AEAD_AES128_GCM, @Key[0], 16, @Iv[0], 12, nil, 0, @OutBlock[0], CipherLen, @Tag[0], TagLen, @PlainBack[0], SizeOf(PlainBack), OutLen);
   Check((R = CN_OK) and (OutLen = 16) and BytesEqual(@PlainBack[0], @InBlock[0], 16), 'cn_aead_decrypt_aes128_gcm', Passed, Failed);
+  Tag[0] := Tag[0] xor 1;
+  OutLen := 123;
+  R := cn_aead_decrypt(CN_AEAD_AES128_GCM, @Key[0], 16, @Iv[0], 12, nil, 0, @OutBlock[0], CipherLen, @Tag[0], TagLen, @PlainBack[0], SizeOf(PlainBack), OutLen);
+  Check((R = CN_E_VERIFY_FAIL) and (OutLen = 0), 'cn_aead_reject_bad_tag', Passed, Failed);
+  Tag[0] := Tag[0] xor 1;
 
   FillChar(Key[0], 16, 31);
   FillChar(Iv[0], 12, 32);

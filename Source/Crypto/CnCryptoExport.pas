@@ -703,6 +703,15 @@ begin
       Result := CN_E_SIZE_OVERFLOW;
       Exit;
     end;
+    if ((ikm = nil) and (ikm_len <> 0)) or
+      ((salt = nil) and (salt_len <> 0)) or
+      ((info = nil) and (info_len <> 0)) or
+      ((out_key = nil) and (dk_len <> 0)) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
+      Exit;
+    end;
     case hash_id of
       CN_HASH_MD5:
         HK := chkMd5;
@@ -3958,10 +3967,18 @@ begin
     end;
     SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
 
+    if not Base64IsStrictText(S, False) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
+      Exit;
+    end;
+
     R := Base64Decode(S, Data, False);
     if R <> 0 then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
       Exit;
     end;
 
@@ -4057,10 +4074,26 @@ begin
     end;
     SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
 
+    if (Length(S) and 3) = 1 then
+    begin
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
+      Exit;
+    end;
+    if (Length(S) and 3) <> 0 then
+      S := S + StringOfChar('=', 4 - (Length(S) and 3));
+    if not Base64IsStrictText(S, True) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
+      Exit;
+    end;
+
     R := Base64Decode(S, Data, False);
     if R <> 0 then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
       Exit;
     end;
 
@@ -4156,10 +4189,18 @@ begin
     end;
     SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
 
+    if not Base32IsStrictText(S) then
+    begin
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
+      Exit;
+    end;
+
     R := Base32Decode(S, Data);
     if R <> 0 then
     begin
-      Result := CN_E_INTERNAL;
+      Result := CN_E_INVALID_ARG;
+      CnExportSetLastError(Result);
       Exit;
     end;
 
