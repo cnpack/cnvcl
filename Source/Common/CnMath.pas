@@ -518,6 +518,9 @@ function BigComplexDecimalCos(Res, Num: TCnBigComplexDecimal;
 
 implementation
 
+uses
+  CnFloat;
+
 const
   SCN_FLOAT_GAP = 0.000001;         // 普通浮点判断
   SCN_EXTEND_GAP = 0.00000000001;   // 本单元中的迭代计算差值
@@ -799,7 +802,7 @@ begin
     P0 := P1;
   end;
 
-  Result := FloatToStr(Res);
+  Result := ExtendedToStr(Res);
 end;
 
 function GaussLegendrePi(RoundCount: Integer = 8): string;

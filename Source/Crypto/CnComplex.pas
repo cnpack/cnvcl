@@ -1605,7 +1605,7 @@ var
 implementation
 
 uses
-  CnMath;
+  CnMath, CnFloat;
 
 const
   SCnErrorBigComplexMemSize = 'Memory Size Error';
@@ -1651,11 +1651,11 @@ begin
   if (AR = '') and (AI = '') then
     Exit
   else if AR = '' then
-    Complex.I := StrToFloat(AI)
+    Complex.I := StrToExtended(AI)
   else if AI = '' then
-    Complex.R := StrToFloat(AR)
+    Complex.R := StrToExtended(AR)
   else
-    ComplexNumberSetValue(Complex, StrToFloat(AR), StrToFloat(AI));
+    ComplexNumberSetValue(Complex, StrToExtended(AR), StrToExtended(AI));
 end;
 
 procedure ComplexNumberSetString(var Complex: TCnComplexNumber; const Str: string);
@@ -1675,7 +1675,7 @@ begin
 
   if not HasI then
   begin
-    Complex.R := StrToFloat(S);
+    Complex.R := StrToExtended(S);
     Exit;
   end;
 
@@ -1710,11 +1710,11 @@ begin
     end;
 
     if RealPart <> '' then
-      Complex.R := StrToFloat(RealPart);
+      Complex.R := StrToExtended(RealPart);
     if ImagPart = '-' then
       Complex.I := -1
     else if ImagPart <> '' then
-      Complex.I := StrToFloat(ImagPart)
+      Complex.I := StrToExtended(ImagPart)
     else
       Complex.I := 1.0;
   end
@@ -1727,20 +1727,20 @@ begin
     else if S = '+' then
       Complex.I := 1.0
     else
-      Complex.I := StrToFloat(S);
+      Complex.I := StrToExtended(S);
   end;
 end;
 
 function ComplexNumberToString(var Complex: TCnComplexNumber): string;
 begin
   if ComplexIsPureReal(Complex) then
-    Result := Format('%f', [Complex.R])
+    Result := ExtendedToStr(Complex.R)
   else if ComplexIsPureImaginary(Complex) then
-    Result := Format('%fi', [Complex.I])
+    Result := ExtendedToStr(Complex.I) + 'i'
   else if Complex.I < 0 then
-    Result := Format('%f%fi', [Complex.R, Complex.I])
+    Result := ExtendedToStr(Complex.R) + ExtendedToStr(Complex.I) + 'i'
   else
-    Result := Format('%f+%fi', [Complex.R, Complex.I]);
+    Result := ExtendedToStr(Complex.R) + '+' + ExtendedToStr(Complex.I) + 'i';
 end;
 
 function ComplexNumberEqual(var Complex1, Complex2: TCnComplexNumber): Boolean;

@@ -134,6 +134,9 @@ type
   ECnFloatSizeError = class(Exception);
   {* 浮点数长度异常}
 
+  ECnFloatFormatError = class(Exception);
+  {* 浮点数文本格式错误异常}
+
 const
   CN_EXTENDED_SIZE_8  =          8;
   {* Win64 下的 Extended 类型的长度，只有 8 字节}
@@ -474,13 +477,26 @@ function ExtendedIsNan(AValue: Extended): Boolean;
 }
 
 function ExtendedToStr(AValue: Extended): string;
-{* 将扩展精度浮点数转换为字符串，支持其最大的精度。
+{* 将扩展精度浮点数转换为不变格式字符串，支持其最大的精度。
    Delphi 默认 15 位小数，本函数增大到 18，也即支持 1234567899876543.21。
+   返回结果固定使用 '.' 作为小数点，不受当前区域设置影响。
 
    参数：
      AValue: Extended                     - 待判断的扩展精度浮点数
 
    返回值：string                         - 返回转换结果
+}
+
+function StrToExtended(const S: string): Extended;
+{* 将不变格式的浮点数字符串转换为扩展精度浮点数。
+   输入格式使用固定的 '.' 作为小数点，不受当前区域设置影响；不接受
+   区域设置使用的逗号小数点。转换要求输入被完整消费，非法格式将引发
+   ECnFloatFormatError 异常。
+
+   参数：
+     S: string                             - 待转换的不变格式浮点数字符串
+
+   返回值：Extended                        - 返回转换结果
 }
 
 // FPC、Windows 64/Linux 64 等平台以及 Delphi 5、6 不支持以下三个函数
@@ -536,6 +552,7 @@ const
 
 resourcestring
   SCnErrorExtendedSizeFmt = 'Extended Size Error %d';
+  SCnErrorExtendedInvalidFormat = 'Invalid Invariant Extended Value';
 
 type
   TExtendedRec10 = packed record
@@ -1520,9 +1537,36 @@ end;
 function ExtendedToStr(AValue: Extended): string;
 var
   Buffer: array[0..63] of Char;
+  I, L: Integer;
+  LDecimalSeparator: Char;
 begin
-  SetString(Result, Buffer, FloatToText(Buffer, AValue, {$IFNDEF FPC} fvExtended, {$ENDIF}
-     ffGeneral,  18, 0)); // 内部限制了最大 18
+  L := FloatToText(Buffer, AValue, {$IFNDEF FPC} fvExtended, {$ENDIF}
+    ffGeneral, 18, 0); // 内部限制了最大 18
+  SetString(Result, Buffer, L);
+
+  // FloatToText 在 Delphi 5/6/7 和 FPC 中均可能使用当前区域设置的
+  // DecimalSeparator。这里仅规范化返回文本，不修改全局设置，避免影响其他线程。
+  {$IFDEF FPC}
+  LDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
+  {$ELSE}
+  LDecimalSeparator := DecimalSeparator;
+  {$ENDIF}
+  if LDecimalSeparator <> '.' then
+    for I := 1 to Length(Result) do
+      if Result[I] = LDecimalSeparator then
+        Result[I] := '.';
+end;
+
+function StrToExtended(const S: string): Extended;
+var
+  E: Integer;
+  V: Extended;
+begin
+  V := 0;
+  Val(S, V, E);
+  if (S = '') or (E <> 0) then
+    raise ECnFloatFormatError.Create(SCnErrorExtendedInvalidFormat);
+  Result := V;
 end;
 
 end.
