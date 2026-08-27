@@ -598,6 +598,7 @@ ECHO   cn_get_version                         name 'cn_get_version',            
 ECHO   cn_get_abi_version                     name 'cn_get_abi_version',                      >> %1
 ECHO   cn_lib_init                            name 'cn_lib_init',                             >> %1
 ECHO   cn_lib_finalize                        name 'cn_lib_finalize',                         >> %1
+ECHO   cn_get_last_error                      name 'cn_get_last_error',                       >> %1
 ECHO   cn_alloc                               name 'cn_alloc',                                >> %1
 ECHO   cn_free                                name 'cn_free',                                 >> %1
 ECHO   cn_memzero                             name 'cn_memzero',                              >> %1

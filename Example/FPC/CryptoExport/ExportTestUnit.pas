@@ -85,7 +85,30 @@ begin
 
   R := cn_get_version(Mj, Mn, Pt);
   Check((R = CN_OK) and (Mj >= 0), 'cn_get_version', Passed, Failed);
-  Check(cn_get_abi_version >= 3, 'cn_get_abi_version', Passed, Failed);
+  Check(SizeOf(TCnSize) = 4, 'TCnSize_uint32', Passed, Failed);
+  Check(cn_get_abi_version = CN_ABI_VERSION, 'cn_get_abi_version', Passed, Failed);
+
+  OutLen := 123;
+  R := cn_data_to_hex(nil, TCnSize($FFFFFFFF), nil, 0, OutLen);
+  Check((R = CN_E_SIZE_OVERFLOW) and (OutLen = 0) and
+    (cn_get_last_error = CN_E_SIZE_OVERFLOW),
+    'cn_size_reject_uint32_max', Passed, Failed);
+
+  // 单值可转为 Integer，但十六进制输出长度翻倍后会超过内部上限。
+  OutLen := 123;
+  R := cn_data_to_hex(nil, TCnSize($40000000), nil, 0, OutLen);
+  Check((R = CN_E_SIZE_OVERFLOW) and (OutLen = 0) and
+    (cn_get_last_error = CN_E_SIZE_OVERFLOW),
+    'cn_size_reject_expansion_overflow', Passed, Failed);
+
+  R := cn_memzero(nil, TCnSize($80000000));
+  Check((R = CN_E_SIZE_OVERFLOW) and
+    (cn_get_last_error = CN_E_SIZE_OVERFLOW),
+    'cn_size_reject_high_bit', Passed, Failed);
+
+  Check((cn_const_time_equal(nil, nil, TCnSize($FFFFFFFF)) = 0) and
+    (cn_get_last_error = CN_E_SIZE_OVERFLOW),
+    'cn_size_scalar_last_error', Passed, Failed);
 
   P := cn_alloc(16);
   Check(P <> nil, 'cn_alloc', Passed, Failed);
