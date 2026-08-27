@@ -668,7 +668,7 @@ function CnStringReplace(const S: string; const OldPattern: string;
 
    参数：
      const S: string                      - 待替换的字符串
-     const OldPattern: string             - 待替换的字符串内容
+     const OldPattern: string             - 待替换的字符串内容，为空时不执行替换，原样返回 S
      const NewPattern: string             - 替换的字符串新内容
      Flags: TCnReplaceFlags               - 替换标记，支持整字匹配
 
@@ -683,7 +683,7 @@ function CnStringReplaceA(const S: AnsiString; const OldPattern: AnsiString;
 
    参数：
      const S: AnsiString                  - 待替换的单字节字符串
-     const OldPattern: AnsiString         - 待替换的单字节字符串内容
+     const OldPattern: AnsiString         - 待替换的单字节字符串内容，为空时不执行替换，原样返回 S
      const NewPattern: AnsiString         - 替换的单字节字符串新内容
      Flags: TCnReplaceFlags               - 替换标记，支持整字匹配
 
@@ -698,7 +698,7 @@ function CnStringReplaceW(const S: WideString; const OldPattern: WideString;
 
    参数：
      const S: WideString                  - 待替换的宽字符串
-     const OldPattern: WideString         - 待替换的宽字符串内容
+     const OldPattern: WideString         - 待替换的宽字符串内容，为空时不执行替换，原样返回 S
      const NewPattern: WideString         - 替换的宽字符串新内容
      Flags: TCnReplaceFlags               - 替换标记，支持整字匹配
 
@@ -2237,6 +2237,11 @@ var
   IsWhole: Boolean;
   SB: TCnStringBuilder;
 begin
+  if OldPattern = '' then
+  begin
+    Result := S;
+    Exit;
+  end;
   if crfIgnoreCase in Flags then
   begin
 {$IFDEF UNICODE}
@@ -2319,6 +2324,11 @@ var
   IsWhole: Boolean;
   SB: TCnStringBuilder;
 begin
+  if OldPattern = '' then
+  begin
+    Result := S;
+    Exit;
+  end;
   if crfIgnoreCase in Flags then
   begin
     SearchStr := AnsiUpperCase(S);
@@ -2392,6 +2402,11 @@ var
   IsWhole: Boolean;
   SB: TCnStringBuilder;
 begin
+  if OldPattern = '' then
+  begin
+    Result := S;
+    Exit;
+  end;
   if crfIgnoreCase in Flags then
   begin
     SearchStr := UpperCase(S);
@@ -2620,11 +2635,18 @@ begin
   Delta := Length(Value);
   if Delta <> 0 then
   begin
-    OL := CharLength;
-    CharLength := CharLength + Delta;
-    if CharLength > CharCapacity then
-      ExpandCharCapacity;
-    Move(Pointer(Value)^, (PAnsiChar(Pointer(FAnsiData)) + OL)^, Delta * SizeOf(AnsiChar));
+    OL := FCharLength;
+    if Delta > FMaxCharCapacity - OL then
+      raise ERangeError.CreateResFmt(@SListCapacityError, [OL + Delta]);
+    try
+      FCharLength := OL + Delta;
+      if CharLength > CharCapacity then
+        ExpandCharCapacity;
+      Move(Pointer(Value)^, (PAnsiChar(Pointer(FAnsiData)) + OL)^, Delta * SizeOf(AnsiChar));
+    except
+      FCharLength := OL;
+      raise;
+    end;
   end;
   Result := Self;
 end;
@@ -2638,11 +2660,18 @@ begin
   Delta := Length(Value);
   if Delta <> 0 then
   begin
-    OL := CharLength;
-    CharLength := CharLength + Delta;
-    if CharLength > CharCapacity then
-      ExpandCharCapacity;
-    Move(Pointer(Value)^, (PWideChar(Pointer(FWideData)) + OL)^, Delta * SizeOf(WideChar));
+    OL := FCharLength;
+    if Delta > FMaxCharCapacity - OL then
+      raise ERangeError.CreateResFmt(@SListCapacityError, [OL + Delta]);
+    try
+      FCharLength := OL + Delta;
+      if CharLength > CharCapacity then
+        ExpandCharCapacity;
+      Move(Pointer(Value)^, (PWideChar(Pointer(FWideData)) + OL)^, Delta * SizeOf(WideChar));
+    except
+      FCharLength := OL;
+      raise;
+    end;
   end;
   Result := Self;
 end;
@@ -2738,12 +2767,19 @@ begin
   Delta := Length(Value);
   if Delta <> 0 then
   begin
-    OL := CharLength;
-    FCharLength := CharLength + Delta;
-    if CharLength > CharCapacity then
-      ExpandCharCapacity;
+    OL := FCharLength;
+    if Delta > FMaxCharCapacity - OL then
+      raise ERangeError.CreateResFmt(@SListCapacityError, [OL + Delta]);
+    try
+      FCharLength := OL + Delta;
+      if CharLength > CharCapacity then
+        ExpandCharCapacity;
 
-    Move(Pointer(Value)^, (PChar(Pointer(FData)) + OL)^, Delta * SizeOf(Char));
+      Move(Pointer(Value)^, (PChar(Pointer(FData)) + OL)^, Delta * SizeOf(Char));
+    except
+      FCharLength := OL;
+      raise;
+    end;
   end;
   Result := Self;
 end;

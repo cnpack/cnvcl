@@ -672,6 +672,7 @@ const
 resourcestring
   SCnErrorInvalidUtf8CharLength = 'More than UTF8-MB4 NOT Support.';
   SCnErrorInvalidModeLength = 'More than UTF32 NOT Support.';
+  SCnErrorInvalidUtf8Sequence = 'Invalid UTF-8 Sequence.';
 
 { TCnWideStringList }
 
@@ -2006,7 +2007,8 @@ var
   I, J, Len, ByteCount: Integer;
   C: AnsiChar;
   W: Word;
-  B, B1, B2: Byte;
+  B, B1, B2, B3: Byte;
+  CodePoint: Cardinal;
 begin
   Result := '';
   if Utf8Text = nil then
@@ -2026,39 +2028,72 @@ begin
   while I < Len do
   begin
     C := Utf8Text[I];
-    B := Ord(C);
+    B := Byte(C);
     W := 0;
+    CodePoint := 0;
 
     // 根据 B 的值得出这个字符占多少位
-    if B and $80 = 0 then  // 0xxx xxxx
+    if (B and $80) = 0 then  // 0xxx xxxx
       ByteCount := 1
-    else if B and $E0 = $C0 then // 110x xxxx 10xxxxxx
+    else if (B >= $C2) and (B <= $DF) then // 110x xxxx 10xxxxxx
       ByteCount := 2
-    else if B and $F0 = $E0 then // 1110 xxxx 10xxxxxx 10xxxxxx
+    else if (B >= $E0) and (B <= $EF) then // 1110 xxxx 10xxxxxx 10xxxxxx
       ByteCount := 3
-    else if B and $F8 = $F0 then // 1111 0xxx 10xxxxxx 10xxxxxx 10xxxxxx
+    else if (B >= $F0) and (B <= $F4) then // 1111 0xxx 10xxxxxx 10xxxxxx 10xxxxxx
       ByteCount := 4
     else
-      raise ECnWideStringException.Create(SCnErrorInvalidModeLength);
+      raise ECnWideStringException.Create(SCnErrorInvalidUtf8Sequence);
+
+    if ByteCount > Len - I then
+      raise ECnWideStringException.Create(SCnErrorInvalidUtf8Sequence);
 
     // 再计算出相应的宽字节字符
     case ByteCount of
       1:
       begin
-        W := B and $7F;
+        CodePoint := B and $7F;
       end;
       2:
       begin
-        B1 := Ord(Utf8Text[I + 1]);
-        W := ((B and $1F) shl 6) or (B1 and $3F);
+        B1 := Byte(Utf8Text[I + 1]);
+        if (B1 < $80) or (B1 > $BF) then
+          raise ECnWideStringException.Create(SCnErrorInvalidUtf8Sequence);
+        CodePoint := (Cardinal(B and $1F) shl 6) or (B1 and $3F);
       end;
       3:
       begin
-        B1 := Ord(Utf8Text[I + 1]);
-        B2 := Ord(Utf8Text[I + 2]);
-        W := ((B and $0F) shl 12) or ((B1 and $3F) shl 6) or (B2 and $3F);
+        B1 := Byte(Utf8Text[I + 1]);
+        B2 := Byte(Utf8Text[I + 2]);
+        if (B1 < $80) or (B1 > $BF) or
+          (B2 < $80) or (B2 > $BF) then
+          raise ECnWideStringException.Create(SCnErrorInvalidUtf8Sequence);
+        CodePoint := (Cardinal(B and $0F) shl 12) or
+          (Cardinal(B1 and $3F) shl 6) or (B2 and $3F);
+      end;
+      4:
+      begin
+        B1 := Byte(Utf8Text[I + 1]);
+        B2 := Byte(Utf8Text[I + 2]);
+        B3 := Byte(Utf8Text[I + 3]);
+        if (B1 < $80) or (B1 > $BF) or
+          (B2 < $80) or (B2 > $BF) or
+          (B3 < $80) or (B3 > $BF) then
+          raise ECnWideStringException.Create(SCnErrorInvalidUtf8Sequence);
+        CodePoint := (Cardinal(B and $07) shl 18) or
+          (Cardinal(B1 and $3F) shl 12) or
+          (Cardinal(B2 and $3F) shl 6) or (B3 and $3F);
       end;
     end;
+
+    if ((ByteCount = 2) and (CodePoint < $80)) or
+      ((ByteCount = 3) and (CodePoint < $800)) or
+      ((ByteCount = 4) and (CodePoint < $10000)) or
+      ((CodePoint >= $D800) and (CodePoint <= $DFFF)) or
+      (CodePoint > $10FFFF) then
+      raise ECnWideStringException.Create(SCnErrorInvalidUtf8Sequence);
+
+    if ByteCount < 4 then
+      W := Word(CodePoint);
 
     if ByteCount = 4 then
     begin

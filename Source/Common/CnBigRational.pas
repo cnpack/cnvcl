@@ -482,8 +482,8 @@ type
 
     function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
     {* 从指定内存地址中读取整个列表的自身状态，返回读取的字节长度。
-       Size > 0 时内部检测是否超过 Size，超过则抛异常。
-       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+       Size 必须大于 0，内部检测是否超过 Size，超过则抛异常。
+       Size 为 0 或负数时拒绝读取，避免按不可信 Count 无界分配对象。
 
        参数：
          Mem: Pointer                     - 待加载的内存地址
@@ -1105,8 +1105,12 @@ begin
   begin
     N := Copy(Value, 1, P - 1);
     D := Copy(Value, P + 1, MaxInt);
-    FNumerator.SetDec(AnsiString(N));
-    FDenominator.SetDec(AnsiString(D));
+    if not FNumerator.SetDec(AnsiString(N)) then
+      Exit;
+    if not FDenominator.SetDec(AnsiString(D)) then
+      Exit;
+    if FDenominator.IsZero then
+      raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
     Reduce;
   end
   else
@@ -1447,6 +1451,9 @@ begin
 end;
 
 function TCnBigRationalList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  MinItemSize = SizeOf(Integer) + 2 *
+    (SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer));
 var
   I, C, L: Integer;
   P1: PByte;
@@ -1458,12 +1465,16 @@ begin
     Exit;
 
   // 至少得放得下表示 Count 的 4 字节头部
-  if (Size > 0) and (Size < SizeOf(Integer)) then
+  if Size <= 0 then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+  if Size < SizeOf(Integer) then
     raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+  if C > (Size - SizeOf(Integer)) div MinItemSize then
     raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
 
   // 整体重建：先清掉原有内容
@@ -1476,15 +1487,13 @@ begin
     P1 := PByte(P4);
     for I := 0 to C - 1 do
     begin
+      if Result > Size - MinItemSize then
+        raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
       BN := TCnBigRational.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
-        if Size > 0 then
-          L := BN.LoadFromMem(P1, Size - Result)
-        else
-          L := BN.LoadFromMem(P1);
-
-        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+        L := BN.LoadFromMem(P1, Size - Result);
+        if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
           raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
 
         Add(BN);

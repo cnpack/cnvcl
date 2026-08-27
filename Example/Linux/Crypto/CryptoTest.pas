@@ -183,6 +183,7 @@ function TestBigNumberKeepLowBits: Boolean;
 function TestBigNumberMontgomery: Boolean;
 function TestBigNumberMontgomeryPowerMod: Boolean;
 function TestBigNumberLoadSaveMem: Boolean;
+function TestBigNumberListLoadSaveMem: Boolean;
 
 // ============================== BigRational ==================================
 
@@ -263,6 +264,7 @@ function TestBigDecimalArcCos: Boolean;
 function TestBigDecimalArcTan: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
 function TestBigDecimalHyperbolicCos: Boolean;
+function TestBigDecimalSetDecValidation: Boolean;
 function TestBigDecimalLoadSaveMem: Boolean;
 function TestBigDecimalListLoadSaveMem: Boolean;
 function TestBigComplexDecimalEulerExp: Boolean;
@@ -1737,6 +1739,10 @@ const
     '14C34D1823846807919B776BBA552442E6DA14689D27C736C1F12E08562FEF68FEA334BBF2C7' +
     '96AB8972EAC822063910B98EB22C26E7713CF0EE3185FF49169A';
 
+var
+  CryptoTestOKCount: Integer;
+  CryptoTestFailCount: Integer;
+
 procedure MyWriteln(const Text: string);
 begin
 {$IFDEF ANDROID}
@@ -1775,14 +1781,24 @@ begin
   MyWrite(S);
 
   Start := Now;
-  V := AProc();
+  try
+    V := AProc();
+  except
+    Inc(CryptoTestFailCount);
+    MyWriteln('Fail');
+    raise;
+  end;
   if V then
   begin
+    Inc(CryptoTestOKCount);
     Elapsed := Trunc((Now - Start) * MSecsPerDay);
     MyWriteln('OK    ' + IntToStr(Elapsed) + 'ms');
   end
   else
+  begin
+    Inc(CryptoTestFailCount);
     MyWriteln('Fail');
+  end;
 
   Assert(V);
 end;
@@ -1813,6 +1829,8 @@ begin
   if CurrentByteOrderIsLittleEndian then
     MyWriteln('=== Little Endian ===');
 
+  CryptoTestOKCount := 0;
+  CryptoTestFailCount := 0;
   MyWriteln('Crypto Test Start...');
 
 // ============================== Native =======================================
@@ -1936,6 +1954,7 @@ begin
   MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
   MyAssert(TestBigNumberMontgomeryPowerMod, 'TestBigNumberMontgomeryPowerMod');
   MyAssert(TestBigNumberLoadSaveMem, 'TestBigNumberLoadSaveMem');
+  MyAssert(TestBigNumberListLoadSaveMem, 'TestBigNumberListLoadSaveMem');
 
 // ============================== BigRational ==================================
 
@@ -2016,6 +2035,7 @@ begin
   MyAssert(TestBigDecimalArcTan, 'TestBigDecimalArcTan');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
   MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
+  MyAssert(TestBigDecimalSetDecValidation, 'TestBigDecimalSetDecValidation');
   MyAssert(TestBigDecimalLoadSaveMem, 'TestBigDecimalLoadSaveMem');
   MyAssert(TestBigDecimalListLoadSaveMem, 'TestBigDecimalListLoadSaveMem');
   MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
@@ -2377,7 +2397,6 @@ begin
   MyAssert(TestSM9Hash1, 'TestSM9Hash1');
   MyAssert(TestSM9Hash2, 'TestSM9Hash2');
   MyAssert(TestSM9Mac, 'TestSM9Mac');
-
   MyAssert(TestSM9Sign, 'TestSM9Sign');
   MyAssert(TestSM9KeyExchange, 'TestSM9KeyExchange');
   MyAssert(TestSM9KeyEncapsulation, 'TestSM9KeyEncapsulation');
@@ -2477,7 +2496,9 @@ begin
 
 // ================================= END =======================================
 
-  MyAssert(nil, 'Crypto Test End.');
+  MyWriteln(FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +
+    'Crypto Test End. OK: ' + IntToStr(CryptoTestOKCount) +
+    ', Fail: ' + IntToStr(CryptoTestFailCount));
 end;
 
 // ============================== Native =======================================
@@ -2884,7 +2905,7 @@ var
   L: Integer;
   W: WideString;
   Utf8: AnsiString;
-
+  BadUtf8: AnsiString;
 begin
   L := HexToData(UTF16_LE_HEXSTR); // 得到字节长度
   SetLength(W, L div 2);           // 得到宽字符长度
@@ -2897,6 +2918,34 @@ begin
 
   W := CnUtf8DecodeToWideString(Utf8);
   Result := DataToHex(@W[1], Length(W) * SizeOf(WideChar)) = UTF16_LE_HEXSTR;
+  if not Result then Exit;
+
+  { 非法 UTF-8（过长编码 C0 80）必须在转换前拒绝。 }
+  SetLength(BadUtf8, 2);
+  HexToData('C080', @BadUtf8[1]);
+  try
+    ConvertUtf8ToAlterDisplayAnsi(PAnsiChar(BadUtf8));
+    Result := False;
+  except
+    on ECnWideStringException do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  { 截断的多字节序列必须被拒绝，且不能越界读取。 }
+  SetLength(BadUtf8, 1);
+  HexToData('E2', @BadUtf8[1]);
+  try
+    ConvertUtf8ToAlterDisplayAnsi(PAnsiChar(BadUtf8));
+    Result := False;
+  except
+    on ECnWideStringException do
+      Result := True;
+    else
+      Result := False;
+  end;
 end;
 
 function TestStringReplace: Boolean;
@@ -3019,6 +3068,7 @@ var
   SB: TCnStringBuilder;
   C: Char;
   I: Integer;
+  LongText: string;
 begin
   // Basic append and toString
   SB := TCnStringBuilder.Create;
@@ -3044,6 +3094,16 @@ begin
     SB.Clear;
     SB.Append('A').Append('B').Append('C').Append('D').Append('E');
     Result := SB.ToString = 'ABCDE';
+    if not Result then Exit;
+
+    { 强制触发内部容量扩展，并验证长度与数据一致性。 }
+    SetLength(LongText, 300);
+    for I := 1 to Length(LongText) do
+      LongText[I] := 'A';
+    SB.Clear;
+    SB.Append(LongText);
+    Result := (SB.CharLength = Length(LongText)) and
+      (Length(SB.ToString) = Length(LongText));
     if not Result then Exit;
 
     // AppendLine
@@ -5682,6 +5742,47 @@ begin
   end;
 end;
 
+function TestBigNumberListLoadSaveMem: Boolean;
+var
+  L, Restored: TCnBigNumberList;
+  Buf: Pointer;
+  Sz, Loaded: Integer;
+begin
+  Result := False;
+  L := TCnBigNumberList.Create;
+  Restored := TCnBigNumberList.Create;
+  try
+    L.Add.SetHex('1234');
+    L.Add.SetHex('DEADBEEF');
+    Sz := L.SaveToMem(nil);
+    GetMem(Buf, Sz);
+    try
+      L.SaveToMem(Buf);
+      Loaded := Restored.LoadFromMem(Buf, Sz);
+      if Loaded <> Sz then Exit;
+      if Restored.Count <> 2 then Exit;
+      if Restored[0].ToHex <> '1234' then Exit;
+      if Restored[1].ToHex <> 'DEADBEEF' then Exit;
+
+      { 截断序列化列表后，受限解析器必须拒绝该输入。 }
+      try
+        Restored.LoadFromMem(Buf, Sz - 1);
+        Exit;
+      except
+        on ECnBigNumberException do
+        begin
+        end;
+      end;
+    finally
+      FreeMem(Buf);
+    end;
+    Result := True;
+  finally
+    Restored.Free;
+    L.Free;
+  end;
+end;
+
 // ============================== BigRational ==================================
 
 function TestBigRationalBasic: Boolean;
@@ -5832,6 +5933,18 @@ begin
     R.SetString('0.5');                      // 小数 0.5 -> 1/2
     if R.ToString <> '1 / 2' then Exit;
 
+    { 零分母必须被拒绝，不能作为有效值接受。 }
+    try
+      R.SetString('1/0');
+      Result := False;
+    except
+      on ECnBigRationalException do
+        Result := True;
+      else
+        Result := False;
+    end;
+    if not Result then Exit;
+
     Result := True;
   finally
     R.Free;
@@ -5922,6 +6035,16 @@ begin
       if Restored.Count <> 2 then Exit;
       if Restored[0].ToString <> '1 / 2' then Exit;
       if Restored[1].ToString <> '-3 / 7' then Exit;
+
+      { 截断序列化列表后，受限解析器必须拒绝该输入。 }
+      try
+        Restored.LoadFromMem(Buf, Sz - 1);
+        Exit;
+      except
+        on ECnBigRationalException do
+        begin
+        end;
+      end;
     finally
       FreeMem(Buf);
     end;
@@ -7534,6 +7657,31 @@ begin
   end;
 end;
 
+function TestBigDecimalSetDecValidation: Boolean;
+const
+  InvalidValues: array[0..8] of string = (
+    '', '+', '-', '1,', '1,,2', '1.', '1e', '1e+', '1 2');
+var
+  D: TCnBigDecimal;
+  I: Integer;
+  Before: string;
+begin
+  Result := False;
+  D := TCnBigDecimal.Create;
+  try
+    if not D.SetDec('123.45') then Exit;
+    Before := D.ToString;
+    for I := Low(InvalidValues) to High(InvalidValues) do
+    begin
+      if D.SetDec(InvalidValues[I]) then Exit;
+      if D.ToString <> Before then Exit;
+    end;
+    Result := True;
+  finally
+    D.Free;
+  end;
+end;
+
 function TestBigDecimalLoadSaveMem: Boolean;
 var
   D, Restored: TCnBigDecimal;
@@ -8492,12 +8640,13 @@ end;
 
 function TestBigNumberPolynomial: Boolean;
 var
-  P1, P2, Res: TCnBigNumberPolynomial;
+  P1, P2, Res, Alias: TCnBigNumberPolynomial;
   X, V: TCnBigNumber;
 begin
   P1 := TCnBigNumberPolynomial.Create([1, 2, 3]);
   P2 := TCnBigNumberPolynomial.Create([3, 2, 1]);
   Res := TCnBigNumberPolynomial.Create;
+  Alias := TCnBigNumberPolynomial.Create;
   X := TCnBigNumber.Create;
   V := TCnBigNumber.Create;
   try
@@ -8514,6 +8663,12 @@ begin
 
     BigNumberPolynomialMul(Res, P1, P2);
     Result := Res.ToString = '3X^4+8X^3+14X^2+8X+3';
+    if not Result then Exit;
+
+    { 覆盖结果对象与输入对象重叠的路径，该路径会使用临时池对象。 }
+    BigNumberPolynomialCopy(Alias, P1);
+    if not BigNumberPolynomialMul(Alias, Alias, P2) then Exit;
+    Result := Alias.ToString = '3X^4+8X^3+14X^2+8X+3';
     if not Result then Exit;
 
     // 测试求值 P1(2)
@@ -8547,6 +8702,7 @@ begin
   finally
     V.Free;
     X.Free;
+    Alias.Free;
     Res.Free;
     P2.Free;
     P1.Free;
@@ -8626,13 +8782,14 @@ end;
 
 function TestBigComplexDecimalPolynomial: Boolean;
 var
-  P1, P2, Res, Rem: TCnBigComplexDecimalPolynomial;
+  P1, P2, Res, Rem, Alias: TCnBigComplexDecimalPolynomial;
   C1, C2, C3, C4: TCnBigComplexDecimal;
 begin
   P1 := TCnBigComplexDecimalPolynomial.Create;
   P2 := TCnBigComplexDecimalPolynomial.Create;
   Res := TCnBigComplexDecimalPolynomial.Create;
   Rem := TCnBigComplexDecimalPolynomial.Create;
+  Alias := TCnBigComplexDecimalPolynomial.Create;
   C3 := TCnBigComplexDecimal.Create;
   C4 := TCnBigComplexDecimal.Create;
 
@@ -8672,6 +8829,12 @@ begin
     // 测试乘法
     BigComplexDecimalPolynomialMul(Res, P1, P2);
     Result := Res.ToString = '(-1+7i)X^3+(2+9i)X^2+(1+6i)X+1+2i';
+    if not Result then Exit;
+
+    { 覆盖结果对象与输入对象重叠的路径，该路径会使用临时池对象。 }
+    BigComplexDecimalPolynomialCopy(Alias, P1);
+    if not BigComplexDecimalPolynomialMul(Alias, Alias, P2) then Exit;
+    Result := Alias.ToString = '(-1+7i)X^3+(2+9i)X^2+(1+6i)X+1+2i';
     if not Result then Exit;
 
     // 测试除法
@@ -8769,6 +8932,7 @@ begin
     Result := (Res.ToString = '(3.5+0.5i)X+0.5+2i') and (Rem.ToString = '0.5');
   finally
     C4.Free;
+    Alias.Free;
     C3.Free;
     Rem.Free;
     Res.Free;
@@ -9895,6 +10059,19 @@ begin
       if Restored.Count <> 2 then Exit;
       if Restored[0].ToString <> L[0].ToString then Exit;
       if Restored[1].ToString <> L[1].ToString then Exit;
+
+      { 截断序列化列表后，受限解析器必须拒绝该输入。 }
+      try
+        Restored.LoadFromMem(Buf, Sz - 1);
+        Exit;
+      except
+        on ECnPolynomialException do
+        begin
+        end;
+        on ECnBigNumberException do
+        begin
+        end;
+      end;
     finally
       FreeMem(Buf);
     end;

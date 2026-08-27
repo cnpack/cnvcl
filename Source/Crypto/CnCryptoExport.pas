@@ -4172,6 +4172,7 @@ function cn_base32_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
 var
   S: string;
   R: Integer;
+  I: Integer;
   Data: TBytes;
 begin
   CnExportClearLastError;
@@ -4188,6 +4189,10 @@ begin
       Exit;
     end;
     SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
+
+    for I := 1 to Length(S) do
+      if S[I] in ['a'..'z'] then
+        S[I] := Chr(Ord(S[I]) - Ord('a') + Ord('A'));
 
     if not Base32IsStrictText(S) then
     begin

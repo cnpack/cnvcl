@@ -521,8 +521,8 @@ type
 
     function LoadFromMem(Mem: Pointer; Size: Integer = 0): Integer;
     {* 从指定内存地址中读取整个列表的自身状态，返回读取的字节长度。
-       Size > 0 时内部检测是否超过 Size，超过则抛异常。
-       如 Size 为 0 则按对象内部规则往前读取，不检查是否超界。
+       Size 必须大于 0，内部检测是否超过 Size，超过则抛异常。
+       Size 为 0 或负数时拒绝读取，避免按不可信 Count 无界分配对象。
 
        参数：
          Mem: Pointer                     - 待加载的内存地址
@@ -9462,6 +9462,7 @@ var
   T: TCnBigNumber;
   I, J: Integer;
 begin
+  Result := False;
   if BigNumberPolynomialIsZero(P1) or BigNumberPolynomialIsZero(P2) then
   begin
     BigNumberPolynomialSetZero(Res);
@@ -9469,33 +9470,38 @@ begin
     Exit;
   end;
 
-  T := FLocalBigNumberPool.Obtain;
-  if (Res = P1) or (Res = P2) then
-    R := FLocalBigNumberPolynomialPool.Obtain
-  else
-    R := Res;
+  T := nil;
+  R := nil;
+  try
+    T := FLocalBigNumberPool.Obtain;
+    if (Res = P1) or (Res = P2) then
+      R := FLocalBigNumberPolynomialPool.Obtain
+    else
+      R := Res;
 
-  R.Clear;
-  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+    R.Clear;
+    R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
 
-  for I := 0 to P1.MaxDegree do
-  begin
-    // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
-    for J := 0 to P2.MaxDegree do
+    for I := 0 to P1.MaxDegree do
     begin
-      BigNumberMul(T, P1[I], P2[J]);
-      BigNumberAdd(R[I + J], R[I + J], T);
+      // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
+      for J := 0 to P2.MaxDegree do
+      begin
+        BigNumberMul(T, P1[I], P2[J]);
+        BigNumberAdd(R[I + J], R[I + J], T);
+      end;
     end;
-  end;
 
-  R.CorrectTop;
-  if (Res = P1) or (Res = P2) then
-  begin
-    BigNumberPolynomialCopy(Res, R);
-    FLocalBigNumberPolynomialPool.Recycle(R);
+    R.CorrectTop;
+    if (Res = P1) or (Res = P2) then
+      BigNumberPolynomialCopy(Res, R);
+    Result := True;
+  finally
+    if ((Res = P1) or (Res = P2)) and (R <> nil) then
+      FLocalBigNumberPolynomialPool.Recycle(R);
+    if T <> nil then
+      FLocalBigNumberPool.Recycle(T);
   end;
-  FLocalBigNumberPool.Recycle(T);
-  Result := True;
 end;
 
 function BigNumberPolynomialDiv(Res: TCnBigNumberPolynomial; Remain: TCnBigNumberPolynomial;
@@ -17265,6 +17271,8 @@ begin
 end;
 
 function TCnBigNumberPolynomialList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  MinItemSize = SizeOf(Integer);
 var
   I, C, L: Integer;
   P1: PByte;
@@ -17276,12 +17284,16 @@ begin
     Exit;
 
   // 至少得放得下表示 Count 的 4 字节头部
-  if (Size > 0) and (Size < SizeOf(Integer)) then
+  if Size <= 0 then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+  if Size < SizeOf(Integer) then
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
+  if C > (Size - SizeOf(Integer)) div MinItemSize then
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
 
   // 整体重建：先清掉原有内容
@@ -17294,15 +17306,14 @@ begin
     P1 := PByte(P4);
     for I := 0 to C - 1 do
     begin
+      if Result > Size - MinItemSize then
+        raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
       BN := TCnBigNumberPolynomial.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
-        if Size > 0 then
-          L := BN.LoadFromMem(P1, Size - Result)
-        else
-          L := BN.LoadFromMem(P1);
+        L := BN.LoadFromMem(P1, Size - Result);
 
-        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+        if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
           raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
 
         Add(BN);
@@ -17622,6 +17633,7 @@ var
   T: TCnBigComplexDecimal;
   I, J: Integer;
 begin
+  Result := False;
   if BigComplexDecimalPolynomialIsZero(P1) or BigComplexDecimalPolynomialIsZero(P2) then
   begin
     BigComplexDecimalPolynomialSetZero(Res);
@@ -17629,34 +17641,38 @@ begin
     Exit;
   end;
 
-  T := FLocalBigComplexDecimalPool.Obtain;
-  if (Res = P1) or (Res = P2) then
-    R := FLocalBigComplexDecimalPolynomialPool.Obtain
-  else
-    R := Res;
+  T := nil;
+  R := nil;
+  try
+    T := FLocalBigComplexDecimalPool.Obtain;
+    if (Res = P1) or (Res = P2) then
+      R := FLocalBigComplexDecimalPolynomialPool.Obtain
+    else
+      R := Res;
 
-  R.Clear;
-  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+    R.Clear;
+    R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
 
-  for I := 0 to P1.MaxDegree do
-  begin
-    // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
-    for J := 0 to P2.MaxDegree do
+    for I := 0 to P1.MaxDegree do
     begin
-      BigComplexDecimalMul(T, P1[I], P2[J]);
-      BigComplexDecimalAdd(R[I + J], R[I + J], T);
+      // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
+      for J := 0 to P2.MaxDegree do
+      begin
+        BigComplexDecimalMul(T, P1[I], P2[J]);
+        BigComplexDecimalAdd(R[I + J], R[I + J], T);
+      end;
     end;
-  end;
 
-  R.CorrectTop;
-  if (Res = P1) or (Res = P2) then
-  begin
-    BigComplexDecimalPolynomialCopy(Res, R);
-    FLocalBigComplexDecimalPolynomialPool.Recycle(R);
+    R.CorrectTop;
+    if (Res = P1) or (Res = P2) then
+      BigComplexDecimalPolynomialCopy(Res, R);
+    Result := True;
+  finally
+    if ((Res = P1) or (Res = P2)) and (R <> nil) then
+      FLocalBigComplexDecimalPolynomialPool.Recycle(R);
+    if T <> nil then
+      FLocalBigComplexDecimalPool.Recycle(T);
   end;
-
-  FLocalBigComplexDecimalPool.Recycle(T);
-  Result := True;
 end;
 
 procedure BigComplexDecimalPolynomialMulBigComplexDecimal(P: TCnBigComplexDecimalPolynomial;

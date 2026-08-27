@@ -233,6 +233,9 @@ type
   ECnRingBufferEmptyException = class(Exception);
   {* 循环队列缓冲区空时触发的异常}
 
+  ECnRingBufferSizeException = class(Exception);
+  {* 循环队列缓冲区容量非法时触发的异常}
+
   TCnObjectRingBuffer = class(TObject)
   {* 对象的循环队列缓冲区}
   private
@@ -696,6 +699,7 @@ resourcestring
   SCnEmptyPopFromFrontError = 'Ring Buffer Empty. Can NOT Pop From Front.';
   SCnFullPushToBackError = 'Ring Buffer Full. Can NOT Push To Back.';
   SCnFullPushToFrontError = 'Ring Buffer Full. Can NOT Push To Front.';
+  SCnInvalidRingBufferSizeError = 'Ring Buffer Size Must be Greater than Zero.';
 
 type
   TCnQueueNode = class
@@ -1042,7 +1046,8 @@ end;
 constructor TCnObjectRingBuffer.Create(ASize: Integer; AFullOverwrite,
   AMultiThread: Boolean);
 begin
-  Assert(ASize > 0);
+  if ASize <= 0 then
+    raise ECnRingBufferSizeException.Create(SCnInvalidRingBufferSizeError);
 
   FSize := ASize;
   FFullOverwrite := AFullOverwrite;

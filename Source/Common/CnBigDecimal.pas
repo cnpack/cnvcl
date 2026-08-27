@@ -1726,22 +1726,25 @@ end;
 function BigDecimalSetDec(const Buf: string; Res: TCnBigDecimal): Boolean;
 var
   Neg, ENeg: Boolean;
-  E, DC: Integer;
-  P, DotPos: PChar;
+  E, DC, IntDigits, FracDigits, GroupDigits, ExpDigits: Integer;
+  P: PChar;
   S, V: string;
   C: Char;
+  HasComma: Boolean;
+  Scale: Int64;
 begin
   Result := False;
 
   V := '';
-  S := Trim(Buf);
+  S := Buf;
+  if S = '' then
+    Exit;
   P := PChar(S);
   if P^ = #0 then
     Exit;
 
   Neg := False;
   ENeg := False;
-  DotPos := nil;
 
   if (P^ = '+') or (P^ = '-') then
   begin
@@ -1752,39 +1755,57 @@ begin
   if P^ = #0 then
     Exit;
 
-  Res.FValue.SetZero;
-  DC := 0;
-
-  // 解析值，直到结尾或碰上科学计数法的 E
-  C := P^;
-  while (C <> #0) and (C <> 'e') and (C <> 'E') do
+  IntDigits := 0;
+  GroupDigits := 0;
+  HasComma := False;
+  while P^ in ['0'..'9', ','] do
   begin
+    C := P^;
     case C of
       '0'..'9':
+      begin
         V := V + C;
+        Inc(IntDigits);
+        Inc(GroupDigits);
+      end;
       ',':
-        ; // 分节号忽略
-      '.':
-        if Assigned(DotPos) then
-          // 小数点只能有一个
+      begin
+        if (IntDigits = 0) or (GroupDigits = 0) then
           Exit
-        else
-          DotPos := P;
-    else
-      Exit;
+        else if (not HasComma and (IntDigits > 3)) or
+          (HasComma and (GroupDigits <> 3)) then
+          Exit;
+        HasComma := True;
+        GroupDigits := 0;
+      end;
     end;
     Inc(P);
-    C := P^;
   end;
 
-  // V 是不包括小数点的十进制字符串
+  if HasComma and (GroupDigits <> 3) then
+    Exit;
 
-  // 如果数据中原来有小数点，则给 DC 赋值
-  if Assigned(DotPos) then
-    DC := P - DotPos - 1;
+  FracDigits := 0;
+  if P^ = '.' then
+  begin
+    Inc(P);
+    while P^ in ['0'..'9'] do
+    begin
+      V := V + P^;
+      Inc(FracDigits);
+      Inc(P);
+    end;
+    if FracDigits = 0 then
+      Exit;
+  end;
 
+  if (IntDigits = 0) and (FracDigits = 0) then
+    Exit;
+
+  DC := FracDigits;
   E := 0;
-  if (C = 'e') or (C = 'E') then
+  ENeg := False;
+  if (P^ = 'e') or (P^ = 'E') then
   begin
     // 科学计数法的 E 后面的指数
     Inc(P);
@@ -1793,24 +1814,32 @@ begin
       ENeg := (P^ = '-');
       Inc(P);
     end;
-    while P^ <> #0 do
+    ExpDigits := 0;
+    while P^ in ['0'..'9'] do
     begin
-      case P^ of
-        '0'..'9':
-          E := E * 10 + Ord(P^) - Ord('0');
-      else
+      C := P^;
+      if E > (MaxInt - (Ord(C) - Ord('0'))) div 10 then
         Exit;
-      end;
+      E := E * 10 + Ord(C) - Ord('0');
+      Inc(ExpDigits);
       Inc(P);
     end;
+    if ExpDigits = 0 then
+      Exit;
   end;
+
+  if P^ <> #0 then
+    Exit;
 
   if ENeg then
     E := -E;
-  DC := DC - E; // 结合指数一起计算小数部分长度给 DC
+  Scale := Int64(DC) - Int64(E);
+  if (Scale < -MaxInt) or (Scale > MaxInt) then
+    Exit;
 
-  Res.FScale := DC;
-  Res.FValue.SetDec(AnsiString(V));
+  if not Res.FValue.SetDec(AnsiString(V)) then
+    Exit;
+  Res.FScale := Integer(Scale);
 
   if (not Res.FValue.IsNegative) and Neg then
     Res.FValue.SetNegative(True);

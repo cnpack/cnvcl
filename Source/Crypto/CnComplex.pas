@@ -2442,7 +2442,7 @@ end;
 function TCnBigComplexList.IndexOfValue(ABigComplex: TCnBigComplex): Integer;
 begin
   Result := 0;
-  while (Result < Count) and BigComplexEqual(Items[Result], ABigComplex) do
+  while (Result < Count) and not BigComplexEqual(Items[Result], ABigComplex) do
     Inc(Result);
   if Result = Count then
     Result := -1;
@@ -3288,7 +3288,7 @@ end;
 function TCnBigComplexDecimalList.IndexOfValue(ABigComplexDecimal: TCnBigComplexDecimal): Integer;
 begin
   Result := 0;
-  while (Result < Count) and BigComplexDecimalEqual(Items[Result], ABigComplexDecimal) do
+  while (Result < Count) and not BigComplexDecimalEqual(Items[Result], ABigComplexDecimal) do
     Inc(Result);
   if Result = Count then
     Result := -1;
