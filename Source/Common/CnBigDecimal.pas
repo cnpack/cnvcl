@@ -1744,8 +1744,6 @@ begin
     Exit;
 
   Neg := False;
-  ENeg := False;
-
   if (P^ = '+') or (P^ = '-') then
   begin
     Neg := (P^ = '-');

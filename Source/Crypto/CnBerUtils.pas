@@ -405,6 +405,7 @@ type
 
        返回值：Boolean                    - 返回是否为字符串
     }
+
     function IsInteger: Boolean;
     {* 返回是否为整数。
 

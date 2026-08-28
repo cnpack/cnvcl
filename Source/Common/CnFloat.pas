@@ -1546,11 +1546,15 @@ begin
 
   // FloatToText 在 Delphi 5/6/7 和 FPC 中均可能使用当前区域设置的
   // DecimalSeparator。这里仅规范化返回文本，不修改全局设置，避免影响其他线程。
-  {$IFDEF FPC}
+{$IFDEF FPC}
   LDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
+{$ELSE}
+  {$IFDEF SUPPORT_GLOBAL_FORMAT_SETTINGS}
+  LDecimalSeparator := FormatSettings.DecimalSeparator;
   {$ELSE}
   LDecimalSeparator := DecimalSeparator;
   {$ENDIF}
+{$ENDIF}
   if LDecimalSeparator <> '.' then
     for I := 1 to Length(Result) do
       if Result[I] = LDecimalSeparator then
