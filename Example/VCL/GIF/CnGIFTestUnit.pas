@@ -293,6 +293,8 @@ end;
 
 procedure TGIFStreamBuilder.WriteNetscapeExt(LoopCount: Word;
   SubBlockSize: Byte; SubBlockId: Byte; WriteTrailerZero: Boolean);
+var
+  I: Integer;
 begin
   WriteByte(GIF_EXT_INTRODUCER);
   WriteByte(GIF_EXT_APPLICATION);
@@ -305,6 +307,9 @@ begin
     WriteByte(LoopCount and $FF);
   if SubBlockSize >= 3 then
     WriteByte((LoopCount shr 8) and $FF);
+  if SubBlockSize > 3 then
+    for I := 4 to SubBlockSize do
+      WriteByte($EE + ((I - 4) and $01));
   if WriteTrailerZero then
     WriteByte(0);
 end;
@@ -1628,6 +1633,7 @@ type
     class procedure TestNetscapeSubBlockNot3;      // Bug #9
     class procedure TestNetscapeLoopZeroPreserved; // Bug #3 (P0)
     class procedure TestNetscapeSubBlockReadOnce;  // Bug #9 variant
+    class procedure TestAnimationLoopApi;
   end;
 
 class procedure TNetscapeTests.TestNetscapeLoopCountRead;
@@ -1813,6 +1819,59 @@ begin
       except
       end;
       AssertEqual(1, Img.FrameCount, 'frame present after multi-sub-block');
+      AssertEqual(5, Img.AnimationLoopCount, 'loop count survives extra sub-block');
+    finally
+      Img.Free;
+    end;
+  finally
+    Bld.Free;
+  end;
+end;
+
+class procedure TNetscapeTests.TestAnimationLoopApi;
+var
+  Bld: TGIFStreamBuilder;
+  Img: TCnGIFImage;
+  Pal: TCnGIFColors;
+  Pixels: array[0..3] of Byte;
+  LZW: TBytes;
+  I: Integer;
+  MS: TMemoryStream;
+  Info: TGIFInfo;
+begin
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Pal := MakePalette(4);
+    for I := 0 to 3 do Pixels[I] := I;
+    LZW := GifLZWEncode(Pixels, 2);
+    Bld.WriteHeader;
+    Bld.WriteLSD(2, 2, True, 7, False, 1, 0, 0);
+    Bld.WriteColorTable(Pal, 1);
+    for I := 1 to 2 do
+    begin
+      Bld.WriteImageDesc(0, 0, 2, 2, False, False, 0);
+      Bld.WriteByte(2);
+      Bld.WriteLZWSubBlocks(LZW);
+    end;
+    Bld.WriteTrailer;
+
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load loop API GIF');
+      AssertTrue(not Img.HasAnimationLoop, 'no NETSCAPE extension initially');
+      AssertEqual(0, Img.AnimationLoopCount, 'default loop count');
+      Img.AnimationLoopCount := 7;
+      AssertTrue(Img.HasAnimationLoop, 'loop extension enabled by setter');
+      MS := TMemoryStream.Create;
+      try
+        Img.SaveToStream(MS);
+        MS.Position := 0;
+        Info := ParseGIFStream(MS);
+      finally
+        MS.Free;
+      end;
+      AssertTrue(Info.HasNetscape, 'NETSCAPE extension emitted');
+      AssertEqual(7, Info.LoopCount, 'loop count emitted');
     finally
       Img.Free;
     end;
@@ -1831,6 +1890,8 @@ type
     class procedure TestSaveRoundtripFrameCount;
     class procedure TestSaveReencodesWithCodeSize;
     class procedure TestSaveSingleFrameViaBitmap;
+    class procedure TestSaveNonPowerOfTwoLocalPalette;
+    class procedure TestSaveHighColorBitmap;
   end;
 
 class procedure TSaveTests.TestSavePaletteSizeBits;
@@ -2397,6 +2458,7 @@ type
     class procedure TestSaveCurrentFrame;
     class procedure TestSaveCurrentInterlacedFrame;
     class procedure TestDisposalBackgroundColor;
+    class procedure TestQuantizeCompositeOverflowColor;
     class procedure TestSaveCompositedFrame;
   end;
 
@@ -2467,14 +2529,195 @@ begin
     Img := TCnGIFImage.Create;
     try
       AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load disposal background');
-      Img.CurrentFrame := 1; Bmp := TBitmap.Create;
+      Bmp := TBitmap.Create;
       try
+        // Render frame 0 first, then advance one frame to exercise the
+        // incremental compositor path (including disposal=2).
+        Img.CurrentFrame := 0;
+        Bmp.Assign(Img);
+        Img.CurrentFrame := 1;
         Bmp.Assign(Img);
         AssertEqual(Integer(ColorToRGB(clRed)), Integer(ColorToRGB(Bmp.Canvas.Pixels[0, 0])), 'disposal background pixel');
         AssertEqual(Integer(ColorToRGB(clLime)), Integer(ColorToRGB(Bmp.Canvas.Pixels[1, 0])), 'current frame pixel');
       finally Bmp.Free; end;
     finally Img.Free; end;
   finally Bld.Free; end;
+end;
+
+class procedure TSaveTests.TestSaveNonPowerOfTwoLocalPalette;
+var
+  Bld: TGIFStreamBuilder;
+  Img, Img2: TCnGIFImage;
+  Pal, Pal3: TCnGIFColors;
+  Pixels: array[0..3] of Byte;
+  LZW, Saved: TBytes;
+  I: Integer;
+  MS: TMemoryStream;
+begin
+  Pal := MakePalette(4);
+  for I := 0 to 3 do Pixels[I] := I;
+  LZW := GifLZWEncode(Pixels, 2);
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Bld.WriteHeader;
+    Bld.WriteLSD(2, 2, False, 7, False, 0, 0, 0);
+    Bld.WriteImageDesc(0, 0, 2, 2, True, False, 1);
+    Bld.WriteColorTable(Pal, 1);
+    Bld.WriteByte(2);
+    Bld.WriteLZWSubBlocks(LZW);
+    Bld.WriteTrailer;
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load local palette GIF');
+      Pal3 := Img.Frames[0].LocalPalette;
+      SetLength(Pal3, 3);
+      Img.Frames[0].LocalPalette := Pal3;
+      MS := TMemoryStream.Create;
+      try
+        Img.SaveToStream(MS);
+        SetLength(Saved, MS.Size);
+        if MS.Size > 0 then Move(MS.Memory^, Saved[0], MS.Size);
+      finally
+        MS.Free;
+      end;
+    finally
+      Img.Free;
+    end;
+    Img2 := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img2, Saved), 'reload normalized local palette GIF');
+      AssertEqual(1, Img2.FrameCount, 'normalized local palette frame count');
+      AssertTrue(Img2.Frames[0].HasLocalPalette, 'normalized local palette present');
+      AssertEqual(4, Length(Img2.Frames[0].LocalPalette),
+        'local palette rounded to power of two');
+    finally
+      Img2.Free;
+    end;
+  finally
+    Bld.Free;
+  end;
+end;
+
+class procedure TSaveTests.TestSaveHighColorBitmap;
+var
+  Img, Img2: TCnGIFImage;
+  Bmp: TBitmap;
+  MS: TMemoryStream;
+  Row: PByteArray;
+  X, Y, V: Integer;
+begin
+  // More than 65536 distinct source pixels exercises the bounded-load color
+  // hash path.  The output still has to be a valid, reloadable GIF.
+  Img := TCnGIFImage.Create;
+  Img2 := TCnGIFImage.Create;
+  Bmp := TBitmap.Create;
+  MS := TMemoryStream.Create;
+  try
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 257;
+    Bmp.Height := 257;
+    for Y := 0 to Bmp.Height - 1 do
+    begin
+      Row := Bmp.ScanLine[Y];
+      for X := 0 to Bmp.Width - 1 do
+      begin
+        V := Y * Bmp.Width + X;
+        Row^[X * 3] := (V shr 16) and $FF;
+        Row^[X * 3 + 1] := (V shr 8) and $FF;
+        Row^[X * 3 + 2] := V and $FF;
+      end;
+    end;
+    Img.SaveBitmapToGIFStream(MS, Bmp);
+    AssertTrue(MS.Size > 0, 'high-color GIF stream');
+    MS.Position := 0;
+    Img2.LoadFromStream(MS);
+    AssertEqual(257, Img2.Width, 'high-color GIF width');
+    AssertEqual(257, Img2.Height, 'high-color GIF height');
+  finally
+    MS.Free;
+    Bmp.Free;
+    Img2.Free;
+    Img.Free;
+  end;
+end;
+
+class procedure TCompositeTests.TestQuantizeCompositeOverflowColor;
+var
+  Bld: TGIFStreamBuilder;
+  Img, Img2: TCnGIFImage;
+  LocalPal: TCnGIFColors;
+  OnePixel, Saved: TBytes;
+  I: Integer;
+  MS: TMemoryStream;
+begin
+  // Build 257 one-pixel frames with local palettes.  The first 256
+  // composited colors fill the quantizer's palette; the final magenta pixel
+  // exercises nearest-palette fallback instead of collapsing to index 0.
+  SetLength(LocalPal, 2);
+  SetLength(OnePixel, 1);
+  OnePixel[0] := 1;
+
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Bld.WriteHeader;
+    Bld.WriteLSD(257, 1, False, 0, False, 0, 0, 0);
+    for I := 0 to 256 do
+    begin
+      LocalPal[0].R := 0; LocalPal[0].G := 0; LocalPal[0].B := 0;
+      if I < 256 then
+      begin
+        LocalPal[1].R := I;
+        LocalPal[1].G := I;
+        LocalPal[1].B := I;
+      end
+      else
+      begin
+        LocalPal[1].R := 255;
+        LocalPal[1].G := 0;
+        LocalPal[1].B := 255;
+      end;
+      Bld.WriteImageDesc(I, 0, 1, 1, True, False, 0);
+      Bld.WriteColorTable(LocalPal, 0);
+      Bld.WriteByte(2);
+      Bld.WriteLZWSubBlocks(GifLZWEncode(OnePixel, 2));
+    end;
+    Bld.WriteTrailer;
+
+    Img := TCnGIFImage.Create;
+    try
+      MS := TMemoryStream.Create;
+      try
+        MS.Write(Bld.Bytes[0], Length(Bld.Bytes));
+        MS.Position := 0;
+        Img.LoadFromStream(MS);
+      finally
+        MS.Free;
+      end;
+      AssertEqual(257, Img.FrameCount, 'load >256-color composite');
+      Img.CurrentFrame := 256;
+      MS := TMemoryStream.Create;
+      try
+        Img.SaveCompositedFrameToGIFStream(MS);
+        SetLength(Saved, MS.Size);
+        if MS.Size > 0 then Move(MS.Memory^, Saved[0], MS.Size);
+      finally
+        MS.Free;
+      end;
+    finally
+      Img.Free;
+    end;
+
+    Img2 := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img2, Saved), 'reload >256-color composite');
+      AssertTrue(Img2.Frames[0].Pixels[256] <> 0,
+        'overflow color must not collapse to palette index 0');
+    finally
+      Img2.Free;
+    end;
+  finally
+    Bld.Free;
+  end;
 end;
 
 class procedure TCompositeTests.TestSaveCurrentFrame;
@@ -2651,6 +2894,8 @@ initialization
     TNetscapeTests.TestNetscapeLoopZeroPreserved);
   RegisterTest('Netscape', 'Multiple sub-blocks no infinite loop (bug #9)',
     TNetscapeTests.TestNetscapeSubBlockReadOnce);
+  RegisterTest('Netscape', 'Animation loop presence and setter API',
+    TNetscapeTests.TestAnimationLoopApi);
 
   // Save
   RegisterTest('Save', 'Palette size bits on save (bug #1 P0)',
@@ -2661,6 +2906,10 @@ initialization
     TSaveTests.TestSaveReencodesWithCodeSize);
   RegisterTest('Save', 'Single-frame GIF via bitmap',
     TSaveTests.TestSaveSingleFrameViaBitmap);
+  RegisterTest('Save', 'Non-power-of-two local palette is normalized',
+    TSaveTests.TestSaveNonPowerOfTwoLocalPalette);
+  RegisterTest('Save', 'High-color bitmap bounded hash load',
+    TSaveTests.TestSaveHighColorBitmap);
 
   // Robustness
   RegisterTest('Robust', 'Truncated header is rejected (P0)',
@@ -2689,6 +2938,8 @@ initialization
     TCompositeTests.TestSaveCurrentInterlacedFrame);
   RegisterTest('Composite', 'Disposal background color',
     TCompositeTests.TestDisposalBackgroundColor);
+  RegisterTest('Composite', 'Quantize >256 colors keeps nearest color',
+    TCompositeTests.TestQuantizeCompositeOverflowColor);
   RegisterTest('Composite', 'SaveCompositedFrameToGIFStream',
     TCompositeTests.TestSaveCompositedFrame);
 

@@ -151,6 +151,7 @@ type
 
     // 合成
     procedure CompositeFrames(LastFrame: Integer);
+    function  AdvanceCompositeFrame(FrameIdx: Integer): Boolean;
 
     // 写入
     procedure WriteColorTable(Stream: TStream;
@@ -168,6 +169,7 @@ type
     procedure InterlacePixels(Frame: TCnGIFFrame; Dst: PByteArray);
 
     procedure SetCurrentFrame(Value: Integer);
+    procedure SetAnimationLoopCount(Value: Integer);
     function  GetFrameCount: Integer;
     function  GetFrame(Index: Integer): TCnGIFFrame;
 
@@ -211,7 +213,8 @@ type
     property CurrentFrame: Integer read FCurrentFrame write SetCurrentFrame;
     property FrameCount: Integer read GetFrameCount;
     property Frames[Index: Integer]: TCnGIFFrame read GetFrame;
-    property AnimationLoopCount: Integer read FLoopCount;
+    property AnimationLoopCount: Integer read FLoopCount write SetAnimationLoopCount;
+    property HasAnimationLoop: Boolean read FHasNetscape write FHasNetscape;
   end;
 
 // 注册
@@ -228,6 +231,7 @@ resourcestring
   SCnGIFUnexpectedEndOfStream = 'Unexpected End of GIF Stream';
   SCnGIFInvalidSignature = 'Invalid GIF Signature';
   SCnGIFInvalidLZWMinCodeSize = 'Invalid GIF LZW Minimum Code Size';
+  SCnGIFInvalidPaletteSize = 'Invalid GIF Palette Size';
 
 const
   GIF87a: array[0..5] of AnsiChar = 'GIF87a';
@@ -312,6 +316,20 @@ procedure GIFValidateLZWMinCodeSize(MinCodeSize: Integer);
 begin
   if (MinCodeSize < 2) or (MinCodeSize > 8) then
     raise Exception.Create(SCnGIFInvalidLZWMinCodeSize);
+end;
+
+function GIFColorHash(Key: Cardinal): Cardinal;
+begin
+  Result := (Key xor (Key shr 11) xor (Key shr 22)) * 2654435761;
+end;
+
+function GIFPaletteTableSize(PaletteSize: Integer): Integer;
+begin
+  if PaletteSize > 256 then
+    raise Exception.Create(SCnGIFInvalidPaletteSize);
+  Result := 2;
+  while Result < PaletteSize do
+    Result := Result shl 1;
 end;
 
 //==============================================================================
@@ -575,36 +593,38 @@ var
   BlockSz: Byte;
   AppId: array[0..10] of AnsiChar;
   SB: Byte;
+  SubBuf: array[0..254] of Byte;
   B1, B2: Byte;
+  IsNetscape: Boolean;
 begin
   BlockSz := ReadByte(Stream);
   if BlockSz <> 11 then
   begin
+    if BlockSz > 0 then
+      ReadExact(Stream, SubBuf, BlockSz);
     SkipSubBlocks(Stream);
     Exit;
   end;
   ReadExact(Stream, AppId, 11);
 
-  // NETSCAPE 2.0
-  if (AppId[0] = 'N') and (AppId[1] = 'E') and (AppId[2] = 'T') and
+  IsNetscape := (AppId[0] = 'N') and (AppId[1] = 'E') and (AppId[2] = 'T') and
      (AppId[3] = 'S') and (AppId[4] = 'C') and (AppId[5] = 'A') and
-     (AppId[6] = 'P') and (AppId[7] = 'E') then
+     (AppId[6] = 'P') and (AppId[7] = 'E');
+
+  while True do
   begin
     SB := ReadByte(Stream);
-    if SB = 3 then
+    if SB = 0 then
+      Break;
+    ReadExact(Stream, SubBuf, SB);
+    if IsNetscape and (SB = 3) and (SubBuf[0] = 1) then
     begin
-      ReadByte(Stream); // sub-block ID (1)
-      B1 := ReadByte(Stream);
-      B2 := ReadByte(Stream);
+      B1 := SubBuf[1];
+      B2 := SubBuf[2];
       FLoopCount := B1 or (B2 shl 8);
       FHasNetscape := True;
-      ReadByte(Stream); // terminators
-    end
-    else
-      SkipSubBlocks(Stream);
-  end
-  else
-    SkipSubBlocks(Stream);
+    end;
+  end;
 end;
 
 //==============================================================================
@@ -1208,6 +1228,107 @@ end;
 // 渲染
 //==============================================================================
 
+function TCnGIFImage.AdvanceCompositeFrame(FrameIdx: Integer): Boolean;
+var
+  PrevFrame, Frame: TCnGIFFrame;
+  Pal: TCnGIFColors;
+  PalLen: Integer;
+  Q: PQuadArray;
+  Pix: PByteArray;
+  X, Y, I, ClearWidth: Integer;
+  BgColor: TCnGIFColor;
+begin
+  Result := False;
+  if (FrameIdx <= 0) or (FRenderedFrame < 0) or
+     (FrameIdx <> FRenderedFrame + 1) or
+     (FrameIdx >= FFrames.Count) or
+     (FCompositeBuf = nil) or
+     (FCompWidth < FLogicalScreenWidth) or
+     (FCompHeight < FLogicalScreenHeight) then
+    Exit;
+
+  PrevFrame := TCnGIFFrame(FFrames[FrameIdx - 1]);
+  // gdPrevious requires a snapshot of the composited area.  The full
+  // compositor already maintains that state, so use it for this uncommon
+  // disposal mode instead of attempting an incomplete incremental restore.
+  if PrevFrame.FDisposal = GIF_DISPOSAL_PREV then
+    Exit;
+
+  BgColor.R := 0;
+  BgColor.G := 0;
+  BgColor.B := 0;
+  if FHasGlobalPalette and (FBackgroundColorIndex < Length(FGlobalPalette)) then
+    BgColor := FGlobalPalette[FBackgroundColorIndex];
+
+  if PrevFrame.FDisposal = GIF_DISPOSAL_BG then
+  begin
+    if PrevFrame.FLeft < FLogicalScreenWidth then
+    begin
+      ClearWidth := PrevFrame.FWidth;
+      if PrevFrame.FLeft + ClearWidth > FLogicalScreenWidth then
+        ClearWidth := FLogicalScreenWidth - PrevFrame.FLeft;
+      for Y := PrevFrame.FTop to PrevFrame.FTop + PrevFrame.FHeight - 1 do
+      begin
+        if Y >= FLogicalScreenHeight then
+          Break;
+        Q := Pointer(TCnNativeInt(FCompositeBuf) +
+          Y * FCompWidth * 4 + PrevFrame.FLeft * 4);
+        for X := 0 to ClearWidth - 1 do
+        begin
+          Q^[X].B := BgColor.B;
+          Q^[X].G := BgColor.G;
+          Q^[X].R := BgColor.R;
+          Q^[X].A := 255;
+        end;
+      end;
+    end;
+  end;
+
+  Frame := TCnGIFFrame(FFrames[FrameIdx]);
+  if Frame.FHasLocalPalette then
+  begin
+    Pal := Frame.FLocalPalette;
+    PalLen := Length(Pal);
+  end
+  else
+  begin
+    Pal := FGlobalPalette;
+    PalLen := Length(Pal);
+  end;
+  if (PalLen = 0) or (Frame.FLeft >= FLogicalScreenWidth) or
+     (Frame.FTop >= FLogicalScreenHeight) then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+  for Y := 0 to Frame.FHeight - 1 do
+  begin
+    if Frame.FTop + Y >= FLogicalScreenHeight then
+      Break;
+    Q := Pointer(TCnNativeInt(FCompositeBuf) +
+      (Frame.FTop + Y) * FCompWidth * 4 + Frame.FLeft * 4);
+    Pix := @Frame.FPixels[Y * Frame.FWidth];
+    for X := 0 to Frame.FWidth - 1 do
+    begin
+      if Frame.FLeft + X >= FLogicalScreenWidth then
+        Break;
+      if (Frame.FTransparentIndex < 0) or
+         (Integer(Pix[X]) <> Frame.FTransparentIndex) then
+      begin
+        I := Integer(Pix[X]);
+        if I >= PalLen then
+          I := 0;
+        Q^[X].B := Pal[I].B;
+        Q^[X].G := Pal[I].G;
+        Q^[X].R := Pal[I].R;
+        Q^[X].A := 255;
+      end;
+    end;
+  end;
+  Result := True;
+end;
+
 procedure TCnGIFImage.EnsureRendered(FrameIdx: Integer);
 var
   BufSize: Integer;
@@ -1217,7 +1338,8 @@ begin
   if (FRenderedFrame = FrameIdx) and (FDIB <> 0) then
     Exit;
 
-  CompositeFrames(FrameIdx);
+  if not AdvanceCompositeFrame(FrameIdx) then
+    CompositeFrames(FrameIdx);
 
   if (FCompositeBuf = nil) or (FCompWidth <= 0) or (FCompHeight <= 0) then
     Exit;
@@ -1382,7 +1504,7 @@ begin
     Pkd := Pkd or $80;
     Pkd := Pkd or ((FColorResolution and $07) shl 4);
     if FSortFlag then Pkd := Pkd or $08;
-    PalSz := Length(FGlobalPalette);
+    PalSz := GIFPaletteTableSize(Length(FGlobalPalette));
     J := 0;
     while (1 shl (J + 1)) < PalSz do Inc(J);
     Pkd := Pkd or (J and $07);
@@ -1393,7 +1515,7 @@ begin
 
   // Global Color Table
   if FHasGlobalPalette then
-    WriteColorTable(Stream, FGlobalPalette, Length(FGlobalPalette));
+    WriteColorTable(Stream, FGlobalPalette, PalSz);
 
   // NETSCAPE 2.0 Application Extension (循环播放)
   if (FFrames.Count > 1) and FHasNetscape then
@@ -1444,7 +1566,7 @@ begin
     if Frame.FHasLocalPalette then
     begin
       Pkd := Pkd or $80;
-      PalSz := Length(Frame.FLocalPalette);
+      PalSz := GIFPaletteTableSize(Length(Frame.FLocalPalette));
       J := 0;
       while (1 shl (J + 1)) < PalSz do Inc(J);
       Pkd := Pkd or (J and $07);
@@ -1453,13 +1575,13 @@ begin
 
     // Local Color Table
     if Frame.FHasLocalPalette then
-      WriteColorTable(Stream, Frame.FLocalPalette, Length(Frame.FLocalPalette));
+      WriteColorTable(Stream, Frame.FLocalPalette, PalSz);
 
     // LZW 最小码长
     if Frame.FHasLocalPalette then
-      PalSz := Length(Frame.FLocalPalette)
+      PalSz := GIFPaletteTableSize(Length(Frame.FLocalPalette))
     else if FHasGlobalPalette then
-      PalSz := Length(FGlobalPalette)
+      PalSz := GIFPaletteTableSize(Length(FGlobalPalette))
     else
       PalSz := 256;
 
@@ -1504,9 +1626,18 @@ procedure TCnGIFImage.WriteColorTable(Stream: TStream;
   const Palette: TCnGIFColors; Count: Integer);
 var
   I: Integer;
+  Black: TCnGIFColor;
 begin
+  if (Count < 0) or (Count > 256) then
+    raise Exception.Create(SCnGIFInvalidPaletteSize);
+  Black.R := 0;
+  Black.G := 0;
+  Black.B := 0;
   for I := 0 to Count - 1 do
-    Stream.Write(Palette[I], 3);
+    if I < Length(Palette) then
+      Stream.Write(Palette[I], 3)
+    else
+      Stream.Write(Black, 3);
 end;
 
 procedure TCnGIFImage.EmitSubBlocks(Stream: TStream; Data: Pointer;
@@ -1696,6 +1827,7 @@ procedure TCnGIFImage.QuantizeBitmap(Src: TBitmap; var Palette: TCnGIFColors;
 const
   QHASH_SIZE = 1 shl 16;
   QHASH_MASK = (1 shl 16) - 1;
+  QHASH_MAX_ITEMS = QHASH_SIZE div 2;
   QMAX = 256;
 var
   W, H, X, Y, I, K: Integer;
@@ -1803,7 +1935,7 @@ begin
       Gv := Row^[X * 3 + 1];
       Rv := Row^[X * 3 + 2];
       Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
-      HIdx := Key and QHASH_MASK;
+      HIdx := GIFColorHash(Key) and QHASH_MASK;
       while Hash[HIdx].Used do
       begin
         if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
@@ -1815,7 +1947,11 @@ begin
       end;
       if not Hash[HIdx].Used then
       begin
-        if UniqueCount < QHASH_SIZE - 1 then
+        // Keep open-addressing load at or below 50%.  The old near-full
+        // table made high-color photographs spend most of their time in
+        // linear probing; unrecorded colors are still mapped against the
+        // resulting 256-color palette in the final pass.
+        if UniqueCount < QHASH_MAX_ITEMS then
         begin
           Hash[HIdx].Used := True;
           Hash[HIdx].B := Bv;
@@ -1865,7 +2001,7 @@ begin
     for I := 0 to UniqueCount - 1 do
     begin
       Key := (Cardinal(Colors[I].B) shl 16) or (Cardinal(Colors[I].G) shl 8) or Cardinal(Colors[I].R);
-      HIdx := Key and QHASH_MASK;
+      HIdx := GIFColorHash(Key) and QHASH_MASK;
       while Hash[HIdx].Used do
       begin
         if (Hash[HIdx].B = Colors[I].B) and (Hash[HIdx].G = Colors[I].G) and (Hash[HIdx].R = Colors[I].R) then
@@ -1887,7 +2023,7 @@ begin
         Gv := Row^[X * 3 + 1];
         Rv := Row^[X * 3 + 2];
         Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
-        HIdx := Key and QHASH_MASK;
+        HIdx := GIFColorHash(Key) and QHASH_MASK;
         while Hash[HIdx].Used do
         begin
           if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
@@ -2026,6 +2162,8 @@ var
   Key, HIdx: Cardinal;
   Hash: array of TCnQuantHashEntry;
   UniqueCount, PalCount: Integer;
+  Found: Boolean;
+  BestI, BestDist, Dist, dB, dG, dR: Integer;
 begin
   W := FCompWidth;
   H := FCompHeight;
@@ -2049,7 +2187,7 @@ begin
       Gv := Q^[X].G;
       Rv := Q^[X].R;
       Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
-      HIdx := Key and QHASH_MASK;
+      HIdx := GIFColorHash(Key) and QHASH_MASK;
       while Hash[HIdx].Used do
       begin
         if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
@@ -2102,18 +2240,38 @@ begin
       Gv := Q^[X].G;
       Rv := Q^[X].R;
       Key := (Cardinal(Bv) shl 16) or (Cardinal(Gv) shl 8) or Cardinal(Rv);
-      HIdx := Key and QHASH_MASK;
+      HIdx := GIFColorHash(Key) and QHASH_MASK;
+      Found := False;
       while Hash[HIdx].Used do
       begin
         if (Hash[HIdx].B = Bv) and (Hash[HIdx].G = Gv) and (Hash[HIdx].R = Rv) then
         begin
-          Indices^[Y * W + X] := Hash[HIdx].PalIdx;
+          Found := True;
           Break;
         end;
         HIdx := (HIdx + 1) and QHASH_MASK;
       end;
-      if not Hash[HIdx].Used then
-        Indices^[Y * W + X] := 0;
+      if Found then
+        Indices^[Y * W + X] := Hash[HIdx].PalIdx
+      else
+      begin
+        BestI := 0;
+        BestDist := MaxInt;
+        for I := 0 to PalCount - 1 do
+        begin
+          dB := Integer(Bv) - Palette[I].B;
+          dG := Integer(Gv) - Palette[I].G;
+          dR := Integer(Rv) - Palette[I].R;
+          Dist := dB * dB + dG * dG + dR * dR;
+          if Dist < BestDist then
+          begin
+            BestDist := Dist;
+            BestI := I;
+            if Dist = 0 then Break;
+          end;
+        end;
+        Indices^[Y * W + X] := BestI;
+      end;
     end;
   end;
 end;
@@ -2126,11 +2284,10 @@ var
   EncStm: TMemoryStream;
 begin
   PixelCount := GIFPixelCount(W, H);
-  PalSz := Length(Palette);
-  if PalSz < 2 then PalSz := 2;
+  PalSz := GIFPaletteTableSize(Length(Palette));
 
   // 计算调色板尺寸（2 的幂，范围 2..256）
-  P := 1;
+  P := 0;
   while (1 shl P) < PalSz do Inc(P);
 
   // Header
@@ -2281,11 +2438,10 @@ begin
     Exit;
 
   // 计算调色板尺寸（2 的幂，范围 2..256）
-  P := 1;
+  PalSz := GIFPaletteTableSize(PalSz);
+  P := 0;
   while (1 shl P) < PalSz do
     Inc(P);
-  if P < 1 then
-    P := 1;
 
   // Header
   Stream.Write(GIF89a, 6);
@@ -2301,7 +2457,7 @@ begin
   // Global Color Table
   for I := 0 to (1 shl P) - 1 do
   begin
-    if I < PalSz then
+    if I < Length(Palette) then
       Stream.Write(Palette[I], 3)
     else
     begin
@@ -2423,8 +2579,19 @@ begin
   if (Value >= 0) and (Value < FFrames.Count) and (Value <> FCurrentFrame) then
   begin
     FCurrentFrame := Value;
-    FRenderedFrame := -1;
+    if (FRenderedFrame < 0) or (Value <> FRenderedFrame + 1) then
+      FRenderedFrame := -1;
   end;
+end;
+
+procedure TCnGIFImage.SetAnimationLoopCount(Value: Integer);
+begin
+  if Value < 0 then
+    Value := 0;
+  if Value > 65535 then
+    Value := 65535;
+  FLoopCount := Value;
+  FHasNetscape := True;
 end;
 
 function TCnGIFImage.GetFrameCount: Integer;
@@ -2479,6 +2646,9 @@ end;
 {
 initialization
   RegisterCnGIF;
+
+finalization
+  UnregisterCnGIF;
 }
 
 end.
