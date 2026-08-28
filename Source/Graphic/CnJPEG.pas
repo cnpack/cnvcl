@@ -317,12 +317,6 @@ type
     // Adobe CMYK 转换标记
     FAdobeTransform: Byte;
 
-    // YCbCr→RGB 查找表
-    FYCbCrTable: array[0..255, 0..255] of Cardinal;  // [Cb, Cr] → packed RGB
-    FYCbCrTableInit: Boolean;
-
-    procedure InitYCbCrTable;
-
     procedure ParseDQT(Marker: TCnJPEGMarker; SegLen: Integer);
     procedure ParseDHT(Marker: TCnJPEGMarker; SegLen: Integer);
     procedure ParseSOF(Marker: TCnJPEGMarker; SegLen: Integer; MarkerCode: Word);
@@ -628,6 +622,7 @@ resourcestring
   SCnErrorInvalidJpegMissingSoi = 'Invalid JPEG: Missing SOI';
   SCnErrorNoJpegDataToDecode = 'No JPEG Data to Decode';
   SCnErrorNoImageData = 'No Image Data';
+  SCnErrorCannotWriteJpegData = 'Cannot Write JPEG Data';
   SCnErrorCannotAllocateClipboardMemory = 'Cannot Allocate Clipboard Memory';
 
 //============================================================================
@@ -760,6 +755,35 @@ begin
   Result := Integer(V);
 end;
 
+procedure CnJPEGWriteExact(Stream: TStream; const Buffer; Count: Integer);
+var
+  P: PByte;
+  Written: Integer;
+begin
+  if Count < 0 then
+    raise ECnJPEGException.Create(SCnErrorCannotWriteJpegData);
+  P := @Buffer;
+  while Count > 0 do
+  begin
+    Written := Stream.Write(P^, Count);
+    if Written <= 0 then
+      raise ECnJPEGException.Create(SCnErrorCannotWriteJpegData);
+    Inc(P, Written);
+    Dec(Count, Written);
+  end;
+end;
+
+function CnJPEGScaledDimension(Value: Integer; Scale: TCnJPEGScale): Integer;
+begin
+  case Scale of
+    jsHalf:    Result := (Value + 1) div 2;
+    jsQuarter: Result := (Value + 3) div 4;
+    jsEighth:  Result := (Value + 7) div 8;
+  else
+    Result := Value;
+  end;
+end;
+
 procedure CnJPEGRefineCoefficient(var Coef: SmallInt; Bit, Al: Byte);
 var
   Delta: SmallInt;
@@ -778,13 +802,11 @@ var
   CnJPEGCbToG: array[0..255] of Integer;
   CnJPEGCrToG: array[0..255] of Integer;
   CnJPEGCbToB: array[0..255] of Integer;
-  CnJPEGYCbCrInit: Boolean = False;
 
 procedure CnJPEGInitYCbCrTables;
 var
-  I, J: Integer;
+  I: Integer;
 begin
-  if CnJPEGYCbCrInit then Exit;
   for I := 0 to 255 do
   begin
     CnJPEGCrToR[I] := Round(1.402 * (I - 128));
@@ -792,7 +814,6 @@ begin
     CnJPEGCrToG[I] := -Round(0.71414 * (I - 128));
     CnJPEGCbToB[I] := Round(1.772 * (I - 128));
   end;
-  CnJPEGYCbCrInit := True;
 end;
 
 procedure CnJPEGBuildHuffmanTable(var Table: TCnJPEGHuffmanTable);
@@ -1006,11 +1027,11 @@ begin
     if FBitCnt = 8 then
     begin
       B := Byte(FBitBuf);
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
       if B = $FF then
       begin
         B := $00;
-        FStream.Write(B, 1);
+        CnJPEGWriteExact(FStream, B, 1);
       end;
       FBitBuf := 0;
       FBitCnt := 0;
@@ -1028,11 +1049,11 @@ begin
     FBitBuf := FBitBuf shl (8 - FBitCnt);
     FBitBuf := FBitBuf or ((1 shl (8 - FBitCnt)) - 1);
     B := Byte(FBitBuf);
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     if B = $FF then
     begin
       B := $00;
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
     end;
     FBitBuf := 0;
     FBitCnt := 0;
@@ -1143,7 +1164,7 @@ begin
     else
       Read := Remaining;
     ReadBuf(Buf, Read);
-    Data.Write(Buf, Read);
+    CnJPEGWriteExact(Data, Buf, Read);
     Dec(Remaining, Read);
   end;
 end;
@@ -1195,7 +1216,6 @@ FProgressive := False;
   FillChar(FACTableDefined[0], SizeOf(FACTableDefined), 0);
   FBitReader := nil;
 FAdobeTransform := 0;
-FYCbCrTableInit := False;
 end;
 
 destructor TCnJPEGDecoder.Destroy;
@@ -2561,23 +2581,6 @@ begin
   // 已内联在 DecodeMCU 中
 end;
 
-procedure TCnJPEGDecoder.InitYCbCrTable;
-var
-  Cb, Cr: Integer;
-  R, G, B: Integer;
-begin
-  for Cb := 0 to 255 do
-    for Cr := 0 to 255 do
-    begin
-      R := Round(1.402 * (Cr - 128));
-      G := -Round(0.34414 * (Cb - 128)) - Round(0.71414 * (Cr - 128));
-      B := Round(1.772 * (Cb - 128));
-      FYCbCrTable[Cb, Cr] := Cardinal((B and $FF) or
-        ((G and $FF) shl 8) or ((R and $FF) shl 16));
-    end;
-  FYCbCrTableInit := True;
-end;
-
 procedure TCnJPEGDecoder.ApplySmoothing(OutBmp: TBitmap);
 var
   X, Y: Integer;
@@ -2644,9 +2647,6 @@ var
   SegEnd: Int64;
   I: Integer;
 begin
-  // Initialize YCbCr lookup tables for fast color conversion
-  CnJPEGInitYCbCrTables;
-
   FScale := AScale;
   FPerformance := APerformance;
   FSmoothing := ASmoothing;
@@ -2743,10 +2743,6 @@ begin
 
     for I := 0 to 3 do
       FPrevDC[I] := 0;
-
-    // 初始化 YCbCr 查找表
-    if not FYCbCrTableInit then
-      InitYCbCrTable;
 
     // 6. 解码扫描数据
     if FProgressive then
@@ -2895,7 +2891,7 @@ end;
 procedure TCnJPEGEncoder.WriteWord(W: Word);
 begin
   W := UInt16ToBigEndian(W);
-  FStream.Write(W, 2);
+  CnJPEGWriteExact(FStream, W, 2);
 end;
 
 procedure TCnJPEGEncoder.WriteSOI;
@@ -2917,19 +2913,19 @@ begin
   W := 16;  // 段长度
   WriteWord(W);
   Ident := 'JFIF';
-  FStream.Write(Ident[0], 5);  // "JFIF\0"
+  CnJPEGWriteExact(FStream, Ident[0], 5);  // "JFIF\0"
   W := $0101;  // 版本 1.1
   WriteWord(W);
   B := 0;  // 密度单位（无单位）
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   W := 1;  // X 密度
   WriteWord(W);
   W := 1;  // Y 密度
   WriteWord(W);
   B := 0;  // 缩略图宽度
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   B := 0;  // 缩略图高度
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
 end;
 
 procedure TCnJPEGEncoder.WriteDQT;
@@ -2946,12 +2942,12 @@ begin
     W := 2 + 1 + 64;  // 段长度
     WriteWord(W);
     B := T;  // 精度=0 (8bit), 表 ID=T
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     // 按 ZigZag 顺序写入量化表
     for I := 0 to 63 do
     begin
       B := Byte(FQuantTables[T, CN_JPEG_ZIGZAG_ORDER[I]]);
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
     end;
   end;
 end;
@@ -2969,7 +2965,7 @@ begin
     W := 2 + 1 + 2 + 2 + 1 + 3 * 3;  // 3 分量
   WriteWord(W);
   B := 8;  // 样本精度
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   W := FHeight;
   WriteWord(W);
   W := FWidth;
@@ -2977,30 +2973,30 @@ begin
   if FGrayscale then
   begin
     B := 1;  // 分量数
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     B := 1;  // 分量 ID
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     B := $11;  // H=1, V=1
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     B := 0;  // 量化表 ID
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
   end
   else
   begin
     B := 3;  // 分量数
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     // Y
-    B := 1; FStream.Write(B, 1);  // ID
-    B := $22; FStream.Write(B, 1);  // H=2, V=2
-    B := 0; FStream.Write(B, 1);  // 量化表 0
+    B := 1; CnJPEGWriteExact(FStream, B, 1);  // ID
+    B := $22; CnJPEGWriteExact(FStream, B, 1);  // H=2, V=2
+    B := 0; CnJPEGWriteExact(FStream, B, 1);  // 量化表 0
     // Cb
-    B := 2; FStream.Write(B, 1);
-    B := $11; FStream.Write(B, 1);  // H=1, V=1
-    B := 1; FStream.Write(B, 1);  // 量化表 1
+    B := 2; CnJPEGWriteExact(FStream, B, 1);
+    B := $11; CnJPEGWriteExact(FStream, B, 1);  // H=1, V=1
+    B := 1; CnJPEGWriteExact(FStream, B, 1);  // 量化表 1
     // Cr
-    B := 3; FStream.Write(B, 1);
-    B := $11; FStream.Write(B, 1);
-    B := 1; FStream.Write(B, 1);
+    B := 3; CnJPEGWriteExact(FStream, B, 1);
+    B := $11; CnJPEGWriteExact(FStream, B, 1);
+    B := 1; CnJPEGWriteExact(FStream, B, 1);
   end;
 end;
 
@@ -3017,7 +3013,7 @@ begin
     W := 2 + 1 + 2 + 2 + 1 + 3 * 3;  // 3 分量
   WriteWord(W);
   B := 8;  // 样本精度
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   W := FHeight;
   WriteWord(W);
   W := FWidth;
@@ -3025,30 +3021,30 @@ begin
   if FGrayscale then
   begin
     B := 1;  // 分量数
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     B := 1;  // 分量 ID
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     B := $11;  // H=1, V=1
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     B := 0;  // 量化表 ID
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
   end
   else
   begin
     B := 3;  // 分量数
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     // Y
-    B := 1; FStream.Write(B, 1);  // ID
-    B := $22; FStream.Write(B, 1);  // H=2, V=2
-    B := 0; FStream.Write(B, 1);  // 量化表 0
+    B := 1; CnJPEGWriteExact(FStream, B, 1);  // ID
+    B := $22; CnJPEGWriteExact(FStream, B, 1);  // H=2, V=2
+    B := 0; CnJPEGWriteExact(FStream, B, 1);  // 量化表 0
     // Cb
-    B := 2; FStream.Write(B, 1);
-    B := $11; FStream.Write(B, 1);  // H=1, V=1
-    B := 1; FStream.Write(B, 1);  // 量化表 1
+    B := 2; CnJPEGWriteExact(FStream, B, 1);
+    B := $11; CnJPEGWriteExact(FStream, B, 1);  // H=1, V=1
+    B := 1; CnJPEGWriteExact(FStream, B, 1);  // 量化表 1
     // Cr
-    B := 3; FStream.Write(B, 1);
-    B := $11; FStream.Write(B, 1);
-    B := 1; FStream.Write(B, 1);
+    B := 3; CnJPEGWriteExact(FStream, B, 1);
+    B := $11; CnJPEGWriteExact(FStream, B, 1);
+    B := 1; CnJPEGWriteExact(FStream, B, 1);
   end;
 end;
 
@@ -3070,16 +3066,16 @@ begin
     W := 2 + 1 + 16 + Total;
     WriteWord(W);
     B := T;  // DC 表, ID=T
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     for I := 1 to 16 do
     begin
       B := FDCTables[T].Bits[I];
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
     end;
     for I := 0 to Total - 1 do
     begin
       B := FDCTables[T].HuffVal[I];
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
     end;
 
     // AC 表
@@ -3091,16 +3087,16 @@ begin
     W := 2 + 1 + 16 + Total;
     WriteWord(W);
     B := $10 or T;  // AC 表, ID=T
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     for I := 1 to 16 do
     begin
       B := FACTables[T].Bits[I];
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
     end;
     for I := 0 to Total - 1 do
     begin
       B := FACTables[T].HuffVal[I];
-      FStream.Write(B, 1);
+      CnJPEGWriteExact(FStream, B, 1);
     end;
 
     if FGrayscale and (T = 0) then Break;  // 灰度只需一套表
@@ -3122,21 +3118,21 @@ begin
 
   if FGrayscale then
   begin
-    B := 1; FStream.Write(B, 1);  // 分量数
-    B := 1; FStream.Write(B, 1);  // 分量 ID
-    B := $00; FStream.Write(B, 1);  // DC=0, AC=0
+    B := 1; CnJPEGWriteExact(FStream, B, 1);  // 分量数
+    B := 1; CnJPEGWriteExact(FStream, B, 1);  // 分量 ID
+    B := $00; CnJPEGWriteExact(FStream, B, 1);  // DC=0, AC=0
   end
   else
   begin
-    B := 3; FStream.Write(B, 1);  // 分量数
-    B := 1; FStream.Write(B, 1); B := $00; FStream.Write(B, 1);  // Y: DC=0, AC=0
-    B := 2; FStream.Write(B, 1); B := $11; FStream.Write(B, 1);  // Cb: DC=1, AC=1
-    B := 3; FStream.Write(B, 1); B := $11; FStream.Write(B, 1);  // Cr: DC=1, AC=1
+    B := 3; CnJPEGWriteExact(FStream, B, 1);  // 分量数
+    B := 1; CnJPEGWriteExact(FStream, B, 1); B := $00; CnJPEGWriteExact(FStream, B, 1);  // Y: DC=0, AC=0
+    B := 2; CnJPEGWriteExact(FStream, B, 1); B := $11; CnJPEGWriteExact(FStream, B, 1);  // Cb: DC=1, AC=1
+    B := 3; CnJPEGWriteExact(FStream, B, 1); B := $11; CnJPEGWriteExact(FStream, B, 1);  // Cr: DC=1, AC=1
   end;
 
-  B := 0; FStream.Write(B, 1);  // Ss
-  B := 63; FStream.Write(B, 1);  // Se
-  B := 0; FStream.Write(B, 1);  // Ah=0, Al=0
+  B := 0; CnJPEGWriteExact(FStream, B, 1);  // Ss
+  B := 63; CnJPEGWriteExact(FStream, B, 1);  // Se
+  B := 0; CnJPEGWriteExact(FStream, B, 1);  // Ah=0, Al=0
 end;
 
 procedure TCnJPEGEncoder.WriteEOI;
@@ -3158,17 +3154,17 @@ begin
   W := 2 + 1 + 1 * 2 + 3;
   WriteWord(W);
   B := 1;
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   B := CompIdx + 1;
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   DCTbl := CompIdx;
   if DCTbl > 1 then DCTbl := 1;
   ACTbl := DCTbl;
   B := (DCTbl shl 4) or ACTbl;
-  FStream.Write(B, 1);
-  B := Ss; FStream.Write(B, 1);
-  B := Se; FStream.Write(B, 1);
-  B := (Ah shl 4) or Al; FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
+  B := Ss; CnJPEGWriteExact(FStream, B, 1);
+  B := Se; CnJPEGWriteExact(FStream, B, 1);
+  B := (Ah shl 4) or Al; CnJPEGWriteExact(FStream, B, 1);
 end;
 
 procedure TCnJPEGEncoder.WriteSOSProgressive(Ss, Se, Ah, Al: Byte;
@@ -3184,21 +3180,21 @@ begin
   W := 2 + 1 + NumComps * 2 + 3;
   WriteWord(W);
   B := NumComps;
-  FStream.Write(B, 1);
+  CnJPEGWriteExact(FStream, B, 1);
   for I := 0 to NumComps - 1 do
   begin
     CompIdx := CompList[I];
     B := CompIdx + 1;
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
     DCTbl := CompIdx;
     if DCTbl > 1 then DCTbl := 1;
     ACTbl := DCTbl;
     B := (DCTbl shl 4) or ACTbl;
-    FStream.Write(B, 1);
+    CnJPEGWriteExact(FStream, B, 1);
   end;
-  B := Ss; FStream.Write(B, 1);
-  B := Se; FStream.Write(B, 1);
-  B := (Ah shl 4) or Al; FStream.Write(B, 1);
+  B := Ss; CnJPEGWriteExact(FStream, B, 1);
+  B := Se; CnJPEGWriteExact(FStream, B, 1);
+  B := (Ah shl 4) or Al; CnJPEGWriteExact(FStream, B, 1);
 end;
 
 function TCnJPEGEncoder.GetEncCoefBlockPtr(CompIdx, BlockX,
@@ -4157,13 +4153,20 @@ begin
 end;
 
 procedure TCnJPEGData.SaveToStream(Stream: TStream);
+var
+  Buf: array[0..4095] of Byte;
+  Count: Integer;
 begin
   FData.Position := 0;
-  Stream.CopyFrom(FData, 0);
+  repeat
+    Count := FData.Read(Buf, SizeOf(Buf));
+    if Count > 0 then
+      CnJPEGWriteExact(Stream, Buf, Count);
+  until Count = 0;
 end;
-
 procedure TCnJPEGData.Assign(Source: TPersistent);
 begin
+  if Source = Self then Exit;
   if Source is TCnJPEGData then
   begin
     FData.Clear;
@@ -4181,13 +4184,12 @@ end;
 
 procedure TCnJPEGData.AddRef;
 begin
-  Inc(FRefCount);
+  InterlockedIncrement(FRefCount);
 end;
 
 procedure TCnJPEGData.Release;
 begin
-  Dec(FRefCount);
-  if FRefCount <= 0 then
+  if InterlockedDecrement(FRefCount) = 0 then
     Free;
 end;
 
@@ -4492,20 +4494,20 @@ end;
 
 function TCnJPEGImage.GetHeight: Integer;
 begin
-  if FData <> nil then
-    Result := FData.Height
-  else if FBitmap <> nil then
+  if FBitmap <> nil then
     Result := FBitmap.Height
+  else if FData <> nil then
+    Result := CnJPEGScaledDimension(FData.Height, FScale)
   else
     Result := 0;
 end;
 
 function TCnJPEGImage.GetWidth: Integer;
 begin
-  if FData <> nil then
-    Result := FData.Width
-  else if FBitmap <> nil then
+  if FBitmap <> nil then
     Result := FBitmap.Width
+  else if FData <> nil then
+    Result := CnJPEGScaledDimension(FData.Width, FScale)
   else
     Result := 0;
 end;
@@ -4617,6 +4619,7 @@ end;
 
 procedure TCnJPEGImage.Assign(Source: TPersistent);
 begin
+  if Source = Self then Exit;
   if Source = nil then
     Clear
   else if Source is TCnJPEGImage then
@@ -4801,7 +4804,7 @@ begin
     Size := GlobalSize(AData);
     Stream := TMemoryStream.Create;
     try
-      Stream.Write(Ptr^, Size);
+      CnJPEGWriteExact(Stream, Ptr^, Size);
       Stream.Position := 0;
       LoadFromStream(Stream);
     finally
@@ -4901,6 +4904,7 @@ begin
 end;
 
 initialization
+  CnJPEGInitYCbCrTables;
   RegisterCnJPEG;
 
 finalization

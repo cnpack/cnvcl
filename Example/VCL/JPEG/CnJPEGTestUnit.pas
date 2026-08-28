@@ -2574,6 +2574,54 @@ begin
 end;
 
 type
+  TShortWriteStream = class(TStream)
+  private
+    FData: TMemoryStream;
+    FMaxWrite: Integer;
+  public
+    constructor Create(AMaxWrite: Integer);
+    destructor Destroy; override;
+    function Read(var Buffer; Count: Longint): Longint; override;
+    function Write(const Buffer; Count: Longint): Longint; override;
+    function Seek(Offset: Longint; Origin: Word): Longint; override;
+  end;
+
+constructor TShortWriteStream.Create(AMaxWrite: Integer);
+begin
+  inherited Create;
+  FData := TMemoryStream.Create;
+  FMaxWrite := AMaxWrite;
+end;
+
+destructor TShortWriteStream.Destroy;
+begin
+  FData.Free;
+  inherited Destroy;
+end;
+
+function TShortWriteStream.Read(var Buffer; Count: Longint): Longint;
+begin
+  Result := FData.Read(Buffer, Count);
+end;
+
+function TShortWriteStream.Write(const Buffer; Count: Longint): Longint;
+begin
+  if FMaxWrite <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  if Count > FMaxWrite then
+    Count := FMaxWrite;
+  Result := FData.Write(Buffer, Count);
+end;
+
+function TShortWriteStream.Seek(Offset: Longint; Origin: Word): Longint;
+begin
+  Result := FData.Seek(Offset, Origin);
+end;
+
+type
   TRobustnessTests = class
     class procedure TestSamplingFactorsRejected;
     class procedure TestProgressiveCoefficientOverflowRejected;
@@ -2588,6 +2636,10 @@ type
     class procedure TestLoadedQualityCanSave;
     class procedure TestPixelFormatRestored;
     class procedure TestMissingSOFRejected;
+    class procedure TestDecoderFootprint;
+    class procedure TestDimensionContract;
+    class procedure TestShortWrites;
+    class procedure TestSelfAssignAndSharedLifetime;
   end;
 
 class procedure TRobustnessTests.TestSamplingFactorsRejected;
@@ -2881,6 +2933,127 @@ begin
   end;
 end;
 
+class procedure TRobustnessTests.TestDecoderFootprint;
+begin
+  AssertTrue(TCnJPEGDecoder.InstanceSize < 64 * 1024,
+    'decoder instance must not contain the unused 256 KiB YCbCr table');
+end;
+
+class procedure TRobustnessTests.TestDimensionContract;
+var
+  Bmp: TBitmap;
+  SourceJPEG, LoadedJPEG: TCnJPEGImage;
+  MS: TMemoryStream;
+begin
+  Bmp := TBitmap.Create;
+  SourceJPEG := TCnJPEGImage.Create;
+  LoadedJPEG := TCnJPEGImage.Create;
+  MS := TMemoryStream.Create;
+  try
+    Bmp.HandleType := bmDIB;
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 17;
+    Bmp.Height := 9;
+    Bmp.Canvas.Brush.Color := clLime;
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 17, 9));
+    SourceJPEG.Assign(Bmp);
+    AssertEqual(17, SourceJPEG.Width, 'assigned bitmap width before compression');
+    AssertEqual(9, SourceJPEG.Height, 'assigned bitmap height before compression');
+    SourceJPEG.SaveToStream(MS);
+
+    MS.Position := 0;
+    LoadedJPEG.LoadFromStream(MS);
+    LoadedJPEG.Scale := jsQuarter;
+    AssertEqual(5, LoadedJPEG.Width, 'scaled width before DIB decode');
+    AssertEqual(3, LoadedJPEG.Height, 'scaled height before DIB decode');
+    LoadedJPEG.DIBNeeded;
+    AssertEqual(LoadedJPEG.Bitmap.Width, LoadedJPEG.Width,
+      'Width must match decoded bitmap width');
+    AssertEqual(LoadedJPEG.Bitmap.Height, LoadedJPEG.Height,
+      'Height must match decoded bitmap height');
+  finally
+    MS.Free;
+    LoadedJPEG.Free;
+    SourceJPEG.Free;
+    Bmp.Free;
+  end;
+end;
+
+class procedure TRobustnessTests.TestShortWrites;
+var
+  Data: TBytes;
+  JPEG: TCnJPEGImage;
+  LoadMS: TMemoryStream;
+  PartialStream, FailingStream: TShortWriteStream;
+  Failed: Boolean;
+begin
+  Data := EncodeRobustnessJPEG(False);
+  JPEG := TCnJPEGImage.Create;
+  LoadMS := TMemoryStream.Create;
+  PartialStream := TShortWriteStream.Create(3);
+  FailingStream := TShortWriteStream.Create(0);
+  try
+    AssertTrue(Length(Data) > 0, 'source JPEG data must exist');
+    LoadMS.WriteBuffer(Data[0], Length(Data));
+    LoadMS.Position := 0;
+    JPEG.LoadFromStream(LoadMS);
+
+    JPEG.SaveToStream(PartialStream);
+    AssertTrue(PartialStream.Size = Length(Data),
+      'partial writes must be retried until complete');
+
+    Failed := False;
+    try
+      JPEG.SaveToStream(FailingStream);
+    except
+      Failed := True;
+    end;
+    AssertTrue(Failed, 'zero-length write must raise an exception');
+  finally
+    FailingStream.Free;
+    PartialStream.Free;
+    LoadMS.Free;
+    JPEG.Free;
+  end;
+end;
+
+class procedure TRobustnessTests.TestSelfAssignAndSharedLifetime;
+var
+  Bmp: TBitmap;
+  JPEG1, JPEG2: TCnJPEGImage;
+  MS: TMemoryStream;
+begin
+  Bmp := TBitmap.Create;
+  JPEG1 := TCnJPEGImage.Create;
+  JPEG2 := TCnJPEGImage.Create;
+  MS := TMemoryStream.Create;
+  try
+    Bmp.HandleType := bmDIB;
+    Bmp.PixelFormat := pf24bit;
+    Bmp.Width := 11;
+    Bmp.Height := 7;
+    Bmp.Canvas.Brush.Color := clRed;
+    Bmp.Canvas.FillRect(MakeRect(0, 0, 11, 7));
+    JPEG1.Assign(Bmp);
+    JPEG1.Compress;
+    JPEG1.Assign(JPEG1);
+    JPEG1.NewJPEG.Assign(JPEG1.NewJPEG);
+    JPEG2.Assign(JPEG1);
+    JPEG1.Free;
+    JPEG1 := nil;
+    JPEG2.DIBNeeded;
+    AssertEqual(11, JPEG2.Width, 'shared JPEG width after source release');
+    AssertEqual(7, JPEG2.Height, 'shared JPEG height after source release');
+    JPEG2.SaveToStream(MS);
+    AssertTrue(MS.Size > 0, 'shared JPEG data must remain valid');
+  finally
+    MS.Free;
+    JPEG2.Free;
+    JPEG1.Free;
+    Bmp.Free;
+  end;
+end;
+
 //============================================================================
 // Register all tests
 //============================================================================
@@ -2969,5 +3142,11 @@ initialization
   RegisterTest('P1_LoadedQualitySave', 'Save loaded JPEG after quality change', TRobustnessTests.TestLoadedQualityCanSave);
   RegisterTest('P1_PixelFormatRestore', 'Restore source bitmap pixel format', TRobustnessTests.TestPixelFormatRestored);
   RegisterTest('P1_MissingSOF', 'Reject JPEG without SOF', TRobustnessTests.TestMissingSOFRejected);
+
+  // P2: API and robustness regressions
+  RegisterTest('P2_DecoderFootprint', 'Decoder does not embed unused YCbCr table', TRobustnessTests.TestDecoderFootprint);
+  RegisterTest('P2_Dimensions', 'Width/Height follow bitmap and scale contract', TRobustnessTests.TestDimensionContract);
+  RegisterTest('P2_ShortWrites', 'Retry partial writes and reject zero writes', TRobustnessTests.TestShortWrites);
+  RegisterTest('P2_RefCountAssign', 'Self-assign and shared JPEG lifetime', TRobustnessTests.TestSelfAssignAndSharedLifetime);
 
 end.
