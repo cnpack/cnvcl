@@ -19,6 +19,11 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
+    <RequiredPackages>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+    </RequiredPackages>
     <Units>
       <Unit>
         <Filename Value="GIF.lpr"/>

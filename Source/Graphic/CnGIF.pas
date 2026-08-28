@@ -135,6 +135,7 @@ type
     procedure EnsureRendered(FrameIdx: Integer);
 
     // 流辅助
+    procedure ReadExact(Stream: TStream; var Buffer; Count: Integer);
     function  ReadByte(Stream: TStream): Byte;
     function  ReadWord(Stream: TStream): Word;
     procedure WriteByte(Stream: TStream; B: Byte);
@@ -221,6 +222,13 @@ procedure UnregisterCnGIF;
 
 implementation
 
+resourcestring
+  SCnGIFInvalidImageSize = 'Invalid GIF Image Size';
+  SCnGIFInvalidDataSize = 'Invalid GIF Data Size';
+  SCnGIFUnexpectedEndOfStream = 'Unexpected End of GIF Stream';
+  SCnGIFInvalidSignature = 'Invalid GIF Signature';
+  SCnGIFInvalidLZWMinCodeSize = 'Invalid GIF LZW Minimum Code Size';
+
 const
   GIF87a: array[0..5] of AnsiChar = 'GIF87a';
   GIF89a: array[0..5] of AnsiChar = 'GIF89a';
@@ -282,6 +290,30 @@ type
 
 {$R-}
 
+function GIFSafeMultiply(A, B: Integer): Integer;
+begin
+  if (A < 0) or (B < 0) or
+     ((A <> 0) and (B > MaxInt div A)) then
+    raise Exception.Create(SCnGIFInvalidImageSize);
+  Result := A * B;
+end;
+
+function GIFPixelCount(W, H: Integer): Integer;
+begin
+  Result := GIFSafeMultiply(W, H);
+end;
+
+function GIFQuadBufferSize(W, H: Integer): Integer;
+begin
+  Result := GIFSafeMultiply(GIFPixelCount(W, H), 4);
+end;
+
+procedure GIFValidateLZWMinCodeSize(MinCodeSize: Integer);
+begin
+  if (MinCodeSize < 2) or (MinCodeSize > 8) then
+    raise Exception.Create(SCnGIFInvalidLZWMinCodeSize);
+end;
+
 //==============================================================================
 // TCnGIFFrame
 //==============================================================================
@@ -303,6 +335,8 @@ end;
 
 procedure TCnGIFFrame.AllocatePixels(Count: Integer);
 begin
+  if Count < 0 then
+    raise Exception.Create(SCnGIFInvalidImageSize);
   if FPixels <> nil then
     FreeMem(FPixels);
   FPixelCount := Count;
@@ -377,7 +411,7 @@ procedure TCnGIFImage.EnsureComposite(W, H: Integer);
 var
   Sz: Integer;
 begin
-  Sz := W * H * 4;
+  Sz := GIFQuadBufferSize(W, H);
   if (FCompWidth >= W) and (FCompHeight >= H) then
   begin
     FillChar(FCompositeBuf^, Sz, 0);
@@ -433,14 +467,32 @@ end;
 // 流辅助
 //==============================================================================
 
+procedure TCnGIFImage.ReadExact(Stream: TStream; var Buffer; Count: Integer);
+var
+  P: PByte;
+  N: Integer;
+begin
+  if Count < 0 then
+    raise Exception.Create(SCnGIFInvalidDataSize);
+  P := @Buffer;
+  while Count > 0 do
+  begin
+    N := Stream.Read(P^, Count);
+    if N <= 0 then
+      raise Exception.Create(SCnGIFUnexpectedEndOfStream);
+    Inc(P, N);
+    Dec(Count, N);
+  end;
+end;
+
 function TCnGIFImage.ReadByte(Stream: TStream): Byte;
 begin
-  Stream.Read(Result, 1);
+  ReadExact(Stream, Result, 1);
 end;
 
 function TCnGIFImage.ReadWord(Stream: TStream): Word;
 begin
-  Stream.Read(Result, 2);
+  ReadExact(Stream, Result, 2);
 end;
 
 procedure TCnGIFImage.WriteByte(Stream: TStream; B: Byte);
@@ -463,32 +515,35 @@ var
   I: Integer;
 begin
   for I := 0 to Count - 1 do
-    Stream.Read(Palette[I], 3);
+    ReadExact(Stream, Palette[I], 3);
 end;
 
 procedure TCnGIFImage.ReadSubBlocks(Stream: TStream; Data: TStream);
 var
   Sz: Byte;
+  Buf: array[0..254] of Byte;
 begin
   while True do
   begin
     Sz := ReadByte(Stream);
     if Sz = 0 then
       Break;
-    Data.CopyFrom(Stream, Sz);
+    ReadExact(Stream, Buf, Sz);
+    Data.WriteBuffer(Buf, Sz);
   end;
 end;
 
 procedure TCnGIFImage.SkipSubBlocks(Stream: TStream);
 var
   Sz: Byte;
+  Buf: array[0..254] of Byte;
 begin
   while True do
   begin
     Sz := ReadByte(Stream);
     if Sz = 0 then
       Break;
-    Stream.Seek(Sz, soFromCurrent);
+    ReadExact(Stream, Buf, Sz);
   end;
 end;
 
@@ -528,7 +583,7 @@ begin
     SkipSubBlocks(Stream);
     Exit;
   end;
-  Stream.Read(AppId, 11);
+  ReadExact(Stream, AppId, 11);
 
   // NETSCAPE 2.0
   if (AppId[0] = 'N') and (AppId[1] = 'E') and (AppId[2] = 'T') and
@@ -564,13 +619,14 @@ var
   PalSize: Integer;
   Pkd: Byte;
   Temp: TMemoryStream;
+  PixelCount: Integer;
 begin
   Clear;
 
   // Header
-  Stream.Read(FHeader, 6);
+  ReadExact(Stream, FHeader, 6);
   if (FHeader <> GIF87a) and (FHeader <> GIF89a) then
-    raise Exception.Create('Invalid GIF Signature');
+    raise Exception.Create(SCnGIFInvalidSignature);
 
   // Logical Screen Descriptor
   FLogicalScreenWidth := ReadWord(Stream);
@@ -612,57 +668,67 @@ begin
       GIF_IMAGE_DESCRIPTOR:
         begin
           Frame := TCnGIFFrame.Create;
-
-          // 应用待定 GCE
-          if FHasPendingGCE then
-          begin
-            Frame.FDelay := FPendingDelay;
-            Frame.FDisposal := FPendingDisposal;
-            Frame.FTransparentIndex := FPendingTransparent;
-            FHasPendingGCE := False;
-          end;
-
-          Frame.FLeft   := ReadWord(Stream);
-          Frame.FTop    := ReadWord(Stream);
-          Frame.FWidth  := ReadWord(Stream);
-          Frame.FHeight := ReadWord(Stream);
-
-          B := ReadByte(Stream);
-          Frame.FInterlaced := (B and $40) <> 0;
-          if (B and $80) <> 0 then
-          begin
-            Frame.FHasLocalPalette := True;
-            PalSize := 1 shl ((B and $07) + 1);
-            SetLength(Frame.FLocalPalette, PalSize);
-            ReadColorTable(Stream, Frame.FLocalPalette, PalSize);
-          end;
-
-          LZWCodeSize := ReadByte(Stream);
-
-          // 读取 LZW 子块数据
-          Frame.FRawData.Size := 0;
-          ReadSubBlocks(Stream, Frame.FRawData);
-
-          // LZW 解码
-          Temp := TMemoryStream.Create;
           try
-            DecodeLZW(Frame.FRawData.Memory, Frame.FRawData.Size,
-                      Temp, LZWCodeSize, Frame.FWidth * Frame.FHeight);
 
-            Frame.AllocatePixels(Frame.FWidth * Frame.FHeight);
-            if Temp.Size > 0 then
-              if Temp.Size < Frame.FWidth * Frame.FHeight then
-                Move(Temp.Memory^, Frame.FPixels^, Temp.Size)
-              else
-                Move(Temp.Memory^, Frame.FPixels^, Frame.FWidth * Frame.FHeight);
+            // 应用待定 GCE
+            if FHasPendingGCE then
+            begin
+              Frame.FDelay := FPendingDelay;
+              Frame.FDisposal := FPendingDisposal;
+              Frame.FTransparentIndex := FPendingTransparent;
+              FHasPendingGCE := False;
+            end;
 
-            if Frame.FInterlaced then
-              Deinterlace(Frame);
+            Frame.FLeft   := ReadWord(Stream);
+            Frame.FTop    := ReadWord(Stream);
+            Frame.FWidth  := ReadWord(Stream);
+            Frame.FHeight := ReadWord(Stream);
+
+            B := ReadByte(Stream);
+            Frame.FInterlaced := (B and $40) <> 0;
+            if (B and $80) <> 0 then
+            begin
+              Frame.FHasLocalPalette := True;
+              PalSize := 1 shl ((B and $07) + 1);
+              SetLength(Frame.FLocalPalette, PalSize);
+              ReadColorTable(Stream, Frame.FLocalPalette, PalSize);
+            end;
+
+            LZWCodeSize := ReadByte(Stream);
+            GIFValidateLZWMinCodeSize(LZWCodeSize);
+
+            // 读取 LZW 子块数据
+            Frame.FRawData.Size := 0;
+            ReadSubBlocks(Stream, Frame.FRawData);
+            if Frame.FRawData.Size > MaxInt then
+              raise Exception.Create(SCnGIFInvalidDataSize);
+
+            PixelCount := GIFPixelCount(Frame.FWidth, Frame.FHeight);
+
+            // LZW 解码
+            Temp := TMemoryStream.Create;
+            try
+              DecodeLZW(Frame.FRawData.Memory, Frame.FRawData.Size,
+                        Temp, LZWCodeSize, PixelCount);
+
+              Frame.AllocatePixels(PixelCount);
+              if Temp.Size > 0 then
+                if Temp.Size < PixelCount then
+                  Move(Temp.Memory^, Frame.FPixels^, Temp.Size)
+                else
+                  Move(Temp.Memory^, Frame.FPixels^, PixelCount);
+
+              if Frame.FInterlaced then
+                Deinterlace(Frame);
+            finally
+              Temp.Free;
+            end;
+
+            FFrames.Add(Frame);
+            Frame := nil;
           finally
-            Temp.Free;
+            Frame.Free;
           end;
-
-          FFrames.Add(Frame);
         end;
 
       GIF_TRAILER:
@@ -721,6 +787,7 @@ var
   end;
 
 begin
+  GIFValidateLZWMinCodeSize(MinCodeSize);
   if PixelCount <= 0 then
     Exit;
 
@@ -848,15 +915,17 @@ var
   H: Integer;
   SrcRow: Integer;
   DstRow: Integer;
+  PixelCount: Integer;
 begin
   H := Frame.FHeight;
   RowSize := Frame.FWidth;
   if (H <= 1) or (RowSize <= 0) then
     Exit;
 
-  GetMem(Src, H * RowSize);
+  PixelCount := GIFPixelCount(RowSize, H);
+  GetMem(Src, PixelCount);
   try
-    Move(Frame.FPixels^, Src^, H * RowSize);
+    Move(Frame.FPixels^, Src^, PixelCount);
     Dst := Frame.FPixels;
     SrcRow := 0;
 
@@ -961,7 +1030,7 @@ var
   Pix: PByteArray;
   BufW: Integer;
   SavedArea: PByteArray;
-  SavedW, SavedH, ClearWidth: Integer;
+  SavedW, SavedH, SavedSize, ClearWidth: Integer;
 begin
   if (FLogicalScreenWidth <= 0) or (FLogicalScreenHeight <= 0) then
     Exit;
@@ -1072,8 +1141,9 @@ begin
     begin
       SavedW := Frame.FWidth;
       SavedH := Frame.FHeight;
+      SavedSize := GIFQuadBufferSize(SavedW, SavedH);
       if SavedArea <> nil then FreeMem(SavedArea);
-      GetMem(SavedArea, SavedW * SavedH * 4);
+      GetMem(SavedArea, SavedSize);
       for Y := 0 to SavedH - 1 do
       begin
         if (Frame.FTop + Y >= FLogicalScreenHeight) then Break;
@@ -1128,6 +1198,8 @@ end;
 //==============================================================================
 
 procedure TCnGIFImage.EnsureRendered(FrameIdx: Integer);
+var
+  BufSize: Integer;
 begin
   if (FrameIdx < 0) or (FrameIdx >= FFrames.Count) then
     Exit;
@@ -1142,7 +1214,8 @@ begin
   EnsureDIB(FCompWidth, FCompHeight);
   if (FDIB = 0) or (FDIBBits = nil) then Exit;
 
-  Move(FCompositeBuf^, FDIBBits^, FCompWidth * FCompHeight * 4);
+  BufSize := GIFQuadBufferSize(FCompWidth, FCompHeight);
+  Move(FCompositeBuf^, FDIBBits^, BufSize);
 
   FRenderedFrame := FrameIdx;
 end;
@@ -1280,6 +1353,7 @@ var
   PalSz: Integer;
   SrcStm: TMemoryStream;
   InterBuf: PByteArray;
+  PixelCount: Integer;
 begin
   if FFrames.Count = 0 then
     Exit;
@@ -1327,6 +1401,7 @@ begin
   for I := 0 to FFrames.Count - 1 do
   begin
     Frame := TCnGIFFrame(FFrames[I]);
+    PixelCount := GIFPixelCount(Frame.FWidth, Frame.FHeight);
 
     // Graphic Control Extension (需要时)
     if (Frame.FDelay > 0) or (Frame.FTransparentIndex >= 0) or
@@ -1398,17 +1473,17 @@ begin
       try
         if Frame.FInterlaced then
         begin
-          GetMem(InterBuf, Frame.FWidth * Frame.FHeight);
+          GetMem(InterBuf, PixelCount);
           try
             InterlacePixels(Frame, InterBuf);
-            EncodeLZW(InterBuf, Frame.FWidth * Frame.FHeight,
+            EncodeLZW(InterBuf, PixelCount,
                       SrcStm, MinCodeSize);
           finally
             FreeMem(InterBuf);
           end;
         end
         else
-        EncodeLZW(Frame.FPixels, Frame.FWidth * Frame.FHeight,
+        EncodeLZW(Frame.FPixels, PixelCount,
                   SrcStm, MinCodeSize);
         EmitSubBlocks(Stream, SrcStm.Memory, SrcStm.Size);
       finally
@@ -1530,6 +1605,7 @@ var
   end;
 
 begin
+  GIFValidateLZWMinCodeSize(MinCodeSize);
   if InSize <= 0 then
     Exit;
 
@@ -2042,9 +2118,10 @@ procedure TCnGIFImage.WriteSingleFrameGIF(Stream: TStream; W, H: Integer;
   const Palette: TCnGIFColors; Indices: PByteArray);
 var
   Pkd: Byte;
-  PalSz, P, I, MinCodeSize: Integer;
+  PalSz, P, I, MinCodeSize, PixelCount: Integer;
   EncStm: TMemoryStream;
 begin
+  PixelCount := GIFPixelCount(W, H);
   PalSz := Length(Palette);
   if PalSz < 2 then PalSz := 2;
 
@@ -2099,7 +2176,7 @@ begin
   // LZW 编码并以子块写入
   EncStm := TMemoryStream.Create;
   try
-    EncodeLZW(Indices, W * H, EncStm, MinCodeSize);
+    EncodeLZW(Indices, PixelCount, EncStm, MinCodeSize);
     EmitSubBlocks(Stream, EncStm.Memory, EncStm.Size);
   finally
     EncStm.Free;
@@ -2115,6 +2192,7 @@ var
   W, H: Integer;
   Palette: TCnGIFColors;
   IdxBuf: PByteArray;
+  PixelCount: Integer;
 begin
   if (Src = nil) or Src.Empty then
     Exit;
@@ -2141,7 +2219,8 @@ begin
     if (W <= 0) or (H <= 0) then
       Exit;
 
-    GetMem(IdxBuf, W * H);
+    PixelCount := GIFPixelCount(W, H);
+    GetMem(IdxBuf, PixelCount);
     try
       QuantizeBitmap(Bmp, Palette, IdxBuf);
       if Length(Palette) = 0 then
@@ -2174,6 +2253,7 @@ var
   Palette: TCnGIFColors;
   Pkd: Byte;
   EncStm: TMemoryStream;
+  PixelCount: Integer;
 begin
   if GetEmpty then
     Exit;
@@ -2185,6 +2265,7 @@ begin
   H := Frame.FHeight;
   if (W <= 0) or (H <= 0) then
     Exit;
+  PixelCount := GIFPixelCount(W, H);
 
   // 使用帧的原始调色板（局部优先，否则全局）
   if Frame.FHasLocalPalette then
@@ -2273,7 +2354,7 @@ begin
   begin
     EncStm := TMemoryStream.Create;
     try
-      EncodeLZW(Frame.FPixels, W * H, EncStm, MinCodeSize);
+      EncodeLZW(Frame.FPixels, PixelCount, EncStm, MinCodeSize);
       EmitSubBlocks(Stream, EncStm.Memory, EncStm.Size);
     finally
       EncStm.Free;
@@ -2301,6 +2382,7 @@ var
   W, H: Integer;
   Palette: TCnGIFColors;
   IdxBuf: PByteArray;
+  PixelCount: Integer;
 begin
   if GetEmpty then
     Exit;
@@ -2314,8 +2396,9 @@ begin
 
   W := FCompWidth;
   H := FCompHeight;
+  PixelCount := GIFPixelCount(W, H);
 
-  GetMem(IdxBuf, W * H);
+  GetMem(IdxBuf, PixelCount);
   try
     QuantizeComposite(Palette, IdxBuf);
     if Length(Palette) = 0 then
