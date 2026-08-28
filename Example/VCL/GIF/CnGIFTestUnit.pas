@@ -151,9 +151,10 @@ type
       SortFlag: Boolean; GCTBits: Byte; BgIdx: Byte; Aspect: Byte);
     procedure WriteColorTable(const Pal: TCnGIFColors; Bits: Byte);
     procedure WriteGCE(Disposal: Byte; HasTrans: Boolean; Delay: Word;
-      TransIdx: Byte; BlockSz: Byte = 4); overload;
+      TransIdx: Byte; BlockSz: Byte = 4; UserInput: Boolean = False); overload;
     procedure WriteGCEWithExtra(Disposal: Byte; HasTrans: Boolean; Delay: Word;
       TransIdx: Byte; BlockSz: Byte; const Extra: array of Byte);
+    procedure WritePlainTextExt(const Text: AnsiString);
     procedure WriteNetscapeExt(LoopCount: Word; SubBlockSize: Byte = 3;
       SubBlockId: Byte = 1; WriteTrailerZero: Boolean = True);
     procedure WriteImageDesc(Left, Top, W, H: Word; HasLCT: Boolean;
@@ -256,7 +257,7 @@ begin
 end;
 
 procedure TGIFStreamBuilder.WriteGCE(Disposal: Byte; HasTrans: Boolean;
-  Delay: Word; TransIdx: Byte; BlockSz: Byte);
+  Delay: Word; TransIdx: Byte; BlockSz: Byte; UserInput: Boolean);
 var
   Pkd: Byte;
 begin
@@ -264,11 +265,34 @@ begin
   WriteByte(GIF_EXT_GRAPHIC_CTRL);
   WriteByte(BlockSz);
   Pkd := (Disposal and $07) shl 2;
+  if UserInput then Pkd := Pkd or $02;
   if HasTrans then Pkd := Pkd or $01;
   WriteByte(Pkd);
   WriteWord(Delay);
   WriteByte(TransIdx);
   WriteByte(0);  // block terminator
+end;
+
+procedure TGIFStreamBuilder.WritePlainTextExt(const Text: AnsiString);
+var
+  I, Chunk: Integer;
+begin
+  WriteByte(GIF_EXT_INTRODUCER);
+  WriteByte(GIF_EXT_PLAIN_TEXT);
+  WriteByte(12);
+  for I := 1 to 12 do
+    WriteByte(0);
+  I := 1;
+  while I <= Length(Text) do
+  begin
+    Chunk := Length(Text) - I + 1;
+    if Chunk > 255 then
+      Chunk := 255;
+    WriteByte(Chunk);
+    FStream.Write(Text[I], Chunk);
+    Inc(I, Chunk);
+  end;
+  WriteByte(0);
 end;
 
 procedure TGIFStreamBuilder.WriteGCEWithExtra(Disposal: Byte;
@@ -536,6 +560,7 @@ type
     LCTBits: Byte;
     HasGCE: Boolean;
     GCEDisposal: Byte;
+    GCEUserInput: Boolean;
     GCEHasTrans: Boolean;
     GCEDelay: Word;
     GCETransIdx: Byte;
@@ -569,6 +594,7 @@ var
   Frame: TGIFFrameInfo;
   HasPendingGCE: Boolean;
   PendingDisposal: Byte;
+  PendingUserInput: Boolean;
   PendingHasTrans: Boolean;
   PendingDelay: Word;
   PendingTransIdx: Byte;
@@ -620,6 +646,7 @@ begin
   HasPendingGCE := False;
   PendingBlockSz := 0;
   PendingDisposal := 0;
+  PendingUserInput := False;
   PendingHasTrans := False;
   PendingDelay := 0;
   PendingTransIdx := 0;
@@ -648,6 +675,7 @@ begin
             S.Seek(BlkSz - 4, soFromCurrent);
           S.Read(SubB, 1);  // terminator
           PendingDisposal := (Pkd and $1C) shr 2;
+          PendingUserInput := (Pkd and $02) <> 0;
           PendingHasTrans := (Pkd and $01) <> 0;
           HasPendingGCE := True;
         end;
@@ -707,6 +735,19 @@ begin
             end;
           end;
         end;
+        GIF_EXT_PLAIN_TEXT:
+      begin
+        S.Read(BlkSz, 1);
+        if BlkSz > 0 then
+          S.Seek(BlkSz, soFromCurrent);
+        while True do
+        begin
+          S.Read(SubB, 1);
+          if SubB = 0 then Break;
+          S.Seek(SubB, soFromCurrent);
+        end;
+        HasPendingGCE := False;
+      end
       else
         // comment / plain text / unknown: skip sub-blocks
         while True do
@@ -735,6 +776,7 @@ begin
       begin
         Frame.HasGCE := True;
         Frame.GCEDisposal := PendingDisposal;
+        Frame.GCEUserInput := PendingUserInput;
         Frame.GCEHasTrans := PendingHasTrans;
         Frame.GCEDelay := PendingDelay;
         Frame.GCETransIdx := PendingTransIdx;
@@ -1255,6 +1297,8 @@ type
   TGCETests = class
     class procedure TestGCEParsing;
     class procedure TestGCEBlockSzNot4;          // Bug #4
+    class procedure TestGCEUserInputFlag;
+    class procedure TestPlainTextConsumesPendingGCE;
     class procedure TestGCETransparentIndex;
     class procedure TestGCEDisposalMethods;
   end;
@@ -1286,6 +1330,108 @@ begin
       AssertEqual(1, Img.FrameCount, 'frame');
       AssertEqual(100, Img.Frames[0].Delay, 'delay');
       AssertEqual(2, Img.Frames[0].Disposal, 'disposal');
+    finally
+      Img.Free;
+    end;
+  finally
+    Bld.Free;
+  end;
+end;
+
+class procedure TGCETests.TestGCEUserInputFlag;
+var
+  Bld: TGIFStreamBuilder;
+  Img: TCnGIFImage;
+  Img2: TCnGIFImage;
+  Pal: TCnGIFColors;
+  LZW: TBytes;
+  Pixels: array[0..3] of Byte;
+  Saved: TBytes;
+  Info: TGIFInfo;
+  MS: TMemoryStream;
+begin
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Pal := MakePalette(4);
+    Pixels[0] := 0; Pixels[1] := 1; Pixels[2] := 2; Pixels[3] := 3;
+    LZW := GifLZWEncode(Pixels, 2);
+    Bld.WriteHeader;
+    Bld.WriteLSD(2, 2, True, 7, False, 1, 0, 0);
+    Bld.WriteColorTable(Pal, 1);
+    Bld.WriteGCE(0, False, 0, 0, 4, True);
+    Bld.WriteImageDesc(0, 0, 2, 2, False, False, 0);
+    Bld.WriteByte(2);
+    Bld.WriteLZWSubBlocks(LZW);
+    Bld.WriteTrailer;
+
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load user-input GCE');
+      AssertTrue(Img.Frames[0].UserInput, 'user input flag read');
+      Saved := SaveGIFToBytes(Img);
+    finally
+      Img.Free;
+    end;
+
+    Img2 := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img2, Saved), 'reload user-input GCE');
+      AssertTrue(Img2.Frames[0].UserInput, 'user input flag survives roundtrip');
+    finally
+      Img2.Free;
+    end;
+
+    MS := TMemoryStream.Create;
+    try
+      if Length(Saved) > 0 then
+        MS.Write(Saved[0], Length(Saved));
+      MS.Position := 0;
+      Info := ParseGIFStream(MS);
+    finally
+      MS.Free;
+    end;
+    AssertTrue(Info.Frames[0].GCEUserInput, 'user input flag emitted in GCE');
+  finally
+    Bld.Free;
+  end;
+end;
+
+class procedure TGCETests.TestPlainTextConsumesPendingGCE;
+var
+  Bld: TGIFStreamBuilder;
+  Img: TCnGIFImage;
+  Pal: TCnGIFColors;
+  LZW: TBytes;
+  Pixels: array[0..3] of Byte;
+begin
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Pal := MakePalette(4);
+    Pixels[0] := 0; Pixels[1] := 1; Pixels[2] := 2; Pixels[3] := 3;
+    LZW := GifLZWEncode(Pixels, 2);
+    Bld.WriteHeader;
+    Bld.WriteLSD(2, 2, True, 7, False, 1, 0, 0);
+    Bld.WriteColorTable(Pal, 1);
+    // The GCE belongs to the Plain Text Extension, not the image below.
+    Bld.WriteGCE(0, False, 77, 0);
+    Bld.WritePlainTextExt('X');
+    Bld.WriteImageDesc(0, 0, 2, 2, False, False, 0);
+    Bld.WriteByte(2);
+    Bld.WriteLZWSubBlocks(LZW);
+    Bld.WriteTrailer;
+
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load after Plain Text Extension');
+      AssertEqual(1, Img.FrameCount, 'one image frame after Plain Text Extension');
+      AssertEqual(0, Img.Frames[0].Delay,
+        'GCE for Plain Text must not leak to image');
+      AssertEqual(0, Img.Frames[0].Disposal,
+        'Plain Text GCE disposal must not leak to image');
+      AssertEqual(-1, Img.Frames[0].TransparentIndex,
+        'Plain Text GCE transparency must not leak to image');
+      AssertTrue(not Img.Frames[0].UserInput,
+        'Plain Text GCE user-input flag must not leak to image');
     finally
       Img.Free;
     end;
@@ -2872,6 +3018,10 @@ initialization
     TGCETests.TestGCEParsing);
   RegisterTest('GCE', 'BlockSz != 4 does not desync (bug #4)',
     TGCETests.TestGCEBlockSzNot4);
+  RegisterTest('GCE', 'User input flag read and preserved',
+    TGCETests.TestGCEUserInputFlag);
+  RegisterTest('GCE', 'Plain Text GCE does not leak to image',
+    TGCETests.TestPlainTextConsumesPendingGCE);
   RegisterTest('GCE', 'Transparent index read',
     TGCETests.TestGCETransparentIndex);
   RegisterTest('GCE', 'All disposal methods (0..3)',

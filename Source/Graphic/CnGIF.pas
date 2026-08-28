@@ -65,6 +65,7 @@ type
     FTransparentIndex: Integer;
     FDelay: Word;
     FDisposal: Byte;
+    FUserInput: Boolean;
     FPixels: PByteArray;
     FPixelCount: Integer;
     FRawData: TMemoryStream;
@@ -81,6 +82,7 @@ type
     property TransparentIndex: Integer read FTransparentIndex write FTransparentIndex;
     property Delay: Word read FDelay write FDelay;
     property Disposal: Byte read FDisposal write FDisposal;
+    property UserInput: Boolean read FUserInput write FUserInput;
     property Pixels: PByteArray read FPixels;
     property PixelCount: Integer read FPixelCount;
     property RawData: TMemoryStream read FRawData;
@@ -125,6 +127,7 @@ type
     FPendingDelay: Word;
     FPendingDisposal: Byte;
     FPendingTransparent: Integer;
+    FPendingUserInput: Boolean;
     FHasPendingGCE: Boolean;
 
     // 缓存管理
@@ -148,6 +151,7 @@ type
     procedure SkipSubBlocks(Stream: TStream);
     procedure ReadGraphicCtrlExt(Stream: TStream);
     procedure ReadAppExt(Stream: TStream);
+    procedure ReadPlainTextExt(Stream: TStream);
 
     // 合成
     procedure CompositeFrames(LastFrame: Integer);
@@ -340,6 +344,7 @@ constructor TCnGIFFrame.Create;
 begin
   inherited;
   FTransparentIndex := -1;
+  FUserInput := False;
   FRawData := TMemoryStream.Create;
 end;
 
@@ -382,6 +387,7 @@ begin
   FCompositeBuf := nil;
   FCompWidth := 0;
   FCompHeight := 0;
+  FPendingUserInput := False;
   FHasPendingGCE := False;
 end;
 
@@ -405,6 +411,7 @@ begin
   FRenderedFrame := -1;
   FLoopCount := 0;
   FHasNetscape := False;
+  FPendingUserInput := False;
   FHasPendingGCE := False;
   FreeComposite;
   FreeDIB;
@@ -582,6 +589,7 @@ begin
   FHasPendingGCE := True;
   FPendingDelay := Delay;
   FPendingDisposal := (Pkd and $1C) shr 2;
+  FPendingUserInput := (Pkd and $02) <> 0;
   if (Pkd and $01) <> 0 then
     FPendingTransparent := TransIdx
   else
@@ -625,6 +633,21 @@ begin
       FHasNetscape := True;
     end;
   end;
+end;
+
+procedure TCnGIFImage.ReadPlainTextExt(Stream: TStream);
+var
+  BlockSz: Byte;
+  Buf: array[0..254] of Byte;
+begin
+  // Plain Text Extension has a fixed-size application block followed by
+  // data sub-blocks.  It is a graphic-rendering block, so any pending GCE
+  // applies to it and must not leak to the next image descriptor.
+  BlockSz := ReadByte(Stream);
+  if BlockSz > 0 then
+    ReadExact(Stream, Buf, BlockSz);
+  SkipSubBlocks(Stream);
+  FHasPendingGCE := False;
 end;
 
 //==============================================================================
@@ -679,7 +702,7 @@ begin
             GIF_EXT_GRAPHIC_CTRL: ReadGraphicCtrlExt(Stream);
             GIF_EXT_APPLICATION:  ReadAppExt(Stream);
             GIF_EXT_COMMENT:      SkipSubBlocks(Stream);
-            GIF_EXT_PLAIN_TEXT:   SkipSubBlocks(Stream);
+            GIF_EXT_PLAIN_TEXT:   ReadPlainTextExt(Stream);
           else
             SkipSubBlocks(Stream);
           end;
@@ -696,7 +719,9 @@ begin
               Frame.FDelay := FPendingDelay;
               Frame.FDisposal := FPendingDisposal;
               Frame.FTransparentIndex := FPendingTransparent;
+              Frame.FUserInput := FPendingUserInput;
               FHasPendingGCE := False;
+              FPendingUserInput := False;
             end;
 
             Frame.FLeft   := ReadWord(Stream);
@@ -1538,12 +1563,14 @@ begin
 
     // Graphic Control Extension (需要时)
     if (Frame.FDelay > 0) or (Frame.FTransparentIndex >= 0) or
-       (Frame.FDisposal > 0) then
+       (Frame.FDisposal > 0) or Frame.FUserInput then
     begin
       WriteByte(Stream, GIF_EXT_INTRODUCER);
       WriteByte(Stream, GIF_EXT_GRAPHIC_CTRL);
       WriteByte(Stream, 4);  // 块大小
       Pkd := (Frame.FDisposal and $07) shl 2;
+      if Frame.FUserInput then
+        Pkd := Pkd or $02;
       if Frame.FTransparentIndex >= 0 then
         Pkd := Pkd or $01;
       WriteByte(Stream, Pkd);
@@ -2468,12 +2495,15 @@ begin
   end;
 
   // Graphic Control Extension（如有透明色或延迟）
-  if (Frame.FTransparentIndex >= 0) or (Frame.FDelay > 0) then
+  if (Frame.FTransparentIndex >= 0) or (Frame.FDelay > 0) or
+     Frame.FUserInput then
   begin
     WriteByte(Stream, GIF_EXT_INTRODUCER);
     WriteByte(Stream, GIF_EXT_GRAPHIC_CTRL);
     WriteByte(Stream, 4);
     Pkd := (Frame.FDisposal and $07) shl 2;
+    if Frame.FUserInput then
+      Pkd := Pkd or $02;
     if Frame.FTransparentIndex >= 0 then
       Pkd := Pkd or $01;
     WriteByte(Stream, Pkd);
