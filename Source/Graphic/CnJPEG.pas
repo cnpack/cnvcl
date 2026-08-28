@@ -229,6 +229,7 @@ type
   {* JPEG 文件 marker 解析器，顺序读取流中的标记段}
   private
     FStream: TStream;
+    FSegmentEnd: Int64;
     function ReadByte: Byte;
     function ReadWord: Word;
     procedure ReadBuf(var Buf; Count: Integer);
@@ -239,6 +240,8 @@ type
     function ReadSegment(Data: TStream): Integer; // 读取 marker 段数据，返回段长度
     function Position: Int64;
     procedure Seek(Pos: Int64);
+    procedure SetSegmentEnd(EndPos: Int64);
+    procedure ClearSegmentEnd;
   end;
 
   //============================================================================
@@ -288,10 +291,13 @@ type
 
     // 量化表
     FQuantTables: array[0..3] of array[0..63] of Word;
+    FQuantTableDefined: array[0..3] of Boolean;
 
     // Huffman 表
     FDCTables: array[0..3] of TCnJPEGHuffmanTable;
     FACTables: array[0..3] of TCnJPEGHuffmanTable;
+    FDCTableDefined: array[0..3] of Boolean;
+    FACTableDefined: array[0..3] of Boolean;
 
     // 重启间隔
     FRestartInterval: Integer;
@@ -325,8 +331,9 @@ type
     procedure ParseAPP0(Marker: TCnJPEGMarker; SegLen: Integer);
     procedure ParseAPP14(Marker: TCnJPEGMarker; SegLen: Integer);
     procedure CalculateMCUParams;
+    procedure ValidateCoefficientStorage;
     function HuffmanDecode(var Table: TCnJPEGHuffmanTable): Byte;
-    procedure DecodeScanBaseline(OutBmp: TBitmap);
+    procedure DecodeScanBaseline(OutBmp: TBitmap; Marker: TCnJPEGMarker);
     procedure DecodeScanProgressive(OutBmp: TBitmap; Stream: TStream; Marker: TCnJPEGMarker);
     procedure DecodeMCU(MCUX, MCUY: Integer; OutBmp: TBitmap);
     procedure DecodeBlock(CompIdx: Integer; var Coef: array of SmallInt);
@@ -608,6 +615,13 @@ resourcestring
   SCnErrorInvalidSegmentLength = 'Invalid Segment Length';
   SCnErrorInvalidQuantizationTableId = 'Invalid Quantization Table ID';
   SCnErrorInvalidHuffmanTableId = 'Invalid Huffman Table ID';
+  SCnErrorInvalidHuffmanTable = 'Invalid JPEG Huffman Table';
+  SCnErrorInvalidHuffmanCode = 'Invalid JPEG Huffman Code';
+  SCnErrorInvalidImageSize = 'Invalid JPEG Image Size';
+  SCnErrorInvalidSamplingFactors = 'Invalid JPEG Sampling Factors';
+  SCnErrorUndefinedJpegTable = 'Undefined JPEG Table';
+  SCnErrorUnsupportedScanOrganization = 'Unsupported JPEG Scan Organization';
+  SCnErrorMissingJpegFrame = 'Invalid JPEG: Missing Frame or Scan';
   SCnErrorUnsupportedSamplePrecision = 'Unsupported Sample Precision: ';
   SCnErrorTooManyComponents = 'Too Many Components: ';
   SCnErrorTooManyScanComponents = 'Too Many Scan Components';
@@ -734,6 +748,30 @@ begin
   if Cr > 255 then Cr := 255;
 end;
 
+function CnJPEGCheckedMulInt(A, B: Integer): Integer;
+var
+  V: Int64;
+begin
+  if (A < 0) or (B < 0) then
+    raise ECnJPEGException.Create(SCnErrorInvalidImageSize);
+  V := Int64(A) * Int64(B);
+  if V > High(Integer) then
+    raise ECnJPEGException.Create(SCnErrorInvalidImageSize);
+  Result := Integer(V);
+end;
+
+procedure CnJPEGRefineCoefficient(var Coef: SmallInt; Bit, Al: Byte);
+var
+  Delta: SmallInt;
+begin
+  if Bit = 0 then Exit;
+  Delta := SmallInt(1 shl Al);
+  if Coef < 0 then
+    Dec(Coef, Delta)
+  else
+    Inc(Coef, Delta);
+end;
+
 // YCbCr→RGB 查找表（消除解码循环中的浮点运算）
 var
   CnJPEGCrToR: array[0..255] of Integer;
@@ -744,7 +782,7 @@ var
 
 procedure CnJPEGInitYCbCrTables;
 var
-  I: Integer;
+  I, J: Integer;
 begin
   if CnJPEGYCbCrInit then Exit;
   for I := 0 to 255 do
@@ -760,10 +798,23 @@ end;
 procedure CnJPEGBuildHuffmanTable(var Table: TCnJPEGHuffmanTable);
 var
   I, J, K: Integer;
+  Total, NextCode: Integer;
   Code: Integer;
   LookBits: Integer;
   LookSize: Integer;
 begin
+  Total := 0;
+  NextCode := 0;
+  for I := 1 to 16 do
+  begin
+    Inc(Total, Table.Bits[I]);
+    if Total > 256 then
+      raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTable);
+    if NextCode + Table.Bits[I] > (1 shl I) then
+      raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTable);
+    NextCode := (NextCode + Table.Bits[I]) shl 1;
+  end;
+
   // 生成 MinCode/MaxCode/ValPtr 数组
   K := 0;
   Code := 0;
@@ -846,8 +897,7 @@ begin
     if FStream.Read(B, 1) <> 1 then
     begin
       FEOF := True;
-      Result := 0;
-      Exit;
+      raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
     end;
 
     if B = $FF then
@@ -856,8 +906,7 @@ begin
       if FStream.Read(B, 1) <> 1 then
       begin
         FEOF := True;
-        Result := 0;
-        Exit;
+        raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
       end;
 
       if B = $00 then
@@ -998,10 +1047,13 @@ constructor TCnJPEGMarker.Create(AStream: TStream);
 begin
   inherited Create;
   FStream := AStream;
+  FSegmentEnd := -1;
 end;
 
 function TCnJPEGMarker.ReadByte: Byte;
 begin
+  if (FSegmentEnd >= 0) and (FStream.Position >= FSegmentEnd) then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
   if FStream.Read(Result, 1) <> 1 then
     raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
 end;
@@ -1021,6 +1073,10 @@ var
   Remaining: Integer;
   Read: Integer;
 begin
+  if Count < 0 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+  if (FSegmentEnd >= 0) and (FStream.Position + Int64(Count) > FSegmentEnd) then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
   P := @Buf;
   Remaining := Count;
   while Remaining > 0 do
@@ -1035,6 +1091,12 @@ end;
 
 procedure TCnJPEGMarker.SkipBytes(Count: Integer);
 begin
+  if Count < 0 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+  if (FSegmentEnd >= 0) and (FStream.Position + Int64(Count) > FSegmentEnd) then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
+  if FStream.Position + Int64(Count) > FStream.Size then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
   FStream.Seek(Count, soFromCurrent);
 end;
 
@@ -1093,7 +1155,21 @@ end;
 
 procedure TCnJPEGMarker.Seek(Pos: Int64);
 begin
+  if (Pos < 0) or (FSegmentEnd >= 0) and (Pos > FSegmentEnd) then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
   FStream.Position := Pos;
+end;
+
+procedure TCnJPEGMarker.SetSegmentEnd(EndPos: Int64);
+begin
+  if (EndPos < FStream.Position) or (EndPos > FStream.Size) then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
+  FSegmentEnd := EndPos;
+end;
+
+procedure TCnJPEGMarker.ClearSegmentEnd;
+begin
+  FSegmentEnd := -1;
 end;
 
 //============================================================================
@@ -1113,8 +1189,11 @@ FBitDepth := 8;
 FNumComponents := 3;
 FColorSpace := jcRGB;
 FProgressive := False;
-FRestartInterval := 0;
-FBitReader := nil;
+  FRestartInterval := 0;
+  FillChar(FQuantTableDefined[0], SizeOf(FQuantTableDefined), 0);
+  FillChar(FDCTableDefined[0], SizeOf(FDCTableDefined), 0);
+  FillChar(FACTableDefined[0], SizeOf(FACTableDefined), 0);
+  FBitReader := nil;
 FAdobeTransform := 0;
 FYCbCrTableInit := False;
 end;
@@ -1134,15 +1213,22 @@ var
   I: Integer;
   B: Byte;
 begin
+  if SegLen < 2 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   Remaining := SegLen - 2;
   while Remaining > 0 do
   begin
+    if Remaining < 1 then
+      raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
     B := Marker.ReadByte;
     Dec(Remaining);
     Prec := B shr 4;       // 精度：0=8bit, 1=16bit
     TableID := B and $0F;  // 表 ID (0-3)
     if TableID > 3 then
       raise ECnJPEGException.Create(SCnErrorInvalidQuantizationTableId);
+    if (Prec > 1) or ((Prec = 0) and (Remaining < 64)) or
+       ((Prec = 1) and (Remaining < 128)) then
+      raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
 
     for I := 0 to 63 do
     begin
@@ -1157,6 +1243,7 @@ begin
         Dec(Remaining, 2);
       end;
     end;
+    FQuantTableDefined[TableID] := True;
   end;
 end;
 
@@ -1169,13 +1256,19 @@ var
   Count: Integer;
   Table: PCnJPEGHuffmanTable;
 begin
+  if SegLen < 2 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   Remaining := SegLen - 2;
   while Remaining > 0 do
   begin
+    if Remaining < 17 then
+      raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
     B := Marker.ReadByte;
     Dec(Remaining);
     Tc := B shr 4;        // 表类别：0=DC, 1=AC
     Th := B and $0F;      // 表 ID (0-3)
+    if Tc > 1 then
+      raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTable);
     if Th > 3 then
       raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTableId);
 
@@ -1195,6 +1288,10 @@ begin
     Count := 0;
     for I := 1 to 16 do
       Inc(Count, Table.Bits[I]);
+    if Count > 256 then
+      raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTable);
+    if Remaining < Count then
+      raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
 
     // 读取 HUFFVAL
     for I := 0 to Count - 1 do
@@ -1205,37 +1302,54 @@ begin
 
     // 构建查找表
     CnJPEGBuildHuffmanTable(Table^);
+    if Tc = 0 then
+      FDCTableDefined[Th] := True
+    else
+      FACTableDefined[Th] := True;
   end;
 end;
-
 procedure TCnJPEGDecoder.ParseSOF(Marker: TCnJPEGMarker; SegLen: Integer;
   MarkerCode: Word);
 var
   Precision: Byte;
   Nf: Byte;
-  I: Integer;
+  I, J: Integer;
   B: Byte;
   C: TCnJPEGComponentInfo;
 begin
+  if SegLen < 8 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   Precision := Marker.ReadByte;
   if Precision <> 8 then
     raise ECnJPEGException.Create(SCnErrorUnsupportedSamplePrecision + IntToStr(Precision));
 
   FHeight := Marker.ReadWord;
   FWidth := Marker.ReadWord;
+  if (FWidth = 0) or (FHeight = 0) then
+    raise ECnJPEGException.Create(SCnErrorInvalidImageSize);
   Nf := Marker.ReadByte;
   FNumComponents := Nf;
 
   if Nf > CN_JPEG_MAX_COMPONENTS then
     raise ECnJPEGException.Create(SCnErrorTooManyComponents + IntToStr(Nf));
+  if (Nf <> 1) and (Nf <> 3) and (Nf <> 4) then
+    raise ECnJPEGException.Create(SCnErrorTooManyComponents + IntToStr(Nf));
 
   for I := 0 to Nf - 1 do
   begin
     C.ID := Marker.ReadByte;
+    for J := 0 to I - 1 do
+      if FComponents[J].ID = C.ID then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
     B := Marker.ReadByte;
     C.HSampFactor := B shr 4;
     C.VSampFactor := B and $0F;
+    if (C.HSampFactor = 0) or (C.VSampFactor = 0) or
+       (C.HSampFactor > 4) or (C.VSampFactor > 4) then
+      raise ECnJPEGException.Create(SCnErrorInvalidSamplingFactors);
     C.QuantTableID := Marker.ReadByte;
+    if C.QuantTableID > 3 then
+      raise ECnJPEGException.Create(SCnErrorInvalidQuantizationTableId);
     C.DCTableID := 0;
     C.ACTableID := 0;
     FComponents[I] := C;
@@ -1268,15 +1382,19 @@ var
   I, J: Integer;
   Cs, B: Byte;
 begin
+  if SegLen < 6 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   Ns := Marker.ReadByte;  // 扫描分量数
   FScanCompCount := Ns;
-  if Ns > CN_JPEG_MAX_COMPONENTS then
+  if (Ns = 0) or (Ns > CN_JPEG_MAX_COMPONENTS) then
     raise ECnJPEGException.Create(SCnErrorTooManyScanComponents);
 
   for I := 0 to Ns - 1 do
   begin
     Cs := Marker.ReadByte;  // 分量选择器
     B := Marker.ReadByte;   // DC/AC 表 ID
+    if (B shr 4 > 3) or (B and $0F > 3) then
+      raise ECnJPEGException.Create(SCnErrorInvalidHuffmanTableId);
 
     // 查找分量索引
     FScanCompIdx[I] := -1;
@@ -1290,6 +1408,11 @@ begin
         Break;
       end;
     end;
+    if FScanCompIdx[I] < 0 then
+      raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+    for J := 0 to I - 1 do
+      if FScanCompIdx[J] = FScanCompIdx[I] then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   end;
 
   FScanSs := Marker.ReadByte;  // Ss（频谱选择起始）
@@ -1297,10 +1420,25 @@ begin
   B := Marker.ReadByte;        // Ah/Al（逐次逼近参数）
   FScanAh := B shr 4;
   FScanAl := B and $0F;
+  if (FScanSs > FScanSe) or (FScanSe > 63) or
+     (FScanAh > 13) or (FScanAl > 13) then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+  for I := 0 to FScanCompCount - 1 do
+  begin
+    J := FScanCompIdx[I];
+    if not FQuantTableDefined[FComponents[J].QuantTableID] then
+      raise ECnJPEGException.Create(SCnErrorUndefinedJpegTable);
+    if (FScanSs = 0) and not FDCTableDefined[FComponents[J].DCTableID] then
+      raise ECnJPEGException.Create(SCnErrorUndefinedJpegTable);
+    if (FScanSs > 0) and not FACTableDefined[FComponents[J].ACTableID] then
+      raise ECnJPEGException.Create(SCnErrorUndefinedJpegTable);
+  end;
 end;
 
 procedure TCnJPEGDecoder.ParseDRI(Marker: TCnJPEGMarker; SegLen: Integer);
 begin
+  if SegLen <> 4 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
   FRestartInterval := Marker.ReadWord;
 end;
 
@@ -1312,11 +1450,8 @@ var
   XDensity, YDensity: Word;
   ThumbW, ThumbH: Byte;
 begin
-  if SegLen < 14 then
-  begin
-    Marker.SkipBytes(SegLen - 2);
-    Exit;
-  end;
+  if SegLen < 16 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
 
   Marker.ReadBuf(Ident[0], 5);
   if (Ident[0] = 'J') and (Ident[1] = 'F') and (Ident[2] = 'I') and
@@ -1345,11 +1480,8 @@ var
   Version: Word;
   Transform: Byte;
 begin
-  if SegLen < 12 then
-  begin
-    Marker.SkipBytes(SegLen - 2);
-    Exit;
-  end;
+  if SegLen < 14 then
+    raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
 
   Marker.ReadBuf(Ident[0], 5);
   if (Ident[0] = 'A') and (Ident[1] = 'd') and (Ident[2] = 'o') and
@@ -1387,16 +1519,31 @@ begin
   FMaxH := MaxH;
   FMaxV := MaxV;
 
-  FMCUWidth := 8 * MaxH;
-  FMCUHeight := 8 * MaxV;
+  FMCUWidth := CnJPEGCheckedMulInt(8, MaxH);
+  FMCUHeight := CnJPEGCheckedMulInt(8, MaxV);
   FMCUsPerRow := (FWidth + FMCUWidth - 1) div FMCUWidth;
   FMCUsPerCol := (FHeight + FMCUHeight - 1) div FMCUHeight;
 
   // 构建 MCU 块布局
   K := 0;
   for I := 0 to FNumComponents - 1 do
-    Inc(K, FComponents[I].HSampFactor * FComponents[I].VSampFactor);
+    Inc(K, CnJPEGCheckedMulInt(FComponents[I].HSampFactor,
+      FComponents[I].VSampFactor));
   FBlocksInMCU := K;
+end;
+
+procedure TCnJPEGDecoder.ValidateCoefficientStorage;
+var
+  I, BlocksPerRow, BlocksPerCol, TotalBlocks, CoefCount: Integer;
+begin
+  for I := 0 to FNumComponents - 1 do
+  begin
+    BlocksPerRow := CnJPEGCheckedMulInt(FMCUsPerRow, FComponents[I].HSampFactor);
+    BlocksPerCol := CnJPEGCheckedMulInt(FMCUsPerCol, FComponents[I].VSampFactor);
+    TotalBlocks := CnJPEGCheckedMulInt(BlocksPerRow, BlocksPerCol);
+    CoefCount := CnJPEGCheckedMulInt(TotalBlocks, CN_JPEG_BLOCK_SIZE);
+    CnJPEGCheckedMulInt(CoefCount, SizeOf(SmallInt));
+  end;
 end;
 
 function TCnJPEGDecoder.HuffmanDecode(var Table: TCnJPEGHuffmanTable): Byte;
@@ -1414,7 +1561,7 @@ begin
       Exit;
     end;
   end;
-  Result := 0;  // 不应到达此处
+  raise ECnJPEGException.Create(SCnErrorInvalidHuffmanCode);
 end;
 
 function TCnJPEGDecoder.ScaledOutWidth: Integer;
@@ -1556,7 +1703,7 @@ var
   Coef: array[0..63] of SmallInt;
   Pixels: array[0..63] of Byte;
   M, ScaledMCUW, ScaledMCUH: Integer;
-  CompBuf: array[0..3, 0..255] of Byte;
+  CompBuf: array[0..3, 0..1023] of Byte;
   CompW, CompH: array[0..3] of Integer;
   OutX, OutY: Integer;
   MaxPX, MaxPY: Integer;
@@ -1738,7 +1885,7 @@ begin
   end;
 end;
 
-procedure TCnJPEGDecoder.DecodeScanBaseline(OutBmp: TBitmap);
+procedure TCnJPEGDecoder.DecodeScanBaseline(OutBmp: TBitmap; Marker: TCnJPEGMarker);
 var
   MCUX, MCUY: Integer;
   MCUCount: Integer;
@@ -1770,6 +1917,10 @@ begin
       end;
     end;
   end;
+
+  FBitReader.AlignToByte;
+  if Marker.ReadMarker <> CN_JPEG_EOI then
+    raise ECnJPEGException.Create(SCnErrorUnexpectedEndOfJpegData);
 end;
 
 procedure TCnJPEGDecoder.AllocCoefBlocks;
@@ -1787,11 +1938,16 @@ begin
 
   for I := 0 to FNumComponents - 1 do
   begin
-    FCompBlocksPerRow[I] := FMCUsPerRow * FComponents[I].HSampFactor;
-    FCompBlocksPerCol[I] := FMCUsPerCol * FComponents[I].VSampFactor;
-    TotalBlocks := FCompBlocksPerRow[I] * FCompBlocksPerCol[I];
-    SetLength(FCoefBlocks[I], TotalBlocks * 64);
-    FillChar(FCoefBlocks[I][0], TotalBlocks * 64 * SizeOf(SmallInt), 0);
+    FCompBlocksPerRow[I] := CnJPEGCheckedMulInt(FMCUsPerRow,
+      FComponents[I].HSampFactor);
+    FCompBlocksPerCol[I] := CnJPEGCheckedMulInt(FMCUsPerCol,
+      FComponents[I].VSampFactor);
+    TotalBlocks := CnJPEGCheckedMulInt(FCompBlocksPerRow[I],
+      FCompBlocksPerCol[I]);
+    TotalBlocks := CnJPEGCheckedMulInt(TotalBlocks, CN_JPEG_BLOCK_SIZE);
+    SetLength(FCoefBlocks[I], TotalBlocks);
+    FillChar(FCoefBlocks[I][0], CnJPEGCheckedMulInt(TotalBlocks,
+      SizeOf(SmallInt)), 0);
   end;
 end;
 
@@ -1858,7 +2014,7 @@ begin
                 // Refine bit: always add (1 shl Al) regardless of sign.
                 // After first scan, stored = SarInt32(C, Al) shl Al = C with
                 // lower Al bits cleared. Adding back the refine bit restores C.
-                Inc(CoefPtr^, SmallInt(1 shl FScanAl));
+                CnJPEGRefineCoefficient(CoefPtr^, 1, FScanAl);
               end;
             end;
           end;
@@ -1965,7 +2121,7 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                CnJPEGRefineCoefficient(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], 1, FScanAl);
               end;
             end;
             Inc(K);
@@ -1983,7 +2139,7 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                CnJPEGRefineCoefficient(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], 1, FScanAl);
               end;
               Inc(K);
             end;
@@ -2008,7 +2164,7 @@ begin
                     RS := FBitReader.GetBit;
                     if RS = 1 then
                     begin
-                      Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                      CnJPEGRefineCoefficient(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], 1, FScanAl);
                     end;
                   end
                   else
@@ -2031,7 +2187,7 @@ begin
                   Val := FBitReader.GetBit;
                   if Val = 1 then
                   begin
-                    Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                    CnJPEGRefineCoefficient(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], 1, FScanAl);
                   end;
                 end;
                 Inc(K);
@@ -2050,7 +2206,7 @@ begin
                 RS := FBitReader.GetBit;
                 if RS = 1 then
                 begin
-                  Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                  CnJPEGRefineCoefficient(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], 1, FScanAl);
                 end;
               end
               else
@@ -2072,7 +2228,7 @@ begin
               Val := FBitReader.GetBit;
               if Val = 1 then
               begin
-                Inc(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], SmallInt(1 shl FScanAl));
+                CnJPEGRefineCoefficient(CoefPtr[CN_JPEG_ZIGZAG_ORDER[K]], 1, FScanAl);
               end;
               Inc(K);
             end;
@@ -2109,7 +2265,7 @@ var
   BlockX, BlockY: Integer;
   Coef: array[0..63] of SmallInt;
   Pixels: array[0..63] of Byte;
-  CompBuf: array[0..3, 0..255] of Byte;
+  CompBuf: array[0..3, 0..1023] of Byte;
   CompW, CompH: array[0..3] of Integer;
   MCUX, MCUY: Integer;
   OutX, OutY: Integer;
@@ -2347,12 +2503,20 @@ begin
 
     // 处理扫描间的 marker
     SegLen := Marker.ReadWord;
-    SegEnd := Marker.Position + SegLen - 2;
+    if SegLen < 2 then
+      raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+    SegEnd := Marker.Position + Int64(SegLen) - 2;
+    Marker.SetSegmentEnd(SegEnd);
     while True do
     begin
       if Code = CN_JPEG_SOS then
       begin
         ParseSOS(Marker, SegLen);
+        if Marker.Position < SegEnd then
+          Marker.SkipBytes(SegEnd - Marker.Position);
+        if Marker.Position <> SegEnd then
+          raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+        Marker.ClearSegmentEnd;
         Break;  // 继续下一次扫描
       end
       else if Code = CN_JPEG_DHT then
@@ -2371,12 +2535,18 @@ begin
       end;
 
       if Marker.Position < SegEnd then
-        Marker.Seek(SegEnd);
+        Marker.SkipBytes(SegEnd - Marker.Position);
+      if Marker.Position <> SegEnd then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+      Marker.ClearSegmentEnd;
 
       Code := Marker.ReadMarker;
       if Code = CN_JPEG_EOI then Break;
       SegLen := Marker.ReadWord;
-      SegEnd := Marker.Position + SegLen - 2;
+      if SegLen < 2 then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+      SegEnd := Marker.Position + Int64(SegLen) - 2;
+      Marker.SetSegmentEnd(SegEnd);
     end;
 
     if Code = CN_JPEG_EOI then Break;
@@ -2505,7 +2675,10 @@ begin
 
       // 读取段长度
       SegLen := Marker.ReadWord;
-      SegEnd := Marker.Position + SegLen - 2;
+      if SegLen < 2 then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+      SegEnd := Marker.Position + Int64(SegLen) - 2;
+      Marker.SetSegmentEnd(SegEnd);
 
       case Code of
         CN_JPEG_APP0:
@@ -2525,6 +2698,11 @@ begin
         CN_JPEG_SOS:
           begin
             ParseSOS(Marker, SegLen);
+            if Marker.Position < SegEnd then
+              Marker.SkipBytes(SegEnd - Marker.Position);
+            if Marker.Position <> SegEnd then
+              raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+            Marker.ClearSegmentEnd;
             Break;
           end;
       else
@@ -2537,11 +2715,25 @@ begin
 
       // Safety net: skip any unconsumed segment data
       if Marker.Position < SegEnd then
-        Marker.Seek(SegEnd);
+        Marker.SkipBytes(SegEnd - Marker.Position);
+      if Marker.Position <> SegEnd then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+      Marker.ClearSegmentEnd;
     until False;
 
     // 3. 计算 MCU 参数
+    if not FProgressive then
+    begin
+      if (FScanCompCount <> FNumComponents) or
+         (FScanSs <> 0) or (FScanSe <> 63) or
+         (FScanAh <> 0) or (FScanAl <> 0) then
+        raise ECnJPEGException.Create(SCnErrorUnsupportedScanOrganization);
+      for I := 0 to FNumComponents - 1 do
+        if FScanCompIdx[I] <> I then
+          raise ECnJPEGException.Create(SCnErrorUnsupportedScanOrganization);
+    end;
     CalculateMCUParams;
+    ValidateCoefficientStorage;
 
     // 4. 设置输出位图
     OutBmp.HandleType := bmDIB;
@@ -2564,7 +2756,7 @@ begin
       // Baseline：创建位读取器并解码
       FBitReader := TCnJPEGBitReader.Create(Stream);
       try
-        DecodeScanBaseline(OutBmp);
+        DecodeScanBaseline(OutBmp, Marker);
       finally
         FBitReader.Free;
         FBitReader := nil;
@@ -3269,9 +3461,9 @@ begin
   FMCUsPerCol := (FHeight + FMCUHeight - 1) div FMCUHeight;
 
   // 确保源位图是 24 位
+  SrcPF := SrcBmp.PixelFormat;
   SrcBmp.HandleType := bmDIB;
   SrcBmp.PixelFormat := pf24bit;
-  SrcPF := pf24bit;
 
   // 构建表
   BuildQuantTables(FQuality);
@@ -3343,11 +3535,16 @@ var
 begin
   for CompIdx := 0 to FNumComponents - 1 do
   begin
-    FCompBlocksPerRow[CompIdx] := FMCUsPerRow * FHSampFactor[CompIdx];
-    FCompBlocksPerCol[CompIdx] := FMCUsPerCol * FVSampFactor[CompIdx];
-    TotalBlocks := FCompBlocksPerRow[CompIdx] * FCompBlocksPerCol[CompIdx];
-    SetLength(FCoefBlocks[CompIdx], TotalBlocks * 64);
-    FillChar(FCoefBlocks[CompIdx][0], TotalBlocks * 64 * SizeOf(SmallInt), 0);
+    FCompBlocksPerRow[CompIdx] := CnJPEGCheckedMulInt(FMCUsPerRow,
+      FHSampFactor[CompIdx]);
+    FCompBlocksPerCol[CompIdx] := CnJPEGCheckedMulInt(FMCUsPerCol,
+      FVSampFactor[CompIdx]);
+    TotalBlocks := CnJPEGCheckedMulInt(FCompBlocksPerRow[CompIdx],
+      FCompBlocksPerCol[CompIdx]);
+    TotalBlocks := CnJPEGCheckedMulInt(TotalBlocks, CN_JPEG_BLOCK_SIZE);
+    SetLength(FCoefBlocks[CompIdx], TotalBlocks);
+    FillChar(FCoefBlocks[CompIdx][0], CnJPEGCheckedMulInt(TotalBlocks,
+      SizeOf(SmallInt)), 0);
   end;
 
   for MCUY := 0 to FMCUsPerCol - 1 do
@@ -3552,7 +3749,7 @@ begin
             CoefPtr := PSmallIntArray(GetEncCoefBlockPtr(CompIdx,
               MCUX * FHSampFactor[CompIdx] + BX,
               MCUY * FVSampFactor[CompIdx] + BY));
-            Bit := (CoefPtr[0] shr Al) and 1;
+            Bit := (Abs(Integer(CoefPtr[0])) shr Al) and 1;
             FBitWriter.PutBit(Bit);
           end;
       end;
@@ -3859,9 +4056,9 @@ var
   NumComps, I: Integer;
   SrcPF: TPixelFormat;
 begin
+  SrcPF := SrcBmp.PixelFormat;
   SrcBmp.HandleType := bmDIB;
   SrcBmp.PixelFormat := pf24bit;
-  SrcPF := pf24bit;
 
   // 1. 预计算所有 DCT 系数
   ComputeAllCoefBlocks(SrcBmp);
@@ -3999,10 +4196,13 @@ var
   Marker: TCnJPEGMarker;
   Code: Word;
   SegLen: Word;
+  SegEnd: Int64;
   Precision: Byte;
   Nf: Byte;
-  I: Integer;
+  I, J: Integer;
   B: Byte;
+  CompIDs: array[0..3] of Byte;
+  HaveSOF, HaveSOS: Boolean;
 begin
   FWidth := 0;
   FHeight := 0;
@@ -4010,6 +4210,8 @@ begin
   FProgressive := False;
   FColorSpace := jcRGB;
   FBitDepth := 8;
+  HaveSOF := False;
+  HaveSOS := False;
 
   FData.Position := 0;
   Marker := TCnJPEGMarker.Create(FData);
@@ -4033,24 +4235,44 @@ begin
 
       // 读取段长度
       SegLen := Marker.ReadWord;
+      if SegLen < 2 then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+      SegEnd := Marker.Position + Int64(SegLen) - 2;
+      Marker.SetSegmentEnd(SegEnd);
 
       // SOF marker — 解析帧头
       if (Code = CN_JPEG_SOF0) or (Code = CN_JPEG_SOF1) or
          (Code = CN_JPEG_SOF2) then
       begin
         Precision := Marker.ReadByte;
+        if Precision <> 8 then
+          raise ECnJPEGException.Create(SCnErrorUnsupportedSamplePrecision + IntToStr(Precision));
         FHeight := Marker.ReadWord;
         FWidth := Marker.ReadWord;
+        if (FWidth = 0) or (FHeight = 0) then
+          raise ECnJPEGException.Create(SCnErrorInvalidImageSize);
         Nf := Marker.ReadByte;
+        if (Nf <> 1) and (Nf <> 3) and (Nf <> 4) then
+          raise ECnJPEGException.Create(SCnErrorTooManyComponents + IntToStr(Nf));
         FBitDepth := Precision;
 
         // 跳过分量信息
         for I := 0 to Nf - 1 do
         begin
-          Marker.ReadByte; // ID
+          B := Marker.ReadByte; // ID
+          for J := 0 to I - 1 do
+            if CompIDs[J] = B then
+              raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+          CompIDs[I] := B;
           B := Marker.ReadByte; // 采样因子
-          Marker.ReadByte; // 量化表 ID
+          if (B shr 4 = 0) or (B and $0F = 0) or
+             (B shr 4 > 4) or (B and $0F > 4) then
+            raise ECnJPEGException.Create(SCnErrorInvalidSamplingFactors);
+          B := Marker.ReadByte; // 量化表 ID
+          if B > 3 then
+            raise ECnJPEGException.Create(SCnErrorInvalidQuantizationTableId);
         end;
+        HaveSOF := True;
 
         // 设置色彩空间和灰度标志
         if Nf = 1 then
@@ -4078,6 +4300,12 @@ begin
       else if Code = CN_JPEG_SOS then
       begin
         // SOS — 停止解析
+        HaveSOS := True;
+        if Marker.Position < SegEnd then
+          Marker.SkipBytes(SegEnd - Marker.Position);
+        if Marker.Position <> SegEnd then
+          raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+        Marker.ClearSegmentEnd;
         Break;
       end
       else
@@ -4086,7 +4314,15 @@ begin
         if SegLen >= 2 then
           Marker.SkipBytes(SegLen - 2);
       end;
+      if Marker.Position < SegEnd then
+        Marker.SkipBytes(SegEnd - Marker.Position);
+      if Marker.Position <> SegEnd then
+        raise ECnJPEGException.Create(SCnErrorInvalidSegmentLength);
+      Marker.ClearSegmentEnd;
     until False;
+
+    if (not HaveSOF) or (not HaveSOS) then
+      raise ECnJPEGException.Create(SCnErrorMissingJpegFrame);
 
   finally
     Marker.Free;
@@ -4452,8 +4688,10 @@ end;
 procedure TCnJPEGImage.DIBNeeded;
 var
   Decoder: TCnJPEGDecoder;
+  TempBmp: TBitmap;
   GrayBmp: TBitmap;
   I, X, Y: Integer;
+  Success: Boolean;
   Pal: PLogPalette;
   SrcRow, DstRow: PByteArray;
 begin
@@ -4461,10 +4699,14 @@ begin
   if FData = nil then
     raise ECnJPEGException.Create(SCnErrorNoJpegDataToDecode);
 
-  CreateBitmap;
-  Decoder := TCnJPEGDecoder.Create;
+  TempBmp := nil;
+  Decoder := nil;
+  Success := False;
   try
-    Decoder.Decode(FData.Data, FBitmap, FScale, FPerformance,
+    TempBmp := TBitmap.Create;
+    TempBmp.HandleType := bmDIB;
+    Decoder := TCnJPEGDecoder.Create;
+    Decoder.Decode(FData.Data, TempBmp, FScale, FPerformance,
       FSmoothing, FProgressiveDisplay);
 
     // Convert to 8-bit grayscale if PixelFormat = jf8Bit
@@ -4474,8 +4716,8 @@ begin
       try
         GrayBmp.HandleType := bmDIB;
         GrayBmp.PixelFormat := pf8Bit;
-        GrayBmp.Width := FBitmap.Width;
-        GrayBmp.Height := FBitmap.Height;
+        GrayBmp.Width := TempBmp.Width;
+        GrayBmp.Height := TempBmp.Height;
 
         // Set up 256-level grayscale palette
         GetMem(Pal, SizeOf(TLogPalette) + 255 * SizeOf(TPaletteEntry));
@@ -4496,11 +4738,11 @@ begin
 
         // Copy pixels: for grayscale JPEG, R=G=B=Y, take B channel directly
         // For color JPEG, convert RGB to grayscale: Y = 0.299R + 0.587G + 0.114B
-        for Y := 0 to FBitmap.Height - 1 do
+        for Y := 0 to TempBmp.Height - 1 do
         begin
-          SrcRow := FBitmap.ScanLine[Y];
+          SrcRow := TempBmp.ScanLine[Y];
           DstRow := GrayBmp.ScanLine[Y];
-          for X := 0 to FBitmap.Width - 1 do
+          for X := 0 to TempBmp.Width - 1 do
           begin
             if (FData <> nil) and FData.Grayscale then
               DstRow[X] := SrcRow[X * 3]
@@ -4511,24 +4753,31 @@ begin
           end;
         end;
 
-        FBitmap.Free;
-        FBitmap := GrayBmp;
+        TempBmp.Free;
+        TempBmp := GrayBmp;
         GrayBmp := nil;
       finally
         GrayBmp.Free;
       end;
     end;
+    Success := True;
   finally
     Decoder.Free;
+    if Success then
+    begin
+      FreeBitmap;
+      FBitmap := TempBmp;
+      TempBmp := nil;
+    end;
+    TempBmp.Free;
   end;
 end;
-
 procedure TCnJPEGImage.JPEGNeeded;
 begin
   if (FData = nil) or FModified then
   begin
     if FBitmap = nil then
-      raise ECnJPEGException.Create(SCnErrorNoImageData);
+      DIBNeeded;
     Compress;
   end;
 end;
