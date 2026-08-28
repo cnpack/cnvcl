@@ -1180,10 +1180,9 @@ var
   Img: TCnGIFImage;
   Pal: TCnGIFColors;
   Dummy: array[0..3] of Byte;
+  Loaded: Boolean;
 begin
-  // Bug #8 (P1): LZW MinCodeSize is not validated. MinCodeSize=0 yields
-  // ClearCode=1, EOI=2, which is invalid for real GIF. The decoder should
-  // not crash with an access violation or infinite loop.
+  // GIF LZW Minimum Code Size must be in 2..8.
   Dummy[0] := 0; Dummy[1] := 0; Dummy[2] := 0; Dummy[3] := 0;
   Bld := TGIFStreamBuilder.Create;
   try
@@ -1198,13 +1197,9 @@ begin
     Bld.WriteTrailer;
     Img := TCnGIFImage.Create;
     try
-      // We don't care if it raises or succeeds, only that it doesn't crash
-      try
-        LoadGIFFromBytes(Img, Bld.Bytes);
-      except
-        // Acceptable: validation would raise
-      end;
-      AssertEqual(1, Img.FrameCount, 'frame should still be registered');
+      Loaded := LoadGIFFromBytes(Img, Bld.Bytes);
+      AssertTrue(not Loaded, 'MinCodeSize=0 must be rejected');
+      AssertEqual(0, Img.FrameCount, 'invalid frame must not be registered');
     finally
       Img.Free;
     end;
@@ -1219,9 +1214,9 @@ var
   Img: TCnGIFImage;
   Pal: TCnGIFColors;
   Dummy: array[0..5] of Byte;
+  Loaded: Boolean;
 begin
-  // MinCodeSize = 12 (too large; valid range is 2..11 for GIF). Should not
-  // crash with range check error or stack overflow.
+  // MinCodeSize = 12 is outside the valid GIF range 2..8.
   Dummy[0] := 0; Dummy[1] := 0; Dummy[2] := 0;
   Dummy[3] := 0; Dummy[4] := 0; Dummy[5] := 0;
   Bld := TGIFStreamBuilder.Create;
@@ -1236,12 +1231,9 @@ begin
     Bld.WriteTrailer;
     Img := TCnGIFImage.Create;
     try
-      try
-        LoadGIFFromBytes(Img, Bld.Bytes);
-      except
-        // Acceptable
-      end;
-      AssertEqual(1, Img.FrameCount, 'frame present');
+      Loaded := LoadGIFFromBytes(Img, Bld.Bytes);
+      AssertTrue(not Loaded, 'MinCodeSize=12 must be rejected');
+      AssertEqual(0, Img.FrameCount, 'invalid frame must not be registered');
     finally
       Img.Free;
     end;
@@ -1837,6 +1829,7 @@ type
   TSaveTests = class
     class procedure TestSavePaletteSizeBits;       // Bug #1 (P0)
     class procedure TestSaveRoundtripFrameCount;
+    class procedure TestSaveReencodesWithCodeSize;
     class procedure TestSaveSingleFrameViaBitmap;
   end;
 
@@ -1943,6 +1936,54 @@ begin
   end;
 end;
 
+class procedure TSaveTests.TestSaveReencodesWithCodeSize;
+var
+  Bld: TGIFStreamBuilder;
+  Img, Img2: TCnGIFImage;
+  Pal: TCnGIFColors;
+  LZW: TBytes;
+  Pixels: array[0..3] of Byte;
+  I: Integer;
+  Saved: TBytes;
+begin
+  // The source stream deliberately uses MinCodeSize=2 with a four-entry
+  // palette. Saving must re-encode using the code size declared in output.
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Pal := MakePalette(4);
+    for I := 0 to 3 do Pixels[I] := I;
+    LZW := GifLZWEncode(Pixels, 2);
+    Bld.WriteHeader;
+    Bld.WriteLSD(2, 2, True, 7, False, 1, 0, 0);
+    Bld.WriteColorTable(Pal, 1);
+    Bld.WriteImageDesc(0, 0, 2, 2, False, False, 0);
+    Bld.WriteByte(2);
+    Bld.WriteLZWSubBlocks(LZW);
+    Bld.WriteTrailer;
+
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load');
+      Saved := SaveGIFToBytes(Img);
+    finally
+      Img.Free;
+    end;
+
+    Img2 := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img2, Saved), 'reload re-encoded GIF');
+      AssertEqual(1, Img2.FrameCount, 'one frame after reload');
+      for I := 0 to 3 do
+        AssertEqual(Pixels[I], Img2.Frames[0].Pixels[I],
+          'pixel after re-encode[' + IntToStr(I) + ']');
+    finally
+      Img2.Free;
+    end;
+  finally
+    Bld.Free;
+  end;
+end;
+
 class procedure TSaveTests.TestSaveSingleFrameViaBitmap;
 var
   Img: TCnGIFImage;
@@ -2013,6 +2054,7 @@ class procedure TRobustnessTests.TestTruncatedHeader;
 var
   Img: TCnGIFImage;
   MS: TMemoryStream;
+  Raised: Boolean;
 begin
   MS := TMemoryStream.Create;
   try
@@ -2020,10 +2062,13 @@ begin
     MS.Position := 0;
     Img := TCnGIFImage.Create;
     try
+      Raised := False;
       try
         Img.LoadFromStream(MS);
       except
+        Raised := True;
       end;
+      AssertTrue(Raised, 'truncated header must be rejected');
       AssertEqual(0, Img.FrameCount, 'no frames');
     finally
       Img.Free;
@@ -2037,6 +2082,7 @@ class procedure TRobustnessTests.TestTruncatedLSD;
 var
   Img: TCnGIFImage;
   MS: TMemoryStream;
+  Raised: Boolean;
 begin
   MS := TMemoryStream.Create;
   try
@@ -2045,10 +2091,13 @@ begin
     MS.Position := 0;
     Img := TCnGIFImage.Create;
     try
+      Raised := False;
       try
         Img.LoadFromStream(MS);
       except
+        Raised := True;
       end;
+      AssertTrue(Raised, 'truncated LSD must be rejected');
     finally
       Img.Free;
     end;
@@ -2063,6 +2112,7 @@ var
   Img: TCnGIFImage;
   B: TBytes;
   MS: TMemoryStream;
+  Raised: Boolean;
 begin
   Bld := TGIFStreamBuilder.Create;
   try
@@ -2082,10 +2132,13 @@ begin
       MS.Position := 0;
       Img := TCnGIFImage.Create;
       try
+        Raised := False;
         try
           Img.LoadFromStream(MS);
         except
+          Raised := True;
         end;
+        AssertTrue(Raised, 'truncated color table must be rejected');
         AssertEqual(0, Img.FrameCount, 'no frames');
       finally
         Img.Free;
@@ -2108,6 +2161,7 @@ var
   I: Integer;
   B: TBytes;
   MS: TMemoryStream;
+  Raised: Boolean;
 begin
   Bld := TGIFStreamBuilder.Create;
   try
@@ -2129,12 +2183,14 @@ begin
       MS.Position := 0;
       Img := TCnGIFImage.Create;
       try
+        Raised := False;
         try
           Img.LoadFromStream(MS);
         except
+          Raised := True;
         end;
-        // Should not crash; frame may or may not be present
-        AssertInRange(Img.FrameCount, 0, 1, 'frame count after truncation');
+        AssertTrue(Raised, 'truncated LZW sub-block must be rejected');
+        AssertEqual(0, Img.FrameCount, 'truncated frame must not be registered');
       finally
         Img.Free;
       end;
@@ -2154,34 +2210,27 @@ var
   LZW: TBytes;
   Pixels: array[0..3] of Byte;
   I: Integer;
+  Loaded: Boolean;
 begin
-  // Bug #7 (P1): Frame W*H multiplication overflow is not checked.
-  // W=65535, H=65535 would request 4 GB pixel buffer. The decoder
-  // allocates W*H bytes. We use a more moderate but still oversized
-  // frame to verify the loader doesn't blindly allocate. Use W=H=4096
-  // (16M pixels, 16 MB) - large enough to test the path but not OOM.
+  // 65535 * 65535 cannot be represented by Integer and must be rejected
+  // before any pixel buffer allocation is attempted.
   Bld := TGIFStreamBuilder.Create;
   try
     Pal := MakePalette(4);
     for I := 0 to 3 do Pixels[I] := I;
     LZW := GifLZWEncode(Pixels, 2);
     Bld.WriteHeader;
-    Bld.WriteLSD(4096, 4096, True, 7, False, 1, 0, 0);
+    Bld.WriteLSD(65535, 65535, True, 7, False, 1, 0, 0);
     Bld.WriteColorTable(Pal, 1);
-    Bld.WriteImageDesc(0, 0, 4096, 4096, False, False, 0);
+    Bld.WriteImageDesc(0, 0, 65535, 65535, False, False, 0);
     Bld.WriteByte(2);
     Bld.WriteLZWSubBlocks(LZW);  // only 4 real pixels of data
     Bld.WriteTrailer;
     Img := TCnGIFImage.Create;
     try
-      try
-        LoadGIFFromBytes(Img, Bld.Bytes);
-      except
-        // Acceptable: ideally the loader would reject the oversized frame
-      end;
-      // If load succeeded, verify frame is registered (the decoder should
-      // not have allocated a 16MB buffer if it validated).
-      AssertInRange(Img.FrameCount, 0, 1, 'frame count');
+      Loaded := LoadGIFFromBytes(Img, Bld.Bytes);
+      AssertTrue(not Loaded, 'overflowing frame dimensions must be rejected');
+      AssertEqual(0, Img.FrameCount, 'overflowing frame must not be registered');
     finally
       Img.Free;
     end;
@@ -2346,8 +2395,87 @@ end;
 type
   TCompositeTests = class
     class procedure TestSaveCurrentFrame;
+    class procedure TestSaveCurrentInterlacedFrame;
+    class procedure TestDisposalBackgroundColor;
     class procedure TestSaveCompositedFrame;
   end;
+
+class procedure TCompositeTests.TestSaveCurrentInterlacedFrame;
+var
+  Bld: TGIFStreamBuilder;
+  Img, Img2: TCnGIFImage;
+  Pal: TCnGIFColors;
+  SrcLinear, InterlacedPixels: array[0..63] of Byte;
+  LZW, Saved: TBytes;
+  SrcRow, DstRow, I: Integer;
+  MS: TMemoryStream;
+begin
+  for I := 0 to 63 do SrcLinear[I] := (I div 8) mod 4;
+  DstRow := 0; SrcRow := 0;
+  while SrcRow < 8 do begin Move(SrcLinear[SrcRow * 8], InterlacedPixels[DstRow * 8], 8); Inc(DstRow); Inc(SrcRow, 8); end;
+  SrcRow := 4;
+  while SrcRow < 8 do begin Move(SrcLinear[SrcRow * 8], InterlacedPixels[DstRow * 8], 8); Inc(DstRow); Inc(SrcRow, 8); end;
+  SrcRow := 2;
+  while SrcRow < 8 do begin Move(SrcLinear[SrcRow * 8], InterlacedPixels[DstRow * 8], 8); Inc(DstRow); Inc(SrcRow, 4); end;
+  SrcRow := 1;
+  while SrcRow < 8 do begin Move(SrcLinear[SrcRow * 8], InterlacedPixels[DstRow * 8], 8); Inc(DstRow); Inc(SrcRow, 2); end;
+  LZW := GifLZWEncode(InterlacedPixels, 2); Pal := MakePalette(4);
+  Bld := TGIFStreamBuilder.Create;
+  try
+    Bld.WriteHeader; Bld.WriteLSD(8, 8, True, 7, False, 1, 0, 0);
+    Bld.WriteColorTable(Pal, 1); Bld.WriteImageDesc(0, 0, 8, 8, False, True, 0);
+    Bld.WriteByte(2); Bld.WriteLZWSubBlocks(LZW); Bld.WriteTrailer;
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load interlaced frame');
+      MS := TMemoryStream.Create;
+      try
+        Img.SaveCurrentFrameToGIFStream(MS); SetLength(Saved, MS.Size);
+        if MS.Size > 0 then Move(MS.Memory^, Saved[0], MS.Size);
+      finally MS.Free; end;
+    finally Img.Free; end;
+    Img2 := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img2, Saved), 'reload current frame');
+      for I := 0 to 63 do AssertEqual(SrcLinear[I], Img2.Frames[0].Pixels[I],
+        'interlaced current-frame pixel[' + IntToStr(I) + ']');
+    finally Img2.Free; end;
+  finally Bld.Free; end;
+end;
+
+class procedure TCompositeTests.TestDisposalBackgroundColor;
+var
+  Bld: TGIFStreamBuilder;
+  Img: TCnGIFImage;
+  Pal: TCnGIFColors;
+  OnePixel: array[0..0] of Byte;
+  Bmp: TBitmap;
+begin
+  SetLength(Pal, 4);
+  Pal[0].R := 0; Pal[0].G := 0; Pal[0].B := 0;
+  Pal[1].R := 255; Pal[1].G := 0; Pal[1].B := 0;
+  Pal[2].R := 0; Pal[2].G := 0; Pal[2].B := 255;
+  Pal[3].R := 0; Pal[3].G := 255; Pal[3].B := 0;
+  OnePixel[0] := 2; Bld := TGIFStreamBuilder.Create;
+  try
+    Bld.WriteHeader; Bld.WriteLSD(2, 1, True, 7, False, 1, 1, 0);
+    Bld.WriteColorTable(Pal, 1); Bld.WriteGCE(2, False, 0, 0);
+    Bld.WriteImageDesc(0, 0, 1, 1, False, False, 0); Bld.WriteByte(2);
+    Bld.WriteLZWSubBlocks(GifLZWEncode(OnePixel, 2)); OnePixel[0] := 3;
+    Bld.WriteImageDesc(1, 0, 1, 1, False, False, 0); Bld.WriteByte(2);
+    Bld.WriteLZWSubBlocks(GifLZWEncode(OnePixel, 2)); Bld.WriteTrailer;
+    Img := TCnGIFImage.Create;
+    try
+      AssertTrue(LoadGIFFromBytes(Img, Bld.Bytes), 'load disposal background');
+      Img.CurrentFrame := 1; Bmp := TBitmap.Create;
+      try
+        Bmp.Assign(Img);
+        AssertEqual(Integer(ColorToRGB(clRed)), Integer(ColorToRGB(Bmp.Canvas.Pixels[0, 0])), 'disposal background pixel');
+        AssertEqual(Integer(ColorToRGB(clLime)), Integer(ColorToRGB(Bmp.Canvas.Pixels[1, 0])), 'current frame pixel');
+      finally Bmp.Free; end;
+    finally Img.Free; end;
+  finally Bld.Free; end;
+end;
 
 class procedure TCompositeTests.TestSaveCurrentFrame;
 var
@@ -2491,9 +2619,9 @@ initialization
     TLZWTests.TestLZWRoundtripSmall);
   RegisterTest('LZW', 'LZW roundtrip large (256 colors)',
     TLZWTests.TestLZWRoundtripLarge);
-  RegisterTest('LZW', 'MinCodeSize=0 does not crash (bug #8)',
+  RegisterTest('LZW', 'MinCodeSize=0 is rejected (P0)',
     TLZWTests.TestLZWMinCodeSizeZero);
-  RegisterTest('LZW', 'MinCodeSize=12 does not crash (bug #8)',
+  RegisterTest('LZW', 'MinCodeSize=12 is rejected (P0)',
     TLZWTests.TestLZWMinCodeSizeTooLarge);
 
   // GCE
@@ -2529,19 +2657,21 @@ initialization
     TSaveTests.TestSavePaletteSizeBits);
   RegisterTest('Save', 'Roundtrip frame count',
     TSaveTests.TestSaveRoundtripFrameCount);
+  RegisterTest('Save', 'Re-encode with declared LZW code size',
+    TSaveTests.TestSaveReencodesWithCodeSize);
   RegisterTest('Save', 'Single-frame GIF via bitmap',
     TSaveTests.TestSaveSingleFrameViaBitmap);
 
   // Robustness
-  RegisterTest('Robust', 'Truncated header (bug #6)',
+  RegisterTest('Robust', 'Truncated header is rejected (P0)',
     TRobustnessTests.TestTruncatedHeader);
-  RegisterTest('Robust', 'Truncated LSD (bug #6)',
+  RegisterTest('Robust', 'Truncated LSD is rejected (P0)',
     TRobustnessTests.TestTruncatedLSD);
-  RegisterTest('Robust', 'Truncated color table (bug #6)',
+  RegisterTest('Robust', 'Truncated color table is rejected (P0)',
     TRobustnessTests.TestTruncatedColorTable);
-  RegisterTest('Robust', 'Truncated LZW (bug #6)',
+  RegisterTest('Robust', 'Truncated LZW sub-block is rejected (P0)',
     TRobustnessTests.TestTruncatedLZW);
-  RegisterTest('Robust', 'Frame size overflow handled (bug #7)',
+  RegisterTest('Robust', 'Frame size overflow is rejected (P0)',
     TRobustnessTests.TestFrameSizeOverflow);
   RegisterTest('Robust', 'Short LZW output buffer zeroed (bug #5)',
     TRobustnessTests.TestShortLZWOutputBuffer);
@@ -2555,6 +2685,10 @@ initialization
   // Composite
   RegisterTest('Composite', 'SaveCurrentFrameToGIFStream',
     TCompositeTests.TestSaveCurrentFrame);
+  RegisterTest('Composite', 'SaveCurrentFrame interlaced pixels',
+    TCompositeTests.TestSaveCurrentInterlacedFrame);
+  RegisterTest('Composite', 'Disposal background color',
+    TCompositeTests.TestDisposalBackgroundColor);
   RegisterTest('Composite', 'SaveCompositedFrameToGIFStream',
     TCompositeTests.TestSaveCompositedFrame);
 

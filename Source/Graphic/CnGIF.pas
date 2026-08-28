@@ -1031,6 +1031,7 @@ var
   BufW: Integer;
   SavedArea: PByteArray;
   SavedW, SavedH, SavedSize, ClearWidth: Integer;
+  BgColor: TCnGIFColor;
 begin
   if (FLogicalScreenWidth <= 0) or (FLogicalScreenHeight <= 0) then
     Exit;
@@ -1041,20 +1042,24 @@ begin
   // 清为背景色
   if FHasGlobalPalette and (FBackgroundColorIndex < Length(FGlobalPalette)) then
   begin
+    BgColor := FGlobalPalette[FBackgroundColorIndex];
     for Y := 0 to FLogicalScreenHeight - 1 do
     begin
       Q := Pointer(TCnNativeInt(FCompositeBuf) + Y * BufW * 4);
       for X := 0 to FLogicalScreenWidth - 1 do
       begin
-        Q^[X].B := FGlobalPalette[FBackgroundColorIndex].B;
-        Q^[X].G := FGlobalPalette[FBackgroundColorIndex].G;
-        Q^[X].R := FGlobalPalette[FBackgroundColorIndex].R;
+        Q^[X].B := BgColor.B;
+        Q^[X].G := BgColor.G;
+        Q^[X].R := BgColor.R;
         Q^[X].A := 255;
       end;
     end;
   end
   else
   begin
+    BgColor.R := 0;
+    BgColor.G := 0;
+    BgColor.B := 0;
     for Y := 0 to FLogicalScreenHeight - 1 do
     begin
       Q := Pointer(TCnNativeInt(FCompositeBuf) + Y * BufW * 4);
@@ -1107,9 +1112,15 @@ begin
             ClearWidth := TCnGIFFrame(FFrames[K - 1]).FWidth;
             if TCnGIFFrame(FFrames[K - 1]).FLeft + ClearWidth > FLogicalScreenWidth then
               ClearWidth := FLogicalScreenWidth - TCnGIFFrame(FFrames[K - 1]).FLeft;
-            FillChar(FCompositeBuf^[Y * BufW * 4 +
-              TCnGIFFrame(FFrames[K - 1]).FLeft * 4],
-              ClearWidth * 4, 0);
+            Q := Pointer(TCnNativeInt(FCompositeBuf) +
+              Y * BufW * 4 + TCnGIFFrame(FFrames[K - 1]).FLeft * 4);
+            for X := 0 to ClearWidth - 1 do
+            begin
+              Q^[X].B := BgColor.B;
+              Q^[X].G := BgColor.G;
+              Q^[X].R := BgColor.R;
+              Q^[X].A := 255;
+            end;
           end;
         end;
       end
@@ -1462,33 +1473,26 @@ begin
 
     WriteByte(Stream, MinCodeSize);
 
-    // 写入 LZW 数据（原始数据优先，否则重新编码）
-    if Frame.FRawData.Size > 0 then
-    begin
-      EmitSubBlocks(Stream, Frame.FRawData.Memory, Frame.FRawData.Size);
-    end
-    else
-    begin
-      SrcStm := TMemoryStream.Create;
-      try
-        if Frame.FInterlaced then
-        begin
-          GetMem(InterBuf, PixelCount);
-          try
-            InterlacePixels(Frame, InterBuf);
-            EncodeLZW(InterBuf, PixelCount,
-                      SrcStm, MinCodeSize);
-          finally
-            FreeMem(InterBuf);
-          end;
-        end
-        else
+    // 始终从当前像素重新编码，保证描述符、隔行标志、色表和码长一致。
+    SrcStm := TMemoryStream.Create;
+    try
+      if Frame.FInterlaced then
+      begin
+        GetMem(InterBuf, PixelCount);
+        try
+          InterlacePixels(Frame, InterBuf);
+          EncodeLZW(InterBuf, PixelCount,
+                    SrcStm, MinCodeSize);
+        finally
+          FreeMem(InterBuf);
+        end;
+      end
+      else
         EncodeLZW(Frame.FPixels, PixelCount,
                   SrcStm, MinCodeSize);
-        EmitSubBlocks(Stream, SrcStm.Memory, SrcStm.Size);
-      finally
-        SrcStm.Free;
-      end;
+      EmitSubBlocks(Stream, SrcStm.Memory, SrcStm.Size);
+    finally
+      SrcStm.Free;
     end;
   end;
 
@@ -2345,20 +2349,13 @@ begin
 
   WriteByte(Stream, MinCodeSize);
 
-  // 优先使用帧的原始 LZW 数据，避免重新编码引入错误
-  if Frame.FRawData.Size > 0 then
-  begin
-    EmitSubBlocks(Stream, Frame.FRawData.Memory, Frame.FRawData.Size);
-  end
-  else
-  begin
-    EncStm := TMemoryStream.Create;
-    try
-      EncodeLZW(Frame.FPixels, PixelCount, EncStm, MinCodeSize);
-      EmitSubBlocks(Stream, EncStm.Memory, EncStm.Size);
-    finally
-      EncStm.Free;
-    end;
+  // 单帧描述符为非隔行，必须按当前线性像素重新编码。
+  EncStm := TMemoryStream.Create;
+  try
+    EncodeLZW(Frame.FPixels, PixelCount, EncStm, MinCodeSize);
+    EmitSubBlocks(Stream, EncStm.Memory, EncStm.Size);
+  finally
+    EncStm.Free;
   end;
 
   // Trailer
