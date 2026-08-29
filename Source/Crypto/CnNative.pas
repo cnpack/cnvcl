@@ -4615,6 +4615,26 @@ end;
 
 {$ELSE}
 
+{$IFDEF CALL_SYSV_AMD64}
+
+// 64-bit unsigned multiply: A * B -> ResLo:ResHi (System V AMD64 ABI)
+// RDI=A, RSI=B, RDX=&ResLo, RCX=&ResHi
+// Note: MUL clobbers RDX (high result), so &ResLo must be saved beforehand.
+procedure UInt64MulUInt64(A, B: UInt64; var ResLo, ResHi: UInt64); assembler;
+asm
+  MOV RAX, RDI      // A -> RAX
+  PUSH RDX          // save &ResLo (MUL will clobber RDX)
+  PUSH RCX          // save &ResHi
+  MUL RSI           // RDX:RAX = RAX * B
+  MOV R8, RDX       // save high product in R8
+  POP RCX           // restore &ResHi
+  POP RDX           // restore &ResLo
+  MOV [RDX], RAX    // *ResLo = low product
+  MOV [RCX], R8     // *ResHi = high product
+end;
+
+{$ELSE}
+
 // 两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中
 procedure UInt64MulUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
 var
@@ -4647,6 +4667,8 @@ begin
   Int64Rec(ResHi).Lo := Int64Rec(P).Lo;
   Int64Rec(ResHi).Hi := Int64Rec(R1Hi).Lo + Int64Rec(R2Hi).Lo + Int64Rec(ZX).Hi + Int64Rec(P).Hi;
 end;
+
+{$ENDIF}
 
 {$ENDIF}
 
