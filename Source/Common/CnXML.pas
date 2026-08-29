@@ -340,6 +340,7 @@ type
     procedure InternalRemoveChild(Node: TCnXMLNode);
     function IndexOfChild(Node: TCnXMLNode): Integer;
     procedure SetOwnerDocumentRecursive(Doc: TCnXMLDocument);
+    procedure ValidateNewChild(NewChild: TCnXMLNode);
   public
     constructor Create(AOwnerDocument: TCnXMLDocument; ANodeType: TCnXMLNodeType);
     {* ¹¹Ôìº¯Êý¡£
@@ -1878,6 +1879,9 @@ begin
 
   FChildNodes.Add(Node);
   Node.FParentNode := Self;
+  if (Self is TCnXMLDocument) and (Node is TCnXMLElement) and
+    (TCnXMLDocument(Self).FDocumentElement = nil) then
+    TCnXMLDocument(Self).FDocumentElement := TCnXMLElement(Node);
 end;
 
 procedure TCnXMLNode.InternalRemoveChild(Node: TCnXMLNode);
@@ -1886,6 +1890,9 @@ begin
   begin
     FChildNodes.Remove(Node);
     Node.FParentNode := nil;
+    if (Self is TCnXMLDocument) and
+      (TCnXMLDocument(Self).FDocumentElement = Node) then
+      TCnXMLDocument(Self).FDocumentElement := nil;
   end;
 end;
 
@@ -1907,6 +1914,24 @@ begin
       TCnXMLNode(FChildNodes[I]).SetOwnerDocumentRecursive(Doc);
 end;
 
+procedure TCnXMLNode.ValidateNewChild(NewChild: TCnXMLNode);
+var
+  Node: TCnXMLNode;
+begin
+  if NewChild = nil then
+    Exit;
+
+  Node := Self;
+  while Node <> nil do
+  begin
+    if Node = NewChild then
+      raise ECnXMLException.Create(SCN_XML_HIERARCHY,
+        CN_XML_ERR_HIERARCHY, 0, 0);
+    Node := Node.ParentNode;
+  end;
+
+end;
+
 function TCnXMLNode.AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
 begin
   if NewChild = nil then
@@ -1914,6 +1939,8 @@ begin
     Result := nil;
     Exit;
   end;
+
+  ValidateNewChild(NewChild);
 
   // Remove from old parent if exists
   if NewChild.ParentNode <> nil then
@@ -1939,6 +1966,8 @@ begin
     Exit;
   end;
 
+  ValidateNewChild(NewChild);
+
   // If RefChild is nil, append to end
   if RefChild = nil then
   begin
@@ -1946,12 +1975,15 @@ begin
     Exit;
   end;
 
-  // Find reference child index
-  Index := IndexOfChild(RefChild);
-  if Index < 0 then
+  if RefChild.ParentNode <> Self then
   begin
-    // RefChild not found, append to end
     Result := AppendChild(NewChild);
+    Exit;
+  end;
+
+  if NewChild = RefChild then
+  begin
+    Result := NewChild;
     Exit;
   end;
 
@@ -1959,12 +1991,19 @@ begin
   if NewChild.ParentNode <> nil then
     NewChild.ParentNode.InternalRemoveChild(NewChild);
 
+  Index := IndexOfChild(RefChild);
+
   // Insert at index
   if FChildNodes = nil then
     FChildNodes := TList.Create;
 
   FChildNodes.Insert(Index, NewChild);
   NewChild.FParentNode := Self;
+  if (FOwnerDocument <> nil) and (NewChild.FOwnerDocument <> FOwnerDocument) then
+    NewChild.SetOwnerDocumentRecursive(FOwnerDocument);
+  if (Self is TCnXMLDocument) and (NewChild is TCnXMLElement) and
+    (TCnXMLDocument(Self).FDocumentElement = nil) then
+    TCnXMLDocument(Self).FDocumentElement := TCnXMLElement(NewChild);
   Result := NewChild;
 end;
 
@@ -1991,11 +2030,32 @@ end;
 function TCnXMLNode.ReplaceChild(NewChild, OldChild: TCnXMLNode): TCnXMLNode;
 var
   Index: Integer;
+  OldDocumentElement: TCnXMLElement;
 begin
   if (NewChild = nil) or (OldChild = nil) then
   begin
     Result := nil;
     Exit;
+  end;
+
+  if NewChild = OldChild then
+  begin
+    Result := OldChild;
+    Exit;
+  end;
+
+  OldDocumentElement := nil;
+  if (Self is TCnXMLDocument) and
+    (TCnXMLDocument(Self).FDocumentElement = OldChild) then
+  begin
+    OldDocumentElement := TCnXMLDocument(Self).FDocumentElement;
+    TCnXMLDocument(Self).FDocumentElement := nil;
+  end;
+  try
+    ValidateNewChild(NewChild);
+  finally
+    if OldDocumentElement <> nil then
+      TCnXMLDocument(Self).FDocumentElement := OldDocumentElement;
   end;
 
   // Find old child index
@@ -2010,10 +2070,24 @@ begin
   if NewChild.ParentNode <> nil then
     NewChild.ParentNode.InternalRemoveChild(NewChild);
 
+  Index := IndexOfChild(OldChild);
+  if Index < 0 then
+    raise ECnXMLException.Create(SCN_XML_NOT_FOUND,
+      CN_XML_ERR_NOT_FOUND, 0, 0);
+
   // Replace at index
   FChildNodes[Index] := NewChild;
   NewChild.FParentNode := Self;
   OldChild.FParentNode := nil;
+  if (FOwnerDocument <> nil) and (NewChild.FOwnerDocument <> FOwnerDocument) then
+    NewChild.SetOwnerDocumentRecursive(FOwnerDocument);
+  if Self is TCnXMLDocument then
+  begin
+    if NewChild is TCnXMLElement then
+      TCnXMLDocument(Self).FDocumentElement := TCnXMLElement(NewChild)
+    else if TCnXMLDocument(Self).FDocumentElement = OldChild then
+      TCnXMLDocument(Self).FDocumentElement := nil;
+  end;
 
   Result := OldChild;
 end;
@@ -2343,6 +2417,7 @@ procedure TCnXMLDocument.LoadFromString(const XMLString: string);
 var
   Parser: TCnXMLParser;
   TempDoc: TCnXMLDocument;
+  TempElement: TCnXMLElement;
   I: Integer;
   S: string;
 begin
@@ -2386,10 +2461,10 @@ begin
       // Move document element
       if TempDoc.DocumentElement <> nil then
       begin
-        TempDoc.InternalRemoveChild(TempDoc.DocumentElement);
-        TempDoc.DocumentElement.SetOwnerDocumentRecursive(Self);
-        AppendChild(TempDoc.DocumentElement);
-        FDocumentElement := TempDoc.DocumentElement;
+        TempElement := TempDoc.DocumentElement;
+        TempDoc.InternalRemoveChild(TempElement);
+        TempElement.SetOwnerDocumentRecursive(Self);
+        AppendChild(TempElement);
       end;
     finally
       TempDoc.Free;

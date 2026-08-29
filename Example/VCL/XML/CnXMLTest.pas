@@ -895,7 +895,7 @@ begin
       end;
       // Acceptance: either the parser rejects (Raised=True) or leniently parses
       // (Raised=False). In both cases the document must not be in a broken
-      // state — at minimum, no access violation / unhandled exception leaks.
+      // state at minimum, no access violation / unhandled exception leaks.
       Result := Raised or (Doc.DocumentElement = nil) or
                 (Doc.DocumentElement.TagName = 'root');
     finally
@@ -1950,7 +1950,7 @@ begin
     Before := GetAllocatedBytes;
     if Before = 0 then
     begin
-      // Heap metric unavailable on this platform (e.g. FPC) — skip
+      // Heap metric unavailable on this platform (e.g. FPC) skip
       Result := True;
       Exit;
     end;
