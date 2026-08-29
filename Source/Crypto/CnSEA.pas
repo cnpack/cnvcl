@@ -287,22 +287,6 @@ const
   {* 最大可用模多项式次数。CnMP_*.txt 预计算文件覆盖到此 L 值。
      超过此值的模多项式需要实时生成，耗时极长，应避免。}
 
-  CN_SEA_PRODUCT_SAFETY_BASE = 112;
-  {* 素数乘积阈值的基础安全余量（位数）。
-     标准 SEA 在乘积 > 4*sqrt(p) 时停止收集素数，但这仅保证 Elkies+Atkin
-     的 L 乘积超过 Hasse 界。由于 Atkin 素数的过滤强度 |S_i|/L_i 通常约 0.5
-     （而非 1/L_i），实际假阳性数可能高达 N * 0.5^(numAtkin)，在大素数时
-     仍可达数百万，导致 SeaVerifyTrace 验证耗时数天。
-
-     SafetyBits 采用分段策略（CnSeaSafetyBits 函数），对小的 p 不增加额外
-     余量（标准 SEA 已足够），对 128 位及以上逐步增加余量以启用 SkipVerify：
-       <=112 位: SafetyBits=0  （L≈47, Combine 秒级）
-       128 位:   SafetyBits=40 （L≈83, Combine 秒级，Elkies 最大 deg≈3400）
-       192 位:   SafetyBits=72 （L≈131, Elkies 最大 deg≈8580）
-       256 位:   SafetyBits=104（L≈157, Elkies 最大 deg≈12246）
-     每段增加的素数约 4~6 个，其中约一半为 Elkies，使 E_fp_log2 < -2
-     从而 SkipVerify=1，Combine 阶段从小时级降为秒级。}
-
   CN_SEA_ELKIES_BSGS_THRESHOLD = 71;
   {* 素数大于该值时采用 BSGS 查找，否则线性。
      BSGS 算法虽然能将迭代次数从 (L+1)/2 降低到大约 2*sqrt((L+1)/2)，
@@ -3452,14 +3436,13 @@ var
   Found, Verified, UseBSGS, SkipVerify: Boolean;
   TMod: Int64;
   AtkinFilterRatio, E_fp_Log2: Double;
-  LVal, L1Val, LCheck, InvME64: Int64;
+  LVal, L1Val, InvME64: Int64;
   BestIdx, Dir: Integer;
-  BabyR: Int64;
   // 多素数 CRT 选取
   SelIdx: array[0..63] of Integer;
   SelL: array[0..63] of Int64;
   SelC: array[0..63] of Integer;
-  SelCount, SelBestIdx, SelMaxLoop: Integer;
+  SelCount, SelMaxLoop: Integer;
   SelMaxBaby: Int64;
   SelBestR, SelR: Double;
   SelFound: Boolean;
@@ -3490,7 +3473,7 @@ var
   // BSGS 变量
   BabyRs: TCnInt64List;
   GStep, BaseT, Threshold: TCnBigNumber;
-  GiantSize, GiantMax, SurvCnt: Int64;
+  GiantSize, GiantMax {$IFDEF SEA_TRACE}, SurvCnt {$ENDIF}: Int64;
 begin
   Result := False;
   M_E := nil;
