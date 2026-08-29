@@ -29,8 +29,8 @@ unit CnSEA;
 *           六个多小时正确算出 secp224r1。
 *
 *           在MACOS 的 x64 的 fpc 编译时宜加上 -O4 -CpCOREAVX2 开关优化，可提速
-*           定义 SEA_TRACE 可打印中间步骤
-*           SEA_TRACE2 后期有更多打印，但略影响速度
+*           代码中定义了 SEA_TRACE，可打印中间步骤的数据与耗时。
+*           SEA_TRACE2 后期有更多打印，但略影响速度，默认未定义，可看情况自行定义与否
 *
 * 开发平台：PWin10 + Delphi 10.3
 * 兼容测试：PWin9X/2000/XP/7/10/11 + Delphi/C++Builder 5 ~ 13/FPC
@@ -55,6 +55,8 @@ unit CnSEA;
 {$I CnPack.inc}
 
 interface
+
+{$DEFINE SEA_TRACE}
 
 uses
   SysUtils, Classes, Contnrs, CnBigNumber, CnPolynomial, CnPrime, CnECC, CnContainers,
@@ -2518,6 +2520,9 @@ begin
   if (Res = nil) or (A = nil) or (B = nil) or (P = nil) then Exit;
   if P.IsZero or P.IsNegative then Exit;
 
+{$IFDEF SEA_TRACE}
+  _SeaT0 := Now;  // Reset trace timer for each SEA run
+{$ENDIF}
   Pa := nil;
   Ta := nil;
   DPs := nil;
