@@ -254,12 +254,16 @@ end;
 procedure _SeaT(const Fmt: string; const Args: array of const);
 var
   S, H, M, Sec: Int64;
+  NowT: TDateTime;
+  NH, NM, NS, NMs: Word;
 begin
   S := _SeaMs div 1000;
   H := S div 3600;
   M := (S mod 3600) div 60;
   Sec := S mod 60;
-  WriteLn(Format('[%d - %2.2d:%2.2d:%2.2d] ', [_SeaMs, H, M, Sec]) + Format(Fmt, Args));
+  NowT := Now;
+  DecodeTime(NowT, NH, NM, NS, NMs);
+  WriteLn(Format('[%2.2d:%2.2d:%2.2d|%d - %2.2d:%2.2d:%2.2d] ', [NH, NM, NS, _SeaMs, H, M, Sec]) + Format(Fmt, Args));
 end;
 
 {$ENDIF}
