@@ -1528,7 +1528,6 @@ var
   CzI: Integer;
   CzOk: Boolean;
   ScalarLam: Integer;
-  ShortCircuit: Boolean;
   BQ: TCnBigNumber;
 begin
   Result := False;
@@ -1579,7 +1578,6 @@ begin
     TargetDeg := (L - 1) div 2;
     Found := False;
     ScalarLam := 0;
-    ShortCircuit := False;
 
     // 对于奇素数 L，特征值 λ 和 L-λ 共享同一个核多项式 h(x)。
     // 搜索 λ = 1..(L-1)/2 覆盖全部特征值（2 倍加速）
@@ -1630,29 +1628,22 @@ begin
       end
       else if (H.MaxDegree > TargetDeg) and (H.MaxDegree mod TargetDeg = 0) then
       begin
-        // GCD = whole Psi_L. Two cases:
-        // 1) XPmX = 0 (x^p = x mod PsiL): Frobenius is truly scalar ±1.
-        //    Use Y2^((p-1)/2) to determine eigenvalue. Skip CZ.
-        // 2) XPmX ≠ 0 but G ≡ 0 mod PsiL for this Lambda only: Frobenius
-        //    is NOT scalar. This Lambda makes G vanish but gives no kernel
-        //    polynomial. Skip CZ on full Psi_L (catastrophically slow and
-        //    useless). Continue to next Lambda.
-        if (H.MaxDegree = PsiL.MaxDegree) and XPmX.IsZero then
+        // GCD = whole Psi_L: Frobenius is scalar on E[L]; lambda is the
+        // eigenvalue and t = lambda + p*lambda^{-1} mod L is computed
+        // directly by the caller. Short-circuit to avoid factoring the
+        // whole Psi_L (catastrophically slow CZ).
+        if (H.MaxDegree = PsiL.MaxDegree) and (ScalarLam = 0) then
         begin
-          if ScalarLam = 0 then
-            ScalarLam := Lambda;
-          ShortCircuit := True;
-          Break;
+          // Record ScalarLam but do NOT set Found := True. The actual
+          // eigenvalue (1 vs L-1) must be verified via Y2^((p-1)/2)
+          // in the post-loop fallback below. Breaking early with the
+          // unverified Lambda would skip that verification, causing
+          // wrong trace when the true eigenvalue is L-1.
+          ScalarLam := Lambda;
         end;
-        if (H.MaxDegree = PsiL.MaxDegree) and not XPmX.IsZero then
-        begin
-          // G vanished for this Lambda but Frobenius is not scalar.
-          // CZ-factoring full Psi_L is useless. Try next Lambda.
-          Continue;
-        end;
-        // GCD degree is a proper multiple of TargetDeg (not full Psi_L).
-        // Both eigenvalue kernels are in F_p. Factor H and extract
-        // a factor of degree TargetDeg.
+        // GCD degree is a multiple of TargetDeg - both eigenvalue kernels
+        // are in F_p (e.g. when t = 0 mod L and -p is QR mod L).
+        // Factor H and extract a factor of degree TargetDeg.
         CzFactors := TCnBigNumberPolynomialList.Create;
         try
           CzOk := BigNumberPolynomialGaloisFactorCantorZassenhaus(CzFactors, H, P);
@@ -1672,6 +1663,10 @@ begin
           CzFactors.Free;
         end;
         if Found then Break;
+        // CZ factorization failed. If GCD = full Psi_L, Frobenius is scalar
+        // 具有特征值 Lambda。记录下来供直接迹计算。
+        if (H.MaxDegree = PsiL.MaxDegree) and (ScalarLam = 0) then
+          ScalarLam := Lambda;
       end;
     end;
 
