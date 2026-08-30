@@ -746,7 +746,8 @@ function IsUInt64SubOverflowInt32(A: TUInt64; B: TUInt64): Boolean;
 }
 
 procedure UInt64Add(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
-{* 两个 64 位无符号整数相加，A + B => R，如果有溢出，则溢出的 1 置进位标记里，否则进位标记清零。
+{* 两个 64 位无符号整数相加，A + B => R，R 可以是 A 或 B。
+   如果有溢出，则溢出的 1 置进位标记里，否则进位标记清零。
 
    参数：
      var R: TUInt64                       - 和
@@ -758,7 +759,8 @@ procedure UInt64Add(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
 }
 
 procedure UInt64Sub(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
-{* 两个 64 位无符号整数相减，A - B => R，如果不够减有借位，则借的 1 置借位标记里，否则借位标记清零。
+{* 两个 64 位无符号整数相减，A - B => R，，R 可以是 A 或 B。
+   如果不够减有借位，则借的 1 置借位标记里，否则借位标记清零。
 
    参数：
      var R: TUInt64                       - 差
@@ -5305,22 +5307,28 @@ end;
 
 // 两个 64 位无符号整数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零
 procedure UInt64Add(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+var
+  T: TUInt64;
 begin
-  R := A + B;
-  if UInt64Compare(R, A) < 0 then // 无符号相加，结果只要小于任一个数就说明溢出了
+  T := A + B;                     // 用 T 防止 R 是 A B 之一的情况
+  if UInt64Compare(T, A) < 0 then // 无符号相加，结果只要小于任一个数就说明溢出了
     Carry := 1
   else
     Carry := 0;
+  R := A + B;
 end;
 
 // 两个 64 位无符号整数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零
 procedure UInt64Sub(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+var
+  T: TUInt64;
 begin
-  R := A - B;
-  if UInt64Compare(R, A) > 0 then // 无符号相减，结果只要大于被减数就说明借位了
+  T := A - B;                     // 用 T 防止 R 是 A B 之一的情况
+  if UInt64Compare(T, A) > 0 then // 无符号相减，结果只要大于被减数就说明借位了
     Carry := 1
   else
     Carry := 0;
+  R := A - B;
 end;
 
 // 判断两个 32 位有符号整数相乘是否溢出 32 位有符号整数上限
