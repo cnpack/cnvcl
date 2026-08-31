@@ -8739,7 +8739,7 @@ procedure TCnBigNumberPolynomial.Delete(Index: Integer);
 var
   Coefficient: TCnBigNumber;
 begin
-  Coefficient := ExtractByIndex(Index);
+  Coefficient := TCnBigNumber(ExtractByIndex(Index));
   FLocalBigNumberPool.Recycle(Coefficient);
 end;
 
@@ -8765,7 +8765,7 @@ var
 begin
   while Count > 0 do
   begin
-    Coefficient := ExtractByIndex(Count - 1);
+    Coefficient := TCnBigNumber(ExtractByIndex(Count - 1));
     Coefficient.Free;
   end;
 end;

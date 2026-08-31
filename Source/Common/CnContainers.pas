@@ -2679,7 +2679,8 @@ begin
   if (Index >= 0) and (Index < Count) then
   begin
     Result := Items[Index];
-    Items[Index] := nil;
+    // 直接清除槽位，避免 Items[Index] 的替换通知释放待脱离对象。
+    List^[Index] := nil;
     // 必须绕过虚拟 Delete；否则子类的 Delete 可能再次调用本方法而递归。
     inherited Delete(Index);
     Notify(Result, lnExtracted);
