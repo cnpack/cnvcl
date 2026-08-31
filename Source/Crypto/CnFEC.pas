@@ -297,7 +297,8 @@ function CnCalcReedSolomonCode(Data: TBytes; NeedByteLength: Integer): TBytes;
    返回值：TBytes                         - 返回原始及带校验码的数据
 }
 
-function CnVerifyReedSolomonCode(Code: TBytes; CodeByteLength: Integer; Indexes: TBytes = nil): TBytes;
+function CnVerifyReedSolomonCode(Code: TBytes; CodeByteLength: Integer;
+  Indexes: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF}): TBytes;
 {* 根据 Reed Solomon 纠错码还原并校验其内容，内部默认分组 8 Bit 也就是 1 字节。
    Code 表示挑出的原始数据长度个字节（其他的是错误字节抛弃掉了），
    Indexes 代表这批字节在纠错码中的序号，下标从 0 开始到原始数据长度 - 1，

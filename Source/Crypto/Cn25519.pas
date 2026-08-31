@@ -2161,7 +2161,8 @@ function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
 
 function CnEd448SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignature: TCnEd448Signature;
-  const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
+  const UserContext: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF};
+  Ed448: TCnEd448 = nil): Boolean;
 {* Ed448 用公私钥对数据块进行签名，返回签名是否成功，为了提升效率需调用者自行保证公私钥匹配否则签名无效。
 
    参数：
@@ -2177,7 +2178,8 @@ function CnEd448SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: T
 }
 
 function CnEd448VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature: TCnEd448Signature;
-  PublicKey: TCnEd448PublicKey; const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
+  PublicKey: TCnEd448PublicKey; const UserContext: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF};
+  Ed448: TCnEd448 = nil): Boolean;
 {* Ed448 用公钥对数据块与签名进行验证，返回验证是否成功。
 
    参数：
@@ -2193,7 +2195,8 @@ function CnEd448VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature
 
 function CnEd448SignFile(const FileName: string; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignatureStream: TStream;
-  const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
+  const UserContext: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF};
+  Ed448: TCnEd448 = nil): Boolean;
 {* 用 Ed448 公私钥对文件进行签名，签名值 114 字节写入 OutSignatureStream 中，返回签名是否成功。
 
    参数：
@@ -2208,7 +2211,8 @@ function CnEd448SignFile(const FileName: string; PrivateKey: TCnEd448PrivateKey;
 }
 
 function CnEd448VerifyFile(const FileName: string; InSignatureStream: TStream;
-  PublicKey: TCnEd448PublicKey; const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
+  PublicKey: TCnEd448PublicKey; const UserContext: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF};
+  Ed448: TCnEd448 = nil): Boolean;
 {* 用 Ed448 公钥对文件与签名进行验证，InSignatureStream 内部须是 114 字节签名值，返回验证是否成功。
 
    参数：

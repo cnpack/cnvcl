@@ -2118,7 +2118,7 @@ begin
   MyAssert(TestMLDSA65KeyGen, 'TestMLDSA65KeyGen');
   MyAssert(TestMLDSA65SignVerify, 'TestMLDSA65SignVerify');
   MyAssert(TestMLDSA87KeyGen, 'TestMLDSA87KeyGen');
-  MyAssert(TestMLDSA87SignVerify, 'TestMLDSA87SignVerify');  
+  MyAssert(TestMLDSA87SignVerify, 'TestMLDSA87SignVerify');
 
 // ================================ SLHDSA =====================================
 
@@ -2136,7 +2136,7 @@ begin
   MyAssert(TestSLHDSASHAKE256f, 'TestSLHDSASHAKE256f');
   MyAssert(TestSLHDSAPreHash, 'TestSLHDSAPreHash');
   MyAssert(TestSLHDSASerialize, 'TestSLHDSASerialize');
-  MyAssert(TestSLHDSAKeyGenKAT, 'TestSLHDSAKeyGenKAT'); 
+  MyAssert(TestSLHDSAKeyGenKAT, 'TestSLHDSAKeyGenKAT');
   MyAssert(TestSLHDSASigGenKAT, 'TestSLHDSASigGenKAT');
   MyAssert(TestSLHDSASigVerKAT1, 'TestSLHDSASigVerKAT1');
   MyAssert(TestSLHDSASigVerKAT2, 'TestSLHDSASigVerKAT2');
@@ -14784,7 +14784,7 @@ var
   Dig: TCnBLAKE2SDigest;
   Data: TBytes;
 begin
-  Dig := BLAKE2SBytes(nil);
+  Dig := BLAKE2SBytes(nil, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE2SDigest)) = '69217A3079908094E11121D042354A7C1F55B6482CA1A51E1B250DFD1ED0EEF9';
 
   if not Result then Exit;
@@ -14795,7 +14795,7 @@ begin
   if not Result then Exit;
 
   SetLength(Data, 42);
-  Dig := BLAKE2SBytes(Data);
+  Dig := BLAKE2SBytes(Data, nil);
 
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE2SDigest)) = 'D18DB82403F79BBAE8C650F76573B4816BB9F31C0EEB5BB55FC4DA72048AF1E5';
 
@@ -14810,7 +14810,7 @@ var
   Dig: TCnBLAKE2BDigest;
   Data: TBytes;
 begin
-  Dig := BLAKE2BBytes(nil);
+  Dig := BLAKE2BBytes(nil, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE2BDigest)) = '786A02F742015903C6C6FD852552D272912F4740E15847618A86E217F71F5419D25E1031AFEE585313896444934EB04B903A685B1448B755D56F701AFE9BE2CE';
 
   if not Result then Exit;
@@ -14821,7 +14821,7 @@ begin
   if not Result then Exit;
 
   SetLength(Data, 88);
-  Dig := BLAKE2BBytes(Data);
+  Dig := BLAKE2BBytes(Data, nil);
 
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE2BDigest)) = '220B0F4F83FF1574197C964FD5EF5A6988F6A9A51A9E532ECEA32D89BB639A82450481151D4420E0E1BF9074B9D3E70AC5FCF041B63620A5B68B3998A1CE8B32';
 
@@ -14898,7 +14898,7 @@ var
   I: Integer;
 begin
   // 空输入（0 字节）
-  Dig := BLAKE3Bytes(nil);
+  Dig := BLAKE3Bytes(nil, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'AF1349B9F5F9A1A6A0404DEA36DCC9499BCB25C9ADC112B7CC9A93CAE41F3262';
   if not Result then Exit;
@@ -14906,7 +14906,7 @@ begin
   // 1 字节输入（值 0x00）
   SetLength(Data, 1);
   Data[0] := 0;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '2D3ADEDFF11B61F14C886E35AFA036736DCD87A74D27B5C1510225D0F592E213';
   if not Result then Exit;
@@ -14915,7 +14915,7 @@ begin
   SetLength(Data, 63);
   for I := 0 to 62 do
     Data[I] := I;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'E9BC37A594DAAD83BE9470DF7F7B3798297C3D834CE80BA85D6E207627B7DB7B';
   if not Result then Exit;
@@ -14924,7 +14924,7 @@ begin
   SetLength(Data, 64);
   for I := 0 to 63 do
     Data[I] := I;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '4EED7141EA4A5CD4B788606BD23F46E212AF9CACEBACDC7D1F4C6DC7F2511B98';
   if not Result then Exit;
@@ -14933,7 +14933,7 @@ begin
   SetLength(Data, 65);
   for I := 0 to 64 do
     Data[I] := I;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'DE1E5FA0BE70DF6D2BE8FFFD0E99CEAA8EB6E8C93A63F2D8D1C30ECB6B263DEE';
 end;
@@ -14948,7 +14948,7 @@ begin
   SetLength(Data, 1023);
   for I := 0 to 1022 do
     Data[I] := I mod 251;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '10108970EEDA3EB932BAAC1428C7A2163B0E924C9A9E25B35BBA72B28F70BD11';
   if not Result then Exit;
@@ -14957,7 +14957,7 @@ begin
   SetLength(Data, 1024);
   for I := 0 to 1023 do
     Data[I] := I mod 251;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     '42214739F095A406F3FC83DEB889744AC00DF831C10DAA55189B5D121C855AF7';
   if not Result then Exit;
@@ -14966,7 +14966,7 @@ begin
   SetLength(Data, 1025);
   for I := 0 to 1024 do
     Data[I] := I mod 251;
-  Dig := BLAKE3Bytes(Data);
+  Dig := BLAKE3Bytes(Data, nil);
   Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE3Digest)) =
     'D00278AE47EB27B34FAECF67B4FE263F82D5412916C1FFD97C8CB7FB814B8444';
 end;
@@ -15151,7 +15151,7 @@ begin
 
   // XOF 输出 32 字节时与普通哈希一致
   XOFOut := BLAKE3XOFBytes(nil, 32);
-  Dig := BLAKE3Bytes(nil);
+  Dig := BLAKE3Bytes(nil, nil);
   Result := CompareMem(@XOFOut[0], @Dig[0], 32);
 end;
 
@@ -15168,7 +15168,7 @@ begin
     Data[I] := I mod 251;
 
   // 一次性调用
-  D1 := BLAKE3Bytes(Data);
+  D1 := BLAKE3Bytes(Data, nil);
 
   // 分两段：512 + 513
   BLAKE3Init(C);
@@ -15199,7 +15199,7 @@ begin
   SetLength(Data, 128);
   for I := 0 to 127 do
     Data[I] := I;
-  D1 := BLAKE3Bytes(Data);
+  D1 := BLAKE3Bytes(Data, nil);
 
   BLAKE3Init(C);
   BLAKE3Update(C, PAnsiChar(@Data[0]), 63);
@@ -15212,7 +15212,7 @@ begin
   SetLength(Data, 2048);
   for I := 0 to 2047 do
     Data[I] := I mod 251;
-  D1 := BLAKE3Bytes(Data);
+  D1 := BLAKE3Bytes(Data, nil);
 
   BLAKE3Init(C);
   BLAKE3Update(C, PAnsiChar(@Data[0]), 1024);
@@ -16871,7 +16871,7 @@ begin
   if not Result then Exit;
 
   B := Copy(R, 0, 8);
-  B := CnVerifyReedSolomonCode(B, Length(R));
+  B := CnVerifyReedSolomonCode(B, Length(R), nil);
 
   Result := CompareBytes(D, B);
   if not Result then Exit;
@@ -19855,14 +19855,14 @@ begin
     PubKey.LoadFromHex('43BA28F430CDFF456AE531545F7ECD0AC834A55D9358C0372BFA0C6C6798C0866AEA01EB00742802B8438EA4CB82169C235160627B4C3A9480');
 
     B := $03;
-    Result := CnEd448SignData(@B, 1, PrivKey, PubKey, Sig); // 无 UserContext
+    Result := CnEd448SignData(@B, 1, PrivKey, PubKey, Sig, nil); // 无 UserContext
     if not Result then Exit;
 
     Sig.SaveToData(SigData);
     Result := DataToHex(@SigData, SizeOf(SigData)) = '26B8F91727BD62897AF15E41EB43C377EFB9C610D48F2335CB0BD0087810F4352541B143C4B981B7E18F62DE8CCDF633FC1BF037AB7CD779805E0DBCC0AAE1CBCEE1AFB2E027DF36BC04DCECBF154336C19F0AF7E0A6472905E799F1953D2A0FF3348AB21AA4ADAFD1D234441CF807C03A00';
     if not Result then Exit;
 
-    Result := CnEd448VerifyData(@B, 1, Sig, PubKey);
+    Result := CnEd448VerifyData(@B, 1, Sig, PubKey, nil);
   finally
     Sig.Free;
     PubKey.Free;

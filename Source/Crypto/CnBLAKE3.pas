@@ -128,7 +128,8 @@ function BLAKE3Buffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardin
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3Bytes(const Data: TBytes; const Key: TBytes = nil): TCnBLAKE3Digest;
+function BLAKE3Bytes(const Data: TBytes; const Key: TBytes
+  {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF}): TCnBLAKE3Digest;
 {* 对字节数组进行 BLAKE3 计算。
 
    参数：
@@ -197,7 +198,7 @@ function BLAKE3UnicodeString(const Str: WideString; const Key: WideString = ''):
 
 {$ENDIF}
 
-function BLAKE3File(const FileName: string; Key: TBytes = nil;
+function BLAKE3File(const FileName: string; Key: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF};
   CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
 {* 对指定文件内容进行 BLAKE3 计算。
 
@@ -209,7 +210,7 @@ function BLAKE3File(const FileName: string; Key: TBytes = nil;
    返回值：TCnBLAKE3Digest                - 返回的 BLAKE3 杂凑值
 }
 
-function BLAKE3Stream(Stream: TStream; Key: TBytes = nil;
+function BLAKE3Stream(Stream: TStream; Key: TBytes {$IFNDEF DYNARRAY_PARAM_NO_DEFVALUE_BUG} = nil {$ENDIF};
   CallBack: TCnBLAKE3CalcProgressFunc = nil): TCnBLAKE3Digest;
 {* 对指定流数据进行 BLAKE3 计算。
 
