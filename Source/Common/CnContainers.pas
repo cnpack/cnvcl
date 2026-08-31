@@ -2680,7 +2680,8 @@ begin
   begin
     Result := Items[Index];
     Items[Index] := nil;
-    Delete(Index);
+    // 必须绕过虚拟 Delete；否则子类的 Delete 可能再次调用本方法而递归。
+    inherited Delete(Index);
     Notify(Result, lnExtracted);
   end;
 end;
