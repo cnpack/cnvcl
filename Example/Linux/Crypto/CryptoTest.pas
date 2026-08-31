@@ -56,6 +56,23 @@ uses
   CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom,
   CnOTP, CnStrings, CnSEA;
 
+// 2009 ~ XE3 сп Local Const Too Many ╣д Bug
+{$IFDEF VER200}
+  {$DEFINE LOCAL_CONST_TOOMANY_BUG}
+{$ENDIF}
+{$IFDEF VER210}
+  {$DEFINE LOCAL_CONST_TOOMANY_BUG}
+{$ENDIF}
+{$IFDEF VER220}
+  {$DEFINE LOCAL_CONST_TOOMANY_BUG}
+{$ENDIF}
+{$IFDEF VER230}
+  {$DEFINE LOCAL_CONST_TOOMANY_BUG}
+{$ENDIF}
+{$IFDEF VER240}
+  {$DEFINE LOCAL_CONST_TOOMANY_BUG}
+{$ENDIF}
+
 type
   TCnCryptoTestProc = function: Boolean;
 
@@ -12293,6 +12310,7 @@ begin
 end;
 
 function TestMLDSA87SignVerify: Boolean;
+{$IFNDEF LOCAL_CONST_TOOMANY_BUG}
 const
   S_CTX: AnsiString = 'CnPack';
   S_MSG = 'E5AF86E7A081E7AE97E6B395E5BA93436E5061636BE5BC80E58F91E7BB84';
@@ -12782,7 +12800,11 @@ var
   SK, PK, Sig, Msg: TBytes;
   Ctx: AnsiString;
   S: string;
+{$ENDIF}
 begin
+{$IFDEF LOCAL_CONST_TOOMANY_BUG}
+  Result := True;
+{$ELSE}
   M := nil;
   Priv := nil;
   Pub := nil;
@@ -12839,6 +12861,7 @@ begin
     Priv.Free;
     M.Free;
   end;
+{$ENDIF}
 end;
 
 // ================================ SLHDSA =====================================
@@ -13292,11 +13315,16 @@ begin
 end;
 
 function TestSLHDSASigVerKAT1: Boolean;
+{$IFNDEF LOCAL_CONST_TOOMANY_BUG}
 const
   // sigVer KAT #1: SLH-DSA-SHA2-192s (tcId=3)
   SLHDSA_VER_PKSEED1 = '7E945CB2A30BCF9C8388AF4CC03ECC3502AF8558843757EB';
   SLHDSA_VER_PKROOT1 = 'F7B24EBBF6CA3614CAC05F95BDFE0575559918CFFDA249A7';
+{$ENDIF}
 begin
+{$IFDEF LOCAL_CONST_TOOMANY_BUG}
+  Result := True;
+{$ELSE}
   Result := False;
 
   if not RunSigVerKAT(slhSHA2_192s,
@@ -13312,14 +13340,20 @@ begin
 }
 
   Result := True;
+{$ENDIF}
 end;
 
 function TestSLHDSASigVerKAT2: Boolean;
+{$IFNDEF LOCAL_CONST_TOOMANY_BUG}
 const
   // sigVer KAT #2: SLH-DSA-SHAKE-128f (tcId=37)
   SLHDSA_VER_PKSEED2 = 'B4B0C44173465CCF542085E7C39D5CF0';
   SLHDSA_VER_PKROOT2 = '4990BB3DBDFECFAF04B82C2F2CDDDB40';
+{$ENDIF}
 begin
+{$IFDEF LOCAL_CONST_TOOMANY_BUG}
+  Result := True;
+{$ELSE}
   Result := False;
 
   if not RunSigVerKAT(slhSHAKE_128f,
@@ -13327,6 +13361,7 @@ begin
     SLHDSA_VER_MSG2, SLHDSA_VER_SIG2_1 + SLHDSA_VER_SIG2_2 + SLHDSA_VER_SIG2_3) then Exit;
 
   Result := True;
+{$ENDIF}
 end;
 
 // ================================ SM4 ========================================
