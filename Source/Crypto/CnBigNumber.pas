@@ -5038,8 +5038,43 @@ begin
   end;
 end;
 
+{$IFDEF BN_DATA_USE_64}
+{$IFDEF CALL_SYSV_AMD64}
+
+// BN64 SysV AMD64: square each AP word and write two result words.
+procedure BigNumberSqrWords64(RP: PCnBigNumberElementArray;
+  AP: PCnBigNumberElementArray; N: Integer); assembler; {$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+  // SysV AMD64: RDI=RP, RSI=AP, RDX=N.
+  // R10 holds the remaining word count; all used registers are volatile.
+  MOV R10D, EDX
+  TEST R10D, R10D
+  JLE @@Done
+
+@@Loop:
+  MOV RAX, [RSI]
+  MUL RAX                 // RDX:RAX = AP[i] * AP[i]
+  MOV [RDI], RAX
+  MOV [RDI + 8], RDX
+  ADD RSI, 8
+  ADD RDI, 16
+  DEC R10D
+  JNZ @@Loop
+
+@@Done:
+end;
+
+{$ENDIF}
+{$ENDIF}
+
 procedure BigNumberSqrWords(RP: PCnBigNumberElementArray; AP: PCnBigNumberElementArray; N: Integer);
 begin
+{$IFDEF BN_DATA_USE_64}
+{$IFDEF CALL_SYSV_AMD64}
+  BigNumberSqrWords64(RP, AP, N);
+  Exit;
+{$ENDIF}
+{$ENDIF}
   if N = 0 then
     Exit;
 
