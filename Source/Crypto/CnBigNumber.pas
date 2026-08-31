@@ -6851,12 +6851,12 @@ begin
     BigNumberMul(P1, XH, YH); // p1 = xh*yh
     BigNumberMul(P2, XL, YL); // p2 = xl*yl
 
-    // p1 * 2^(32*2*h) + (p3 - p1 - p2) * 2^(32*h) + p2
+    // p1 * 2^(BN_BITS2*2*h) + (p3 - p1 - p2) * 2^(BN_BITS2*h) + p2
     BigNumberSub(P3, P3, P1);
     BigNumberSub(P3, P3, P2);
-    BigNumberShiftLeft(P3, P3, 32 * H); // P3 得到 (p3 - p1 - p2) * 2^(32*h)
+    BigNumberShiftLeft(P3, P3, BN_BITS2 * H); // P3 得到 (p3 - p1 - p2) * 2^(BN_BITS2*h)
 
-    BigNumberShiftLeft(P1, P1, 32 * 2 * H); // P1 得到 p1 * 2^(32*2*h)
+    BigNumberShiftLeft(P1, P1, BN_BITS2 * 2 * H); // P1 得到 p1 * 2^(BN_BITS2*2*h)
 
     BigNumberAdd(Res, P3, P1);
     BigNumberAdd(Res, Res, P2);

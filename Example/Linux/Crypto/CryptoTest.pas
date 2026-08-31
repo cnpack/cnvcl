@@ -159,6 +159,7 @@ function TestBigNumberDec: Boolean;
 function TestBigNumberConstTimeEqual: Boolean;
 function TestBigNumberExpandWord: Boolean;
 function TestBigNumberMulWord: Boolean;
+function TestBigNumberMulKaratsuba: Boolean;
 function TestBigNumberModWord: Boolean;
 function TestBigNumberDivWord: Boolean;
 function TestBigNumberUnsignedAdd: Boolean;
@@ -1768,7 +1769,7 @@ var
   Start: TDateTime;
   Elapsed: Int64;
 begin
-  S := FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg;
+  S := FormatDateTime('MM-dd:hh:nn:ss.zzz | ', Now) +  Msg;
   if not Assigned(AProc) then
   begin
     MyWriteln(S);
@@ -1776,8 +1777,8 @@ begin
   end;
 
   S := S + '...';
-  if Length(S) < 70 then
-    S := S + StringOfChar(' ', 70 - Length(S));
+  if Length(S) < 80 then
+    S := S + StringOfChar(' ', 80 - Length(S));
   MyWrite(S);
 
   Start := Now;
@@ -1785,7 +1786,7 @@ begin
     V := AProc();
   except
     Inc(CryptoTestFailCount);
-    MyWriteln('Fail');
+    MyWriteln('!!! Fail !!!');
     raise;
   end;
   if V then
@@ -1797,7 +1798,7 @@ begin
   else
   begin
     Inc(CryptoTestFailCount);
-    MyWriteln('Fail');
+    MyWriteln('!!! Fail !!!');
   end;
 
   Assert(V);
@@ -1931,6 +1932,7 @@ begin
   MyAssert(TestBigNumberExpandWord, 'TestBigNumberExpandWord');
   MyAssert(TestBigNumberModWord, 'TestBigNumberModWord');
   MyAssert(TestBigNumberMulWord, 'TestBigNumberMulWord');
+  MyAssert(TestBigNumberMulKaratsuba, 'TestBigNumberMulKaratsuba');
   MyAssert(TestBigNumberDivWord, 'TestBigNumberDivWord');
   MyAssert(TestBigNumberUnsignedAdd, 'TestBigNumberUnsignedAdd');
   MyAssert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
@@ -4585,6 +4587,143 @@ begin
   BigNumberMulWord(T, W);
   Result := T.ToHex() = 'B4FB4C261C179660E6966CACA1345A00';
   BigNumberFree(T);
+end;
+
+function TestBigNumberMulKaratsuba: Boolean;
+var
+  BitsPerWord: Integer;
+
+  function BuildOperand(N: TCnBigNumber; Words: Integer;
+    LowWord: Cardinal): Boolean;
+  begin
+    Result := N.SetOne;
+    if not Result then
+      Exit;
+    Result := BigNumberShiftLeft(N, N, (Words - 1) * BitsPerWord);
+    if not Result then
+      Exit;
+    Result := N.AddWord(LowWord);
+    if not Result then
+      Exit;
+    Result := N.GetWordCount = Words;
+  end;
+
+  function BuildExpectedProduct(Expected, Term, Sum: TCnBigNumber;
+    AWords, BWords: Integer; ALow, BLow: Cardinal;
+    Negative: Boolean): Boolean;
+  var
+    AHighBit, BHighBit: Integer;
+  begin
+    Result := False;
+    AHighBit := (AWords - 1) * BitsPerWord;
+    BHighBit := (BWords - 1) * BitsPerWord;
+
+    if not Expected.SetOne then
+      Exit;
+    if not BigNumberShiftLeft(Expected, Expected, AHighBit + BHighBit) then
+      Exit;
+
+    if not Term.SetWord(BLow) then
+      Exit;
+    if not BigNumberShiftLeft(Term, Term, AHighBit) then
+      Exit;
+    if not BigNumberAdd(Sum, Expected, Term) then
+      Exit;
+    if BigNumberCopy(Expected, Sum) = nil then
+      Exit;
+
+    if not Term.SetWord(ALow) then
+      Exit;
+    if not BigNumberShiftLeft(Term, Term, BHighBit) then
+      Exit;
+    if not BigNumberAdd(Sum, Expected, Term) then
+      Exit;
+    if BigNumberCopy(Expected, Sum) = nil then
+      Exit;
+
+    if not Expected.AddWord(ALow * BLow) then
+      Exit;
+    Expected.SetNegative(Negative);
+    Result := True;
+  end;
+
+  function CheckCase(AWords, BWords: Integer; ALow, BLow: Cardinal;
+    ANegative, BNegative: Boolean; AliasMode: Integer): Boolean;
+  var
+    A, B, R, Expected, Term, Sum, Actual: TCnBigNumber;
+  begin
+    Result := False;
+    A := BigNumberNew;
+    B := BigNumberNew;
+    R := BigNumberNew;
+    Expected := BigNumberNew;
+    Term := BigNumberNew;
+    Sum := BigNumberNew;
+    try
+      if not BuildOperand(A, AWords, ALow) then
+        Exit;
+      if not BuildOperand(B, BWords, BLow) then
+        Exit;
+      if not BuildExpectedProduct(Expected, Term, Sum, AWords, BWords,
+        ALow, BLow, ANegative <> BNegative) then
+        Exit;
+
+      A.SetNegative(ANegative);
+      B.SetNegative(BNegative);
+      case AliasMode of
+        1:
+          begin
+            if not BigNumberMul(A, A, B) then
+              Exit;
+            Actual := A;
+          end;
+        2:
+          begin
+            if not BigNumberMul(B, A, B) then
+              Exit;
+            Actual := B;
+          end;
+      else
+        begin
+          if not BigNumberMul(R, A, B) then
+            Exit;
+          Actual := R;
+        end;
+      end;
+
+      Result := BigNumberCompare(Actual, Expected) = 0;
+    finally
+      BigNumberFree(Sum);
+      BigNumberFree(Term);
+      BigNumberFree(Expected);
+      BigNumberFree(R);
+      BigNumberFree(B);
+      BigNumberFree(A);
+    end;
+  end;
+
+begin
+  if CnBigNumberIs64Mode then
+    BitsPerWord := 64
+  else
+    BitsPerWord := 32;
+
+  // 79 words stays in the normal multiplier; 80 words is the exact
+  // Karatsuba dispatch boundary.  Larger cases cover uneven splitting,
+  // a highly unbalanced input, recursive Karatsuba, signs, and aliases.
+  Result := CheckCase(79, 79, 3, 5, False, False, 0);
+  if not Result then Exit;
+  Result := CheckCase(80, 80, 7, 11, False, False, 0);
+  if not Result then Exit;
+  Result := CheckCase(81, 83, 13, 17, True, False, 0);
+  if not Result then Exit;
+  Result := CheckCase(80, 3, 19, 23, False, True, 0);
+  if not Result then Exit;
+  Result := CheckCase(160, 161, 29, 31, False, False, 0);
+  if not Result then Exit;
+  Result := CheckCase(80, 80, 37, 41, False, False, 1);
+  if not Result then Exit;
+  Result := CheckCase(80, 80, 43, 47, False, False, 2);
 end;
 
 function TestBigNumberModWord: Boolean;

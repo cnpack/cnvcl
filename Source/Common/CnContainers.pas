@@ -2680,7 +2680,11 @@ begin
   begin
     Result := Items[Index];
     // 直接清除槽位，避免 Items[Index] 的替换通知释放待脱离对象。
+{$IFDEF LIST_NEW_POINTER}
+    List[Index] := nil;
+{$ELSE}
     List^[Index] := nil;
+{$ENDIF}
     // 必须绕过虚拟 Delete；否则子类的 Delete 可能再次调用本方法而递归。
     inherited Delete(Index);
     Notify(Result, lnExtracted);
