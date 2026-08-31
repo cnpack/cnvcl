@@ -4813,6 +4813,38 @@ begin
   B.SetHex('2D99AB36');
   BigNumberUnsignedAdd(R, A, B);
   Result := R.ToDec() = '4457695409';
+
+  if Result then
+  begin
+    A.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    B.SetOne;
+    BigNumberUnsignedAdd(R, A, B);
+    Result := R.ToHex() = '0100000000000000000000000000000000';
+  end;
+
+  if Result then
+  begin
+    A.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    B.SetOne;
+    BigNumberUnsignedAdd(A, A, B);
+    Result := A.ToHex() = '0100000000000000000000000000000000';
+  end;
+
+  if Result then
+  begin
+    A.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    B.SetOne;
+    BigNumberUnsignedAdd(B, A, B);
+    Result := B.ToHex() = '0100000000000000000000000000000000';
+  end;
+
+  if Result then
+  begin
+    A.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    BigNumberUnsignedAdd(A, A, A);
+    Result := A.ToHex() = '01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE';
+  end;
+
   BigNumberFree(R);
   BigNumberFree(B);
   BigNumberFree(A);

@@ -4752,11 +4752,29 @@ begin
   BigNumberBitOperation(RP, AP, BP, N, boXor);
 end;
 
+{$IFDEF BN_DATA_USE_64}
+
+// 计算 A + B + Carry 的低 64 位，并返回 0 或 1 形式的进位。
+function AddUInt64WithCarry(A, B, Carry: UInt64; var Sum: UInt64): UInt64;
+  {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+var
+  T: UInt64;
+begin
+  T := A + Carry;
+  Sum := T + B;
+  if (T < A) or (Sum < T) then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+{$ENDIF}
+
 function BigNumberAddWords(RP: PCnBigNumberElementArray; AP: PCnBigNumberElementArray;
   BP: PCnBigNumberElementArray; N: Integer): Cardinal;
 var
 {$IFDEF BN_DATA_USE_64}
-  LL: TCnUInt128;
+  Carry: UInt64;
 {$ELSE}
   LL: Int64;
 {$ENDIF}
@@ -4766,7 +4784,7 @@ begin
     Exit;
 
 {$IFDEF BN_DATA_USE_64}
-  UInt128SetZero(LL);
+  Carry := 0;
 {$ELSE}
   LL := 0;
 {$ENDIF}
@@ -4774,29 +4792,10 @@ begin
   while (N and (not 3)) <> 0 do
   begin
 {$IFDEF BN_DATA_USE_64}
-    UInt128Add(LL, LL, AP^[0]);
-    UInt128Add(LL, LL, BP^[0]);
-    RP^[0] := LL.Lo64;
-    LL.Lo64 := LL.Hi64;
-    LL.Hi64 := 0;
-
-    UInt128Add(LL, LL, AP^[1]);
-    UInt128Add(LL, LL, BP^[1]);
-    RP^[1] := LL.Lo64;
-    LL.Lo64 := LL.Hi64;
-    LL.Hi64 := 0;
-
-    UInt128Add(LL, LL, AP^[2]);
-    UInt128Add(LL, LL, BP^[2]);
-    RP^[2] := LL.Lo64;
-    LL.Lo64 := LL.Hi64;
-    LL.Hi64 := 0;
-
-    UInt128Add(LL, LL, AP^[3]);
-    UInt128Add(LL, LL, BP^[3]);
-    RP^[3] := LL.Lo64;
-    LL.Lo64 := LL.Hi64;
-    LL.Hi64 := 0;
+    Carry := AddUInt64WithCarry(AP^[0], BP^[0], Carry, RP^[0]);
+    Carry := AddUInt64WithCarry(AP^[1], BP^[1], Carry, RP^[1]);
+    Carry := AddUInt64WithCarry(AP^[2], BP^[2], Carry, RP^[2]);
+    Carry := AddUInt64WithCarry(AP^[3], BP^[3], Carry, RP^[3]);
 {$ELSE}
     LL := LL + Int64(AP^[0]) + Int64(BP^[0]);
     RP^[0] := Cardinal(LL) and BN_MASK2;
@@ -4825,11 +4824,7 @@ begin
   while N <> 0 do
   begin
 {$IFDEF BN_DATA_USE_64}
-    UInt128Add(LL, LL, AP^[0]);
-    UInt128Add(LL, LL, BP^[0]);
-    RP^[0] := LL.Lo64;
-    LL.Lo64 := LL.Hi64;
-    LL.Hi64 := 0;
+    Carry := AddUInt64WithCarry(AP^[0], BP^[0], Carry, RP^[0]);
 {$ELSE}
     LL := LL + Int64(AP^[0]) + Int64(BP^[0]);
     RP^[0] := Cardinal(LL) and BN_MASK2;
@@ -4843,7 +4838,7 @@ begin
   end;
 
 {$IFDEF BN_DATA_USE_64}
-  Result := LL.Lo64;
+  Result := Cardinal(Carry);
 {$ELSE}
   Result := Cardinal(LL);
 {$ENDIF}

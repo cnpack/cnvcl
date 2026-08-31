@@ -4286,18 +4286,15 @@ begin
   end;
 end;
 
-procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64); assembler;
+procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64;
+  var DivRes, ModRes: TUInt64); assembler; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // System V AMD64 ABI: RDI=ALo, RSI=AHi, RDX=B, RCX=&DivRes, R8=&ModRes
   // DIV instruction: RDX:RAX / operand -> RAX=quotient, RDX=remainder
+  MOV R9, RDX       // Save B before RDX is reused for the dividend high word
   MOV RAX, RDI      // ALo -> RAX (dividend low)
-  PUSH RCX          // Save &DivRes
-  PUSH R8           // Save &ModRes
-  MOV RCX, RDX      // B -> RCX (divisor)
   MOV RDX, RSI      // AHi -> RDX (dividend high)
-  DIV RCX           // RDX:RAX / RCX -> RAX=quotient, RDX=remainder
-  POP R8            // Restore &ModRes
-  POP RCX           // Restore &DivRes
+  DIV R9            // RDX:RAX / R9 -> RAX=quotient, RDX=remainder
   MOV [RCX], RAX    // *DivRes = quotient
   MOV [R8], RDX     // *ModRes = remainder
 end;
