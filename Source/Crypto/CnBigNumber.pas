@@ -801,7 +801,7 @@ type
   end;
   PCnBigNumber = ^TCnBigNumber;
 
-  TCnBigNumberList = class(TObjectList)
+  TCnBigNumberList = class(TCnObjectList)
   {* 容纳大数的对象列表，同时拥有大数对象们}
   private
 
@@ -814,7 +814,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    function Add: TCnBigNumber; overload;
+    function Add: TCnBigNumber; overload; virtual;
     {* 新增一个大数对象，返回该对象。注意添加后返回的对象已由列表纳入管理，无需也不应手动释放。
 
        参数：
@@ -823,7 +823,7 @@ type
        返回值：TCnBigNumber               - 内部新增的大数对象
     }
 
-    function Add(ABigNumber: TCnBigNumber): Integer; overload;
+    function Add(ABigNumber: TCnBigNumber): Integer; overload; virtual;
     {* 添加外部的大数对象，注意添加后该对象由列表纳入管理，无需也不应手动释放。
 
        参数：
@@ -832,7 +832,7 @@ type
        返回值：Integer                    - 新增的该大数对象的索引值
     }
 
-    function Add(Num: Integer): TCnBigNumber; overload;
+    function Add(Num: Integer): TCnBigNumber; overload; virtual;
     {* 添加一整数，内部生成大数对象，注意返回的结果已由列表纳入管理，无需也不应手动释放。
 
        参数：
@@ -841,7 +841,7 @@ type
        返回值：TCnBigNumber               - 新增的该大数对象
     }
 
-    procedure AddList(List: TCnBigNumberList);
+    procedure AddList(List: TCnBigNumberList); virtual;
     {* 添加一大数列表，也即复制列表内的所有大数对象并添加。
 
        参数：
