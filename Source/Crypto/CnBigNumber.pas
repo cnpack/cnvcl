@@ -4902,9 +4902,79 @@ begin
   Result := C;
 end;
 
+{$IFDEF BN_DATA_USE_64}
+{$IFDEF CALL_SYSV_AMD64}
+
+// BN64 SysV AMD64: multiply AP[i] by W and return the final carry.
+function BigNumberMulWords64(RP: PCnBigNumberElementArray; AP: PCnBigNumberElementArray;
+  N: Integer; W: UInt64): UInt64; assembler; {$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+  // SysV AMD64: RDI=RP, RSI=AP, RDX=N, RCX=W.
+  // R10 holds the remaining word count, R11 holds W, and R8 holds carry.
+  MOV R10D, EDX
+  MOV R11, RCX
+  XOR R8D, R8D
+  TEST R10D, R10D
+  JLE @@Done
+
+@@Loop:
+  MOV RAX, [RSI]
+  MUL R11                 // RDX:RAX = AP[i] * W
+  ADD RAX, R8             // add the previous carry
+  ADC RDX, 0              // add the low-word carry to the high word
+  MOV [RDI], RAX
+  MOV R8, RDX
+  ADD RSI, 8
+  ADD RDI, 8
+  DEC R10D
+  JNZ @@Loop
+
+@@Done:
+  MOV RAX, R8
+end;
+
+// BN64 SysV AMD64: accumulate AP[i] * W + RP[i] + Carry and return carry.
+function BigNumberMulAddWords64(RP: PCnBigNumberElementArray; AP: PCnBigNumberElementArray;
+  N: Integer; W: UInt64): UInt64; assembler; {$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+  // SysV AMD64: RDI=RP, RSI=AP, RDX=N, RCX=W.
+  // R10 holds the remaining word count, R11 holds W, and R8 holds carry.
+  MOV R10D, EDX
+  MOV R11, RCX
+  XOR R8D, R8D
+  TEST R10D, R10D
+  JLE @@Done
+
+@@Loop:
+  MOV RAX, [RSI]
+  MUL R11                 // RDX:RAX = AP[i] * W
+  ADD RAX, [RDI]          // add the original RP[i]
+  ADC RDX, 0
+  ADD RAX, R8             // add the previous carry
+  ADC RDX, 0
+  MOV [RDI], RAX
+  MOV R8, RDX
+  ADD RSI, 8
+  ADD RDI, 8
+  DEC R10D
+  JNZ @@Loop
+
+@@Done:
+  MOV RAX, R8
+end;
+
+{$ENDIF}
+{$ENDIF}
+
 function BigNumberMulAddWords(RP: PCnBigNumberElementArray; AP: PCnBigNumberElementArray;
   N: Integer; W: TCnBigNumberElement): TCnBigNumberElement;
 begin
+{$IFDEF BN_DATA_USE_64}
+{$IFDEF CALL_SYSV_AMD64}
+  Result := BigNumberMulAddWords64(RP, AP, N, W);
+  Exit;
+{$ENDIF}
+{$ENDIF}
   Result := 0;
   if N <= 0 then
     Exit;
@@ -4934,6 +5004,12 @@ end;
 function BigNumberMulWords(RP: PCnBigNumberElementArray; AP: PCnBigNumberElementArray;
   N: Integer; W: TCnBigNumberElement): TCnBigNumberElement;
 begin
+{$IFDEF BN_DATA_USE_64}
+{$IFDEF CALL_SYSV_AMD64}
+  Result := BigNumberMulWords64(RP, AP, N, W);
+  Exit;
+{$ENDIF}
+{$ENDIF}
   Result := 0;
   if N <= 0 then
     Exit;

@@ -4620,16 +4620,13 @@ end;
 // RDI=A, RSI=B, RDX=&ResLo, RCX=&ResHi
 // Note: MUL clobbers RDX (high result), so &ResLo must be saved beforehand.
 procedure UInt64MulUInt64(A, B: UInt64; var ResLo, ResHi: UInt64); assembler;
+  {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   MOV RAX, RDI      // A -> RAX
-  PUSH RDX          // save &ResLo (MUL will clobber RDX)
-  PUSH RCX          // save &ResHi
+  MOV R8, RDX       // save &ResLo (MUL will clobber RDX)
   MUL RSI           // RDX:RAX = RAX * B
-  MOV R8, RDX       // save high product in R8
-  POP RCX           // restore &ResHi
-  POP RDX           // restore &ResLo
-  MOV [RDX], RAX    // *ResLo = low product
-  MOV [RCX], R8     // *ResHi = high product
+  MOV [R8], RAX     // *ResLo = low product
+  MOV [RCX], RDX    // *ResHi = high product
 end;
 
 {$ELSE}
