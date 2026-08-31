@@ -368,6 +368,12 @@ type
 //
 // =============================================================================
 
+  TCnBigNumberPolynomialCoefficientPool = class(TCnBigNumberPool)
+  {* 一元大整系数多项式专用的大数对象池。当前沿用 TCnBigNumberPool 的创建、
+     清零和保留策略，单独定义类型是为了隔离多项式系数的生命周期，并允许
+     本单元后续独立设置 MaxRetainedCount 等池策略。}
+  end;
+
   TCnBigNumberPolynomial = class(TCnBigNumberList)
   {* 一元大整系数多项式，Items[n] 就是 n 次项系数}
   private
@@ -388,6 +394,27 @@ type
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
+    function Add: TCnBigNumber; overload; override;
+    {* 从系数池取得一个清零的大数对象并添加为新系数。}
+
+    function Add(Num: Integer): TCnBigNumber; overload; override;
+    {* 从系数池取得对象、设置整数值并添加为新系数。}
+
+    procedure AddList(List: TCnBigNumberList); override;
+    {* 从指定列表复制所有大数值，新增系数对象均从系数池取得。}
+
+    procedure Delete(Index: Integer); override;
+    {* 删除指定系数并将其归还系数池。}
+
+    procedure Clear; override;
+    {* 清空活动系数并将系数对象归还系数池。清空后 Count 为 0，保持原 Clear 语义。}
+
+    procedure ResetValue;
+    {* 将多项式重置为零值，同时保留一个活动常数系数，其余系数归还系数池。}
+
+    procedure ReleaseStorage;
+    {* 直接释放全部活动系数对象，不放入系数池。主要供析构和显式释放存储使用。}
 
     procedure SetCoefficients(LowToHighCoefficients: array of const);
     {* 一次批量设置从低到高的系数。
@@ -476,6 +503,7 @@ type
 
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
     {* 最高次数，0 开始}
+
   end;
 
   TCnBigNumberPolynomialList = class(TObjectList)
@@ -5827,7 +5855,7 @@ var
   FLocalInt64RationalPolynomialPool: TCnInt64RationalPolynomialPool = nil;
   FLocalBigNumberPolynomialPool: TCnBigNumberPolynomialPool = nil;
   FLocalBigNumberRationalPolynomialPool: TCnBigNumberRationalPolynomialPool = nil;
-  FLocalBigNumberPool: TCnBigNumberPool = nil;
+  FLocalBigNumberPool: TCnBigNumberPolynomialCoefficientPool = nil;
   FLocalInt64BiPolynomialPool: TCnInt64BiPolynomialPool = nil;
   FLocalBigNumberBiPolynomialPool: TCnBigNumberBiPolynomialPool = nil;
   FLocalBigComplexPool: TCnBigComplexPool = nil;
@@ -8676,6 +8704,74 @@ end;
 
 { TCnBigNumberPolynomial }
 
+function TCnBigNumberPolynomial.Add: TCnBigNumber;
+begin
+  Result := FLocalBigNumberPool.Obtain;
+  try
+    inherited Add(Result);
+  except
+    FLocalBigNumberPool.Recycle(Result);
+    raise;
+  end;
+end;
+
+function TCnBigNumberPolynomial.Add(Num: Integer): TCnBigNumber;
+begin
+  Result := Add;
+  Result.SetInteger(Num);
+end;
+
+procedure TCnBigNumberPolynomial.AddList(List: TCnBigNumberList);
+var
+  I: Integer;
+  Coefficient: TCnBigNumber;
+begin
+  if (List = nil) or (List.Count <= 0) then
+    Exit;
+  for I := 0 to List.Count - 1 do
+  begin
+    Coefficient := Add;
+    BigNumberCopy(Coefficient, List[I]);
+  end;
+end;
+
+procedure TCnBigNumberPolynomial.Delete(Index: Integer);
+var
+  Coefficient: TCnBigNumber;
+begin
+  Coefficient := Items[Index];
+  Extract(Coefficient);
+  FLocalBigNumberPool.Recycle(Coefficient);
+end;
+
+procedure TCnBigNumberPolynomial.Clear;
+begin
+  while Count > 0 do
+    Delete(Count - 1);
+end;
+
+procedure TCnBigNumberPolynomial.ResetValue;
+begin
+  if Count = 0 then
+    Add
+  else
+    while Count > 1 do
+      Delete(Count - 1);
+  Items[0].SetZero;
+end;
+
+procedure TCnBigNumberPolynomial.ReleaseStorage;
+var
+  Coefficient: TCnBigNumber;
+begin
+  while Count > 0 do
+  begin
+    Coefficient := Items[Count - 1];
+    Extract(Coefficient);
+    Coefficient.Free;
+  end;
+end;
+
 procedure TCnBigNumberPolynomial.CorrectTop;
 begin
   while (MaxDegree > 0) and Items[MaxDegree].IsZero do
@@ -8696,7 +8792,7 @@ end;
 
 destructor TCnBigNumberPolynomial.Destroy;
 begin
-
+  ReleaseStorage;
   inherited;
 end;
 
@@ -8748,62 +8844,63 @@ end;
 
 procedure TCnBigNumberPolynomial.SetCoefficients(LowToHighCoefficients: array of const);
 var
-  I: Integer;
+  I, Degree, CoefficientCount: Integer;
+  Coefficient: TCnBigNumber;
 begin
-  Clear;
+  CoefficientCount := High(LowToHighCoefficients) - Low(LowToHighCoefficients) + 1;
+  if CoefficientCount <= 0 then
+  begin
+    ResetValue;
+    Exit;
+  end;
+
+  SetMaxDegree(CoefficientCount - 1);
   for I := Low(LowToHighCoefficients) to High(LowToHighCoefficients) do
   begin
+    Degree := I - Low(LowToHighCoefficients);
+    Coefficient := Items[Degree];
+    Coefficient.SetZero;
     case LowToHighCoefficients[I].VType of
     vtInteger:
       begin
-        Add.SetInteger(LowToHighCoefficients[I].VInteger);
+        Coefficient.SetInteger(LowToHighCoefficients[I].VInteger);
       end;
     vtInt64:
       begin
-        Add.SetInt64(LowToHighCoefficients[I].VInt64^);
+        Coefficient.SetInt64(LowToHighCoefficients[I].VInt64^);
       end;
     vtBoolean:
       begin
         if LowToHighCoefficients[I].VBoolean then
-          Add.SetOne
+          Coefficient.SetOne
         else
-          Add.SetZero;
+          Coefficient.SetZero;
       end;
     vtString:
       begin
-        Add.SetDec(LowToHighCoefficients[I].VString^);
+        Coefficient.SetDec(LowToHighCoefficients[I].VString^);
       end;
     vtObject:
       begin
         // 接受 TCnBigNumber 并从中复制值
         if LowToHighCoefficients[I].VObject is TCnBigNumber then
-          BigNumberCopy(Add, LowToHighCoefficients[I].VObject as TCnBigNumber);
+          BigNumberCopy(Coefficient, LowToHighCoefficients[I].VObject as TCnBigNumber);
       end;
     else
       raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + IntToStr(I)]);
     end;
   end;
 
-  if Count = 0 then
-    Add.SetZero
-  else
-    CorrectTop;
+  CorrectTop;
 end;
 
 procedure TCnBigNumberPolynomial.SetMaxDegree(const Value: Integer);
-var
-  I, OC: Integer;
 begin
   CheckDegree(Value);
-
-  OC := Count;
-  Count := Value + 1; // 直接设置 Count，如变小，会自动释放多余的对象
-
-  if Count > OC then  // 增加的部分创建新对象
-  begin
-    for I := OC to Count - 1 do
-      Items[I] := TCnBigNumber.Create;
-  end;
+  while Count > Value + 1 do
+    Delete(Count - 1);
+  while Count < Value + 1 do
+    Add;
 end;
 
 procedure TCnBigNumberPolynomial.SetOne;
@@ -8818,7 +8915,7 @@ end;
 
 procedure TCnBigNumberPolynomial.SetZero;
 begin
-  BigNumberPolynomialSetZero(Self);
+  ResetValue;
 end;
 
 function TCnBigNumberPolynomial.ToString: string;
@@ -9008,6 +9105,8 @@ end;
 
 procedure TCnBigNumberPolynomialPool.Recycle(Poly: TCnBigNumberPolynomial);
 begin
+  if Poly <> nil then
+    Poly.ResetValue;
   inherited Recycle(Poly);
 end;
 
@@ -9194,8 +9293,7 @@ end;
 
 procedure BigNumberPolynomialSetZero(P: TCnBigNumberPolynomial);
 begin
-  P.Clear;
-  P.Add.SetZero;
+  P.ResetValue;
 end;
 
 function BigNumberPolynomialIsOne(P: TCnBigNumberPolynomial): Boolean;
@@ -9205,8 +9303,8 @@ end;
 
 procedure BigNumberPolynomialSetOne(P: TCnBigNumberPolynomial);
 begin
-  P.Clear;
-  P.Add.SetOne;
+  P.ResetValue;
+  P[0].SetOne;
 end;
 
 function BigNumberPolynomialIsNegOne(P: TCnBigNumberPolynomial): Boolean;
@@ -9229,20 +9327,26 @@ end;
 
 procedure BigNumberPolynomialShiftLeft(P: TCnBigNumberPolynomial; N: Integer);
 var
-  I: Integer;
+  I, OldMaxDegree: Integer;
 begin
   if N = 0 then
     Exit
   else if N < 0 then
     BigNumberPolynomialShiftRight(P, -N)
   else
-    for I := 1 to N do
-      P.Insert(0, TCnBigNumber.Create);
+  begin
+    OldMaxDegree := P.MaxDegree;
+    P.MaxDegree := OldMaxDegree + N;
+    for I := OldMaxDegree downto 0 do
+      BigNumberCopy(P[I + N], P[I]);
+    for I := 0 to N - 1 do
+      P[I].SetZero;
+  end;
 end;
 
 procedure BigNumberPolynomialShiftRight(P: TCnBigNumberPolynomial; N: Integer);
 var
-  I: Integer;
+  I, OldMaxDegree: Integer;
 begin
   if N = 0 then
     Exit
@@ -9250,11 +9354,16 @@ begin
     BigNumberPolynomialShiftLeft(P, -N)
   else
   begin
-    for I := 1 to N do
-      P.Delete(0);
-
-    if P.Count = 0 then
-      P.Add.SetZero;
+    OldMaxDegree := P.MaxDegree;
+    if N > OldMaxDegree then
+      P.ResetValue
+    else
+    begin
+      for I := 0 to OldMaxDegree - N do
+        BigNumberCopy(P[I], P[I + N]);
+      P.MaxDegree := OldMaxDegree - N;
+      P.CorrectTop;
+    end;
   end;
 end;
 
@@ -18278,7 +18387,7 @@ initialization
   FLocalInt64RationalPolynomialPool := TCnInt64RationalPolynomialPool.Create;
   FLocalBigNumberPolynomialPool := TCnBigNumberPolynomialPool.Create;
   FLocalBigNumberRationalPolynomialPool := TCnBigNumberRationalPolynomialPool.Create;
-  FLocalBigNumberPool := TCnBigNumberPool.Create;
+  FLocalBigNumberPool := TCnBigNumberPolynomialCoefficientPool.Create;
   FLocalInt64BiPolynomialPool := TCnInt64BiPolynomialPool.Create;
   FLocalBigNumberBiPolynomialPool := TCnBigNumberBiPolynomialPool.Create;
   FLocalBigComplexPool := TCnBigComplexPool.Create;

@@ -645,6 +645,8 @@ type
     constructor Create(AOwnsObjects: Boolean); overload;
 
     function Add(AObject: TObject): Integer;
+    procedure Delete(Index: Integer); reintroduce; virtual;
+    {* 让子类可重载}
     function Extract(Item: TObject): TObject;
     function ExtractByIndex(Index: Integer): TObject;
     {* 根据索引，直接抽取对象，避免了 Extract 方法的遍历开销}
@@ -2659,6 +2661,11 @@ constructor TCnObjectList.Create(AOwnsObjects: Boolean);
 begin
   inherited Create;
   FOwnsObjects := AOwnsObjects;
+end;
+
+procedure TCnObjectList.Delete(Index: Integer);
+begin
+  inherited Delete(Index);
 end;
 
 function TCnObjectList.Extract(Item: TObject): TObject;
