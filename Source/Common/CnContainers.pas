@@ -294,9 +294,17 @@ type
   TCnMathObjectPool = class(TObjectList)
   {* 数学对象池实现类，允许使用到数学对象池的地方自行继承并创建池}
   private
+    FMaxRetainedCount: Integer;
+    FPeakRetainedCount: Integer;
+    FDiscardedCount: Int64;
 {$IFDEF MULTI_THREAD}
     FCriticalSection: TCriticalSection;
 {$ENDIF}
+    function GetMaxRetainedCount: Integer;
+    function GetRetainedCount: Integer;
+    function GetPeakRetainedCount: Integer;
+    function GetDiscardedCount: Int64;
+    procedure SetMaxRetainedCount(const Value: Integer);
     procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   protected
@@ -326,6 +334,32 @@ type
 
        返回值：（无）
     }
+
+    procedure TrimTo(ARetainedCount: Integer);
+    {* 将池中保留的空闲对象裁剪至指定数量。被裁剪的对象会被释放，不影响已经
+       通过 Obtain 取出的对象。ARetainedCount 小于 0 时按 0 处理。}
+
+    procedure TrimExcess;
+    {* 按 MaxRetainedCount 裁剪池中多余的空闲对象。未设置上限时不执行操作。}
+
+    procedure ClearRetained;
+    {* 释放池中当前保留的全部空闲对象，不影响已经通过 Obtain 取出的对象。}
+
+    procedure ResetStatistics;
+    {* 清零丢弃计数，并以当前保留数量作为新的峰值统计起点。}
+
+    property MaxRetainedCount: Integer read GetMaxRetainedCount write SetMaxRetainedCount;
+    {* 池允许保留的最大空闲对象数。-1 表示不限制，也是保持原有行为的默认值；
+       0 表示对象归还时直接释放。该值不限制同时处于使用状态的对象数量。}
+
+    property RetainedCount: Integer read GetRetainedCount;
+    {* 池中当前保留的空闲对象数。}
+
+    property PeakRetainedCount: Integer read GetPeakRetainedCount;
+    {* 自创建或最近一次 ResetStatistics 以来的空闲对象数量峰值。}
+
+    property DiscardedCount: Int64 read GetDiscardedCount;
+    {* 因超过 MaxRetainedCount 或调用 TrimTo/TrimExcess 而被释放的对象总数。}
   end;
 
 //==============================================================================
@@ -596,6 +630,33 @@ type
     property Count: Integer read FCount write SetCount;
     property Items[Index: Integer]: TObject read Get write Put; default;
     property List: PRefObjectList read FList;
+  end;
+
+  TCnObjectList = class(TList)
+  {* 类似于 TObjectList，但增加了额外的方法}
+  private
+    FOwnsObjects: Boolean;
+  protected
+    procedure Notify(Ptr: Pointer; Action: TListNotification); override;
+    function GetItem(Index: Integer): TObject;
+    procedure SetItem(Index: Integer; AObject: TObject);
+  public
+    constructor Create; overload;
+    constructor Create(AOwnsObjects: Boolean); overload;
+
+    function Add(AObject: TObject): Integer;
+    function Extract(Item: TObject): TObject;
+    function ExtractByIndex(Index: Integer): TObject;
+    {* 根据索引，直接抽取对象，避免了 Extract 方法的遍历开销}
+    function Remove(AObject: TObject): Integer;
+    function IndexOf(AObject: TObject): Integer;
+    function FindInstanceOf(AClass: TClass; AExact: Boolean = True; AStartAt: Integer = 0): Integer;
+    procedure Insert(Index: Integer; AObject: TObject);
+    function First: TObject;
+    function Last: TObject;
+
+    property OwnsObjects: Boolean read FOwnsObjects write FOwnsObjects;
+    property Items[Index: Integer]: TObject read GetItem write SetItem; default;
   end;
 
 {$IFDEF POSIX}
@@ -1189,6 +1250,9 @@ end;
 constructor TCnMathObjectPool.Create;
 begin
   inherited Create(False);
+  FMaxRetainedCount := -1;
+  FPeakRetainedCount := 0;
+  FDiscardedCount := 0;
 {$IFDEF MULTI_THREAD}
   FCriticalSection := TCriticalSection.Create;
 {$ENDIF}
@@ -1198,6 +1262,7 @@ destructor TCnMathObjectPool.Destroy;
 var
   I: Integer;
 begin
+  // 保持原有析构行为：按对象进入备用仓的先后顺序释放。
   for I := 0 to Count - 1 do
     TObject(Items[I]).Free;
 
@@ -1221,6 +1286,60 @@ begin
 {$ENDIF}
 end;
 
+function TCnMathObjectPool.GetMaxRetainedCount: Integer;
+begin
+  Enter;
+  try
+    Result := FMaxRetainedCount;
+  finally
+    Leave;
+  end;
+end;
+
+function TCnMathObjectPool.GetRetainedCount: Integer;
+begin
+  Enter;
+  try
+    Result := Count;
+  finally
+    Leave;
+  end;
+end;
+
+function TCnMathObjectPool.GetPeakRetainedCount: Integer;
+begin
+  Enter;
+  try
+    Result := FPeakRetainedCount;
+  finally
+    Leave;
+  end;
+end;
+
+function TCnMathObjectPool.GetDiscardedCount: Int64;
+begin
+  Enter;
+  try
+    Result := FDiscardedCount;
+  finally
+    Leave;
+  end;
+end;
+
+procedure TCnMathObjectPool.SetMaxRetainedCount(const Value: Integer);
+begin
+  Enter;
+  try
+    if Value < -1 then
+      FMaxRetainedCount := -1
+    else
+      FMaxRetainedCount := Value;
+  finally
+    Leave;
+  end;
+  TrimExcess;
+end;
+
 function TCnMathObjectPool.Obtain: TObject;
 begin
   Enter;
@@ -1238,15 +1357,106 @@ begin
 end;
 
 procedure TCnMathObjectPool.Recycle(Num: TObject);
+var
+  Retain: Boolean;
 begin
   if Num <> nil then
   begin
+    Retain := False;
     Enter;
     try
-      Add(Num);
+      if (FMaxRetainedCount < 0) or (Count < FMaxRetainedCount) then
+      begin
+        Add(Num);
+        Retain := True;
+        if Count > FPeakRetainedCount then
+          FPeakRetainedCount := Count;
+      end
+      else
+        Inc(FDiscardedCount);
     finally
       Leave;
     end;
+    if not Retain then
+      Num.Free;
+  end;
+end;
+
+procedure TCnMathObjectPool.TrimTo(ARetainedCount: Integer);
+var
+  Obj: TObject;
+  Removed: Boolean;
+begin
+  if ARetainedCount < 0 then
+    ARetainedCount := 0;
+
+  while True do
+  begin
+    Obj := nil;
+    Removed := False;
+    Enter;
+    try
+      if Count > ARetainedCount then
+      begin
+        Obj := TObject(Items[Count - 1]);
+        Delete(Count - 1);
+        Inc(FDiscardedCount);
+        Removed := True;
+      end;
+    finally
+      Leave;
+    end;
+
+    if not Removed then
+      Break;
+    Obj.Free;
+  end;
+end;
+
+procedure TCnMathObjectPool.TrimExcess;
+var
+  Limit: Integer;
+begin
+  Limit := MaxRetainedCount;
+  if Limit >= 0 then
+    TrimTo(Limit);
+end;
+
+procedure TCnMathObjectPool.ClearRetained;
+var
+  Obj: TObject;
+  Removed: Boolean;
+begin
+  while True do
+  begin
+    Obj := nil;
+    Removed := False;
+    Enter;
+    try
+      if Count > 0 then
+      begin
+        Obj := TObject(Items[Count - 1]);
+        Delete(Count - 1);
+        Removed := True;
+      end;
+    finally
+      Leave;
+    end;
+
+    if not Removed then
+      Break;
+    Obj.Free;
+  end;
+end;
+
+procedure TCnMathObjectPool.ResetStatistics;
+begin
+  Enter;
+  try
+    FPeakRetainedCount := Count;
+    FDiscardedCount := 0;
+  finally
+    Leave;
   end;
 end;
 
@@ -2430,6 +2640,104 @@ begin
     for I := FCount - 1 downto NewCount do
       Delete(I);
   FCount := NewCount;
+end;
+
+{ TCnObjectList }
+
+function TCnObjectList.Add(AObject: TObject): Integer;
+begin
+  Result := inherited Add(AObject);
+end;
+
+constructor TCnObjectList.Create;
+begin
+  inherited Create;
+  FOwnsObjects := True;
+end;
+
+constructor TCnObjectList.Create(AOwnsObjects: Boolean);
+begin
+  inherited Create;
+  FOwnsObjects := AOwnsObjects;
+end;
+
+function TCnObjectList.Extract(Item: TObject): TObject;
+begin
+  Result := TObject(inherited Extract(Item));
+end;
+
+function TCnObjectList.ExtractByIndex(Index: Integer): TObject;
+begin
+  Result := nil;
+  if (Index >= 0) and (Index < Count) then
+  begin
+    Result := Items[Index];
+    Items[Index] := nil;
+    Delete(Index);
+    Notify(Result, lnExtracted);
+  end;
+end;
+
+function TCnObjectList.FindInstanceOf(AClass: TClass; AExact: Boolean;
+  AStartAt: Integer): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  for I := AStartAt to Count - 1 do
+  begin
+    if (AExact and
+      (Items[I].ClassType = AClass)) or
+      (not AExact and
+      Items[I].InheritsFrom(AClass)) then
+    begin
+      Result := I;
+      break;
+    end;
+  end;
+end;
+
+function TCnObjectList.First: TObject;
+begin
+  Result := TObject(inherited First);
+end;
+
+function TCnObjectList.GetItem(Index: Integer): TObject;
+begin
+  Result := inherited Items[Index];
+end;
+
+function TCnObjectList.IndexOf(AObject: TObject): Integer;
+begin
+  Result := inherited IndexOf(AObject);
+end;
+
+procedure TCnObjectList.Insert(Index: Integer; AObject: TObject);
+begin
+  inherited Insert(Index, AObject);
+end;
+
+function TCnObjectList.Last: TObject;
+begin
+  Result := TObject(inherited Last);
+end;
+
+procedure TCnObjectList.Notify(Ptr: Pointer; Action: TListNotification);
+begin
+  if FOwnsObjects then
+    if Action = lnDeleted then
+      TObject(Ptr).Free;
+  inherited Notify(Ptr, Action);
+end;
+
+function TCnObjectList.Remove(AObject: TObject): Integer;
+begin
+  Result := inherited Remove(AObject);
+end;
+
+procedure TCnObjectList.SetItem(Index: Integer; AObject: TObject);
+begin
+  inherited Items[Index] := AObject;
 end;
 
 procedure CnIntegerListCopy(Dst: TCnIntegerList; Src: TCnIntegerList);
