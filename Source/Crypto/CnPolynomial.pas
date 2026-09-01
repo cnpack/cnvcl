@@ -15529,7 +15529,7 @@ begin
     YL := TCnSparseBigNumberList(P.FXs[I]); // 如不存在，无需创建
     if YL <> nil then
       for J := YL.Count - 1 downto 0 do
-        YL[I].Value.Negate;
+        YL[J].Value.Negate;
   end;
 end;
 
