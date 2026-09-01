@@ -12,7 +12,9 @@ program SeaOrder;
 //
 // Usage:
 //   ./SeaOrder A B P       -- compute order for given curve
-//   ./SeaOrder             -- run built-in 48/64/72/96-bit tests
+//   ./SeaOrder             -- run built-in tests from 48-bit through 224-bit
+//   Standard names: secp224k1, secp256k1, secp256r1,
+//     brainpoolP224r1, brainpoolP256r1
 //
 //   A, B, P are string parameters. Decimal if all digits,
 //   hex if prefixed with 0x or contains non-digit characters.
@@ -488,13 +490,82 @@ begin
            'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF',
            '256-bit SM2 curve', True);
   end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = 'secp224k1') then
+  begin
+    // SEC 2 secp224k1 parameters
+    // p = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFE56D
+    // a = 0, b = 5
+    WriteLn('Running secp224k1 test...');
+    WriteLn('NOTE: This may take a very long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('0',
+           '5',
+           'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFE56D',
+           '224-bit secp224k1', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = 'secp256k1') then
+  begin
+    // SEC 2 secp256k1 parameters
+    // p = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+    // a = 0, b = 7
+    WriteLn('Running secp256k1 test...');
+    WriteLn('NOTE: This may take a very long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('0',
+           '7',
+           'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F',
+           '256-bit secp256k1', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = 'secp256r1') then
+  begin
+    // SEC 2 secp256r1 parameters
+    // p = FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
+    // a = FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC
+    // b = 5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
+    WriteLn('Running secp256r1 (NIST P-256) test...');
+    WriteLn('NOTE: This may take a very long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC',
+           '5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B',
+           'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF',
+           '256-bit secp256r1 (NIST P-256)', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = 'brainpoolp224r1') then
+  begin
+    // RFC 5639 brainpoolP224r1 parameters
+    // p = D7C134AA264366862A18302575D1D787B09F075797DA89F57EC8C0FF
+    // a = 68A5E62CA9CE6C1C299803A6C1530B514E182AD8B0042A59CAD29F43
+    // b = 2580F63CCFE44138870713B1A92369E33E2135D266DBB372386C400B
+    WriteLn('Running brainpoolP224r1 test...');
+    WriteLn('NOTE: This may take a very long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('68A5E62CA9CE6C1C299803A6C1530B514E182AD8B0042A59CAD29F43',
+           '2580F63CCFE44138870713B1A92369E33E2135D266DBB372386C400B',
+           'D7C134AA264366862A18302575D1D787B09F075797DA89F57EC8C0FF',
+           '224-bit brainpoolP224r1', True);
+  end
+  else if (ParamCount = 1) and (LowerCase(ParamStr(1)) = 'brainpoolp256r1') then
+  begin
+    // RFC 5639 brainpoolP256r1 parameters
+    // p = A9FB57DBA1EEA9BC3E660A909D838D726E3BF623D52620282013481D1F6E5377
+    // a = 7D5A0975FC2C3057EEF67530417AFFE7FB8055C126DC5C6CE94A4B44F330B5D9
+    // b = 26DC5C6CE94A4B44F330B5D9BBD77CBF958416295CF7E1CE6BCCDC18FF8C07B6
+    WriteLn('Running brainpoolP256r1 test...');
+    WriteLn('NOTE: This may take a very long time. Use -dSEA_DEBUG compilation');
+    WriteLn('      flag to see per-L timing output.');
+    RunSEA('7D5A0975FC2C3057EEF67530417AFFE7FB8055C126DC5C6CE94A4B44F330B5D9',
+           '26DC5C6CE94A4B44F330B5D9BBD77CBF958416295CF7E1CE6BCCDC18FF8C07B6',
+           'A9FB57DBA1EEA9BC3E660A909D838D726E3BF623D52620282013481D1F6E5377',
+           '256-bit brainpoolP256r1', True);
+  end
   else
   begin
-    WriteLn('No parameters. Running built-in test cases from 48-bit to 192-bit.');
+    WriteLn('No parameters. Running built-in test cases from 48-bit to 224-bit.');
     WriteLn('Usage: SeaOrder <A> <B> <P>');
     WriteLn('  A, B: Weierstrass coefficients (decimal or hex string)');
     WriteLn('  P:    field prime (decimal or hex string)');
-    WriteLn('  Special: SeaOrder 48bit / 64bit / 72bit / 96bit / 112bit / 128bit / 160bit / 192bit / 224bit / 256bit  for standard curves');
+    WriteLn('  Special: SeaOrder 48bit / 64bit / 72bit / 96bit / 112bit / 128bit / 160bit / 192bit / 224bit / 256bit');
+    WriteLn('           secp224k1 / secp256k1 / secp256r1 / brainpoolP224r1 / brainpoolP256r1');
     WriteLn;
 
     // 48-bit CM curve: p = 16777213^2 + 38^2, a=1, b=0
@@ -539,6 +610,13 @@ begin
            '64210519E59C80E70FA7E9AB72243049FEB8DEECC146B9B1',
            'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF',
            '192-bit secp192r1', True);
+
+    // secp224r1
+    WriteLn('NOTE: 224-bit may take a very long time.');
+    RunSEA('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE',
+           'B4050A850C04B3ABF54132565044B0B7D7BFD8BA270B39432355FFB4',
+           'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001',
+           '224-bit secp224r1', True);
   end;
 
   WriteLn;
