@@ -196,9 +196,9 @@ type
   private
     FContent: AnsiString;
     // 解析时存储 JSON 中解析出的 UTF8 原始内容，组装时存 UTF8 的 JSON 字符串内容
-    procedure SetContent(const Value: AnsiString);
   protected
     FUpdated: Boolean;
+    procedure SetContent(const Value: AnsiString); virtual;
 
     function GetName(Index: Integer): TCnJSONString; virtual;
     {* 获取指定索引的名称}
@@ -380,6 +380,9 @@ type
     function StringToJsonFormat(const Str: string): AnsiString;
     {* 把字符串加上双引号与转义后返回为 JSON 格式，内部会做 UTF8 转换
       Str 为 string 类型，同时支持 Unicode 与 Ansi 下的 string}
+  protected
+    procedure SetContent(const Value: AnsiString); override;
+    // 当是 Name 时用来更新所属 Parent 的 Map
   public
     class function FromString(const Value: string): TCnJSONString; reintroduce;
     {* 从一字符串创建实例}
@@ -475,6 +478,9 @@ type
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
+    function IsArray: Boolean; override;
+    {* 是否是数组}
 
     procedure Assign(Source: TPersistent); override;
     {* 赋值函数}
@@ -1270,9 +1276,6 @@ begin
   for I := 0 to FromObj.Count - 1 do
   begin
     N := FromObj.Names[I].AsString;
-    if N = '' then
-      Continue;
-
     D := ToObj.ValueByName[N];
     V := FromObj.Values[I];
     // N 是名称，V 是 From 的值，D 是 To 的值
@@ -1499,7 +1502,12 @@ begin
 
   // 可选正负号
   if FOrigin[FRun] in ['-', '+'] then
+  begin
     StepRun;
+    if not (FOrigin[FRun] in ['0'..'9']) then
+      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+        ['number', FRun]);
+  end;
 
   // 整数部分
   while FOrigin[FRun] in ['0'..'9'] do
@@ -1509,6 +1517,9 @@ begin
   if FOrigin[FRun] = '.' then
   begin
     StepRun;
+    if not (FOrigin[FRun] in ['0'..'9']) then
+      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+        ['number', FRun]);
     while FOrigin[FRun] in ['0'..'9'] do
       StepRun;
   end;
@@ -1519,6 +1530,9 @@ begin
     StepRun;
     if FOrigin[FRun] in ['-', '+'] then
       StepRun;
+    if not (FOrigin[FRun] in ['0'..'9']) then
+      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+        ['number', FRun]);
     while FOrigin[FRun] in ['0'..'9'] do
       StepRun;
   end;
@@ -1669,6 +1683,12 @@ end;
 
 function TCnJSONObject.AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair;
 begin
+  if Value = nil then
+  begin
+    Result := AddPair(Name);
+    Exit;
+  end;
+
   JSONCheckCanAttach(Self, Value);
   Result := TCnJSONPair.Create;
   Result.Name.Value := Name;
@@ -1885,29 +1905,38 @@ end;
 procedure TCnJSONObject.Sort(Recursive: Boolean;
   CompareProc: TListSortCompare);
 var
-  I, J: Integer;
-  Arr: TCnJSONArray;
+  I: Integer;
+
+  procedure SortValue(AValue: TCnJSONValue);
+  var
+    J: Integer;
+    Obj: TCnJSONObject;
+    Arr: TCnJSONArray;
+  begin
+    if AValue is TCnJSONObject then
+    begin
+      Obj := AValue as TCnJSONObject;
+      Obj.Sort(False, CompareProc);
+      for J := 0 to Obj.Count - 1 do
+        SortValue(Obj.Values[J]);
+    end
+    else if AValue is TCnJSONArray then
+    begin
+      Arr := AValue as TCnJSONArray;
+      for J := 0 to Arr.Count - 1 do
+        SortValue(Arr.Values[J]);
+    end;
+  end;
+
 begin
   if not Assigned(CompareProc) then
     CompareProc := ComparePair;
   FPairs.Sort(CompareProc);
 
-  if Recursive then // 下属子 Object 也排序
+  if Recursive then // 递归排序所有嵌套对象
   begin
     for I := 0 to Count - 1 do
-    begin
-      if Values[I] is TCnJSONObject then
-        (Values[I] as TCnJSONObject).Sort(Recursive, CompareProc)
-      else if Values[I] is TCnJSONArray then
-      begin
-        Arr := Values[I] as TCnJSONArray;
-        for J := 0 to Arr.Count - 1 do
-        begin
-          if Arr.Values[J] is TCnJSONObject then
-            (Arr.Values[J] as TCnJSONObject).Sort(Recursive, CompareProc);
-        end;
-      end;
-    end;
+      SortValue(Values[I]);
   end;
 end;
 
@@ -2325,6 +2354,11 @@ begin
   Result := FValues.Count;
 end;
 
+function TCnJSONArray.IsArray: Boolean;
+begin
+  Result := True;
+end;
+
 function TCnJSONArray.GetValue(Index: Integer): TCnJSONValue;
 begin
   Result := TCnJSONValue(FValues[Index]);
@@ -2432,18 +2466,38 @@ begin
 end;
 
 procedure TCnJSONPair.SetValue(const Value: TCnJSONValue);
+var
+  NewValue: TCnJSONValue;
+  CreatedNull: Boolean;
 begin
-  if FValue = Value then
+  NewValue := Value;
+  CreatedNull := False;
+  if NewValue = nil then
+  begin
+    NewValue := TCnJSONNull.Create;
+    CreatedNull := True;
+  end;
+
+  if FValue = NewValue then
+  begin
+    if CreatedNull then
+      NewValue.Free;
     Exit;
+  end;
 
-  JSONCheckCanAttach(Self, Value);
+  try
+    JSONCheckCanAttach(Self, NewValue);
 
-  if FValue <> nil then // 如果已经有了 FValue 则释放掉
-    FreeAndNil(FValue);
+    if FValue <> nil then // 如果已经有了 FValue 则释放掉
+      FreeAndNil(FValue);
 
-  FValue := Value;
-  if FValue <> nil then
+    FValue := NewValue;
+    NewValue := nil;
     FValue.Parent := Self;
+  finally
+    if CreatedNull and (NewValue <> nil) then
+      NewValue.Free;
+  end;
 end;
 
 function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
@@ -2602,6 +2656,43 @@ begin
 {$ENDIF}
   finally
     Bld.Free;
+  end;
+end;
+
+procedure TCnJSONString.SetContent(const Value: AnsiString);
+var
+  Pair: TCnJSONPair;
+  Obj: TCnJSONObject;
+  OldName, NewName: string;
+begin
+  Pair := nil;
+  Obj := nil;
+
+  if (Parent is TCnJSONPair) and
+    (TCnJSONPair(Parent).Name = Self) and
+    (TCnJSONPair(Parent).Parent is TCnJSONObject) then
+  begin
+    Pair := TCnJSONPair(Parent);
+    Obj := TCnJSONObject(Pair.Parent);
+
+    if Obj.FMap <> nil then
+      OldName := AsString;
+  end;
+
+  inherited SetContent(Value);
+
+  if (Obj <> nil) and (Obj.FMap <> nil) then
+  begin
+    NewName := AsString;
+
+    if OldName <> NewName then
+    begin
+      // 只删除当前 Pair 的旧映射
+      if Obj.FMap.GetValues(OldName) = Pointer(Pair) then
+        Obj.FMap.Delete(OldName);
+
+      Obj.FMap.Add(NewName, Pair);
+    end;
   end;
 end;
 
@@ -3041,7 +3132,7 @@ var
           if ReadIntegerValue(Obj, string(PropInfo^.Name), VI) then
             SetOrdProp(Instance, string(PropInfo^.Name), VI);
         end;
-      tkChar:
+      tkChar, tkWChar:
         begin
           if ReadStringValue(Obj, string(PropInfo^.Name), VS) then
             if Length(VS) > 0 then
@@ -3096,7 +3187,7 @@ begin
     PropType := PropInfo^.PropType^;
 {$ENDIF}
     case PropType^.Kind of
-      tkInteger, tkChar, tkEnumeration, tkSet:
+      tkInteger, tkChar, tkWChar, tkEnumeration, tkSet:
         ReadOrdProp;
       tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF} {$IFDEF FPC}, tkAString {$ENDIF}:
         ReadStrProp;
@@ -3178,23 +3269,23 @@ var
   Sub: TCnJSONObject;
 begin
   PropCount := GetTypeData(Instance.ClassInfo)^.PropCount;
-  if PropCount = 0 then
-    Exit;
+  if PropCount > 0 then
+  begin
+    GetMem(PropList, PropCount * SizeOf(Pointer));
+    try
+      GetPropInfos(Instance.ClassInfo, PropList);
+      for I := 0 to PropCount - 1 do
+      begin
+        PropInfo := PropList^[I];
+        if PropInfo = nil then
+          Break;
 
-  GetMem(PropList, PropCount * SizeOf(Pointer));
-  try
-    GetPropInfos(Instance.ClassInfo, PropList);
-    for I := 0 to PropCount - 1 do
-    begin
-      PropInfo := PropList^[I];
-      if PropInfo = nil then
-        Break;
-
-      if IsStoredProp(Instance, PropInfo) then
-        WriteProperty(Instance, PropInfo, Obj)
+        if IsStoredProp(Instance, PropInfo) then
+          WriteProperty(Instance, PropInfo, Obj)
+      end;
+    finally
+      FreeMem(PropList, PropCount * SizeOf(Pointer));
     end;
-  finally
-    FreeMem(PropList, PropCount * SizeOf(Pointer));
   end;
 
   if Instance is TCollection then
@@ -3248,6 +3339,8 @@ var
           WriteIntegerValue(Obj, string(PropInfo^.Name), Value);
         tkChar:
           WriteStringValue(Obj, string(PropInfo^.Name), Chr(Value));
+        tkWChar:
+          WriteStringValue(Obj, string(PropInfo^.Name), string(WideChar(Value)));
         tkSet:
           WriteStringValue(Obj, string(PropInfo^.Name), GetSetProp(Instance, PPropInfo(PropInfo), True));
         tkEnumeration:
@@ -3309,7 +3402,7 @@ begin
     PropType := PropInfo^.PropType^;
 {$ENDIF}
     case PropType^.Kind of
-      tkInteger, tkChar, tkEnumeration, tkSet:
+      tkInteger, tkChar, tkWChar, tkEnumeration, tkSet:
         WriteOrdProp;
       tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF} {$IFDEF FPC}, tkAString {$ENDIF}:
         WriteStrProp;
