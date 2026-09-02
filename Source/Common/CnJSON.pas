@@ -57,7 +57,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.10.30 V2.0
+* 修改记录：2026.09.02 V2.1
+*                 增加一批保护措施
+*           2025.10.30 V2.0
 *                 加入允许 Key 或 Value 的字符串不带双引号的选项，默认禁用
 *                 加入解析 NDJSON 字符串为 JSON 对象数组的函数
 *           2025.10.26 V2.0
@@ -1634,13 +1636,13 @@ begin
     begin
       if FMap = nil then
       begin
-        // 如果是首次超，则创建 Map 并将之前的都加进来
+        // 如果是首次超，则创建 Map 并将之前的都加进来，也包括上面的 AChild
         FMap := TCnHashTable.Create;
         for I := 0 to FPairs.Count - 1 do
           FMap.Add(TCnJSONPair(FPairs[I]).Name.AsString, FPairs[I]);
-      end;
-
-      FMap.Add(TCnJSONPair(AChild).Name.AsString, Pointer(AChild)); // 暂未判重
+      end
+      else
+        FMap.Add(TCnJSONPair(AChild).Name.AsString, Pointer(AChild)); // 暂未判重
     end;
   end
   else
@@ -1717,6 +1719,7 @@ begin
     JObj := Source as TCnJSONObject;
     if JObj = Self then
       Exit;
+
     JSONCheckNoParentCycle(JObj);
     Clear;
 
@@ -2612,60 +2615,64 @@ end;
 function TCnJSONString.StringToJsonFormat(const Str: string): AnsiString;
 var
   Bld: TCnStringBuilder;
-  P: PChar;
+  I: Integer;
 begin
   // 加引号以及转义编码再 UTF8 转换
   Bld := TCnStringBuilder.Create; // Delphi 中根据是否 Unicode 决定用 Wide 或 Ansi，FPC 下用 Ansi
   try
     Bld.AppendChar('"');
-    if Length(Str) > 0 then
+    for I := 1 to Length(Str) do
     begin
-      P := @Str[1];
-      while P^ <> #0 do
-      begin
-        case P^ of // 注意生成时不进行 / 的转义
-          '\':
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('\');
-            end;
-          '"':
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('"');
-            end;
-          #$08:
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('b');
-            end;
-          #$09:
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('t');
-            end;
-          #$0A:
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('n');
-            end;
-          #$0C:
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('f');
-            end;
-          #$0D:
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('r');
-            end;
-        else
-          Bld.AppendChar(P^);
-        end;
-        Inc(P);
+      case Str[I] of // 注意生成时不进行 / 的转义
+        #$00:
+          begin
+            // JSON 中的 U+0000 必须转义，不能直接写入实际的 #0 字符
+            Bld.AppendChar('\');
+            Bld.AppendChar('u');
+            Bld.AppendChar('0');
+            Bld.AppendChar('0');
+            Bld.AppendChar('0');
+            Bld.AppendChar('0');
+          end;
+        '\':
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('\');
+          end;
+        '"':
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('"');
+          end;
+        #$08:
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('b');
+          end;
+        #$09:
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('t');
+          end;
+        #$0A:
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('n');
+          end;
+        #$0C:
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('f');
+          end;
+        #$0D:
+          begin
+            Bld.AppendChar('\');
+            Bld.AppendChar('r');
+          end;
+      else
+        Bld.AppendChar(Str[I]);
       end;
     end;
-
     Bld.AppendChar('"');
 
 {$IFDEF UNICODE}

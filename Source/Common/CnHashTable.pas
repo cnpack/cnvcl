@@ -39,10 +39,6 @@ interface
 
 {$I CnPack.inc}
 
-{$IFDEF COMPILER5}
-//  'Error: Delphi 5/C++Builder 5 NOT support!';
-{$ENDIF}
-
 uses
   SysUtils, Classes;
 
