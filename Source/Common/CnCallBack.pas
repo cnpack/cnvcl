@@ -65,6 +65,10 @@ function StdcallMethodToCallBack(ASelf: Pointer; AMethodAddr: Pointer): Pointer;
 
 implementation
 
+resourcestring
+  SCnErrorCallbackPoolInitError = 'Callback Pool Init Error!';
+  SCnErrorCallbackPoolOverflow = 'Callback Pool Overflow!';
+
 {$IFDEF WIN32}
 
 type
@@ -119,7 +123,7 @@ procedure InitCallBackPool;
 begin
   FCallBackPool := VirtualAlloc(nil, THUNK_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   if FCallBackPool = nil then
-    raise ECnCallBackException.Create('Callback Pool Init Error!');
+    raise ECnCallBackException.Create(SCnErrorCallbackPoolInitError);
 end;
 
 function StdcallMethodToCallBack(ASelf: Pointer; AMethodAddr: Pointer): Pointer;
@@ -139,8 +143,8 @@ begin
     end
     else
     begin
-      if FEmptyPtr = (THUNK_SIZE div SizeOf(TCnCallback)) then
-        raise ECnCallBackException.Create('Callback Pool Overflow!');
+      if FEmptyPtr = ((THUNK_SIZE div SizeOf(TCnCallback)) - 1) then
+        raise ECnCallBackException.Create(SCnErrorCallbackPoolOverflow);
 
       Inc(FEmptyPtr);
       Instance := PCnCallback(TCnNativeInt(FCallBackPool) + FEmptyPtr * SizeOf(TCnCallback));

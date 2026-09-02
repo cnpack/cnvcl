@@ -44,8 +44,10 @@ type
   ECnSingletonException = class(Exception);
 
   TCnSingleton = class(TObject)
+  {* 单实例类。因 NewInstance 返回固定实例，因而子类需确保 Create 方法幂等}
   private
-    FForceFree, FAutoFree: Boolean;
+    FForceFree: Boolean;
+    FAutoFree: Boolean;
     class function Singleton: TObject;
     procedure SetAutoFree(const Value: Boolean);
   protected
@@ -94,36 +96,36 @@ end;
 
 procedure TCnSingleton.FreeInstance;
 var
-  i: Integer;
-  tmpSingletonInfo: PCnSingletonInfo;
+  I: Integer;
+  TSI: PCnSingletonInfo;
 begin
   Lock;
   try
-    i := _SingletonList.IndexOf(GetClassBaseOffsetStr);
-    if i < 0 then begin
+    I := _SingletonList.IndexOf(GetClassBaseOffsetStr);
+    if I < 0 then begin
       inherited FreeInstance;
       Exit;
     end;
 
-    tmpSingletonInfo := PCnSingletonInfo(_SingletonList.Objects[i]);
+    TSI := PCnSingletonInfo(_SingletonList.Objects[I]);
     if _Finalize or FForceFree then
     begin
       inherited FreeInstance;
-      Dispose(PCnSingletonInfo(_SingletonList.Objects[i]));
-      _SingletonList.Delete(i);
+      Dispose(PCnSingletonInfo(_SingletonList.Objects[I]));
+      _SingletonList.Delete(I);
     end
     else
     begin
-      if (tmpSingletonInfo^.RefCount > 1) then
-        Dec(tmpSingletonInfo^.RefCount)
+      if (TSI^.RefCount > 1) then
+        Dec(TSI^.RefCount)
       else if FAutoFree then
       begin
         inherited FreeInstance;
-        Dispose(PCnSingletonInfo(_SingletonList.Objects[i]));
-        _SingletonList.Delete(i);
+        Dispose(PCnSingletonInfo(_SingletonList.Objects[I]));
+        _SingletonList.Delete(I);
       end
       else
-        tmpSingletonInfo^.RefCount := 0;
+        TSI^.RefCount := 0;
     end;
   finally
     Unlock;
@@ -142,30 +144,30 @@ end;
 
 class function TCnSingleton.Singleton: TObject;
 var
-  i: Integer;
-  tmpSingletonInfo: PCnSingletonInfo;
-  tmpSingleton: TObject;
+  I: Integer;
+  TSI: PCnSingletonInfo;
+  TS: TObject;
 begin
   Lock;
   try
-    tmpSingleton := nil;
-    tmpSingletonInfo := nil;
-    if _SingletonList.Find(GetClassBaseOffsetStr, i) then
+    TS := nil;
+    TSI := nil;
+    if _SingletonList.Find(GetClassBaseOffsetStr, I) then
     begin
-      tmpSingletonInfo := PCnSingletonInfo(_SingletonList.Objects[i]);
-      tmpSingleton := tmpSingletonInfo^.Instance;
+      TSI := PCnSingletonInfo(_SingletonList.Objects[I]);
+      TS := TSI^.Instance;
     end;
-    if tmpSingleton = nil then
+    if TS = nil then
     begin
-      New(tmpSingletonInfo);
-      tmpSingleton := inherited NewInstance;
-      tmpSingletonInfo^.Instance := tmpSingleton;
-      tmpSingletonInfo^.RefCount := 0;
-      _SingletonList.AddObject(GetClassBaseOffsetStr, TObject(tmpSingletonInfo));
+      New(TSI);
+      TS := inherited NewInstance;
+      TSI^.Instance := TS;
+      TSI^.RefCount := 0;
+      _SingletonList.AddObject(GetClassBaseOffsetStr, TObject(TSI));
     end;
-    if tmpSingletonInfo <> nil then
-      Inc(tmpSingletonInfo^.RefCount);
-    Result := tmpSingleton;
+    if TSI <> nil then
+      Inc(TSI^.RefCount);
+    Result := TS;
   finally
     Unlock;
   end;
@@ -173,16 +175,16 @@ end;
 
 class function TCnSingleton.RefCount: Cardinal;
 var
-  i: Integer;
-  tmpSingletonInfo: PCnSingletonInfo;
+  I: Integer;
+  TSI: PCnSingletonInfo;
 begin
   Lock;
   try
-    i := _SingletonList.IndexOf(GetClassBaseOffsetStr);
-    if i >= 0 then
+    I := _SingletonList.IndexOf(GetClassBaseOffsetStr);
+    if I >= 0 then
     begin
-      tmpSingletonInfo := PCnSingletonInfo(_SingletonList.Objects[i]);
-      Result := tmpSingletonInfo^.RefCount;
+      TSI := PCnSingletonInfo(_SingletonList.Objects[I]);
+      Result := TSI^.RefCount;
     end
     else
       Result := 0;
@@ -210,24 +212,28 @@ end;
 class function TCnSingleton.GetClassBaseOffsetStr: string;
 begin
   // Self (ClassType) 是类基址，转换成字符串作为唯一标识此类的字符串
+{$IFDEF CPU64BITS}
+  Result := IntToStr(NativeInt(Pointer(Self)));
+{$ELSE}
   Result := IntToStr(Integer(Pointer(Self)));
+{$ENDIF}
 end;
 
 { TCnSingletonList }
 
 procedure TCnSingletonList.FreeAllSingletons;
 var
-  i: Integer;
-  tmpSingleton: TObject;
+  I: Integer;
+  TS: TObject;
 begin
   _Finalize := True;
-  for i := Count - 1 downto 0 do
+  for I := Count - 1 downto 0 do
   begin
-    if Assigned(Objects[i]) then
+    if Assigned(Objects[I]) then
     begin
-      tmpSingleton := PCnSingletonInfo(Objects[i])^.Instance;
-      if tmpSingleton <> nil then
-        FreeAndNil(tmpSingleton);
+      TS := PCnSingletonInfo(Objects[I])^.Instance;
+      if TS <> nil then
+        FreeAndNil(TS);
     end;
   end;
 end;

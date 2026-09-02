@@ -107,7 +107,6 @@ type
     FLevelProbability: TCnLevelProbability;
     function GetMaxLevel: Integer;
     function GetCount: Integer;
-
   protected
     function ValueGreaterThanNode(const Value: Pointer; const Node: TCnSkipListNode): Boolean;
     function ValueEqualsNode(const Value: Pointer; const Node: TCnSkipListNode): Boolean;
@@ -235,7 +234,7 @@ begin
 
   repeat
     Q := PreNode.Forwards[K];
-    while ValueGreaterThanNode(AValue, Q) and (Q <> nil) do
+    while (Q <> nil) and ValueGreaterThanNode(AValue, Q) do
     begin
       PreNode := Q;
       Q := PreNode.Forwards[K];
@@ -306,7 +305,7 @@ function TCnSkipList.GetCount: Integer;
 var
   P: TCnSkipListNode;
 begin
-  P := FHead;
+  P := FHead.FForwards[0];
   Result := 0;
   while P <> nil do
   begin
@@ -334,7 +333,7 @@ begin
   FillChar(Prevs, SizeOf(Prevs), 0);
   repeat
     Q := PreNode.Forwards[K];
-    while ValueGreaterThanNode(AValue, Q) and (Q <> nil) do
+    while (Q <> nil) and ValueGreaterThanNode(AValue, Q) do
     begin
       PreNode := Q;
       Q := PreNode.Forwards[K];
@@ -380,7 +379,7 @@ begin
 
   repeat
     Q := P.Forwards[I];
-    while ValueGreaterThanNode(AValue, Q) and (Q <> nil) do
+    while (Q <> nil) and ValueGreaterThanNode(AValue, Q) do
     begin
       P := Q;
       Q := P.Forwards[I];
