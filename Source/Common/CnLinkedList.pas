@@ -1628,7 +1628,7 @@ begin
     raise Exception.Create(Format(SListCountError, [NewCount]));
 
   if NewCount > FCount then
-    for Loop := 0 to NewCount - FCount do
+    for Loop := 0 to NewCount - FCount - 1 do
       Add(nil)
   else
     for Loop := FCount - 1 downto NewCount do

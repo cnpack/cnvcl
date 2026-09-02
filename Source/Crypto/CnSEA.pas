@@ -2350,7 +2350,6 @@ var
   RX, RY, RZ, SX, SY, SZ: TCnBigNumber;
   D1, D2, D3, D4, D5, D6, D7, D8, D9: TCnBigNumber;
   I, Bits: Integer;
-  StartX: Int64;
   PointCount: Integer;
 begin
   Result := False;
@@ -2401,7 +2400,7 @@ begin
       BigNumberCopy(SX, SeaVTPtTabX[0]);
       BigNumberCopy(SY, SeaVTPtTabY[0]);
       SZ.SetWord(1);
-      PointCount := 1;
+
       RZ.SetZero;
       Bits := BigNumberGetBitsCount(N);
       for I := Bits - 1 downto 0 do
@@ -3306,7 +3305,6 @@ var
   SFFactors: TCnBigNumberPolynomialList;
   IdxSF, D_DDF, N_DDF, DF_DDF: Integer;
   SF_p, G_p, GH_p, GHX_p, GHSub_p: TCnBigNumberPolynomial;
-  ProfileT0, ProfileDdfT0: Int64;
 begin
   Result := False;
   if (Traces = nil) or (L < 3) then Exit;

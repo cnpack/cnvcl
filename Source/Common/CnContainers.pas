@@ -875,11 +875,12 @@ procedure TCnLinkedQueue.FreeNode(Value: TObject);
 var
   Tmp: TCnQueueNode;
 begin
-  Tmp := TCnQueueNode(Value).Next;
-  TCnQueueNode(Value).Free;
-  if Tmp = nil then
-    Exit;
-  FreeNode(Tmp);
+  while Value <> nil do
+  begin
+    Tmp := TCnQueueNode(Value).Next;
+    TCnQueueNode(Value).Free;
+    Value := Tmp;
+  end;
 end;
 
 constructor TCnLinkedQueue.Create(MultiThread: Boolean);
@@ -1218,7 +1219,9 @@ begin
       FBackIdx := 0;
 
     if FCount < FSize then
-      Inc(FCount);
+      Inc(FCount)
+    else
+      FFrontIdx := FBackIdx;
   finally
     if FMultiThread then
       FLock.Leave;
@@ -1240,7 +1243,9 @@ begin
     FList[FFrontIdx] := AObject;
 
     if FCount < FSize then
-      Inc(FCount);
+      Inc(FCount)
+    else
+      FBackIdx := FFrontIdx;
   finally
     if FMultiThread then
       FLock.Leave;
@@ -2110,7 +2115,7 @@ end;
 
 procedure TCnUInt64List.Insert(Index: TUInt64; Item: TUInt64);
 begin
-  if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) >= 0) then
+  if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) > 0) then
     Error(@SListIndexError, Index);
   if FCount = FCapacity then
     Grow;
@@ -2325,7 +2330,7 @@ end;
 function TCnExtendedList.IndexOf(Item: Extended): Integer;
 begin
   Result := 0;
-  while (Result < FCount) and (Abs(FList^[Result] - Item) < 0.00001) do
+  while (Result < FCount) and (Abs(FList^[Result] - Item) > 0.00001) do
     Inc(Result);
   if Result = FCount then
     Result := -1;
@@ -2448,6 +2453,7 @@ end;
 destructor TCnRefObjectList.Destroy;
 begin
   Clear;
+  inherited;
 end;
 
 function TCnRefObjectList.Add(Item: TObject): Integer;

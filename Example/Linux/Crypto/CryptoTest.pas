@@ -54,7 +54,7 @@ uses
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
   CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom,
-  CnOTP, CnStrings, CnSEA;
+  CnOTP, CnStrings, CnHashMap, CnSEA;
 
 // 2009 ~ XE3 сп Local Const Too Many ╣д Bug
 {$IFDEF VER200}
@@ -107,6 +107,15 @@ function TestUtf8: Boolean;
 function TestStringReplace: Boolean;
 function TestStringBuilder: Boolean;
 function TestAnsiStringListDelimitedText: Boolean;
+
+// ============================== Containers ==================================
+
+function TestRingBufferBackOverwrite: Boolean;
+function TestRingBufferFrontOverwrite: Boolean;
+function TestRingBufferOverwriteBoundaries: Boolean;
+function TestExtendedListIndexOf: Boolean;
+function TestHashMapInt64: Boolean;
+function TestLinkedQueueDestroyDeep: Boolean;
 
 // ============================== Calendar =====================================
 
@@ -1803,7 +1812,7 @@ begin
     V := AProc();
   except
     Inc(CryptoTestFailCount);
-    MyWriteln('!!! Fail !!!');
+    MyWriteln('*** Fail !!!');
     raise;
   end;
   if V then
@@ -1879,6 +1888,15 @@ begin
   MyAssert(TestStringReplace, 'TestStringReplace');
   MyAssert(TestStringBuilder, 'TestStringBuilder');
   MyAssert(TestAnsiStringListDelimitedText, 'TestAnsiStringListDelimitedText');
+
+// ============================== Containers ==================================
+
+  MyAssert(TestRingBufferBackOverwrite, 'TestRingBufferBackOverwrite');
+  MyAssert(TestRingBufferFrontOverwrite, 'TestRingBufferFrontOverwrite');
+  MyAssert(TestRingBufferOverwriteBoundaries, 'TestRingBufferOverwriteBoundaries');
+  MyAssert(TestExtendedListIndexOf, 'TestExtendedListIndexOf');
+  MyAssert(TestHashMapInt64, 'TestHashMapInt64');
+  MyAssert(TestLinkedQueueDestroyDeep, 'TestLinkedQueueDestroyDeep');
 
 // ============================== Calendar =====================================
 
@@ -3192,6 +3210,281 @@ begin
     Result := R = 'a;b;c';
   finally
     SL.Free;
+  end;
+end;
+
+function TestRingBufferBackOverwrite: Boolean;
+var
+  R: TCnObjectRingBuffer;
+  A, B, C, D, P: TObject;
+begin
+  Result := False;
+  A := TObject.Create;
+  B := TObject.Create;
+  C := TObject.Create;
+  D := TObject.Create;
+  R := TCnObjectRingBuffer.Create(3, True);
+  try
+    R.PushToBack(A);
+    R.PushToBack(B);
+    R.PushToBack(C);
+    R.PushToBack(D); // Full: discard A, logical order must be B,C,D.
+    if R.Count <> 3 then
+      Exit;
+
+    P := R.PopFromFront;
+    if P <> B then
+      Exit;
+    P := R.PopFromBack;
+    if P <> D then
+      Exit;
+    P := R.PopFromFront;
+    Result := (P = C) and (R.Count = 0);
+  finally
+    R.Free;
+    A.Free;
+    B.Free;
+    C.Free;
+    D.Free;
+  end;
+end;
+
+function TestRingBufferFrontOverwrite: Boolean;
+var
+  R: TCnObjectRingBuffer;
+  A, B, C, D, P: TObject;
+begin
+  Result := False;
+  A := TObject.Create;
+  B := TObject.Create;
+  C := TObject.Create;
+  D := TObject.Create;
+  R := TCnObjectRingBuffer.Create(3, True);
+  try
+    R.PushToBack(A);
+    R.PushToBack(B);
+    R.PushToBack(C);
+    R.PushToFront(D); // Full: discard C, logical order must be D,A,B.
+    if R.Count <> 3 then
+      Exit;
+
+    P := R.PopFromFront;
+    if P <> D then
+      Exit;
+    P := R.PopFromBack;
+    if P <> B then
+      Exit;
+    P := R.PopFromFront;
+    Result := (P = A) and (R.Count = 0);
+  finally
+    R.Free;
+    A.Free;
+    B.Free;
+    C.Free;
+    D.Free;
+  end;
+end;
+
+function TestRingBufferOverwriteBoundaries: Boolean;
+var
+  R: TCnObjectRingBuffer;
+  A, B, C, D, E, P: TObject;
+  FullRaised: Boolean;
+begin
+  Result := False;
+  A := TObject.Create;
+  B := TObject.Create;
+  C := TObject.Create;
+  D := TObject.Create;
+  E := TObject.Create;
+  R := TCnObjectRingBuffer.Create(1, True);
+  try
+    // Size one must keep exactly the newest value in either direction.
+    R.PushToBack(A);
+    R.PushToBack(B);
+    P := R.PopFromFront;
+    if (P <> B) or (R.Count <> 0) then
+      Exit;
+
+    R.PushToFront(C);
+    R.PushToFront(D);
+    P := R.PopFromBack;
+    if (P <> D) or (R.Count <> 0) then
+      Exit;
+  finally
+    R.Free;
+  end;
+
+  R := TCnObjectRingBuffer.Create(3, True);
+  try
+    // Repeated back overwrites must retain the newest three values.
+    R.PushToBack(A);
+    R.PushToBack(B);
+    R.PushToBack(C);
+    R.PushToBack(D);
+    R.PushToBack(E);
+    if R.Count <> 3 then
+      Exit;
+    if R.PopFromFront <> C then
+      Exit;
+    if R.PopFromFront <> D then
+      Exit;
+    if (R.PopFromFront <> E) or (R.Count <> 0) then
+      Exit;
+  finally
+    R.Free;
+  end;
+
+  R := TCnObjectRingBuffer.Create(3, True);
+  try
+    // Mixed pushes must update the opposite index on every full overwrite.
+    R.PushToBack(A);
+    R.PushToBack(B);
+    R.PushToFront(C); // C,A,B
+    R.PushToBack(D);  // A,B,D (discard C)
+    R.PushToFront(E); // E,A,B (discard D)
+    if R.Count <> 3 then
+      Exit;
+    P := R.PopFromFront;
+    if P <> E then
+      Exit;
+    P := R.PopFromBack;
+    if P <> B then
+      Exit;
+    P := R.PopFromFront;
+    if (P <> A) or (R.Count <> 0) then
+      Exit;
+  finally
+    R.Free;
+  end;
+
+  R := TCnObjectRingBuffer.Create(2, False);
+  try
+    R.PushToBack(A);
+    R.PushToBack(B);
+    FullRaised := False;
+    try
+      R.PushToBack(C);
+    except
+      on ECnRingBufferFullException do
+        FullRaised := True;
+    end;
+    if not FullRaised then
+      Exit;
+    if R.Count <> 2 then
+      Exit;
+    P := R.PopFromFront;
+    if P <> A then
+      Exit;
+    P := R.PopFromFront;
+    Result := (P = B) and (R.Count = 0);
+  finally
+    R.Free;
+    A.Free;
+    B.Free;
+    C.Free;
+    D.Free;
+    E.Free;
+  end;
+end;
+
+function TestExtendedListIndexOf: Boolean;
+var
+  L: TCnExtendedList;
+begin
+  Result := False;
+  L := TCnExtendedList.Create;
+  try
+    // Empty list and exact/near/exactly-outside-epsilon lookups.
+    if L.IndexOf(1.0) <> -1 then
+      Exit;
+    L.Add(1.0);
+    L.Add(2.0);
+    L.Add(3.0);
+    if L.IndexOf(1.0) <> 0 then
+      Exit;
+    if L.IndexOf(2.0) <> 1 then
+      Exit;
+    if L.IndexOf(3.0) <> 2 then
+      Exit;
+    if L.IndexOf(5.0) <> -1 then
+      Exit;
+    if L.IndexOf(1.000009) <> 0 then
+      Exit;
+    if L.IndexOf(1.000011) <> -1 then
+      Exit;
+    if L.Remove(2.0) <> 1 then
+      Exit;
+    Result := (L.Count = 2) and (L[0] = 1.0) and (L[1] = 3.0);
+  finally
+    L.Free;
+  end;
+end;
+
+function TestHashMapInt64: Boolean;
+var
+  M: TCnHashMap;
+  K1, K2, K3: Int64;
+  V1, V2, V3, V: Int64;
+begin
+  Result := False;
+  K1 := Int64(4294967296); // 2^32
+  K2 := -9223372036854770000;
+  K3 := StrToInt64('1311768467463790320'); // $123456789ABCDEF0
+  V1 := Int64(9000000001);
+  V2 := Int64(9000000002);
+  V3 := Int64(9000000003);
+
+  M := TCnHashMap.Create;
+  try
+    M.Add(K1, V1);
+    M.Add(K2, V2);
+    M.Add(K3, V3);
+
+    if not M.HasKey(K1) or not M.HasKey(K2) or not M.HasKey(K3) then
+      Exit;
+    if M.Find(K1) <> V1 then
+      Exit;
+    if M.Find(K2) <> V2 then
+      Exit;
+    if M.Find(K3) <> V3 then
+      Exit;
+
+    V := 0;
+    if not M.Find(K1, V) or (V <> V1) then
+      Exit;
+    if not M.Find(K2, V) or (V <> V2) then
+      Exit;
+    if not M.Find(K3, V) or (V <> V3) then
+      Exit;
+
+    M.Remove(K1);
+    if M.HasKey(K1) then
+      Exit;
+    M.Remove(K2);
+    if M.HasKey(K2) then
+      Exit;
+    M.Remove(K3);
+    Result := not M.HasKey(K3);
+  finally
+    M.Free;
+  end;
+end;
+
+function TestLinkedQueueDestroyDeep: Boolean;
+var
+  Q: CnContainers.TCnLinkedQueue;
+  Marker: Integer;
+  I: Integer;
+begin
+  Marker := 0;
+  Q := CnContainers.TCnLinkedQueue.Create(False);
+  try
+    for I := 1 to 100000 do
+      Q.Push(@Marker);
+    Result := Q.Size = 100000;
+  finally
+    Q.Free;
   end;
 end;
 

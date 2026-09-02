@@ -1126,12 +1126,12 @@ var
 begin
 {$IFDEF CPU64BITS}
   Obj := nil;
-  Get(HashCodeFromInteger(Key), TObject(Key), Obj);
+  Get(HashCodeFromInt64(Key), TObject(Key), Obj);
   Result := Int64(Obj);
 {$ELSE}
   VLo := nil;
   VHi := nil;
-  if Get(HashCodeFromInteger(Key), TObject(Int64Rec(Key).Lo), VLo,
+  if Get(HashCodeFromInt64(Key), TObject(Int64Rec(Key).Lo), VLo,
     TObject(Int64Rec(Key).Hi), @VHi) then
   begin
     Int64Rec(Result).Hi := Cardinal(VHi);
@@ -1398,13 +1398,13 @@ var
 begin
 {$IFDEF CPU64BITS}
   Obj := nil;
-  Result := Get(HashCodeFromInteger(Key), TObject(Key), Obj);
+  Result := Get(HashCodeFromInt64(Key), TObject(Key), Obj);
   if Result then
     OutInt64 := Int64(Obj);
 {$ELSE}
   VLo := nil;
   VHi := nil;
-  Result := Get(HashCodeFromInteger(Key), TObject(Int64Rec(Key).Lo), VLo,
+  Result := Get(HashCodeFromInt64(Key), TObject(Int64Rec(Key).Lo), VLo,
     TObject(Int64Rec(Key).Hi), @VHi);
   if Result then
   begin
