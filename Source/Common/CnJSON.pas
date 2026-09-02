@@ -693,6 +693,11 @@ resourcestring
   SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented %s for this JSON Value Type %s';
   SCnErrorJSONArrayConstsTypeFmt = 'JSON Const Type NOT Support %d';
   SCnErrorJSONArrayTrailingComma = 'JSON Trailing Comma Error in Array';
+  SCnErrorJSONObjectTrailingComma = 'JSON Trailing Comma Error in Object';
+  SCnErrorJSONReaderNilInstance = 'JSON Reader Instance is nil';
+  SCnErrorJSONReaderNilObject = 'JSON Reader JSONObject is nil';
+  SCnErrorJSONCircularReference = 'JSON Circular Reference is Not Allowed';
+  SCnErrorJSONChildAlreadyOwned = 'JSON Child Already Has a Parent';
 
 {$IFDEF SUPPORT_FORMAT_SETTINGS}
 
@@ -709,6 +714,48 @@ begin
     Result := FormatDateTime('''yyyy-mm-dd''', Value)
   else
     Result := FormatDateTime('''yyyy-mm-dd hh:mm:ss.zzz''', Value);
+end;
+
+procedure JSONCheckNoParentCycle(AValue: TCnJSONBase);
+var
+  Slow, Fast: TCnJSONBase;
+begin
+  if AValue = nil then
+    Exit;
+
+  Slow := AValue;
+  Fast := AValue;
+  repeat
+    Slow := Slow.Parent;
+    Fast := Fast.Parent;
+    if Fast <> nil then
+      Fast := Fast.Parent;
+
+    if (Slow <> nil) and (Slow = Fast) then
+      raise ECnJSONException.Create(SCnErrorJSONCircularReference);
+  until Fast = nil;
+end;
+
+procedure JSONCheckCanAttach(AParent, AChild: TCnJSONBase);
+var
+  P: TCnJSONBase;
+begin
+  if AChild = nil then
+    Exit;
+
+  JSONCheckNoParentCycle(AParent);
+  JSONCheckNoParentCycle(AChild);
+
+  P := AParent;
+  while P <> nil do
+  begin
+    if P = AChild then
+      raise ECnJSONException.Create(SCnErrorJSONCircularReference);
+    P := P.Parent;
+  end;
+
+  if AChild.Parent <> nil then
+    raise ECnJSONException.Create(SCnErrorJSONChildAlreadyOwned);
 end;
 
 // 注意，每个 JSONParseXXXX 函数执行完后，P 的 TokenID 总指向这个元素后紧邻的非空元素
@@ -900,12 +947,13 @@ begin
         JSONCheckToken(P, jttString);
 
       Pair := TCnJSONPair.Create;
-      Result.AddChild(Pair);
-
       if P.TokenID = jttIdent then
         Pair.Name.Content := Format('"%s"', [P.Token]) // 设置 Pair 自有的 Name 的内容，补上双引号
       else
         Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
+
+      // 先设置 Name 再挂接 Pair，确保 FMap 获取真实键名。
+      Result.AddChild(Pair);
 
       // 必须一个冒号
       P.NextNoJunk;
@@ -918,6 +966,8 @@ begin
       if P.TokenID = jttElementSep then        // 有逗号分隔，说明有下一对 Key Value 对
       begin
         P.NextNoJunk;
+        if P.TokenID = jttObjectEnd then
+          raise ECnJSONException.Create(SCnErrorJSONObjectTrailingComma);
         Continue;
       end
       else
@@ -1025,6 +1075,8 @@ begin
         begin
           Objects.Add(Obj);
           Result := Step;
+          // JSONParseObject 已定位到下一个非空 Token，避免再次步进跳过相邻对象。
+          Continue;
         end
         else
           Exit;
@@ -1065,7 +1117,7 @@ var
     Result := AnsiTrim(Str); // Trim 的 Unicode 版隐含了转换，会出现问号导致解析失败
     if Result <> '' then
     begin
-      if (Pos('{', Str) <= 0) and (Pos('}', Str) <= 0) then
+      if (Result[1] <> '{') or (Result[Length(Result)] <> '}') then
         Result := '{' + Result + '}';
     end;
   end;
@@ -1164,18 +1216,20 @@ function CnJSONConstruct(Objects: TObjectList; UseFormat: Boolean;
   Indent: Integer): AnsiString;
 var
   I: Integer;
+  FirstEmitted: Boolean;
 begin
   Result := '[';
+  FirstEmitted := True;
   if Objects.Count > 0 then
   begin
     for I := 0 to Objects.Count - 1 do
     begin
       if Objects[I] is TCnJSONValue then
       begin
-        if I = 0 then
-          Result := Result + TCnJSONValue(Objects[I]).ToJSON(UseFormat, Indent)
-        else
-          Result := Result + ', ' + TCnJSONValue(Objects[I]).ToJSON(UseFormat, Indent);
+        if not FirstEmitted then
+          Result := Result + ', ';
+        Result := Result + TCnJSONValue(Objects[I]).ToJSON(UseFormat, Indent);
+        FirstEmitted := False;
       end;
     end;
   end;
@@ -1570,6 +1624,7 @@ var
 begin
   if AChild is TCnJSONPair then
   begin
+    JSONCheckCanAttach(Self, AChild);
     FPairs.Add(AChild);
     AChild.Parent := Self;
     Result := AChild;
@@ -1612,9 +1667,11 @@ end;
 
 function TCnJSONObject.AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair;
 begin
+  JSONCheckCanAttach(Self, Value);
   Result := TCnJSONPair.Create;
-  AddChild(Result);
   Result.Name.Value := Name;
+  // 先设置 Name 再挂接 Pair，确保 FMap 获取真实键名。
+  AddChild(Result);
   Result.Value := Value;
 end;
 
@@ -1658,7 +1715,10 @@ begin
   if Source is TCnJSONObject then
   begin
     JObj := Source as TCnJSONObject;
-    FPairs.Clear;
+    if JObj = Self then
+      Exit;
+    JSONCheckNoParentCycle(JObj);
+    Clear;
 
     for I := 0 to JObj.Count - 1 do
     begin
@@ -1673,11 +1733,14 @@ end;
 
 procedure TCnJSONObject.Clear;
 begin
+  // FMap 保存 Pair 指针，必须在 TObjectList 释放 Pair 前先释放。
+  FreeAndNil(FMap);
   FPairs.Clear;
 end;
 
 function TCnJSONObject.Clone: TCnJSONValue;
 begin
+  JSONCheckNoParentCycle(Self);
   Result := TCnJSONObject.Create;
   Result.Assign(Self);
 end;
@@ -1824,7 +1887,7 @@ var
 begin
   if not Assigned(CompareProc) then
     CompareProc := ComparePair;
-  FPairs.Sort(ComparePair);
+  FPairs.Sort(CompareProc);
 
   if Recursive then // 下属子 Object 也排序
   begin
@@ -1850,6 +1913,7 @@ var
   I: Integer;
   Bld: TCnStringBuilder;
 begin
+  JSONCheckNoParentCycle(Self);
   if Indent < 0 then
     Indent := 0;
 
@@ -2067,6 +2131,7 @@ function TCnJSONArray.AddChild(AChild: TCnJSONBase): TCnJSONBase;
 begin
   if AChild is TCnJSONValue then
   begin
+    JSONCheckCanAttach(Self, AChild);
     FValues.Add(AChild);
     AChild.Parent := Self;
     Result := AChild;
@@ -2087,7 +2152,11 @@ end;
 function TCnJSONArray.AddValue(Value: TCnJSONValue): TCnJSONArray;
 begin
   if Value <> nil then
+  begin
+    JSONCheckCanAttach(Self, Value);
     FValues.Add(Value);
+    Value.Parent := Self;
+  end;
   Result := Self;
 end;
 
@@ -2203,22 +2272,20 @@ end;
 procedure TCnJSONArray.Assign(Source: TPersistent);
 var
   I: Integer;
-  Clz: TCnJSONValueClass;
   V: TCnJSONValue;
   Arr: TCnJSONArray;
 begin
   if Source is TCnJSONArray then
   begin
     Arr := Source as TCnJSONArray;
+    if Arr = Self then
+      Exit;
+    JSONCheckNoParentCycle(Arr);
 
     FValues.Clear;
     for I := 0 to Arr.Count - 1 do
     begin
-      Clz := TCnJSONValueClass(Arr.Values[I].ClassType);
-      V := TCnJSONValue(Clz.NewInstance);
-      V.Create;
-      V.Assign(Arr.Values[I]);
-
+      V := Arr.Values[I].Clone;
       AddValue(V);
     end;
   end
@@ -2233,6 +2300,7 @@ end;
 
 function TCnJSONArray.Clone: TCnJSONValue;
 begin
+  JSONCheckNoParentCycle(Self);
   Result := TCnJSONArray.Create;
   Result.Assign(Self);
 end;
@@ -2264,6 +2332,7 @@ var
   Bld: TCnStringBuilder;
   I: Integer;
 begin
+  JSONCheckNoParentCycle(Self);
   Bld := TCnStringBuilder.Create(True);
   try
     Bld.AppendAnsiChar('[');
@@ -2308,6 +2377,7 @@ begin
 
   if AChild is TCnJSONValue then
   begin
+    JSONCheckCanAttach(Self, AChild);
     FValue := AChild as TCnJSONValue;
     AChild.Parent := Self;
     Result := AChild;
@@ -2318,21 +2388,26 @@ end;
 
 procedure TCnJSONPair.Assign(Source: TPersistent);
 var
-  Clz: TCnJSONValueClass;
   Pair: TCnJSONPair;
+  V: TCnJSONValue;
 begin
   if Source is TCnJSONPair then
   begin
     Pair := Source as TCnJSONPair;
+    if Pair = Self then
+      Exit;
+    JSONCheckNoParentCycle(Pair);
+
     FName.Assign(Pair.Name);
 
+    V := nil;
     if Pair.Value <> nil then
-    begin
-      Clz := TCnJSONValueClass(Pair.Value.ClassType);
-      FValue := TCnJSONValue(Clz.NewInstance);
-      FValue.Create;
-      FValue.Assign(Pair.Value);
-    end;
+      V := Pair.Value.Clone;
+
+    FreeAndNil(FValue);
+    FValue := V;
+    if FValue <> nil then
+      FValue.Parent := Self;
   end
   else
     inherited;
@@ -2342,6 +2417,7 @@ constructor TCnJSONPair.Create;
 begin
   inherited;
   FName := TCnJSONString.Create;
+  FName.Parent := Self;
   // FValue 类型不一，不先创建
 end;
 
@@ -2354,10 +2430,17 @@ end;
 
 procedure TCnJSONPair.SetValue(const Value: TCnJSONValue);
 begin
+  if FValue = Value then
+    Exit;
+
+  JSONCheckCanAttach(Self, Value);
+
   if FValue <> nil then // 如果已经有了 FValue 则释放掉
     FreeAndNil(FValue);
 
   FValue := Value;
+  if FValue <> nil then
+    FValue.Parent := Self;
 end;
 
 function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
@@ -2370,6 +2453,13 @@ end;
 
 function TCnJSONBase.AddChild(AChild: TCnJSONBase): TCnJSONBase;
 begin
+  if AChild = nil then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  JSONCheckCanAttach(Self, AChild);
   Result := AChild;
   AChild.Parent := Self;
 end;
@@ -2614,7 +2704,7 @@ end;
 class function TCnJSONNumber.FromFloat(Value: Extended): TCnJSONNumber;
 begin
   Result := TCnJSONNumber.Create;
-  Result.SetContent(FloatToStr(Value));
+  Result.SetContent(FloatToJsonFormat(Value));
 end;
 
 class function TCnJSONNumber.FromInt(Value: Int64): TCnJSONNumber;
@@ -2697,7 +2787,7 @@ begin
       F.Read(Result[1], F.Size);
 
       // 去掉 UTF8 的 BOM 头
-      if Length(Result) > SizeOf(SCN_BOM_UTF8) then
+      if Length(Result) >= SizeOf(SCN_BOM_UTF8) then
       begin
         if CompareMem(@Result[1], @SCN_BOM_UTF8[0], SizeOf(SCN_BOM_UTF8)) then
           Delete(Result, 1, SizeOf(SCN_BOM_UTF8));
@@ -2735,9 +2825,14 @@ begin
   Reader := nil;
 
   try
-    Obj := CnJSONParse(JSON);
-    Reader := TCnJSONReader.Create;
+    if Instance = nil then
+      raise ECnJSONException.Create(SCnErrorJSONReaderNilInstance);
 
+    Obj := CnJSONParse(JSON);
+    if Obj = nil then
+      raise ECnJSONException.Create(SCnErrorJSONReaderNilObject);
+
+    Reader := TCnJSONReader.Create;
     Reader.Read(Instance, Obj)
   finally
     Reader.Free;
@@ -2754,6 +2849,11 @@ var
   Value: TCnJSONValue;
   Arr: TCnJSONArray;
 begin
+  if Instance = nil then
+    raise ECnJSONException.Create(SCnErrorJSONReaderNilInstance);
+  if Obj = nil then
+    raise ECnJSONException.Create(SCnErrorJSONReaderNilObject);
+
   PropCount := GetTypeData(Instance.ClassInfo)^.PropCount;
   if PropCount > 0 then
   begin

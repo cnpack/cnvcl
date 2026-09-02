@@ -219,8 +219,8 @@ type
     {* 是否在删除节点时自动Dispose节点内容}
 
     procedure QuickSort(Left, Right: Integer; Compare: Pointer);
-      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
-      //   Left为起始序号，Right为终止序号，Compare为对比函数
+    {* 对列表内容进行排序，使用基于临时数组的自底向上归并排序。
+       Left为起始序号，Right为终止序号，Compare为对比函数。}
     procedure Sort(Compare: TCompare);
     {* 排序}
   public
