@@ -500,6 +500,42 @@ function TCnBucket.CompareStrings(const S1, S2: string): Integer;
  * John O'Harrow <john@elmcrest.demon.co.uk>
  *
  * ***** END LICENSE BLOCK ***** *)
+{$IFDEF UNICODE}
+var
+  LLength1, LLength2, LCommonLength, I, C1, C2: Integer;
+begin
+  // Unicode 编译器下按字符序比较，避免把 UTF-16 字符串误当作字节序列。
+  LLength1 := Length(S1);
+  LLength2 := Length(S2);
+  if LLength1 < LLength2 then
+    LCommonLength := LLength1
+  else
+    LCommonLength := LLength2;
+
+  I := 1;
+  while I <= LCommonLength do
+  begin
+    C1 := Ord(S1[I]);
+    C2 := Ord(S2[I]);
+    if C1 <> C2 then
+    begin
+      if C1 < C2 then
+        Result := -1
+      else
+        Result := 1;
+      Exit;
+    end;
+    Inc(I);
+  end;
+
+  if LLength1 < LLength2 then
+    Result := -1
+  else if LLength1 > LLength2 then
+    Result := 1
+  else
+    Result := 0;
+end;
+{$ELSE}
 type
   PByte = ^Byte;
   TByteArray = array[0..0] of Byte;
@@ -519,10 +555,8 @@ begin
       begin
         LStr1Char1 := PByte(LStr1)^;
         LStr2Char1 := PByte(LStr2)^;
-        if LStr1Char1 <> LStr2Char1 then  // 比较首字节，可能要改成 Unicode 下比较首字符？
-        begin
-          Result := LStr1Char1 - LStr2Char1;
-        end
+        if LStr1Char1 <> LStr2Char1 then
+          Result := LStr1Char1 - LStr2Char1
         else
         begin
           LLength1 := PInteger(LStr1 - SizeOf(Integer))^;
@@ -564,21 +598,15 @@ begin
         end;
       end
       else
-      begin
         Result := PInteger(LStr1 - SizeOf(Integer))^;
-      end;
     end
     else
-    begin
       Result := LStr1 - PInteger(LStr2 - SizeOf(Integer))^;
-    end;
   end
   else
-  begin
     Result := 0;
-  end;
 end;
-//}
+{$ENDIF}
 { // Faster than below
 var
   i: Integer;

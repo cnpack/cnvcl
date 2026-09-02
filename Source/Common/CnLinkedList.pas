@@ -1585,32 +1585,94 @@ end;
 procedure TCnCustomLinkedList.QuickSort(Left, Right: Integer;
   Compare: Pointer);
 var
-  ALeft, ARight, AOrdinal: Integer;
+  Values, TempValues: array of Pointer;
+  Node: PCnLinkedNode;
+  ItemCount: Integer;
+  I, Width, Start, Mid, Finish, LeftPos, RightPos, K: Integer;
 begin
-  repeat
-    ALeft := Left;
-    ARight := Right;
-    AOrdinal := (Left + Right) shr 1;
-    repeat
-      while TCompare(Compare)(Get(ALeft), Get(AOrdinal)) < 0 do
-        Inc(ALeft);
-      while TCompare(Compare)(Get(ARight), Get(AOrdinal)) > 0 do
-        Dec(ARight);
-      if ALeft <= ARight then
+  if FCount = 0 then
+    Exit;
+
+  if Left < 0 then
+    Left := 0;
+  if Right >= FCount then
+    Right := FCount - 1;
+  if Left >= Right then
+    Exit;
+
+  // 先沿链表遍历一次，将指定范围内的节点内容复制到临时数组。
+  // 在数组上排序，避免 QuickSort 内部通过 Get() 进行 O(N) 随机访问。
+  ItemCount := Right - Left + 1;
+  SetLength(Values, ItemCount);
+  SetLength(TempValues, ItemCount);
+
+  Node := FFirst;
+  for I := 0 to Left - 1 do
+    Node := Node^.Next;
+  for I := 0 to ItemCount - 1 do
+  begin
+    Values[I] := Node^.Code;
+    Node := Node^.Next;
+  end;
+
+  // 自底向上的归并排序即使面对重复或已有序数据，也能保持 O(N log N) 比较次数，
+  // 同时保持链表节点本身不变。
+  Width := 1;
+  while Width < ItemCount do
+  begin
+    Start := 0;
+    while Start < ItemCount do
+    begin
+      Mid := Start + Width;
+      if Mid > ItemCount then
+        Mid := ItemCount;
+      Finish := Mid + Width;
+      if Finish > ItemCount then
+        Finish := ItemCount;
+
+      LeftPos := Start;
+      RightPos := Mid;
+      for K := Start to Finish - 1 do
       begin
-        Exchange(ALeft, ARight);
-        if AOrdinal = ALeft then
-          AOrdinal := ARight
-        else if AOrdinal = ARight then
-          AOrdinal := ALeft;
-        Inc(ALeft);
-        Dec(ARight);
+        if LeftPos >= Mid then
+        begin
+          TempValues[K] := Values[RightPos];
+          Inc(RightPos);
+        end
+        else if RightPos >= Finish then
+        begin
+          TempValues[K] := Values[LeftPos];
+          Inc(LeftPos);
+        end
+        else if TCompare(Compare)(Values[LeftPos], Values[RightPos]) <= 0 then
+        begin
+          TempValues[K] := Values[LeftPos];
+          Inc(LeftPos);
+        end
+        else
+        begin
+          TempValues[K] := Values[RightPos];
+          Inc(RightPos);
+        end;
       end;
-    until ALeft > ARight;
-    if Left < ARight then
-      QuickSort(Left, ARight, Compare);
-    Left := ALeft;
-  until ALeft >= Right;
+      Start := Finish;
+    end;
+
+    System.Move(TempValues[0], Values[0], ItemCount * SizeOf(Pointer));
+    if Width > ItemCount div 2 then
+      Width := ItemCount
+    else
+      Width := Width shl 1;
+  end;
+
+  Node := FFirst;
+  for I := 0 to Left - 1 do
+    Node := Node^.Next;
+  for I := 0 to ItemCount - 1 do
+  begin
+    Node^.Code := Values[I];
+    Node := Node^.Next;
+  end;
 end;
 
 function TCnCustomLinkedList.Remove(const Item: Pointer): Integer;
