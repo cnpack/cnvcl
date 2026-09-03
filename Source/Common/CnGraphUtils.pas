@@ -730,6 +730,9 @@ type
   TGdipSetLineWrapMode = function(LineGradient: GPBRUSH;
     WrapMode: Integer): GPSTATUS; stdcall;
 
+  TGdipSetLineTransform = function(LineGradient: GPBRUSH;
+    Matrix: GPMATRIX): GPSTATUS; stdcall;
+
   //---------- PathGradient Â·¾¶½¥±ä»­Ë¢ ----------
   TGdipCreatePathGradientFromPath = function(Path: GPPATH;
     out PathGradient: GPBRUSH): GPSTATUS; stdcall;
@@ -748,6 +751,9 @@ type
 
   TGdipGetPathGradientSurroundColorsCount = function(PathGradient: GPBRUSH;
     Count: PInteger): GPSTATUS; stdcall;
+
+  TGdipSetPathGradientTransform = function(PathGradient: GPBRUSH;
+    Matrix: GPMATRIX): GPSTATUS; stdcall;
 
   TGdipCreatePathGradient = function(Points: Pointer; Count: Integer;
     WrapMode: Integer; out PolyGradient: GPBRUSH): GPSTATUS; stdcall;
@@ -771,8 +777,14 @@ type
   TGdipCreateTexture = function(Image: GPIMAGE; WrapMode: Integer;
     out Texture: GPBRUSH): GPSTATUS; stdcall;
 
+  TGdipCreateTexture2 = function(Image: GPIMAGE; WrapMode: Integer;
+    X, Y, Width, Height: Single; out Texture: GPBRUSH): GPSTATUS; stdcall;
+
   TGdipSetTextureWrapMode = function(Texture: GPBRUSH;
     WrapMode: Integer): GPSTATUS; stdcall;
+
+  TGdipSetTextureTransform = function(Texture: GPBRUSH;
+    Matrix: GPMATRIX): GPSTATUS; stdcall;
 
   //---------- PathGradient WrapMode ----------
   TGdipSetPathGradientWrapMode = function(PathGradient: GPBRUSH;
@@ -886,6 +898,7 @@ var
   GdipSetLineBlend: TGdipSetLineBlend = nil;
   GdipSetLinePresetBlend: TGdipSetLinePresetBlend = nil;
   GdipSetLineWrapMode: TGdipSetLineWrapMode = nil;
+  GdipSetLineTransform: TGdipSetLineTransform = nil;
   GdipSetLineGammaCorrection: TGdipSetLineGammaCorrection = nil;
 
   //---------- PathGradient Â·¾¶½¥±ä»­Ë¢ ----------
@@ -896,10 +909,13 @@ var
   GdipSetPathGradientPresetBlend: TGdipSetPathGradientPresetBlend = nil;
   GdipSetPathGradientCenterPoint: TGdipSetPathGradientCenterPoint = nil;
   GdipGetPathGradientSurroundColorsCount: TGdipGetPathGradientSurroundColorsCount = nil;
+  GdipSetPathGradientTransform: TGdipSetPathGradientTransform = nil;
 
   //---------- Texture Brush ----------
   GdipCreateTexture: TGdipCreateTexture = nil;
+  GdipCreateTexture2: TGdipCreateTexture2 = nil;
   GdipSetTextureWrapMode: TGdipSetTextureWrapMode = nil;
+  GdipSetTextureTransform: TGdipSetTextureTransform = nil;
 
   //---------- PathGradient WrapMode ----------
   GdipSetPathGradientWrapMode: TGdipSetPathGradientWrapMode = nil;
@@ -1646,6 +1662,7 @@ initialization
     GdipSetLineBlend := TGdipSetLineBlend(GetProcAddress(GdiPlusHandle, 'GdipSetLineBlend'));
     GdipSetLinePresetBlend := TGdipSetLinePresetBlend(GetProcAddress(GdiPlusHandle, 'GdipSetLinePresetBlend'));
     GdipSetLineWrapMode := TGdipSetLineWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetLineWrapMode'));
+    GdipSetLineTransform := TGdipSetLineTransform(GetProcAddress(GdiPlusHandle, 'GdipSetLineTransform'));
     GdipSetLineGammaCorrection := TGdipSetLineGammaCorrection(GetProcAddress(GdiPlusHandle, 'GdipSetLineGammaCorrection'));
 
     //---------- PathGradient Â·¾¶½¥±ä»­Ë¢£¨·ÇºËÐÄ£©----------
@@ -1656,10 +1673,13 @@ initialization
     GdipSetPathGradientPresetBlend := TGdipSetPathGradientPresetBlend(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientPresetBlend'));
     GdipSetPathGradientCenterPoint := TGdipSetPathGradientCenterPoint(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientCenterPoint'));
     GdipGetPathGradientSurroundColorsCount := TGdipGetPathGradientSurroundColorsCount(GetProcAddress(GdiPlusHandle, 'GdipGetPathGradientSurroundColorsCount'));
+    GdipSetPathGradientTransform := TGdipSetPathGradientTransform(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientTransform'));
 
     //---------- Texture Brush ----------
     GdipCreateTexture := TGdipCreateTexture(GetProcAddress(GdiPlusHandle, 'GdipCreateTexture'));
+    GdipCreateTexture2 := TGdipCreateTexture2(GetProcAddress(GdiPlusHandle, 'GdipCreateTexture2'));
     GdipSetTextureWrapMode := TGdipSetTextureWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetTextureWrapMode'));
+    GdipSetTextureTransform := TGdipSetTextureTransform(GetProcAddress(GdiPlusHandle, 'GdipSetTextureTransform'));
 
     //---------- PathGradient WrapMode ----------
     GdipSetPathGradientWrapMode := TGdipSetPathGradientWrapMode(GetProcAddress(GdiPlusHandle, 'GdipSetPathGradientWrapMode'));

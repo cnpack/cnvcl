@@ -5315,60 +5315,60 @@ end;
 // 数字转大写金额
 function RMBFloatToChinese(ARMBCash: Real): string;
 var
-  tmp1, rr: string;
-  l, I, J, k: integer;
+  T, R: string;
+  L, I, J, K: integer;
 const
-  n1: array[0..9] of string = ('零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖');
-  n2: array[0..3] of string = ('', '拾', '佰', '仟');
-  n3: array[0..2] of string = ('元', '万', '亿');
+  N1: array[0..9] of string = ('零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖');
+  N2: array[0..3] of string = ('', '拾', '佰', '仟');
+  N3: array[0..2] of string = ('元', '万', '亿');
 begin
-  tmp1 := FormatFloat('#.00', ARMBCash);
-  l := Length(tmp1);
-  rr := '';
-  if StrToInt(tmp1[l]) <> 0 then
+  T := FormatFloat('#.00', ARMBCash);
+  L := Length(T);
+  R := '';
+  if StrToInt(T[L]) <> 0 then
   begin
-    rr := '分';
-    rr := n1[StrToInt(tmp1[l])] + rr;
+    R := '分';
+    R := N1[StrToInt(T[L])] + R;
   end;
 
-  if StrToInt(tmp1[l - 1]) <> 0 then
+  if StrToInt(T[L - 1]) <> 0 then
   begin
-    rr := '角' + rr;
-    rr := n1[StrToInt(tmp1[l - 1])] + rr;
+    R := '角' + R;
+    R := N1[StrToInt(T[L - 1])] + R;
   end;
-  I := l - 3;
-  J := 0; k := 0;
+  I := L - 3;
+  J := 0; K := 0;
   while I > 0 do
   begin
     if J mod 4 = 0 then
     begin
-      rr := n3[k] + rr;
-      inc(k); if k > 2 then k := 1;
+      R := N3[K] + R;
+      inc(K); if K > 2 then K := 1;
       J := 0;
     end;
-    if StrToInt(tmp1[I]) <> 0 then
-      rr := n2[J] + rr;
-    rr := n1[StrToInt(tmp1[I])] + rr;
+    if StrToInt(T[I]) <> 0 then
+      R := N2[J] + R;
+    R := N1[StrToInt(T[I])] + R;
     inc(J);
     Dec(I);
   end;
-  while Pos('零零', rr) > 0 do
-    rr := stringreplace(rr, '零零', '零', [rfReplaceAll]);
-  rr := stringreplace(rr, '零亿', '亿零', [rfReplaceAll]);
-  while Pos('零零', rr) > 0 do
-    rr := stringreplace(rr, '零零', '零', [rfReplaceAll]);
-  rr := stringreplace(rr, '零万', '万零', [rfReplaceAll]);
-  while Pos('零零', rr) > 0 do
-    rr := stringreplace(rr, '零零', '零', [rfReplaceAll]);
-  rr := stringreplace(rr, '零元', '元零', [rfReplaceAll]);
-  while Pos('零零', rr) > 0 do
-    rr := stringreplace(rr, '零零', '零', [rfReplaceAll]);
-  rr := stringreplace(rr, '亿万', '亿', [rfReplaceAll]);
-  if Copy(rr, Length(rr) - 1, 2) = '零' then
-    rr := Copy(rr, 1, Length(rr) - 2);
-  if rr='' then
-    rr:='零元';
-  Result := rr;
+  while Pos('零零', R) > 0 do
+    R := stringreplace(R, '零零', '零', [rfReplaceAll]);
+  R := stringreplace(R, '零亿', '亿零', [rfReplaceAll]);
+  while Pos('零零', R) > 0 do
+    R := stringreplace(R, '零零', '零', [rfReplaceAll]);
+  R := stringreplace(R, '零万', '万零', [rfReplaceAll]);
+  while Pos('零零', R) > 0 do
+    R := stringreplace(R, '零零', '零', [rfReplaceAll]);
+  R := stringreplace(R, '零元', '元零', [rfReplaceAll]);
+  while Pos('零零', R) > 0 do
+    R := stringreplace(R, '零零', '零', [rfReplaceAll]);
+  R := stringreplace(R, '亿万', '亿', [rfReplaceAll]);
+  if Copy(R, Length(R) - 1, 2) = '零' then
+    R := Copy(R, 1, Length(R) - 2);
+  if R='' then
+    R:='零元';
+  Result := R;
 end;
 
 // 计算四则运算与乘方的表达式值，作者：巴哈姆特
@@ -5614,7 +5614,7 @@ function WildcardCompare(const FileWildcard, FileName: string; const IgnoreCase:
 
   function WildCompare(var WildS, IstS: string): Boolean;
   var
-    WildPos, FilePos, l, p: Integer;
+    WildPos, FilePos, L, p: Integer;
   begin
     // Start at the first wildcard/filename character
     WildPos := 1; // Wildcard position.
@@ -5632,12 +5632,12 @@ function WildcardCompare(const FileWildcard, FileName: string; const IgnoreCase:
         end
         else
         begin
-          l := WildPos + 1;
+          L := WildPos + 1;
           // Anything after a * in the wildcard must match literally.
-          while (l < Length(WildS)) and (WildS[l + 1] <> '*') do
-            Inc(l);
+          while (L < Length(WildS)) and (WildS[L + 1] <> '*') do
+            Inc(L);
           // Check for the literal match immediately after the current position.
-          p := Pos(Copy(WildS, WildPos + 1, l - WildPos), IstS);
+          p := Pos(Copy(WildS, WildPos + 1, L - WildPos), IstS);
           if p > 0 then
             FilePos := p - 1
           else
@@ -7971,15 +7971,15 @@ function TextFullWidthToHalfWidth(const Text: string): string;
 var
   S: string;
   S1, S2: WideString;
-  l: Integer;
+  L: Integer;
 begin
   // 中文句号和顿号不会自动替换为 . 号，需要自行处理
   S := StringReplace(Text, '。', '.', [rfReplaceAll]);
   S := StringReplace(S, '、', ',', [rfReplaceAll]);
   S1 := S;
-  l := Length(S1);
-  SetLength(S2, l);
-  LCMapStringW(GetThreadLocale, LCMAP_HALFWIDTH, PWideChar(S1), l, PWideChar(S2), l);
+  L := Length(S1);
+  SetLength(S2, L);
+  LCMapStringW(GetThreadLocale, LCMAP_HALFWIDTH, PWideChar(S1), L, PWideChar(S2), L);
   Result := S2;
 end;
 
@@ -7987,12 +7987,12 @@ end;
 function TextHalfWidthToFullWidth(const Text: string): string;
 var
   S1, S2: WideString;
-  l: Integer;
+  L: Integer;
 begin
   S1 := Text;
-  l := Length(S1);
-  SetLength(S2, l);
-  LCMapStringW(GetThreadLocale, LCMAP_FULLWIDTH, PWideChar(S1), l, PWideChar(S2), l);
+  L := Length(S1);
+  SetLength(S2, L);
+  LCMapStringW(GetThreadLocale, LCMAP_FULLWIDTH, PWideChar(S1), L, PWideChar(S2), L);
   Result := S2;
 end;
 
