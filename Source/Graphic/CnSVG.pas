@@ -675,6 +675,42 @@ type
   TARGBArray = array[0..0] of TARGB;
   PARGBArray = ^TARGBArray;
 
+procedure SVGMakePatternBitmapOpaque(Bitmap: GpImage;
+  Width, Height: Integer);
+var
+  RG: TGPRect;
+  Data: TGDIPBitmapData;
+  X, Y: Integer;
+  Row: PARGBArray;
+begin
+  if (Bitmap = nil) or (Width <= 0) or (Height <= 0) or
+     not Assigned(GdipBitmapLockBits) or
+     not Assigned(GdipBitmapUnlockBits) then
+    Exit;
+
+  { 若 pattern 已有不透明背景，整个图块在 SVG 语义上也必然不透明。
+    GDI+ 对位图边缘的抗锯齿可能留下不足 255 的 Alpha，旋转重复后会
+    显示成白缝，因此在生成 TextureBrush 前恢复其不透明语义。 }
+  RG.X := 0;
+  RG.Y := 0;
+  RG.Width := Width;
+  RG.Height := Height;
+  FillChar(Data, SizeOf(Data), 0);
+  if GdipBitmapLockBits(Bitmap, @RG,
+    ImageLockModeRead or ImageLockModeWrite, PixelFormat32bppARGB, Data) <> Ok then
+    Exit;
+  try
+    for Y := 0 to Height - 1 do
+    begin
+      Row := PARGBArray(PAnsiChar(Data.Scan0) + Y * Data.Stride);
+      for X := 0 to Width - 1 do
+        Row[X].A := 255;
+    end;
+  finally
+    GdipBitmapUnlockBits(Bitmap, Data);
+  end;
+end;
+
 procedure SVGMatrixIdentity(var M: TCnSVGMatrix);
 begin
   M.a := 1; M.b := 0; M.c := 0;
@@ -794,6 +830,171 @@ begin
   Inv.d :=  M.a / Det;
   Inv.e := (M.c * M.f - M.d * M.e) / Det;
   Inv.f := (M.b * M.e - M.a * M.f) / Det;
+  Result := True;
+end;
+
+function SVGExpandPatternBitmap(var Bitmap: GpImage;
+  TileWidth, TileHeight, ColumnCount, RowCount: Integer): Boolean;
+const
+  MAX_PATTERN_BITMAP_SIZE = 4096;
+  MAX_PATTERN_BITMAP_PIXELS = 16777216;
+var
+  NewBitmap: GpImage;
+  SrcData, DstData: TGDIPBitmapData;
+  SrcRect, DstRect: TGPRect;
+  NewWidth, NewHeight: Integer;
+  PixelCount: Int64;
+  X, Y: Integer;
+  SrcRow, DstRow: PAnsiChar;
+begin
+  Result := False;
+  if (Bitmap = nil) or (TileWidth <= 0) or (TileHeight <= 0) or
+     (ColumnCount <= 0) or (RowCount <= 0) or
+     not Assigned(GdipCreateBitmapFromScan0) or
+     not Assigned(GdipBitmapLockBits) or
+     not Assigned(GdipBitmapUnlockBits) then
+    Exit;
+
+  if (ColumnCount = 1) and (RowCount = 1) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  PixelCount := Int64(TileWidth) * ColumnCount *
+    Int64(TileHeight) * RowCount;
+  if (Int64(TileWidth) * ColumnCount > MAX_PATTERN_BITMAP_SIZE) or
+     (Int64(TileHeight) * RowCount > MAX_PATTERN_BITMAP_SIZE) or
+     (PixelCount > MAX_PATTERN_BITMAP_PIXELS) then
+    Exit;
+  NewWidth := TileWidth * ColumnCount;
+  NewHeight := TileHeight * RowCount;
+
+  NewBitmap := nil;
+  if GdipCreateBitmapFromScan0(NewWidth, NewHeight, 0,
+    PixelFormat32bppARGB, nil, NewBitmap) <> Ok then
+    Exit;
+
+  SrcRect.X := 0;
+  SrcRect.Y := 0;
+  SrcRect.Width := TileWidth;
+  SrcRect.Height := TileHeight;
+  DstRect.X := 0;
+  DstRect.Y := 0;
+  DstRect.Width := NewWidth;
+  DstRect.Height := NewHeight;
+  FillChar(SrcData, SizeOf(SrcData), 0);
+  FillChar(DstData, SizeOf(DstData), 0);
+  if GdipBitmapLockBits(Bitmap, @SrcRect, ImageLockModeRead,
+    PixelFormat32bppARGB, SrcData) <> Ok then
+  begin
+    GdipDisposeImage(NewBitmap);
+    Exit;
+  end;
+  if GdipBitmapLockBits(NewBitmap, @DstRect, ImageLockModeWrite,
+    PixelFormat32bppARGB, DstData) <> Ok then
+  begin
+    GdipBitmapUnlockBits(Bitmap, SrcData);
+    GdipDisposeImage(NewBitmap);
+    Exit;
+  end;
+  try
+    for Y := 0 to NewHeight - 1 do
+    begin
+      SrcRow := PAnsiChar(SrcData.Scan0) +
+        (Y mod TileHeight) * SrcData.Stride;
+      DstRow := PAnsiChar(DstData.Scan0) + Y * DstData.Stride;
+      for X := 0 to ColumnCount - 1 do
+        System.Move(SrcRow^,
+          (DstRow + X * TileWidth * SizeOf(TARGB))^,
+          TileWidth * SizeOf(TARGB));
+    end;
+  finally
+    GdipBitmapUnlockBits(NewBitmap, DstData);
+    GdipBitmapUnlockBits(Bitmap, SrcData);
+  end;
+
+  GdipDisposeImage(Bitmap);
+  Bitmap := NewBitmap;
+  Result := True;
+end;
+
+function SVGBuildPatternSuperTile(var Bitmap: GpImage;
+  TilePixelWidth, TilePixelHeight: Integer;
+  const PatternTransform: TCnSVGMatrix;
+  PatternX, PatternY, PatternWidth, PatternHeight,
+  BoundsX, BoundsY, BoundsWidth, BoundsHeight: TCnSVGFloat;
+  var TextureOriginX, TextureOriginY: TCnSVGFloat): Boolean;
+var
+  Inv: TCnSVGMatrix;
+  CornerX, CornerY: array[0..3] of TCnSVGFloat;
+  MinX, MinY, MaxX, MaxY: TCnSVGFloat;
+  Ratio: Extended;
+  FirstColumn, FirstRow, LastColumn, LastRow: Integer;
+  ColumnCount, RowCount, I: Integer;
+begin
+  Result := False;
+  TextureOriginX := PatternX;
+  TextureOriginY := PatternY;
+  if (Bitmap = nil) or (PatternWidth <= 0) or (PatternHeight <= 0) or
+     (BoundsWidth <= 0) or (BoundsHeight <= 0) or
+     not SVGMatrixInverse(PatternTransform, Inv) then
+    Exit;
+
+  CornerX[0] := BoundsX;
+  CornerY[0] := BoundsY;
+  CornerX[1] := BoundsX + BoundsWidth;
+  CornerY[1] := BoundsY;
+  CornerX[2] := BoundsX;
+  CornerY[2] := BoundsY + BoundsHeight;
+  CornerX[3] := BoundsX + BoundsWidth;
+  CornerY[3] := BoundsY + BoundsHeight;
+  for I := 0 to 3 do
+    SVGMatrixTransformPoint(Inv, CornerX[I], CornerY[I]);
+
+  MinX := CornerX[0];
+  MaxX := CornerX[0];
+  MinY := CornerY[0];
+  MaxY := CornerY[0];
+  for I := 1 to 3 do
+  begin
+    if CornerX[I] < MinX then MinX := CornerX[I];
+    if CornerX[I] > MaxX then MaxX := CornerX[I];
+    if CornerY[I] < MinY then MinY := CornerY[I];
+    if CornerY[I] > MaxY then MaxY := CornerY[I];
+  end;
+
+  Ratio := (MinX - PatternX) / PatternWidth;
+  if Abs(Ratio) > 1000000 then Exit;
+  FirstColumn := Trunc(Ratio);
+  if Ratio < FirstColumn then Dec(FirstColumn);
+  Dec(FirstColumn);
+  Ratio := (MaxX - PatternX) / PatternWidth;
+  if Abs(Ratio) > 1000000 then Exit;
+  LastColumn := Trunc(Ratio);
+  if Ratio > LastColumn then Inc(LastColumn);
+  Inc(LastColumn);
+  Ratio := (MinY - PatternY) / PatternHeight;
+  if Abs(Ratio) > 1000000 then Exit;
+  FirstRow := Trunc(Ratio);
+  if Ratio < FirstRow then Dec(FirstRow);
+  Dec(FirstRow);
+  Ratio := (MaxY - PatternY) / PatternHeight;
+  if Abs(Ratio) > 1000000 then Exit;
+  LastRow := Trunc(Ratio);
+  if Ratio > LastRow then Inc(LastRow);
+  Inc(LastRow);
+
+  ColumnCount := LastColumn - FirstColumn;
+  RowCount := LastRow - FirstRow;
+  if not SVGExpandPatternBitmap(Bitmap, TilePixelWidth, TilePixelHeight,
+    ColumnCount, RowCount) then
+    Exit;
+
+  { 超级图块的起点仍落在原 pattern 网格上，因此只改变 TextureBrush
+    的重复周期，不改变图案在用户坐标系中的相位。 }
+  TextureOriginX := PatternX + FirstColumn * PatternWidth;
+  TextureOriginY := PatternY + FirstRow * PatternHeight;
   Result := True;
 end;
 
@@ -1162,6 +1363,34 @@ begin
     Result := SVGParseLength(S, Default, PercentBase, FontSize);
 end;
 
+function SVGPatternRectCoversTile(El: TCnXMLElement;
+  TileX, TileY, TileWidth, TileHeight,
+  FontSize: TCnSVGFloat): Boolean;
+const
+  EPSILON = 0.001;
+var
+  X, Y, W, H, RX, RY: TCnSVGFloat;
+begin
+  Result := False;
+  if (El = nil) or (LowerCase(El.TagName) <> 'rect') or
+     (Trim(El.GetAttribute('transform')) <> '') then
+    Exit;
+
+  X := SVGAttrLength(El, 'x', 0, TileWidth, FontSize);
+  Y := SVGAttrLength(El, 'y', 0, TileHeight, FontSize);
+  W := SVGAttrLength(El, 'width', 0, TileWidth, FontSize);
+  H := SVGAttrLength(El, 'height', 0, TileHeight, FontSize);
+  RX := SVGAttrLength(El, 'rx', 0, TileWidth, FontSize);
+  RY := SVGAttrLength(El, 'ry', 0, TileHeight, FontSize);
+
+  { 只识别没有圆角、且完全覆盖图块的矩形。这样的矩形相当于
+    pattern 的背景，其边缘在相邻图块之间不是可见几何边界。 }
+  Result := (Abs(RX) <= EPSILON) and (Abs(RY) <= EPSILON) and
+    (X <= TileX + EPSILON) and (Y <= TileY + EPSILON) and
+    (X + W >= TileX + TileWidth - EPSILON) and
+    (Y + H >= TileY + TileHeight - EPSILON);
+end;
+
 function SVGAttrFloat(El: TCnXMLElement; const Name: string;
   Default: TCnSVGFloat): TCnSVGFloat;
 {* 从 XML 元素读取指定属性的浮点值。解析失败或属性不存在时返回 Default，不抛异常。
@@ -1255,6 +1484,215 @@ begin
     Result := 1
   else
     Result := V;
+end;
+
+function SVGGetStyleProperty(El: TCnXMLElement; const PropertyName,
+  Default: string): string;
+{* 读取表现属性或内联样式中的属性值；内联样式优先。 *}
+var
+  StyleText, Part, Key, Value: string;
+  I, J, P: Integer;
+begin
+  Result := Default;
+  if El = nil then
+    Exit;
+
+  if El.HasAttribute(PropertyName) then
+    Result := Trim(El.GetAttribute(PropertyName));
+  if not El.HasAttribute('style') then
+    Exit;
+
+  StyleText := El.GetAttribute('style');
+  I := 1;
+  while I <= Length(StyleText) do
+  begin
+    J := I;
+    while (J <= Length(StyleText)) and (StyleText[J] <> ';') do
+      Inc(J);
+    Part := Trim(Copy(StyleText, I, J - I));
+    I := J + 1;
+    if Part = '' then
+      Continue;
+
+    P := Pos(':', Part);
+    if P <= 0 then
+      Continue;
+    Key := LowerCase(Trim(Copy(Part, 1, P - 1)));
+    if Key <> LowerCase(PropertyName) then
+      Continue;
+    Value := Trim(Copy(Part, P + 1, Length(Part) - P));
+    if Value <> '' then
+      Result := Value;
+  end;
+end;
+
+procedure SVGReadGradientStopStyle(StopEl: TCnXMLElement;
+  var Color: TCnSVGColor; var Alpha: Integer; PaintOpacity: TCnSVGFloat);
+{* 读取 stop-color 和 stop-opacity，同时支持表现属性与内联样式。
+   PaintOpacity 是元素的有效填充或描边透明度，与 stop-opacity 相乘。 *}
+var
+  ColorText, OpacityText: string;
+  Opacity: TCnSVGFloat;
+begin
+  Color.R := 0;
+  Color.G := 0;
+  Color.B := 0;
+  ColorText := SVGGetStyleProperty(StopEl, 'stop-color', 'black');
+  if LowerCase(ColorText) = 'currentcolor' then
+    ColorText := SVGGetStyleProperty(StopEl, 'color', 'black');
+  SVGParseColor(ColorText, Color);
+
+  Opacity := 1.0;
+  OpacityText := SVGGetStyleProperty(StopEl, 'stop-opacity', '1');
+  if not SVGTryStrToFloat(OpacityText, Opacity) then
+    Opacity := 1.0;
+  Alpha := Round(SVGClampOpacity(Opacity) *
+    SVGClampOpacity(PaintOpacity) * 255);
+end;
+
+function SVGNextSpaceToken(const S: string; var P: Integer): string;
+var
+  Start: Integer;
+begin
+  while (P <= Length(S)) and (S[P] in [' ', #9, #10, #13]) do
+    Inc(P);
+  Start := P;
+  while (P <= Length(S)) and not (S[P] in [' ', #9, #10, #13]) do
+    Inc(P);
+  Result := Copy(S, Start, P - Start);
+end;
+
+function SVGSupportsFeature(const FeatureName: string): Boolean;
+{* 返回当前静态渲染器明确支持的 SVG 1.1 功能标识。未知或仅部分支持时返回 False。 *}
+const
+  FeaturePrefix = 'http://www.w3.org/tr/svg11/feature#';
+var
+  S: string;
+begin
+  Result := False;
+  S := LowerCase(Trim(FeatureName));
+  if Copy(S, 1, Length(FeaturePrefix)) <> FeaturePrefix then
+    Exit;
+  Delete(S, 1, Length(FeaturePrefix));
+
+  Result := (S = 'basicstructure') or (S = 'structure') or
+    (S = 'conditionalprocessing') or (S = 'shape') or
+    (S = 'basictext') or (S = 'basicpaintattribute') or
+    (S = 'opacityattribute') or (S = 'basicgraphicsattribute') or
+    (S = 'image') or (S = 'gradient') or (S = 'pattern') or
+    (S = 'basicclip') or (S = 'mask') or (S = 'marker');
+end;
+
+function SVGAllRequiredFeaturesSupported(const Features: string): Boolean;
+var
+  P, Count: Integer;
+  Token: string;
+begin
+  Result := False;
+  P := 1;
+  Count := 0;
+  while P <= Length(Features) do
+  begin
+    Token := SVGNextSpaceToken(Features, P);
+    if Token = '' then
+      Break;
+    Inc(Count);
+    if not SVGSupportsFeature(Token) then
+      Exit;
+  end;
+  Result := Count > 0;
+end;
+
+function SVGGetSystemLanguage: string;
+{* 使用 Windows 用户区域设置构造小写 BCP 47 风格语言标签，如 zh-cn。 *}
+const
+  CN_LOCALE_SISO639LANGNAME = $59;
+  CN_LOCALE_SISO3166CTRYNAME = $5A;
+var
+  LangBuf, CountryBuf: array[0..15] of AnsiChar;
+  UserLocaleID: LCID;
+  Len: Integer;
+  LangText, CountryText: AnsiString;
+begin
+  Result := '';
+  FillChar(LangBuf, SizeOf(LangBuf), 0);
+  FillChar(CountryBuf, SizeOf(CountryBuf), 0);
+  UserLocaleID := GetUserDefaultLCID;
+  Len := GetLocaleInfoA(UserLocaleID, CN_LOCALE_SISO639LANGNAME, LangBuf,
+    SizeOf(LangBuf));
+  if Len <= 1 then
+    Exit;
+  SetString(LangText, PAnsiChar(@LangBuf[0]), Len - 1);
+  Result := LowerCase(string(LangText));
+
+  Len := GetLocaleInfoA(UserLocaleID, CN_LOCALE_SISO3166CTRYNAME, CountryBuf,
+    SizeOf(CountryBuf));
+  if Len > 1 then
+  begin
+    SetString(CountryText, PAnsiChar(@CountryBuf[0]), Len - 1);
+    Result := Result + '-' + LowerCase(string(CountryText));
+  end;
+end;
+
+function SVGLanguageTagMatches(const UserLanguage,
+  CandidateLanguage: string): Boolean;
+var
+  UserTag, CandidateTag: string;
+begin
+  UserTag := LowerCase(Trim(UserLanguage));
+  CandidateTag := LowerCase(Trim(CandidateLanguage));
+  Result := (UserTag <> '') and (CandidateTag <> '') and
+    ((CandidateTag = UserTag) or
+     ((Length(UserTag) > Length(CandidateTag)) and
+      (Copy(UserTag, 1, Length(CandidateTag)) = CandidateTag) and
+      (UserTag[Length(CandidateTag) + 1] = '-')));
+end;
+
+function SVGSystemLanguageMatches(const Languages: string): Boolean;
+var
+  UserLanguage, Candidate: string;
+  P, Sep: Integer;
+begin
+  Result := False;
+  UserLanguage := SVGGetSystemLanguage;
+  if UserLanguage = '' then
+    Exit;
+
+  P := 1;
+  while P <= Length(Languages) do
+  begin
+    Sep := P;
+    while (Sep <= Length(Languages)) and (Languages[Sep] <> ',') do
+      Inc(Sep);
+    Candidate := Trim(Copy(Languages, P, Sep - P));
+    if SVGLanguageTagMatches(UserLanguage, Candidate) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    P := Sep + 1;
+  end;
+end;
+
+function SVGElementPassesConditionalProcessing(El: TCnXMLElement): Boolean;
+begin
+  Result := False;
+  if El = nil then
+    Exit;
+
+  if El.HasAttribute('requiredFeatures') and
+     not SVGAllRequiredFeaturesSupported(El.GetAttribute('requiredFeatures')) then
+    Exit;
+
+  { 当前渲染器不声明支持任何外部扩展；属性存在时，包括空值，测试均为 False。 }
+  if El.HasAttribute('requiredExtensions') then
+    Exit;
+
+  if El.HasAttribute('systemLanguage') and
+     not SVGSystemLanguageMatches(El.GetAttribute('systemLanguage')) then
+    Exit;
+
+  Result := True;
 end;
 
 function SVGParseMiterLimit(const S: string): TCnSVGFloat;
@@ -1365,7 +1803,11 @@ begin
 
       else if LKey = 'visibility' then
       begin
-        if (LVal = 'hidden') or (LVal = 'collapse') then
+        if LVal = 'inherit' then
+          Style.VisibilityHidden := ParentStyle.VisibilityHidden
+        else if LVal = 'visible' then
+          Style.VisibilityHidden := False
+        else if (LVal = 'hidden') or (LVal = 'collapse') then
           Style.VisibilityHidden := True;
       end
 
@@ -2102,21 +2544,20 @@ end;
 
 function TCnSVGPathParser.ReadNumber(var Val: TCnSVGFloat): Boolean;
 var
-  Start, P: Integer;
+  P: Integer;
 begin
   Result := False;
   Val    := 0;
   SkipWS;
   if FPos > Length(FData) then Exit;
-  Start := FPos;
   P := FPos;
   if SVGReadNumberToken(FData, P, Val) then
   begin
     FPos := P;
     Result := True;
-  end
-  else
-    FPos := Start + 1; // 对非法输入也必须前进，避免解析器死循环
+  end;
+  { 失败时保留当前位置，以便外层循环识别紧随其后的命令字母。
+    外层已有停滞保护，会跳过真正的非法字符。 }
 end;
 
 function TCnSVGPathParser.ReadArcFlag(var Value: Boolean): Boolean;
@@ -3196,9 +3637,10 @@ var
   TileGC, SavedGC: GpGraphics;
   TileW, TileH: Integer;
   PX, PY, PW, PH: TCnSVGFloat;
-  PT0, PT1: TPoint;
+  TileMatrix, TextureMatrix: TCnSVGMatrix;
+  TextureGPMatrix: GpMatrix;
+  PatternScaleX, PatternScaleY: TCnSVGFloat;
   PatUnits, ContentUnits: string;
-  OldFillGradID, OldStrokeGradID: string;
   SpreadMethod: TCnSVGSpreadMethod;
   GTAttr: string;
   GT: TCnSVGMatrix;
@@ -3207,6 +3649,11 @@ var
   GradCX, GradCY, GradFX, GradFY, GradR: TCnSVGFloat;
   FocalPt: TGPRectF;
   ScaleFactor: TCnSVGFloat;
+  PatternChild: TCnXMLElement;
+  IsTileBackground: Boolean;
+  HasOpaqueTileBackground: Boolean;
+  PatternChildStyle: TCnSVGStyle;
+  TextureOriginX, TextureOriginY: TCnSVGFloat;
 begin
   Result := nil;
   if FCtx.Style.FillNone then Exit;
@@ -3301,20 +3748,17 @@ begin
         begin
           // 第一个 stop 的颜色
           StopEl := TCnXMLElement(Stops[0]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
           // 最后一个 stop 的颜色
           StopEl := TCnXMLElement(Stops[Stops.Count - 1]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
           C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
         end
         else if Stops.Count = 1 then
         begin
           StopEl := TCnXMLElement(Stops[0]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
           C2 := C1;
         end;
@@ -3380,8 +3824,7 @@ begin
              (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
           begin
             StopEl := TCnXMLElement(DefEl.Children[I]);
-            SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-            SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+            SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
             Colors[Count] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
             Positions[Count] := SVGAttrFloat(StopEl, 'offset', 0);
             if SVGAttrIsPercent(StopEl, 'offset') then
@@ -3425,8 +3868,6 @@ begin
         FX := SVGAttrLength(DefEl, 'fx', FX, FViewportUserWidth, FCtx.Style.FontSize);
         FY := SVGAttrLength(DefEl, 'fy', FY, FViewportUserHeight, FCtx.Style.FontSize);
       end;
-      RX := X2;
-      RY := X2;
       if IsObjBBox then
       begin
         // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
@@ -3436,6 +3877,12 @@ begin
         if SVGAttrIsPercent(DefEl, 'fx') then FX := FX / 100;
         if SVGAttrIsPercent(DefEl, 'fy') then FY := FY / 100;
       end;
+      { 未指定焦点时，SVG 规定 fx/fy 分别取归一化后的 cx/cy。
+        不能直接沿用归一化前的百分数数值，否则 50% 会被当成 50 倍边界框。 }
+      if not DefEl.HasAttribute('fx') then FX := X1;
+      if not DefEl.HasAttribute('fy') then FY := Y1;
+      RX := X2;
+      RY := X2;
 
       // gradientTransform
       GTAttr := DefEl.GetAttribute('gradientTransform');
@@ -3500,12 +3947,10 @@ begin
         if Count >= 2 then
         begin
           StopEl := TCnXMLElement(Stops[0]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
           StopEl := TCnXMLElement(Stops[Count - 1]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
           C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
         end;
       finally
@@ -3536,8 +3981,7 @@ begin
                  (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
               begin
                 StopEl := TCnXMLElement(DefEl.Children[I]);
-                SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-                SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
                 // PathGradient: position 0 = surround (outer), position 1 = center (inner)
                 // SVG: first stop = center, last stop = outer, so reverse
                 Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
@@ -3630,8 +4074,7 @@ begin
                    (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
                 begin
                   StopEl := TCnXMLElement(DefEl.Children[I]);
-                  SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-                  SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                  SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveFillAlpha);
                   Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
                   Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
                   if SVGAttrIsPercent(StopEl, 'offset') then
@@ -3741,14 +4184,31 @@ begin
         PH := SVGAttrLength(DefEl, 'height', PH, FViewportUserHeight, FCtx.Style.FontSize);
       end;
 
-      PT0 := UserToScreen(PX, PY);
-      PT1 := UserToScreen(PX + PW, PY + PH);
-      TileW := Abs(PT1.X - PT0.X);
-      TileH := Abs(PT1.Y - PT0.Y);
+      { patternTransform 同时作用于图块网格和内容。图块位图的分辨率按
+        变换后的两个轴向量计算，避免先建小图块、后放大内容造成裁切。 }
+      SVGMatrixIdentity(GT);
+      GTAttr := DefEl.GetAttribute('patternTransform');
+      if GTAttr <> '' then
+      begin
+        try
+          ApplyTransformToMatrix(GTAttr, GT);
+        except
+          SVGMatrixIdentity(GT);
+        end;
+      end;
+      SVGMatrixMultiply(TileMatrix, FCtx.CTM, GT);
+      PatternScaleX := Sqrt(TileMatrix.a * TileMatrix.a +
+        TileMatrix.b * TileMatrix.b);
+      PatternScaleY := Sqrt(TileMatrix.c * TileMatrix.c +
+        TileMatrix.d * TileMatrix.d);
+      TileW := Round(Abs(PW) * PatternScaleX);
+      TileH := Round(Abs(PH) * PatternScaleY);
       if (TileW <= 0) or (TileH <= 0) then
         Exit;
 
-      if not Assigned(GdipCreateTexture) then
+      if not Assigned(GdipCreateTexture) or
+         not Assigned(GdipSetTextureTransform) or
+         not Assigned(GdipCreateMatrix2) then
         Exit;
 
       TileBmp := nil;
@@ -3768,19 +4228,21 @@ begin
       if Assigned(GdipSetTextRenderingHint) then
         GdipSetTextRenderingHint(TileGC, 4);
 
-      OldFillGradID := FCtx.Style.FillGradientID;
-      OldStrokeGradID := FCtx.Style.StrokeGradientID;
-      FCtx.Style.FillGradientID := '';
-      FCtx.Style.StrokeGradientID := '';
+      { pattern 内容的样式来自 pattern 元素及其祖先，不能继承引用元素。
+        否则外层 stroke 会泄漏给图块子元素，并在 objectBoundingBox 下被放大。 }
+      PushStyle;
+      SVGDefaultStyle(FCtx.Style);
+      ApplyStyleAttr(DefEl);
 
       SavedGC := FGDIPGraphics;
       FGDIPGraphics := TileGC;
 
       PushMatrix;
-      FCtx.CTM.e := -PX * FCtx.CTM.a - PY * FCtx.CTM.c;
-      FCtx.CTM.f := -PX * FCtx.CTM.b - PY * FCtx.CTM.d;
-      if DefEl.HasAttribute('patternTransform') then
-        ApplyTransformAttr(DefEl.GetAttribute('patternTransform'));
+      { 图块内容先渲染到未变换的位图；patternTransform 最后施加到
+        TextureBrush，因而不会把第二条边界对角线裁出位图。 }
+      SVGMatrixIdentity(FCtx.CTM);
+      SVGMatrixScale(FCtx.CTM, TileW / PW, TileH / PH);
+      SVGMatrixTranslate(FCtx.CTM, -PX, -PY);
       UpdateGDIPWorldTransform;
 
       ContentUnits := LowerCase(DefEl.GetAttribute('patternContentUnits'));
@@ -3791,29 +4253,84 @@ begin
           UpdateGDIPWorldTransform;
       end;
 
+      HasOpaqueTileBackground := False;
       for I := 0 to DefEl.ChildCount - 1 do
       begin
         if DefEl.Children[I].NodeType = xntElement then
-          RenderElement(TCnXMLElement(DefEl.Children[I]));
+        begin
+          PatternChild := TCnXMLElement(DefEl.Children[I]);
+          IsTileBackground := SVGPatternRectCoversTile(PatternChild,
+            PX, PY, PW, PH, FCtx.Style.FontSize);
+          if IsTileBackground then
+          begin
+            PatternChildStyle := FCtx.Style;
+            SVGParseStyleAttr(PatternChild, PatternChildStyle, FCtx.Style);
+            if (not PatternChildStyle.FillNone) and
+               (PatternChildStyle.FillGradientID = '') and
+               (PatternChildStyle.Opacity * PatternChildStyle.FillOpacity >=
+                 0.999) then
+              HasOpaqueTileBackground := True;
+          end;
+          if IsTileBackground then
+            GdipSetSmoothingMode(TileGC, SmoothingModeNone);
+          try
+            RenderElement(PatternChild);
+          finally
+            if IsTileBackground then
+              GdipSetSmoothingMode(TileGC, SmoothingModeAntiAlias);
+          end;
+        end;
       end;
-
-      FCtx.Style.FillGradientID := OldFillGradID;
-      FCtx.Style.StrokeGradientID := OldStrokeGradID;
 
       PopMatrix;
       FGDIPGraphics := SavedGC;
       UpdateGDIPWorldTransform;
+      PopStyle;
 
       GdipDeleteGraphics(TileGC);
+
+      if HasOpaqueTileBackground then
+        SVGMakePatternBitmapOpaque(TileBmp, TileW, TileH);
+
+      TextureOriginX := PX;
+      TextureOriginY := PY;
+      if GTAttr <> '' then
+        SVGBuildPatternSuperTile(TileBmp, TileW, TileH, GT,
+          PX, PY, PW, PH, FGradBBoxX, FGradBBoxY,
+          FGradBBoxW, FGradBBoxH, TextureOriginX, TextureOriginY);
 
       if GdipCreateTexture(TileBmp, WrapModeTile, Result) = Ok then
       begin
         if Assigned(GdipSetTextureWrapMode) then
           GdipSetTextureWrapMode(Result, WrapModeTile);
-        if FPatternBmp <> nil then
-          GdipDisposeImage(FPatternBmp);
-        FPatternBmp := TileBmp;
-        TileBmp := nil;
+        { 将位图像素坐标映射回 patternUnits，再施加 patternTransform。 }
+        TextureMatrix := GT;
+        SVGMatrixTranslate(TextureMatrix, TextureOriginX, TextureOriginY);
+        SVGMatrixScale(TextureMatrix, PW / TileW, PH / TileH);
+        TextureGPMatrix := nil;
+        if GdipCreateMatrix2(TextureMatrix.a, TextureMatrix.b,
+          TextureMatrix.c, TextureMatrix.d, TextureMatrix.e,
+          TextureMatrix.f, TextureGPMatrix) = Ok then
+        begin
+          if GdipSetTextureTransform(Result, TextureGPMatrix) <> Ok then
+          begin
+            GdipDeleteBrush(Result);
+            Result := nil;
+          end;
+          GdipDeleteMatrix(TextureGPMatrix);
+        end
+        else
+        begin
+          GdipDeleteBrush(Result);
+          Result := nil;
+        end;
+        if Result <> nil then
+        begin
+          if FPatternBmp <> nil then
+            GdipDisposeImage(FPatternBmp);
+          FPatternBmp := TileBmp;
+          TileBmp := nil;
+        end;
       end;
 
       if TileBmp <> nil then
@@ -3853,9 +4370,10 @@ var
   TileGC, SavedGC: GpGraphics;
   TileW, TileH: Integer;
   PX, PY, PW, PH: TCnSVGFloat;
-  PT0, PT1: TPoint;
+  TileMatrix, TextureMatrix: TCnSVGMatrix;
+  TextureGPMatrix: GpMatrix;
+  PatternScaleX, PatternScaleY: TCnSVGFloat;
   PatUnits, ContentUnits: string;
-  OldFillGradID, OldStrokeGradID: string;
   SpreadMethod: TCnSVGSpreadMethod;
   GTAttr: string;
   GT: TCnSVGMatrix;
@@ -3869,6 +4387,11 @@ var
   ColorsPtr: PGPColor;
   P: PGPColor;
   Path: GpPath;
+  PatternChild: TCnXMLElement;
+  IsTileBackground: Boolean;
+  HasOpaqueTileBackground: Boolean;
+  PatternChildStyle: TCnSVGStyle;
+  TextureOriginX, TextureOriginY: TCnSVGFloat;
 begin
   Result := nil;
   if FCtx.Style.StrokeNone then Exit;
@@ -3955,12 +4478,10 @@ begin
         if Stops.Count >= 2 then
         begin
           StopEl := TCnXMLElement(Stops[0]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
           StopEl := TCnXMLElement(Stops[Stops.Count - 1]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
           C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
         end;
         Count := Stops.Count;
@@ -4025,8 +4546,7 @@ begin
              (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
           begin
             StopEl := TCnXMLElement(DefEl.Children[I]);
-            SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-            SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+            SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
             Colors[Count] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
             Positions[Count] := SVGAttrFloat(StopEl, 'offset', 0);
             if SVGAttrIsPercent(StopEl, 'offset') then
@@ -4067,7 +4587,6 @@ begin
         FX := SVGAttrLength(DefEl, 'fx', FX, FViewportUserWidth, FCtx.Style.FontSize);
         FY := SVGAttrLength(DefEl, 'fy', FY, FViewportUserHeight, FCtx.Style.FontSize);
       end;
-      RX := X2; RY := X2;
       if IsObjBBox then
       begin
         if SVGAttrIsPercent(DefEl, 'cx') then X1 := X1 / 100;
@@ -4076,6 +4595,11 @@ begin
         if SVGAttrIsPercent(DefEl, 'fx') then FX := FX / 100;
         if SVGAttrIsPercent(DefEl, 'fy') then FY := FY / 100;
       end;
+      { 未指定焦点时，必须在百分数归一化后继承 cx/cy。 }
+      if not DefEl.HasAttribute('fx') then FX := X1;
+      if not DefEl.HasAttribute('fy') then FY := Y1;
+      RX := X2;
+      RY := X2;
 
       GTAttr := DefEl.GetAttribute('gradientTransform');
       GTGot := False;
@@ -4134,12 +4658,10 @@ begin
         if Count >= 2 then
         begin
           StopEl := TCnXMLElement(Stops[0]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
           C1 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
           StopEl := TCnXMLElement(Stops[Count - 1]);
-          SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-          SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+          SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
           C2 := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
         end;
       finally
@@ -4169,8 +4691,7 @@ begin
                  (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
               begin
                 StopEl := TCnXMLElement(DefEl.Children[I]);
-                SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-                SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
                 Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
                 Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
                 if SVGAttrIsPercent(StopEl, 'offset') then
@@ -4255,8 +4776,7 @@ begin
                    (LowerCase(TCnXMLElement(DefEl.Children[I]).TagName) = 'stop') then
                 begin
                   StopEl := TCnXMLElement(DefEl.Children[I]);
-                  SVGParseColor(StopEl.GetAttribute('stop-color'), SC);
-                  SA := Round(SVGClampOpacity(SVGAttrFloat(StopEl, 'stop-opacity', 1.0)) * 255);
+                  SVGReadGradientStopStyle(StopEl, SC, SA, EffectiveStrokeAlpha);
                   Colors[J] := MakeGDIPColor(SA, SC.R, SC.G, SC.B);
                   Positions[J] := SVGAttrFloat(StopEl, 'offset', 0);
                   if SVGAttrIsPercent(StopEl, 'offset') then
@@ -4365,13 +4885,29 @@ begin
         PH := SVGAttrLength(DefEl, 'height', PH, FViewportUserHeight, FCtx.Style.FontSize);
       end;
 
-      PT0 := UserToScreen(PX, PY);
-      PT1 := UserToScreen(PX + PW, PY + PH);
-      TileW := Abs(PT1.X - PT0.X);
-      TileH := Abs(PT1.Y - PT0.Y);
+      { 描边 pattern 与填充使用相同的图块坐标换算。 }
+      SVGMatrixIdentity(GT);
+      GTAttr := DefEl.GetAttribute('patternTransform');
+      if GTAttr <> '' then
+      begin
+        try
+          ApplyTransformToMatrix(GTAttr, GT);
+        except
+          SVGMatrixIdentity(GT);
+        end;
+      end;
+      SVGMatrixMultiply(TileMatrix, FCtx.CTM, GT);
+      PatternScaleX := Sqrt(TileMatrix.a * TileMatrix.a +
+        TileMatrix.b * TileMatrix.b);
+      PatternScaleY := Sqrt(TileMatrix.c * TileMatrix.c +
+        TileMatrix.d * TileMatrix.d);
+      TileW := Round(Abs(PW) * PatternScaleX);
+      TileH := Round(Abs(PH) * PatternScaleY);
       if (TileW <= 0) or (TileH <= 0) then Exit;
 
-      if not Assigned(GdipCreateTexture) then Exit;
+      if not Assigned(GdipCreateTexture) or
+         not Assigned(GdipSetTextureTransform) or
+         not Assigned(GdipCreateMatrix2) then Exit;
 
       TileBmp := nil;
       if GdipCreateBitmapFromScan0(TileW, TileH, 0, PixelFormat32bppARGB, nil, TileBmp) <> Ok then
@@ -4394,10 +4930,9 @@ begin
       FGDIPGraphics := TileGC;
 
       PushMatrix;
-      FCtx.CTM.e := -PX * FCtx.CTM.a - PY * FCtx.CTM.c;
-      FCtx.CTM.f := -PX * FCtx.CTM.b - PY * FCtx.CTM.d;
-      if DefEl.HasAttribute('patternTransform') then
-        ApplyTransformAttr(DefEl.GetAttribute('patternTransform'));
+      SVGMatrixIdentity(FCtx.CTM);
+      SVGMatrixScale(FCtx.CTM, TileW / PW, TileH / PH);
+      SVGMatrixTranslate(FCtx.CTM, -PX, -PY);
       UpdateGDIPWorldTransform;
 
       ContentUnits := LowerCase(DefEl.GetAttribute('patternContentUnits'));
@@ -4408,35 +4943,88 @@ begin
           UpdateGDIPWorldTransform;
       end;
 
-      OldFillGradID := FCtx.Style.FillGradientID;
-      OldStrokeGradID := FCtx.Style.StrokeGradientID;
-      FCtx.Style.FillGradientID := '';
-      FCtx.Style.StrokeGradientID := '';
+      PushStyle;
+      SVGDefaultStyle(FCtx.Style);
+      ApplyStyleAttr(DefEl);
 
+      HasOpaqueTileBackground := False;
       for I := 0 to DefEl.ChildCount - 1 do
       begin
         if DefEl.Children[I].NodeType = xntElement then
-          RenderElement(TCnXMLElement(DefEl.Children[I]));
+        begin
+          PatternChild := TCnXMLElement(DefEl.Children[I]);
+          IsTileBackground := SVGPatternRectCoversTile(PatternChild,
+            PX, PY, PW, PH, FCtx.Style.FontSize);
+          if IsTileBackground then
+          begin
+            PatternChildStyle := FCtx.Style;
+            SVGParseStyleAttr(PatternChild, PatternChildStyle, FCtx.Style);
+            if (not PatternChildStyle.FillNone) and
+               (PatternChildStyle.FillGradientID = '') and
+               (PatternChildStyle.Opacity * PatternChildStyle.FillOpacity >=
+                 0.999) then
+              HasOpaqueTileBackground := True;
+          end;
+          if IsTileBackground then
+            GdipSetSmoothingMode(TileGC, SmoothingModeNone);
+          try
+            RenderElement(PatternChild);
+          finally
+            if IsTileBackground then
+              GdipSetSmoothingMode(TileGC, SmoothingModeAntiAlias);
+          end;
+        end;
       end;
-
-      FCtx.Style.FillGradientID := OldFillGradID;
-      FCtx.Style.StrokeGradientID := OldStrokeGradID;
 
       PopMatrix;
       FGDIPGraphics := SavedGC;
       UpdateGDIPWorldTransform;
+      PopStyle;
 
       GdipDeleteGraphics(TileGC);
       TileGC := nil;
+
+      if HasOpaqueTileBackground then
+        SVGMakePatternBitmapOpaque(TileBmp, TileW, TileH);
+
+      TextureOriginX := PX;
+      TextureOriginY := PY;
+      if GTAttr <> '' then
+        SVGBuildPatternSuperTile(TileBmp, TileW, TileH, GT,
+          PX, PY, PW, PH, FGradBBoxX, FGradBBoxY,
+          FGradBBoxW, FGradBBoxH, TextureOriginX, TextureOriginY);
 
       if GdipCreateTexture(TileBmp, WrapModeTile, Result) = Ok then
       begin
         if Assigned(GdipSetTextureWrapMode) then
           GdipSetTextureWrapMode(Result, WrapModeTile);
-        if FPatternBmp <> nil then
-          GdipDisposeImage(FPatternBmp);
-        FPatternBmp := TileBmp;
-        TileBmp := nil;
+        TextureMatrix := GT;
+        SVGMatrixTranslate(TextureMatrix, TextureOriginX, TextureOriginY);
+        SVGMatrixScale(TextureMatrix, PW / TileW, PH / TileH);
+        TextureGPMatrix := nil;
+        if GdipCreateMatrix2(TextureMatrix.a, TextureMatrix.b,
+          TextureMatrix.c, TextureMatrix.d, TextureMatrix.e,
+          TextureMatrix.f, TextureGPMatrix) = Ok then
+        begin
+          if GdipSetTextureTransform(Result, TextureGPMatrix) <> Ok then
+          begin
+            GdipDeleteBrush(Result);
+            Result := nil;
+          end;
+          GdipDeleteMatrix(TextureGPMatrix);
+        end
+        else
+        begin
+          GdipDeleteBrush(Result);
+          Result := nil;
+        end;
+        if Result <> nil then
+        begin
+          if FPatternBmp <> nil then
+            GdipDisposeImage(FPatternBmp);
+          FPatternBmp := TileBmp;
+          TileBmp := nil;
+        end;
       end;
 
       if TileBmp <> nil then
@@ -6443,6 +7031,43 @@ var
     WStr: WideString;
     SavedState: Cardinal;
     AngleDeg: Double;
+    ScaleX, ScaleY, UserW, UserH: TCnSVGFloat;
+    TextMatrix, InvTextMatrix, BrushMatrix: TCnSVGMatrix;
+
+    procedure ApplyGradientBrushTransform(ABrush: GpBrush;
+      const AMatrix: TCnSVGMatrix);
+    var
+      GradientEl: TCnXMLElement;
+      GradientTag: string;
+      M: GpMatrix;
+    begin
+      if (ABrush = nil) or (FCtx.Style.FillGradientID = '') then
+        Exit;
+      if not Assigned(GdipCreateMatrix2) or not Assigned(GdipDeleteMatrix) then
+        Exit;
+      GradientEl := SVGFindDefNode(FDefsMap, FCtx.Style.FillGradientID);
+      if GradientEl = nil then
+        Exit;
+      GradientTag := LowerCase(GradientEl.TagName);
+      if ((GradientTag = 'lineargradient') and
+          not Assigned(GdipSetLineTransform)) or
+         ((GradientTag = 'radialgradient') and
+          not Assigned(GdipSetPathGradientTransform)) then
+        Exit;
+
+      M := nil;
+      if GdipCreateMatrix2(AMatrix.a, AMatrix.b, AMatrix.c, AMatrix.d,
+        AMatrix.e, AMatrix.f, M) <> Ok then
+        Exit;
+      try
+        if GradientTag = 'lineargradient' then
+          GdipSetLineTransform(ABrush, M)
+        else if GradientTag = 'radialgradient' then
+          GdipSetPathGradientTransform(ABrush, M);
+      finally
+        GdipDeleteMatrix(M);
+      end;
+    end;
   begin
     if S = '' then Exit;
     ApplyCanvasFontFromStyle(AStyle);
@@ -6474,11 +7099,7 @@ var
       GDIPFmt := nil;
       GdipCreateStringFormat(0, 0, GDIPFmt);
 
-      // 创建画刷（使用填充色，支持渐变）
-      // Text 的 objectBoundingBox 暂不支持自动映射
-      FGradBBoxX := 0; FGradBBoxY := 0;
-      FGradBBoxW := 0; FGradBBoxH := 0;
-      GDIPBrush := CreateGDIPFillBrush;
+      GDIPBrush := nil;
 
       try
         // 文字使用屏幕坐标 + 已缩放字体渲染，需要暂时关闭世界变换，
@@ -6549,6 +7170,42 @@ var
         LayoutRect.Width  := 100000;
         LayoutRect.Height := 100000;
 
+        { 文字使用屏幕坐标绘制，但渐变定义仍位于 SVG 用户坐标系。
+          先估算文字的用户坐标边界框，使 pad 和 objectBoundingBox 能正确计算，
+          再将渐变画刷变换到当前文字绘制坐标系。 }
+        ScaleX := Sqrt(FCtx.CTM.a * FCtx.CTM.a +
+          FCtx.CTM.b * FCtx.CTM.b);
+        ScaleY := Sqrt(FCtx.CTM.c * FCtx.CTM.c +
+          FCtx.CTM.d * FCtx.CTM.d);
+        if ScaleX < 1E-6 then ScaleX := 1;
+        if ScaleY < 1E-6 then ScaleY := ScaleX;
+        UserW := TW / ScaleX;
+        UserH := TH / ScaleY;
+        case AStyle.TextAnchor of
+          staMiddle: FGradBBoxX := AX - UserW / 2;
+          staEnd:    FGradBBoxX := AX - UserW;
+        else         FGradBBoxX := AX;
+        end;
+        FGradBBoxY := AY - UserH * 0.8;
+        FGradBBoxW := UserW;
+        FGradBBoxH := UserH;
+
+        GDIPBrush := CreateGDIPFillBrush;
+        if GDIPBrush <> nil then
+        begin
+          SVGMatrixIdentity(TextMatrix);
+          if Abs(AngleDeg) > 0.01 then
+          begin
+            SVGMatrixTranslate(TextMatrix, Scr.X, Scr.Y);
+            SVGMatrixRotate(TextMatrix, AngleDeg, 0, 0);
+          end;
+          if SVGMatrixInverse(TextMatrix, InvTextMatrix) then
+            SVGMatrixMultiply(BrushMatrix, InvTextMatrix, FCtx.CTM)
+          else
+            BrushMatrix := FCtx.CTM;
+          ApplyGradientBrushTransform(GDIPBrush, BrushMatrix);
+        end;
+
         if GDIPBrush <> nil then
         begin
           if Assigned(GdipSetTextRenderingHint) then
@@ -6598,7 +7255,10 @@ begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   X    := SVGAttrLength(AElement, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
   Y    := SVGAttrLength(AElement, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
-  CurX := X; CurY := Y;
+  DX   := SVGAttrLength(AElement, 'dx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  DY   := SVGAttrLength(AElement, 'dy', 0, FViewportUserHeight, FCtx.Style.FontSize);
+  CurX := X + DX;
+  CurY := Y + DY;
 
   OldBrushStyle := FCtx.Canvas.Brush.Style;
   OldFont := nil;
@@ -6956,6 +7616,7 @@ begin
 
   if MaskEl.HasAttribute('transform') then
     ApplyTransformAttr(MaskEl.GetAttribute('transform'));
+  UpdateGDIPWorldTransform;
 
   SavedMaskProcessing := FProcessingMask;
   FProcessingMask := True;
@@ -7234,11 +7895,15 @@ begin
           Target.GetAttribute('preserveAspectRatio'), M);
         SVGMatrixMultiply(FCtx.CTM, FCtx.CTM, M);
       end;
+      UpdateGDIPWorldTransform;
       for I := 0 to Target.ChildCount - 1 do
         RenderNode(Target.Children[I]);
     end
     else
+    begin
+      UpdateGDIPWorldTransform;
       RenderElement(Target);
+    end;
   finally
     Dec(FCtx.UseDepth);
     PopMatrix;
@@ -7387,8 +8052,12 @@ procedure TCnSVGRenderer.RenderSwitch(AElement: TCnXMLElement);
 var
   I: Integer;
 begin
+  { 按文档顺序渲染第一个通过 requiredFeatures、requiredExtensions 和
+    systemLanguage 三项条件测试的直接子元素。 }
   for I := 0 to AElement.ChildCount - 1 do
-    if AElement.Children[I].NodeType = xntElement then
+    if (AElement.Children[I].NodeType = xntElement) and
+       SVGElementPassesConditionalProcessing(
+         TCnXMLElement(AElement.Children[I])) then
     begin
       RenderNode(AElement.Children[I]);
       Break;
@@ -7454,6 +8123,7 @@ begin
       FViewportUserWidth := W;
       FViewportUserHeight := H;
     end;
+    UpdateGDIPWorldTransform;
 
     { 每个嵌套的 <svg> 都会建立 viewport，并默认将后代裁剪到该 viewport 内。
       旧实现只应用了 viewBox 变换，绘制内容可能溢出 viewport。 }

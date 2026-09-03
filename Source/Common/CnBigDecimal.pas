@@ -1723,46 +1723,44 @@ begin
   end;
 end;
 
-function BigDecimalSetDec(const Buf: string; Res: TCnBigDecimal): Boolean;
+function InternalParseDecimalText(const Buf: string; out Neg: Boolean;
+  out Digits: string; out DecimalScale: Integer): Boolean;
+{* 按统一规则解析十进制文本，返回去掉符号、小数点和分节逗号后的数字串，
+   DecimalScale 表示十进制小数点后的位数。逗号只允许按三位分节出现在整数部分。 *}
 var
-  Neg, ENeg: Boolean;
-  E, DC, IntDigits, FracDigits, GroupDigits, ExpDigits: Integer;
-  P: PChar;
-  S, V: string;
+  I, L, E, IntDigits, FracDigits, GroupDigits, ExpDigits: Integer;
   C: Char;
-  HasComma: Boolean;
+  HasComma, ExpNegative: Boolean;
   Scale: Int64;
 begin
   Result := False;
-
-  V := '';
-  S := Buf;
-  if S = '' then
-    Exit;
-  P := PChar(S);
-  if P^ = #0 then
-    Exit;
-
   Neg := False;
-  if (P^ = '+') or (P^ = '-') then
-  begin
-    Neg := (P^ = '-');
-    Inc(P);
-  end;
+  Digits := '';
+  DecimalScale := 0;
 
-  if P^ = #0 then
+  L := Length(Buf);
+  if L = 0 then
+    Exit;
+
+  I := 1;
+  if Buf[I] in ['+', '-'] then
+  begin
+    Neg := Buf[I] = '-';
+    Inc(I);
+  end;
+  if I > L then
     Exit;
 
   IntDigits := 0;
   GroupDigits := 0;
   HasComma := False;
-  while P^ in ['0'..'9', ','] do
+  while (I <= L) and (Buf[I] in ['0'..'9', ',']) do
   begin
-    C := P^;
+    C := Buf[I];
     case C of
       '0'..'9':
       begin
-        V := V + C;
+        Digits := Digits + C;
         Inc(IntDigits);
         Inc(GroupDigits);
       end;
@@ -1777,21 +1775,21 @@ begin
         GroupDigits := 0;
       end;
     end;
-    Inc(P);
+    Inc(I);
   end;
 
   if HasComma and (GroupDigits <> 3) then
     Exit;
 
   FracDigits := 0;
-  if P^ = '.' then
+  if (I <= L) and (Buf[I] = '.') then
   begin
-    Inc(P);
-    while P^ in ['0'..'9'] do
+    Inc(I);
+    while (I <= L) and (Buf[I] in ['0'..'9']) do
     begin
-      V := V + P^;
+      Digits := Digits + Buf[I];
       Inc(FracDigits);
-      Inc(P);
+      Inc(I);
     end;
     if FracDigits = 0 then
       Exit;
@@ -1800,44 +1798,57 @@ begin
   if (IntDigits = 0) and (FracDigits = 0) then
     Exit;
 
-  DC := FracDigits;
   E := 0;
-  ENeg := False;
-  if (P^ = 'e') or (P^ = 'E') then
+  ExpNegative := False;
+  if (I <= L) and (Buf[I] in ['e', 'E']) then
   begin
-    // 科学计数法的 E 后面的指数
-    Inc(P);
-    if (P^ = '+') or (P^ = '-') then
+    Inc(I);
+    if (I <= L) and (Buf[I] in ['+', '-']) then
     begin
-      ENeg := (P^ = '-');
-      Inc(P);
+      ExpNegative := Buf[I] = '-';
+      Inc(I);
     end;
+
     ExpDigits := 0;
-    while P^ in ['0'..'9'] do
+    while (I <= L) and (Buf[I] in ['0'..'9']) do
     begin
-      C := P^;
+      C := Buf[I];
       if E > (MaxInt - (Ord(C) - Ord('0'))) div 10 then
         Exit;
       E := E * 10 + Ord(C) - Ord('0');
       Inc(ExpDigits);
-      Inc(P);
+      Inc(I);
     end;
     if ExpDigits = 0 then
       Exit;
   end;
 
-  if P^ <> #0 then
+  if I <= L then
     Exit;
 
-  if ENeg then
+  if ExpNegative then
     E := -E;
-  Scale := Int64(DC) - Int64(E);
+  Scale := Int64(FracDigits) - Int64(E);
   if (Scale < -MaxInt) or (Scale > MaxInt) then
+    Exit;
+
+  DecimalScale := Integer(Scale);
+  Result := True;
+end;
+
+function BigDecimalSetDec(const Buf: string; Res: TCnBigDecimal): Boolean;
+var
+  Neg: Boolean;
+  Scale: Integer;
+  V: string;
+begin
+  Result := False;
+  if (Res = nil) or not InternalParseDecimalText(Buf, Neg, V, Scale) then
     Exit;
 
   if not Res.FValue.SetDec(AnsiString(V)) then
     Exit;
-  Res.FScale := Integer(Scale);
+  Res.FScale := Scale;
 
   if (not Res.FValue.IsNegative) and Neg then
     Res.FValue.SetNegative(True);
@@ -2601,14 +2612,13 @@ begin
     end;
 
     if Num = Res then
-    begin
       BigDecimalCopy(Res, R);
-      FLocalBigDecimalPool.Recycle(R);
-    end;
 
     Res.RoundTo(SqrtPrecision);
     Result := True;
   finally
+    if Num = Res then
+      FLocalBigDecimalPool.Recycle(R);
     FLocalBigDecimalPool.Recycle(X0);
     FLocalBigDecimalPool.Recycle(T);
     FLocalBigDecimalPool.Recycle(D);
@@ -3213,180 +3223,110 @@ end;
 
 function BigBinarySetDec(const Buf: string; Res: TCnBigBinary): Boolean;
 var
-  Neg, ENeg: Boolean;
-  E, DC, DMax, I: Integer;
-  P, DotPos: PChar;
+  Neg: Boolean;
+  DC, DMax, I: Integer;
   S, V: string;
-  C: Char;
   P10, T, DRes: TCnBigNumber;
+  TmpRes: TCnBigBinary;
 begin
   Result := False;
-
-  V := '';
-  S := Trim(Buf);
-  P := PChar(S);
-  if P^ = #0 then
+  if (Res = nil) or not InternalParseDecimalText(Buf, Neg, V, DC) then
     Exit;
 
-  Neg := False;
-  ENeg := False;
-  DotPos := nil;
-
-  if (P^ = '+') or (P^ = '-') then
-  begin
-    Neg := (P^ = '-');
-    Inc(P);
-  end;
-
-  if P^ = #0 then
-    Exit;
-
-  Res.FValue.SetZero;
-  DC := 0;
-
-  // 解析值，直到结尾或碰上科学计数法的 E
-  C := P^;
-  while (C <> #0) and (C <> 'e') and (C <> 'E') do
-  begin
-    case C of
-      '0'..'9':
-        V := V + C;
-      ',':
-        ; // 分节号忽略
-      '.':
-        if Assigned(DotPos) then
-          // 小数点只能有一个
-          Exit
-        else
-          DotPos := P;
-    else
-      Exit;
-    end;
-    Inc(P);
-    C := P^;
-  end;
-
-  // V 是不包括小数点的十进制字符串
-  if not Assigned(DotPos) and (C <> 'e') and (C <> 'E') then
-  begin
-    // 如果没小数点又没有指数，说明是整数
-    Res.FValue.SetDec(AnsiString(V));
-    if (not Res.FValue.IsNegative) and Neg then
-      Res.FValue.SetNegative(True);
-
-    Result := True;
-  end;
-
-  // 如果数据中原来有小数点，则给 DC 赋值
-  if Assigned(DotPos) then
-    DC := P - DotPos - 1;
-
-  E := 0;
-  if (C = 'e') or (C = 'E') then
-  begin
-    // 科学计数法的 E 后面的指数
-    Inc(P);
-    if (P^ = '+') or (P^ = '-') then
+  TmpRes := FLocalBigBinaryPool.Obtain;
+  try
+    // V 是不含符号、小数点和分节逗号的数字串，DC 是十进制小数位数。
+    if DC = 0 then
     begin
-      ENeg := (P^ = '-');
-      Inc(P);
-    end;
-    while P^ <> #0 do
-    begin
-      case P^ of
-        '0'..'9':
-          E := E * 10 + Ord(P^) - Ord('0');
-      else
+      if not TmpRes.FValue.SetDec(AnsiString(V)) then
         Exit;
-      end;
-      Inc(P);
-    end;
-  end;
-
-  if ENeg then
-    E := -E;
-  DC := DC - E; // 如果有指数，再调整计算小数部分长度给 DC
-
-  // 这里得到的值是没有小数点的 V，以及指示其中应该有十进制小数点位置的 DC，分开处理
-  if DC = 0 then
-  begin
-    Res.FValue.SetDec(AnsiString(V));
-    Res.FScale := 0;
-  end
-  else if DC < 0 then // 还要乘以 10^-DC，还是整数
-  begin
-    Res.FValue.SetDec(AnsiString(V));
-    BigNumberMulPower10(Res.FValue, -DC);
-  end
-  else // DC > 0，说明有小数
-  begin
-    if Length(V) > DC then
-    begin
-      S := Copy(V, 1, Length(V) - DC);             // S 是整数部分的字符串
-      Delete(V, 1, Length(V) - DC);                // V 是小数点后的部分的字符串
+      TmpRes.FScale := 0;
     end
-    else if Length(V) = DC then
+    else if DC < 0 then // 还要乘以 10^-DC，结果仍是整数
     begin
-      S := '0';
-      // V 保持原样
+      if not TmpRes.FValue.SetDec(AnsiString(V)) then
+        Exit;
+      BigNumberMulPower10(TmpRes.FValue, -DC);
+      TmpRes.FScale := 0;
     end
-    else // V 长度比 DC 要求的位数还要小，前面要加 0
+    else // DC > 0，说明有小数
     begin
-      S := '0';
-      V := StringOfChar('0', DC - Length(V)) + V;
-    end;
-
-    // 分别处理 S 和 V，将其转换为整数与小数部分
-    DMax := Trunc(Length(V) * 5);  // FIXME: 小数部分最多转换 DMax 位，避免遇到循环停不下来
-    if DMax < CN_BIG_BINARY_DEFAULT_PRECISION then
-      DMax := CN_BIG_BINARY_DEFAULT_PRECISION;
-
-    P10 := FLocalBigNumberPool.Obtain;
-    T := FLocalBigNumberPool.Obtain;
-    DRes := FLocalBigNumberPool.Obtain;
-
-    try
-      P10.SetOne;
-      BigNumberMulPower10(P10, Length(V)); // 每次乘后要和 P10 比较以决定这一位是不是 1
-
-      T.SetDec(AnsiString(V));
-      I := 0;
-      DRes.SetZero;
-
-      while (I <= DMax) and not T.IsZero do
+      if Length(V) > DC then
       begin
-        T.MulWord(2);
-        if BigNumberCompare(T, P10) >= 0 then
+        S := Copy(V, 1, Length(V) - DC);             // S 是整数部分的字符串
+        Delete(V, 1, Length(V) - DC);                // V 是小数点后的部分的字符串
+      end
+      else if Length(V) = DC then
+      begin
+        S := '0';
+        // V 保持原样
+      end
+      else // V 长度比 DC 要求的位数还要小，前面要加 0
+      begin
+        S := '0';
+        V := StringOfChar('0', DC - Length(V)) + V;
+      end;
+
+      // 分别处理 S 和 V，将其转换为整数与小数部分
+      if Length(V) > MaxInt div 5 then
+        Exit;
+      DMax := Length(V) * 5;  // 小数部分最多转换 DMax 位，避免遇到循环停不下来
+      if DMax < CN_BIG_BINARY_DEFAULT_PRECISION then
+        DMax := CN_BIG_BINARY_DEFAULT_PRECISION;
+
+      P10 := FLocalBigNumberPool.Obtain;
+      T := FLocalBigNumberPool.Obtain;
+      DRes := FLocalBigNumberPool.Obtain;
+
+      try
+        P10.SetOne;
+        BigNumberMulPower10(P10, Length(V)); // 每次乘后要和 P10 比较以决定这一位是不是 1
+
+        if not T.SetDec(AnsiString(V)) then
+          Exit;
+        I := 0;
+        DRes.SetZero;
+
+        while (I <= DMax) and not T.IsZero do
         begin
-          DRes.ShiftLeftOne;
-          DRes.SetBit(0);
-          BigNumberSub(T, T, P10);
-        end
-        else
-        begin
-          DRes.ShiftLeftOne;
-          // DRes.ClearBit(0);
+          T.MulWord(2);
+          if BigNumberCompare(T, P10) >= 0 then
+          begin
+            DRes.ShiftLeftOne;
+            DRes.SetBit(0);
+            BigNumberSub(T, T, P10);
+          end
+          else
+          begin
+            DRes.ShiftLeftOne;
+            // DRes.ClearBit(0);
+          end;
+
+          Inc(I);
         end;
 
-        Inc(I);
+        // 得到 I 位二进制值，在 DRes 里，就是小数点后的小数部分了，和整数部分拼起来
+        if not T.SetDec(AnsiString(S)) then
+          Exit;
+        T.ShiftLeft(I);
+        if not BigNumberAdd(TmpRes.FValue, T, DRes) then
+          Exit;
+        TmpRes.FScale := I;
+      finally
+        FLocalBigNumberPool.Recycle(P10);
+        FLocalBigNumberPool.Recycle(T);
+        FLocalBigNumberPool.Recycle(DRes);
       end;
-
-      // 得到 I 位二进制值，在 DRes 里，就是小数点后的小数部分了，和整数部分拼起来
-      T.SetDec(AnsiString(S));
-      T.ShiftLeft(I);
-      BigNumberAdd(Res.FValue, T, DRes);
-      Res.FScale := I;
-    finally
-      FLocalBigNumberPool.Recycle(P10);
-      FLocalBigNumberPool.Recycle(T);
-      FLocalBigNumberPool.Recycle(DRes);
     end;
+
+    if (not TmpRes.FValue.IsNegative) and Neg then
+      TmpRes.FValue.SetNegative(True);
+
+    BigBinaryCopy(Res, TmpRes);
+    Result := True;
+  finally
+    FLocalBigBinaryPool.Recycle(TmpRes);
   end;
-
-  if (not Res.FValue.IsNegative) and Neg then
-    Res.FValue.SetNegative(True);
-
-  Result := True;
 end;
 
 function BigBinarySetWord(W: Cardinal; Res: TCnBigBinary): Boolean;
