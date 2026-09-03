@@ -231,13 +231,16 @@ function CnFastMemoryStreamCopyFrom(Dest, Source: TStream; Count: Int64): Int64;
    不是 TCustomMemoryStream，则调用原 CopyFrom 方法。}
 
 function CnGenerateCodeMap(ASeedStr: AnsiString; var EnMap, DeMap: TCnCodeMap): Boolean;
-{* 根据一个字符串生成用于字节加解密的编码表，字符串为空时返回为 False *}
+{* 根据一个字符串生成用于字节加解密的编码表，字符串为空时返回为 False}
 
 implementation
 
+uses
+  CnNative;
+
 resourcestring
-  SCnReadStreamError = 'Read stream error';
-  SCnWriteStreamError = 'Write stream error';
+  SCnReadStreamError = 'Read Stream Error';
+  SCnWriteStreamError = 'Write Stream Rrror';
 
 const
   csBeginFlagInt = Longint($00FF00FF);
@@ -262,13 +265,13 @@ begin
   //用此方法可直接将 Source 的内存块追加到 Dest 的 Memory 地址的后面
 
   if Source is TCustomMemoryStream then     // 直接写入到 Dest 的地址内
-    Dest.WriteBuffer(Pointer(Longint(TCustomMemoryStream(Source).Memory) + Source.Position)^,Count)
+    Dest.WriteBuffer(Pointer(TCnIntAddress(TCustomMemoryStream(Source).Memory) + Source.Position)^,Count)
   else if Dest is TCustomMemoryStream then
   begin
     aNewSize := Dest.Position + Count;
     TCustomMemoryStream(Dest).Size := aNewSize; //先设置内存的大小，将Dest.Memory扩大,不然下面找不到地址
     // Source 直接从 Dest.Memory 后面写
-    Source.ReadBuffer(Pointer(Longint(TCustomMemoryStream(Dest).Memory) + Dest.Position)^, Count);
+    Source.ReadBuffer(Pointer(TCnIntAddress(TCustomMemoryStream(Dest).Memory) + Dest.Position)^, Count);
   end
   else
   begin
@@ -290,6 +293,7 @@ begin
   try
     for I := 0 to 255 do
       List.Add(Pointer(I));
+
     for I := 0 to 255 do
     begin
       C := Byte(ASeedStr[I mod Length(ASeedStr) + 1]) xor $3E;
@@ -485,7 +489,7 @@ begin
   if Len > 0 then
   begin
     SetLength(Result, Len);
-    DoRead(PChar(Result)^, Len);
+    DoRead(PChar(Result)^, Len * SizeOf(Char));
   end
   else
     Result := '';
@@ -547,7 +551,7 @@ begin
   Len := Length(Value);
   DoWrite(Len, SizeOf(Len));
   if Len > 0 then
-    DoWrite(PChar(Value)^, Len);
+    DoWrite(PChar(Value)^, Len * SizeOf(Char));
 end;
 
 //------------------------------------------------------------------------------

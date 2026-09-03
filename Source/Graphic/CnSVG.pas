@@ -292,6 +292,8 @@ type
     {* 跳过空白和逗号 }
     function ReadNumber(var Val: TCnSVGFloat): Boolean;
     {* 读取一个浮点数（含科学计数法、正负号紧跟），返回是否成功 }
+    function ReadArcFlag(var Value: Boolean): Boolean;
+    {* 读取 A/a 命令专用的 0/1 flag；无分隔的 01 也可正确解析 }
     function PeekCmd: Char;
     {* 检查当前字符是否为命令字母，返回该字母，否则返回 #0 }
     procedure ParseMoveTo(Relative: Boolean; List: TList);
@@ -582,11 +584,14 @@ type
     {* GDI+ 状态栈顶索引 }
     FHasClipPath: Boolean;
     {* 当前是否已设置 GDI+ clip path }
+    FClipPathDepth: Integer;
+    {* 活动 clip path 的嵌套深度 }
     FProcessingFilter: Boolean;
     FProcessingMask: Boolean;
     FFilterPendingBmp: GpImage;
     FFilterPendingSX, FFilterPendingSY, FFilterPendingSW, FFilterPendingSH: Integer;
     FGradBBoxX, FGradBBoxY, FGradBBoxW, FGradBBoxH: TCnSVGFloat;
+    FViewportUserWidth, FViewportUserHeight: TCnSVGFloat;
     {* 渐变 objectBoundingBox 映射用的当前元素边界框 }
     FPatternBmp: GpImage;
     procedure PushMatrix;
@@ -638,6 +643,7 @@ type
     procedure RenderPath(AElement: TCnXMLElement);
     procedure RenderText(AElement: TCnXMLElement);
     procedure RenderGroup(AElement: TCnXMLElement);
+    function RenderGroupWithOpacity(AElement: TCnXMLElement): Boolean;
     procedure RenderUse(AElement: TCnXMLElement);
     procedure RenderDefs(AElement: TCnXMLElement);
     procedure RenderImage(AElement: TCnXMLElement);
@@ -833,6 +839,8 @@ begin
     Result := V;
 end;
 
+function SVGTryStrToFloat(const S: string; var Value: TCnSVGFloat): Boolean; forward;
+
 function SVGParseColor(const S: string; var Color: TCnSVGColor): Boolean;
 {* 解析 SVG 颜色字符串，支持 none / #RRGGBB / #RGB / rgb(r,g,b) / 命名颜色。
    返回 False 表示 none 或解析失败，返回 True 表示解析成功（颜色写入 Color）。}
@@ -841,7 +849,7 @@ var
   R2, G2, B2: string;
   RgbStr: string;
   Parts: TStringList;
-  Val: Double;
+  Val: TCnSVGFloat;
   IntVal: Integer;
   I: Integer;
   PartStr: string;
@@ -922,7 +930,8 @@ begin
           try
             if IsPercent then
             begin
-              Val    := StrToFloat(PartStr);
+              if not SVGTryStrToFloat(PartStr, Val) then
+                Val := 0;
               IntVal := Round(Val * 255.0 / 100.0);
             end
             else
@@ -1072,6 +1081,87 @@ end;
 // 浮点属性读取与样式继承工具函数
 //==============================================================================
 
+function SVGTryStrToFloat(const S: string; var Value: TCnSVGFloat): Boolean;
+{ SVG 数值固定使用点号作为小数分隔符。Delphi 的 StrToFloat 受进程区域设置影响，
+  因此先将 token 规范化后再转换。 }
+var
+  T: string;
+begin
+  T := Trim(S);
+  {$IFDEF SUPPORT_GLOBAL_FORMAT_SETTINGS}
+  if FormatSettings.DecimalSeparator <> '.' then
+    T := StringReplace(T, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
+  {$ELSE}
+  if DecimalSeparator <> '.' then
+    T := StringReplace(T, '.', DecimalSeparator, [rfReplaceAll]);
+  {$ENDIF}
+  try
+    Value := StrToFloat(T);
+    Result := True;
+  except
+    Value := 0;
+    Result := False;
+  end;
+end;
+
+function SVGReadNumberToken(const S: string; var P: Integer;
+  var Value: TCnSVGFloat): Boolean; forward;
+
+function SVGParseLength(const S: string; Default, PercentBase,
+  FontSize: TCnSVGFloat): TCnSVGFloat;
+{ 解析 SVG <length>。PercentBase 是相关轴上最近 viewport（或对象包围盒）的尺寸；
+  单位换算遵循 SVG/CSS 的 96 dpi 参考像素。 }
+var
+  P: Integer;
+  V: TCnSVGFloat;
+  UnitName: string;
+begin
+  Result := Default;
+  P := 1;
+  while (P <= Length(S)) and (S[P] in [' ', #9, #10, #13, ',']) do
+    Inc(P);
+  if not SVGReadNumberToken(S, P, V) then
+    Exit;
+  while (P <= Length(S)) and (S[P] in [' ', #9, #10, #13]) do
+    Inc(P);
+  UnitName := LowerCase(Trim(Copy(S, P, Length(S) - P + 1)));
+  if UnitName = '%' then
+    Result := V * PercentBase / 100
+  else if UnitName = '' then
+    Result := V
+  else if UnitName = 'px' then
+    Result := V
+  else if UnitName = 'pt' then
+    Result := V * 96 / 72
+  else if UnitName = 'pc' then
+    Result := V * 16
+  else if UnitName = 'mm' then
+    Result := V * 96 / 25.4
+  else if UnitName = 'cm' then
+    Result := V * 96 / 2.54
+  else if UnitName = 'in' then
+    Result := V * 96
+  else if UnitName = 'em' then
+    Result := V * FontSize
+  else if UnitName = 'ex' then
+    Result := V * FontSize * 0.5
+  else
+    Result := Default;
+end;
+
+function SVGAttrLength(El: TCnXMLElement; const Name: string;
+  Default, PercentBase, FontSize: TCnSVGFloat): TCnSVGFloat;
+var
+  S: string;
+begin
+  Result := Default;
+  if (El = nil) or (not El.HasAttribute(Name)) then
+    Exit;
+  S := Trim(El.GetAttribute(Name));
+  if S <> '' then
+    Result := SVGParseLength(S, Default, PercentBase, FontSize);
+end;
+
 function SVGAttrFloat(El: TCnXMLElement; const Name: string;
   Default: TCnSVGFloat): TCnSVGFloat;
 {* 从 XML 元素读取指定属性的浮点值。解析失败或属性不存在时返回 Default，不抛异常。
@@ -1084,17 +1174,16 @@ begin
   if not El.HasAttribute(Name) then Exit;
   S := Trim(El.GetAttribute(Name));
   if S = '' then Exit;
-  // strip 'px' suffix
-  if (Length(S) >= 2) and (LowerCase(Copy(S, Length(S) - 1, 2)) = 'px') then
-    S := Trim(Copy(S, 1, Length(S) - 2));
-  // strip '%' suffix (caller decides whether to divide by 100)
-  if (Length(S) >= 1) and (S[Length(S)] = '%') then
-    S := Trim(Copy(S, 1, Length(S) - 1));
-  try
-    Result := StrToFloat(S);
-  except
-    Result := Default;
-  end;
+  { 为兼容仍显式调用 SVGAttrIsPercent 的旧代码，百分比保留 0..100 的数值形式；
+    其余单位换算为 CSS 参考像素。 }
+  if (Length(S) > 0) and (S[Length(S)] = '%') then
+  begin
+    Delete(S, Length(S), 1);
+    if not SVGTryStrToFloat(S, Result) then
+      Result := Default;
+  end
+  else
+    Result := SVGParseLength(S, Default, 100, 16);
 end;
 
 function SVGAttrIsPercent(El: TCnXMLElement; const Name: string): Boolean;
@@ -1168,24 +1257,15 @@ begin
     Result := V;
 end;
 
-function SVGReadNumberToken(const S: string; var P: Integer;
-  var Value: TCnSVGFloat): Boolean;
-forward;
-
 function SVGParseMiterLimit(const S: string): TCnSVGFloat;
 {* 解析 stroke-miterlimit 字符串，值 < 1.0 截断为 1.0，解析失败返回默认值 4.0。 }
 var
-  V: Extended;
+  V: TCnSVGFloat;
 begin
   Result := 4.0; // default
-  try
-    V := StrToFloat(Trim(S));
-    if V < 1.0 then
-      Result := 1.0
-    else
-      Result := V;
-  except
-    // keep default 4.0
+  if SVGTryStrToFloat(Trim(S), V) then
+  begin
+    if V < 1.0 then Result := 1.0 else Result := V;
   end;
 end;
 
@@ -1199,8 +1279,7 @@ var
   I, J, P, EqPos: Integer;
   StyleStr, Part, Key, Val, LKey, LVal: string;
   C: TCnSVGColor;
-  F: Extended;
-  SWStr, SWTrimmed: string;
+  F: TCnSVGFloat;
   DashStr: string;
   DashIdx: Integer;
   DashVal: TCnSVGFloat;
@@ -1385,10 +1464,8 @@ begin
         if LVal = 'inherit' then
           Style.Opacity := ParentStyle.Opacity
         else
-          try
-            Style.Opacity := SVGClampOpacity(StrToFloat(Val));
-          except
-          end;
+          if SVGTryStrToFloat(Val, F) then
+            Style.Opacity := SVGClampOpacity(F);
       end
 
       else if LKey = 'fill' then
@@ -1433,10 +1510,8 @@ begin
         if LVal = 'inherit' then
           Style.FillOpacity := ParentStyle.FillOpacity
         else
-          try
-            Style.FillOpacity := SVGClampOpacity(StrToFloat(Val));
-          except
-          end;
+          if SVGTryStrToFloat(Val, F) then
+            Style.FillOpacity := SVGClampOpacity(F);
       end
 
       else if LKey = 'fill-rule' then
@@ -1492,17 +1567,8 @@ begin
           Style.StrokeWidth := ParentStyle.StrokeWidth
         else
         begin
-          SWStr := Val;
-          SWTrimmed := Trim(SWStr);
-          if (Length(SWTrimmed) >= 2) and
-             (LowerCase(Copy(SWTrimmed, Length(SWTrimmed) - 1, 2)) = 'px') then
-            SWTrimmed := Trim(Copy(SWTrimmed, 1, Length(SWTrimmed) - 2));
-          try
-            F := StrToFloat(SWTrimmed);
-            if F >= 0 then
-              Style.StrokeWidth := F;
-          except
-          end;
+          F := SVGParseLength(Val, Style.StrokeWidth, 100, ParentStyle.FontSize);
+          if F >= 0 then Style.StrokeWidth := F;
         end;
       end
 
@@ -1511,10 +1577,8 @@ begin
         if LVal = 'inherit' then
           Style.StrokeOpacity := ParentStyle.StrokeOpacity
         else
-          try
-            Style.StrokeOpacity := SVGClampOpacity(StrToFloat(Val));
-          except
-          end;
+          if SVGTryStrToFloat(Val, F) then
+            Style.StrokeOpacity := SVGClampOpacity(F);
       end
 
       else if LKey = 'stroke-linecap' then
@@ -1586,10 +1650,8 @@ begin
         if LVal = 'inherit' then
           Style.DashOffset := ParentStyle.DashOffset
         else
-          try
-            Style.DashOffset := StrToFloat(Val);
-          except
-          end;
+          if SVGTryStrToFloat(Val, F) then
+            Style.DashOffset := F;
       end
 
       else if LKey = 'font-size' then
@@ -1598,16 +1660,8 @@ begin
           Style.FontSize := ParentStyle.FontSize
         else
         begin
-          SWTrimmed := Val;
-          if (Length(SWTrimmed) >= 2) and
-             (LowerCase(Copy(SWTrimmed, Length(SWTrimmed) - 1, 2)) = 'px') then
-            SWTrimmed := Trim(Copy(SWTrimmed, 1, Length(SWTrimmed) - 2));
-          try
-            F := StrToFloat(SWTrimmed);
-            if F > 0 then
-              Style.FontSize := F;
-          except
-          end;
+          F := SVGParseLength(Val, Style.FontSize, 100, ParentStyle.FontSize);
+          if F > 0 then Style.FontSize := F;
         end;
       end
 
@@ -1664,6 +1718,7 @@ function SVGReadNumberToken(const S: string; var P: Integer;
 var
   Start: Integer;
   HasDot, HasExp: Boolean;
+  HasDigit, HasExpDigit: Boolean;
   Ch: Char;
   Token: string;
 begin
@@ -1675,6 +1730,8 @@ begin
     Exit;
 
   Start := P;
+  HasDigit := False;
+  HasExpDigit := False;
   HasDot := False;
   HasExp := False;
   if S[P] in ['+', '-'] then
@@ -1684,7 +1741,10 @@ begin
   begin
     Ch := S[P];
     if Ch in ['0'..'9'] then
-      Inc(P)
+    begin
+      Inc(P);
+      if HasExp then HasExpDigit := True else HasDigit := True;
+    end
     else if (Ch = '.') and (not HasDot) then
     begin
       HasDot := True;
@@ -1702,24 +1762,15 @@ begin
   end;
 
   Token := Trim(Copy(S, Start, P - Start));
-  if Token = '' then
+  if (Token = '') or (not HasDigit) or (HasExp and (not HasExpDigit)) then
     Exit;
-  try
-    Value := StrToFloat(Token);
-    Result := True;
-  except
-    Result := False;
-  end;
+  Result := SVGTryStrToFloat(Token, Value);
 end;
 
 function SVGParseLengthValue(const S: string; Default: TCnSVGFloat): TCnSVGFloat;
 {* 解析长度值，支持纯数值和带单位的数值；未知单位时仅取其数值前缀。 }
-var
-  P: Integer;
 begin
-  P := 1;
-  if not SVGReadNumberToken(Trim(S), P, Result) then
-    Result := Default;
+  Result := SVGParseLength(Trim(S), Default, 100, 16);
 end;
 
 function SVGParseViewBoxValue(const S: string; var R: TCnSVGRect): Boolean;
@@ -2051,95 +2102,39 @@ end;
 
 function TCnSVGPathParser.ReadNumber(var Val: TCnSVGFloat): Boolean;
 var
-  Start: Integer;
-  S: string;
-  HasDot: Boolean;
-  HasExp: Boolean;
-  PrevCh, Ch: Char;
+  Start, P: Integer;
 begin
   Result := False;
   Val    := 0;
   SkipWS;
   if FPos > Length(FData) then Exit;
-
-  S      := '';
-  HasDot := False;
-  HasExp := False;
-  PrevCh := #0;
-  Start  := FPos;
-
-  // Optional leading sign
-  Ch := FData[FPos];
-  if Ch in ['+', '-'] then
+  Start := FPos;
+  P := FPos;
+  if SVGReadNumberToken(FData, P, Val) then
   begin
-    S := Ch;
-    Inc(FPos);
-    PrevCh := Ch;
-  end;
-
-  while FPos <= Length(FData) do
-  begin
-    Ch := FData[FPos];
-    if Ch in ['0'..'9'] then
-    begin
-      S := S + Ch;
-      PrevCh := Ch;
-      Inc(FPos);
-    end
-    else if (Ch = '.') and not HasDot and not HasExp then
-    begin
-      HasDot := True;
-      S := S + Ch;
-      PrevCh := Ch;
-      Inc(FPos);
-    end
-    else if (Ch in ['e', 'E']) and not HasExp and (Length(S) > 0) then
-    begin
-      HasExp := True;
-      S := S + Ch;
-      PrevCh := Ch;
-      Inc(FPos);
-      // Optional sign after exponent
-      if FPos <= Length(FData) then
-      begin
-        Ch := FData[FPos];
-        if Ch in ['+', '-'] then
-        begin
-          S := S + Ch;
-          PrevCh := Ch;
-          Inc(FPos);
-        end;
-      end;
-    end
-    else if (Ch in ['+', '-']) and (PrevCh in ['e', 'E']) then
-    begin
-      // sign immediately after e/E — already handled above; shouldn't reach here
-      S := S + Ch;
-      PrevCh := Ch;
-      Inc(FPos);
-    end
-    else
-      Break; // implicit separator or unknown char
-  end;
-
-  // Try to convert
-  if Length(S) = 0 then
-  begin
-    FPos := Start;
-    Exit;
-  end;
-  // Remove lone sign with no digits
-  if (S = '+') or (S = '-') then
-  begin
-    FPos := Start;
-    Exit;
-  end;
-
-  try
-    Val    := StrToFloat(S);
+    FPos := P;
     Result := True;
-  except
-    FPos := Start;
+  end
+  else
+    FPos := Start + 1; // 对非法输入也必须前进，避免解析器死循环
+end;
+
+function TCnSVGPathParser.ReadArcFlag(var Value: Boolean): Boolean;
+begin
+  Result := False;
+  SkipWS;
+  if FPos > Length(FData) then Exit;
+  if FData[FPos] = '0' then
+  begin
+    Value := False;
+    Inc(FPos);
+    Result := True;
+  end
+  else if FData[FPos] = '1' then
+  begin
+    Value := True;
+    Inc(FPos);
+    Result := True;
   end;
 end;
 
@@ -2499,7 +2494,8 @@ procedure TCnSVGPathParser.ParseArc(Relative: Boolean; List: TList);
 {* 解析 A/a 命令：每组读取 7 个数（RX, RY, XRotation, LargeArcFlag, SweepFlag, X, Y）。
    RX/RY 取绝对值；FlagA/FlagS 截为布尔值（非零即 True）。 }
 var
-  RX, RY, XRot, FlagA, FlagS, X, Y: TCnSVGFloat;
+  RX, RY, XRot, X, Y: TCnSVGFloat;
+  FlagA, FlagS: Boolean;
   Seg: PCnSVGPathSeg;
 
   function NewSeg(SegType: TCnSVGPathSegType): PCnSVGPathSeg;
@@ -2514,8 +2510,8 @@ begin
   begin
     if not ReadNumber(RY)    then Break;
     if not ReadNumber(XRot)  then Break;
-    if not ReadNumber(FlagA) then Break;
-    if not ReadNumber(FlagS) then Break;
+    if not ReadArcFlag(FlagA) then Break;
+    if not ReadArcFlag(FlagS) then Break;
     if not ReadNumber(X)     then Break;
     if not ReadNumber(Y)     then Break;
 
@@ -2529,8 +2525,8 @@ begin
     Seg^.RX        := Abs(RX);
     Seg^.RY        := Abs(RY);
     Seg^.XRotation := XRot;
-    Seg^.LargeArc  := (Round(FlagA) <> 0);
-    Seg^.Sweep     := (Round(FlagS) <> 0);
+    Seg^.LargeArc  := FlagA;
+    Seg^.Sweep     := FlagS;
     Seg^.X         := X;
     Seg^.Y         := Y;
     List.Add(Seg);
@@ -2570,6 +2566,7 @@ function TCnSVGPathParser.ParsePathData(const D: string): TList;
 var
   Cmd: Char;
   Trimmed: string;
+  OldPos: Integer;
 begin
   Result  := TList.Create;
   Trimmed := Trim(D);
@@ -2587,6 +2584,7 @@ begin
 
   while FPos <= Length(FData) do
   begin
+    OldPos := FPos;
     SkipWS;
     if FPos > Length(FData) then Break;
 
@@ -2622,12 +2620,14 @@ begin
       't': ParseSmoothQuad(True,  Result);
       'A': ParseArc(False, Result);
       'a': ParseArc(True,  Result);
-      'Z', 'z': ParseClosePath(Result);
+      'Z', 'z': begin ParseClosePath(Result); FLastCmd := #0; end;
     else
       // Unknown command — skip to next letter
       while (FPos <= Length(FData)) and (PeekCmd = #0) do
         Inc(FPos);
     end;
+    if FPos <= OldPos then
+      Inc(FPos);
   end;
 end;
 
@@ -2654,7 +2654,12 @@ begin
   FGDIPGraphics := nil;
   FGDIPStateTop := -1;
   FHasClipPath  := False;
+  FClipPathDepth := 0;
   FProcessingFilter := False;
+  FViewportUserWidth := AViewBox.Width;
+  FViewportUserHeight := AViewBox.Height;
+  if FViewportUserWidth <= 0 then FViewportUserWidth := 100;
+  if FViewportUserHeight <= 0 then FViewportUserHeight := 100;
 
   // 探测 GDI+ 可用性
   if CnGdiPlusAvailable then
@@ -2739,7 +2744,6 @@ begin
   end
   else
     UpdateGDIPWorldTransform; // 回退：仅更新世界变换
-  FHasClipPath := False; // 恢复状态后裁剪已重置
 end;
 
 procedure TCnSVGRenderer.PushStyle;
@@ -2765,30 +2769,22 @@ procedure SVGParseTransformParams(const S: string;
 {* 解析 transform 函数括号内的参数字符串，填入 Params 数组（最多 6 个），
    返回实际解析到的参数个数（ParamCount）。Delphi 5 兼容，不含嵌套过程。 }
 var
-  P, PStart: Integer;
-  Tok: string;
+  P: Integer;
+  V: TCnSVGFloat;
 begin
   ParamCount := 0;
   P := 1;
   while P <= Length(S) do
   begin
-    // skip whitespace and commas
-    while (P <= Length(S)) and (S[P] in [' ', #9, #10, #13, ',']) do Inc(P);
-    if P > Length(S) then Break;
-    // read token (possibly with leading sign)
-    PStart := P;
-    if S[P] in ['+', '-'] then Inc(P);
-    while (P <= Length(S)) and (S[P] in ['0'..'9', '.', 'e', 'E', '+', '-']) do Inc(P);
-    Tok := Trim(Copy(S, PStart, P - PStart));
-    if Tok = '' then Break;
+    if not SVGReadNumberToken(S, P, V) then
+    begin
+      Inc(P);
+      Continue;
+    end;
     if ParamCount <= High(Params) then
     begin
-      try
-        Params[ParamCount] := StrToFloat(Tok);
-        Inc(ParamCount);
-      except
-        // skip unparseable token
-      end;
+      Params[ParamCount] := V;
+      Inc(ParamCount);
     end
     else
       Break;
@@ -3233,6 +3229,13 @@ begin
       // objectBoundingBox 模式下，[0,1] 映射到元素边界框
       GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
       IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if not IsObjBBox then
+      begin
+        X1 := SVGAttrLength(DefEl, 'x1', X1, FViewportUserWidth, FCtx.Style.FontSize);
+        Y1 := SVGAttrLength(DefEl, 'y1', Y1, FViewportUserHeight, FCtx.Style.FontSize);
+        X2 := SVGAttrLength(DefEl, 'x2', X2, FViewportUserWidth, FCtx.Style.FontSize);
+        Y2 := SVGAttrLength(DefEl, 'y2', Y2, FViewportUserHeight, FCtx.Style.FontSize);
+      end;
       if IsObjBBox then
       begin
         // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
@@ -3255,35 +3258,22 @@ begin
           GTGot := False;
         end;
       end;
-      if GTGot then
-      begin
-        SVGMatrixTransformPoint(GT, X1, Y1);
-        SVGMatrixTransformPoint(GT, X2, Y2);
-      end;
       if IsObjBBox then
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
-          if GTGot then
-          begin
-            Dx := X2 - X1;
-            Dy := Y2 - Y1;
-          end;
-          if GTGot and (Abs(Dx) > 1e-10) and (Abs(Dy) > 1e-10) then
-          begin
-            X1 := FGradBBoxX + X1 * FGradBBoxH;
-            Y1 := FGradBBoxY + Y1 * FGradBBoxW;
-            X2 := FGradBBoxX + X2 * FGradBBoxH;
-            Y2 := FGradBBoxY + Y2 * FGradBBoxW;
-          end
-          else
-          begin
-            X1 := FGradBBoxX + X1 * FGradBBoxW;
-            Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-            X2 := FGradBBoxX + X2 * FGradBBoxW;
-            Y2 := FGradBBoxY + Y2 * FGradBBoxH;
-          end;
+          { objectBoundingBox 模式下，x 应按宽度、y 应按高度映射。
+            旧代码在存在变换时交换了两个轴，导致旋转/错切渐变发生偏移。 }
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          X2 := FGradBBoxX + X2 * FGradBBoxW;
+          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
         end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, X2, Y2);
       end;
 
       // spreadMethod
@@ -3425,6 +3415,16 @@ begin
       // objectBoundingBox 模式下，[0,1] 映射到元素边界框
       GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
       IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if not IsObjBBox then
+      begin
+        X1 := SVGAttrLength(DefEl, 'cx', X1, FViewportUserWidth, FCtx.Style.FontSize);
+        Y1 := SVGAttrLength(DefEl, 'cy', Y1, FViewportUserHeight, FCtx.Style.FontSize);
+        X2 := SVGAttrLength(DefEl, 'r', X2,
+          Sqrt((FViewportUserWidth * FViewportUserWidth +
+            FViewportUserHeight * FViewportUserHeight) / 2), FCtx.Style.FontSize);
+        FX := SVGAttrLength(DefEl, 'fx', FX, FViewportUserWidth, FCtx.Style.FontSize);
+        FY := SVGAttrLength(DefEl, 'fy', FY, FViewportUserHeight, FCtx.Style.FontSize);
+      end;
       RX := X2;
       RY := X2;
       if IsObjBBox then
@@ -3450,15 +3450,6 @@ begin
           GTGot := False;
         end;
       end;
-      if GTGot then
-      begin
-        SVGMatrixTransformPoint(GT, X1, Y1);
-        SVGMatrixTransformPoint(GT, FX, FY);
-        ScaleFactor := Sqrt(GT.a * GT.a + GT.b * GT.b);
-        RX := RX * ScaleFactor;
-        ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
-        RY := RY * ScaleFactor;
-      end;
       if IsObjBBox then
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
@@ -3471,6 +3462,17 @@ begin
           RX := X2 * FGradBBoxW;
           RY := X2 * FGradBBoxH;
         end;
+      end;
+      { gradientTransform 应在 objectBoundingBox 到用户坐标的映射之后应用；
+        焦点和两个半径向量都在最终坐标系中进行变换。 }
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, FX, FY);
+        ScaleFactor := Sqrt(GT.a * GT.a + GT.b * GT.b);
+        RX := RX * ScaleFactor;
+        ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
+        RY := RY * ScaleFactor;
       end;
 
       // spreadMethod
@@ -3716,15 +3718,27 @@ begin
       if (PW <= 0) or (PH <= 0) then Exit;
 
       PatUnits := LowerCase(DefEl.GetAttribute('patternUnits'));
-      if PatUnits = 'objectboundingbox' then
+      if (PatUnits = '') or (PatUnits = 'objectboundingbox') then
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
+          if SVGAttrIsPercent(DefEl, 'x') then PX := PX / 100;
+          if SVGAttrIsPercent(DefEl, 'y') then PY := PY / 100;
+          if SVGAttrIsPercent(DefEl, 'width') then PW := PW / 100;
+          if SVGAttrIsPercent(DefEl, 'height') then PH := PH / 100;
           PX := FGradBBoxX + PX * FGradBBoxW;
           PY := FGradBBoxY + PY * FGradBBoxH;
           PW := PW * FGradBBoxW;
           PH := PH * FGradBBoxH;
         end;
+      end;
+
+      if (PatUnits <> '') and (PatUnits <> 'objectboundingbox') then
+      begin
+        PX := SVGAttrLength(DefEl, 'x', PX, FViewportUserWidth, FCtx.Style.FontSize);
+        PY := SVGAttrLength(DefEl, 'y', PY, FViewportUserHeight, FCtx.Style.FontSize);
+        PW := SVGAttrLength(DefEl, 'width', PW, FViewportUserWidth, FCtx.Style.FontSize);
+        PH := SVGAttrLength(DefEl, 'height', PH, FViewportUserHeight, FCtx.Style.FontSize);
       end;
 
       PT0 := UserToScreen(PX, PY);
@@ -3875,6 +3889,13 @@ begin
       // objectBoundingBox 模式下，[0,1] 映射到元素边界框
       GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
       IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if not IsObjBBox then
+      begin
+        X1 := SVGAttrLength(DefEl, 'x1', X1, FViewportUserWidth, FCtx.Style.FontSize);
+        Y1 := SVGAttrLength(DefEl, 'y1', Y1, FViewportUserHeight, FCtx.Style.FontSize);
+        X2 := SVGAttrLength(DefEl, 'x2', X2, FViewportUserWidth, FCtx.Style.FontSize);
+        Y2 := SVGAttrLength(DefEl, 'y2', Y2, FViewportUserHeight, FCtx.Style.FontSize);
+      end;
       if IsObjBBox then
       begin
         // % 值在 objectBoundingBox 下表示 [0%,100%] = [0,1]，需除以 100
@@ -3896,35 +3917,20 @@ begin
           GTGot := False;
         end;
       end;
-      if GTGot then
-      begin
-        SVGMatrixTransformPoint(GT, X1, Y1);
-        SVGMatrixTransformPoint(GT, X2, Y2);
-      end;
       if IsObjBBox then
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
-          if GTGot then
-          begin
-            Dx := X2 - X1;
-            Dy := Y2 - Y1;
-          end;
-          if GTGot and (Abs(Dx) > 1e-10) and (Abs(Dy) > 1e-10) then
-          begin
-            X1 := FGradBBoxX + X1 * FGradBBoxH;
-            Y1 := FGradBBoxY + Y1 * FGradBBoxW;
-            X2 := FGradBBoxX + X2 * FGradBBoxH;
-            Y2 := FGradBBoxY + Y2 * FGradBBoxW;
-          end
-          else
-          begin
-            X1 := FGradBBoxX + X1 * FGradBBoxW;
-            Y1 := FGradBBoxY + Y1 * FGradBBoxH;
-            X2 := FGradBBoxX + X2 * FGradBBoxW;
-            Y2 := FGradBBoxY + Y2 * FGradBBoxH;
-          end;
+          X1 := FGradBBoxX + X1 * FGradBBoxW;
+          Y1 := FGradBBoxY + Y1 * FGradBBoxH;
+          X2 := FGradBBoxX + X2 * FGradBBoxW;
+          Y2 := FGradBBoxY + Y2 * FGradBBoxH;
         end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, X2, Y2);
       end;
 
       SpreadMethod := smsPad;
@@ -4051,6 +4057,16 @@ begin
 
       GradUnits := LowerCase(DefEl.GetAttribute('gradientUnits'));
       IsObjBBox := (GradUnits = '') or (GradUnits = 'objectboundingbox');
+      if not IsObjBBox then
+      begin
+        X1 := SVGAttrLength(DefEl, 'cx', X1, FViewportUserWidth, FCtx.Style.FontSize);
+        Y1 := SVGAttrLength(DefEl, 'cy', Y1, FViewportUserHeight, FCtx.Style.FontSize);
+        X2 := SVGAttrLength(DefEl, 'r', X2,
+          Sqrt((FViewportUserWidth * FViewportUserWidth +
+            FViewportUserHeight * FViewportUserHeight) / 2), FCtx.Style.FontSize);
+        FX := SVGAttrLength(DefEl, 'fx', FX, FViewportUserWidth, FCtx.Style.FontSize);
+        FY := SVGAttrLength(DefEl, 'fy', FY, FViewportUserHeight, FCtx.Style.FontSize);
+      end;
       RX := X2; RY := X2;
       if IsObjBBox then
       begin
@@ -4073,15 +4089,6 @@ begin
           GTGot := False;
         end;
       end;
-      if GTGot then
-      begin
-        SVGMatrixTransformPoint(GT, X1, Y1);
-        SVGMatrixTransformPoint(GT, FX, FY);
-        ScaleFactor := Sqrt(GT.a * GT.a + GT.b * GT.b);
-        RX := RX * ScaleFactor;
-        ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
-        RY := RY * ScaleFactor;
-      end;
       if IsObjBBox then
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
@@ -4093,6 +4100,15 @@ begin
           RX := X2 * FGradBBoxW;
           RY := X2 * FGradBBoxH;
         end;
+      end;
+      if GTGot then
+      begin
+        SVGMatrixTransformPoint(GT, X1, Y1);
+        SVGMatrixTransformPoint(GT, FX, FY);
+        ScaleFactor := Sqrt(GT.a * GT.a + GT.b * GT.b);
+        RX := RX * ScaleFactor;
+        ScaleFactor := Sqrt(GT.c * GT.c + GT.d * GT.d);
+        RY := RY * ScaleFactor;
       end;
 
       SpreadMethod := smsPad;
@@ -4327,15 +4343,26 @@ begin
       if (PW <= 0) or (PH <= 0) then Exit;
 
       PatUnits := LowerCase(DefEl.GetAttribute('patternUnits'));
-      if PatUnits = 'objectboundingbox' then
+      if (PatUnits = '') or (PatUnits = 'objectboundingbox') then
       begin
         if (FGradBBoxW > 0) and (FGradBBoxH > 0) then
         begin
+          if SVGAttrIsPercent(DefEl, 'x') then PX := PX / 100;
+          if SVGAttrIsPercent(DefEl, 'y') then PY := PY / 100;
+          if SVGAttrIsPercent(DefEl, 'width') then PW := PW / 100;
+          if SVGAttrIsPercent(DefEl, 'height') then PH := PH / 100;
           PX := FGradBBoxX + PX * FGradBBoxW;
           PY := FGradBBoxY + PY * FGradBBoxH;
           PW := PW * FGradBBoxW;
           PH := PH * FGradBBoxH;
         end;
+      end;
+      if (PatUnits <> '') and (PatUnits <> 'objectboundingbox') then
+      begin
+        PX := SVGAttrLength(DefEl, 'x', PX, FViewportUserWidth, FCtx.Style.FontSize);
+        PY := SVGAttrLength(DefEl, 'y', PY, FViewportUserHeight, FCtx.Style.FontSize);
+        PW := SVGAttrLength(DefEl, 'width', PW, FViewportUserWidth, FCtx.Style.FontSize);
+        PH := SVGAttrLength(DefEl, 'height', PH, FViewportUserHeight, FCtx.Style.FontSize);
       end;
 
       PT0 := UserToScreen(PX, PY);
@@ -4465,6 +4492,7 @@ var
   CX, CY, CRX, CRY, CW, CH: TCnSVGFloat;
   HRef, RefID: string;
   TargetEl: TCnXMLElement;
+  CombinedPath: GpPath;
 begin
   if (not FUseGDIP) or (FGDIPGraphics = nil) then Exit;
   if FCtx.Style.ClipPathID = '' then Exit;
@@ -4473,16 +4501,24 @@ begin
   DefEl := SVGFindDefNode(FDefsMap, FCtx.Style.ClipPathID);
   if DefEl = nil then Exit;
 
-  // 保存当前 GDI+ 状态
-  if Assigned(GdipSaveGraphics) then
-  begin
-    if FGDIPStateTop < 63 then
-    begin
-      Inc(FGDIPStateTop);
-      GdipSaveGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
-    end;
-  end;
+  // 保存当前 GDI+ 状态；状态栈满时放弃本次裁剪，避免恢复错误层级。
+  if (not Assigned(GdipSaveGraphics)) or (FGDIPStateTop >= 63) then
+    Exit;
+  Inc(FGDIPStateTop);
+  GdipSaveGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
+  Inc(FClipPathDepth);
   FHasClipPath := True;
+
+  FillMode := FillModeWinding;
+  if FCtx.Style.FillRule = sfrEvenOdd then
+    FillMode := FillModeAlternate;
+  CombinedPath := nil;
+  GdipCreatePath(FillMode, CombinedPath);
+  if CombinedPath = nil then
+  begin
+    RemoveGDIPClipPath;
+    Exit;
+  end;
 
   // 遍历 clipPath 的子元素，构建 GpPath（使用用户坐标，世界变换处理映射）
   for I := 0 to DefEl.ChildCount - 1 do
@@ -4535,9 +4571,7 @@ begin
       if FCtx.Style.FillRule = sfrEvenOdd then
         FillMode := FillModeAlternate;
 
-      Path := nil;
-      GdipCreatePath(FillMode, Path);
-      if Path = nil then Continue;
+      Path := CombinedPath;
 
       Parser := TCnSVGPathParser.Create;
       ArcPts := TList.Create;
@@ -4599,47 +4633,42 @@ begin
         ArcPts.Free;
         Parser.Free;
       end;
-
-      // 应用 clip path
-      GdipSetClipPath(FGDIPGraphics, Path, CombineModeIntersect);
-      GdipDeletePath(Path);
     end
     else if (Tag = 'rect') or (Tag = 'circle') or (Tag = 'ellipse') then
     begin
       // 简化处理：对 rect/circle/ellipse 构建 GpPath 后裁剪
       // 使用用户坐标，世界变换处理映射
-      Path := nil;
-      GdipCreatePath(FillModeWinding, Path);
-      if Path = nil then Continue;
+      Path := CombinedPath;
 
       if Tag = 'rect' then
       begin
-        CX := SVGAttrFloat(ClipEl, 'x', 0);
-        CY := SVGAttrFloat(ClipEl, 'y', 0);
-        CW := SVGAttrFloat(ClipEl, 'width', 0);
-        CH := SVGAttrFloat(ClipEl, 'height', 0);
+        CX := SVGAttrLength(ClipEl, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+        CY := SVGAttrLength(ClipEl, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
+        CW := SVGAttrLength(ClipEl, 'width', 0, FViewportUserWidth, FCtx.Style.FontSize);
+        CH := SVGAttrLength(ClipEl, 'height', 0, FViewportUserHeight, FCtx.Style.FontSize);
         GdipAddPathRectangle(Path, CX, CY, CW, CH);
       end
       else if Tag = 'circle' then
       begin
-        CX := SVGAttrFloat(ClipEl, 'cx', 0);
-        CY := SVGAttrFloat(ClipEl, 'cy', 0);
-        CRX := SVGAttrFloat(ClipEl, 'r', 0);
+        CX := SVGAttrLength(ClipEl, 'cx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+        CY := SVGAttrLength(ClipEl, 'cy', 0, FViewportUserHeight, FCtx.Style.FontSize);
+        CRX := SVGAttrLength(ClipEl, 'r', 0,
+          Sqrt((FViewportUserWidth * FViewportUserWidth +
+            FViewportUserHeight * FViewportUserHeight) / 2), FCtx.Style.FontSize);
         GdipAddPathEllipse(Path, CX - CRX, CY - CRX, CRX * 2, CRX * 2);
       end
       else if Tag = 'ellipse' then
       begin
-        CX := SVGAttrFloat(ClipEl, 'cx', 0);
-        CY := SVGAttrFloat(ClipEl, 'cy', 0);
-        CRX := SVGAttrFloat(ClipEl, 'rx', 0);
-        CRY := SVGAttrFloat(ClipEl, 'ry', 0);
+        CX := SVGAttrLength(ClipEl, 'cx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+        CY := SVGAttrLength(ClipEl, 'cy', 0, FViewportUserHeight, FCtx.Style.FontSize);
+        CRX := SVGAttrLength(ClipEl, 'rx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+        CRY := SVGAttrLength(ClipEl, 'ry', 0, FViewportUserHeight, FCtx.Style.FontSize);
         GdipAddPathEllipse(Path, CX - CRX, CY - CRY, CRX * 2, CRY * 2);
       end;
-
-      GdipSetClipPath(FGDIPGraphics, Path, CombineModeIntersect);
-      GdipDeletePath(Path);
     end;
   end;
+  GdipSetClipPath(FGDIPGraphics, CombinedPath, CombineModeIntersect);
+  GdipDeletePath(CombinedPath);
 end;
 
 procedure TCnSVGRenderer.RemoveGDIPClipPath;
@@ -4652,7 +4681,9 @@ begin
     GdipRestoreGraphics(FGDIPGraphics, FGDIPStateStack[FGDIPStateTop]);
     Dec(FGDIPStateTop);
   end;
-  FHasClipPath := False;
+  if FClipPathDepth > 0 then
+    Dec(FClipPathDepth);
+  FHasClipPath := FClipPathDepth > 0;
 end;
 
 function TCnSVGRenderer.UserToScreen(X, Y: TCnSVGFloat): TPoint;
@@ -4666,9 +4697,18 @@ function TCnSVGRenderer.UserLenToScreen(Len: TCnSVGFloat): Integer;
 var
   Scaled: TCnSVGFloat;
 begin
-  Scaled := Abs(Len * FCtx.CTM.a);
+  if Len <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  { 长度受 CTM 的完整线性部分影响，而不只是 a 分量。
+    RMS 缩放是处理非均匀变换的稳定近似，也能正确处理旋转/错切导致 a 为零的情况。 }
+  Scaled := Abs(Len) * Sqrt((FCtx.CTM.a * FCtx.CTM.a +
+    FCtx.CTM.b * FCtx.CTM.b + FCtx.CTM.c * FCtx.CTM.c +
+    FCtx.CTM.d * FCtx.CTM.d) / 2);
   Result := Round(Scaled);
-  if Result < 1 then
+  if (Result < 1) and (Len > 0) then
     Result := 1;
 end;
 
@@ -4692,14 +4732,21 @@ procedure TCnSVGRenderer.BlendMaskBitmap(ADestCanvas: TCanvas; const ABounds: TR
   AMaskBmp: TBitmap; SrcColor: TColor; Alpha: TCnSVGFloat);
 var
   X, Y: Integer;
+  MaskColor: TColor;
+  Coverage: TCnSVGFloat;
 begin
   if (AMaskBmp = nil) or (Alpha <= 0) then
     Exit;
   for Y := 0 to AMaskBmp.Height - 1 do
     for X := 0 to AMaskBmp.Width - 1 do
-      if ColorToRGB(AMaskBmp.Canvas.Pixels[X, Y]) <> ColorToRGB(clBlack) then
+      begin
+        MaskColor := ColorToRGB(AMaskBmp.Canvas.Pixels[X, Y]);
+        Coverage := (GetRValue(MaskColor) + GetGValue(MaskColor) +
+          GetBValue(MaskColor)) / (3 * 255);
+        if Coverage > 0 then
         AlphaBlendPixel(ADestCanvas, ABounds.Left + X, ABounds.Top + Y,
-          SrcColor, Alpha);
+          SrcColor, Alpha * Coverage);
+      end;
 end;
 
 procedure TCnSVGRenderer.AlphaBlendPixel(ACanvas: TCanvas; X, Y: Integer;
@@ -4724,9 +4771,9 @@ begin
   DG := GetGValue(DstColor);
   DB := GetBValue(DstColor);
   A := Round(Alpha * 255);
-  DR := (SR * A + DR * (255 - A)) div 256;
-  DG := (SG * A + DG * (255 - A)) div 256;
-  DB := (SB * A + DB * (255 - A)) div 256;
+  DR := (SR * A + DR * (255 - A)) div 255;
+  DG := (SG * A + DG * (255 - A)) div 255;
+  DB := (SB * A + DB * (255 - A)) div 255;
   ACanvas.Pixels[X, Y] := Windows.RGB(DR, DG, DB);
 end;
 
@@ -5126,13 +5173,13 @@ var
   Path: GpPath;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
-  X  := SVGAttrFloat(AElement, 'x', 0);
-  Y  := SVGAttrFloat(AElement, 'y', 0);
-  W  := SVGAttrFloat(AElement, 'width', -1);
-  H  := SVGAttrFloat(AElement, 'height', -1);
+  X  := SVGAttrLength(AElement, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  Y  := SVGAttrLength(AElement, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
+  W  := SVGAttrLength(AElement, 'width', -1, FViewportUserWidth, FCtx.Style.FontSize);
+  H  := SVGAttrLength(AElement, 'height', -1, FViewportUserHeight, FCtx.Style.FontSize);
   if (W <= 0) or (H <= 0) then Exit;
-  RX := SVGAttrFloat(AElement, 'rx', -1);
-  RY := SVGAttrFloat(AElement, 'ry', -1);
+  RX := SVGAttrLength(AElement, 'rx', -1, FViewportUserWidth, FCtx.Style.FontSize);
+  RY := SVGAttrLength(AElement, 'ry', -1, FViewportUserHeight, FCtx.Style.FontSize);
   if (RX < 0) and (RY < 0) then begin RX := 0; RY := 0; end
   else if RX < 0 then RX := RY
   else if RY < 0 then RY := RX;
@@ -5275,9 +5322,11 @@ var
   Brush: GpBrush;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
-  CX := SVGAttrFloat(AElement, 'cx', 0);
-  CY := SVGAttrFloat(AElement, 'cy', 0);
-  R  := SVGAttrFloat(AElement, 'r', -1);
+  CX := SVGAttrLength(AElement, 'cx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  CY := SVGAttrLength(AElement, 'cy', 0, FViewportUserHeight, FCtx.Style.FontSize);
+  R  := SVGAttrLength(AElement, 'r', -1,
+    Sqrt((FViewportUserWidth * FViewportUserWidth +
+      FViewportUserHeight * FViewportUserHeight) / 2), FCtx.Style.FontSize);
   if R <= 0 then Exit;
   P1 := UserToScreen(CX - R, CY - R);
   P2 := UserToScreen(CX + R, CY + R);
@@ -5335,10 +5384,10 @@ var
   Brush: GpBrush;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
-  CX := SVGAttrFloat(AElement, 'cx', 0);
-  CY := SVGAttrFloat(AElement, 'cy', 0);
-  RX := SVGAttrFloat(AElement, 'rx', -1);
-  RY := SVGAttrFloat(AElement, 'ry', -1);
+  CX := SVGAttrLength(AElement, 'cx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  CY := SVGAttrLength(AElement, 'cy', 0, FViewportUserHeight, FCtx.Style.FontSize);
+  RX := SVGAttrLength(AElement, 'rx', -1, FViewportUserWidth, FCtx.Style.FontSize);
+  RY := SVGAttrLength(AElement, 'ry', -1, FViewportUserHeight, FCtx.Style.FontSize);
   if (RX <= 0) or (RY <= 0) then Exit;
   P1 := UserToScreen(CX - RX, CY - RY);
   P2 := UserToScreen(CX + RX, CY + RY);
@@ -5397,12 +5446,16 @@ var
   Pen: GpPen;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
-  X1 := SVGAttrFloat(AElement, 'x1', 0);
-  Y1 := SVGAttrFloat(AElement, 'y1', 0);
-  X2 := SVGAttrFloat(AElement, 'x2', 0);
-  Y2 := SVGAttrFloat(AElement, 'y2', 0);
+  X1 := SVGAttrLength(AElement, 'x1', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  Y1 := SVGAttrLength(AElement, 'y1', 0, FViewportUserHeight, FCtx.Style.FontSize);
+  X2 := SVGAttrLength(AElement, 'x2', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  Y2 := SVGAttrLength(AElement, 'y2', 0, FViewportUserHeight, FCtx.Style.FontSize);
   P1 := UserToScreen(X1, Y1);
   P2 := UserToScreen(X2, Y2);
+  FGradBBoxX := Min(X1, X2);
+  FGradBBoxY := Min(Y1, Y2);
+  FGradBBoxW := Abs(X2 - X1);
+  FGradBBoxH := Abs(Y2 - Y1);
   StrokeAlpha := EffectiveStrokeAlpha;
   if FCtx.Style.StrokeNone or (StrokeAlpha <= 0) then
     Exit;
@@ -5443,51 +5496,55 @@ end;
 procedure TCnSVGRenderer.RenderPolyline(AElement: TCnXMLElement);
 var
   PointsStr: string;
-  I, J, Count: Integer;
+  I, Count: Integer;
   Coords: array of TCnSVGFloat;
   ScreenPts: array of TPoint;
-  NumStr: string;
-  V: Extended;
+  V: TCnSVGFloat;
   PolyCounts: array[0..0] of Integer;
-  StrokeAlpha: TCnSVGFloat;
+  FillAlpha, StrokeAlpha: TCnSVGFloat;
   Pen: GpPen;
+  Brush: GpBrush;
   Path: GPPATH;
+  FillMode: Integer;
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   PointsStr := AElement.GetAttribute('points');
   if Trim(PointsStr) = '' then Exit;
-  // replace commas and line breaks with spaces
-  for I := 1 to Length(PointsStr) do
-    if PointsStr[I] in [',', #9, #10, #13] then
-      PointsStr[I] := ' ';
-  // parse numbers
+  // 使用与 path/transform 数据相同的数字语法进行解析。
   SetLength(Coords, 0);
   I := 1;
   while I <= Length(PointsStr) do
   begin
-    // skip spaces
-    while (I <= Length(PointsStr)) and (PointsStr[I] = ' ') do Inc(I);
-    if I > Length(PointsStr) then Break;
-    // find end of token
-    J := I;
-    if PointsStr[J] in ['+', '-'] then Inc(J);
-    while (J <= Length(PointsStr)) and (PointsStr[J] in ['0'..'9', '.', 'e', 'E', '+', '-']) do Inc(J);
-    NumStr := Copy(PointsStr, I, J - I);
-    I := J;
-    if NumStr = '' then Continue;
-    try
-      V := StrToFloat(NumStr);
+    if SVGReadNumberToken(PointsStr, I, V) then
+    begin
       SetLength(Coords, Length(Coords) + 1);
       Coords[High(Coords)] := V;
-    except end;
+    end
+    else
+      Inc(I);
   end;
   Count := Length(Coords) div 2;
   if Count < 2 then Exit;
   SetLength(ScreenPts, Count);
   for I := 0 to Count - 1 do
     ScreenPts[I] := UserToScreen(Coords[I * 2], Coords[I * 2 + 1]);
+  FillAlpha := EffectiveFillAlpha;
   StrokeAlpha := EffectiveStrokeAlpha;
-  if FCtx.Style.StrokeNone or (StrokeAlpha <= 0) then
+  FGradBBoxX := Coords[0];
+  FGradBBoxY := Coords[1];
+  FGradBBoxW := 0;
+  FGradBBoxH := 0;
+  for I := 1 to Count - 1 do
+  begin
+    if Coords[I * 2] < FGradBBoxX then FGradBBoxX := Coords[I * 2];
+    if Coords[I * 2 + 1] < FGradBBoxY then FGradBBoxY := Coords[I * 2 + 1];
+    if Coords[I * 2] > FGradBBoxX + FGradBBoxW then
+      FGradBBoxW := Coords[I * 2] - FGradBBoxX;
+    if Coords[I * 2 + 1] > FGradBBoxY + FGradBBoxH then
+      FGradBBoxH := Coords[I * 2 + 1] - FGradBBoxY;
+  end;
+  if (FCtx.Style.FillNone or (FillAlpha <= 0)) and
+     (FCtx.Style.StrokeNone or (StrokeAlpha <= 0)) then
     Exit;
 
   if FUseGDIP then
@@ -5495,18 +5552,34 @@ begin
     // GDI+ 使用世界变换，直接用 SVG 用户坐标
     // 构建 GpPath 以保留浮点精度
     Path := nil;
-    GdipCreatePath(FillModeWinding, Path);
+    FillMode := FillModeWinding;
+    if FCtx.Style.FillRule = sfrEvenOdd then FillMode := FillModeAlternate;
+    GdipCreatePath(FillMode, Path);
     if Path <> nil then
     begin
       GdipStartPathFigure(Path);
       for I := 1 to Count - 1 do
         GdipAddPathLine(Path, Coords[(I - 1) * 2], Coords[(I - 1) * 2 + 1],
           Coords[I * 2], Coords[I * 2 + 1]);
-      Pen := CreateGDIPPPen;
-      if Pen <> nil then
+      FillMode := FillModeWinding;
+      if FCtx.Style.FillRule = sfrEvenOdd then FillMode := FillModeAlternate;
+      if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
       begin
-        GdipDrawPath(FGDIPGraphics, Pen, Path);
-        GdipDeletePen(Pen);
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillPath(FGDIPGraphics, Brush, Path);
+          GdipDeleteBrush(Brush);
+        end;
+      end;
+      if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+      begin
+        Pen := CreateGDIPPPen;
+        if Pen <> nil then
+        begin
+          GdipDrawPath(FGDIPGraphics, Pen, Path);
+          GdipDeletePen(Pen);
+        end;
       end;
       GdipDeletePath(Path);
     end
@@ -5525,14 +5598,33 @@ begin
   begin
     // 纯 GDI 渲染（含 Alpha 模拟）
     PolyCounts[0] := Count;
-    if StrokeAlpha < 1.0 then
-      StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, 1,
-        FCtx.Style.StrokeColor, StrokeAlpha)
-    else
+    if (not FCtx.Style.FillNone) and (FillAlpha > 0) then
     begin
-      SetupGDIPen;
-      FCtx.Canvas.Brush.Style := bsClear;
-      FCtx.Canvas.Polyline(ScreenPts);
+      if FillAlpha < 1.0 then
+        FillPolyPolygonWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, 1,
+          FCtx.Style.FillColor, FillAlpha, FCtx.Style.FillRule)
+      else
+      begin
+        SetupGDIBrush;
+        FCtx.Canvas.Pen.Style := psClear;
+        if FCtx.Style.FillRule = sfrEvenOdd then
+          SetPolyFillMode(FCtx.Canvas.Handle, ALTERNATE)
+        else
+          SetPolyFillMode(FCtx.Canvas.Handle, WINDING);
+        Windows.Polygon(FCtx.Canvas.Handle, ScreenPts[0], Count);
+      end;
+    end;
+    if (not FCtx.Style.StrokeNone) and (StrokeAlpha > 0) then
+    begin
+      if StrokeAlpha < 1.0 then
+        StrokePolyPointsWithAlpha(FCtx.Canvas, ScreenPts, PolyCounts, 1,
+          FCtx.Style.StrokeColor, StrokeAlpha)
+      else
+      begin
+        SetupGDIPen;
+        FCtx.Canvas.Brush.Style := bsClear;
+        FCtx.Canvas.Polyline(ScreenPts);
+      end;
     end;
   end;
   RenderMarkers(AElement);
@@ -5541,13 +5633,12 @@ end;
 procedure TCnSVGRenderer.RenderPolygon(AElement: TCnXMLElement);
 var
   PointsStr: string;
-  I, J, Count: Integer;
+  I, Count: Integer;
   Coords: array of TCnSVGFloat;
   ScreenPts: array of TPoint;
   ClosedPts: array of TPoint;
   FillPts: array of TPoint;
-  NumStr: string;
-  V: Extended;
+  V: TCnSVGFloat;
   FillCounts: array[0..0] of Integer;
   StrokeCounts: array[0..0] of Integer;
   FillAlpha, StrokeAlpha: TCnSVGFloat;
@@ -5559,26 +5650,17 @@ begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
   PointsStr := AElement.GetAttribute('points');
   if Trim(PointsStr) = '' then Exit;
-  for I := 1 to Length(PointsStr) do
-    if PointsStr[I] in [',', #9, #10, #13] then
-      PointsStr[I] := ' ';
   SetLength(Coords, 0);
   I := 1;
   while I <= Length(PointsStr) do
   begin
-    while (I <= Length(PointsStr)) and (PointsStr[I] = ' ') do Inc(I);
-    if I > Length(PointsStr) then Break;
-    J := I;
-    if PointsStr[J] in ['+', '-'] then Inc(J);
-    while (J <= Length(PointsStr)) and (PointsStr[J] in ['0'..'9', '.', 'e', 'E', '+', '-']) do Inc(J);
-    NumStr := Copy(PointsStr, I, J - I);
-    I := J;
-    if NumStr = '' then Continue;
-    try
-      V := StrToFloat(NumStr);
+    if SVGReadNumberToken(PointsStr, I, V) then
+    begin
       SetLength(Coords, Length(Coords) + 1);
       Coords[High(Coords)] := V;
-    except end;
+    end
+    else
+      Inc(I);
   end;
   Count := Length(Coords) div 2;
   if Count < 3 then Exit;
@@ -6514,8 +6596,8 @@ var
 
 begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then Exit;
-  X    := SVGAttrFloat(AElement, 'x', 0);
-  Y    := SVGAttrFloat(AElement, 'y', 0);
+  X    := SVGAttrLength(AElement, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  Y    := SVGAttrLength(AElement, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
   CurX := X; CurY := Y;
 
   OldBrushStyle := FCtx.Canvas.Brush.Style;
@@ -6529,7 +6611,7 @@ begin
     for I := 0 to AElement.ChildCount - 1 do
     begin
       Child := AElement.Children[I];
-      if Child.NodeType = xntText then
+      if (Child.NodeType = xntText) or (Child.NodeType = xntCData) then
       begin
         TextContent := Trim(Child.NodeValue);
         if TextContent <> '' then
@@ -6547,10 +6629,12 @@ begin
           ApplyStyleAttr(TSpan);
           if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then
             Continue;
-          if TSpan.HasAttribute('x') then CurX := SVGAttrFloat(TSpan, 'x', CurX);
-          if TSpan.HasAttribute('y') then CurY := SVGAttrFloat(TSpan, 'y', CurY);
-          DX := SVGAttrFloat(TSpan, 'dx', 0);
-          DY := SVGAttrFloat(TSpan, 'dy', 0);
+          if TSpan.HasAttribute('x') then
+            CurX := SVGAttrLength(TSpan, 'x', CurX, FViewportUserWidth, FCtx.Style.FontSize);
+          if TSpan.HasAttribute('y') then
+            CurY := SVGAttrLength(TSpan, 'y', CurY, FViewportUserHeight, FCtx.Style.FontSize);
+          DX := SVGAttrLength(TSpan, 'dx', 0, FViewportUserWidth, FCtx.Style.FontSize);
+          DY := SVGAttrLength(TSpan, 'dy', 0, FViewportUserHeight, FCtx.Style.FontSize);
           CurX := CurX + DX;
           CurY := CurY + DY;
           TextContent := Trim(TSpan.Text);
@@ -6783,28 +6867,25 @@ begin
   MaskUnits := LowerCase(MaskEl.GetAttribute('maskUnits'));
   if (MaskUnits = '') or (MaskUnits = 'objectboundingbox') then
   begin
-    MX := FBX - FBW * 0.1;
-    MY := FBY - FBH * 0.1;
-    MW := FBW * 1.2;
-    MH := FBH * 1.2;
+    MX := FBX + SVGAttrFloat(MaskEl, 'x', -0.1) * FBW;
+    MY := FBY + SVGAttrFloat(MaskEl, 'y', -0.1) * FBH;
+    MW := SVGAttrFloat(MaskEl, 'width', 1.2) * FBW;
+    MH := SVGAttrFloat(MaskEl, 'height', 1.2) * FBH;
+    if SVGAttrIsPercent(MaskEl, 'x') then MX := FBX + SVGAttrFloat(MaskEl, 'x', -10) * FBW / 100;
+    if SVGAttrIsPercent(MaskEl, 'y') then MY := FBY + SVGAttrFloat(MaskEl, 'y', -10) * FBH / 100;
+    if SVGAttrIsPercent(MaskEl, 'width') then MW := SVGAttrFloat(MaskEl, 'width', 120) * FBW / 100;
+    if SVGAttrIsPercent(MaskEl, 'height') then MH := SVGAttrFloat(MaskEl, 'height', 120) * FBH / 100;
   end
   else
   begin
-    MX := SVGAttrFloat(MaskEl, 'x', -0.1);
-    MY := SVGAttrFloat(MaskEl, 'y', -0.1);
-    MW := SVGAttrFloat(MaskEl, 'width', 1.2);
-    MH := SVGAttrFloat(MaskEl, 'height', 1.2);
-    if (MaskUnits = '') or (MaskUnits = 'objectboundingbox') then
-    begin
-      MX := FBX + MX * FBW;
-      MY := FBY + MY * FBH;
-      MW := MW * FBW;
-      MH := MH * FBH;
-    end;
+    MX := SVGAttrLength(MaskEl, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+    MY := SVGAttrLength(MaskEl, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
+    MW := SVGAttrLength(MaskEl, 'width', FViewportUserWidth, FViewportUserWidth, FCtx.Style.FontSize);
+    MH := SVGAttrLength(MaskEl, 'height', FViewportUserHeight, FViewportUserHeight, FCtx.Style.FontSize);
   end;
 
-  SW := Round(MW * FCtx.CTM.a + MH * FCtx.CTM.c);
-  SH := Round(MW * FCtx.CTM.b + MH * FCtx.CTM.d);
+  SW := Round(Abs(MW * FCtx.CTM.a) + Abs(MH * FCtx.CTM.c));
+  SH := Round(Abs(MW * FCtx.CTM.b) + Abs(MH * FCtx.CTM.d));
   if SW < 1 then SW := 1;
   if SH < 1 then SH := 1;
   SX := Round(MX * FCtx.CTM.a + MY * FCtx.CTM.c + FCtx.CTM.e);
@@ -6929,11 +7010,108 @@ begin
   GdipDisposeImage(Bmp);
 end;
 
+function TCnSVGRenderer.RenderGroupWithOpacity(AElement: TCnXMLElement): Boolean;
+var
+  Bounds: TRect;
+  Bmp: GpImage;
+  BmpGC, SavedGC: GpGraphics;
+  SavedCTM: TCnSVGMatrix;
+  SavedOpacity: TCnSVGFloat;
+  BW, BH, X, Y: Integer;
+  RG: TGPRect;
+  Data: TGDIPBitmapData;
+  Row: PARGBArray;
+  Alpha: Integer;
+  M: GpMatrix;
+  I: Integer;
+  SavedClipDepth: Integer;
+begin
+  Result := False;
+  if (not FUseGDIP) or (FGDIPGraphics = nil) or
+     (not Assigned(GdipCreateBitmapFromScan0)) or
+     (not Assigned(GdipDrawImageRectI)) then
+    Exit;
+  if GetClipBox(FCtx.Canvas.Handle, Bounds) <= 0 then
+    Exit;
+  BW := Bounds.Right - Bounds.Left;
+  BH := Bounds.Bottom - Bounds.Top;
+  if (BW <= 0) or (BH <= 0) then Exit;
+  Bmp := nil;
+  if GdipCreateBitmapFromScan0(BW, BH, 0, PixelFormat32bppARGB, nil, Bmp) <> Ok then
+    Exit;
+  BmpGC := nil;
+  if GdipGetImageGraphicsContext(Bmp, BmpGC) <> Ok then
+  begin
+    GdipDisposeImage(Bmp);
+    Exit;
+  end;
+  GdipSetSmoothingMode(BmpGC, SmoothingModeAntiAlias);
+  if Assigned(GdipGraphicsClear) then
+    GdipGraphicsClear(BmpGC, 0);
+  if Assigned(GdipSetTextRenderingHint) then
+    GdipSetTextRenderingHint(BmpGC, 4);
+
+  SavedGC := FGDIPGraphics;
+  SavedCTM := FCtx.CTM;
+  SavedOpacity := FCtx.Style.Opacity;
+  FGDIPGraphics := BmpGC;
+  FCtx.CTM.e := SavedCTM.e - Bounds.Left;
+  FCtx.CTM.f := SavedCTM.f - Bounds.Top;
+  FCtx.Style.Opacity := 1.0;
+  UpdateGDIPWorldTransform;
+  SavedClipDepth := FClipPathDepth;
+  try
+    ApplyGDIPClipPath;
+    for I := 0 to AElement.ChildCount - 1 do
+      RenderNode(AElement.Children[I]);
+  finally
+    while FClipPathDepth > SavedClipDepth do
+      RemoveGDIPClipPath;
+    FGDIPGraphics := SavedGC;
+    FCtx.CTM := SavedCTM;
+    FCtx.Style.Opacity := SavedOpacity;
+    UpdateGDIPWorldTransform;
+  end;
+
+  { 对离屏结果统一应用一次 group opacity。 }
+  FillChar(Data, SizeOf(Data), 0);
+  RG.X := 0; RG.Y := 0; RG.Width := BW; RG.Height := BH;
+  if GdipBitmapLockBits(Bmp, @RG, ImageLockModeRead or ImageLockModeWrite,
+    PixelFormat32bppARGB, Data) = Ok then
+  begin
+    Alpha := Round(SVGClampOpacity(SavedOpacity) * 255);
+    for Y := 0 to Data.Height - 1 do
+    begin
+      Row := PARGBArray(PAnsiChar(Data.Scan0) + Y * Data.Stride);
+      for X := 0 to Data.Width - 1 do
+        Row[X].A := (Row[X].A * Alpha) div 255;
+    end;
+    GdipBitmapUnlockBits(Bmp, Data);
+  end;
+
+  if Assigned(GdipCreateMatrix2) and Assigned(GdipSetWorldTransform) and
+     Assigned(GdipDrawImageRectI) then
+  begin
+    M := nil;
+    if GdipCreateMatrix2(1, 0, 0, 1, Bounds.Left, Bounds.Top, M) = Ok then
+    begin
+      GdipSetWorldTransform(SavedGC, M);
+      GdipDeleteMatrix(M);
+      GdipDrawImageRectI(SavedGC, Bmp, 0, 0, BW, BH);
+      UpdateGDIPWorldTransform;
+    end;
+  end;
+  GdipDeleteGraphics(BmpGC);
+  GdipDisposeImage(Bmp);
+  Result := True;
+end;
+
 procedure TCnSVGRenderer.RenderGroup(AElement: TCnXMLElement);
 var
   I: Integer;
   HasTransform: Boolean;
   MX: GpMatrix;
+  SavedClipDepth: Integer;
 begin
   if FCtx.Style.DisplayNone then Exit;
   HasTransform := AElement.HasAttribute('transform');
@@ -6942,6 +7120,18 @@ begin
   if HasTransform then
     ApplyTransformAttr(AElement.GetAttribute('transform'));
   ApplyStyleAttr(AElement);
+
+  if (FCtx.Style.Opacity < 0.9999) and (FCtx.Style.FilterID = '') and
+     (FCtx.Style.MaskID = '') and not FProcessingFilter and
+     not FProcessingMask then
+  begin
+    if RenderGroupWithOpacity(AElement) then
+    begin
+      PopStyle;
+      PopMatrix;
+      Exit;
+    end;
+  end;
 
   // filter check for groups
   if (FCtx.Style.FilterID <> '') and not FProcessingFilter then
@@ -6987,12 +7177,16 @@ begin
     Exit;
   end;
 
-  // 应用 GDI+ 裁剪路径
-  ApplyGDIPClipPath;
-  for I := 0 to AElement.ChildCount - 1 do
-    RenderNode(AElement.Children[I]);
-  // 移除 GDI+ 裁剪路径
-  RemoveGDIPClipPath;
+  // 应用 GDI+ 裁剪路径；无论子节点是否抛出异常，都完整恢复状态。
+  SavedClipDepth := FClipPathDepth;
+  try
+    ApplyGDIPClipPath;
+    for I := 0 to AElement.ChildCount - 1 do
+      RenderNode(AElement.Children[I]);
+  finally
+    while FClipPathDepth > SavedClipDepth do
+      RemoveGDIPClipPath;
+  end;
   PopStyle;
   PopMatrix;
 end;
@@ -7025,14 +7219,14 @@ begin
   PushMatrix;
   Inc(FCtx.UseDepth);
   try
-    X := SVGAttrFloat(AElement, 'x', 0);
-    Y := SVGAttrFloat(AElement, 'y', 0);
+    X := SVGAttrLength(AElement, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+    Y := SVGAttrLength(AElement, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
     SVGMatrixTranslate(FCtx.CTM, X, Y);
 
     if LowerCase(Target.TagName) = 'symbol' then
     begin
-      W := SVGAttrFloat(AElement, 'width', 0);
-      H := SVGAttrFloat(AElement, 'height', 0);
+      W := SVGAttrLength(AElement, 'width', 0, FViewportUserWidth, FCtx.Style.FontSize);
+      H := SVGAttrLength(AElement, 'height', 0, FViewportUserHeight, FCtx.Style.FontSize);
       if (W > 0) and (H > 0) and Target.HasAttribute('viewBox') and
         SVGParseViewBoxValue(Target.GetAttribute('viewBox'), LocalViewBox) then
       begin
@@ -7074,12 +7268,12 @@ begin
   if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then
     Exit;
 
-  W := SVGAttrFloat(AElement, 'width', 0);
-  H := SVGAttrFloat(AElement, 'height', 0);
+  W := SVGAttrLength(AElement, 'width', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  H := SVGAttrLength(AElement, 'height', 0, FViewportUserHeight, FCtx.Style.FontSize);
   if (W <= 0) or (H <= 0) then
     Exit;
-  X := SVGAttrFloat(AElement, 'x', 0);
-  Y := SVGAttrFloat(AElement, 'y', 0);
+  X := SVGAttrLength(AElement, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  Y := SVGAttrLength(AElement, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
 
   if AElement.HasAttribute('href') then
     HRef := AElement.GetAttribute('href')
@@ -7213,14 +7407,18 @@ var
   LocalViewBox: TCnSVGRect;
   M: TCnSVGMatrix;
   IsRoot: Boolean;
+  ClipX, ClipY, ClipW, ClipH: TCnSVGFloat;
+  ClipP1, ClipP2: TPoint;
+  SavedViewportWidth, SavedViewportHeight: TCnSVGFloat;
+  SavedClipDC: Integer;
 begin
   if FCtx.Style.DisplayNone then
     Exit;
 
-  X := SVGAttrFloat(AElement, 'x', 0);
-  Y := SVGAttrFloat(AElement, 'y', 0);
-  W := SVGAttrFloat(AElement, 'width', 0);
-  H := SVGAttrFloat(AElement, 'height', 0);
+  X := SVGAttrLength(AElement, 'x', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  Y := SVGAttrLength(AElement, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
+  W := SVGAttrLength(AElement, 'width', 0, FViewportUserWidth, FCtx.Style.FontSize);
+  H := SVGAttrLength(AElement, 'height', 0, FViewportUserHeight, FCtx.Style.FontSize);
 
   // 判断是否为根 <svg> 元素: 构造函数已通过 SVGCalcViewMatrix 处理了 viewBox 变换
   // 此时 FMatrixTop = 1（来自 RenderElement 的 PushMatrix）
@@ -7230,6 +7428,9 @@ begin
     Exit;
 
   PushMatrix;
+  SavedViewportWidth := FViewportUserWidth;
+  SavedViewportHeight := FViewportUserHeight;
+  SavedClipDC := 0;
   try
     if IsRoot then
     begin
@@ -7244,13 +7445,53 @@ begin
       SVGCalcNestedViewMatrix(X, Y, W, H, LocalViewBox,
         AElement.GetAttribute('preserveAspectRatio'), M);
       SVGMatrixMultiply(FCtx.CTM, FCtx.CTM, M);
+      FViewportUserWidth := LocalViewBox.Width;
+      FViewportUserHeight := LocalViewBox.Height;
     end
     else
+    begin
       SVGMatrixTranslate(FCtx.CTM, X, Y);
+      FViewportUserWidth := W;
+      FViewportUserHeight := H;
+    end;
+
+    { 每个嵌套的 <svg> 都会建立 viewport，并默认将后代裁剪到该 viewport 内。
+      旧实现只应用了 viewBox 变换，绘制内容可能溢出 viewport。 }
+    if IsRoot then
+    begin
+      ClipX := 0; ClipY := 0;
+      ClipW := FViewportUserWidth; ClipH := FViewportUserHeight;
+    end
+    else if AElement.HasAttribute('viewBox') and
+      SVGParseViewBoxValue(AElement.GetAttribute('viewBox'), LocalViewBox) then
+    begin
+      ClipX := LocalViewBox.X; ClipY := LocalViewBox.Y;
+      ClipW := LocalViewBox.Width; ClipH := LocalViewBox.Height;
+    end
+    else
+    begin
+      ClipX := 0; ClipY := 0; ClipW := W; ClipH := H;
+    end;
+    if FUseGDIP and Assigned(GdipSetClipRect) then
+      GdipSetClipRect(FGDIPGraphics, ClipX, ClipY, ClipW, ClipH,
+        CombineModeIntersect)
+    else if not FUseGDIP then
+    begin
+      SavedClipDC := SaveDC(FCtx.Canvas.Handle);
+      ClipP1 := UserToScreen(ClipX, ClipY);
+      ClipP2 := UserToScreen(ClipX + ClipW, ClipY + ClipH);
+      IntersectClipRect(FCtx.Canvas.Handle,
+        Min(ClipP1.X, ClipP2.X), Min(ClipP1.Y, ClipP2.Y),
+        Max(ClipP1.X, ClipP2.X), Max(ClipP1.Y, ClipP2.Y));
+    end;
 
     for I := 0 to AElement.ChildCount - 1 do
       RenderNode(AElement.Children[I]);
   finally
+    if SavedClipDC <> 0 then
+      RestoreDC(FCtx.Canvas.Handle, SavedClipDC);
+    FViewportUserWidth := SavedViewportWidth;
+    FViewportUserHeight := SavedViewportHeight;
     PopMatrix;
   end;
 end;
@@ -7285,7 +7526,7 @@ var
   LockOk: Boolean;
   Op: string;
   K1, K2, K3, K4: Double;
-  M: array[0..19] of Double;
+  M: array[0..19] of TCnSVGFloat;
   FC: TCnSVGColor;
 
   procedure DispatchRender;
@@ -7518,8 +7759,8 @@ begin
   end;
 
   // screen-space size
-  SW := Round(FW * FCtx.CTM.a + FH * FCtx.CTM.c);
-  SH := Round(FW * FCtx.CTM.b + FH * FCtx.CTM.d);
+  SW := Round(Abs(FW * FCtx.CTM.a) + Abs(FH * FCtx.CTM.c));
+  SH := Round(Abs(FW * FCtx.CTM.b) + Abs(FH * FCtx.CTM.d));
   if SW < 1 then SW := 1;
   if SH < 1 then SH := 1;
 
@@ -7607,12 +7848,12 @@ begin
             Space := Pos(' ', StdDevStr);
             if Space > 0 then
             begin
-              V1 := StrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)));
-              V2 := StrToFloat(Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space)));
+              if not SVGTryStrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)), V1) then V1 := 0;
+              if not SVGTryStrToFloat(Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space)), V2) then V2 := V1;
             end
             else
             begin
-              V1 := StrToFloat(StdDevStr);
+              if not SVGTryStrToFloat(StdDevStr, V1) then V1 := 0;
               V2 := V1;
             end;
           except
@@ -7775,12 +8016,12 @@ begin
             Space := Pos(' ', StdDevStr);
             if Space > 0 then
             begin
-              V1 := StrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)));
-              V2 := StrToFloat(Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space)));
+              if not SVGTryStrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)), V1) then V1 := 0;
+              if not SVGTryStrToFloat(Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space)), V2) then V2 := V1;
             end
             else
             begin
-              V1 := StrToFloat(StdDevStr);
+              if not SVGTryStrToFloat(StdDevStr, V1) then V1 := 0;
               V2 := V1;
             end;
           except
@@ -8026,12 +8267,12 @@ begin
               if not (Child.Children[J] is TCnXMLElement) then begin Inc(J); Continue; end;
               if LowerCase(TCnXMLElement(Child.Children[J]).TagName) <> 'femergenode' then begin Inc(J); Continue; end;
               InName := LowerCase(TCnXMLElement(Child.Children[J]).GetAttribute('in'));
-              if InName = '' then InName := 'SourceGraphic';
+              if InName = '' then InName := 'sourcegraphic';
 
               Tmp2Bmp := nil;
-              if InName = 'SourceGraphic' then
+              if InName = 'sourcegraphic' then
                 Tmp2Bmp := SrcBmp
-              else if InName = 'SourceAlpha' then
+              else if InName = 'sourcealpha' then
               begin
                 if GdipCreateBitmapFromScan0(SW, SH, 0, PixelFormat32bppARGB, nil, TmpBmp) = Ok then
                 begin
@@ -8105,7 +8346,7 @@ begin
                 end;
               end;
 
-              if (InName = 'SourceAlpha') and (TmpBmp <> nil) then
+              if (InName = 'sourcealpha') and (TmpBmp <> nil) then
               begin
                 GdipDisposeImage(TmpBmp);
                 TmpBmp := nil;
@@ -8126,12 +8367,12 @@ begin
         Op := LowerCase(Child.GetAttribute('operator'));
         if Op = '' then Op := 'over';
         InName := LowerCase(Child.GetAttribute('in'));
-        if InName = '' then InName := 'SourceGraphic';
+        if InName = '' then InName := 'sourcegraphic';
         ResultName := LowerCase(Child.GetAttribute('in2'));
-        if ResultName = '' then ResultName := 'SourceGraphic';
+        if ResultName = '' then ResultName := 'sourcegraphic';
 
         Tmp2Bmp := nil;
-        if (InName = 'SourceGraphic') or (InName = 'SourceAlpha') then
+        if (InName = 'sourcegraphic') or (InName = 'sourcealpha') then
           Tmp2Bmp := SrcBmp
         else
         begin
@@ -8141,7 +8382,7 @@ begin
         if Tmp2Bmp = nil then Tmp2Bmp := Bmp;
 
         ResultBmp := nil;
-        if (ResultName = 'SourceGraphic') or (ResultName = 'SourceAlpha') then
+        if (ResultName = 'sourcegraphic') or (ResultName = 'sourcealpha') then
           ResultBmp := SrcBmp
         else
         begin
@@ -8319,7 +8560,7 @@ begin
       else if Tag = 'fecolormatrix' then
       begin
         InName := LowerCase(Child.GetAttribute('in'));
-        if InName = 'SourceGraphic' then
+        if InName = 'sourcegraphic' then
           Tmp2Bmp := SrcBmp
         else if InName <> '' then
         begin
@@ -8357,10 +8598,14 @@ begin
                     if Space = 0 then Space := Pos(',', StdDevStr);
                     if Space = 0 then
                     begin
-                      if StdDevStr <> '' then begin M[J] := StrToFloat(StdDevStr); Break; end
-                      else Break;
+                      if (StdDevStr = '') or
+                         (not SVGTryStrToFloat(StdDevStr, M[J])) then
+                        Break;
                     end;
-                    M[J] := StrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)));
+                    if Space = 0 then
+                      Break;
+                    if not SVGTryStrToFloat(Trim(Copy(StdDevStr, 1, Space - 1)), M[J]) then
+                      M[J] := 0;
                     StdDevStr := Trim(Copy(StdDevStr, Space + 1, Length(StdDevStr) - Space));
                   end;
                 end;
@@ -8482,7 +8727,7 @@ var
   MarkerUnits: string;
   StrokeWidth: TCnSVGFloat;
   ScaleX, ScaleY: TCnSVGFloat;
-  OldClip: Boolean;
+  OldClipDepth: Integer;
   I: Integer;
   RotAngle: TCnSVGFloat;
   SavedMarkerStart, SavedMarkerMid, SavedMarkerEnd: string;
@@ -8497,7 +8742,7 @@ begin
   MH := SVGAttrFloat(MarkerEl, 'markerHeight', 3);
 
   MarkerUnits := LowerCase(MarkerEl.GetAttribute('markerUnits'));
-  if (MarkerUnits = '') or (MarkerUnits = 'strokeWidth') then
+  if (MarkerUnits = '') or (MarkerUnits = 'strokewidth') then
   begin
     StrokeWidth := FCtx.Style.StrokeWidth;
     if StrokeWidth <= 0 then StrokeWidth := 1;
@@ -8557,8 +8802,7 @@ begin
     FCtx.Style.MarkerMidID := '';
     FCtx.Style.MarkerEndID := '';
 
-    OldClip := FHasClipPath;
-    FHasClipPath := False;
+    OldClipDepth := FClipPathDepth;
 
     for I := 0 to MarkerEl.ChildCount - 1 do
       RenderNode(MarkerEl.Children[I]);
@@ -8566,7 +8810,8 @@ begin
     FCtx.Style.MarkerStartID := SavedMarkerStart;
     FCtx.Style.MarkerMidID := SavedMarkerMid;
     FCtx.Style.MarkerEndID := SavedMarkerEnd;
-    FHasClipPath := OldClip;
+    FClipPathDepth := OldClipDepth;
+    FHasClipPath := FClipPathDepth > 0;
   finally
     PopStyle;
     PopMatrix;
@@ -8579,9 +8824,8 @@ var
   Tag: string;
   I, Count: Integer;
   Coords: array of TCnSVGFloat;
-  PointsStr, NumStr: string;
-  V: Extended;
-  J: Integer;
+  PointsStr: string;
+  V: TCnSVGFloat;
   X1, Y1, X2, Y2, DX, DY, Angle: TCnSVGFloat;
   D: string;
   Parser: TCnSVGPathParser;
@@ -8602,10 +8846,10 @@ begin
 
   if (Tag = 'line') then
   begin
-    X1 := SVGAttrFloat(AElement, 'x1', 0);
-    Y1 := SVGAttrFloat(AElement, 'y1', 0);
-    X2 := SVGAttrFloat(AElement, 'x2', 0);
-    Y2 := SVGAttrFloat(AElement, 'y2', 0);
+    X1 := SVGAttrLength(AElement, 'x1', 0, FViewportUserWidth, FCtx.Style.FontSize);
+    Y1 := SVGAttrLength(AElement, 'y1', 0, FViewportUserHeight, FCtx.Style.FontSize);
+    X2 := SVGAttrLength(AElement, 'x2', 0, FViewportUserWidth, FCtx.Style.FontSize);
+    Y2 := SVGAttrLength(AElement, 'y2', 0, FViewportUserHeight, FCtx.Style.FontSize);
     DX := X2 - X1; DY := Y2 - Y1;
     if (DX = 0) and (DY = 0) then Angle := 0
     else Angle := ArcTan2(DY, DX);
@@ -8620,26 +8864,17 @@ begin
   begin
     PointsStr := AElement.GetAttribute('points');
     if Trim(PointsStr) = '' then Exit;
-    for I := 1 to Length(PointsStr) do
-      if PointsStr[I] in [',', #9, #10, #13] then
-        PointsStr[I] := ' ';
     SetLength(Coords, 0);
     I := 1;
     while I <= Length(PointsStr) do
     begin
-      while (I <= Length(PointsStr)) and (PointsStr[I] = ' ') do Inc(I);
-      if I > Length(PointsStr) then Break;
-      J := I;
-      if PointsStr[J] in ['+', '-'] then Inc(J);
-      while (J <= Length(PointsStr)) and (PointsStr[J] in ['0'..'9', '.', 'e', 'E', '+', '-']) do Inc(J);
-      NumStr := Copy(PointsStr, I, J - I);
-      I := J;
-      if NumStr = '' then Continue;
-      try
-        V := StrToFloat(NumStr);
+      if SVGReadNumberToken(PointsStr, I, V) then
+      begin
         SetLength(Coords, Length(Coords) + 1);
         Coords[High(Coords)] := V;
-      except end;
+      end
+      else
+        Inc(I);
     end;
     Count := Length(Coords) div 2;
     if Count < 2 then Exit;
@@ -8819,6 +9054,7 @@ var
   Tag: string;
   I: Integer;
   MX: GpMatrix;
+  SavedClipDepth: Integer;
 begin
   if AElement = nil then
     Exit;
@@ -8832,6 +9068,7 @@ begin
     PushStyle;
     PushMatrix;
     try
+      SavedClipDepth := FClipPathDepth;
       ApplyStyleAttr(AElement);
       if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then
         Exit;
@@ -8899,8 +9136,8 @@ begin
             RenderNode(AElement.Children[I]);
       end;
     finally
-      // 移除 GDI+ 裁剪路径（恢复之前保存的状态）
-      RemoveGDIPClipPath;
+      while FClipPathDepth > SavedClipDepth do
+        RemoveGDIPClipPath;
       PopMatrix;
       PopStyle;
       // deferred draw after GDI+ state (world transform, clip) is fully restored
@@ -8993,6 +9230,11 @@ begin
     FViewportWidth := SVGParseLengthValue(Root.GetAttribute('width'), FViewportWidth);
   if Root.HasAttribute('height') then
     FViewportHeight := SVGParseLengthValue(Root.GetAttribute('height'), FViewportHeight);
+
+  if FViewportWidth <= 0 then FViewportWidth := 100.0;
+  if FViewportHeight <= 0 then FViewportHeight := 100.0;
+  if HasVB and ((VB.Width <= 0) or (VB.Height <= 0)) then
+    HasVB := False;
 
   if HasVB then
   begin
