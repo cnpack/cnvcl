@@ -1626,7 +1626,7 @@ begin
       R2CD := BigNumberCompare(R2, Divisor);
 
       // 四舍五入模式下，R2CD 如果大于等于 0，说明余数大于等于 5，要入
-      // 四舍六入模式下，如果等于 1，要判断商的末位是否偶，偶才入，其余情况不入
+      // 四舍六入模式下，如果等于 0，要判断商的末位是否奇，奇才入，其余情况不入
       // 确定入与否后，无需再根据正负处理，舍都是朝绝对值小的方向，入是绝对值大的方向
       case Mode of
         drRound:         // 四舍五入、入至绝对值大的数
@@ -1636,7 +1636,7 @@ begin
           end;
         dr465RoundEven:     // 四舍六入五成双、入至绝对值大的数
           begin
-            if (R2CD > 0) or ((R2CD = 0) and not Quotient.IsOdd) then
+            if (R2CD > 0) or ((R2CD = 0) and Quotient.IsOdd) then
               BigNumberAddWord(Quotient, 1);
           end;
       end;
@@ -3842,14 +3842,14 @@ var
 begin
   if Num1.FValue.IsZero then
   begin
-    BigNumberCopy(Num2.FValue, Res.FValue);
+    BigNumberCopy(Res.FValue, Num2.FValue);
     Res.FValue.Negate;
     Result := True;
     Exit;
   end
   else if Num2.FValue.IsZero then
   begin
-    BigNumberCopy(Num1.FValue, Res.FValue);
+    BigNumberCopy(Res.FValue, Num1.FValue);
     Result := True;
     Exit;
   end

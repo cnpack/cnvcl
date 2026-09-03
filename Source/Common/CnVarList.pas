@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Classes, Math {$IFDEF FPC}, Variants {$ENDIF}
+  SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Classes, Math {$IFDEF FPC}, Variants {$ENDIF}
   {$IFDEF COMPILER6_UP}, Variants, StrUtils{$ENDIF};
 
 type
@@ -214,6 +214,7 @@ end;
 }
 constructor TCnVarList.Create;
 begin
+  inherited;
   FVarList.Add(Self);
 end;
 
@@ -520,6 +521,7 @@ begin
   v := FValues[Index];
   if VarIsArray(v) then
     Exit;
+
   if Pos('Object', FValType[Index]) = 1 then
     Result := TObject(Integer(v));
 end;

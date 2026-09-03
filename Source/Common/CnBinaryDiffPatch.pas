@@ -40,7 +40,9 @@ unit CnBinaryDiffPatch;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.08.16 V1.2
+* 修改记录：2026.09.03 V1.3
+*               优化流清空机制及文件名判断
+*           2016.08.16 V1.2
 *               实现目录的批量 Diff/Patch 功能
 *           2016.08.08 V1.1
 *               实现 Patch 功能
@@ -485,6 +487,7 @@ begin
     Exit;
 
   try
+    PatchStream.Clear;
     WriteHeader(PatchStream, OldStream.Size, NewStream.Size);
 
     Todo := NewStream.Size;
@@ -539,6 +542,7 @@ begin
   DstLen := GetLong(@Buf[12]);
 
   AnOperator := #0;
+  NewStream.Clear;
   while True do
   begin
     if PatchStream.Read(AnOperator, 1) <> 1 then // 流末尾
@@ -721,9 +725,7 @@ begin
       if StrRight(PatchFile, Length(PATCH_SUFFIX)) <> PATCH_SUFFIX then
         Continue;  // .patch 结尾的才认为是补丁
 
-      FileName := PatchFile;
-      Delete(FileName, Pos(PATCH_SUFFIX, FileName), MaxInt);
-
+      FileName := Copy(PatchFile, 1, Length(PatchFile) - Length(PATCH_SUFFIX));
       OldFile := AddDirSuffix(OldDir) + FileName;
       if not FileExists(OldFile) then // 允许源文件不存在
         OldFile := '';

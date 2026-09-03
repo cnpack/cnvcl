@@ -2309,7 +2309,8 @@ begin
     end
     else // 整字匹配的要求下，未整字匹配，不能替换
     begin
-      SB.Append(Copy(NewStr, 1, Offset - 1)).Append(OldPattern); // 注意必须用 OldePattern，不能替换
+      SB.Append(Copy(NewStr, 1, Offset - 1)).Append(
+        Copy(NewStr, Offset, Length(OldPattern))); // 必须保留原文片段的大小写
       NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
     end;
     SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
@@ -2387,7 +2388,8 @@ begin
     end
     else // 整字匹配的要求下，未整字匹配，不能替换
     begin
-      SB.AppendAnsi(Copy(NewStr, 1, Offset - 1)).AppendAnsi(OldPattern); // 注意必须用 OldePattern，不能替换
+      SB.AppendAnsi(Copy(NewStr, 1, Offset - 1)).AppendAnsi(
+        Copy(NewStr, Offset, Length(OldPattern))); // 必须保留原文片段的大小写
       NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
     end;
     SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
@@ -2465,7 +2467,8 @@ begin
       end
       else // 整字匹配的要求下，未整字匹配，不能替换
       begin
-        SB.AppendWide(Copy(NewStr, 1, Offset - 1)).AppendWide(OldPattern); // 注意必须用 OldePattern，不能替换
+        SB.AppendWide(Copy(NewStr, 1, Offset - 1)).AppendWide(
+          Copy(NewStr, Offset, Length(OldPattern))); // 必须保留原文片段的大小写
         NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
       end;
       SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);

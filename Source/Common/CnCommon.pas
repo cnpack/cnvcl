@@ -1242,7 +1242,7 @@ function PEBIsDebugged: Boolean;
 
 {$ENDIF}
 
-function NtIsDeugged: Boolean;
+function NtIsDebugged: Boolean;
 {* 使用 NtQueryInformationProcess 以判定本进程是否被调试中}
 
 procedure KillProcessByFileName(const FileName: String);
@@ -1994,7 +1994,7 @@ begin
   FillChar(BrowseInfo, SizeOf(BrowseInfo), 0);
   if (ShGetMalloc(ShellMalloc) = S_OK) and (ShellMalloc <> nil) then
   begin
-    Buffer := ShellMalloc.Alloc(MAX_PATH);
+    Buffer := ShellMalloc.Alloc(MAX_PATH * SizeOf(Char));
     try
       SHGetDesktopFolder(IDesktopFolder);
       if Root = '' then
@@ -2138,7 +2138,7 @@ begin
   FillChar(BrowseInfo, SizeOf(BrowseInfo), 0);
   if (ShGetMalloc(ShellMalloc) = S_OK) and (ShellMalloc <> nil) then
   begin
-    Buffer := ShellMalloc.Alloc(MAX_PATH);
+    Buffer := ShellMalloc.Alloc(MAX_PATH * SizeOf(Char));
     try
       RootItemIDList := nil;
       if Root <> '' then
@@ -2333,10 +2333,15 @@ const
 
 function PathRelativePathToA; external shlwapi32 name 'PathRelativePathToA';
 function PathRelativePathToW; external shlwapi32 name 'PathRelativePathToW';
+{$IFDEF UNICODE}
+function PathRelativePathTo; external shlwapi32 name 'PathRelativePathToW';
+{$ELSE}
 function PathRelativePathTo; external shlwapi32 name 'PathRelativePathToA';
+{$ENDIF}
 
 // 使用 Windows API 取两个目录的相对路径
 function RelativePath(const AFrom, ATo: string; FromIsDir, ToIsDir: Boolean): string;
+
   function GetAttr(IsDir: Boolean): DWORD;
   begin
     if IsDir then
@@ -2344,6 +2349,7 @@ function RelativePath(const AFrom, ATo: string; FromIsDir, ToIsDir: Boolean): st
     else
       Result := FILE_ATTRIBUTE_NORMAL;
   end;
+
 var
   p: array[0..MAX_PATH] of Char;
 begin
@@ -5130,7 +5136,10 @@ begin
     for I := 1 to Length(Str) do
     begin
       if Str[I] in REG_CHARS then
+      begin
+        Result := True;
         Exit;
+      end;
     end;
   end;
 end;
@@ -8267,11 +8276,10 @@ end;
 {$ENDIF}
 
 // 使用 NtQueryInformationProcess 以判定本进程是否被调试中
-function NtIsDeugged: Boolean;
+function NtIsDebugged: Boolean;
 var
   DebugPort: DWORD;
 begin
-  Result := False;
   if not Assigned(NtQueryInformationProcess) then
   begin
     if (Win32Platform = VER_PLATFORM_WIN32_NT)
@@ -8288,15 +8296,15 @@ begin
     end
     else
       raise Exception.Create('Current Windows NOT Support.');
-
-    if not Assigned(NtQueryInformationProcess) then
-      raise Exception.Create('NtQueryInformationProcess NOT Found in NTDLL.');
-
-    if 0 <> NtQueryInformationProcess(GetCurrentProcess, 7, @DebugPort, SizeOf(DebugPort), nil) then
-      raise Exception.Create('Call NtQueryInformationProcess Failed.');
-
-    Result := DebugPort <> 0;
   end;
+
+  if not Assigned(NtQueryInformationProcess) then
+    raise Exception.Create('NtQueryInformationProcess NOT Found in NTDLL.');
+
+  if 0 <> NtQueryInformationProcess(GetCurrentProcess, 7, @DebugPort, SizeOf(DebugPort), nil) then
+    raise Exception.Create('Call NtQueryInformationProcess Failed.');
+
+  Result := DebugPort <> 0;
 end;
 
 // 根据文件名结束进程，不区分路径

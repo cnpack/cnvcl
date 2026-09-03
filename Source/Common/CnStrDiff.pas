@@ -114,8 +114,6 @@ type
     FDiagVecF: PDiagVectorArray; //forward and backward arrays
     FArray1: PAnsiChar;
     FArray2: PAnsiChar;
-    FCancelled: Boolean;
-
     function RecursiveDiff(x1, y1, x2, y2: Integer): Boolean;
     procedure AddToScript(x1, y1, x2, y2: Integer; ScriptKind: TScriptKind);
     procedure ClearChanges;
@@ -140,21 +138,22 @@ implementation
 
 // Miscellaneous Functions ...
 
-function Min(a, b: Integer): Integer;
+function Min(A, B: Integer): Integer;
 begin
-  if a < b then Result := a else Result := b;
+  if A < B then Result := A else Result := B;
 end;
 
-function Max(a, b: Integer): Integer;
+function Max(A, B: Integer): Integer;
 begin
-  if a > b then Result := a else Result := b;
+  if A > B then Result := A else Result := B;
 end;
 
 function SimilarText(S1, S2: string; CaseSensitive: Boolean): Double;
 var
   Diff: TCnStrDiff;
-  i: Integer;
+  I: Integer;
   Count, Len: Integer;
+  AS1, AS2: AnsiString;
 begin
   if (S1 = '') or (S2 = '') then
   begin
@@ -173,12 +172,14 @@ begin
 
   Diff := TCnStrDiff.Create;
   try
-    if Diff.Execute(PAnsiChar(AnsiString(S1)), PAnsiChar(AnsiString(S2)), Length(S1), Length(S2)) then
+    AS1 := AnsiString(S1);
+    AS2 := AnsiString(S2);
+    if Diff.Execute(PAnsiChar(AS1), PAnsiChar(AS2), Length(AS1), Length(AS2)) then
     begin
       Count := 0;
-      for i := 0 to Diff.ChangeCount - 1 do
-        Inc(Count, Diff.Changes[i].Range);
-      Len := Max(Length(S1), Length(S2));
+      for I := 0 to Diff.ChangeCount - 1 do
+        Inc(Count, Diff.Changes[I].Range);
+      Len := Max(Length(AS1), Length(AS2));
       if Len > 1 then
         Dec(Len);
       Result := 1 - Count / Len;
@@ -236,7 +237,6 @@ begin
     PAnsiChar(FDiagVecF) := PAnsiChar(IntArr_f) - SizeOf(Integer) * (MAX_DIAGONAL - FMaxD);
     PAnsiChar(FDiagVecB) := PAnsiChar(IntArr_b) - SizeOf(Integer) * (MAX_DIAGONAL - FMaxD);
 
-    FCancelled := False;
     //NOW DO IT HERE...
     Result := RecursiveDiff(0, 0, Size1, Size2);
     //add remaining range buffers onto ChangeList...
@@ -469,7 +469,7 @@ end;
 //add, delete & modify ranges which are then stored in ChangeList...
 procedure TCnStrDiff.AddToScript(x1, y1, x2, y2: Integer; ScriptKind: TScriptKind);
 var
-  i: Integer;
+  I: Integer;
 
   procedure TrashAdd;
   begin
@@ -599,8 +599,8 @@ var
 
 begin
   case ScriptKind of
-    skAddRange: for i := y1 to y2 - 1 do Add(x1, i);
-    skDelRange: for i := x1 to x2 - 1 do Delete(i);
+    skAddRange: for I := y1 to y2 - 1 do Add(x1, I);
+    skDelRange: for I := x1 to x2 - 1 do Delete(I);
     skDelDiagDel:
       begin
         Delete(x1);
@@ -631,10 +631,10 @@ end;
 
 procedure TCnStrDiff.ClearChanges;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FChangeList.Count - 1 do
-    dispose(PChangeRec(FChangeList[i]));
+  for I := 0 to FChangeList.Count - 1 do
+    dispose(PChangeRec(FChangeList[I]));
   FChangeList.Clear;
 end;
 
