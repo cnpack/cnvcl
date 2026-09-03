@@ -199,7 +199,7 @@ procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
 
 {$ENDIF}
 
-function SameCharCounts(S1, S2: string): Integer;
+function SameCharCounts(const S1, S2: string): Integer;
 {* 两个字符串的前面的相同字符数}
 function CharCounts(Str: PChar; Chr: Char): Integer;
 {* 在字符串中某字符出现的次数}
@@ -1922,12 +1922,16 @@ begin
 end;
 
 // 打开文件框
+procedure StrResetLength(var S: string); forward;
+
 function OpenDialog(var FileName: string; const Title: string; const Filter: string;
   const Ext: string): Boolean;
 var
   OpenName: TOPENFILENAME;
-  TempFilename, ReturnFile: string;
+  TempFilename, ReturnFile, FilterBuffer: string;
 begin
+  FillChar(OpenName, SizeOf(OpenName), 0);
+  FilterBuffer := Filter + #0 + Ext + #0#0;
   with OpenName do
   begin
     lStructSize := SizeOf(OpenName);
@@ -1937,19 +1941,18 @@ begin
 {$ELSE}
     Hinstance := SysInit.Hinstance;
 {$ENDIF}
-    lpstrFilter := PChar(Filter + #0 + Ext + #0#0);
-    lpstrCustomFilter := '';
+    lpstrFilter := PChar(FilterBuffer);
+    lpstrCustomFilter := nil;
     nMaxCustFilter := 0;
     nFilterIndex := 1;
     nMaxFile := MAX_PATH;
     SetLength(TempFilename, nMaxFile + 2);
     lpstrFile := PChar(TempFilename);
-    FillChar(lpstrFile^, MAX_PATH, 0);
-    SetLength(TempFilename, nMaxFile + 2);
+    FillChar(lpstrFile^, Length(TempFilename) * SizeOf(Char), 0);
     nMaxFileTitle := MAX_PATH;
     SetLength(ReturnFile, MAX_PATH + 2);
     lpstrFileTitle := PChar(ReturnFile);
-    FillChar(lpstrFile^, MAX_PATH, 0);
+    FillChar(lpstrFileTitle^, Length(ReturnFile) * SizeOf(Char), 0);
     lpstrInitialDir := '.';
     lpstrTitle := PChar(Title);
     Flags := OFN_HIDEREADONLY + OFN_ENABLESIZING;
@@ -1958,7 +1961,7 @@ begin
     lpstrDefExt := PChar(Ext);
     lCustData := 0;
     lpfnHook := nil;
-    lpTemplateName := '';
+    lpTemplateName := nil;
   end;
 
 {$IFDEF FPC}
@@ -1968,7 +1971,11 @@ begin
 {$ENDIF}
 
   if Result then
-    FileName := ReturnFile
+  begin
+    StrResetLength(TempFilename);
+    StrResetLength(ReturnFile);
+    FileName := TempFilename;
+  end
   else
     FileName := '';
 end;
@@ -2180,31 +2187,37 @@ end;
 {$ENDIF}
 
 // 两个字符串的前面的相同字符数
-function SameCharCounts(S1, S2: string): Integer;
+function SameCharCounts(const S1, S2: string): Integer;
 var
   Str1, Str2: PChar;
+  MaxCount: Integer;
 begin
-  Result := 1;
-  S1 := S1 + #0;
-  S2 := S2 + #0;
+  Result := 0;
+  MaxCount := Length(S1);
+  if Length(S2) < MaxCount then
+    MaxCount := Length(S2);
   Str1 := PChar(S1);
   Str2 := PChar(S2);
 
-  while (S1[Result] = S2[Result]) and (S1[Result] <> #0) do
+  while Result < MaxCount do
   begin
+    if S1[Result + 1] <> S2[Result + 1] then
+      Break;
     Inc(Result);
   end;
-  Dec(Result);
+  if Result > 0 then
+  begin
 {$IFDEF MSWINDOWS}
-  if (StrByteType(Str1, Result - 1) = mbLeadByte) or
-    (StrByteType(Str2, Result - 1) = mbLeadByte) then
-    Dec(Result);
+    if (StrByteType(Str1, Result - 1) = mbLeadByte) or
+      (StrByteType(Str2, Result - 1) = mbLeadByte) then
+      Dec(Result);
 {$ENDIF}
 {$IFDEF POSIX}
-  if (StrByteType(Str1, Result - 1) <> mbSingleByte) or
-    (StrByteType(Str2, Result - 1) <> mbSingleByte) then
-    Dec(Result);
+    if (StrByteType(Str1, Result - 1) <> mbSingleByte) or
+      (StrByteType(Str2, Result - 1) <> mbSingleByte) then
+      Dec(Result);
 {$ENDIF}
+  end;
 end;
 
 // 在字符串中某字符出现的次数
@@ -2216,21 +2229,21 @@ begin
   P := StrScan(Str, Chr);
   while P <> nil do
   begin
-{$IFDEF MSWINDOWS}
+{$IFDEF UNICODE}
+    { Unicode 下 PChar 按宽字符寻址，StrScan 返回的位置必然是完整
+      Char 的起始位置，无需再用面向多字节编码的 StrByteType 判断。 }
+    Inc(Result);
+{$ELSE}
+  {$IFDEF MSWINDOWS}
     case StrByteType(Str, Integer(P - Str)) of
-      mbSingleByte: begin
-        Inc(Result);
-        Inc(P);
-      end;
+      mbSingleByte: Inc(Result);
       mbLeadByte: Inc(P);
     end;
-{$ENDIF}
-{$IFDEF POSIX}
+  {$ENDIF}
+  {$IFDEF POSIX}
     if StrByteType(Str, Integer(P - Str)) = mbSingleByte then
-    begin
       Inc(Result);
-      Inc(P);
-    end;
+  {$ENDIF}
 {$ENDIF}
     Inc(P);
     P := StrScan(P, Chr);
@@ -4557,6 +4570,9 @@ begin
   if (T[Length(T)] = '''') or (T[Length(T)] = '"') then
     Delete(T, Length(T), 1);
 
+  if T = '' then
+    Exit;
+
   if T[1] <> '%' then
     Exit;
 
@@ -6179,7 +6195,7 @@ var
   NeedChange: Boolean;
 {$ENDIF}
 begin
-  Result := cdrOK;
+  Result := cdrCancel;
   if Caption = '' then
     Caption := SCnInformation;
 
@@ -6246,7 +6262,14 @@ begin
         Btn := TButton.Create(Form);
         Btn.Parent := Form;
         Btn.Caption := SCnDlgButtonCaptions[TCnDlgButtonCaption(I)]^;
-        Btn.ModalResult := I + 1;
+        case TCnDlgButtonCaption(I) of
+          cdbCancel: Btn.ModalResult := mrCancel;
+          cdbOK: Btn.ModalResult := mrOK;
+          cdbNo: Btn.ModalResult := mrNo;
+          cdbYes: Btn.ModalResult := mrYes;
+          cdbNoToAll: Btn.ModalResult := mrNoToAll;
+          cdbYesToAll: Btn.ModalResult := mrYesToAll;
+        end;
 
         // Width - 右边距 - (Gap + ButtonWidth) * J
         Btn.SetBounds(Form.Width - MulDiv(8, DialogUnits.X, 4) -
@@ -6265,8 +6288,17 @@ begin
 {$ENDIF}
 
     J := Form.ShowModal;
-    if J > 0 then
-      Result := TCnDlgResult(J - 1);
+    case J of
+      mrCancel: Result := cdrCancel;
+      mrOK: Result := cdrOK;
+      mrNo: Result := cdrNo;
+      mrYes: Result := cdrYes;
+      mrNoToAll: Result := cdrNoToAll;
+      mrYesToAll: Result := cdrYesToAll;
+    else
+      { 标题栏 X、ESC 以及其他非按钮关闭方式统一视为取消。 }
+      Result := cdrCancel;
+    end;
   finally
 {$IFDEF CREATE_PARAMS_BUG}
     if NeedChange and (OldLong <> 0) then
@@ -9177,7 +9209,10 @@ begin
   end;
 
   if Chgd then
+  begin
     AForm.BoundsRect := D;
+    Result := True;
+  end;
 end;
 
 {$ENDIF}

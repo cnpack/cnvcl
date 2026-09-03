@@ -33,6 +33,13 @@
       <stop offset="100%" stop-color="#00FF00"/>
     </linearGradient>
 
+    <!-- 折线专用渐变：坐标范围覆盖测试19中的整条折线。 -->
+    <linearGradient id="lgPolyline" gradientUnits="userSpaceOnUse"
+                    x1="650" y1="850" x2="850" y2="850">
+      <stop offset="0%" stop-color="#FF00FF"/>
+      <stop offset="100%" stop-color="#00FF00"/>
+    </linearGradient>
+
     <!-- Clip Path -->
     <clipPath id="clip1">
       <rect x="30" y="380" width="200" height="80" rx="10"/>
@@ -169,7 +176,7 @@
   <text x="450" y="1020" font-size="12" text-anchor="middle" fill="#666">椭圆 ClipPath + 渐变叠加</text>
 
   <!-- ===== 测试19: 折线 + 渐变描边 ===== -->
-  <polyline points="650,850 700,830 750,860 800,820 850,870" fill="none" stroke="url(#lg3)" stroke-width="4"/>
+  <polyline points="650,850 700,830 750,860 800,820 850,870" fill="none" stroke="url(#lgPolyline)" stroke-width="4"/>
   <text x="750" y="900" font-size="12" text-anchor="middle" fill="#666">渐变描边折线</text>
 
   <!-- ===== 测试20: 多重变换组合 ===== -->
