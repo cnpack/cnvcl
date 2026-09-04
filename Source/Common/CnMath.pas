@@ -995,7 +995,7 @@ begin
   A := Int(Value);
   B := Frac(Value);
 
-  Neg := A < 0;
+  Neg := Value < 0;
   if Neg then
   begin
     A := -A;
@@ -1490,7 +1490,7 @@ function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
 }
 var
   I, TargetPrecision, Sign: Integer;
-  X, X2, Term, Sum, Factorial, Gap, Pi, PiOver2, TwoPi: TCnBigDecimal;
+  X, X2, Term, Sum, Gap, Pi, PiOver2, TwoPi: TCnBigDecimal;
   TN: Boolean;
 begin
   if Precision <= 0 then
@@ -1507,7 +1507,6 @@ begin
   X2 := FLocalBigDecimalPool.Obtain;
   Term := FLocalBigDecimalPool.Obtain;
   Sum := FLocalBigDecimalPool.Obtain;
-  Factorial := FLocalBigDecimalPool.Obtain;
   Gap := FLocalBigDecimalPool.Obtain;
   Pi := FLocalBigDecimalPool.Obtain;
   PiOver2 := FLocalBigDecimalPool.Obtain;
@@ -1595,7 +1594,6 @@ begin
     FLocalBigDecimalPool.Recycle(X2);
     FLocalBigDecimalPool.Recycle(Term);
     FLocalBigDecimalPool.Recycle(Sum);
-    FLocalBigDecimalPool.Recycle(Factorial);
     FLocalBigDecimalPool.Recycle(Gap);
     FLocalBigDecimalPool.Recycle(Pi);
     FLocalBigDecimalPool.Recycle(PiOver2);

@@ -638,7 +638,7 @@ var
   AHour, AMin, ASec, AMSec: Word;
 begin
   DecodeDate(ADateTime, AYear, AMonth, ADay);
-  DecodeTime(Now, AHour, AMin, ASec, AMSec);
+  DecodeTime(ADateTime, AHour, AMin, ASec, AMSec);
   SetYearMonthDayHour(AYear, AMonth, ADay, AHour);
 end;
 

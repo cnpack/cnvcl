@@ -2567,6 +2567,7 @@ begin
     Exit;
   end;
 
+  R := nil;
   X0 := nil;
   T := nil;
   D := nil;

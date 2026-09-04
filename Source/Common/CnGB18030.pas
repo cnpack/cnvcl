@@ -618,8 +618,8 @@ function IsGBKDuplicated(CP: TCnCodePoint): Boolean;
 var
   I: Integer;
 begin
-  Result := (CP < CN_DUPLICATES_GBK[0]) or (CP > $FFFF);
-  if not Result then
+  Result := False;
+  if (CP >= CN_DUPLICATES_GBK[0]) and (CP < $FFFF) then
   begin
     for I := Low(CN_DUPLICATES_GBK) to High(CN_DUPLICATES_GBK) do
     begin
@@ -636,8 +636,8 @@ function IsGB18030Duplicated(CP: TCnCodePoint): Boolean;
 var
   I: Integer;
 begin
-  Result := (CP < CN_DUPLICATES_GB18030[0]) or (CP > $FFFF);
-  if not Result then
+  Result := False;
+  if (CP >= CN_DUPLICATES_GB18030[0]) and (CP <= CN_DUPLICATES_GB18030[High(CN_DUPLICATES_GB18030)]) then
   begin
     for I := Low(CN_DUPLICATES_GB18030) to High(CN_DUPLICATES_GB18030) do
     begin
@@ -995,8 +995,8 @@ begin
       Inc(GB18030Str);
       B4 := Byte(GB18030Str^);
 
-      if ((B3 >= $81) and (B3 <= $FE)) or
-      ((B4 >= $30) and (B4 <= $39)) then
+      if ((B3 >= $81) and (B3 <= $FE)) and
+        ((B4 >= $30) and (B4 <= $39)) then
         Result := 4;
     end;
   end;
