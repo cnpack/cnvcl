@@ -161,6 +161,15 @@ type
 
 implementation
 
+resourcestring
+  SCnErrorErrorColumnRowCount = 'Error Column/Row Count.';
+  SCnErrorInvalidExpandCount = 'Invalid Expand Count.';
+  SCnErrorInvalidColumnIndex = 'Invalid Column Index.';
+  SCnErrorInvalidRowIndex = 'Invalid Row Index.';
+  SCnErrorColumnRowIndex = 'Error Column/Row Index.';
+  SCnErrorColumnIndex = 'Error Column Index.';
+  SCnErrorRowIndex = 'Error Row Index.';
+
 { TCnCrossLinkedMatrix }
 
 constructor TCnCrossLinkedMatrix.Create(AColCount, ARowCount: Integer;
@@ -170,7 +179,7 @@ var
 begin
   inherited Create;
   if (AColCount <= 0) or (ARowCount <= 0) then
-    raise ECnCrossLinkedMatrixException.Create('Error Column/Row Count.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorErrorColumnRowCount);
 
   FColCount := AColCount;
   FRowCount := ARowCount;
@@ -234,7 +243,7 @@ var
   I: Integer;
 begin
   if ExpandCount <= 0 then
-    raise ECnCrossLinkedMatrixException.Create('Invalid Expand Count.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorInvalidExpandCount);
 
   Inc(FColCount, ExpandCount);
   for I := 1 to ExpandCount do
@@ -246,7 +255,7 @@ var
   I: Integer;
 begin
   if ExpandCount <= 0 then
-    raise ECnCrossLinkedMatrixException.Create('Invalid Expand Count.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorInvalidExpandCount);
 
   Inc(FRowCount, ExpandCount);
   for I := 1 to ExpandCount do
@@ -327,15 +336,15 @@ end;
 function TCnCrossLinkedMatrix.GetColumnHead(Col: Integer): TCnCrossLinkedNode;
 begin
   if (Col < 0) or (Col >= FColCount) then
-    raise ECnCrossLinkedMatrixException.Create('Invalid Column Index.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorInvalidColumnIndex);
 
   Result := TCnCrossLinkedNode(FColumnHeads[Col]);
 end;
 
 function TCnCrossLinkedMatrix.GetRowHead(Row: Integer): TCnCrossLinkedNode;
 begin
-  if (Row < 0) or (Row >= FColCount) then
-    raise ECnCrossLinkedMatrixException.Create('Invalid Row Index.');
+  if (Row < 0) or (Row >= FRowCount) then
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorInvalidRowIndex);
 
   Result := TCnCrossLinkedNode(FRowHeads[Row]);
 end;
@@ -347,7 +356,7 @@ var
 begin
   Result := nil;
   if (ACol < 0) or (ARow < 0) or (ACol >= FColCount) or (ARow >= FRowCount) then
-    raise ECnCrossLinkedMatrixException.Create('Error Column/Row Index.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorColumnRowIndex);
 
   if Cells[ACol, ARow] <> nil then // ÒÑ¾­´æÔÚ
     Exit;
@@ -513,7 +522,7 @@ var
   Row: Integer;
 begin
   if (ACol < 0) or (ACol >= ColCount) then
-    raise ECnCrossLinkedMatrixException.Create('Error Column Index.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorColumnIndex);
 
   Result := TCnCrossLinkedNode(FColumnHeads[ACol]);
   if Result = nil then
@@ -548,7 +557,7 @@ var
   Col: Integer;
 begin
   if (ARow < 0) or (ARow >= RowCount) then
-    raise ECnCrossLinkedMatrixException.Create('Error Row Index.');
+    raise ECnCrossLinkedMatrixException.Create(SCnErrorRowIndex);
 
   Result := TCnCrossLinkedNode(FRowHeads[ARow]);
   if Result = nil then
@@ -619,6 +628,7 @@ begin
     Inc(FCount);
     P := P.Down;
   until (P = ColHead) or (P = nil);
+  Result := True;
 end;
 
 function TCnDancingLinks.RestoreRow(ARowHead: TCnCrossLinkedNode): Boolean;
@@ -663,6 +673,7 @@ begin
     Inc(FCount);
     P := P.Right;
   until (P = ARowHead) or (P = nil);
+  Result := True;
 end;
 
 end.

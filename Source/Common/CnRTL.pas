@@ -512,13 +512,13 @@ begin
     Info.Size := ModuleInfo.SizeOfImage;
     Info.EndAddr := Pointer(TCnNativeUInt(ModuleInfo.lpBaseOfDll) + ModuleInfo.SizeOfImage);
 
-    Res := GetModuleBaseName(PH, MH, @AName[0], SizeOf(AName));
+    Res := GetModuleBaseName(PH, MH, @AName[0], SizeOf(AName) div SizeOf(Char));
     if Res > 0 then
     begin
       SetLength(Info.FBaseName, Res);
       System.Move(AName[0], Info.FBaseName[1], Res * SizeOf(Char));
     end;
-    Res := GetModuleFileName(MH, @AName[0], SizeOf(AName));
+    Res := GetModuleFileName(MH, @AName[0], SizeOf(AName) div SizeOf(Char));
     if Res > 0 then
     begin
       SetLength(Info.FFullName, Res);

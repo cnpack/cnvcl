@@ -454,7 +454,7 @@ destructor TCnLeaf.Destroy;
 var
   I: Integer;
 begin
-  if not FTree.BatchUpdating then
+  if (FTree <> nil) and not FTree.BatchUpdating then
   begin
     for I := FList.Count - 1 downto 0 do
       DeleteChild(I);
@@ -514,10 +514,12 @@ function TCnLeaf.ExtractChild(ALeaf: TCnLeaf): TCnLeaf;
 var
   AIndex: Integer;
 begin
-  if ALeaf.HasAsParent(Self) then
+  if (ALeaf <> nil) and ALeaf.HasAsParent(Self) then
   begin
     AIndex := ALeaf.Index;
     Result := ALeaf.Parent.Items[AIndex];
+    if Result <> nil then
+      Result.FParent := nil;
     ALeaf.Parent.FList.Delete(AIndex);
   end
   else
@@ -530,7 +532,8 @@ begin
   if (AIndex >= 0) and (AIndex < Count) then
   begin
     Result := TCnLeaf(Items[AIndex]);
-    Result.FParent := nil;
+    if Result <> nil then
+      Result.FParent := nil;
     FList.Delete(AIndex);
   end;
 end;
@@ -651,7 +654,8 @@ begin
       else
         ACount := 1;
 
-      if IndexCount + ACount > AAbsoluteIndex then
+      if (Items[I] <> nil) and
+        (IndexCount + ACount > AAbsoluteIndex) then
       begin
         Result := Items[I].GetAbsoluteItems(AAbsoluteIndex - IndexCount - 1);
         Exit;
@@ -989,11 +993,13 @@ end;
 function TCnTree.ExtractLeaf(ALeaf: TCnLeaf): TCnLeaf;
 begin
   Result := nil;
-  if ALeaf.Tree = Self then
+  if (ALeaf <> nil) and (ALeaf.Tree = Self) then
   begin
-    Self.UnRegisterLeaf(ALeaf);
     if ALeaf.Parent <> nil then
+    begin
+      Self.UnRegisterLeaf(ALeaf);
       Result := ALeaf.Parent.ExtractChild(ALeaf.Index);
+    end;
   end;
 end;
 
@@ -1114,9 +1120,18 @@ begin
 
       Leaf1.FList.Clear;
       for I := 0 to Leaf2.Count - 1 do
+      begin
         Leaf1.FList.Add(Leaf2.Items[I]);
+        if Leaf2.Items[I] <> nil then
+          Leaf2.Items[I].FParent := Leaf1;
+      end;
+      Leaf2.FList.Clear;
       for I := 0 to AList.Count - 1 do
+      begin
         Leaf2.FList.Add(AList.Items[I]);
+        if AList.Items[I] <> nil then
+          TCnLeaf(AList.Items[I]).FParent := Leaf2;
+      end;
     finally
       AList.Free;
     end;

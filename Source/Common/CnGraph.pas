@@ -480,7 +480,7 @@ begin
     begin
       // 找到一条边，起始点是 Vertex[Row] 以及 Vertex[Row].OutNeighbour[I]
       Idx := FVertexes.IndexOf(Vertex[Row].OutNeighbour[I]);
-      if Idx > 0 then
+      if Idx >= 0 then
       begin
         Result[Row, Col] := 1;  // 边起点
         if FDirected then
@@ -588,12 +588,11 @@ begin
     Vertex.OutNeighbour[I].RemoveInNeighbour(Vertex);
 
   // 删 InNeighbours 里每一个里的 OutNeighbours 里的自己
-  for I := 0 to Vertex.InNeighbourCount - 1 do
+  for I := Vertex.InNeighbourCount - 1 downto 0 do
     Vertex.InNeighbour[I].RemoveOutNeighbour(Vertex);
 
   Vertex.ClearNeighbours;
   FVertexes.Remove(Vertex);
-  Vertex.Free;
   Result := True;
 end;
 

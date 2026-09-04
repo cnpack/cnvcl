@@ -499,8 +499,9 @@ begin
   if Source is ClassType then
   begin
     AssignPersistent(Source, Self);
-  end;
-  inherited Assign(Source);
+  end
+  else
+    inherited Assign(Source);
 end;
 
 //==============================================================================
