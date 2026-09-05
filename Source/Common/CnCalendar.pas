@@ -412,7 +412,7 @@ procedure ValidDate(AYear, AMonth, ADay: Integer);
 
 function GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay: Integer;
   IsLeapMonth: Boolean = False): Boolean;
-{* 返回农历日期是否合法。
+{* 返回农历日期是否合法。年份必须在内置农历表的 -849..-1、1..2800 范围内。
 
    参数：
      ALunarYear, ALunarMonth, ALunarDay: Integer          - 待判断的农历年、月、日
@@ -423,7 +423,7 @@ function GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay: Integer;
 
 procedure ValidLunarDate(ALunarYear, ALunarMonth, ALunarDay: Integer;
   IsLeapMonth: Boolean = False);
-{* 判断农历日期是否合法，不合法则抛出异常。
+{* 判断农历日期是否合法，不合法或超出内置农历表范围则抛出异常。
 
    参数：
      ALunarYear, ALunarMonth, ALunarDay: Integer          - 待判断的农历年、月、日
@@ -453,7 +453,7 @@ procedure ValidTime(AHour, AMinitue, ASecond: Integer);
 procedure StepToPreviousDay(var AYear, AMonth, ADay: Integer;
   AllowZeroYear: Boolean = False);
 {* 公历年月日往前步进一天，考虑各种闰年、格里高利历删 10 天等因素。支持公历无 0 年
-   （-1 是闰年）及公历有 0 年（0 年闰年）两种模式。默认不允许出现公历 0 年。
+   （-1 是闰年）及公历有 0 年（0 年闰年）两种模式。默认不允许出现公历 0 年，输入日期非法时抛出异常。
 
    参数：
      var AYear, AMonth, ADay: Integer     - 待步进的公历年、月、日
@@ -465,7 +465,7 @@ procedure StepToPreviousDay(var AYear, AMonth, ADay: Integer;
 procedure StepToNextDay(var AYear, AMonth, ADay: Integer;
   AllowZeroYear: Boolean = False);
 {* 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素。支持公历无 0 年
-   （-1 是闰年）及公历有 0 年（0 年闰年）两种模式。默认不允许出现公历 0 年。
+   （-1 是闰年）及公历有 0 年（0 年闰年）两种模式。默认不允许出现公历 0 年，输入日期非法时抛出异常。
 
    参数：
      var AYear, AMonth, ADay: Integer     - 待步进的公历年、月、日
@@ -476,7 +476,7 @@ procedure StepToNextDay(var AYear, AMonth, ADay: Integer;
 
 function IsDayBetweenEqual(AYear, AMonth, ADay: Integer; StartYear, StartMonth, StartDay: Integer;
   EndYear, EndMonth, EndDay: Integer): Boolean;
-{* 判断公历年月日是否处于两个公历日期闭区间之间，也就是包含相等的情形。
+{* 判断公历年月日是否处于两个公历日期闭区间之间，也就是包含相等的情形。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer                         - 待判断的公历年、月、日
@@ -497,7 +497,7 @@ function GetMonthDays(AYear, AMonth: Integer): Integer;
 
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean = False): Integer;
-{* 取农历年的某月天数。
+{* 取农历年的某月天数。年份或月份非法时抛出异常；指定的闰月不存在或没有对应公历日期时返回 -1。
 
    参数：
      ALunarYear, ALunarMonth: Integer     - 某农历年及某个月，农历年不能为 0
@@ -517,7 +517,7 @@ function GetIsLeapYear(AYear: Integer): Boolean;
 }
 
 function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 取某公历日期到年初的天数，不考虑 1582 年 10 月的特殊情况，年份值不能为 0。
+{* 取某公历日期到年初的天数，不考虑 1582 年 10 月的特殊情况，年份值不能为 0，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -527,7 +527,7 @@ function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
 
 function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
   AMinute: Integer = 0; ASecond: Integer = 0): Extended; overload;
-{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况，年份值不能为 0。
+{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况，年份值不能为 0，日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -559,7 +559,7 @@ function GetWeek(const AValue: TDateTime): Integer; overload;
 }
 
 function GetWeek(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 获得某公历日期是星期几，0-6 对应日到六。
+{* 获得某公历日期是星期几，0-6 对应日到六。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -844,7 +844,7 @@ function Get3HeFromZhi(const Zhi: Integer; out He1: Integer;
 }
 
 function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
-{* 获得某公历时的天干地支，0-59 对应 甲子到癸亥。
+{* 获得某公历时的天干地支，0-59 对应 甲子到癸亥。日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
@@ -853,7 +853,7 @@ function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 }
 
 function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 获得某公历日的天干地支，0-59 对应甲子到癸亥。
+{* 获得某公历日的天干地支，0-59 对应甲子到癸亥。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -862,7 +862,7 @@ function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer; overload;
 }
 
 function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
-{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日。
+{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，23 时按次日子时处理。日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
@@ -880,7 +880,7 @@ function GetGanZhiFromDay(AllDays: Integer): Integer; overload;
 }
 
 function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 获得某公历月的天干地支，需要日是因为月以节气分界，不考虑时。0-59 对应甲子到癸亥。
+{* 获得某公历月的天干地支，需要日是因为月以节气分界，不考虑时。0-59 对应甲子到癸亥，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -889,7 +889,7 @@ function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer; overload;
 }
 
 function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
-{* 获得某公历月的天干地支，需要日与时是因为月以节气分界。0-59 对应甲子到癸亥。
+{* 获得某公历月的天干地支，需要日与时是因为月以节气分界。0-59 对应甲子到癸亥，日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
@@ -908,7 +908,7 @@ function GetGanZhiFromYear(AYear: Integer): Integer; overload;
 
 function GetGanZhiFromYear(AYear, AMonth, ADay: Integer;
   StartType: TCnGanZhiYearStartType = ystByLiChun): Integer; overload;
-{* 根据公历年月日获得某公历年的天干地支，默认以立春为年分界，0-59 对应甲子到癸亥。
+{* 根据公历年月日获得某公历年的天干地支，默认以立春为年分界，0-59 对应甲子到癸亥，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -919,7 +919,7 @@ function GetGanZhiFromYear(AYear, AMonth, ADay: Integer;
 
 function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer;
   StartType: TCnGanZhiYearStartType = ystByLiChun): Integer; overload;
-{* 根据公历年月日时获得某公历年的天干地支，默认以立春为年分界，精确到小时，0-59 对应甲子到癸亥。
+{* 根据公历年月日时获得某公历年的天干地支，默认以立春为年分界，精确到小时，0-59 对应甲子到癸亥，日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
@@ -957,7 +957,7 @@ function GetShengXiaoFromYear(AYear: Integer): Integer; overload;
 
 function GetShengXiaoFromYear(AYear, AMonth, ADay: Integer;
   StartType: TCnGanZhiYearStartType = ystByLiChun): Integer; overload;
-{* 获得某公历年月日的生肖也就是地支，默认以立春为年分界，0-11 对应鼠到猪。
+{* 获得某公历年月日的生肖也就是地支，默认以立春为年分界，0-11 对应鼠到猪。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年月日
@@ -967,7 +967,7 @@ function GetShengXiaoFromYear(AYear, AMonth, ADay: Integer;
 }
 
 function GetXingZuoFromMonthDay(AMonth, ADay: Integer): Integer;
-{* 获得某公历月日的星座，0-11 对应白羊到双鱼。
+{* 获得某公历月日的星座，0-11 对应白羊到双鱼。月日非法时抛出异常。
 
    参数：
      AMonth, ADay: Integer                - 待计算的公历月、日
@@ -976,7 +976,7 @@ function GetXingZuoFromMonthDay(AMonth, ADay: Integer): Integer;
 }
 
 function Get12JianFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历月日的十二建，0-11 对应建到闭。
+{* 获得某公历月日的十二建，0-11 对应建到闭。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -985,7 +985,7 @@ function Get12JianFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function Get28XiuFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历日的二十八宿，0-27 对应角到轸。
+{* 获得某公历日的二十八宿，0-27 对应角到轸。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -994,7 +994,7 @@ function Get28XiuFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetLunar28XiuFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历日的农历二十八宿，0-27 对应角到轸，如农历日不存在或超界，返回 -1
+{* 获得某公历日的农历二十八宿，0-27 对应角到轸，如农历日不存在或超出内置农历表范围，返回 -1；公历日期非法时抛出异常。
    注意该农历二十八宿的结果中不包括 8 牛。
 
    参数：
@@ -1004,7 +1004,7 @@ function GetLunar28XiuFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer): string; overload;
-{* 获得某公历日的胎神方位，0-59 返回胎神位置加胎神方位的字符串。
+{* 获得某公历日的胎神方位，0-59 返回胎神位置加胎神方位的字符串，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1014,7 +1014,7 @@ function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer): string; overload
 
 function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer;
   out TaiShen1: string; out TaiShen2: string): Boolean; overload;
-{* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串。
+{* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1025,7 +1025,7 @@ function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer;
 }
 
 function GetShiChenFromHour(AHour: Integer): Integer;
-{* 获得小时时刻对应的时辰，0-11 对应子至亥。
+{* 获得小时时刻对应的时辰，0-11 对应子至亥。小时非法时抛出异常。
 
    参数：
      AHour: Integer                       - 待计算的小时数
@@ -1057,7 +1057,7 @@ function AdjustYearToGanZhi(var AYear: Integer; AMonth: Integer;
      ADay: Integer                        - 该公历日期的日数
      AHour: Integer                       - 该公历日期的小时数
 
-   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
+   返回值：Boolean                        - 返回日期和时间是否合法，注意与是否调整无关
 }
 
 function AdjustYearMonthToGanZhi(var AYear: Integer; var AMonth: Integer;
@@ -1072,7 +1072,7 @@ function AdjustYearMonthToGanZhi(var AYear: Integer; var AMonth: Integer;
      ADay: Integer                        - 该公历日期的日数
      AHour: Integer                       - 该公历日期的小时数
 
-   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
+   返回值：Boolean                        - 返回日期和时间是否合法，注意与是否调整无关
 }
 
 function Get3YuanFromNumber(A3Yuan: Integer): string;
@@ -1103,7 +1103,7 @@ function Get6YaoFromNumber(A6Yao: Integer): string;
 }
 
 function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历年所属的三元，0-2。
+{* 获取公历年所属的三元，0-2。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1112,7 +1112,7 @@ function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetYun9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历年的运九星，0-8 对应一白到九紫。
+{* 获取公历年的运九星，0-8 对应一白到九紫。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1121,7 +1121,7 @@ function GetYun9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function Get9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历年的年九星，0-8 对应一白到九紫。
+{* 获取公历年的年九星，0-8 对应一白到九紫。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1130,7 +1130,7 @@ function Get9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历月的月九星，0-8 对应一白到九紫。
+{* 获取公历月的月九星，0-8 对应一白到九紫。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1139,7 +1139,7 @@ function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历日的日九星，0-8 对应一白到九紫。
+{* 获取公历日的日九星，0-8 对应一白到九紫。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1148,7 +1148,7 @@ function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
-{* 获取公历时的时九星，0-8 对应一白到九紫。
+{* 获取公历时的时九星，0-8 对应一白到九紫。日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
@@ -1157,7 +1157,7 @@ function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 }
 
 function Get6YaoFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历日的日六曜，0-5 对应先胜到赤口。
+{* 获取公历日的日六曜，0-5 对应先胜到赤口。日期非法时抛出异常，超出农历表范围时返回 -1。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1175,7 +1175,7 @@ function GetJiShenFangWeiFromNumber(AFangWei: Integer): string;
 }
 
 function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的财神方位，0-7。
+{* 获得公历年月日的财神方位，0-7。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1184,7 +1184,7 @@ function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的喜神方位，0-7。
+{* 获得公历年月日的喜神方位，0-7。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1193,7 +1193,7 @@ function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的福神方位，0-7。
+{* 获得公历年月日的福神方位，0-7。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1202,7 +1202,7 @@ function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的贵神方位，0-7，默认为阳贵。
+{* 获得公历年月日的贵神方位，0-7，默认为阳贵。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1211,7 +1211,7 @@ function GetGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的阳贵神方位，0-7。
+{* 获得公历年月日的阳贵神方位，0-7。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1220,7 +1220,7 @@ function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的阴贵神方位，0-7。
+{* 获得公历年月日的阴贵神方位，0-7。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1229,7 +1229,7 @@ function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
-{* 获得距公元元年 1 月 0 日的绝对天数。
+{* 获得距公元元年 1 月 0 日的绝对天数。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1240,7 +1240,7 @@ function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
 function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer; out ADay: Integer;
   out AHour: Integer; out AMinitue: Integer; out ASecond: Integer; out ActualYear: Integer): Boolean;
 {* 获得某公历年内的第 N 个节气的交节月日时分秒，0~23，对应物理顺序的小寒到冬至，并非立春到大寒。
-   注意：公历 1582 年以前的第 0 个节气小寒可能会落到前一年的 12 月底，本过程处理了这种情况。
+   注意：公历 1582 年以前的第 0 个节气小寒可能会落到前一年的 12 月底，本过程处理了这种情况；年份为 0 或序号非法时抛出异常。
    ActualYear 参数会返回本节气落在的实际年份。
 
    参数：
@@ -1257,7 +1257,7 @@ function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer; out ADay: Integ
 }
 
 function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日是本年的什么节气（或者次年的小寒），0-23，对应立春到大寒，无则返回 -1。
+{* 获得公历年月日是本年的什么节气（或者次年的小寒），0-23，对应立春到大寒；合法日期但不是节气时返回 -1，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1267,7 +1267,7 @@ function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
 
 function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer;
   out AHour: Integer; out AMinitue: Integer; out ASecond: Integer): Integer;
-{* 获得公历年月日是本年的什么节气（或者次年的小寒）以及交节时刻，0-23，对应立春到大寒，无则返回 -1。
+{* 获得公历年月日是本年的什么节气（或者次年的小寒）以及交节时刻，0-23，对应立春到大寒；合法日期但不是节气时返回 -1，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1291,7 +1291,7 @@ function GetJieQiDayTimeFromYear(AYear, N: Integer): Extended;
 }
 
 function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDay: Integer): Boolean;
-{* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9 对应一九到九九，返回 False 为不在数九日内。
+{* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9 对应一九到九九；合法日期但不在数九日内返回 False，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1302,7 +1302,7 @@ function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDa
 }
 
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
-{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或 20）对应初伏到末伏的伏日，返回 False 为不在三伏日内。
+{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或 20）对应初伏到末伏的伏日；合法日期但不在三伏日内返回 False，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1313,7 +1313,7 @@ function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: 
 }
 
 function GetRuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
-{* 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日，返回是否获取成功。
+{* 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日，年份非法时抛出异常，返回是否获取成功。
 
    参数：
      AYear: Integer                       - 待计算的公历年
@@ -1324,7 +1324,7 @@ function GetRuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Bo
 }
 
 function GetChuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
-{* 获得某公历年中的出梅日期，梅雨季节的结束日，小暑后的第一个未日，返回是否获取成功。
+{* 获得某公历年中的出梅日期，梅雨季节的结束日，小暑后的第一个未日，年份非法时抛出异常，返回是否获取成功。
 
    参数：
      AYear: Integer                       - 待计算的公历年
@@ -1336,7 +1336,7 @@ function GetChuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): B
 
 function GetLunarFromDay(AYear, AMonth, ADay: Integer;
   out LunarYear, LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
-{* 获得某公历年月日的农历年月日和是否闰月，公历年不能为 0，返回是否获取成功。
+{* 获得某公历年月日的农历年月日和是否闰月。输入日期非法或超出内置农历表范围时返回 False。
    注意因历史上的确出现过修历增补月份的，这里暂且用“闰月”标记其第二个月。
    比如：
    公元 239 年 12 月 13 日十二月大后，公元 240 年 1 月 12 日增加十二月小，本来不算闰月，
@@ -1354,7 +1354,7 @@ function GetLunarFromDay(AYear, AMonth, ADay: Integer;
 
 function GetLunarMonthDayFromDay(AYear, AMonth, ADay: Integer;
   out LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
-{* 获得某公历年月日的农历月日和是否闰月的信息，年份按相等处理，实际可能不等。返回是否获取成功。
+{* 获得某公历年月日的农历月日和是否闰月的信息，年份按相等处理，实际可能不等。输入日期非法或超出内置农历表范围时返回 False。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1366,17 +1366,17 @@ function GetLunarMonthDayFromDay(AYear, AMonth, ADay: Integer;
 
 function GetLunarLeapMonth(AYear: Integer): Integer;
 {* 获得某农历年的第几个月是闰月，返回 1~12 对应第一个月到第十二个月，
-   也就是去年闰十二月到今年闰十一月，返回 0 表示无闰月。
+   也就是去年闰十二月到今年闰十一月，返回 0 表示无闰月。年份非法或超出内置农历表范围时抛出异常。
 
    参数：
-     AYear: Integer                       - 待计算的农历年，基本等同于公历年，无公元 0 年，如果传了 0 这不存在的年也返回无闰月
+     AYear: Integer                       - 待计算的农历年，范围为 -849..-1、1..2800，无公元 0 年
 
    返回值：Integer                        - 返回闰月，0 表示无闰月
 }
 
 function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth:
   Boolean; out AYear, AMonth, ADay: Integer): Boolean;
-{* 获得某农历年月日（加是否闰月）的公历年月日，农历年不能为 0，返回是否获取成功。
+{* 获得某农历年月日（加是否闰月）的公历年月日。输入非法、超出内置农历表范围或没有对应公历日期时返回 False。
    注意因历史上的确出现过修历增补月份的。比如：
    公元 239 年 12 月 13 日十二月大后，公元 240 年 1 月 12 日增加十二月小，又不算闰月，因而农历 239 年十二月内的就查不出来。
    公元 23 年 12 月 2 日十二月小后，12 月 31 日增加十二月大，也不叫闰月，因而农历 23 年十二月内的也查不出来。
@@ -1403,7 +1403,7 @@ function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer;
 
 function Compare2LunarDay(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
   Year2, Month2, Day2: Integer; IsLeap2: Boolean): Integer;
-{* 比较两个农历日期（包括闰月信息），前者大于、等于、小于后者时分别返回 1、0、-1，大于指更靠近未来。
+{* 比较两个农历日期（包括闰月信息），前者大于、等于、小于后者时分别返回 1、0、-1，大于指更靠近未来。日期非法或超出农历表范围时抛出异常。
 
    参数：
      Year1, Month1, Day1: Integer         - 待判断的第一个农历年、月、日
@@ -1415,7 +1415,7 @@ function Compare2LunarDay(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
 }
 
 function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
-{* 根据公历年月日，返回该日所属的以立春分割的年份，也就是说立春日后是今年，否则为去年。
+{* 根据公历年月日，返回该日所属的以立春分割的年份，也就是说立春日后是今年，否则为去年。日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1425,7 +1425,8 @@ function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
 
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
 {* 获得某公历日的等效标准日数，似乎是离格利高里历往前推到儒略历公元元年元月 0 日的日数。
-   注意由于内部计算特殊场合的要求，该函数的年参数必须连续且出现 0，也即公元前 1 年为 0。
+   注意由于内部计算特殊场合的要求，该函数的年参数允许使用连续年份 0，日期参数允许使用日 0；
+   其他日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1448,7 +1449,7 @@ function GetDayFromEquStandardDays(EquDays: Integer;
 
 function GetJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
 {* 获得某公历日中午 12 点的儒略日数，也即以儒略历的公元前 4713 年 1 月 1 日
-   中午 12 点为起点的日数（该年是儒略历闰年），一般是个整数。注意无公元 0 年。
+   中午 12 点为起点的日数（该年是儒略历闰年），一般是个整数。注意无公元 0 年，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1458,7 +1459,7 @@ function GetJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
 
 function GetJulianDate(AYear, AMonth, ADay: Integer;
   AHour, AMinute, ASecond: Integer): Extended; overload;
-{* 获得某公历日期时刻的儒略日数。注意无公元 0 年。
+{* 获得某公历日期时刻的儒略日数。注意无公元 0 年，日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1469,7 +1470,7 @@ function GetJulianDate(AYear, AMonth, ADay: Integer;
 
 function GetModifiedJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
 {* 获得某公历日中午 12 点的约化儒略日数，也即以格里高利历的公元 1858 年 11 月 17 日
-   0 点为起点的日数，小数部分一般是 0.5。
+   0 点为起点的日数，小数部分一般是 0.5，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1479,7 +1480,7 @@ function GetModifiedJulianDate(AYear, AMonth, ADay: Integer): Extended; overload
 
 function GetModifiedJulianDate(AYear, AMonth, ADay: Integer;
   AHour, AMinute, ASecond: Integer): Extended; overload;
-{* 获得某公历日期时刻的约化儒略日数。
+{* 获得某公历日期时刻的约化儒略日数，日期或时间非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1516,10 +1517,19 @@ resourcestring
   SCnErrorConvertLunarDate = 'Date is Invalid for Lunar Conversion: %d-%d-%d.';
   SCnErrorTimeIsInvalid = 'Time is Invalid: %d:%d:%d.';
   SCnErrorYearIsInvalid = 'Year is Invalid: 0';
+  SCnErrorLunarYearIsInvalid = 'Lunar Year is Invalid: %d.';
+  SCnErrorMonthDayIsInvalid = 'Month/Day is Invalid: %d-%d.';
   SCnErrorJieQiIndexIsInvalid = 'JieQi Index is Invalid %d';
 
 const
   RADS = 0.0174532925;
+
+  // 内置农历表支持的外部年份为 -849..-1 和 1..2800。
+  // 对应的内部连续年份分别为 -848..0 和 1..2800。
+  CN_LUNAR_MIN_YEAR = -849;
+  CN_LUNAR_MAX_YEAR = 2800;
+  CN_LUNAR_INTERNAL_MIN_YEAR = -848;
+  CN_LUNAR_INTERNAL_MAX_YEAR = 2800;
 
   SCnTaiXuanPeiShuArray: array[0..5] of Integer =
     (9, 8, 7, 6, 5, 4);
@@ -6887,6 +6897,8 @@ begin
   // 三合是互相差 4 的三个地支，也就是申子辰、寅午戌、巳酉丑、卯亥未，
   // 或者说猴鼠龙、虎马狗、蛇鸡牛、兔猪羊
   Result := False;
+  He1 := CN_CALENDAR_INVALID_NUM;
+  He2 := CN_CALENDAR_INVALID_NUM;
   if Zhi in [0..11] then
   begin
     case Zhi of
@@ -6902,9 +6914,6 @@ begin
       9:  begin He1 := 5;  He2 := 1;  end;
       10: begin He1 := 2;  He2 := 6;  end;
       11: begin He1 := 3;  He2 := 7;  end;
-    else
-      He1 := CN_CALENDAR_INVALID_NUM;
-      He2 := CN_CALENDAR_INVALID_NUM;
     end;
     Result := True;
   end;
@@ -6967,6 +6976,22 @@ begin
     Result := 0;
 end;
 
+// 返回外部农历年份是否在内置历表覆盖范围内。
+// 公元 0 年不是有效的外部农历年份。
+function GetLunarYearIsSupported(ALunarYear: Integer): Boolean;
+begin
+  Result := (ALunarYear >= CN_LUNAR_MIN_YEAR) and
+    (ALunarYear <= CN_LUNAR_MAX_YEAR) and (ALunarYear <> 0);
+end;
+
+// 校验公开接口使用的农历年份。转换函数在失败属于预期结果时，
+// 改用下面的布尔校验函数。
+procedure ValidLunarYear(ALunarYear: Integer);
+begin
+  if not GetLunarYearIsSupported(ALunarYear) then
+    raise ECnDateTimeException.CreateFmt(SCnErrorLunarYearIsInvalid, [ALunarYear]);
+end;
+
 // 取农历年的某月天数
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean): Integer;
@@ -6975,6 +7000,12 @@ var
   AYear, AMonth, ADay: Integer;
   ALeap: Boolean;
 begin
+  // 这个标量接口对非法年份/月份采用严格校验。请求的闰月不存在时，
+  // 仍按普通无结果（-1）处理。
+  if not GetLunarYearIsSupported(ALunarYear) or not (ALunarMonth in [1..12]) then
+    raise ECnDateTimeException.CreateFmt(SCnErrorLunarDateIsInvalid,
+      [ALunarYear, ALunarMonth, 1, Integer(IsLeapMonth)]);
+
   Result := CN_CALENDAR_INVALID_NUM;
   if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
     and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
@@ -7034,12 +7065,30 @@ begin
     raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
 end;
 
+// 校验连续日期计算所使用的日期。这里有意允许公元 0 年和 0 日，
+// 因为该接口内部使用天文连续日期
+// （例如，连续年份 0-01-00 表示连续年份 0-01-01 的前一天）。
+procedure ValidEquStandardDate(AYear, AMonth, ADay: Integer);
+begin
+  if not (AMonth in [1..12]) or (ADay < 0) then
+    raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
+  if ADay = 0 then
+    Exit;
+  if AYear = 0 then
+  begin
+    if ADay > GetMonthDays(-1, AMonth) then
+      raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
+  end
+  else
+    ValidDate(AYear, AMonth, ADay);
+end;
+
 // 返回农历日期是否合法
 function GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay: Integer;
   IsLeapMonth: Boolean): Boolean;
 begin
   Result := False;
-  if (ALunarYear = 0) or not (ALunarMonth in [1..12]) then
+  if not GetLunarYearIsSupported(ALunarYear) or not (ALunarMonth in [1..12]) then
     Exit;
 
   if (ALunarDay < 1) or (ALunarDay > 30) then
@@ -7085,7 +7134,12 @@ procedure StepToPreviousDay(var AYear, AMonth, ADay: Integer; AllowZeroYear: Boo
 var
   LY: Integer;
 begin
-  if not AllowZeroYear then
+  if AllowZeroYear and (AYear = 0) then
+  begin
+    if not (AMonth in [1..12]) or (ADay < 1) or (ADay > GetMonthDays(-1, AMonth)) then
+      raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
+  end
+  else
     ValidDate(AYear, AMonth, ADay);
 
   if (AYear = 1582) and (AMonth = 10) and (ADay = 15) then
@@ -7140,7 +7194,12 @@ procedure StepToNextDay(var AYear, AMonth, ADay: Integer; AllowZeroYear: Boolean
 var
   LY: Integer;
 begin
-  if not AllowZeroYear then
+  if AllowZeroYear and (AYear = 0) then
+  begin
+    if not (AMonth in [1..12]) or (ADay < 1) or (ADay > GetMonthDays(-1, AMonth)) then
+      raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
+  end
+  else
     ValidDate(AYear, AMonth, ADay);
 
   if (AYear = 1582) and (AMonth = 10) and (ADay = 4) then
@@ -7191,7 +7250,7 @@ begin
   end;
 end;
 
-function IsDayBetweenEqual(AYear, AMonth, ADay: Integer; StartYear, StartMonth, StartDay: Integer;
+function IsDayBetweenEqualUnchecked(AYear, AMonth, ADay: Integer; StartYear, StartMonth, StartDay: Integer;
   EndYear, EndMonth, EndDay: Integer): Boolean;
 begin
   Result := False;
@@ -7209,6 +7268,16 @@ begin
     Exit;
 
   Result := True;
+end;
+
+function IsDayBetweenEqual(AYear, AMonth, ADay: Integer; StartYear, StartMonth, StartDay: Integer;
+  EndYear, EndMonth, EndDay: Integer): Boolean;
+begin
+  ValidDate(AYear, AMonth, ADay);
+  ValidDate(StartYear, StartMonth, StartDay);
+  ValidDate(EndYear, EndMonth, EndDay);
+  Result := IsDayBetweenEqualUnchecked(AYear, AMonth, ADay,
+    StartYear, StartMonth, StartDay, EndYear, EndMonth, EndDay);
 end;
 
 // 比较两个公历日期，1 >=< 2 分别返回 1、0、-1
@@ -7257,7 +7326,7 @@ begin
 end;
 
 // 比较两个农历日期（包括闰月信息），1 >=< 2 分别返回 1、0、-1
-function Compare2LunarDay(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
+function Compare2LunarDayUnchecked(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
   Year2, Month2, Day2: Integer; IsLeap2: Boolean): Integer;
 begin
   if Year1 > Year2 then // 年大
@@ -7303,8 +7372,18 @@ begin
   end;
 end;
 
-// 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况
-function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer;
+function Compare2LunarDay(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
+  Year2, Month2, Day2: Integer; IsLeap2: Boolean): Integer;
+begin
+  ValidLunarDate(Year1, Month1, Day1, IsLeap1);
+  ValidLunarDate(Year2, Month2, Day2, IsLeap2);
+  Result := Compare2LunarDayUnchecked(Year1, Month1, Day1, IsLeap1,
+    Year2, Month2, Day2, IsLeap2);
+end;
+
+// 内部未校验实现。它还接受连续公元 0 年，
+// 以支持 GetEquStandardDays 等天文计算。
+function GetDayFromYearBeginUnchecked(AYear, AMonth, ADay: Integer): Integer;
 const
   MonthAbsDays: array [Boolean] of TDayTable =
     ((0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334),
@@ -7313,11 +7392,20 @@ begin
   Result := MonthAbsDays[GetIsLeapYear(AYear)][AMonth] + ADay;
 end;
 
+// 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况
+function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer;
+begin
+  ValidDate(AYear, AMonth, ADay);
+  Result := GetDayFromYearBeginUnchecked(AYear, AMonth, ADay);
+end;
+
 // 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况
 function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
   AMinute, ASecond: Integer): Extended;
 begin
-  Result := GetDayFromYearBegin(AYear, AMonth, ADay);
+  ValidDate(AYear, AMonth, ADay);
+  ValidTime(AHour, AMinute, ASecond);
+  Result := GetDayFromYearBeginUnchecked(AYear, AMonth, ADay);
   Result := Result + (AHour / 24.0) + (AMinute / 1440.0) + (ASecond / 86400.0);
 end;
 
@@ -7394,6 +7482,7 @@ end;
 // 获得距公元原点的日数
 function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
 begin
+  ValidDate(AYear, AMonth, ADay);
   Result := GetBasicDays(AYear, AMonth, ADay) + GetLeapDays(AYear, AMonth, ADay);
 end;
 
@@ -7403,12 +7492,13 @@ function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
 var
   AType: TCnCalendarType;
 begin
+  ValidEquStandardDate(AYear, AMonth, ADay);
   Result := 0;
   AType := GetCalendarType(AYear, AMonth, ADay);
   if AType = ctGregorian then
   begin
     Result := (AYear - 1) * 365 + ((AYear - 1) div 4) -((AYear - 1) div 100)
-     + ((AYear - 1) div 400) + GetDayFromYearBegin(AYear, AMonth, ADay);
+     + ((AYear - 1) div 400) + GetDayFromYearBeginUnchecked(AYear, AMonth, ADay);
   end
   else if AType = ctJulian then
   begin
@@ -7419,10 +7509,10 @@ begin
       和实际公元元年元旦不是同一天。 }
     if AYear > 0 then
       Result := (AYear - 1) * 365 + ((AYear - 1) div 4)
-        + GetDayFromYearBegin(AYear, AMonth, ADay) - 2
+        + GetDayFromYearBeginUnchecked(AYear, AMonth, ADay) - 2
     else
       Result := (AYear - 1) * 365 + ((AYear) div 4) - 1     // 这里减一是因为 0 年也是闰年，多一个
-        + GetDayFromYearBegin(AYear - 1, AMonth, ADay) - 2;
+        + GetDayFromYearBeginUnchecked(AYear - 1, AMonth, ADay) - 2;
     // GetDayFromYearBegin 需要正经的非 0 公历年，但 AYear 传的是连续的所以要减一
   end;
 end;
@@ -7453,9 +7543,9 @@ var
 
 begin
   Result := False;
-  AYear := 0;
-  AMonth := 0;
-  ADay := 0;
+  AYear := CN_CALENDAR_INVALID_NUM;
+  AMonth := CN_CALENDAR_INVALID_NUM;
+  ADay := CN_CALENDAR_INVALID_NUM;
 
   if EquDays < 0 then Exit;  // 暂不处理公元前的等效标准日
 
@@ -7577,6 +7667,7 @@ end;
 function GetJulianDate(AYear, AMonth, ADay: Integer;
   AHour, AMinute, ASecond: Integer): Extended; overload;
 begin
+  ValidDate(AYear, AMonth, ADay);
   ValidTime(AHour, AMinute, ASecond);
   Result := GetJulianDate(AYear, AMonth, ADay) - 0.5; // 得到 0 时的儒略日数
   Result := Result + (AHour * 3600 + AMinute * 60 + ASecond) / 86400; // 加上当日小数
@@ -7597,6 +7688,9 @@ function GetDayFromJulianDate(JD: Extended; out AYear, AMonth, ADay: Integer): B
 var
   A, B, C, D, E, M: Double;
 begin
+  AYear := CN_CALENDAR_INVALID_NUM;
+  AMonth := CN_CALENDAR_INVALID_NUM;
+  ADay := CN_CALENDAR_INVALID_NUM;
   // Jean Meeus 转换算法
   A := Floor(JD + 0.5);
   if A < 2299161 then          // 判断是否在格里高利历启用前
@@ -7625,6 +7719,12 @@ begin
   // 计算得到的是连续的年份，负值转换为无公元 0 年的年份
   ZeroYearToNonZeroYear(AYear);
   Result := GetDateIsValid(AYear, AMonth, ADay);
+  if not Result then
+  begin
+    AYear := CN_CALENDAR_INVALID_NUM;
+    AMonth := CN_CALENDAR_INVALID_NUM;
+    ADay := CN_CALENDAR_INVALID_NUM;
+  end;
 end;
 
 function GetDayFromModifiedJulianDate(MJD: Extended; out AYear, AMonth, ADay: Integer): Boolean;
@@ -7651,6 +7751,7 @@ end;
 // 获得某日期是星期几，0-6
 function GetWeek(AYear, AMonth, ADay: Integer): Integer; overload;
 begin
+  ValidDate(AYear, AMonth, ADay);
   // -2 源于公元 1 年 1 月 2 日才是星期天
   Result := (GetAllDays(AYear, AMonth, ADay) - 2) mod 7;
   if Result < 0 then
@@ -8201,6 +8302,7 @@ var
   Month, Day, Idx, TIdx, TYear, DummyHour, DummyMinute, DummySec, DummyActualYear: Integer;
 begin
   Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   // 每个月两个节气，先算出日期大致对应节气范围再精确计算，以优化性能
   Idx := (AMonth - 1) * 2;
@@ -8272,6 +8374,10 @@ var
   Month, Day, Idx, TIdx, TYear, DummyActualYear: Integer;
 begin
   Result := CN_CALENDAR_INVALID_NUM;
+  AHour := CN_CALENDAR_INVALID_NUM;
+  AMinitue := CN_CALENDAR_INVALID_NUM;
+  ASecond := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   // 每个月两个节气，先算出日期大致对应节气再精确计算，以优化性能
   Idx := (AMonth - 1) * 2;
@@ -8345,13 +8451,11 @@ function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, Zhi, DummyZhi: Integer;
 begin
-  Result := CN_CALENDAR_INVALID_NUM;
   ValidDate(AYear, AMonth, ADay);
-  if not (AHour in [0..23]) then
-    Exit;
+  ValidTime(AHour, 0, 0);
 
   if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, DummyZhi) then
-    Exit;
+    raise ECnDateTimeException.Create(SCnErrorYearIsInvalid);
 
   // Zhi是时辰数(0-11)也就是支数
   if AHour = 23 then
@@ -8393,11 +8497,8 @@ end;
 // 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日}
 function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer;
 begin
-  if not (AHour in [0..24]) then // 允许用 24
-  begin
-    Result := CN_CALENDAR_INVALID_NUM;
-    Exit;
-  end;
+  ValidDate(AYear, AMonth, ADay);
+  ValidTime(AHour, 0, 0);
 
   if AHour >= 23 then
     Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay) + 1)
@@ -8418,11 +8519,7 @@ var
 begin
   Result := CN_CALENDAR_INVALID_NUM;
   ValidDate(AYear, AMonth, ADay);
-  if not (AHour in [0..23]) then
-  begin
-    Result := CN_CALENDAR_INVALID_NUM;
-    Exit;
-  end;
+  ValidTime(AHour, 0, 0);
 
   // 需要先根据节气调整月份数以及年份数为标准干支纪年
   AdjustYearMonthToGanZhi(AYear, AMonth, ADay, AHour);
@@ -8550,6 +8647,7 @@ end;
 function GetShengXiaoFromYear(AYear, AMonth, ADay: Integer;
   StartType: TCnGanZhiYearStartType): Integer;
 begin
+  ValidDate(AYear, AMonth, ADay);
   if StartType = ystByLiChun then
   begin
     // 如是立春日前，属于前一年，精确到小时判断。立春当天算这一年
@@ -8573,6 +8671,9 @@ const
 var
   I, Days: Integer;
 begin
+  if not GetDateIsValid(2000, AMonth, ADay) then
+    raise ECnDateTimeException.CreateFmt(SCnErrorMonthDayIsInvalid, [AMonth, ADay]);
+
   Result := CN_CALENDAR_INVALID_NUM;
   Days := AMonth * 100 + ADay;
 
@@ -8599,6 +8700,7 @@ var
   DummyGan, Zhi: Integer;
 begin
   Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   // 十二建类似于地支日轮转，但在非中气的节气那天会重复前一天的
   // 立春后第一个寅日为建日
@@ -8664,6 +8766,7 @@ end;
 // 获得某公历日的二十八宿，0-27 对应 角到轸
 function Get28XiuFromDay(AYear, AMonth, ADay: Integer): Integer;
 begin
+  ValidDate(AYear, AMonth, ADay);
   // +22 源于公元 1 年 1 月 0 日是柳
   Result := (GetAllDays(AYear, AMonth, ADay) + 22) mod 28;
   if Result < 0 then
@@ -8677,6 +8780,7 @@ var
   LP: Boolean;
 begin
   Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
   if GetLunarFromDay(AYear, AMonth, ADay, LY, LM, LD, LP) then
   begin
     // 转换成农历，根据月、日计算
@@ -8709,9 +8813,7 @@ end;
 // 获得小时时刻对应的时辰，0-11 对应子至亥
 function GetShiChenFromHour(AHour: Integer): Integer;
 begin
-  Result := CN_CALENDAR_INVALID_NUM;
-  if not (AHour in [0..23]) then
-    Exit;
+  ValidTime(AHour, 0, 0);
 
   if AHour = 23 then
   begin
@@ -8758,6 +8860,11 @@ begin
   Result := GetDateIsValid(AYear, AMonth, ADay);
   if not Result then
     Exit;
+  if not GetTimeIsValid(AHour, 0, 0) then
+  begin
+    Result := False;
+    Exit;
+  end;
 
   Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
 
@@ -8781,6 +8888,11 @@ begin
   Result := GetDateIsValid(AYear, AMonth, ADay);
   if not Result then
     Exit;
+  if not GetTimeIsValid(AHour, 0, 0) then
+  begin
+    Result := False;
+    Exit;
+  end;
 
   Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
 
@@ -9113,6 +9225,7 @@ var
   LY, LM, LD: Integer;
   Leap: Boolean;
 begin
+  ValidDate(AYear, AMonth, ADay);
   // 农历月日相加
   if GetLunarFromDay(AYear, AMonth, ADay, LY, LM, LD, Leap) then
     Result := (LM + LD + 4) mod 6 // 农历月日和除以 6，余数为 0 是大安，所以加 4
@@ -9247,6 +9360,7 @@ begin
   Result := False;
   JiuSeq := CN_CALENDAR_INVALID_NUM;
   JiuDay := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
@@ -9291,6 +9405,7 @@ begin
   Result := False;
   FuSeq := CN_CALENDAR_INVALID_NUM;
   FuDay := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
   XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAZHI)); // 获得夏至日
@@ -9365,6 +9480,9 @@ var
   Gan, DummyZhi: Integer;
 begin
   Result := False;
+  ValidDate(AYear, 1, 1);
+  AMonth := CN_CALENDAR_INVALID_NUM;
+  ADay := CN_CALENDAR_INVALID_NUM;
   MangZhong := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_MANGZHONG)); // 获得芒种日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
 
@@ -9389,6 +9507,9 @@ var
   DummyGan, Zhi: Integer;
 begin
   Result := False;
+  ValidDate(AYear, 1, 1);
+  AMonth := CN_CALENDAR_INVALID_NUM;
+  ADay := CN_CALENDAR_INVALID_NUM;
   XiaoShu := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAOSHU)); // 获得小暑日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
 
@@ -9411,6 +9532,7 @@ function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
 var
   Days: Extended;
 begin
+  ValidDate(AYear, AMonth, ADay);
   Result := AYear;
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
 
@@ -9424,24 +9546,27 @@ begin
   end;
 end;
 
-// 移植自中国日历类，似乎是获取该公历年之前的闰月数，这里的 AYear 根据 SCnLeapNumber 的定义来说
-// 传的是有公元 0 年的连续年份值，也就是说公元前 850 年应该传 -849，计算到下标 -1？
+// 返回内部连续年份之前的累计闰月数。内置历表支持的第一个外部年份为 -849，
+// 在内部表示为 -848，并映射到数组索引 0；内部年份 2800 映射到索引 3648。
 function GetLeapNum(AYear: Integer): Integer;
 begin
-  // 前面 850 个是公元年份 -850 到 -1 的闰月数，下标从 0 开始，[0..849] 共 850 个是公元前的
-  // 如果公元前某年，负值传进来，譬如 -850 年，要对应到下标 0，所以得加 850
-  if AYear < 0 then
-    Result := SCnLeapNumber[AYear + 848]      // -1 表示的公元前 2 年，要 847
-  else
-    Result := SCnLeapNumber[AYear - 1 + 849]; // 公元元年 1，下标计算得到 849，0 表示的公元前 1 年要 848
+  Result := CN_CALENDAR_INVALID_NUM;
+  if (AYear < CN_LUNAR_INTERNAL_MIN_YEAR) or
+    (AYear > CN_LUNAR_INTERNAL_MAX_YEAR) then
+    Exit;
+
+  Result := SCnLeapNumber[AYear + 848];
 end;
 
-// 移植自中国日历类，这里的 AYear 是公历年份，没有公元 0 年，也即公元前 850 年要传 -850
-// 不过内部做了容错，如果传 0 找公元 0 年的闰月，会返回 0 表示没有闰月
+// 使用外部（非零）年份读取闰月表。
 function GetLeapMonth(AYear: Integer): Integer;
 var
   C: Char;
 begin
+  Result := CN_CALENDAR_INVALID_NUM;
+  if not GetLunarYearIsSupported(AYear) then
+    Exit;
+
   C := SCnLeapMonth[AYear + 850]; // 字符串下标以 1 开始。
 
 {$IFDEF UNICODE}
@@ -9459,6 +9584,19 @@ begin
   else
     Result := CN_CALENDAR_INVALID_NUM;
 {$ENDIF}
+end;
+
+// 将内部连续年份转换回外部年份表示，
+// 然后再读取公开农历闰月表。
+function GetLeapMonthFromInternalYear(AYear: Integer): Integer;
+var
+  ExternalYear: Integer;
+begin
+  Result := 0;
+  ExternalYear := AYear;
+  ZeroYearToNonZeroYear(ExternalYear);
+  if GetLunarYearIsSupported(ExternalYear) then
+    Result := GetLeapMonth(ExternalYear);
 end;
 
 // 获得一大于零的数的小数部分
@@ -9501,7 +9639,7 @@ var
       Mid := (Left + Right) div 2;
 
       // 检查目标日期是否在当前记录的区间内
-      if IsDayBetweenEqual(YY, MM, DD,
+      if IsDayBetweenEqualUnchecked(YY, MM, DD,
         CN_LUNAR_DATE_FIX[Mid].SY,
         CN_LUNAR_DATE_FIX[Mid].SM,
         CN_LUNAR_DATE_FIX[Mid].SD,
@@ -9714,13 +9852,14 @@ end;
 // 获得某农历年的闰月，返回 1~12 对应一月到十二月，返回 0 表示无闰月
 function GetLunarLeapMonth(AYear: Integer): Integer;
 begin
+  ValidLunarYear(AYear);
   Result := GetLeapMonth(AYear);
   if Result < 0 then
     Result := 0;
 end;
 
 // 获得某公历年月日的农历月数，如果是闰月则用负值表示。
-// 其中公历年份似乎要求传 0 连续，也即公元前 1 年要传 0，公元前 850 年要传 -849
+// 年份参数使用内部连续表示：公元前 1 年为 0，内置表的下界公元前 849 年为 -848。
 function GetLunarMonth(AYear, AMonth, ADay: Integer): Real;
 var
   LunDay: Real;
@@ -9770,8 +9909,8 @@ begin
   if AYear <= -722 then
     Inc(NMonth);
 
-  LMY := GetLeapMonth(AYear);
-  LMY1 := GetLeapMonth(AYear - 1);
+  LMY := GetLeapMonthFromInternalYear(AYear);
+  LMY1 := GetLeapMonthFromInternalYear(AYear - 1);
 
   Result := Round(GetRemain(NMonth - 3, 12) + 1); // Result 得到阴历月，但所在阴历年有小概率不是 AYear
 
@@ -9855,13 +9994,18 @@ var
   aTime: Double;
 begin
   Result := False;
+  LunarYear := CN_CALENDAR_INVALID_NUM;
+  LunarMonth := CN_CALENDAR_INVALID_NUM;
+  LunarDay := CN_CALENDAR_INVALID_NUM;
+  IsLeapMonth := False;
   if not GetDateIsValid(AYear, AMonth, ADay) then
     Exit;
 
-  // 0 非连续公元年，转成 0 连续公元年，也即公元前 850 年变成 -849
+  // 0 非连续公元年，转成 0 连续公元年。
   NonZeroYearToZeroYear(AYear);
 
-  if (AYear >= -849) and (AYear <= 2800) then
+  if (AYear >= CN_LUNAR_INTERNAL_MIN_YEAR) and
+    (AYear <= CN_LUNAR_INTERNAL_MAX_YEAR) then
   begin
     LunarDay := Floor(GetLunarMoon(AYear, AMonth, ADay, aEclipsType, aMoonPhase, aTime));
     LunarMonth := Floor(GetLunarMonth(AYear, AMonth, ADay));
@@ -9879,7 +10023,15 @@ begin
       Inc(LunarYear);
 
     ZeroYearToNonZeroYear(LunarYear); // 连续的农历年转成非连续的农历年，没有农历 0 年
-    Result := True;
+    if GetLunarYearIsSupported(LunarYear) then
+      Result := True
+    else
+    begin
+      LunarYear := CN_CALENDAR_INVALID_NUM;
+      LunarMonth := CN_CALENDAR_INVALID_NUM;
+      LunarDay := CN_CALENDAR_INVALID_NUM;
+      IsLeapMonth := False;
+    end;
   end;
 end;
 
@@ -9892,13 +10044,17 @@ var
   aTime: Double;
 begin
   Result := False;
+  LunarMonth := CN_CALENDAR_INVALID_NUM;
+  LunarDay := CN_CALENDAR_INVALID_NUM;
+  IsLeapMonth := False;
   if not GetDateIsValid(AYear, AMonth, ADay) then
     Exit;
 
-  // 0 非连续公元年，转成 0 连续公元年，也即公元前 850 年变成 -849
+  // 0 非连续公元年，转成 0 连续公元年。
   NonZeroYearToZeroYear(AYear);
 
-  if (AYear >= -849) and (AYear <= 2800) then
+  if (AYear >= CN_LUNAR_INTERNAL_MIN_YEAR) and
+    (AYear <= CN_LUNAR_INTERNAL_MAX_YEAR) then
   begin
     LunarDay := Floor(GetLunarMoon(AYear, AMonth, ADay, aEclipsType, aMoonPhase, aTime));
     LunarMonth := Floor(GetLunarMonth(AYear, AMonth, ADay));
@@ -9926,6 +10082,12 @@ var
   Count: Integer;
 begin
   Result := False;
+  AYear := CN_CALENDAR_INVALID_NUM;
+  AMonth := CN_CALENDAR_INVALID_NUM;
+  ADay := CN_CALENDAR_INVALID_NUM;
+  if not GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay, IsLeapMonth) then
+    Exit;
+
   if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
     and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
     Exit; // 该年无此闰月或额外闰月则退出
@@ -10029,7 +10191,7 @@ begin
         end;
     end;
 
-    case Compare2LunarDay(TempLunarYear, TempLunarMonth, TempLunarDay, TempIsLeap,
+    case Compare2LunarDayUnchecked(TempLunarYear, TempLunarMonth, TempLunarDay, TempIsLeap,
       ALunarYear, ALunarMonth, ALunarDay, IsLeapMonth) of
       -1:
         begin

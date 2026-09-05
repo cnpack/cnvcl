@@ -145,6 +145,7 @@ function TestCalendarReviewJieQiBoundary: Boolean;
 function TestCalendarReviewBCLunarRoundTrip: Boolean;
 function TestCalendarReviewLunarRange: Boolean;
 function TestCalendarReviewGanZhiInvalidInput: Boolean;
+function TestCalendarReviewStrictDateValidation: Boolean;
 
 // ============================== Complex ======================================
 
@@ -1932,6 +1933,7 @@ begin
   MyAssert(TestCalendarReviewBCLunarRoundTrip, 'TestCalendarReviewBCLunarRoundTrip');
   MyAssert(TestCalendarReviewLunarRange, 'TestCalendarReviewLunarRange');
   MyAssert(TestCalendarReviewGanZhiInvalidInput, 'TestCalendarReviewGanZhiInvalidInput');
+  MyAssert(TestCalendarReviewStrictDateValidation, 'TestCalendarReviewStrictDateValidation');
 
 // =============================== Complex =====================================
 
@@ -3708,7 +3710,7 @@ var
   IsLeapMonth: Boolean;
   Caught: Boolean;
 begin
-  // Lunar day zero and negative days must be rejected by both validation APIs.
+  // 农历日 0 和负数日都必须被两个校验 API 拒绝。
   Result := not GetLunarDateIsValid(2024, 1, 0) and
     not GetLunarDateIsValid(2024, 1, -1);
   if not Result then Exit;
@@ -3723,8 +3725,7 @@ begin
   Result := Caught;
   if not Result then Exit;
 
-  // Solar-to-lunar conversion must validate the complete Gregorian date,
-  // including month/day ranges and the 1582 Gregorian calendar gap.
+  // 公历转农历时必须校验完整的公历日期，包括月/日范围以及 1582 年的历法跳跃区间。
   Result := not GetLunarFromDay(2025, 13, 1, LunarYear, LunarMonth,
     LunarDay, IsLeapMonth);
   if not Result then Exit;
@@ -3740,8 +3741,7 @@ var
   Year, Month, Day: Integer;
   JD, MJD: Extended;
 begin
-  // The time overload defines midnight as JD + 0.5.  Its inverse must accept
-  // that exact fractional value and return the original civil date.
+  // 带时间参数的重载将午夜表示为 JD + 0.5；逆转换必须接受这个精确小数并返回原公历日期。
   JD := GetJulianDate(2025, 1, 1, 0, 0, 0);
   Result := (Abs(JD - 2460676.5) < 0.000001) and
     GetDayFromJulianDate(JD, Year, Month, Day) and
@@ -3758,7 +3758,7 @@ function TestCalendarReviewJieQiBoundary: Boolean;
 var
   JieQi, Hour, Minute, Second: Integer;
 begin
-  // Crossing the BC/AD boundary must not attempt to calculate year zero.
+  // 跨越公元前/公元后的边界时，不能尝试计算公元 0 年。
   try
     JieQi := GetJieQiTimeFromDay(-1, 12, 15, Hour, Minute, Second);
     Result := (JieQi >= -1) and (JieQi <= 23);
@@ -3774,13 +3774,19 @@ var
   IsLeapMonth: Boolean;
   Year, Month, Day: Integer;
 begin
-  // A supported BC solar date must round-trip through the lunar conversion.
+  // 支持范围内的公元前公历日期必须能够通过农历转换往返还原。
   Result := GetLunarFromDay(-1, 1, 1, LunarYear, LunarMonth, LunarDay,
     IsLeapMonth);
   if not Result then Exit;
 
   Result := GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth,
     Year, Month, Day) and (Year = -1) and (Month = 1) and (Day = 1);
+  if not Result then Exit;
+
+  Result := GetLunarFromDay(-849, 1, 1, LunarYear, LunarMonth, LunarDay,
+    IsLeapMonth) and
+    GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth,
+      Year, Month, Day) and (Year = -849) and (Month = 1) and (Day = 1);
 end;
 
 function TestCalendarReviewLunarRange: Boolean;
@@ -3788,22 +3794,57 @@ var
   LunarYear, LunarMonth, LunarDay: Integer;
   IsLeapMonth: Boolean;
 begin
-  // The embedded lunar table ends before external year 2800.  An unsupported
-  // year must be rejected instead of indexing past the table.
+  // 2800 年在支持范围内；内置历表之外的相邻年份不在支持范围内。
+  Result := GetLunarFromDay(2800, 1, 1, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth);
+  if not Result then Exit;
+  Result := not GetLunarFromDay(2801, 1, 1, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth);
+  if not Result then Exit;
+  Result := not GetLunarFromDay(-850, 1, 1, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth);
+  if not Result then Exit;
+  Result := not GetLunarDateIsValid(2801, 1, 1) and
+    not GetLunarDateIsValid(-850, 1, 1);
+end;
+
+function TestCalendarReviewStrictDateValidation: Boolean;
+var
+  Caught: Boolean;
+begin
+  Caught := False;
   try
-    Result := not GetLunarFromDay(2800, 1, 1, LunarYear, LunarMonth,
-      LunarDay, IsLeapMonth);
+    GetGanZhiFromDay(2025, 2, 30);
   except
-    // A checked range exception is also an explicit rejection; the production
-    // API should eventually replace it with a normal False return.
-    on Exception do
-      Result := True;
+    on ECnDateTimeException do
+      Caught := True;
   end;
+  Result := Caught;
+  if not Result then Exit;
+
+  Caught := False;
+  try
+    GetJieQiFromDay(2025, 13, 1);
+  except
+    on ECnDateTimeException do
+      Caught := True;
+  end;
+  Result := Caught;
+  if not Result then Exit;
+
+  Caught := False;
+  try
+    GetGanZhiFromDay(2025, 1, 1, 24);
+  except
+    on ECnDateTimeException do
+      Caught := True;
+  end;
+  Result := Caught;
 end;
 
 function TestCalendarReviewGanZhiInvalidInput: Boolean;
 begin
-  // Invalid GanZhi values must not be folded into a valid NaYin entry.
+  // 无效干支值不能被折算成有效的纳音结果。
   Result := (Get5XingFromGanZhi(-1) = -1) and
     (Get5XingFromGanZhi(10, 12) = -1) and
     (Get5XingLongFromGanZhi(-1) = '');
