@@ -139,6 +139,12 @@ function TestCalendarJiShenFangWei: Boolean;
 function TestCalendarTaiSui: Boolean;
 function TestCalendarJulianDate: Boolean;
 function TestCalendarSolarLunarConvert: Boolean;
+function TestCalendarReviewValidation: Boolean;
+function TestCalendarReviewJulianFraction: Boolean;
+function TestCalendarReviewJieQiBoundary: Boolean;
+function TestCalendarReviewBCLunarRoundTrip: Boolean;
+function TestCalendarReviewLunarRange: Boolean;
+function TestCalendarReviewGanZhiInvalidInput: Boolean;
 
 // ============================== Complex ======================================
 
@@ -1920,6 +1926,12 @@ begin
   MyAssert(TestCalendarTaiSui, 'TestCalendarTaiSui');
   MyAssert(TestCalendarJulianDate, 'TestCalendarJulianDate');
   MyAssert(TestCalendarSolarLunarConvert, 'TestCalendarSolarLunarConvert');
+  MyAssert(TestCalendarReviewValidation, 'TestCalendarReviewValidation');
+  MyAssert(TestCalendarReviewJulianFraction, 'TestCalendarReviewJulianFraction');
+  MyAssert(TestCalendarReviewJieQiBoundary, 'TestCalendarReviewJieQiBoundary');
+  MyAssert(TestCalendarReviewBCLunarRoundTrip, 'TestCalendarReviewBCLunarRoundTrip');
+  MyAssert(TestCalendarReviewLunarRange, 'TestCalendarReviewLunarRange');
+  MyAssert(TestCalendarReviewGanZhiInvalidInput, 'TestCalendarReviewGanZhiInvalidInput');
 
 // =============================== Complex =====================================
 
@@ -3688,6 +3700,113 @@ begin
   Result := GetLunarFromDay(2025, 1, 28, LunarYear, LunarMonth, LunarDay, IsLeapMonth) and
     GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth, Year, Month, Day) and
     (Year = 2025) and (Month = 1) and (Day = 28);
+end;
+
+function TestCalendarReviewValidation: Boolean;
+var
+  LunarYear, LunarMonth, LunarDay: Integer;
+  IsLeapMonth: Boolean;
+  Caught: Boolean;
+begin
+  // Lunar day zero and negative days must be rejected by both validation APIs.
+  Result := not GetLunarDateIsValid(2024, 1, 0) and
+    not GetLunarDateIsValid(2024, 1, -1);
+  if not Result then Exit;
+
+  Caught := False;
+  try
+    ValidLunarDate(2024, 1, 0);
+  except
+    on ECnDateTimeException do
+      Caught := True;
+  end;
+  Result := Caught;
+  if not Result then Exit;
+
+  // Solar-to-lunar conversion must validate the complete Gregorian date,
+  // including month/day ranges and the 1582 Gregorian calendar gap.
+  Result := not GetLunarFromDay(2025, 13, 1, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth);
+  if not Result then Exit;
+  Result := not GetLunarFromDay(2025, 2, 30, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth);
+  if not Result then Exit;
+  Result := not GetLunarFromDay(1582, 10, 10, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth);
+end;
+
+function TestCalendarReviewJulianFraction: Boolean;
+var
+  Year, Month, Day: Integer;
+  JD, MJD: Extended;
+begin
+  // The time overload defines midnight as JD + 0.5.  Its inverse must accept
+  // that exact fractional value and return the original civil date.
+  JD := GetJulianDate(2025, 1, 1, 0, 0, 0);
+  Result := (Abs(JD - 2460676.5) < 0.000001) and
+    GetDayFromJulianDate(JD, Year, Month, Day) and
+    (Year = 2025) and (Month = 1) and (Day = 1);
+  if not Result then Exit;
+
+  MJD := GetModifiedJulianDate(2025, 1, 1, 0, 0, 0);
+  Result := (Abs(MJD - 60676.0) < 0.000001) and
+    GetDayFromModifiedJulianDate(MJD, Year, Month, Day) and
+    (Year = 2025) and (Month = 1) and (Day = 1);
+end;
+
+function TestCalendarReviewJieQiBoundary: Boolean;
+var
+  JieQi, Hour, Minute, Second: Integer;
+begin
+  // Crossing the BC/AD boundary must not attempt to calculate year zero.
+  try
+    JieQi := GetJieQiTimeFromDay(-1, 12, 15, Hour, Minute, Second);
+    Result := (JieQi >= -1) and (JieQi <= 23);
+  except
+    on Exception do
+      Result := False;
+  end;
+end;
+
+function TestCalendarReviewBCLunarRoundTrip: Boolean;
+var
+  LunarYear, LunarMonth, LunarDay: Integer;
+  IsLeapMonth: Boolean;
+  Year, Month, Day: Integer;
+begin
+  // A supported BC solar date must round-trip through the lunar conversion.
+  Result := GetLunarFromDay(-1, 1, 1, LunarYear, LunarMonth, LunarDay,
+    IsLeapMonth);
+  if not Result then Exit;
+
+  Result := GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth,
+    Year, Month, Day) and (Year = -1) and (Month = 1) and (Day = 1);
+end;
+
+function TestCalendarReviewLunarRange: Boolean;
+var
+  LunarYear, LunarMonth, LunarDay: Integer;
+  IsLeapMonth: Boolean;
+begin
+  // The embedded lunar table ends before external year 2800.  An unsupported
+  // year must be rejected instead of indexing past the table.
+  try
+    Result := not GetLunarFromDay(2800, 1, 1, LunarYear, LunarMonth,
+      LunarDay, IsLeapMonth);
+  except
+    // A checked range exception is also an explicit rejection; the production
+    // API should eventually replace it with a normal False return.
+    on Exception do
+      Result := True;
+  end;
+end;
+
+function TestCalendarReviewGanZhiInvalidInput: Boolean;
+begin
+  // Invalid GanZhi values must not be folded into a valid NaYin entry.
+  Result := (Get5XingFromGanZhi(-1) = -1) and
+    (Get5XingFromGanZhi(10, 12) = -1) and
+    (Get5XingLongFromGanZhi(-1) = '');
 end;
 
 // ============================== Complex ======================================

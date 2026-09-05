@@ -350,6 +350,9 @@ const
   );
   {* 六十太岁名称字符串，与六十干支对应}
 
+  CN_CALENDAR_INVALID_NUM = -1;
+  {* 非法值}
+
 type
   ECnDateTimeException = class(Exception);
   {* 历法相关异常}
@@ -2393,7 +2396,7 @@ const
     (Y: 232; M: 11; D: 29)
   );
 
-  CN_LUNAR_DATE_FIX: array[0..3821] of TCnLunarDateFixRange = (
+  CN_LUNAR_DATE_FIX: array[0..3818] of TCnLunarDateFixRange = (
   {* 历史上因观测偏差导致的农历日期范围的公历单日偏差修正，内部需严格升序以备二分查找。
      注意为方便起见公历年使用 0，也就是公元前 1 年用 0 表示}
     (SY:    0; SM:  6; SD: 20; EY:    0; EM:  9; ED: 15; DayOffset: lotDecOne),
@@ -5202,9 +5205,6 @@ const
     (SY:  998; SM:  9; SD: 23; EY:  998; EM: 10; ED: 22; DayOffset: lotDecOne),
     (SY:  999; SM:  7; SD: 15; EY:  999; EM:  8; ED: 13; DayOffset: lotDecOne),
     (SY:  999; SM:  9; SD: 12; EY:  999; EM: 10; ED: 11; DayOffset: lotDecOne),
-    (SY: 1000; SM:  1; SD:  9; EY: 1000; EM:  2; ED:  7; DayOffset: lotDecOne),
-    (SY: 1000; SM:  8; SD:  2; EY: 1000; EM:  8; ED: 31; DayOffset: lotDecOne),
-    (SY: 1000; SM:  9; SD: 30; EY: 1000; EM: 10; ED: 29; DayOffset: lotDecOne),
 
     (SY: 1000; SM:  1; SD:  9; EY: 1000; EM:  2; ED:  7; DayOffset: lotDecOne),
     (SY: 1000; SM:  8; SD:  2; EY: 1000; EM:  8; ED: 31; DayOffset: lotDecOne),
@@ -6790,8 +6790,10 @@ function Get5XingFromGanZhi(const GanZhi: Integer): Integer; overload;
 var
   Gan, Zhi: Integer;
 begin
-  ExtractGanZhi(GanZhi, Gan, Zhi);
-  Result := Get5XingFromGanZhi(Gan, Zhi);
+  if ExtractGanZhi(GanZhi, Gan, Zhi) then
+    Result := Get5XingFromGanZhi(Gan, Zhi)
+  else
+    Result := CN_CALENDAR_INVALID_NUM;
 end;
 
 // 获得某干支的纳音五行（短），0-4 对应 金木水火土
@@ -6835,8 +6837,10 @@ function Get5XingFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
-  Result := Get5XingFromGanZhi(Gan, Zhi);
+  if ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Result := Get5XingFromGanZhi(Gan, Zhi)
+  else
+    Result := CN_CALENDAR_INVALID_NUM;
 end;
 
 // 获得某干支的纳音五行（长），返回字符串
@@ -6864,8 +6868,10 @@ function Get5XingLongFromDay(AYear, AMonth, ADay: Integer): string;
 var
   Gan, Zhi: Integer;
 begin
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
-  Result := Get5XingLongFromGanZhi(Gan, Zhi);
+  if ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Result := Get5XingLongFromGanZhi(Gan, Zhi)
+  else
+    Result := '';
 end;
 
 // 获得某地支的另两个三合地支
@@ -6891,8 +6897,8 @@ begin
       10: begin He1 := 2;  He2 := 6;  end;
       11: begin He1 := 3;  He2 := 7;  end;
     else
-      He1 := -1;
-      He2 := -1;
+      He1 := CN_CALENDAR_INVALID_NUM;
+      He2 := CN_CALENDAR_INVALID_NUM;
     end;
     Result := True;
   end;
@@ -6957,13 +6963,13 @@ end;
 
 // 取农历年的某月天数
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
-  IsLeapMonth: Boolean = False): Integer;
+  IsLeapMonth: Boolean): Integer;
 var
   EquDay1, EquDay2: Integer;
   AYear, AMonth, ADay: Integer;
   ALeap: Boolean;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
     and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
     Exit; // 该年无此闰月或额外闰月则退出
@@ -7030,7 +7036,7 @@ begin
   if (ALunarYear = 0) or not (ALunarMonth in [1..12]) then
     Exit;
 
-  if ALunarDay > 30 then
+  if (ALunarDay < 1) or (ALunarDay > 30) then
     Exit;
 
   if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
@@ -7318,8 +7324,8 @@ begin
   if (Days <= 0) or (Days > 366) or ((Days > 365) and (not GetIsLeapYear(AYear))) then
   begin
     Result := False;
-    AMonth := -1;
-    ADay := -1;
+    AMonth := CN_CALENDAR_INVALID_NUM;
+    ADay := CN_CALENDAR_INVALID_NUM;
     Exit;
   end;
 
@@ -7585,7 +7591,7 @@ var
   A, B, C, D, E, M: Double;
 begin
   // Jean Meeus 转换算法
-  A := JD;
+  A := Floor(JD + 0.5);
   if A < 2299161 then          // 判断是否在格里高利历启用前
     B := A
   else
@@ -8187,7 +8193,7 @@ function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Month, Day, Idx, TIdx, TYear, DummyHour, DummyMinute, DummySec, DummyActualYear: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
 
   // 每个月两个节气，先算出日期大致对应节气范围再精确计算，以优化性能
   Idx := (AMonth - 1) * 2;
@@ -8258,7 +8264,7 @@ function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer; out AHour: Integer;
 var
   Month, Day, Idx, TIdx, TYear, DummyActualYear: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
 
   // 每个月两个节气，先算出日期大致对应节气再精确计算，以优化性能
   Idx := (AMonth - 1) * 2;
@@ -8285,6 +8291,8 @@ begin
   begin
     Dec(Idx, CN_JIEQI_TOTAL_COUNT);
     Inc(AYear);
+    if AYear = 0 then // 没有公元 0 年
+      Inc(AYear);
   end;
 
   GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinitue, ASecond, DummyActualYear);
@@ -8320,9 +8328,9 @@ begin
     Exit;
   end;
 
-  AHour := -1;
-  AMinitue := -1;
-  ASecond := -1;
+  AHour := CN_CALENDAR_INVALID_NUM;
+  AMinitue := CN_CALENDAR_INVALID_NUM;
+  ASecond := CN_CALENDAR_INVALID_NUM;
 end;
 
 // 获得某公历时的天干地支，0-59 对应 甲子到癸亥
@@ -8330,8 +8338,12 @@ function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, Zhi, DummyZhi: Integer;
 begin
-  AHour := AHour mod 24;
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, DummyZhi);
+  Result := CN_CALENDAR_INVALID_NUM;
+  if not (AHour in [0..23]) then
+    Exit;
+
+  if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, DummyZhi) then
+    Exit;
 
   // Zhi是时辰数(0-11)也就是支数
   if AHour = 23 then
@@ -8372,7 +8384,12 @@ end;
 // 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日}
 function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer;
 begin
-  AHour := AHour mod 24;
+  if not (AHour in [0..24]) then // 允许用 24
+  begin
+    Result := CN_CALENDAR_INVALID_NUM;
+    Exit;
+  end;
+
   if AHour >= 23 then
     Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay) + 1)
   else
@@ -8393,7 +8410,7 @@ begin
   // 需要先根据节气调整月份数以及年份数为标准干支纪年
   AdjustYearMonthToGanZhi(AYear, AMonth, ADay, AHour);
 
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   ExtractGanZhi(GetGanZhiFromYear(AYear), Gan, DummyZhi);
   case Gan of // 根据口诀从本年干数计算本年首月（立春之后所在的月，一般是二月）的干数
     0,5: // 甲己 丙佐首，
@@ -8539,7 +8556,7 @@ const
 var
   I, Days: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   Days := AMonth * 100 + ADay;
 
   for I := 0 to 11 do
@@ -8564,7 +8581,7 @@ var
   I, LiChun, JianStart, Days, AllDays, JieQi: Integer;
   DummyGan, Zhi: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
 
   // 十二建类似于地支日轮转，但在非中气的节气那天会重复前一天的
   // 立春后第一个寅日为建日
@@ -8642,7 +8659,7 @@ var
   LY, LM, LD: Integer;
   LP: Boolean;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   if GetLunarFromDay(AYear, AMonth, ADay, LY, LM, LD, LP) then
   begin
     // 转换成农历，根据月、日计算
@@ -8675,7 +8692,7 @@ end;
 // 获得小时时刻对应的时辰，0-11 对应子至亥
 function GetShiChenFromHour(AHour: Integer): Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   if not (AHour in [0..23]) then
     Exit;
 
@@ -8804,9 +8821,8 @@ end;
 // 获取公历年所属的三元，0-2 对应上元中元下元
 function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
 begin
-  Result := -1;
-  if AYear = 0 then
-    Exit;
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   AYear := GetYearSeperatedByLiChun(AYear, AMonth, ADay);
   if AYear < 0 then  // 处理无公元 0 年的情况
@@ -8828,9 +8844,8 @@ end;
 // 获取公历年的运九星，0-8 对应一白到九紫
 function GetYun9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
 begin
-  Result := -1;
-  if AYear = 0 then
-    Exit;
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   AYear := GetYearSeperatedByLiChun(AYear, AMonth, ADay);
   if AYear < 0 then  // 处理无公元 0 年的情况
@@ -8849,7 +8864,7 @@ function Get9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
 var
   Yuan: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   ValidDate(AYear, AMonth, ADay);
 
   Yuan := Get3YuanFromYear(AYear, AMonth, ADay);
@@ -8880,7 +8895,9 @@ function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
 var
   Zhi: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+
   if AdjustYearMonthToGanZhi(AYear, AMonth, ADay, 0) then
   begin
     // 得到立春分割的年以及节气分割的月后获取年干支，
@@ -8918,9 +8935,8 @@ var
   JiaZiQians: array[0..5] of Integer; // 六个节气前的第一个甲子日的日期（距离年首天数）
   JiaZiHous: array[0..5] of Integer;  // 六个节气后的第一个甲子日的日期（距离年首天数）
 begin
-  Result := -1;
-  if AYear = 0 then
-    Exit;
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   if AYear = 1 then
     PreYear := -1
@@ -8948,7 +8964,7 @@ begin
   JiaZiHous[0] := JiaZiHous[0] - 365;
   JiaZiQians[0] := JiaZiQians[0] - 365;
   JieQis[0] := JieQis[0] - 365;          // 均换算成距本年年初的天数
-  if IsLeapYear(PreYear) then
+  if GetIsLeapYear(PreYear) then
   begin
     Dec(JiaZiHous[0]);
     Dec(JiaZiQians[0]);
@@ -9017,15 +9033,15 @@ function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   SCH, Days, DayGanZhi, DayGan, DayZhi, XiaZhi, DongZhi: Integer;
 begin
-  Result := -1;
-  if AYear = 0 then
-    Exit;
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
 
   SCH := GetShiChenFromHour(AHour);
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
 
   DayGanZhi := GetGanZhiFromDay(AYear, AMonth, ADay, AHour);
-  ExtractGanZhi(DayGanZhi, DayGan, DayZhi);
+  if not ExtractGanZhi(DayGanZhi, DayGan, DayZhi) then
+    Exit;
 
   DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
   XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAZHI));
@@ -9100,8 +9116,11 @@ function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
-  Result := -1;
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+  if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Exit;
+
   // 口诀：甲乙东北是财神，丙丁向在西南寻。戊己正北坐方位，庚辛正东去安身。壬癸原来正南坐，便是财神方位真
   case Gan of
     0,1: Result := 1; // 甲乙在东北
@@ -9117,11 +9136,13 @@ function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
-  Result := -1;
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+  if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Exit;
+
   // 口诀：己在艮乙庚乾，丙辛坤位喜神安；丁壬本在离宫坐，戊癸原来在巽间。
   // 八卦对应方位：乾，西北；坎，正北；艮，东北；震，正东；巽，东南；离，正南；坤，西南；兑，正西
-
   case Gan of
     0,5: Result := 1; // 甲己在东北
     1,6: Result := 7; // 乙庚在西北
@@ -9136,11 +9157,13 @@ function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
-  Result := -1;
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+  if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Exit;
+
   // 福神居然有两套口诀：一是此处用的甲己正北是福神，丙辛西北乾宫存。乙庚坤位戊癸艮，丁壬巽上妙追寻。
   // 二是：甲乙东南是福神，丙丁正东是堪宜，戊北己南庚辛坤，壬在乾方癸在酉。筛查后弃用。
-
   case Gan of
     0, 5: Result := 0; // 甲己在正北
     1, 6: Result := 5; // 乙庚在西南
@@ -9161,8 +9184,10 @@ function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
-  Result := -1;
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+  if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Exit;
 
   case Gan of
     0, 1:    Result := 5; // 甲乙在西南
@@ -9180,8 +9205,10 @@ function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
-  Result := -1;
-  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+  if not ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi) then
+    Exit;
 
   case Gan of
     0:       Result := 1; // 甲在东北
@@ -9201,8 +9228,8 @@ var
   DongZhi, Days: Integer;
 begin
   Result := False;
-  JiuSeq := -1;
-  JiuDay := -1;
+  JiuSeq := CN_CALENDAR_INVALID_NUM;
+  JiuDay := CN_CALENDAR_INVALID_NUM;
 
   DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
@@ -9245,8 +9272,8 @@ var
   F1, F2, F3: Integer;
 begin
   Result := False;
-  FuSeq := -1;
-  FuDay := -1;
+  FuSeq := CN_CALENDAR_INVALID_NUM;
+  FuDay := CN_CALENDAR_INVALID_NUM;
 
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
   XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAZHI)); // 获得夏至日
@@ -9259,7 +9286,8 @@ begin
     begin
       if Gan = 6 then // 夏至后第一个庚日
       begin
-        ExtractMonthDay(I, AYear, AMonth, ADay);
+        if not ExtractMonthDay(I, AYear, AMonth, ADay) then
+          Exit;
 
         F1 := I + 20; // 初伏日，第三个庚日
         F2 := I + 30; // 中伏日，第四个庚日
@@ -9405,14 +9433,14 @@ begin
   else if CharInSet(C , ['a'..'c']) then
     Result := 10 + Ord(C) - Ord('a')
   else
-    Result := -1;
+    Result := CN_CALENDAR_INVALID_NUM;
 {$ELSE}
   if C in ['0'..'9'] then
     Result := StrToInt(C)
   else if C in ['a'..'c'] then
     Result := 10 + Ord(C) - Ord('a')
   else
-    Result := -1;
+    Result := CN_CALENDAR_INVALID_NUM;
 {$ENDIF}
 end;
 
@@ -9551,7 +9579,8 @@ begin
   WangDay := 0;
   WangTime := 0;
 
-  K1 := -1; K := -1;
+  K1 := -1;
+  K := -1;
   StdDays := GetEquStandardDays(AYear, AMonth, ADay);
   while K <= 13 do
   begin
@@ -9809,6 +9838,8 @@ var
   aTime: Double;
 begin
   Result := False;
+  if not GetDateIsValid(AYear, AMonth, ADay) then
+    Exit;
 
   // 0 非连续公元年，转成 0 连续公元年，也即公元前 850 年变成 -849
   NonZeroYearToZeroYear(AYear);
@@ -9844,6 +9875,8 @@ var
   aTime: Double;
 begin
   Result := False;
+  if not GetDateIsValid(AYear, AMonth, ADay) then
+    Exit;
 
   // 0 非连续公元年，转成 0 连续公元年，也即公元前 850 年变成 -849
   NonZeroYearToZeroYear(AYear);
