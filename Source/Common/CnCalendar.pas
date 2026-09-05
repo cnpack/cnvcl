@@ -6710,7 +6710,7 @@ function CombineGanZhi(Gan, Zhi: Integer): Integer;
 var
   I: Integer;
 begin
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
   if (Gan in [0..9]) and (Zhi in [0..11]) then
   begin
     for I := 0 to 6 do
@@ -6802,7 +6802,10 @@ var
   TaiXuan1, TaiXuan2, TaiXuan3, TaiXuan4: Integer; // 四个太玄配数
 begin
   // 此处干支必须同为奇数或同为偶，其余配对非法
-  Result := -1;
+  Result := CN_CALENDAR_INVALID_NUM;
+  if not (Gan in [0..9]) or not (Zhi in [0..11]) then
+    Exit;
+
   if (Gan + Zhi) mod 2 = 0 then
   begin
     TaiXuan1 := GetTaiXuanPeiShuFromGan(Gan);
@@ -6848,11 +6851,13 @@ function Get5XingLongFromGanZhi(const GanZhi: Integer): string; overload;
 var
   I: Integer;
 begin
+  Result := '';
+  if not GanZhi in [0..59] then
+    Exit;
+
   I := GanZhi div 2;
   if I in [0..29] then
-    Result := SCnNaYinWuXingArray[I]
-  else
-    Result := '';
+    Result := SCnNaYinWuXingArray[I];
 end;
 
 // 获得某干支的纳音五行（长），返回字符串
@@ -6863,6 +6868,7 @@ begin
   GanZhi := CombineGanZhi(Gan, Zhi);
   Result := Get5XingLongFromGanZhi(GanZhi);
 end;
+
 // 获得某公历日的纳音五行（长），返回字符串
 function Get5XingLongFromDay(AYear, AMonth, ADay: Integer): string;
 var
@@ -7571,6 +7577,7 @@ end;
 function GetJulianDate(AYear, AMonth, ADay: Integer;
   AHour, AMinute, ASecond: Integer): Extended; overload;
 begin
+  ValidTime(AHour, AMinute, ASecond);
   Result := GetJulianDate(AYear, AMonth, ADay) - 0.5; // 得到 0 时的儒略日数
   Result := Result + (AHour * 3600 + AMinute * 60 + ASecond) / 86400; // 加上当日小数
 end;
@@ -8339,6 +8346,7 @@ var
   Gan, Zhi, DummyZhi: Integer;
 begin
   Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
   if not (AHour in [0..23]) then
     Exit;
 
@@ -8378,6 +8386,7 @@ end;
 
 function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer;
 begin
+  ValidDate(AYear, AMonth, ADay);
   Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay));
 end;
 
@@ -8407,11 +8416,19 @@ function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, DummyZhi, M: Integer;
 begin
+  Result := CN_CALENDAR_INVALID_NUM;
+  ValidDate(AYear, AMonth, ADay);
+  if not (AHour in [0..23]) then
+  begin
+    Result := CN_CALENDAR_INVALID_NUM;
+    Exit;
+  end;
+
   // 需要先根据节气调整月份数以及年份数为标准干支纪年
   AdjustYearMonthToGanZhi(AYear, AMonth, ADay, AHour);
+  if not ExtractGanZhi(GetGanZhiFromYear(AYear), Gan, DummyZhi) then
+    Exit;
 
-  Result := CN_CALENDAR_INVALID_NUM;
-  ExtractGanZhi(GetGanZhiFromYear(AYear), Gan, DummyZhi);
   case Gan of // 根据口诀从本年干数计算本年首月（立春之后所在的月，一般是二月）的干数
     0,5: // 甲己 丙佐首，
       Result := 2;
