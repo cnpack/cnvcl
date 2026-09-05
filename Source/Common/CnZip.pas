@@ -945,7 +945,7 @@ function TCnZipReader.PrepareStream(Index: Integer;
 var
   Sig: Cardinal;
 begin
-  if (Index < 0) or (Index > FileCount) then
+  if (Index < 0) or (Index >= FileCount) then
     raise ECnZipException.CreateRes(@SCnFileNotFound);
 
   LocalHeader^.MadeByVersion := 0;
@@ -1159,8 +1159,10 @@ begin
         FUtf8 := False;
     except
       Dispose(Header);
+      Header := nil;
     end;
-    FFileList.Add(Header);
+    if Header <> nil then
+      FFileList.Add(Header);
   end;
 end;
 

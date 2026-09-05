@@ -2593,7 +2593,7 @@ var
   NextObject: TObject;
   FollowObject: Boolean;
 begin
-  if PropOwner = nil then  if PropOwner.ClassInfo = nil then
+  if PropOwner = nil then
     Exit;
 
   Prefix := StringOfChar(' ', 2 * Level);
@@ -6990,48 +6990,52 @@ begin
   end;
 
   try
-    LoadQueuePtr;
-    if BufferFull then
-    begin
-      // 锁定并删队列头元素，直到有足够的空间来容纳本 Size 为止
-      IsFull := True;
-      repeat
-        MsgLen := PInteger(TCnNativeInt(FMsgBase) + FFront)^;
-        FFront := (FFront + MsgLen) mod FQueueSize;
-      until not BufferFull;
-      // 删完毕，进入写步骤 -- 以上可以考虑改成直接清空队列
-    end;
-
-    // 先写数据再改指针
-    if FTail + Size < FQueueSize then
-    begin
-      CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, Size);
-    end
-    else
-    begin
-      RestLen := FQueueSize - FTail;
-      if RestLen < SizeOf(Integer) then // 剩余空间不足以容纳信息头的 Length 字段
+    try
+      LoadQueuePtr;
+      if BufferFull then
       begin
-        CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
-        // 强行复制，要求队列超出 QueueSize 外的尾部至少有 SizeOf(Integer) 的空余缓冲
-        // 可不如此做，但会增加 Viewer 读取长度时的回溯困难
+        // 锁定并删队列头元素，直到有足够的空间来容纳本 Size 为止
+        IsFull := True;
+        repeat
+          MsgLen := PInteger(TCnNativeInt(FMsgBase) + FFront)^;
+          FFront := (FFront + MsgLen) mod FQueueSize;
+        until not BufferFull;
+        // 删完毕，进入写步骤 -- 以上可以考虑改成直接清空队列
+      end;
+
+      // 先写数据再改指针
+      if FTail + Size < FQueueSize then
+      begin
+        CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, Size);
       end
       else
-        CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, RestLen);
+      begin
+        RestLen := FQueueSize - FTail;
+        if RestLen < SizeOf(Integer) then // 剩余空间不足以容纳信息头的 Length 字段
+        begin
+          CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
+          // 强行复制，要求队列超出 QueueSize 外的尾部至少有 SizeOf(Integer) 的空余缓冲
+          // 可不如此做，但会增加 Viewer 读取长度时的回溯困难
+        end
+        else
+          CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, RestLen);
 
-      CopyMemory(FMsgBase, Pointer(TCnNativeInt(@MsgDesc) + RestLen), Size - RestLen);
+        CopyMemory(FMsgBase, Pointer(TCnNativeInt(@MsgDesc) + RestLen), Size - RestLen);
+      end;
+
+      Inc(FTail, Size);
+      if FTail >= FQueueSize then
+        FTail := FTail mod FQueueSize;
+
+      SaveQueuePtr(IsFull);
+    finally
+      if Mutex <> 0 then
+      begin
+        ReleaseMutex(Mutex);
+        CloseHandle(Mutex);
+      end;
     end;
 
-    Inc(FTail, Size);
-    if FTail >= FQueueSize then
-      FTail := FTail mod FQueueSize;
-
-    SaveQueuePtr(IsFull);
-    if Mutex <> 0 then
-    begin
-      ReleaseMutex(Mutex);
-      CloseHandle(Mutex);
-    end;
     SetEvent(FQueueEvent);
     if AutoFlush and (FQueueFlush <> 0) then
     begin
@@ -7048,7 +7052,6 @@ begin
         ShowError(MsgBuf);
       end;
     end;
-
   except
     DestroyHandles;
   end;
@@ -7396,21 +7399,21 @@ begin
     I := 0;
     while sem_trywait(Mutex^) <> 0 do
     begin
-       if errno = EAGAIN then
-       begin
-         usleep(1000); // 1ms
-         Inc(I);
-         if I >= CnDebugWaitingMutexTime then
-         begin
-           CloseSemaphore(Mutex);
-           Exit; // Timeout
-         end;
-       end
-       else
+      if errno = EAGAIN then
+      begin
+       usleep(1000); // 1ms
+       Inc(I);
+       if I >= CnDebugWaitingMutexTime then
        begin
          CloseSemaphore(Mutex);
-         Exit; // Error
+         Exit; // Timeout
        end;
+      end
+      else
+      begin
+       CloseSemaphore(Mutex);
+       Exit; // Error
+      end;
     end;
   end
   else
@@ -7420,41 +7423,46 @@ begin
   end;
 
   try
-    LoadQueuePtr;
-    if BufferFull then
-    begin
-      IsFull := True;
-      repeat
-        MsgLen := PInteger(TCnNativeInt(FMsgBase) + FFront)^;
-        FFront := (FFront + MsgLen) mod FQueueSize;
-      until not BufferFull;
-    end;
-
-    if FTail + Size < FQueueSize then
-    begin
-      Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, Size);
-    end
-    else
-    begin
-      RestLen := FQueueSize - FTail;
-      if RestLen < SizeOf(Integer) then
+    try
+      LoadQueuePtr;
+      if BufferFull then
       begin
-        Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, SizeOf(Integer));
+        IsFull := True;
+        repeat
+          MsgLen := PInteger(TCnNativeInt(FMsgBase) + FFront)^;
+          FFront := (FFront + MsgLen) mod FQueueSize;
+        until not BufferFull;
+      end;
+
+      if FTail + Size < FQueueSize then
+      begin
+        Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, Size);
       end
       else
-        Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, RestLen);
+      begin
+        RestLen := FQueueSize - FTail;
+        if RestLen < SizeOf(Integer) then
+        begin
+          Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, SizeOf(Integer));
+        end
+        else
+          Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, RestLen);
 
-      Move(Pointer(TCnNativeInt(@MsgDesc) + RestLen)^, FMsgBase^, Size - RestLen);
+        Move(Pointer(TCnNativeInt(@MsgDesc) + RestLen)^, FMsgBase^, Size - RestLen);
+      end;
+
+      Inc(FTail, Size);
+      if FTail >= FQueueSize then
+        FTail := FTail mod FQueueSize;
+
+      SaveQueuePtr(IsFull);
+    finally
+      if Mutex <> nil then
+      begin
+        sem_post(Mutex^);
+        CloseSemaphore(Mutex);
+      end;
     end;
-
-    Inc(FTail, Size);
-    if FTail >= FQueueSize then
-      FTail := FTail mod FQueueSize;
-
-    SaveQueuePtr(IsFull);
-
-    sem_post(Mutex^);
-    CloseSemaphore(Mutex);
 
     if FQueueEvent <> nil then
       sem_post(FQueueEvent^);
@@ -7475,7 +7483,6 @@ begin
           Break;
       end;
     end;
-
   except
     CloseSemaphore(Mutex);
     DestroyHandles;

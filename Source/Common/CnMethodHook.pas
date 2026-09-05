@@ -253,6 +253,7 @@ implementation
 
 resourcestring
   SCnMemoryWriteError = 'Error Writing Method Memory (%s).';
+  SCnErrorMethodPointer = 'Invalid Method Pointer';
 
 const
   csJmpCode = $E9;              // 相对跳转指令机器码
@@ -427,6 +428,8 @@ constructor TCnMethodHook.Create(const AOldMethod, ANewMethod: Pointer;
   DefaultHook: Boolean);
 begin
   inherited Create;
+  if (AOldMethod = nil) or (ANewMethod = nil) then
+    raise Exception.Create(SCnErrorMethodPointer);
   FHooked := False;
   FOldMethod := AOldMethod;
   FNewMethod := ANewMethod;

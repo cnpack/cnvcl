@@ -159,11 +159,12 @@ uses
 {$ENDIF}
 
 resourcestring
-  SCnIntfHookNilIntf        = 'Interface instance cannot be nil.';
+  SCnIntfHookMemoryWriteError = 'Error Writing Interface Memory (%s).';
+  SCnIntfHookNilIntf        = 'Interface Instance Cannot be nil.';
   SCnIntfHookInvalidIndex   = 'Invalid MethodIndex: %d.';
-  SCnIntfHookNoRealAddr     = 'Cannot resolve real method address for MethodIndex %d.';
-  SCnIntfHookMethodNotFound = 'Method "%s" not found in interface RTTI. ' +
-    'Ensure the interface is declared with {$M+} or inherits from IInvokable.';
+  SCnIntfHookNoRealAddr     = 'Cannot Resolve Real Method Address for MethodIndex %d.';
+  SCnIntfHookMethodNotFound = 'Method "%s" Not Found in interface RTTI. ' +
+    'Ensure the interface is Declared with {$M+} or inherits from IInvokable.';
 
 type
   TCnVTable = array[0..999] of Pointer;
@@ -353,12 +354,14 @@ begin
   if FVirtualTableMode then
   begin
     FRealMethodAddr := PPCnVTable(FVirtualTable)^^[FVirtualTableIndex];
-    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
-      PAGE_EXECUTE_READWRITE, OP);
+    if not VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      PAGE_EXECUTE_READWRITE, OP) then
+      raise ECnIntfHookException.CreateFmt(SCnIntfHookMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
     PPCnVTable(FVirtualTable)^^[FVirtualTableIndex] := FNewMethod;
-    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
-      OP, OP);
+    if not VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      OP, OP) then
+      raise ECnIntfHookException.CreateFmt(SCnIntfHookMemoryWriteError, [SysErrorMessage(GetLastError)]);
   end
   else
     FMethodHook.HookMethod;
@@ -374,12 +377,14 @@ begin
 
   if FVirtualTableMode then
   begin
-    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
-      PAGE_EXECUTE_READWRITE, OP);
+    if not VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      PAGE_EXECUTE_READWRITE, OP) then
+      raise ECnIntfHookException.CreateFmt(SCnIntfHookMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
     PPCnVTable(FVirtualTable)^^[FVirtualTableIndex] := FRealMethodAddr;
-    VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
-      OP, OP);
+    if not VirtualProtect(@PPCnVTable(FVirtualTable)^^[FVirtualTableIndex], SizeOf(Pointer),
+      OP, OP) then
+      raise ECnIntfHookException.CreateFmt(SCnIntfHookMemoryWriteError, [SysErrorMessage(GetLastError)]);
   end
   else
     FMethodHook.UnhookMethod;
