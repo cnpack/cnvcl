@@ -83,8 +83,8 @@ type
 
     procedure AddOutNeighbour(NextRef: TCnVertex; Weight: Integer = 1);
     {* 添加出的相邻点与权重，内部会把 Self 添加到 NextRef 的 InNeighbour 中}
-    procedure RemoveOutNeighbour(NextRef: TCnVertex);
-    {* 删除出的相邻点}
+    function RemoveOutNeighbour(NextRef: TCnVertex): Boolean;
+    {* 删除出的相邻点，返回删除是否成功}
     procedure ClearNeighbours;
     {* 清除所有出入相邻的顶点}
 
@@ -292,10 +292,11 @@ begin
     FInNeighbours.Remove(PrevRef);
 end;
 
-procedure TCnVertex.RemoveOutNeighbour(NextRef: TCnVertex);
+function TCnVertex.RemoveOutNeighbour(NextRef: TCnVertex): Boolean;
 var
   WeightIndex: Integer;
 begin
+  Result := False;
   if NextRef <> nil then
   begin
     WeightIndex := FOutNeighbours.IndexOf(NextRef);
@@ -304,6 +305,7 @@ begin
       FOutNeighbours.Delete(WeightIndex);
       FWeights.Delete(WeightIndex);
       NextRef.RemoveInNeighbour(Self);
+      Result := True;
     end;
   end;
 end;
@@ -562,17 +564,37 @@ begin
 end;
 
 function TCnGraph.RemoveEdge(Vertex1, Vertex2: TCnVertex): Boolean;
+var
+  B1, B2: Boolean;
 begin
   Result := False;
   if not HasVertex(Vertex1) or not HasVertex(Vertex2) then
     Exit;
 
-  Vertex1.RemoveOutNeighbour(Vertex2);
-  if not FDirected and (Vertex1 <> Vertex2) then
-    Vertex2.RemoveOutNeighbour(Vertex1);
+  if FDirected then
+  begin
+    // 有向图，只需删一次存在的边
+    if Vertex1.RemoveOutNeighbour(Vertex2) then
+    begin
+      Dec(FEdgeCount);
+      Result := True;
+    end;
+  end
+  else
+  begin
+    // 双向图，两次删都得成功
+    B1 := Vertex1.RemoveOutNeighbour(Vertex2);
+    if Vertex1 <> Vertex2 then
+      B2 := Vertex2.RemoveOutNeighbour(Vertex1)
+    else
+      B2 := True;
 
-  Dec(FEdgeCount);
-  Result := True;
+    if B1 and B2 then
+    begin
+      Dec(FEdgeCount);
+      Result := True;
+    end;
+  end;
 end;
 
 function TCnGraph.RemoveVertex(Vertex: TCnVertex): Boolean;

@@ -99,12 +99,12 @@ type
 
 implementation
 
-{$IFDEF DEBUG}
+
 uses
-  CnDebug;
-{$ENDIF}
+  CnNative {$IFDEF DEBUG}, CnDebug {$ENDIF};
 
 {$IFNDEF COMPILER6_UP}
+
 type
   TVarType = Word;
 
@@ -149,25 +149,25 @@ const
   CText: array [varEmpty..varByte] of string = ('Empty', 'Null', 'Smallint', //Do not localize
     'Integer', 'Single', 'Double', 'Currency', 'Date', 'OleStr', 'Dispatch', //Do not localize
     'Error', 'Boolean', 'Variant', 'Unknown', 'Decimal', '$0F', 'ShortInt', //Do not localize
-    'Byte'); //Do not localize
+    'Byte'); // Do not localize
 begin
   if AType and varTypeMask <= varByte then
     Result := CText[AType and varTypeMask]
   else if AType = varString then
-    Result := 'String' //Do not localize
+    Result := 'String' // Do not localize
 {$IFDEF UNICODE}
   else if AType = varUString then
-    Result := 'UString' //Do not localize
+    Result := 'UString' // Do not localize
 {$ENDIF}
   else if AType = varAny then
-    Result := 'Any' //Do not localize
+    Result := 'Any' // Do not localize
   else
     Result := HexDisplayPrefix + IntToHex(AType and varTypeMask, 4);
 
   if AType and varArray <> 0 then
-    Result := 'Array ' + Result; //Do not localize
+    Result := 'Array ' + Result; // Do not localize
   if AType and varByRef <> 0 then
-    Result := 'ByRef ' + Result; //Do not localize
+    Result := 'ByRef ' + Result; // Do not localize
 end;
 
 {$ENDIF}
@@ -199,7 +199,7 @@ begin
   if not Assigned(Avalue) then Exit;
   SetLength(FValues, Length(FValues)+ 1);
   SetLength(FValType, Length(FValType)+ 1);
-  FValues[High(FValues)] := Integer(AValue);
+  FValues[High(FValues)] := TCnNativeInt(AValue);
   FValType[High(FValType)] := 'Object:' + AValue.ClassName;
 end;
 
@@ -281,18 +281,18 @@ function TCnVarList.FromString(Text: WideString;
 
     procedure _PushElement(); //将Element装入当前List中，并清空Element
     var
-      v: Variant;
+      V: Variant;
     begin
       case eType of
-        varString {$IFDEF UNICODE}, varUString {$ENDIF}:  v := AnsiDequotedStr(Element, '''');
-        varInteger: v := StrToInt(Element);
-        varDouble:  v := StrToFloat(Element);
-        varBoolean: v := StrToBool(Element);
+        varString {$IFDEF UNICODE}, varUString {$ENDIF}:  V := AnsiDequotedStr(Element, '''');
+        varInteger: V := StrToInt(Element);
+        varDouble:  V := StrToFloat(Element);
+        varBoolean: V := StrToBool(Element);
       end;
 
       if List.Count > 0 then
       begin
-        TCnVarList(List[List.Count - 1]).Add(v);
+        TCnVarList(List[List.Count - 1]).Add(V);
 {$IFDEF DEBUG}
         CnDebugger.LogFmt('Add Value %d VarList: %s.', [List.Count - 1,
           TCnVarList(List[List.Count - 1]).ToString]);
@@ -378,14 +378,16 @@ function TCnVarList.FromString(Text: WideString;
                 _PopLayer;
 
               State := csBracketRight;
-              end
+            end
             else
+            begin
               if C = '(' then
               begin
                 _NewLayer;
               end
               else
                 _WantNewElement;
+            end;
           end;
         csBracketRight:
           begin
@@ -418,15 +420,17 @@ function TCnVarList.FromString(Text: WideString;
               State := csBracketRight;
             end
             else if C = ',' then
+            begin
               if sqCount mod 2 = 0 then
               begin
                 State := csComma;
                 sqCount := 0;
               end
               else
-                Element := Element + C
+                Element := Element + C;
+            end
             else
-              Element := Element + C
+              Element := Element + C;
           end;
         csInteger:
           begin
@@ -464,8 +468,8 @@ function TCnVarList.FromString(Text: WideString;
             else
               Element := Element + C;
           end;
-        end;
       end;
+    end;
   end;
 begin
   Clear;
@@ -515,21 +519,21 @@ end;
 
 function TCnVarList.GetObject(Index: Integer): TObject;
 var
-  v: Variant;
+  V: Variant;
 begin
   Result := nil;      
-  v := FValues[Index];
-  if VarIsArray(v) then
+  V := FValues[Index];
+  if VarIsArray(V) then
     Exit;
 
   if Pos('Object', FValType[Index]) = 1 then
-    Result := TObject(Integer(v));
+    Result := TObject(TCnNativeInt(V));
 end;
 
 function TCnVarList.GetString(cList: TCnVarList): WideString;
 var
   I: Integer;
-  v: Variant;
+  V: Variant;
   aList: TCnVarList;
 begin
   Result := '';
@@ -537,10 +541,10 @@ begin
   Result := '(';
   for I := 0 to High(cList.Values) do
   begin
-    v := cList.Values[I];
-    if VarArrayDimCount(v) > 0 then
+    V := cList.Values[I];
+    if VarArrayDimCount(V) > 0 then
     begin
-      // 如果元素本身就是vararray，表明是CnVarList来的，则递归调用扩展之。
+      // 如果元素本身就是 vararray，表明是 CnVarList 来的，则递归调用扩展之。
       aList := cList.GetList(I);
       Result := Result + GetString(aList);
       FreeAndNil(aList);
@@ -550,20 +554,20 @@ begin
       if Pos('Object', cList.ValType[I]) = 1 then
         Result := Result + QuotedStr(cList.ValType[I])
       else
-        case VarType(v) of
+        case VarType(V) of
           varString, {$IFDEF UNICODE} varUString, {$ENDIF} varOleStr:
-            Result := Result + QuotedStr(v);
+            Result := Result + QuotedStr(V);
           varByte, {$IFDEF COMPILER6_UP}varShortInt,{$ENDIF} varSmallint,
           varInteger, varSingle, varDouble,
           {$IFDEF COMPILER6_UP}varWord, varLongWord, varInt64, {$ENDIF}
           varCurrency:
-            Result := Result + VarToStr(v);
+            Result := Result + VarToStr(V);
           varDate:
-            Result := Result + '''' + DateTimeToStr(VarToDateTime(v)) + '''';
+            Result := Result + '''' + DateTimeToStr(VarToDateTime(V)) + '''';
           varBoolean:
-            Result := Result + BoolToStr(v, True);
+            Result := Result + BoolToStr(V, True);
           varVariant:
-            Result := Result + QuotedStr(v);
+            Result := Result + QuotedStr(V);
         else
           Result := Result + 'Unknown:' + cList.ValType[I];
         end;
@@ -581,8 +585,8 @@ end;
 
 procedure TCnVarList.Remove(Index: Integer);
 begin
-  DynArrayDelete(FValues, Length(FValues), Index, 1);
-  DynArrayDelete(FValType, Length(FValType), Index, 1);
+  DynArrayDelete(FValues, SizeOf(Variant), Index, 1);
+  DynArrayDelete(FValType, SizeOf(Variant), Index, 1);
 end;
 
 procedure TCnVarList.SetValues(const AValues: array of Variant);

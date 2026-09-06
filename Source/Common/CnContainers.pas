@@ -87,6 +87,9 @@ uses
 {$DEFINE MULTI_THREAD} // 数学对象池支持多线程，性能略有下降，如不需要，注释此行即可
 
 type
+  ECnContainerException = class(Exception);
+  {* 容器相关异常}
+
   TCnLinkedQueue = class(TObject)
   {* 指针队列实现类，内部采用链表实现。可运行期创建时指定是否支持多线程互斥}
   private
@@ -766,6 +769,8 @@ resourcestring
   SCnFullPushToBackError = 'Ring Buffer Full. Can NOT Push To Back.';
   SCnFullPushToFrontError = 'Ring Buffer Full. Can NOT Push To Front.';
   SCnInvalidRingBufferSizeError = 'Ring Buffer Size Must be Greater than Zero.';
+  SCnEmptyQueueError = 'Queue Empty. Can NOT Pop';
+  SCnEmptyStackError = 'Stack Empty. Can NOT Peek or Pop';
 
 type
   TCnQueueNode = class
@@ -1013,8 +1018,13 @@ begin
     FLock.Enter;
 
   try
-    Result := TObject(FList[0]);
-    FList.Delete(0);
+    if FList.Count > 0 then
+    begin
+      Result := TObject(FList[0]);
+      FList.Delete(0);
+    end
+    else
+      raise ECnContainerException.Create(SCnEmptyQueueError);
   finally
     if FMultiThread then
       FLock.Leave;
@@ -1078,7 +1088,10 @@ end;
 
 function TCnObjectStack.Peek: TObject;
 begin
-  Result := TObject(FList[FList.Count - 1]);
+  if FList.Count > 0 then
+    Result := TObject(FList[FList.Count - 1])
+  else
+    raise ECnContainerException.Create(SCnEmptyStackError);
 end;
 
 function TCnObjectStack.Pop: TObject;
@@ -1087,8 +1100,13 @@ begin
     FLock.Enter;
 
   try
-    Result := TObject(FList[FList.Count - 1]);
-    FList.Delete(FList.Count - 1);
+    if FList.Count > 0 then
+    begin
+      Result := TObject(FList[FList.Count - 1]);
+      FList.Delete(FList.Count - 1);
+    end
+    else
+      raise ECnContainerException.Create(SCnEmptyStackError);
   finally
     if FMultiThread then
       FLock.Leave;

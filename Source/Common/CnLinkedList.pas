@@ -819,7 +819,7 @@ begin
 
   GetMem(Result, (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt));
     // 分配内存空间
-  PCardinal(Result)^ := (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt);
+  TCnNativeUIntPtr(Result)^ := (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt);
     // 记录内存空间大小
   Result := PWideChar(TCnNativeUInt(Result) + SizeOf(TCnNativeUInt));
     // 跳过保留大小的内存空间
@@ -1501,7 +1501,7 @@ begin
 
   if Index = 0 then
     Flag := AddFirst(Item)
-  else if Index >= FCount - 1 then
+  else if Index > FCount - 1 then
     Flag := AddLast(Item)
   else
     Flag := AddMiddle(Index, Item);

@@ -375,7 +375,7 @@ begin
   else
   begin
     iStep := iCount div 32 + 1;
-    I := 1;
+    I := 0;
     while I < iCount do
     begin
       Result := CRC8Table[Result xor Byte(S[I])];

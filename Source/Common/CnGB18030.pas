@@ -977,7 +977,7 @@ var
 begin
   Result := 1;
   B1 := Byte(GB18030Str^);
-  if B1 <= $7F then
+  if B1 < $80 then
     Exit;
 
   Inc(GB18030Str);
@@ -1319,7 +1319,7 @@ begin
   begin
     Inc(PtrToGB18030Chars);
     C2 := Byte(PtrToGB18030Chars^);
-    if ((C2 >= $40) and (C2 <= $7E)) or ((C2 >= $90) and (C2 <= $FE)) then
+    if ((C2 >= $40) and (C2 <= $7E)) or ((C2 >= $80) and (C2 <= $FE)) then
       Result := C1 shl 8 + C2                   // Ë«×Ö½Ú
     else if (C2 >= $30) and (C2 <= $39) then    // ËÄ×Ö½Ú
     begin
