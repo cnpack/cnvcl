@@ -726,7 +726,7 @@ begin
   else
     SFmt := SCnIFDashed;
 
-  if iEdx1 and (1 shr 18) = 0 then // Cpu 序列号不能读，返回全0
+  if iEdx1 and (1 shl 18) = 0 then // Cpu 序列号不能读，返回全0
   begin
     Result := AnsiString(Format(SFmt, [0, 0, 0, 0, 0, 0]));
     FSupportCpuSns.Add(nil); // 加 False
@@ -1238,7 +1238,7 @@ end;
 
 function TCnHardDiskInfo.GetDiskSerialNo(Index: Integer): string;
 begin
-  if (Index >= 0) or (Index < FHardDiskSns.Count) then
+  if (Index >= 0) and (Index < FHardDiskSns.Count) then
     Result := FHardDiskSns[Index]
   else
     Result := '';
@@ -1246,7 +1246,7 @@ end;
 
 function TCnHardDiskInfo.GetVolumnLetter(Index: Integer): string;
 begin
-  if (Index >= 0) or (Index < FVolumnLetters.Count) then
+  if (Index >= 0) and (Index < FVolumnLetters.Count) then
     Result := FVolumnLetters[Index]
   else
     Result := '';
@@ -1254,7 +1254,7 @@ end;
 
 function TCnHardDiskInfo.GetVolumnName(Index: Integer): string;
 begin
-  if (Index >= 0) or (Index < FVolumnNames.Count) then
+  if (Index >= 0) and (Index < FVolumnNames.Count) then
     Result := FVolumnNames[Index]
   else
     Result := '';
@@ -1274,7 +1274,7 @@ begin
   ReadVolumnInfo;
 end;
 
-function        LoCase( ch : AnsiChar ) : AnsiChar;
+function LoCase(Ch: AnsiChar): AnsiChar;
 begin
 //asm
 //{ ->    AL      Character       }

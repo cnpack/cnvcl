@@ -155,7 +155,7 @@ function Intensity(Color: TColor): Byte;
 {* 计算 RGB 颜色值的灰度值}
 function RandomColor: TColor;
 {* 返回一个随机 RGB 颜色值}
-procedure DeRGB(Color: TColor; var r, g, b: Byte);
+procedure DeRGB(Color: TColor; var R, G, b: Byte);
 {* 将 Color 分解为 r、g、b 颜色分量}
 
 //==============================================================================
@@ -998,9 +998,9 @@ type
     rgbtRed: Byte;
   end;
 
-function RGB(r, g, b: Byte): TColor;
+function RGB(R, G, b: Byte): TColor;
 begin
-  Result := (r or (g shl 8) or (b shl 16));
+  Result := (R or (G shl 8) or (b shl 16));
 end;
 
 function GetRValue(rgb: DWORD): Byte;
@@ -1061,16 +1061,16 @@ var
     Result := Round(255 * V)
   end;
 var
-  r, g, b: Byte;
+  R, G, b: Byte;
 begin
   H := H - Floor(H);                   // 保证色调在 0..1 之间
   CheckInput(S);
   CheckInput(L);
   if S = 0 then
   begin
-    r := Round(255 * L);
-    g := r;
-    b := r
+    R := Round(255 * L);
+    G := R;
+    b := R
   end else
   begin
     if L <= 0.5 then
@@ -1078,11 +1078,11 @@ begin
     else
       M2 := L + S - L * S;
     M1 := 2 * L - M2;
-    r := HueToColourValue(H + 1 / 3);
-    g := HueToColourValue(H);
+    R := HueToColourValue(H + 1 / 3);
+    G := HueToColourValue(H);
     b := HueToColourValue(H - 1 / 3)
   end;
-  Result := RGB(r, g, b);
+  Result := RGB(R, G, b);
 end;
 
 // HSL 颜色范围转换为 RGB 色
@@ -1095,14 +1095,14 @@ end;
 // RGB 颜色转为 HSL 色
 procedure RGBToHSL(Color: TColor; out H, S, L: Double);
 var
-  r, g, b, D, Cmax, Cmin: Double;
+  R, G, b, D, Cmax, Cmin: Double;
 begin
   Color := ColorToRGB(Color);
-  r := GetRValue(Color) / 255;
-  g := GetGValue(Color) / 255;
+  R := GetRValue(Color) / 255;
+  G := GetGValue(Color) / 255;
   b := GetBValue(Color) / 255;
-  Cmax := Max(r, Max(g, b));
-  Cmin := Min(r, Min(g, b));
+  Cmax := Max(R, Max(G, b));
+  Cmin := Min(R, Min(G, b));
   L := (Cmax + Cmin) / 2;
   if Cmax = Cmin then
   begin
@@ -1115,12 +1115,12 @@ begin
       S := D / (Cmax + Cmin)
     else
       S := D / (2 - Cmax - Cmin);
-    if r = Cmax then
-      H := (g - b) / D
-    else if g = Cmax then
-      H := 2 + (b - r) / D
+    if R = Cmax then
+      H := (G - b) / D
+    else if G = Cmax then
+      H := 2 + (b - R) / D
     else
-      H := 4 + (r - g) / D;
+      H := 4 + (R - G) / D;
     H := H / 6;
     if H < 0 then
       H := H + 1
@@ -1200,22 +1200,22 @@ end;
 // CMY 颜色转换为 RGB
 function CMYToRGB(const C, M, Y: Byte): TColor;
 var
-  r, g, b: Byte;
+  R, G, b: Byte;
 begin
-  r := 255 - C;
-  g := 255 - M;
+  R := 255 - C;
+  G := 255 - M;
   b := 255 - Y;
-  Result := RGB(r, g, b);
+  Result := RGB(R, G, b);
 end;
 
 // RGB 颜色转换为 CMY
 procedure RGBToCMY(const RGB: TColor; out C, M, Y: Byte);
 var
-  r, g, b: Byte;
+  R, G, b: Byte;
 begin
-  DeRGB(RGB, r, g, b);
-  C := 255 - r;
-  M := 255 - g;
+  DeRGB(RGB, R, G, b);
+  C := 255 - R;
+  M := 255 - G;
   Y := 255 - b;
 end;
 
@@ -1227,12 +1227,17 @@ end;
 // CMYK 颜色转换为 RGB
 function CMYKtoRGB(const C, M, Y, K: Byte): TColor;
 var
-  r, g, b: Byte;
+  R, G, B: Byte;
+  T: Integer;
 begin
-  r := 255 - (C + K);
-  g := 255 - (M + K);
-  b := 255 - (Y + K);
-  Result := RGB(r, g, b);
+  T := C + K;
+  if T >= 255 then R := 0 else R := 255 - T;
+  T := M + K;
+  if T >= 255 then G := 0 else G := 255 - T;
+  T := Y + K;
+  if T >= 255 then B := 0 else B := 255 - T;
+
+  Result := RGB(R, G, B);
 end;
 
 // RGB 颜色转换为 CMYK
@@ -1282,11 +1287,11 @@ begin
 end;
 
 // 取颜色 RGB 分量
-procedure DeRGB(Color: TColor; var r, g, b: Byte);
+procedure DeRGB(Color: TColor; var R, G, b: Byte);
 begin
   Color := ColorToRGB(Color);
-  r := GetRValue(Color);
-  g := GetGValue(Color);
+  R := GetRValue(Color);
+  G := GetGValue(Color);
   b := GetBValue(Color);
 end;
 
@@ -1299,7 +1304,7 @@ function CreateEmptyBmp24(Width, Height: Integer; Color: TColor): TBitmap;
 type
   TRGBArray = array[0..65535] of TRGBTriple;
 var
-  r, g, b: Byte;
+  R, G, b: Byte;
   x, y: Integer;
   P: ^TRGBArray;
 begin
@@ -1307,7 +1312,7 @@ begin
   Result.PixelFormat := pf24bit;
   Result.Width := Width;
   Result.Height := Height;
-  DeRGB(Color, r, g, b);
+  DeRGB(Color, R, G, b);
   for y := 0 to Height - 1 do
   begin
     P := Result.ScanLine[y];
@@ -1316,8 +1321,8 @@ begin
       with P^[x] do
       begin
         rgbtBlue := b;
-        rgbtGreen := g;
-        rgbtRed := r;
+        rgbtGreen := G;
+        rgbtRed := R;
       end;
     end;
   end;

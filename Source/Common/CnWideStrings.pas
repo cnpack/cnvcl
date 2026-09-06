@@ -1772,6 +1772,7 @@ begin
           if Utf8Text^ = #0 then
             Exit;
           Inc(Utf8Text);
+          Inc(WideIdx); // UTF8-MB4 对应的 UTF16 占两个双字符位置
         end;
     else
       Exit;
