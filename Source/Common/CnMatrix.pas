@@ -2622,7 +2622,7 @@ var
   T: array of array of Extended;
   I, J, SJ, DJ: Integer;
 begin
-  if (Col >= 0) or (Col < FColCount) then
+  if (Col >= 0) and (Col < FColCount) then
   begin
     // 把每 Row 的元素取出来放到临时 T 里，剔除第 Col 个
     SetLength(T, FRowCount, FColCount - 1);
@@ -2658,7 +2658,7 @@ procedure TCnFloatMatrix.DeleteRow(Row: Integer);
 var
   I, J: Integer;
 begin
-  if (Row >= 0) or (Row < FRowCount) then
+  if (Row >= 0) and (Row < FRowCount) then
   begin
     // 把第 Row + 1 行到 FRowCount - 1 行的一维数组朝前移动一格，末行时无需移
     if Row < FRowCount - 1 then

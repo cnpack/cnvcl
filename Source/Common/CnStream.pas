@@ -629,9 +629,9 @@ end;
 function TCnEncryptStream.Read(var Buffer; Count: Longint): LongInt;
 begin
   Result := FStream.Read(Buffer, Count);
-  DoBeforeDeEncrypt(Buffer, Count);
-  DeEncrypt(Buffer, Count);
-  DoAfterDeEncrypt(Buffer, Count);
+  DoBeforeDeEncrypt(Buffer, Result);
+  DeEncrypt(Buffer, Result);
+  DoAfterDeEncrypt(Buffer, Result);
 end;
 
 function TCnEncryptStream.Seek(Offset: Longint; Origin: Word): LongInt;

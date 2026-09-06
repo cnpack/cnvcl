@@ -73,8 +73,8 @@ type
   protected
     procedure AddInNeighbour(PrevRef: TCnVertex);
     {* 单纯添加一个顶点到 InNeighbour}
-    procedure RemoveInNeighbour(PrevRef: TCnVertex);
-    {* 单纯从 InNeighbour 中删除一个顶点}
+    function RemoveInNeighbour(PrevRef: TCnVertex): Boolean;
+    {* 单纯从 InNeighbour 中删除一个顶点，返回删除顶点的索引号}
     property Visited: Boolean read FVisited write FVisited;
     {* 是否被访问过的标记，用于图的遍历}
   public
@@ -286,10 +286,12 @@ begin
   Result := Integer(FWeights[Index]);
 end;
 
-procedure TCnVertex.RemoveInNeighbour(PrevRef: TCnVertex);
+function TCnVertex.RemoveInNeighbour(PrevRef: TCnVertex): Boolean;
 begin
   if PrevRef <> nil then
-    FInNeighbours.Remove(PrevRef);
+    Result := FInNeighbours.Remove(PrevRef) >= 0
+  else
+    Result := False;
 end;
 
 function TCnVertex.RemoveOutNeighbour(NextRef: TCnVertex): Boolean;
@@ -599,21 +601,32 @@ end;
 
 function TCnGraph.RemoveVertex(Vertex: TCnVertex): Boolean;
 var
-  I: Integer;
+  Other: TCnVertex;
 begin
   Result := False;
   if not HasVertex(Vertex) then
     Exit;
 
-  // 删 OutNeighbours 里每一个里的 InNeighbours 里的自己
-  for I := 0 to Vertex.OutNeighbourCount - 1 do
-    Vertex.OutNeighbour[I].RemoveInNeighbour(Vertex);
+  // 删除所有出边。
+  // 对无向图而言，每条与 Vertex 相连的边都会出现在这里。
+  while Vertex.OutNeighbourCount > 0 do
+  begin
+    Other := Vertex.OutNeighbour[Vertex.OutNeighbourCount - 1];
+    RemoveEdge(Vertex, Other);
+  end;
 
-  // 删 InNeighbours 里每一个里的 OutNeighbours 里的自己
-  for I := Vertex.InNeighbourCount - 1 downto 0 do
-    Vertex.InNeighbour[I].RemoveOutNeighbour(Vertex);
+  // 有向图还可能存在入边。
+  // 无向图经过上面的处理后通常已经为空。
+  while Vertex.InNeighbourCount > 0 do
+  begin
+    Other := Vertex.InNeighbour[Vertex.InNeighbourCount - 1];
+    RemoveEdge(Other, Vertex);
+  end;
 
+  // 再清一次保险
   Vertex.ClearNeighbours;
+
+  // FVertexes 拥有 Vertex，因此 Remove 会负责释放它。
   FVertexes.Remove(Vertex);
   Result := True;
 end;

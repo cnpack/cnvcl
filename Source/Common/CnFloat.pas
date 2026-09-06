@@ -1456,8 +1456,11 @@ var
 begin
   // 得到真实指数与 1 开头的有效数字（小数点在 1 后）
   ExtractFloatExtended(F, SignNeg, Exponent, Mantissa);
-  if SignNeg then
-    raise ERangeError.Create(SRangeError); // 负数不支持
+  if SignNeg and (Mantissa <> 0) then
+    raise ERangeError.Create(SRangeError); // 有效负数不支持
+
+  if (Mantissa = 0) and SignNeg then       // 如果是负 0 则变成正 0
+    SignNeg := False;
 
   // Mantissa 有 64 位有效数字，其中小数点后 63 位，如果指数小于 0 说明小数点要往左移，那么值就是 0 了
   if Exponent < 0 then

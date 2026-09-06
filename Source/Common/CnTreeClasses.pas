@@ -340,6 +340,14 @@ type
   {* 红黑树的实现类}
   private
     procedure SetRoot(const Value: TCnRedBlackLeaf);
+    function NodeIsRed(ALeaf: TCnRedBlackLeaf): Boolean;
+    procedure SetNodeRed(ALeaf: TCnRedBlackLeaf; AIsRed: Boolean);
+    function LeftOf(ALeaf: TCnRedBlackLeaf): TCnRedBlackLeaf;
+    function RightOf(ALeaf: TCnRedBlackLeaf): TCnRedBlackLeaf;
+    function Minimum(ALeaf: TCnRedBlackLeaf): TCnRedBlackLeaf;
+    procedure Transplant(AOld, ANew: TCnRedBlackLeaf);
+    procedure DeleteFixup(var ALeaf, AParent: TCnRedBlackLeaf;
+      AIsLeft: Boolean);
   protected
     function DefaultLeafClass: TCnLeafClass; override;
     function GetRoot: TCnRedBlackLeaf;
@@ -1388,7 +1396,7 @@ end;
 
 function TCnBinarySortTree.IsEmpty: Boolean;
 begin
-  Result := FRootInserted or (GetCount > 1);
+  Result := not FRootInserted;
 end;
 
 function TCnBinarySortTree.Search(Value: Integer): TCnBinaryLeaf;
@@ -1614,7 +1622,8 @@ begin
   if Value <> FRoot then
   begin
     FRoot := Value;
-    Root.Parent := nil;
+    if Value <> nil then
+      Value.Parent := nil;
   end;
 end;
 
@@ -1726,137 +1735,292 @@ begin
   Result := TCnRedBlackLeaf;
 end;
 
-function TCnRedBlackTree.Delete(Value: Integer): Boolean;
-var
-  ALeaf: TCnRedBlackLeaf;
+function TCnRedBlackTree.NodeIsRed(ALeaf: TCnRedBlackLeaf): Boolean;
 begin
-  ALeaf := TCnRedBlackLeaf(Search(Value));
-  Result := ALeaf <> nil;
-  if Result then
-    DeleteOneChildLeaf(ALeaf); // Error
+  if ALeaf <> nil then
+    Result := ALeaf.IsRed
+  else
+    Result := False;
 end;
 
-procedure TCnRedBlackTree.DeleteCase1(ALeaf: TCnRedBlackLeaf);
+procedure TCnRedBlackTree.SetNodeRed(ALeaf: TCnRedBlackLeaf;
+  AIsRed: Boolean);
 begin
-  if ALeaf.Parent <> nil then
-    DeleteCase2(ALeaf);
+  if ALeaf <> nil then
+    ALeaf.IsRed := AIsRed;
 end;
 
-procedure TCnRedBlackTree.DeleteCase2(ALeaf: TCnRedBlackLeaf);
-var
-  Brother: TCnRedBlackLeaf;
+function TCnRedBlackTree.LeftOf(ALeaf: TCnRedBlackLeaf): TCnRedBlackLeaf;
 begin
-  Brother := ALeaf.GetBrotherLeaf;
-  if Brother.IsRed then
+  if ALeaf <> nil then
+    Result := ALeaf.LeftLeaf
+  else
+    Result := nil;
+end;
+
+function TCnRedBlackTree.RightOf(ALeaf: TCnRedBlackLeaf): TCnRedBlackLeaf;
+begin
+  if ALeaf <> nil then
+    Result := ALeaf.RightLeaf
+  else
+    Result := nil;
+end;
+
+function TCnRedBlackTree.Minimum(ALeaf: TCnRedBlackLeaf): TCnRedBlackLeaf;
+begin
+  Result := ALeaf;
+  while Result <> nil do
   begin
-    ALeaf.Parent.IsRed := True;
-    Brother.IsRed := False;
-    if ALeaf = ALeaf.Parent.LeftLeaf then
-      RotateLeft(ALeaf.Parent)
-    else
-      RotateRight(ALeaf.Parent)
+    if Result.LeftLeaf = nil then
+      Break;
+    Result := Result.LeftLeaf;
   end;
-
-  DeleteCase3(ALeaf);
 end;
 
-procedure TCnRedBlackTree.DeleteCase3(ALeaf: TCnRedBlackLeaf);
+procedure TCnRedBlackTree.Transplant(AOld, ANew: TCnRedBlackLeaf);
 var
-  Brother: TCnRedBlackLeaf;
+  Parent: TCnRedBlackLeaf;
 begin
-  Brother := ALeaf.GetBrotherLeaf;
-  if not ALeaf.Parent.IsRed and not Brother.IsRed and not Brother.LeftLeaf.IsRed
-    and not Brother.RightLeaf.IsRed then
+  if AOld = nil then
+    Exit;
+
+  Parent := AOld.Parent;
+  if Parent = nil then
   begin
-    Brother.IsRed := True;
-    DeleteCase1(ALeaf.Parent);
+    FRoot := ANew;
+    if ANew <> nil then
+      ANew.Parent := nil;
   end
+  else if Parent.LeftLeaf = AOld then
+    Parent.LeftLeaf := ANew
+  else if Parent.RightLeaf = AOld then
+    Parent.RightLeaf := ANew
   else
-    DeleteCase4(ALeaf);
+    raise ECnTreeException.Create('Red-black tree parent link is invalid.');
 end;
 
-procedure TCnRedBlackTree.DeleteCase4(ALeaf: TCnRedBlackLeaf);
+procedure TCnRedBlackTree.DeleteFixup(var ALeaf,
+  AParent: TCnRedBlackLeaf; AIsLeft: Boolean);
 var
   Brother: TCnRedBlackLeaf;
+  IsLeft: Boolean;
 begin
-  Brother := ALeaf.GetBrotherLeaf;
-  if ALeaf.Parent.IsRed and not Brother.IsRed and not Brother.LeftLeaf.IsRed
-    and not Brother.RightLeaf.IsRed then
+  // ALeaf 可能为 nil；空子节点没有 Parent，因此由 AParent 保存其父节点。
+  IsLeft := AIsLeft;
+  while (ALeaf <> Root) and not NodeIsRed(ALeaf) do
   begin
-    Brother.IsRed := True;
-    ALeaf.Parent.IsRed := False;
-  end
-  else
-    DeleteCase5(ALeaf);
-end;
+    if AParent = nil then
+      Break;
 
-procedure TCnRedBlackTree.DeleteCase5(ALeaf: TCnRedBlackLeaf);
-var
-  Brother: TCnRedBlackLeaf;
-begin
-  Brother := ALeaf.GetBrotherLeaf;
-  if not Brother.IsRed then
-  begin
-    if (ALeaf = ALeaf.Parent.LeftLeaf) and not Brother.RightLeaf.IsRed
-      and Brother.LeftLeaf.IsRed then
+    if ALeaf <> nil then
+      IsLeft := AParent.LeftLeaf = ALeaf;
+
+    if IsLeft then
     begin
-      Brother.IsRed := True;
-      Brother.LeftLeaf.IsRed := False;
-      RotateRight(Brother);
+      Brother := AParent.RightLeaf;
+      if NodeIsRed(Brother) then
+      begin
+        SetNodeRed(Brother, False);
+        SetNodeRed(AParent, True);
+        RotateLeft(AParent);
+        Brother := AParent.RightLeaf;
+      end;
+
+      if not NodeIsRed(LeftOf(Brother)) and
+        not NodeIsRed(RightOf(Brother)) then
+      begin
+        SetNodeRed(Brother, True);
+        ALeaf := AParent;
+        AParent := ALeaf.Parent;
+        IsLeft := AParent <> nil;
+        if IsLeft then
+          IsLeft := AParent.LeftLeaf = ALeaf;
+      end
+      else
+      begin
+        if not NodeIsRed(RightOf(Brother)) then
+        begin
+          SetNodeRed(LeftOf(Brother), False);
+          SetNodeRed(Brother, True);
+          RotateRight(Brother);
+          Brother := AParent.RightLeaf;
+        end;
+
+        SetNodeRed(Brother, NodeIsRed(AParent));
+        SetNodeRed(AParent, False);
+        SetNodeRed(RightOf(Brother), False);
+        RotateLeft(AParent);
+        ALeaf := Root;
+        AParent := nil;
+      end;
     end
-    else if (ALeaf = ALeaf.Parent.RightLeaf) and not Brother.LeftLeaf.IsRed
-      and Brother.RightLeaf.IsRed then
+    else
     begin
-      Brother.IsRed := True;
-      Brother.RightLeaf.IsRed := False;
-      RotateLeft(Brother);
+      Brother := AParent.LeftLeaf;
+      if NodeIsRed(Brother) then
+      begin
+        SetNodeRed(Brother, False);
+        SetNodeRed(AParent, True);
+        RotateRight(AParent);
+        Brother := AParent.LeftLeaf;
+      end;
+
+      if not NodeIsRed(RightOf(Brother)) and
+        not NodeIsRed(LeftOf(Brother)) then
+      begin
+        SetNodeRed(Brother, True);
+        ALeaf := AParent;
+        AParent := ALeaf.Parent;
+        IsLeft := AParent <> nil;
+        if IsLeft then
+          IsLeft := AParent.LeftLeaf = ALeaf;
+      end
+      else
+      begin
+        if not NodeIsRed(LeftOf(Brother)) then
+        begin
+          SetNodeRed(RightOf(Brother), False);
+          SetNodeRed(Brother, True);
+          RotateLeft(Brother);
+          Brother := AParent.LeftLeaf;
+        end;
+
+        SetNodeRed(Brother, NodeIsRed(AParent));
+        SetNodeRed(AParent, False);
+        SetNodeRed(LeftOf(Brother), False);
+        RotateRight(AParent);
+        ALeaf := Root;
+        AParent := nil;
+      end;
     end;
   end;
 
-  DeleteCase6(ALeaf);
+  SetNodeRed(ALeaf, False);
 end;
 
-procedure TCnRedBlackTree.DeleteCase6(ALeaf: TCnRedBlackLeaf);
+function TCnRedBlackTree.Delete(Value: Integer): Boolean;
 var
-  Brother: TCnRedBlackLeaf;
+  Z, Y, X, XParent: TCnRedBlackLeaf;
+  YWasRed: Boolean;
+  XIsLeft: Boolean;
 begin
-  Brother := ALeaf.GetBrotherLeaf;
-  Brother.IsRed := ALeaf.Parent.IsRed;
-  ALeaf.Parent.IsRed := False;
+  Z := TCnRedBlackLeaf(Search(Value));
+  Result := Z <> nil;
+  if not Result then
+    Exit;
 
-  if ALeaf = ALeaf.Parent.LeftLeaf then
+  // 基类会保留根对象作为空树占位节点；仅有根节点时不能释放该对象。
+  if (Z = Root) and (Z.LeftLeaf = nil) and (Z.RightLeaf = nil) then
   begin
-    Brother.RightLeaf.IsRed := False;
-    RotateLeft(ALeaf.Parent);
+    inherited Delete(Value);
+    Z.IsRed := False;
+    Exit;
+  end;
+
+  Y := Z;
+  YWasRed := Y.IsRed;
+  X := nil;
+  XParent := nil;
+  XIsLeft := False;
+
+  if Z.LeftLeaf = nil then
+  begin
+    X := Z.RightLeaf;
+    XParent := Z.Parent;
+    XIsLeft := XParent <> nil;
+    if XIsLeft then
+      XIsLeft := XParent.LeftLeaf = Z;
+    Transplant(Z, Z.RightLeaf);
+  end
+  else if Z.RightLeaf = nil then
+  begin
+    X := Z.LeftLeaf;
+    XParent := Z.Parent;
+    XIsLeft := XParent <> nil;
+    if XIsLeft then
+      XIsLeft := XParent.LeftLeaf = Z;
+    Transplant(Z, Z.LeftLeaf);
   end
   else
   begin
-    Brother.LeftLeaf.IsRed := False;
-    RotateRight(ALeaf.Parent);
+    Y := Minimum(Z.RightLeaf);
+    YWasRed := Y.IsRed;
+    X := Y.RightLeaf;
+
+    if Y.Parent = Z then
+    begin
+      XParent := Y;
+      XIsLeft := False;
+      if X <> nil then
+        X.Parent := Y;
+    end
+    else
+    begin
+      XParent := Y.Parent;
+      // 后继是 Z 右子树的最左节点；当它不是 Z 的直接子节点时，必然是
+      // XParent 的左子节点。
+      XIsLeft := True;
+      Transplant(Y, Y.RightLeaf);
+      Y.RightLeaf := Z.RightLeaf;
+    end;
+
+    Transplant(Z, Y);
+    Y.LeftLeaf := Z.LeftLeaf;
+    Y.IsRed := Z.IsRed;
   end;
+
+  if not YWasRed then
+    DeleteFixup(X, XParent, XIsLeft);
+
+  Z.LeftLeaf := nil;
+  Z.RightLeaf := nil;
+  Z.Parent := nil;
+  Z.Free;
 end;
 
 procedure TCnRedBlackTree.DeleteOneChildLeaf(ALeaf: TCnRedBlackLeaf);
-var
-  Child: TCnRedBlackLeaf;
 begin
-  Child := ALeaf.LeftLeaf;
-  if Child = nil then
-    Child := ALeaf.RightLeaf;
+  if ALeaf <> nil then
+    Delete(ALeaf.Data);
+end;
 
-  if Child = nil then
-    raise ECnTreeException.Create('ALeaf has NO Child.');
+procedure TCnRedBlackTree.DeleteCase1(ALeaf: TCnRedBlackLeaf);
+var
+  Parent: TCnRedBlackLeaf;
+  IsLeft: Boolean;
+begin
+  if ALeaf = nil then
+    Exit;
+  Parent := ALeaf.Parent;
+  IsLeft := Parent <> nil;
+  if IsLeft then
+    IsLeft := Parent.LeftLeaf = ALeaf;
+  DeleteFixup(ALeaf, Parent, IsLeft);
+end;
 
-  ReplaceLeaf(ALeaf, Child);
-  if not ALeaf.IsRed then
-  begin
-    if Child.IsRed then
-      Child.IsRed := False
-    else
-      DeleteCase1(Child);
-  end;
+procedure TCnRedBlackTree.DeleteCase2(ALeaf: TCnRedBlackLeaf);
+begin
+  DeleteCase1(ALeaf);
+end;
 
-  ALeaf.Free; // ALeaf 已剥离，可以直接删除
+procedure TCnRedBlackTree.DeleteCase3(ALeaf: TCnRedBlackLeaf);
+begin
+  DeleteCase1(ALeaf);
+end;
+
+procedure TCnRedBlackTree.DeleteCase4(ALeaf: TCnRedBlackLeaf);
+begin
+  DeleteCase1(ALeaf);
+end;
+
+procedure TCnRedBlackTree.DeleteCase5(ALeaf: TCnRedBlackLeaf);
+begin
+  DeleteCase1(ALeaf);
+end;
+
+procedure TCnRedBlackTree.DeleteCase6(ALeaf: TCnRedBlackLeaf);
+begin
+  DeleteCase1(ALeaf);
 end;
 
 function TCnRedBlackTree.GetRoot: TCnRedBlackLeaf;
@@ -1875,109 +2039,145 @@ begin
 end;
 
 procedure TCnRedBlackTree.InsertRepair(ALeaf: TCnRedBlackLeaf);
+var
+  Parent, Grand, Uncle: TCnRedBlackLeaf;
 begin
-  if (ALeaf.Parent = nil) and (Root = ALeaf) then
-    ALeaf.IsRed := False    // 根节点直接染黑
-  else if not ALeaf.Parent.IsRed then
-    ALeaf.IsRed := True
-  else if (ALeaf.GetUncleLeaf <> nil) and ALeaf.GetUncleLeaf.IsRed then
-    InsertRepairCase3(ALeaf)
-  else
-    InsertRepairCase4(ALeaf);
+  if ALeaf = nil then
+    Exit;
+
+  while (ALeaf <> Root) and (ALeaf.Parent <> nil) and
+    NodeIsRed(ALeaf.Parent) do
+  begin
+    Parent := ALeaf.Parent;
+    Grand := Parent.Parent;
+    if Grand = nil then
+      Break;
+
+    if Parent = Grand.LeftLeaf then
+    begin
+      Uncle := Grand.RightLeaf;
+      if NodeIsRed(Uncle) then
+      begin
+        Parent.IsRed := False;
+        Uncle.IsRed := False;
+        Grand.IsRed := True;
+        ALeaf := Grand;
+      end
+      else
+      begin
+        if ALeaf = Parent.RightLeaf then
+        begin
+          ALeaf := Parent;
+          RotateLeft(ALeaf);
+          Parent := ALeaf.Parent;
+          Grand := Parent.Parent;
+        end;
+        Parent.IsRed := False;
+        Grand.IsRed := True;
+        RotateRight(Grand);
+      end;
+    end
+    else
+    begin
+      Uncle := Grand.LeftLeaf;
+      if NodeIsRed(Uncle) then
+      begin
+        Parent.IsRed := False;
+        Uncle.IsRed := False;
+        Grand.IsRed := True;
+        ALeaf := Grand;
+      end
+      else
+      begin
+        if ALeaf = Parent.LeftLeaf then
+        begin
+          ALeaf := Parent;
+          RotateRight(ALeaf);
+          Parent := ALeaf.Parent;
+          Grand := Parent.Parent;
+        end;
+        Parent.IsRed := False;
+        Grand.IsRed := True;
+        RotateLeft(Grand);
+      end;
+    end;
+  end;
+
+  SetNodeRed(Root, False);
 end;
 
 procedure TCnRedBlackTree.InsertRepairCase3(ALeaf: TCnRedBlackLeaf);
 begin
-  ALeaf.Parent.IsRed := False;
-  ALeaf.GetUncleLeaf.IsRed := False;
-  if ALeaf.GetGrandLeaf <> nil then
-  begin
-    ALeaf.GetGrandLeaf.IsRed := True;
-    InsertRepair(ALeaf.GetGrandLeaf);
-  end;
+  InsertRepair(ALeaf);
 end;
 
 procedure TCnRedBlackTree.InsertRepairCase4(ALeaf: TCnRedBlackLeaf);
-var
-  P, G: TCnRedBlackLeaf;
 begin
-  P := ALeaf.Parent;
-  G := ALeaf.GetGrandLeaf;
-
-  if (ALeaf = P.RightLeaf) and (P = G.GetLeftLeaf) then
-  begin
-    RotateLeft(P);
-    ALeaf := ALeaf.LeftLeaf;
-  end
-  else if (ALeaf = P.LeftLeaf) and (P = G.GetRightLeaf) then
-  begin
-    RotateRight(P);
-    ALeaf := ALeaf.RightLeaf;
-  end;
-  InsertRepairCase4Step2(ALeaf);
+  InsertRepair(ALeaf);
 end;
 
 procedure TCnRedBlackTree.InsertRepairCase4Step2(ALeaf: TCnRedBlackLeaf);
-var
-  P, G: TCnRedBlackLeaf;
 begin
-  P := ALeaf.Parent;
-  G := ALeaf.GetGrandLeaf;
-
-  if ALeaf = P.LeftLeaf then
-    RotateRight(G)
-  else
-    RotateLeft(G);
-
-  P.IsRed := False;
-  G.IsRed := True;
+  InsertRepair(ALeaf);
 end;
 
 procedure TCnRedBlackTree.RotateLeft(ALeaf: TCnRedBlackLeaf);
 var
-  Right: TCnRedBlackLeaf;
+  Right, Parent, Middle: TCnRedBlackLeaf;
 begin
-  // ALeaf 的右子节点取代自己，ALeaf 变成左子节点，原右子节点的左子节点变成 ALeaf 的右子节点
   if ALeaf = nil then
-    Exit;
-  if ALeaf.RightLeaf = nil then
     Exit;
 
   Right := ALeaf.RightLeaf;
-  ALeaf.RightLeaf := Right.LeftLeaf;
-  if ALeaf.Parent <> nil then
-  begin
-    if ALeaf.Parent.LeftLeaf <> ALeaf then
-      raise ECnTreeException.Create('Rotate Left Failed');
+  if Right = nil then
+    raise ECnTreeException.Create('Rotate left requires a right child.');
 
-    ALeaf.Parent.LeftLeaf := Right;
+  Parent := ALeaf.Parent;
+  Middle := Right.LeftLeaf;
+  ALeaf.RightLeaf := Middle;
+
+  if Parent = nil then
+  begin
+    FRoot := Right;
+    Right.Parent := nil;
   end
-  else if Root = ALeaf then // 如果 ALeaf 是根节点，要重设根节点
-    Root := Right;
+  else if Parent.LeftLeaf = ALeaf then
+    Parent.LeftLeaf := Right
+  else if Parent.RightLeaf = ALeaf then
+    Parent.RightLeaf := Right
+  else
+    raise ECnTreeException.Create('Rotate left failed: invalid parent link.');
+
   Right.LeftLeaf := ALeaf;
 end;
 
 procedure TCnRedBlackTree.RotateRight(ALeaf: TCnRedBlackLeaf);
 var
-  Left: TCnRedBlackLeaf;
+  Left, Parent, Middle: TCnRedBlackLeaf;
 begin
-  // ALeaf 的左子节点取代自己，ALeaf 变成右子节点，原左子节点的右子节点变成 ALeaf 的左子节点
   if ALeaf = nil then
-    Exit;
-  if ALeaf.LeftLeaf = nil then
     Exit;
 
   Left := ALeaf.LeftLeaf;
-  ALeaf.LeftLeaf := Left.RightLeaf;
-  if ALeaf.Parent <> nil then
-  begin
-    if ALeaf.Parent.RightLeaf <> ALeaf then
-      raise ECnTreeException.Create('Rotate Right Failed');
+  if Left = nil then
+    raise ECnTreeException.Create('Rotate right requires a left child.');
 
-    ALeaf.Parent.RightLeaf := Left;
+  Parent := ALeaf.Parent;
+  Middle := Left.RightLeaf;
+  ALeaf.LeftLeaf := Middle;
+
+  if Parent = nil then
+  begin
+    FRoot := Left;
+    Left.Parent := nil;
   end
-  else if Root = ALeaf then // 如果 ALeaf 是根节点，要重设根节点
-    Root := Left;
+  else if Parent.LeftLeaf = ALeaf then
+    Parent.LeftLeaf := Left
+  else if Parent.RightLeaf = ALeaf then
+    Parent.RightLeaf := Left
+  else
+    raise ECnTreeException.Create('Rotate right failed: invalid parent link.');
+
   Left.RightLeaf := ALeaf;
 end;
 

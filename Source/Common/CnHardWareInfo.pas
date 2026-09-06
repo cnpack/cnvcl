@@ -889,7 +889,7 @@ end;
 
 function TCnCpuId.GetCPUUsage(Index: Integer): Integer;
 begin
-  if not FCPUUsageRead or (Index > FCPUCount - 1) then
+  if not FCPUUsageRead or (Index < 0) or (Index > FCPUCount - 1) then
     Result := -1
   else
     Result := FCPUUsage[Index];
@@ -1051,7 +1051,7 @@ var
   Loop: Byte;
 begin
   Result:= 0;
-  ABiosAddr:= PByte(DWORD(BiosAddr) + $EC71);
+  ABiosAddr:= PByte(TCnNativeUInt(BiosAddr) + $EC71);
 
   CopyMemory(@szBiosData[0], ABiosAddr, 127);
   szBiosData[127]:= #0;
@@ -1088,7 +1088,7 @@ var
   Loop: Byte;
 begin
   Result:= 0;
-  ABiosAddr:= PByte(DWORD(BiosAddr) + $F478);
+  ABiosAddr:= PByte(TCnNativeUInt(BiosAddr) + $F478);
 
   CopyMemory(@szBiosData[0], ABiosAddr, 127);
   szBiosData[127]:= #0;
@@ -1125,7 +1125,7 @@ var
 begin
   for I := 0 to 2 do
   begin
-    ABiosAddr:= PByte(DWORD(BiosAddr) + BiosOffset[I]);
+    ABiosAddr:= PByte(TCnNativeUInt(BiosAddr) + BiosOffset[I]);
     CopyMemory(@szBiosData[0], ABiosAddr, 127);
     szBiosData[127]:= #0;
     Len:= StrLen(PChar(@szBiosData[0]));

@@ -251,7 +251,8 @@ begin
     begin
       P.Forwards[K] := Q.Forwards[K];
       Inc(K);
-      P := Prevs[K];
+      if K <= M then
+        P := Prevs[K];
     end;
 
     Q.Free; // 释放被删节点
