@@ -58,7 +58,7 @@ implementation
 
 procedure Register;
 begin
-  RegisterComponents('CnMutiLang', [TCnLangManager, TCnLangTranslator,
+  RegisterComponents('CnMultiLang', [TCnLangManager, TCnLangTranslator,
     TCnHashLangFileStorage, TCnIniLangFileStorage]);
   RegisterPropertyEditor(TypeInfo(LongWord), TCnLanguageItem, 'LanguageID',
     TCnLanguageItemProperty);

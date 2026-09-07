@@ -508,7 +508,7 @@ begin
 {$IFDEF MSWINDOWS}
     AID := GetSystemDefaultLangID;
 {$ELSE}
-    raise ECnLanguageManagerError.Create('Invalid Langauge ID');
+    raise ECnLanguageManagerError.Create('Invalid Language ID');
 {$ENDIF}
   end;
 
@@ -620,7 +620,7 @@ begin
     if Assigned(Value) then
       Value.FreeNotification(Self);
 
-    if FLanguageStorage.CurrentLanguage <> nil then
+    if Assigned(FLanguageStorage) and (FLanguageStorage.CurrentLanguage <> nil) then
     begin
       AID := FLanguageStorage.CurrentLanguage.LanguageID;
       AdjustNewLanguage(AID);
@@ -685,7 +685,13 @@ var
   Data: PTypeData;
 begin
   Result := '';
+  if (Instance = nil) or (Index < 0) then
+    Exit;
+
   Data := GetTypeData(Instance.Classinfo);
+  if (Data = nil) or (Index >= Data^.PropCount) then
+    Exit;
+
   GetMem(PropList, Data^.PropCount * Sizeof(PPropInfo));
   try
     GetPropInfos(Instance.ClassInfo, PropList);
@@ -756,9 +762,17 @@ begin
             AObject := Owner.FindComponent(P); // 先找到子控件，可以直接是 ListView1
             try
               if Prefix <> P then // 说明 Prefix 层数多
+              begin
+{$IFDEF CPU64BITS}
+                AObject := TObject(NativeInt(GetPropValueIncludeSub(AObject,
+                  Copy(Prefix, CharPosWithCounter(DefDelimeter, R) + 1,
+                  Length(Prefix) - CharPosWithCounter(DefDelimeter, R)))));
+{$ELSE}
                 AObject := TObject(Integer(GetPropValueIncludeSub(AObject,
                   Copy(Prefix, CharPosWithCounter(DefDelimeter, R) + 1,
                   Length(Prefix) - CharPosWithCounter(DefDelimeter, R)))));
+{$ENDIF}
+              end;
             except
               Inc(K);
               Continue;
@@ -945,7 +959,7 @@ var
   AKey, AValue: TCnLangString;
   APos: Integer;
 begin
-  if (AComponent <> nil) and (AComponent.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE) then
+  if (AComponent = nil) or (AComponent.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE) then
     Exit;
 
   ABaseName := BaseName;
@@ -1075,6 +1089,9 @@ end;
 procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm;
   IgnoreRootFont: Boolean; PreStore: TStrings);
 begin
+  if AForm = nil then
+    Exit;
+
 {$IFDEF MSWINDOWS}
   LockWindowUpdate(AForm.Handle);
 {$ENDIF}
@@ -1141,6 +1158,9 @@ procedure TCnCustomLangManager.TranslateObject(AObject: TObject;
 var
   AList: TList;
 begin
+  if AObject = nil then
+    Exit;
+
 {$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('TranslateObject: ' + BaseName + ' ' + AObject.ClassName);
 {$ENDIF}
@@ -1191,7 +1211,7 @@ begin
       Exit;
     end;
 
-    if (AObject is TCnCustomLangStorage) or (AObject is TCnCustomLangStorage) then
+    if (AObject is TCnCustomLangManager) or (AObject is TCnCustomLangStorage) then
       Exit;
 
     // 原先无 Name 的 Component 跳过，现优化为也处理，只要 Base 里有带索引，且相应语言条目存在
@@ -1619,7 +1639,8 @@ end;
 
 procedure TCnCustomLangManager.TranslateFrame(AFrame: TCustomFrame; PreStore: TStrings);
 begin
-  TranslateComponent(AFrame, AFrame.ClassName, PreStore, True);
+  if AFrame <> nil then
+    TranslateComponent(AFrame, AFrame.ClassName, PreStore, True);
 end;
 
 procedure TCnCustomLangManager.SetCurrentLanguageIndex(const Value: Integer);
@@ -1769,6 +1790,12 @@ end;
 
 function TCnCustomLangManager.GetRecurOwner(AComponent: TComponent): TCnLangString;
 begin
+  if AComponent = nil then
+  begin
+    Result := '';
+    Exit;
+  end;
+
   // 均加入 FMX 顶层窗体的判断
   if (AComponent is TCustomForm) or (AComponent is TDataModule)
 {$IFDEF SUPPORT_FMX} or CnFmxIsInheritedFromCommonCustomForm(AComponent) {$ENDIF} then
@@ -1982,7 +2009,7 @@ begin
 {$IFDEF FPC}
       PResStringRec(BObj.StringRecAddr)^ := BObj.FDstStr;
 {$ELSE}
-  {$IFDEF WIN64}
+  {$IFDEF CPU64BITS}
       PResStringRec(BObj.StringRecAddr)^.Identifier := NativeUint(BObj.FDstStr);
   {$ELSE}
       PResStringRec(BObj.StringRecAddr)^.Identifier := Integer(BObj.FDstStr);

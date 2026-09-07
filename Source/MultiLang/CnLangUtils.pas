@@ -405,6 +405,9 @@ procedure TCnLangStringExtractor.GetComponentStrings(AComponent: TComponent;
 var
   AList: TList;
 begin
+  if AComponent = nil then
+    Exit;
+
 {$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('GetComponentStrings: ' + BaseName + ' ' + AComponent.Name);
 {$ENDIF}
@@ -438,6 +441,9 @@ procedure TCnLangStringExtractor.GetObjectStrings(AOwner: TComponent;
 var
   AList: TList;
 begin
+  if AObject = nil then
+    Exit;
+
   AList := TList.Create;
   try
     GetRecurObjectStrings(AOwner, AObject, AList, Strings, BaseName, SkipEmptyStr);
@@ -536,11 +542,10 @@ begin
       Exit;
     end;
 
-    // Name 为空的原先不处理，现在也要处理过去
-    if (AObject is TCnCustomLangStorage) or (AObject is TCnCustomLangStorage) then
+    if (AObject is TCnCustomLangManager) or (AObject is TCnCustomLangStorage) then
       Exit;
 
-    // 跳过空的组件名的情况下，碰到空就跳过
+    // Name 为空的原先不处理，现在也要处理过去。跳过空的组件名的情况下，碰到空就跳过
     if FSkipEmptyComponentName and ((AObject is TComponent) and (TComponent(AObject).Name = '')) then
       Exit;
 

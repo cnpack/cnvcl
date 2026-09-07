@@ -411,12 +411,14 @@ end;
 
 procedure TCnCustomHashLangStorage.AddString(const Key, Value: TCnLangString);
 begin
-  FHashMap.Add(Key, Value);
+  if Assigned(FHashMap) then
+    FHashMap.Add(Key, Value);
 end;
 
 procedure TCnCustomHashLangStorage.DeleteString(const Key: TCnLangString);
 begin
-  FHashMap.Delete(Key);
+  if Assigned(FHashMap) then
+    FHashMap.Delete(Key);
 end;
 
 procedure TCnCustomHashLangStorage.AddStringsFromList(AList: TCnWideStringList);

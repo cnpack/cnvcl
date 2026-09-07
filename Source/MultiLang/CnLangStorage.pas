@@ -306,7 +306,7 @@ end;
 
 function TCnCustomLangStorage.GetCurrentLanguage: TCnLanguageItem;
 begin
-  if CurrentLanguageIndex <> -1 then
+  if (CurrentLanguageIndex >= 0) and (CurrentLanguageIndex < Languages.Count) then
     Result := TCnLanguageItem(Languages.Items[CurrentLanguageIndex])
   else
     Result := nil;
