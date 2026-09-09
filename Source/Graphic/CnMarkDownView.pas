@@ -30,6 +30,10 @@ unit CnMarkDownView;
 *           多个虚拟 RichEdit 宿主共享单一选择状态，切换宿主时清除旧选择。
 *           焦点宿主移出虚拟视口前将焦点交还主视图，保证滚轮和双指滚动连续。
 *           宿主换页时重置测量几何，并校验 RichEdit 回报高度，防止复用状态产生大块空白。
+*           通用 TCnPadding/ Padding 属性提供四边内容留白，并同步参与折行测量、虚拟高度和滚动范围计算。
+*           测量阶段使用隐藏的大客户区，最终定位后恢复实际格式矩形，保证代码块末行完整显示。
+*           宿主复用时同时校验虚拟项的 BlockID 和修订号，避免局部消息重排后显示旧内容或沿用旧高度
+*           通过 SelectedMessageIndex 暴露当前选中消息，便于测试或宿主追加内容后触发局部重排。
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -49,12 +53,48 @@ uses
 type
   TCnMarkDownView = class;
 
+{$IFDEF SUPPORT_MARGIN_PADDING}
+  { 新版 VCL 直接复用原生类型，保持通用类型名称。 }
+  TCnMargins = TMargins;
+  TCnPadding = TPadding;
+{$ELSE}
+  { 旧版 Delphi 提供可持久化的通用四边边距对象。 }
+  TCnMargins = class(TPersistent)
+  private
+    FLeft: Integer;
+    FTop: Integer;
+    FRight: Integer;
+    FBottom: Integer;
+    FOnChange: TNotifyEvent;
+    procedure SetLeft(Value: Integer);
+    procedure SetTop(Value: Integer);
+    procedure SetRight(Value: Integer);
+    procedure SetBottom(Value: Integer);
+  protected
+    procedure Changed;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+    procedure SetBounds(ALeft, ATop, ARight, ABottom: Integer);
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  published
+    property Left: Integer read FLeft write SetLeft default 8;
+    property Top: Integer read FTop write SetTop default 8;
+    property Right: Integer read FRight write SetRight default 8;
+    property Bottom: Integer read FBottom write SetBottom default 8;
+  end;
+
+  TCnPadding = class(TCnMargins)
+  end;
+{$ENDIF}
+
   TCnMarkDownViewItem = class
   public
     MessageIndex: Integer;
     BlockIndex: Integer;
     BlockID: Int64;
     Revision: Cardinal;
+    DocumentRevision: Cardinal;
     TextStart: Integer;
     TextLength: Integer;
     Height: Integer;
@@ -64,13 +104,21 @@ type
   private
     FView: TCnMarkDownView;
     FItemIndex: Integer;
+    FMessageIndex: Integer;
+    FBlockIndex: Integer;
+    FBlockID: Int64;
     FBlockRevision: Cardinal;
+    FDocumentRevision: Cardinal;
     procedure WMSetFocus(var Message: TWMSetFocus); message WM_SETFOCUS;
     procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
   public
     property View: TCnMarkDownView read FView write FView;
     property ItemIndex: Integer read FItemIndex write FItemIndex;
+    property MessageIndex: Integer read FMessageIndex write FMessageIndex;
+    property BlockIndex: Integer read FBlockIndex write FBlockIndex;
+    property BlockID: Int64 read FBlockID write FBlockID;
     property BlockRevision: Cardinal read FBlockRevision write FBlockRevision;
+    property DocumentRevision: Cardinal read FDocumentRevision write FDocumentRevision;
   end;
 
   TCnMarkDownView = class(TCustomControl)
@@ -80,6 +128,7 @@ type
     FItems: TObjectList;
     FMessageStarts: array of Integer;
     FHosts: TList;
+    FSelectedHost: TCnMarkDownRichHost;
     FMeasureHost: TCnMarkDownRichHost;
     FRequestedHeight: Integer;
     FFlushTimer: TTimer;
@@ -95,12 +144,29 @@ type
     FItemSpacing: Integer;
     FHostBufferItems: Integer;
     FBackgroundColor: TColor;
+{$IFNDEF SUPPORT_MARGIN_PADDING}
+    FPadding: TCnPadding;
+{$ENDIF}
+    FLastPaddingLeft: Integer;
+    FLastPaddingTop: Integer;
+    FLastPaddingRight: Integer;
+    FLastPaddingBottom: Integer;
     procedure SetFeed(Value: TCnMarkDownFeed);
     procedure SetPageChars(Value: Integer);
     procedure SetDefaultHeight(Value: Integer);
     procedure SetItemSpacing(Value: Integer);
     procedure SetScrollOffset(Value: Int64);
     procedure SetBackgroundColor(Value: TColor);
+{$IFNDEF SUPPORT_MARGIN_PADDING}
+    procedure SetPadding(Value: TCnPadding);
+    procedure PaddingChanged(Sender: TObject);
+{$ENDIF}
+    procedure CheckPaddingChanged;
+    function GetPaddingLeft: Integer;
+    function GetPaddingTop: Integer;
+    function GetPaddingRight: Integer;
+    function GetPaddingBottom: Integer;
+    function GetContentWidth: Integer;
     procedure FeedChanged(Sender: TObject; ChangeType: TCnMarkDownFeedChangeType;
       MessageIndex: Integer);
     procedure FlushTimer(Sender: TObject);
@@ -125,6 +191,8 @@ type
     procedure LayoutHosts;
     procedure ReleaseHostFocus(Host: TCnMarkDownRichHost);
     procedure ActivateHost(Host: TCnMarkDownRichHost);
+    function GetSelectedMessageIndex: Integer;
+    procedure SetHostFormatRect(Host: TCnMarkDownRichHost);
     procedure PrepareHostMeasure(Host: TCnMarkDownRichHost);
     function ValidateHostHeight(Host: TCnMarkDownRichHost;
       Item: TCnMarkDownViewItem; Value: Integer): Integer;
@@ -138,6 +206,9 @@ type
     procedure WMNotify(var Message: TWMNotify); message WM_NOTIFY;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
+{$IFDEF SUPPORT_MARGIN_PADDING}
+    procedure AlignControls(AControl: TControl; var Rect: TRect); override;
+{$ENDIF}
     procedure Paint; override;
     procedure Resize; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
@@ -157,6 +228,7 @@ type
     property Feed: TCnMarkDownFeed read FFeed write SetFeed;
     property TotalHeight: Int64 read GetTotalHeight;
     property ItemCount: Integer read GetItemCount;
+    property SelectedMessageIndex: Integer read GetSelectedMessageIndex;
   published
     property Align;
     property Anchors;
@@ -165,6 +237,11 @@ type
     property TabStop;
     property Visible;
     property Enabled;
+{$IFDEF SUPPORT_MARGIN_PADDING}
+    property Padding;
+{$ELSE}
+    property Padding: TCnPadding read FPadding write SetPadding;
+{$ENDIF}
     property PageChars: Integer read FPageChars write SetPageChars default 65536;
     property DefaultItemHeight: Integer read FDefaultHeight write SetDefaultHeight default 24;
     property ItemSpacing: Integer read FItemSpacing write SetItemSpacing default 4;
@@ -172,6 +249,106 @@ type
   end;
 
 implementation
+
+{$IFNDEF SUPPORT_MARGIN_PADDING}
+
+constructor TCnMargins.Create;
+begin
+  inherited Create;
+  FLeft := 8;
+  FTop := 8;
+  FRight := 8;
+  FBottom := 8;
+end;
+
+procedure TCnMargins.Assign(Source: TPersistent);
+var
+  SourceMargins: TCnMargins;
+begin
+  if Source is TCnMargins then
+  begin
+    SourceMargins := TCnMargins(Source);
+    FLeft := SourceMargins.Left;
+    FTop := SourceMargins.Top;
+    FRight := SourceMargins.Right;
+    FBottom := SourceMargins.Bottom;
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TCnMargins.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TCnMargins.SetLeft(Value: Integer);
+begin
+  if Value < 0 then
+    Value := 0;
+  if FLeft <> Value then
+  begin
+    FLeft := Value;
+    Changed;
+  end;
+end;
+
+procedure TCnMargins.SetTop(Value: Integer);
+begin
+  if Value < 0 then
+    Value := 0;
+  if FTop <> Value then
+  begin
+    FTop := Value;
+    Changed;
+  end;
+end;
+
+procedure TCnMargins.SetRight(Value: Integer);
+begin
+  if Value < 0 then
+    Value := 0;
+  if FRight <> Value then
+  begin
+    FRight := Value;
+    Changed;
+  end;
+end;
+
+procedure TCnMargins.SetBottom(Value: Integer);
+begin
+  if Value < 0 then
+    Value := 0;
+  if FBottom <> Value then
+  begin
+    FBottom := Value;
+    Changed;
+  end;
+end;
+
+procedure TCnMargins.SetBounds(ALeft, ATop, ARight, ABottom: Integer);
+begin
+  if ALeft < 0 then
+    ALeft := 0;
+  if ATop < 0 then
+    ATop := 0;
+  if ARight < 0 then
+    ARight := 0;
+  if ABottom < 0 then
+    ABottom := 0;
+  if (FLeft = ALeft) and (FTop = ATop) and
+    (FRight = ARight) and (FBottom = ABottom) then
+    Exit;
+  FLeft := ALeft;
+  FTop := ATop;
+  FRight := ARight;
+  FBottom := ABottom;
+  Changed;
+end;
+
+{$ENDIF}
 
 constructor TCnMarkDownView.Create(AOwner: TComponent);
 begin
@@ -186,6 +363,11 @@ begin
   FIndex := TCnVirtualHeightIndex.Create;
   FItems := TObjectList.Create(True);
   FHosts := TList.Create;
+  FSelectedHost := nil;
+{$IFNDEF SUPPORT_MARGIN_PADDING}
+  FPadding := TCnPadding.Create;
+  FPadding.OnChange := PaddingChanged;
+{$ENDIF}
   FPageChars := 65536;
   FDefaultHeight := 24;
   FItemSpacing := 4;
@@ -197,6 +379,16 @@ begin
   FFlushTimer.Interval := 33;
   FFlushTimer.Enabled := False;
   FFlushTimer.OnTimer := FlushTimer;
+{$IFDEF SUPPORT_MARGIN_PADDING}
+  Padding.SetBounds(8, 8, 8, 8);
+{$ENDIF}
+  FLastPaddingLeft := GetPaddingLeft;
+  FLastPaddingTop := GetPaddingTop;
+  FLastPaddingRight := GetPaddingRight;
+  FLastPaddingBottom := GetPaddingBottom;
+  { 构造期设置默认留白不应留下待处理的重建任务。 }
+  FPendingMessage := -2;
+  FFlushTimer.Enabled := False;
 end;
 
 destructor TCnMarkDownView.Destroy;
@@ -207,6 +399,9 @@ begin
   FHosts.Free;
   FItems.Free;
   FIndex.Free;
+{$IFNDEF SUPPORT_MARGIN_PADDING}
+  FPadding.Free;
+{$ENDIF}
   inherited Destroy;
 end;
 
@@ -215,6 +410,113 @@ begin
   inherited CreateParams(Params);
   Params.Style := Params.Style or WS_VSCROLL or WS_CLIPCHILDREN;
 end;
+
+{$IFDEF SUPPORT_MARGIN_PADDING}
+
+procedure TCnMarkDownView.AlignControls(AControl: TControl;
+  var Rect: TRect);
+begin
+  inherited AlignControls(AControl, Rect);
+  { 新版 VCL 的 Padding 变化会触发子控件重新对齐，在这里同步虚拟布局。 }
+  CheckPaddingChanged;
+end;
+
+{$ENDIF}
+
+function TCnMarkDownView.GetPaddingLeft: Integer;
+begin
+{$IFDEF SUPPORT_MARGIN_PADDING}
+  Result := Padding.Left;
+{$ELSE}
+  Result := FPadding.Left;
+{$ENDIF}
+  if Result < 0 then
+    Result := 0;
+end;
+
+function TCnMarkDownView.GetPaddingTop: Integer;
+begin
+{$IFDEF SUPPORT_MARGIN_PADDING}
+  Result := Padding.Top;
+{$ELSE}
+  Result := FPadding.Top;
+{$ENDIF}
+  if Result < 0 then
+    Result := 0;
+end;
+
+function TCnMarkDownView.GetPaddingRight: Integer;
+begin
+{$IFDEF SUPPORT_MARGIN_PADDING}
+  Result := Padding.Right;
+{$ELSE}
+  Result := FPadding.Right;
+{$ENDIF}
+  if Result < 0 then
+    Result := 0;
+end;
+
+function TCnMarkDownView.GetPaddingBottom: Integer;
+begin
+{$IFDEF SUPPORT_MARGIN_PADDING}
+  Result := Padding.Bottom;
+{$ELSE}
+  Result := FPadding.Bottom;
+{$ENDIF}
+  if Result < 0 then
+    Result := 0;
+end;
+
+function TCnMarkDownView.GetContentWidth: Integer;
+var
+  W: Int64;
+begin
+  W := Int64(ClientWidth) - Int64(GetPaddingLeft) -
+    Int64(GetPaddingRight);
+  if W < 1 then
+    Result := 1
+  else if W > MaxInt then
+    Result := MaxInt
+  else
+    Result := Integer(W);
+end;
+
+procedure TCnMarkDownView.CheckPaddingChanged;
+var
+  L, T, R, B: Integer;
+begin
+  L := GetPaddingLeft;
+  T := GetPaddingTop;
+  R := GetPaddingRight;
+  B := GetPaddingBottom;
+  if (L = FLastPaddingLeft) and (T = FLastPaddingTop) and
+    (R = FLastPaddingRight) and (B = FLastPaddingBottom) then
+    Exit;
+  FLastPaddingLeft := L;
+  FLastPaddingTop := T;
+  FLastPaddingRight := R;
+  FLastPaddingBottom := B;
+  { 左右留白会改变折行宽度，因此统一重建估算高度和可见宿主。 }
+  if (FIndex <> nil) and (FFlushTimer <> nil) then
+    SetPendingMessage(-1);
+  if HandleAllocated then
+    Invalidate;
+end;
+
+{$IFNDEF SUPPORT_MARGIN_PADDING}
+
+procedure TCnMarkDownView.SetPadding(Value: TCnPadding);
+begin
+  if Value <> nil then
+    FPadding.Assign(Value);
+end;
+
+procedure TCnMarkDownView.PaddingChanged(Sender: TObject);
+begin
+  CheckPaddingChanged;
+end;
+
+{$ENDIF}
 
 procedure TCnMarkDownView.SetFeed(Value: TCnMarkDownFeed);
 begin
@@ -371,6 +673,8 @@ var
 begin
   if FUpdateCount > 0 then
     Exit;
+  { 原生 TPadding 的修改通过对齐消息异步通知，这里再检查一次确保布局及时更新。 }
+  CheckPaddingChanged;
   FFlushTimer.Enabled := False;
   Dirty := FPendingMessage;
   FPendingMessage := -2;
@@ -387,6 +691,7 @@ var
   I: Integer;
   Host: TCnMarkDownRichHost;
 begin
+  FSelectedHost := nil;
   for I := FHosts.Count - 1 downto 0 do
   begin
     Host := TCnMarkDownRichHost(FHosts[I]);
@@ -410,10 +715,16 @@ begin
     Host.Parent := Self;
     Host.View := Self;
     Host.ItemIndex := -1;
+    Host.MessageIndex := -1;
+    Host.BlockIndex := -1;
+    Host.BlockID := 0;
     Host.BlockRevision := 0;
+    Host.DocumentRevision := 0;
     Host.BorderStyle := bsNone;
     Host.ScrollBars := ssNone;
     Host.WordWrap := True;
+    { 虚拟宿主的高度由布局管理，不能让 TRichEdit 自动改回单行高度。 }
+    Host.AutoSize := False;
     Host.ReadOnly := True;
     Host.HideSelection := False;
     Host.TabStop := False;
@@ -426,12 +737,14 @@ begin
   while FHosts.Count > NeedCount do
   begin
     Host := TCnMarkDownRichHost(FHosts[FHosts.Count - 1]);
+    if FSelectedHost = Host then
+      FSelectedHost := nil;
     ReleaseHostFocus(Host);
     Host.Free;
     FHosts.Delete(FHosts.Count - 1);
   end;
   for I := 0 to FHosts.Count - 1 do
-    TCnMarkDownRichHost(FHosts[I]).Width := ClientWidth;
+    TCnMarkDownRichHost(FHosts[I]).Width := GetContentWidth;
 end;
 
 procedure TCnMarkDownView.ReorderHosts(StartIndex: Integer);
@@ -527,7 +840,7 @@ begin
   OldOffset := FScrollOffset;
   OldMax := MaxScroll;
   AtBottom := OldOffset >= OldMax - 2;
-  OldAnchor := FIndex.IndexAtOffset(OldOffset);
+  OldAnchor := FIndex.IndexAtOffset(OldOffset - GetPaddingTop);
   OldAnchorInner := 0;
   OldMessageIndex := -1;
   OldBlockIndex := -1;
@@ -538,7 +851,8 @@ begin
     OldMessageIndex := OldItem.MessageIndex;
     OldBlockIndex := OldItem.BlockIndex;
     OldTextStart := OldItem.TextStart;
-    OldAnchorInner := Integer(OldOffset - FIndex.TopOf(OldAnchor));
+    OldAnchorInner := Integer(OldOffset - GetPaddingTop -
+      FIndex.TopOf(OldAnchor));
   end;
 
   if Length(FMessageStarts) <> FFeed.MessageCount + 1 then
@@ -562,7 +876,8 @@ begin
     begin
       NewAnchor := FindItem(OldMessageIndex, OldBlockIndex, OldTextStart);
       if NewAnchor >= 0 then
-        FScrollOffset := ScrollToPosition(FIndex.TopOf(NewAnchor) + OldAnchorInner)
+        FScrollOffset := ScrollToPosition(GetPaddingTop +
+          FIndex.TopOf(NewAnchor) + OldAnchorInner)
       else
         FScrollOffset := ScrollToPosition(OldOffset);
     end
@@ -620,7 +935,7 @@ begin
   CharWidth := Canvas.TextWidth('W');
   if CharWidth < 1 then
     CharWidth := 8;
-  LineChars := (ClientWidth - 20) div CharWidth;
+  LineChars := (GetContentWidth - 20) div CharWidth;
   if LineChars < 8 then
     LineChars := 8;
   Lines := 0;
@@ -674,6 +989,7 @@ begin
     Item.BlockIndex := BlockIndex;
     Item.BlockID := Block.BlockID;
     Item.Revision := Block.Revision;
+    Item.DocumentRevision := FFeed.Messages[MessageIndex].Document.Revision;
     Item.TextStart := StartPos;
     Item.TextLength := PageLength;
     Item.Height := EstimateHeight(Block, StartPos, PageLength);
@@ -688,6 +1004,7 @@ begin
     Item.BlockIndex := BlockIndex;
     Item.BlockID := Block.BlockID;
     Item.Revision := Block.Revision;
+    Item.DocumentRevision := FFeed.Messages[MessageIndex].Document.Revision;
     Item.TextStart := 0;
     Item.TextLength := 0;
     Item.Height := EstimateHeight(Block, 0, 0);
@@ -717,14 +1034,15 @@ end;
 
 function TCnMarkDownView.MaxScroll: Int64;
 begin
-  Result := FIndex.TotalHeight - ClientHeight;
+  Result := GetTotalHeight - ClientHeight;
   if Result < 0 then
     Result := 0;
 end;
 
 function TCnMarkDownView.GetTotalHeight: Int64;
 begin
-  Result := FIndex.TotalHeight;
+  Result := Int64(GetPaddingTop) + FIndex.TotalHeight +
+    Int64(GetPaddingBottom);
 end;
 
 function TCnMarkDownView.GetItemCount: Integer;
@@ -747,7 +1065,7 @@ var
   Page: LongWord;
   ScaledValue: Extended;
 begin
-  Total := FIndex.TotalHeight;
+  Total := GetTotalHeight;
   if (Total <= MaxInt) then
     Result := Value
   else if (Value <= 0) or (MaxScroll <= 0) then
@@ -783,7 +1101,7 @@ var
 begin
   if not HandleAllocated then
     Exit;
-  Total := FIndex.TotalHeight;
+  Total := GetTotalHeight;
   MaxPos := MaxScroll;
   SI.cbSize := SizeOf(SI);
   SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS;
@@ -897,7 +1215,14 @@ begin
     Stream.Position := 0;
     Host.Lines.BeginUpdate;
     try
-      Host.Lines.LoadFromStream(Stream);
+      { RichEdit 的流入实现依赖具体版本，显式清空可避免复用宿主时叠加旧文本。 }
+      Host.ReadOnly := False;
+      try
+        Host.Clear;
+        Host.Lines.LoadFromStream(Stream);
+      finally
+        Host.ReadOnly := True;
+      end;
     finally
       Host.Lines.EndUpdate;
     end;
@@ -920,6 +1245,37 @@ begin
       (Other.SelLength <> 0) then
       Other.SelLength := 0;
   end;
+  if (Host <> nil) and (Host.ItemIndex >= 0) then
+    FSelectedHost := Host;
+end;
+
+function TCnMarkDownView.GetSelectedMessageIndex: Integer;
+var
+  I: Integer;
+  Host: TCnMarkDownRichHost;
+  Item: TCnMarkDownViewItem;
+begin
+  Result := -1;
+  { 优先返回有文本选择的宿主，按钮获得焦点后仍能识别用户刚选中的条目。 }
+  for I := 0 to FHosts.Count - 1 do
+  begin
+    Host := TCnMarkDownRichHost(FHosts[I]);
+    if (Host.ItemIndex >= 0) and (Host.ItemIndex < FItems.Count) and
+      (Host.SelLength <> 0) then
+    begin
+      Item := TCnMarkDownViewItem(FItems[Host.ItemIndex]);
+      Result := Item.MessageIndex;
+      Exit;
+    end;
+  end;
+  { 没有选中文本时，使用最后获得焦点的可见宿主作为当前条目。 }
+  if (FSelectedHost <> nil) and FSelectedHost.Visible and
+    (FSelectedHost.ItemIndex >= 0) and
+    (FSelectedHost.ItemIndex < FItems.Count) then
+  begin
+    Item := TCnMarkDownViewItem(FItems[FSelectedHost.ItemIndex]);
+    Result := Item.MessageIndex;
+  end;
 end;
 
 procedure TCnMarkDownView.ReleaseHostFocus(Host: TCnMarkDownRichHost);
@@ -931,12 +1287,10 @@ begin
     SetFocus;
 end;
 
-procedure TCnMarkDownView.PrepareHostMeasure(Host: TCnMarkDownRichHost);
+procedure TCnMarkDownView.SetHostFormatRect(Host: TCnMarkDownRichHost);
 var
   FormatRect: TRect;
 begin
-  { 用固定的小高度触发 WM_SIZE，清除前一虚拟项留下的布局高度。 }
-  Host.SetBounds(0, 0, ClientWidth, FDefaultHeight);
   FormatRect := Host.ClientRect;
   if FormatRect.Right > FormatRect.Left + 2 then
   begin
@@ -944,21 +1298,26 @@ begin
     Dec(FormatRect.Right);
   end;
   if FormatRect.Bottom > FormatRect.Top + 2 then
-  begin
     Inc(FormatRect.Top);
-    Dec(FormatRect.Bottom);
-  end;
-  { 显式传入矩形，避免触控设备或窗口钩子使空指针重置失效。 }
+  { 保留底部完整客户区，避免最后一行的字形下沿被裁掉。 }
+  { 显式传入矩形，确保宿主换页后格式区域与当前客户区一致。 }
   Host.Perform(EM_SETRECT, 0, LPARAM(@FormatRect));
+end;
+
+procedure TCnMarkDownView.PrepareHostMeasure(Host: TCnMarkDownRichHost);
+begin
+  { 先给隐藏宿主足够大的临时高度，避免小格式矩形裁掉代码块末行。 }
+  Host.SetBounds(GetPaddingLeft, 0, GetContentWidth, 32767);
+  SetHostFormatRect(Host);
 end;
 
 function TCnMarkDownView.ValidateHostHeight(Host: TCnMarkDownRichHost;
   Item: TCnMarkDownViewItem; Value: Integer): Integer;
 var
   Block: TCnMarkDownBlock;
-  DisplayLines, BaseLine, FallbackHeight, MaxHeight, MinHeight: Integer;
+  DisplayLines, BaseLine, TextHeightEstimate, FallbackHeight: Integer;
 begin
-  DisplayLines := Host.Perform(EM_GETLINECOUNT, 0, 0);
+  DisplayLines := Integer(Host.Perform(EM_GETLINECOUNT, 0, 0));
   if DisplayLines < 1 then
     DisplayLines := 1;
   BaseLine := LineHeight;
@@ -966,17 +1325,21 @@ begin
   { EM_GETLINECOUNT 包含自动折行，用它生成不依赖旧窗口高度的后备值。 }
   Block := FFeed.Messages[Item.MessageIndex].Document.Blocks[Item.BlockIndex];
   if Block.BlockType = cmbHeading then
-    FallbackHeight := DisplayLines * BaseLine * 2 + BaseLine
+    FallbackHeight := DisplayLines * BaseLine * 2 + 8
+  else if Block.BlockType = cmbCodeBlock then
+    FallbackHeight := DisplayLines * BaseLine + 8
   else
-    FallbackHeight := DisplayLines * BaseLine + BaseLine;
+    FallbackHeight := DisplayLines * BaseLine + 6;
+  { RichEdit 对 \line 的行数回报可能偏小，再用当前虚拟页文本补充下限。 }
+  TextHeightEstimate := EstimateHeight(Block, Item.TextStart, Item.TextLength);
+  Inc(TextHeightEstimate, 6);
+  if TextHeightEstimate > FallbackHeight then
+    FallbackHeight := TextHeightEstimate;
   if FallbackHeight < FDefaultHeight then
     FallbackHeight := FDefaultHeight;
 
-  MinHeight := DisplayLines * (BaseLine div 2);
-  if MinHeight < FDefaultHeight then
-    MinHeight := FDefaultHeight;
-  MaxHeight := FallbackHeight + BaseLine;
-  if (Value < MinHeight) or (Value > MaxHeight) then
+  { 测量区域已在请求前清空旧高度，因此这里不再截断合法的较大回报值。 }
+  if (Value <= 0) or (Value < FallbackHeight) then
     Result := FallbackHeight
   else
     Result := Value;
@@ -990,26 +1353,45 @@ var
 begin
   if (ItemIndex < 0) or (ItemIndex >= FItems.Count) then
   begin
+    if FSelectedHost = Host then
+      FSelectedHost := nil;
     ReleaseHostFocus(Host);
     Host.Visible := False;
     if Host.HandleAllocated and (Host.SelLength <> 0) then
       Host.SelLength := 0;
     Host.ItemIndex := -1;
+    Host.MessageIndex := -1;
+    Host.BlockIndex := -1;
+    Host.BlockID := 0;
+    Host.BlockRevision := 0;
+    Host.DocumentRevision := 0;
     Exit;
   end;
   Item := TCnMarkDownViewItem(FItems[ItemIndex]);
   if (Host.ItemIndex <> ItemIndex) or
-    (Host.BlockRevision <> Item.Revision) then
+    (Host.MessageIndex <> Item.MessageIndex) or
+    (Host.BlockIndex <> Item.BlockIndex) or
+    (Host.BlockID <> Item.BlockID) or
+    (Host.BlockRevision <> Item.Revision) or
+    (Host.DocumentRevision <> Item.DocumentRevision) then
   begin
+    if FSelectedHost = Host then
+      FSelectedHost := nil;
     { 重新绑定的宿主在内容和高度稳定前不参与屏幕绘制。 }
     ReleaseHostFocus(Host);
     Host.Visible := False;
     if Host.HandleAllocated and (Host.SelLength <> 0) then
       Host.SelLength := 0;
     Host.ItemIndex := ItemIndex;
+    Host.MessageIndex := Item.MessageIndex;
+    Host.BlockIndex := Item.BlockIndex;
+    Host.BlockID := Item.BlockID;
     Host.BlockRevision := Item.Revision;
+    Host.DocumentRevision := Item.DocumentRevision;
     PrepareHostMeasure(Host);
     LoadHostBlock(Host, Item);
+    { 载入 RTF 可能重置格式区域，必须在请求高度前再次同步当前客户区。 }
+    SetHostFormatRect(Host);
     FMeasureHost := Host;
     FRequestedHeight := 0;
     try
@@ -1025,8 +1407,8 @@ end;
 procedure TCnMarkDownView.LayoutHosts;
 var
   StartIndex, I, ItemIndex, LayoutPass, MaxLayoutPasses: Integer;
-  Y: Int64;
-  H: Integer;
+  Y, ContentOffset: Int64;
+  H, ContentLeft, ContentWidth: Integer;
   Host: TCnMarkDownRichHost;
 begin
   if FInLayout then
@@ -1041,7 +1423,8 @@ begin
     LayoutPass := 0;
     repeat
       FHeightChanged := False;
-      StartIndex := FIndex.IndexAtOffset(FScrollOffset);
+      ContentOffset := FScrollOffset - GetPaddingTop;
+      StartIndex := FIndex.IndexAtOffset(ContentOffset);
       if StartIndex < 0 then
       begin
         for I := 0 to FHosts.Count - 1 do
@@ -1054,7 +1437,9 @@ begin
       end;
       { 先按虚拟项重排宿主，滚动一项时通常只需重新载入一个宿主。 }
       ReorderHosts(StartIndex);
-      Y := FIndex.TopOf(StartIndex) - FScrollOffset;
+      ContentLeft := GetPaddingLeft;
+      ContentWidth := GetContentWidth;
+      Y := GetPaddingTop + FIndex.TopOf(StartIndex) - FScrollOffset;
       for I := 0 to FHosts.Count - 1 do
       begin
         ItemIndex := StartIndex + I;
@@ -1070,9 +1455,11 @@ begin
           BindHost(Host, ItemIndex);
           { BindHost 可能通过 EN_REQUESTRESIZE 修正高度，定位时读取新值。 }
           H := TCnMarkDownViewItem(FItems[ItemIndex]).Height;
-          if (Host.Left <> 0) or (Host.Top <> Integer(Y)) or
-            (Host.Width <> ClientWidth) or (Host.Height <> H) then
-            Host.SetBounds(0, Integer(Y), ClientWidth, H);
+          if (Host.Left <> ContentLeft) or (Host.Top <> Integer(Y)) or
+            (Host.Width <> ContentWidth) or (Host.Height <> H) then
+            Host.SetBounds(ContentLeft, Integer(Y), ContentWidth, H);
+          { 测量阶段使用过小的格式矩形，最终定位后必须恢复到完整宿主高度。 }
+          SetHostFormatRect(Host);
           Host.Visible := True;
           Y := Y + H + FItemSpacing;
         end
@@ -1151,6 +1538,7 @@ end;
 procedure TCnMarkDownView.Resize;
 begin
   inherited Resize;
+  CheckPaddingChanged;
   FScrollOffset := ScrollToPosition(FScrollOffset);
   UpdateScrollBar;
   EnsureHosts;
@@ -1207,7 +1595,7 @@ begin
     P := SI.nMin;
   if Int64(P) > TrackMax then
     P := Integer(TrackMax);
-  if FIndex.TotalHeight <= MaxInt then
+  if GetTotalHeight <= MaxInt then
     SetScrollOffset(P)
   else
     SetScrollOffset(ScrollFromPosition(P));

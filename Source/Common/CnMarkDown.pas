@@ -36,6 +36,7 @@ unit CnMarkDown;
 *           配合 TCnMarkDownFeed 管理消息流，并由 TCnMarkDownView 负责虚拟化显示；
 *           通过 Block 分页、按需解析和有限的 RichEdit 宿主池，支持 50 MB 历史、
 *           10,000 条消息而不阻塞 UI 输入和滚动。
+*           已完成的消息也允许继续增量追加，便于局部内容更新后重新排版。
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -1674,9 +1675,12 @@ var
   C: WideChar;
   Line: TCnMarkDownText;
 begin
-  if FFinished or (AChunk = '') then
+  { 完成状态只表示当前批次已结束；再次追加时从文档尾部继续解析。 }
+  if AChunk = '' then
     Exit;
   ValidateChunk(AChunk);
+  if FFinished then
+    FFinished := False;
   FDocument.AppendSource(AChunk);
   I := 1;
   while I <= Length(AChunk) do

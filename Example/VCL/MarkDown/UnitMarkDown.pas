@@ -16,6 +16,7 @@ type
     btnLoadVirtualHistory: TButton;
     btnLoadVirtualSamples: TButton;
     btnLoadVirtualPerformance: TButton;
+    btnAppendVirtualUpdate: TButton;
     tmrVirtualStream: TTimer;
     mmoMarkDown: TMemo;
     redtMarkDown: TRichEdit;
@@ -36,6 +37,7 @@ type
     procedure btnLoadVirtualHistoryClick(Sender: TObject);
     procedure btnLoadVirtualSamplesClick(Sender: TObject);
     procedure btnLoadVirtualPerformanceClick(Sender: TObject);
+    procedure btnAppendVirtualUpdateClick(Sender: TObject);
     procedure tmrVirtualStreamTimer(Sender: TObject);
   private
     FVirtualView: TCnMarkDownView;
@@ -46,6 +48,7 @@ type
     procedure DumpMarkDownTokens(const MD: string);
     function MakeRandomChineseText(CharCount: Integer): TCnMarkDownText;
     function BuildVirtualPerformanceSample(AIndex: Integer): TCnMarkDownText;
+    function BuildRandomUpdateSample(AIndex: Integer): TCnMarkDownText;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -388,6 +391,30 @@ begin
   end;
 end;
 
+function TFormMarkDown.BuildRandomUpdateSample(AIndex: Integer): TCnMarkDownText;
+var
+  N, Body: TCnMarkDownText;
+begin
+  N := TCnMarkDownText(IntToStr(AIndex));
+  Body := MakeRandomChineseText(40 + Random(121));
+  case Random(8) of
+    0: Result := '### 局部追加标题 ' + N + #13#10#13#10 + Body;
+    1: Result := '**局部更新** ' + Body + '。';
+    2: Result := '- 追加列表项 ' + N + #13#10 + '- ' + Body;
+    3: Result := '> 追加引用 ' + Body;
+    4: Result := '```pascal'#13#10 +
+      'procedure LocalUpdate' + N + ';'#13#10 +
+      'begin'#13#10 +
+      '  Result := ' + N + ';'#13#10 +
+      'end;'#13#10 + '```';
+    5: Result := '[追加链接](https://www.cnpack.org) ' + Body;
+    6: Result := '| 字段 | 内容 |'#13#10 + '| --- | --- |'#13#10 +
+      '| 更新 | ' + Body + ' |';
+  else
+    Result := Body + '。  '#13#10 + '局部追加的第二行，用于测试重排版。';
+  end;
+end;
+
 procedure TFormMarkDown.btnLoadVirtualPerformanceClick(Sender: TObject);
 const
   SampleCount = 200;
@@ -412,6 +439,29 @@ begin
     FVirtualFeed.EndUpdate;
     FVirtualView.EndUpdate;
   end;
+  FVirtualView.Flush;
+end;
+
+procedure TFormMarkDown.btnAppendVirtualUpdateClick(Sender: TObject);
+var
+  MessageIndex: Integer;
+  Extra: TCnMarkDownText;
+begin
+  MessageIndex := FVirtualView.SelectedMessageIndex;
+  if MessageIndex < 0 then
+  begin
+    MessageDlg('Please Click or Select a Visible Markdown Item First.',
+      mtInformation, [mbOK], 0);
+    Exit;
+  end;
+  Randomize;
+  Extra := #13#10#13#10 +
+    BuildRandomUpdateSample(MessageIndex + 1);
+  tmrVirtualStream.Enabled := False;
+  FVirtualView.AppendToMessage(MessageIndex, Extra);
+  FVirtualFeed.FlushMessageQueue(MessageIndex, 0);
+  FVirtualFeed.FinishMessage(MessageIndex);
+  { 测试按钮需要立即看到局部条目重排结果，不等待流式定时器。 }
   FVirtualView.Flush;
 end;
 
