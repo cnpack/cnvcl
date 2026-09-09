@@ -3706,6 +3706,7 @@
   {$DEFINE TCONTROL_HAS_MARGINS}         // 2006 及以上的 TControl 有 Margins
   {$DEFINE TCONTROL_HAS_EXPLICIT_BOUNDS} // 2006 及以上的 TControl 有 Explicit Bounds
   {$DEFINE TCONTROL_HAS_MOUSEENTERLEAVE} // 2006 及以上的 TControl 有 Mouse Enter/Leave Events
+  {$DEFINE SUPPORT_MARGIN_PADDING}       // 2006 及以上有 TMargins 和 TPadding
   {$DEFINE OTA_CODE_TEMPLATE_API}        // 2006 及以上有 CodeTemplateAPI
   {$DEFINE OTA_DEBUG_HAS_ERBUSY}         // 2006 及以上的 Evaluate 有返回值 erBusy
   {$DEFINE IDE_HAS_GUIDE_LINE}           // 2006 及以上的设计器有 Guide Line
