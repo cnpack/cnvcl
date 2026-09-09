@@ -219,41 +219,44 @@ begin
   Container := ATranslator.Owner;
 
   List := TList.Create;
-  for I := 0 to Container.ComponentCount - 1 do
-  begin
-    if Container.Components[I] is TCnCustomLangStorage then
+  try
+    for I := 0 to Container.ComponentCount - 1 do
     begin
-      List.Add(Container.Components[I]);
-      if Container.Components[I] is TCnCustomLangFileStorage then
-        SetDesignPathFile(Container.Components[I] as TCnCustomLangFileStorage);
+      if Container.Components[I] is TCnCustomLangStorage then
+      begin
+        List.Add(Container.Components[I]);
+        if Container.Components[I] is TCnCustomLangFileStorage then
+          SetDesignPathFile(Container.Components[I] as TCnCustomLangFileStorage);
+      end;
     end;
-  end;
 
-  if CnLanguageManager.LanguageStorage <> nil then
-  begin
-    if List.IndexOf(CnLanguageManager.LanguageStorage) < 0 then
+    if CnLanguageManager.LanguageStorage <> nil then
     begin
-      List.Add(CnLanguageManager.LanguageStorage);
-      if CnLanguageManager.LanguageStorage is TCnCustomLangFileStorage then
-        SetDesignPathFile(CnLanguageManager.LanguageStorage as TCnCustomLangFileStorage);
+      if List.IndexOf(CnLanguageManager.LanguageStorage) < 0 then
+      begin
+        List.Add(CnLanguageManager.LanguageStorage);
+        if CnLanguageManager.LanguageStorage is TCnCustomLangFileStorage then
+          SetDesignPathFile(CnLanguageManager.LanguageStorage as TCnCustomLangFileStorage);
+      end;
     end;
-  end;
 
-  if List.Count = 0 then
-  begin
-    MessageBox(0, PChar(SCnErrorNoStorage), PChar(SCnErrorCaption),
-      MB_OK or MB_ICONWARNING);
-    Exit;
-  end;
+    if List.Count = 0 then
+    begin
+      MessageBox(0, PChar(SCnErrorNoStorage), PChar(SCnErrorCaption),
+        MB_OK or MB_ICONWARNING);
+      Exit;
+    end;
 
-  with TFrmTransEditor.Create(nil) do
-  begin
-    TransEditor := Self;
-    LoadStorageFromList(List);
-    ShowModal;
-    Free;
+    with TFrmTransEditor.Create(nil) do
+    begin
+      TransEditor := Self;
+      LoadStorageFromList(List);
+      ShowModal;
+      Free;
+    end;
+  finally
+    List.Free;
   end;
-  List.Free;
 end;
 
 procedure TCnTranslatorEditor.ExecuteVerb(Index: Integer);
@@ -497,12 +500,16 @@ begin
   end;
 
   List := TStringList.Create;
-  Item := TCnLanguageItem(tvStorages.Selected.Data);
+  try
+    Item := TCnLanguageItem(tvStorages.Selected.Data);
 
-  TransEditor.Extractor.SetFilterOptions(FFormFilterOptions);
-  Self.TransEditor.Extractor.GetFormStrings(Self.Container, List);
+    TransEditor.Extractor.SetFilterOptions(FFormFilterOptions);
+    Self.TransEditor.Extractor.GetFormStrings(Self.Container, List);
 
-  WriteNameValueStringsToGrid(List, Item);
+    WriteNameValueStringsToGrid(List, Item);
+  finally
+    List.Free;
+  end;
 end;
 
 procedure TFrmTransEditor.StringGridSelectCell(Sender: TObject; ACol,
@@ -746,12 +753,14 @@ var
     Result := nil;
     Supports(BorlandIDEServices, IOTAModuleServices, IModuleServices);
     if IModuleServices <> nil then
+    begin
       for I := 0 to IModuleServices.ModuleCount - 1 do
       begin
         IModule := IModuleServices.Modules[I];
         if Supports(IModule, IOTAProjectGroup, Result) then
           Break;
       end;
+    end;
   end;
 
   function CnOtaGetCurrentProject: IOTAProject;
@@ -855,13 +864,12 @@ begin
   if (tvStorages.Selected = nil) or (tvStorages.Selected.Level <> 1) then
     Exit;
 
-  Item := TCnLanguageItem(tvStorages.Selected.Data);
-  List := TStringList.Create;
-
   Project := CnOtaGetCurrentProject;
   if Project = nil then
     Exit;
 
+  List := TStringList.Create;
+  Item := TCnLanguageItem(tvStorages.Selected.Data);
   Screen.Cursor := crHourGlass;
   try
     for I := 0 to Project.GetModuleCount - 1 do
@@ -898,6 +906,7 @@ begin
     WriteNameValueStringsToGrid(List, Item);
   finally
     Screen.Cursor := crDefault;
+    List.Free;
   end;
 {$ENDIF}
 end;
@@ -964,11 +973,13 @@ var
   begin
     Result := True;
     for I := 1 to Length(AText) do
+    begin
       if not CharInSet(AText[I], [' '..'@', '['..'_', '{'..'~']) then
       begin
         Result := False;
         Exit;
-      end;   
+      end;
+    end;
   end;
 
 begin
@@ -998,6 +1009,7 @@ begin
         end;
       end;
     end;
+
     if BlankRow >= 0 then
       Self.StringGrid.RowCount := BlankRow;
   finally
