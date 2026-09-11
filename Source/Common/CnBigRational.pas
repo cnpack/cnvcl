@@ -1229,7 +1229,7 @@ begin
     begin
       // Remain * 10，如果够除就商，不够就加 0，下一轮继续乘 10
       Remain.MulWord(10);
-      if BigNumberCompare(Remain, FDenominator) > 0 then
+      if BigNumberCompare(Remain, FDenominator) >= 0 then
       begin
         BigNumberDiv(Res, Remain, Remain, FDenominator);
         R := R + Res.ToDec;

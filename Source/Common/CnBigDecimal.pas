@@ -2507,7 +2507,7 @@ var
   X0, R, D: TCnBigRational;
 begin
   if Num.IsNegative then
-    raise ERangeError.Create('');
+    raise ERangeError.Create(SCnSqrtRangeError);
 
   if Num.IsZero or Num.IsOne then
   begin
@@ -2521,6 +2521,7 @@ begin
     RoundCount := CN_SQRT_DEFAULT_ROUND_COUNT;
 
   X0 := nil;
+  R := nil;
   D := nil;
 
   try
@@ -2546,6 +2547,7 @@ begin
     BigRationalToBigDecimal(Res, R);
   finally
     X0.Free;
+    R.Free;
     D.Free;
   end;
 end;

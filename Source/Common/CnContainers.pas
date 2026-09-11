@@ -1738,7 +1738,8 @@ begin
 
   if (Index < 0) or (Index > FCount) then
     Error(SCnInt64ListError, Index);
-  SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
+  if FCount + ACount > FCapacity then
+    SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
 
   System.Move(FList^[Index], FList^[Index + ACount],
     (FCount - Index) * SizeOf(Int64));
@@ -2462,7 +2463,8 @@ begin
 
   if (Index < 0) or (Index > FCount) then
     Error(SCnExtendedListError, Index);
-  SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
+  if FCount + ACount > FCapacity then
+    SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
 
   System.Move(FList^[Index], FList^[Index + ACount],
     (FCount - Index) * SizeOf(Extended));
@@ -2685,7 +2687,8 @@ begin
 
   if (Index < 0) or (Index > FCount) then
     Error(SCnRefObjectListError, Index);
-  SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
+  if FCount + ACount > FCapacity then
+    SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
 
   System.Move(FList^[Index], FList^[Index + ACount],
     (FCount - Index) * SizeOf(TObject));
