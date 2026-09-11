@@ -55,7 +55,10 @@ unit CnContainers;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.04.06 V1.5
+* 修改记录：2026.09.11 V1.6
+*               为 TCnIntegerList/TCnInt64List 增加 IgnoreDuplicated 查重功能，
+*               并修复 UInt32/UInt64 列表查重模式的若干问题
+*           2025.04.06 V1.5
 *               几个列表类加入排序功能
 *           2024.05.10 V1.4
 *               将 CnClasses 中的 UInt32/UInt64 列表移动至此处，没泛型只能这样
@@ -374,6 +377,7 @@ type
   TCnIntegerList = class(TList)
   {* 整数列表，利用 32 位 Pointer 或 64 位 Pointer 的低 32 位存 Integer}
   private
+    FIgnoreDuplicated: Boolean;
     function Get(Index: Integer): Integer;
     procedure Put(Index: Integer; const Value: Integer);
   public
@@ -386,6 +390,9 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property Items[Index: Integer]: Integer read Get write Put; default;
+    property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
+    {* 是否忽略重复元素，为 True 时 Add/Insert 遇重复值跳过不插入（Add 返回
+       -1），Put 写入他槽已有值时静默放弃，写入新值或覆盖本槽时正常}
   end;
 
 //==============================================================================
@@ -403,6 +410,7 @@ type
     FList: PInt64List;
     FCount: Integer;
     FCapacity: Integer;
+    FIgnoreDuplicated: Boolean;
   protected
     function Get(Index: Integer): Int64;
     procedure Grow; virtual;
@@ -436,6 +444,9 @@ type
     property Count: Integer read FCount write SetCount;
     property Items[Index: Integer]: Int64 read Get write Put; default;
     property List: PInt64List read FList;
+    property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
+    {* 是否忽略重复元素，为 True 时 Add/Insert 遇重复值跳过不插入（Add 返回
+       -1），Put 写入他槽已有值时静默放弃，写入新值或覆盖本槽时正常}
   end;
 
 //==============================================================================
@@ -548,6 +559,9 @@ type
     // 内部下标、尺寸均由 TUInt64 表示，不过由于编译器限制实际上达不到 TUInt64
     property List: PCnUInt64Array read FList;
     property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
+    {* 是否忽略重复元素，为 True 时 Add/Insert 遇重复值跳过不插入（Add 找不到
+       时返回 CN_NOT_FOUND_INDEX），Put 写入他槽已有值时静默放弃，写入新值或
+       覆盖本槽时正常}
   end;
 
   PExtendedList = ^TExtendedList;
@@ -792,7 +806,7 @@ threadvar
 
 function DefExtendedCompareProc(E1, E2: Extended): Integer;
 begin
-  if Abs(E1 - E2) < 0.000001 then
+  if E1 = E2 then // 必须精确比较
     Result := 0
   else if E1 > E2 then
     Result := 1
@@ -1089,10 +1103,18 @@ end;
 
 function TCnObjectStack.Peek: TObject;
 begin
-  if FList.Count > 0 then
-    Result := TObject(FList[FList.Count - 1])
-  else
-    raise ECnContainerException.Create(SCnEmptyStackError);
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    if FList.Count > 0 then
+      Result := TObject(FList[FList.Count - 1])
+    else
+      raise ECnContainerException.Create(SCnEmptyStackError);
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
 end;
 
 function TCnObjectStack.Pop: TObject;
@@ -1159,13 +1181,21 @@ procedure TCnObjectRingBuffer.Dump(List: TList; out FrontIdx: Integer;
 var
   I: Integer;
 begin
-  FrontIdx := FFrontIdx;
-  BackIdx := FBackIdx;
-  if List <> nil then
-  begin
-    List.Clear;
-    for I := 0 to FList.Count - 1 do
-      List.Add(FList[I]);
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    FrontIdx := FFrontIdx;
+    BackIdx := FBackIdx;
+    if List <> nil then
+    begin
+      List.Clear;
+      for I := 0 to FList.Count - 1 do
+        List.Add(FList[I]);
+    end;
+  finally
+    if FMultiThread then
+      FLock.Leave;
   end;
 end;
 
@@ -1490,6 +1520,11 @@ end;
 
 function TCnIntegerList.Add(Item: Integer): Integer;
 begin
+  if FIgnoreDuplicated and (IndexOf(IntegerToPointer(Item)) >= 0) then
+  begin
+    Result := -1;
+    Exit;
+  end;
   Result := inherited Add(IntegerToPointer(Item));
 end;
 
@@ -1497,7 +1532,7 @@ procedure TCnIntegerList.AddList(List: TCnIntegerList);
 var
   I: Integer;
 begin
-  if (List <> nil) and (List.Count > 0) then
+  if (List <> Self) and (List <> nil) and (List.Count > 0) then
   begin
     for I := 0 to List.Count - 1 do
       Add(List[I]);
@@ -1511,6 +1546,8 @@ end;
 
 procedure TCnIntegerList.Insert(Index, Item: Integer);
 begin
+  if FIgnoreDuplicated and (IndexOf(IntegerToPointer(Item)) >= 0) then
+    Exit;
   inherited Insert(Index, IntegerToPointer(Item));
 end;
 
@@ -1522,7 +1559,7 @@ end;
 
 function TCnIntegerList.Extract(Item: Integer): Integer;
 begin
-  Result := inherited Extract(Pointer(Item));
+  Result := PointerToInteger(inherited Extract(Pointer(Item)));
 end;
 
 function TCnIntegerList.ToString: string;
@@ -1540,7 +1577,15 @@ begin
 end;
 
 procedure TCnIntegerList.Put(Index: Integer; const Value: Integer);
+var
+  DupIdx: Integer;
 begin
+  if FIgnoreDuplicated then
+  begin
+    DupIdx := IndexOf(IntegerToPointer(Value));
+    if (DupIdx >= 0) and (DupIdx <> Index) then
+      Exit;
+  end;
   inherited Put(Index, IntegerToPointer(Value));
 end;
 
@@ -1554,6 +1599,11 @@ end;
 
 function TCnInt64List.Add(Item: Int64): Integer;
 begin
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+  begin
+    Result := -1;
+    Exit;
+  end;
   Result := FCount;
   if Result = FCapacity then
     Grow;
@@ -1565,7 +1615,7 @@ procedure TCnInt64List.AddList(List: TCnInt64List);
 var
   I: Integer;
 begin
-  if (List <> nil) and (List.Count > 0) then
+  if (List <> Self) and (List <> nil) and (List.Count > 0) then
   begin
     for I := 0 to List.Count - 1 do
       Add(List[I]);
@@ -1670,6 +1720,8 @@ procedure TCnInt64List.Insert(Index: Integer; Item: Int64);
 begin
   if (Index < 0) or (Index > FCount) then
     Error(SCnInt64ListError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+    Exit;
   if FCount = FCapacity then
     Grow;
   if Index < FCount then
@@ -1716,9 +1768,18 @@ begin
 end;
 
 procedure TCnInt64List.Put(Index: Integer; Item: Int64);
+var
+  DupIdx: Integer;
 begin
   if (Index < 0) or (Index >= FCount) then
     Error(SCnInt64ListError, Index);
+
+  if FIgnoreDuplicated then
+  begin
+    DupIdx := IndexOf(Item);
+    if (DupIdx >= 0) and (DupIdx <> Index) then
+      Exit;
+  end;
 
   FList^[Index] := Item;
 end;
@@ -1799,7 +1860,7 @@ procedure TCnUInt32List.AddList(List: TCnUInt32List);
 var
   I: Integer;
 begin
-  if (List <> nil) and (List.Count > 0) then
+  if (List <> Self) and (List <> nil) and (List.Count > 0) then
   begin
     for I := 0 to List.Count - 1 do
       Add(List[I]);
@@ -1912,6 +1973,9 @@ procedure TCnUInt32List.Insert(Index: Integer; Item: Cardinal);
 begin
   if (Index < 0) or (Index > FCount) then
     Error(@SListIndexError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+    Exit;
+
   if FCount = FCapacity then
     Grow;
   if Index < FCount then
@@ -1943,11 +2007,17 @@ begin
 end;
 
 procedure TCnUInt32List.Put(Index: Integer; Item: Cardinal);
+var
+  DupIdx: Integer;
 begin
   if (Index < 0) or (Index >= FCount) then
     Error(@SListIndexError, Index);
-  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
-    Exit;
+  if FIgnoreDuplicated then
+  begin
+    DupIdx := IndexOf(Item);
+    if (DupIdx >= 0) and (DupIdx <> Index) then
+      Exit;                    // 值在别的槽存在得拒绝
+  end;
 
   FList^[Index] := Item;
 end;
@@ -2028,7 +2098,7 @@ procedure TCnUInt64List.AddList(List: TCnUInt64List);
 var
   I: Integer;
 begin
-  if (List <> nil) and (List.Count > 0) then
+  if (List <> Self) and (List <> nil) and (List.Count > 0) then
   begin
     for I := 0 to List.Count - 1 do
       Add(List[I]);
@@ -2141,6 +2211,9 @@ procedure TCnUInt64List.Insert(Index: TUInt64; Item: TUInt64);
 begin
   if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) > 0) then
     Error(@SListIndexError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) <> CN_NOT_FOUND_INDEX) then
+    Exit;
+
   if FCount = FCapacity then
     Grow;
   if Index < FCount then
@@ -2172,11 +2245,17 @@ begin
 end;
 
 procedure TCnUInt64List.Put(Index: TUInt64; Item: TUInt64);
+var
+  DupIdx: TUInt64;
 begin
   if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) >= 0) then
     Error(@SListIndexError, Index);
-  if FIgnoreDuplicated and (IndexOf(Item) <> CN_NOT_FOUND_INDEX) then
-    Exit;
+  if FIgnoreDuplicated then
+  begin
+    DupIdx := IndexOf(Item);
+    if (DupIdx >= 0) and (DupIdx <> Index) then
+      Exit;                    // 值在别的槽存在得拒绝
+  end;
 
   FList^[Index] := Item;
 end;
