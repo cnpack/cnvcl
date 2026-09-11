@@ -16,8 +16,8 @@ object FormMarkDown: TFormMarkDown
   object pgcMarkDown: TPageControl
     Left = 0
     Top = 0
-    Width = 1098
-    Height = 648
+    Width = 1106
+    Height = 653
     ActivePage = tsParser
     Align = alClient
     TabOrder = 0
@@ -38,32 +38,29 @@ object FormMarkDown: TFormMarkDown
         Lines.Strings = (
           '# Hea*er1*'
           '## Header2'
-          '* '#35748#23450#20070
-          '* '#30340#35828#27861#26041#24335
+          '* 认定书'
+          '* 的说法方式'
           '### Header3'
-          #21507'`'#20102'`'#22043#20108#27004'*'#20154#24037'*'#32819'**'#20799#31185'**  '
+          '吃`了`嘛二楼*人工*耳**儿科**  '
           '---'
-          #38500'~~'#38750#38463'~~'#21457#38142#25509#65306'[CnPack](https://www.cnpack.org)  '
+          '除~~非阿~~发链接：[CnPack](https://www.cnpack.org)  '
           'Internal Help ![test]()'
-          '1. '#21507#39277
-          '2. '#21917#27700
-          '>  * '#21917#27700
-          '>  * '#21507#39277
-          '> > '#19981#20449#21629'**'#23601#26159'**'#19981#20449#21629
+          '1. 吃饭'
+          '2. 喝水'
+          '>  * 喝水'
+          '>  * 吃饭'
+          '> > 不信命**就是**不信命'
           '```pascal'
-          
-            'function TCnRTFConverter.ConvertFragment(Fragment: TCnMarkDownTe' +
-            'xtFragment): string;'
+          'function TCnRTFConverter.ConvertFragment(Fragment: TCnMarkDownTe' +
+          'xtFragment): string;'
           'begin'
           '  if Fragment.FragmentType = cmfCodeBlock then'
-          '    Result := EscapeContent(Fragment.Content)  // '#30452#25509#36716#20041#20869#23481#65292#19981#39069#22806#20462#39280
+          '    Result := EscapeContent(Fragment.Content)  // 直接转义内容，不额外修饰'
           '  else'
           '    Exit;'
           'end;'
           '```'
-          
-            '    FragmentType '#21917#27700' F**ragmentType FragmentType FragmentTypeFrag' +
-            'mentType'#21507#39277'TypeFragmentType '
+          '    FragmentType 喝水 F**ragmentType FragmentType FragmentTypeFragmentType吃饭TypeFragmentType '
           'FragmentType Fragm**entType  '
           'FragmentT<https://cnpack.org>ypeFragmentType')
         TabOrder = 0
@@ -199,6 +196,15 @@ object FormMarkDown: TFormMarkDown
           Caption = 'Append random Markdown'
           TabOrder = 4
           OnClick = btnAppendVirtualUpdateClick
+        end
+        object btnExpandVirtualItem: TButton
+          Left = 948
+          Top = 6
+          Width = 140
+          Height = 25
+          Caption = 'Expand selected item'
+          TabOrder = 5
+          OnClick = btnExpandVirtualItemClick
         end
       end
     end

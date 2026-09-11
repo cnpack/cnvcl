@@ -32,8 +32,11 @@ unit CnMarkDownView;
 *           宿主换页时重置测量几何，并校验 RichEdit 回报高度，防止复用状态产生大块空白。
 *           通用 TCnPadding/ Padding 属性提供四边内容留白，并同步参与折行测量、虚拟高度和滚动范围计算。
 *           测量阶段使用隐藏的大客户区，最终定位后恢复实际格式矩形，保证代码块末行完整显示。
-*           宿主复用时同时校验虚拟项的 BlockID 和修订号，避免局部消息重排后显示旧内容或沿用旧高度
-*           通过 SelectedMessageIndex 暴露当前选中消息，便于测试或宿主追加内容后触发局部重排。
+*           宿主复用时同时校验消息、块位置、BlockID、文档修订号和块修订号，避免局部消息重排后显示旧内容或沿用旧高度
+*           局部消息更新只替换自身的虚拟项范围，保留下游条目已经测得的准确高度。
+*           每个虚拟项保存独立背景色，默认按消息交替着色，也可通过事件提供自定义颜色。
+*           通过 SelectedMessageIndex/SelectedItemIndex 暴露当前选中消息和条目，
+*           支持消息追加或选中块原位追加后触发局部重排。
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -48,7 +51,10 @@ interface
 
 uses
   Windows, Messages, Classes, SysUtils, Contnrs, Controls, Graphics, Forms,
-  StdCtrls, ExtCtrls, ComCtrls, RichEdit, CnMarkDown;
+  StdCtrls, ExtCtrls, ComCtrls, RichEdit, CnContainers, CnMarkDown;
+
+const
+  CN_MARKDOWN_DEFAULT_ALTERNATE_ITEM_COLOR = $00F8F8F8;
 
 type
   TCnMarkDownView = class;
@@ -89,6 +95,8 @@ type
 {$ENDIF}
 
   TCnMarkDownViewItem = class
+  private
+    FBackgroundColor: TColor;
   public
     MessageIndex: Integer;
     BlockIndex: Integer;
@@ -98,7 +106,12 @@ type
     TextStart: Integer;
     TextLength: Integer;
     Height: Integer;
+    property BackgroundColor: TColor read FBackgroundColor
+      write FBackgroundColor;
   end;
+
+  TCnMarkDownGetItemBackgroundColorEvent = procedure(Sender: TObject;
+    Item: TCnMarkDownViewItem; var BackgroundColor: TColor) of object;
 
   TCnMarkDownRichHost = class(TRichEdit)
   private
@@ -126,7 +139,7 @@ type
     FFeed: TCnMarkDownFeed;
     FIndex: TCnVirtualHeightIndex;
     FItems: TObjectList;
-    FMessageStarts: array of Integer;
+    FMessageStarts: TCnIntegerList;
     FHosts: TList;
     FSelectedHost: TCnMarkDownRichHost;
     FMeasureHost: TCnMarkDownRichHost;
@@ -144,6 +157,8 @@ type
     FItemSpacing: Integer;
     FHostBufferItems: Integer;
     FBackgroundColor: TColor;
+    FAlternateItemColor: TColor;
+    FOnGetItemBackgroundColor: TCnMarkDownGetItemBackgroundColorEvent;
 {$IFNDEF SUPPORT_MARGIN_PADDING}
     FPadding: TCnPadding;
 {$ENDIF}
@@ -157,6 +172,9 @@ type
     procedure SetItemSpacing(Value: Integer);
     procedure SetScrollOffset(Value: Int64);
     procedure SetBackgroundColor(Value: TColor);
+    procedure SetAlternateItemColor(Value: TColor);
+    procedure SetOnGetItemBackgroundColor(
+      Value: TCnMarkDownGetItemBackgroundColorEvent);
 {$IFNDEF SUPPORT_MARGIN_PADDING}
     procedure SetPadding(Value: TCnPadding);
     procedure PaddingChanged(Sender: TObject);
@@ -167,6 +185,7 @@ type
     function GetPaddingRight: Integer;
     function GetPaddingBottom: Integer;
     function GetContentWidth: Integer;
+    function ResolveItemBackgroundColor(Item: TCnMarkDownViewItem): TColor;
     procedure FeedChanged(Sender: TObject; ChangeType: TCnMarkDownFeedChangeType;
       MessageIndex: Integer);
     procedure FlushTimer(Sender: TObject);
@@ -191,6 +210,7 @@ type
     procedure LayoutHosts;
     procedure ReleaseHostFocus(Host: TCnMarkDownRichHost);
     procedure ActivateHost(Host: TCnMarkDownRichHost);
+    function GetSelectedItemIndex: Integer;
     function GetSelectedMessageIndex: Integer;
     procedure SetHostFormatRect(Host: TCnMarkDownRichHost);
     procedure PrepareHostMeasure(Host: TCnMarkDownRichHost);
@@ -224,15 +244,22 @@ type
     procedure AppendToMessage(MessageIndex: Integer;
       const AChunk: TCnMarkDownText);
     procedure FinishMessage(MessageIndex: Integer);
+    procedure AppendToItem(ItemIndex: Integer;
+      const AChunk: TCnMarkDownText);
+    procedure AppendToSelectedItem(const AChunk: TCnMarkDownText);
     procedure ScrollToBottom;
+    procedure RefreshItemBackgroundColors;
     property Feed: TCnMarkDownFeed read FFeed write SetFeed;
     property TotalHeight: Int64 read GetTotalHeight;
     property ItemCount: Integer read GetItemCount;
+    property SelectedItemIndex: Integer read GetSelectedItemIndex;
     property SelectedMessageIndex: Integer read GetSelectedMessageIndex;
   published
     property Align;
     property Anchors;
     property Color: TColor read FBackgroundColor write SetBackgroundColor default clWindow;
+    property AlternateItemColor: TColor read FAlternateItemColor
+      write SetAlternateItemColor default CN_MARKDOWN_DEFAULT_ALTERNATE_ITEM_COLOR;
     property Font;
     property TabStop;
     property Visible;
@@ -246,6 +273,8 @@ type
     property DefaultItemHeight: Integer read FDefaultHeight write SetDefaultHeight default 24;
     property ItemSpacing: Integer read FItemSpacing write SetItemSpacing default 4;
     property ScrollOffset: Int64 read FScrollOffset write SetScrollOffset;
+    property OnGetItemBackgroundColor: TCnMarkDownGetItemBackgroundColorEvent
+      read FOnGetItemBackgroundColor write SetOnGetItemBackgroundColor;
   end;
 
 implementation
@@ -359,9 +388,11 @@ begin
   DoubleBuffered := True;
   TabStop := True;
   FBackgroundColor := clWindow;
+  FAlternateItemColor := CN_MARKDOWN_DEFAULT_ALTERNATE_ITEM_COLOR;
   FFeed := nil;
   FIndex := TCnVirtualHeightIndex.Create;
   FItems := TObjectList.Create(True);
+  FMessageStarts := TCnIntegerList.Create;
   FHosts := TList.Create;
   FSelectedHost := nil;
 {$IFNDEF SUPPORT_MARGIN_PADDING}
@@ -398,6 +429,7 @@ begin
   ClearHosts;
   FHosts.Free;
   FItems.Free;
+  FMessageStarts.Free;
   FIndex.Free;
 {$IFNDEF SUPPORT_MARGIN_PADDING}
   FPadding.Free;
@@ -479,6 +511,20 @@ begin
     Result := MaxInt
   else
     Result := Integer(W);
+end;
+
+function TCnMarkDownView.ResolveItemBackgroundColor(
+  Item: TCnMarkDownViewItem): TColor;
+begin
+  Result := FBackgroundColor;
+  if (Item <> nil) and Odd(Item.MessageIndex) then
+    Result := FAlternateItemColor;
+  if Result = clNone then
+    Result := FBackgroundColor;
+  if Assigned(FOnGetItemBackgroundColor) then
+    FOnGetItemBackgroundColor(Self, Item, Result);
+  if Result = clNone then
+    Result := FBackgroundColor;
 end;
 
 procedure TCnMarkDownView.CheckPaddingChanged;
@@ -567,14 +613,48 @@ begin
 end;
 
 procedure TCnMarkDownView.SetBackgroundColor(Value: TColor);
-var
-  I: Integer;
 begin
   if FBackgroundColor = Value then
     Exit;
   FBackgroundColor := Value;
+  RefreshItemBackgroundColors;
+end;
+
+procedure TCnMarkDownView.SetAlternateItemColor(Value: TColor);
+begin
+  if FAlternateItemColor = Value then
+    Exit;
+  FAlternateItemColor := Value;
+  RefreshItemBackgroundColors;
+end;
+
+procedure TCnMarkDownView.SetOnGetItemBackgroundColor(
+  Value: TCnMarkDownGetItemBackgroundColorEvent);
+begin
+  FOnGetItemBackgroundColor := Value;
+  RefreshItemBackgroundColors;
+end;
+
+procedure TCnMarkDownView.RefreshItemBackgroundColors;
+var
+  I: Integer;
+  Item: TCnMarkDownViewItem;
+  Host: TCnMarkDownRichHost;
+begin
+  for I := 0 to FItems.Count - 1 do
+  begin
+    Item := TCnMarkDownViewItem(FItems[I]);
+    Item.BackgroundColor := ResolveItemBackgroundColor(Item);
+  end;
   for I := 0 to FHosts.Count - 1 do
-    TCnMarkDownRichHost(FHosts[I]).Color := Value;
+  begin
+    Host := TCnMarkDownRichHost(FHosts[I]);
+    if (Host.ItemIndex >= 0) and (Host.ItemIndex < FItems.Count) then
+      Host.Color := TCnMarkDownViewItem(
+        FItems[Host.ItemIndex]).BackgroundColor
+    else
+      Host.Color := FBackgroundColor;
+  end;
   Invalidate;
 end;
 
@@ -798,10 +878,10 @@ begin
   AtBottom := (FItems.Count = 0) or (OldOffset >= OldMax - 2);
   FItems.Clear;
   if FFeed = nil then
-    SetLength(FMessageStarts, 0)
+    FMessageStarts.Clear
   else
   begin
-    SetLength(FMessageStarts, FFeed.MessageCount + 1);
+    FMessageStarts.Count := FFeed.MessageCount + 1;
     for I := 0 to FFeed.MessageCount - 1 do
     begin
       FMessageStarts[I] := FItems.Count;
@@ -824,10 +904,12 @@ end;
 
 procedure TCnMarkDownView.RebuildFromMessage(MessageIndex: Integer);
 var
-  I, StartIndex, OldAnchor, OldAnchorInner, NewAnchor: Integer;
+  I, StartIndex, OldEndIndex, OldItemCount, AppendStart,
+  NewItemCount, Delta, OldAnchor, OldAnchorInner, NewAnchor: Integer;
   OldMessageIndex, OldBlockIndex, OldTextStart: Integer;
   OldOffset, OldMax: Int64;
   OldItem: TCnMarkDownViewItem;
+  Host: TCnMarkDownRichHost;
   AtBottom: Boolean;
 begin
   if (FFeed = nil) or (MessageIndex < 0) or
@@ -855,19 +937,45 @@ begin
       FIndex.TopOf(OldAnchor));
   end;
 
-  if Length(FMessageStarts) <> FFeed.MessageCount + 1 then
+  if FMessageStarts.Count <> FFeed.MessageCount + 1 then
     RebuildAll
   else
   begin
     StartIndex := FMessageStarts[MessageIndex];
-    for I := FItems.Count - 1 downto StartIndex do
-      FItems.Delete(I);
-    for I := MessageIndex to FFeed.MessageCount - 1 do
-    begin
-      FMessageStarts[I] := FItems.Count;
-      AddMessageItems(I);
+    OldEndIndex := FMessageStarts[MessageIndex + 1];
+    OldItemCount := OldEndIndex - StartIndex;
+
+    { 先在列表尾部构造变化消息的新条目，失败时可完整保留原布局。 }
+    AppendStart := FItems.Count;
+    try
+      AddMessageItems(MessageIndex);
+    except
+      for I := FItems.Count - 1 downto AppendStart do
+        FItems.Delete(I);
+      raise;
     end;
-    FMessageStarts[FFeed.MessageCount] := FItems.Count;
+    NewItemCount := FItems.Count - AppendStart;
+
+    { 仅替换变化消息的范围，保留下游条目已经测得的准确高度。 }
+    for I := OldEndIndex - 1 downto StartIndex do
+      FItems.Delete(I);
+    Dec(AppendStart, OldItemCount);
+    for I := 0 to NewItemCount - 1 do
+      FItems.Move(AppendStart + I, StartIndex + I);
+
+    Delta := NewItemCount - OldItemCount;
+    if Delta <> 0 then
+    begin
+      { 下游宿主仍绑定同一条目，只修正虚拟索引即可避免无谓重载和误测高。 }
+      for I := 0 to FHosts.Count - 1 do
+      begin
+        Host := TCnMarkDownRichHost(FHosts[I]);
+        if Host.ItemIndex >= OldEndIndex then
+          Host.ItemIndex := Host.ItemIndex + Delta;
+      end;
+      for I := MessageIndex + 1 to FFeed.MessageCount do
+        FMessageStarts[I] := FMessageStarts[I] + Delta;
+    end;
     RebuildIndex;
 
     if AtBottom then
@@ -993,6 +1101,7 @@ begin
     Item.TextStart := StartPos;
     Item.TextLength := PageLength;
     Item.Height := EstimateHeight(Block, StartPos, PageLength);
+    Item.BackgroundColor := ResolveItemBackgroundColor(Item);
     FItems.Add(Item);
     Inc(Result);
     Inc(StartPos, PageLength);
@@ -1008,6 +1117,7 @@ begin
     Item.TextStart := 0;
     Item.TextLength := 0;
     Item.Height := EstimateHeight(Block, 0, 0);
+    Item.BackgroundColor := ResolveItemBackgroundColor(Item);
     FItems.Add(Item);
     Inc(Result);
   end;
@@ -1249,11 +1359,10 @@ begin
     FSelectedHost := Host;
 end;
 
-function TCnMarkDownView.GetSelectedMessageIndex: Integer;
+function TCnMarkDownView.GetSelectedItemIndex: Integer;
 var
   I: Integer;
   Host: TCnMarkDownRichHost;
-  Item: TCnMarkDownViewItem;
 begin
   Result := -1;
   { 优先返回有文本选择的宿主，按钮获得焦点后仍能识别用户刚选中的条目。 }
@@ -1263,8 +1372,7 @@ begin
     if (Host.ItemIndex >= 0) and (Host.ItemIndex < FItems.Count) and
       (Host.SelLength <> 0) then
     begin
-      Item := TCnMarkDownViewItem(FItems[Host.ItemIndex]);
-      Result := Item.MessageIndex;
+      Result := Host.ItemIndex;
       Exit;
     end;
   end;
@@ -1272,10 +1380,18 @@ begin
   if (FSelectedHost <> nil) and FSelectedHost.Visible and
     (FSelectedHost.ItemIndex >= 0) and
     (FSelectedHost.ItemIndex < FItems.Count) then
-  begin
-    Item := TCnMarkDownViewItem(FItems[FSelectedHost.ItemIndex]);
-    Result := Item.MessageIndex;
-  end;
+    Result := FSelectedHost.ItemIndex;
+end;
+
+function TCnMarkDownView.GetSelectedMessageIndex: Integer;
+var
+  ItemIndex: Integer;
+begin
+  ItemIndex := GetSelectedItemIndex;
+  if (ItemIndex >= 0) and (ItemIndex < FItems.Count) then
+    Result := TCnMarkDownViewItem(FItems[ItemIndex]).MessageIndex
+  else
+    Result := -1;
 end;
 
 procedure TCnMarkDownView.ReleaseHostFocus(Host: TCnMarkDownRichHost);
@@ -1368,6 +1484,8 @@ begin
     Exit;
   end;
   Item := TCnMarkDownViewItem(FItems[ItemIndex]);
+  if Host.Color <> Item.BackgroundColor then
+    Host.Color := Item.BackgroundColor;
   if (Host.ItemIndex <> ItemIndex) or
     (Host.MessageIndex <> Item.MessageIndex) or
     (Host.BlockIndex <> Item.BlockIndex) or
@@ -1510,6 +1628,30 @@ begin
   if FFeed = nil then
     raise EInvalidOperation.Create('A Markdown feed is required.');
   FFeed.QueueMessage(MessageIndex, AChunk);
+end;
+
+procedure TCnMarkDownView.AppendToItem(ItemIndex: Integer;
+  const AChunk: TCnMarkDownText);
+var
+  Item: TCnMarkDownViewItem;
+begin
+  if FFeed = nil then
+    raise EInvalidOperation.Create('A Markdown feed is required.');
+  if (ItemIndex < 0) or (ItemIndex >= FItems.Count) then
+    raise ERangeError.Create('The Markdown item index is invalid.');
+  Item := TCnMarkDownViewItem(FItems[ItemIndex]);
+  FFeed.AppendToBlock(Item.MessageIndex, Item.BlockIndex, AChunk);
+end;
+
+procedure TCnMarkDownView.AppendToSelectedItem(
+  const AChunk: TCnMarkDownText);
+var
+  ItemIndex: Integer;
+begin
+  ItemIndex := GetSelectedItemIndex;
+  if ItemIndex < 0 then
+    raise EInvalidOperation.Create('A visible Markdown item must be selected.');
+  AppendToItem(ItemIndex, AChunk);
 end;
 
 procedure TCnMarkDownView.FinishMessage(MessageIndex: Integer);

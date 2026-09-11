@@ -308,11 +308,12 @@ type
     procedure AppendSource(const Value: TCnMarkDownText);
     procedure UpdateActiveBlock(ABlock: TCnMarkDownBlock);
     procedure CommitActiveBlock;
-    procedure AddStableBlock(ABlock: TCnMarkDownBlock);
   public
     constructor Create;
     destructor Destroy; override;
     procedure Clear;
+    procedure AppendBlockText(BlockIndex: Integer;
+      const AChunk: TCnMarkDownText);
     function ActiveBlockIndex: Integer;
     property BlockCount: Integer read GetBlockCount;
     property Blocks[Index: Integer]: TCnMarkDownBlock read GetBlock;
@@ -417,6 +418,8 @@ type
     constructor Create(AID: Int64; ARole: TCnMarkDownMessageRole);
     destructor Destroy; override;
     procedure Append(const AChunk: TCnMarkDownText);
+    procedure AppendToBlock(BlockIndex: Integer;
+      const AChunk: TCnMarkDownText);
     procedure Queue(const AChunk: TCnMarkDownText);
     function FlushQueued(AMaxChars: Integer): Integer;
     procedure Finish;
@@ -449,6 +452,8 @@ type
     procedure Clear;
     function AddMessage(ARole: TCnMarkDownMessageRole): TCnMarkDownFeedMessage;
     procedure AppendMessage(MessageIndex: Integer;
+      const AChunk: TCnMarkDownText);
+    procedure AppendToBlock(MessageIndex, BlockIndex: Integer;
       const AChunk: TCnMarkDownText);
     procedure QueueMessage(MessageIndex: Integer;
       const AChunk: TCnMarkDownText);
@@ -1281,6 +1286,32 @@ begin
   Changed(cmdReset, -1);
 end;
 
+procedure TCnMarkDownDocument.AppendBlockText(BlockIndex: Integer;
+  const AChunk: TCnMarkDownText);
+var
+  Block: TCnMarkDownBlock;
+begin
+  if AChunk = '' then
+    Exit;
+  if FKeepSource then
+    raise EInvalidOperation.Create(
+      'Appending directly to a parsed block requires KeepSource=False.');
+  if FActiveBlock <> nil then
+    raise EInvalidOperation.Create(
+      'Appending directly to a block requires a finished message.');
+  if (BlockIndex < 0) or (BlockIndex >= FBlocks.Count) then
+    raise ERangeError.Create('The Markdown block index is invalid.');
+  Block := TCnMarkDownBlock(FBlocks[BlockIndex]);
+  if Length(AChunk) > MaxInt - Length(Block.Text) then
+    raise ERangeError.Create(SCnMarkDownBlockTooLong);
+  Block.Text := Block.Text + AChunk;
+  Block.SourceLength := Block.SourceLength + Length(AChunk);
+  Block.RebuildInlines;
+  Inc(Block.FRevision);
+  { 直接修改已完成块后仍保持稳定状态，只递增修订号通知虚拟视图重排。 }
+  Changed(cmdBlockChanged, BlockIndex);
+end;
+
 function TCnMarkDownDocument.GetBlock(Index: Integer): TCnMarkDownBlock;
 begin
   Result := TCnMarkDownBlock(FBlocks[Index]);
@@ -1352,28 +1383,6 @@ begin
   FActiveBlock.FStable := True;
   Inc(FActiveBlock.FRevision);
   FActiveBlock := nil;
-  Changed(cmdBlockCommitted, Index);
-end;
-
-procedure TCnMarkDownDocument.AddStableBlock(ABlock: TCnMarkDownBlock);
-var
-  Index: Integer;
-begin
-  if ABlock = nil then
-    Exit;
-  if FActiveBlock <> nil then
-    CommitActiveBlock;
-  if (FMaxBlockCount > 0) and (FBlocks.Count >= FMaxBlockCount) then
-  begin
-    ABlock.Free;
-    raise ERangeError.Create(SCnMarkDownTooManyBlocks);
-  end;
-  ABlock.FBlockID := FNextBlockID;
-  Inc(FNextBlockID);
-  ABlock.FRevision := 1;
-  ABlock.FStable := True;
-  Index := FBlocks.Add(ABlock);
-  Changed(cmdBlockAdded, Index);
   Changed(cmdBlockCommitted, Index);
 end;
 
@@ -3702,6 +3711,26 @@ begin
   FParser.Append(AChunk);
 end;
 
+procedure TCnMarkDownFeedMessage.AppendToBlock(BlockIndex: Integer;
+  const AChunk: TCnMarkDownText);
+begin
+  if not FParser.Finished then
+    raise EInvalidOperation.Create(
+      'Appending directly to a block requires a finished message.');
+  if FPending.Length > 0 then
+    raise EInvalidOperation.Create(
+      'The message still has pending stream data.');
+  if (BlockIndex < 0) or
+    (BlockIndex >= FParser.Document.BlockCount) then
+    raise ERangeError.Create('The Markdown block index is invalid.');
+  if (FParser.MaxBlockLength > 0) and
+    (Int64(Length(AChunk)) +
+      Int64(Length(FParser.Document.Blocks[BlockIndex].Text)) >
+      FParser.MaxBlockLength) then
+    raise ERangeError.Create(SCnMarkDownBlockTooLong);
+  FParser.Document.AppendBlockText(BlockIndex, AChunk);
+end;
+
 procedure TCnMarkDownFeedMessage.Queue(const AChunk: TCnMarkDownText);
 begin
   FPending.Append(AChunk);
@@ -3798,6 +3827,15 @@ begin
   if (MessageIndex < 0) or (MessageIndex >= FMessages.Count) then
     raise ERangeError.Create('The Markdown message index is invalid.');
   Messages[MessageIndex].Append(AChunk);
+  Changed(cmfMessageChanged, MessageIndex);
+end;
+
+procedure TCnMarkDownFeed.AppendToBlock(MessageIndex, BlockIndex: Integer;
+  const AChunk: TCnMarkDownText);
+begin
+  if (MessageIndex < 0) or (MessageIndex >= FMessages.Count) then
+    raise ERangeError.Create('The Markdown message index is invalid.');
+  Messages[MessageIndex].AppendToBlock(BlockIndex, AChunk);
   Changed(cmfMessageChanged, MessageIndex);
 end;
 

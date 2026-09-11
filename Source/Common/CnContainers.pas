@@ -382,6 +382,7 @@ type
     procedure Insert(Index: Integer; Item: Integer); reintroduce;
     procedure IntSort(CompareProc: TCnInt32CompareProc = nil);
     {* 排序，默认从小到大}
+    function Extract(Item: Integer): Integer; reintroduce;
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property Items[Index: Integer]: Integer read Get write Put; default;
@@ -1519,6 +1520,11 @@ begin
   Sort(MyInt32SortCompare);
 end;
 
+function TCnIntegerList.Extract(Item: Integer): Integer;
+begin
+  Result := inherited Extract(Pointer(Item));
+end;
+
 function TCnIntegerList.ToString: string;
 var
   I: Integer;
@@ -2194,6 +2200,9 @@ var
   I: Integer;
 begin
   Result := '';
+  if Count = 0 then // 防止 Count - 1 为大正数出大问题
+    Exit;
+
   for I := 0 to Count - 1 do
   begin
     if I = 0 then
@@ -2785,9 +2794,9 @@ begin
     if Src.Count > 0 then
     begin
 {$IFDEF LIST_NEW_POINTER}
-      Move(Src.List[0], Dst.List[0], Src.Count * SizeOf(Integer));
+      Move(Src.List[0], Dst.List[0], Src.Count * SizeOf(Pointer));
 {$ELSE}
-      Move(Src.List^, Dst.List^, Src.Count * SizeOf(Integer));
+      Move(Src.List^, Dst.List^, Src.Count * SizeOf(Pointer));
 {$ENDIF}
     end;
   end;

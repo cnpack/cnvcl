@@ -17,6 +17,7 @@ type
     btnLoadVirtualSamples: TButton;
     btnLoadVirtualPerformance: TButton;
     btnAppendVirtualUpdate: TButton;
+    btnExpandVirtualItem: TButton;
     tmrVirtualStream: TTimer;
     mmoMarkDown: TMemo;
     redtMarkDown: TRichEdit;
@@ -38,6 +39,7 @@ type
     procedure btnLoadVirtualSamplesClick(Sender: TObject);
     procedure btnLoadVirtualPerformanceClick(Sender: TObject);
     procedure btnAppendVirtualUpdateClick(Sender: TObject);
+    procedure btnExpandVirtualItemClick(Sender: TObject);
     procedure tmrVirtualStreamTimer(Sender: TObject);
   private
     FVirtualView: TCnMarkDownView;
@@ -49,6 +51,7 @@ type
     function MakeRandomChineseText(CharCount: Integer): TCnMarkDownText;
     function BuildVirtualPerformanceSample(AIndex: Integer): TCnMarkDownText;
     function BuildRandomUpdateSample(AIndex: Integer): TCnMarkDownText;
+    function BuildRandomItemExpansionSample(AIndex: Integer): TCnMarkDownText;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -415,6 +418,19 @@ begin
   end;
 end;
 
+function TFormMarkDown.BuildRandomItemExpansionSample(
+  AIndex: Integer): TCnMarkDownText;
+var
+  N, Body, Extra: TCnMarkDownText;
+begin
+  N := TCnMarkDownText(IntToStr(AIndex + 1));
+  Body := MakeRandomChineseText(120 + Random(181));
+  Extra := MakeRandomChineseText(80 + Random(121));
+  { 这里追加到已有块内部，不再引入新的 Markdown 块，便于观察单条目扩高。 }
+  Result := ' ' + Body + ' **扩展 Item ' + N +
+    '**、`inline-' + N + '`。' + #10 + Extra + '。';
+end;
+
 procedure TFormMarkDown.btnLoadVirtualPerformanceClick(Sender: TObject);
 const
   SampleCount = 200;
@@ -462,6 +478,26 @@ begin
   FVirtualFeed.FlushMessageQueue(MessageIndex, 0);
   FVirtualFeed.FinishMessage(MessageIndex);
   { 测试按钮需要立即看到局部条目重排结果，不等待流式定时器。 }
+  FVirtualView.Flush;
+end;
+
+procedure TFormMarkDown.btnExpandVirtualItemClick(Sender: TObject);
+var
+  ItemIndex: Integer;
+  Extra: TCnMarkDownText;
+begin
+  ItemIndex := FVirtualView.SelectedItemIndex;
+  if ItemIndex < 0 then
+  begin
+    MessageDlg('Please click or select a visible Markdown item first.',
+      mtInformation, [mbOK], 0);
+    Exit;
+  end;
+  Randomize;
+  Extra := BuildRandomItemExpansionSample(ItemIndex);
+  tmrVirtualStream.Enabled := False;
+  FVirtualView.AppendToItem(ItemIndex, Extra);
+  { 直接修改已有块后立即重新测量，确保只观察当前条目的局部重排。 }
   FVirtualView.Flush;
 end;
 
