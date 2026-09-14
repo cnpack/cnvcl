@@ -132,21 +132,26 @@ end;
 
 procedure TFormMarkDown.DumpMarkDownTokens(const MD: string);
 var
-  I: Integer;
-  Parser: TCnMarkDownParser;
+  Parser: TCnMarkDownStreamParser;
+  Block: TCnMarkDownBlock;
+  I, J: Integer;
 begin
-  Parser := TCnMarkDownParser.Create;
+  Parser := TCnMarkDownStreamParser.Create;
   try
-    Parser.Origin := PChar(MD);
-
-    I := 1;
-    while Parser.TokenID <> cmtTerminate do
+    Parser.BuildInlines := True;
+    Parser.Append(MD);
+    Parser.Finish;
+    for I := 0 to Parser.Document.BlockCount - 1 do
     begin
-      mmoParse.Lines.Add(Format('%3.3d. Length %3.3d, Pos %4.4d. %s, Token: %s',
-        [I, Parser.TokenLength, Parser.RunPos, GetEnumName(TypeInfo(TCnMarkDownTokenType),
-         Ord(Parser.TokenID)), Parser.Token]));
-      Parser.Next;
-      Inc(I);
+      Block := Parser.Document.Blocks[I];
+      mmoParse.Lines.Add(Format('%3.3d. Block %s, Quote %d, ListLevel %d, ListStart %d, Rev %d',
+        [I + 1, GetEnumName(TypeInfo(TCnMarkDownBlockType),
+         Ord(Block.BlockType)), Block.QuoteLevel, Block.ListLevel,
+         Block.ListStart, Block.Revision]));
+      for J := 0 to Block.InlineCount - 1 do
+        mmoParse.Lines.Add(Format('     Inline %s, Text: %s',
+          [GetEnumName(TypeInfo(TCnMarkDownInlineType),
+           Ord(Block.Inlines[J].InlineType)), Block.Inlines[J].Text]));
     end;
   finally
     Parser.Free;
@@ -160,26 +165,29 @@ begin
 end;
 
 procedure TFormMarkDown.btnParseTreeClick(Sender: TObject);
-var
-  MD: TCnMarkDownBase;
 begin
   mmoParse.Lines.Clear;
-  MD := CnParseMarkDownString(mmoMarkDown.Lines.Text);
-  CnMarkDownDebugOutput(MD, mmoParse.Lines);
-  MD.Free;
+  DumpMarkDownTokens(mmoMarkDown.Lines.Text);
 end;
 
 procedure TFormMarkDown.btnConvRtfClick(Sender: TObject);
 var
-  MD: TCnMarkDownBase;
+  Parser: TCnMarkDownStreamParser;
   S: AnsiString;
   Mem: TMemoryStream;
 begin
   mmoParse.Lines.Clear;
-  MD := CnParseMarkDownString(mmoMarkDown.Lines.Text);
-  S := CnMarkDownConvertToRTF(MD, StrToIntDef(edtBaseFontSize.Text, 12));
+  Parser := TCnMarkDownStreamParser.Create;
+  try
+    Parser.BuildInlines := True;
+    Parser.Append(mmoMarkDown.Lines.Text);
+    Parser.Finish;
+    S := CnMarkDownDocumentToUnicodeRTF(Parser.Document,
+      StrToIntDef(edtBaseFontSize.Text, 12), nil);
+  finally
+    Parser.Free;
+  end;
   mmoParse.Lines.Text := string(S);
-  MD.Free;
 
   if Length(S) > 0 then
   begin
