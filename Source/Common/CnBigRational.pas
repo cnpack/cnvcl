@@ -719,9 +719,12 @@ begin
   end;
 
   Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
-  BigRationalAdd(Res, Num1, Num2);
-  if Res <> Num2 then
-    Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
+  try
+    BigRationalAdd(Res, Num1, Num2);
+  finally
+    if Res <> Num2 then
+      Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
+  end;
 end;
 
 procedure BigRationalMul(Res: TCnBigRational;
@@ -892,7 +895,7 @@ end;
 
 procedure TCnBigRational.Clear;
 begin
-  FDenominator.Clear;
+  FDenominator.SetOne;
   FNumerator.Clear;
 end;
 
@@ -1197,32 +1200,27 @@ var
   R: string;
   IsNeg: Boolean;
 begin
+  if IsInt then
+  begin
+    Result := FNumerator.ToDec;
+    Exit;
+  end;
+
   Remain := nil;
   Res := nil;
+  IsNeg := IsNegative;
+  if IsNeg then
+    Neg;
 
   // 基本思想是先除，得到整数部分，如果有余数，就计数加 0 求余
   try
-    if IsInt then
-    begin
-      Result := FNumerator.ToDec;
-      Exit;
-    end;
-
-    IsNeg := IsNegative;
-    if IsNeg then
-      Neg;
-
     Remain := FLocalBigNumberPool.Obtain;
     Res := FLocalBigNumberPool.Obtain;
 
     BigNumberDiv(Res, Remain, FNumerator, FDenominator);
     Result := Res.ToDec;
     if Remain.IsZero or (Digits <= 0) then
-    begin
-      if IsNeg then
-        Neg;
       Exit;
-    end;
 
     R := '.';
     for I := 1 to Digits do
@@ -1242,12 +1240,12 @@ begin
       end;
     end;
 
-    if IsNeg then
-      Neg;
     Result := Result + R;
   finally
     FLocalBigNumberPool.Recycle(Res);
     FLocalBigNumberPool.Recycle(Remain);
+    if IsNeg then
+      Neg;
   end;
 end;
 

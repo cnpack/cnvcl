@@ -2029,9 +2029,9 @@ begin
   else if BigComplexIsPureImaginary(Complex) then
     Result := Complex.FI.ToDec + 'i'
   else if Complex.FI.IsNegative then
-    Result := Complex.FR.ToDec + Complex.FI.ToDec
+    Result := Complex.FR.ToDec + Complex.FI.ToDec + 'i'
   else
-    Result := Complex.FR.ToDec + '+' + Complex.FI.ToDec;
+    Result := Complex.FR.ToDec + '+' + Complex.FI.ToDec + 'i';
 end;
 
 function BigComplexEqual(Complex1: TCnBigComplex; Complex2: TCnBigComplex): Boolean;
@@ -2096,12 +2096,12 @@ var
   T: TCnBigNumber;
 begin
   BigComplexCopy(Res, Complex);
-  T := TCnBigNumber.Create;
+  T := FBigNumberPool.Obtain;
   try
     T.SetInt64(Value);
     BigNumberAdd(Res.FR, Res.FR, T);
   finally
-    T.Free;
+    FBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -2110,12 +2110,12 @@ var
   T: TCnBigNumber;
 begin
   BigComplexCopy(Res, Complex);
-  T := TCnBigNumber.Create;
+  T := FBigNumberPool.Obtain;
   try
     T.SetInt64(Value);
     BigNumberSub(Res.FR, Res.FR, T);
   finally
-    T.Free;
+    FBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -2124,13 +2124,13 @@ var
   T: TCnBigNumber;
 begin
   BigComplexCopy(Res, Complex);
-  T := TCnBigNumber.Create;
+  T := FBigNumberPool.Obtain;
   try
     T.SetInt64(Value);
     BigNumberMul(Res.FR, Res.FR, T);
     BigNumberMul(Res.FI, Res.FI, T);
   finally
-    T.Free;
+    FBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -2380,6 +2380,7 @@ end;
 function TCnBigComplexPool.Obtain: TCnBigComplex;
 begin
   Result := TCnBigComplex(inherited Obtain);
+  Result.SetZero;
 end;
 
 procedure TCnBigComplexPool.Recycle(Num: TCnBigComplex);
@@ -2502,6 +2503,11 @@ begin
 end;
 
 function TCnBigComplexList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  // 单项最小长度：4 字节总长 + 实部与虚部两个 TCnBigNumber 各自的
+  // 4 字节总长 + 2 字节标志 + 4 字节长度
+  MinItemSize = SizeOf(Integer) + 2 *
+    (SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer));
 var
   I, C, L: Integer;
   P1: PByte;
@@ -2513,12 +2519,16 @@ begin
     Exit;
 
   // 至少得放得下表示 Count 的 4 字节头部
-  if (Size > 0) and (Size < SizeOf(Integer)) then
+  if Size <= 0 then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+  if Size < SizeOf(Integer) then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+  if C > (Size - SizeOf(Integer)) div MinItemSize then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   // 整体重建：先清掉原有内容
@@ -2531,15 +2541,13 @@ begin
     P1 := PByte(P4);
     for I := 0 to C - 1 do
     begin
+      if Result > Size - MinItemSize then
+        raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
       BN := TCnBigComplex.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
-        if Size > 0 then
-          L := BN.LoadFromMem(P1, Size - Result)
-        else
-          L := BN.LoadFromMem(P1);
-
-        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+        L := BN.LoadFromMem(P1, Size - Result);
+        if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
           raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
         Add(BN);
@@ -3348,6 +3356,13 @@ begin
 end;
 
 function TCnBigComplexDecimalList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  // 单项最小长度：4 字节总长 + 实部与虚部两个 TCnBigDecimal 各自的
+  // 4 字节总长 + 4 字节 FScale + 内层 TCnBigNumber 的
+  // 4 字节总长 + 2 字节标志 + 4 字节长度
+  MinItemSize = SizeOf(Integer) + 2 *
+    (SizeOf(Integer) + SizeOf(Integer) + SizeOf(Integer) +
+     SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer));
 var
   I, C, L: Integer;
   P1: PByte;
@@ -3359,12 +3374,16 @@ begin
     Exit;
 
   // 至少得放得下表示 Count 的 4 字节头部
-  if (Size > 0) and (Size < SizeOf(Integer)) then
+  if Size <= 0 then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+  if Size < SizeOf(Integer) then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+  if C > (Size - SizeOf(Integer)) div MinItemSize then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   // 整体重建：先清掉原有内容
@@ -3377,15 +3396,13 @@ begin
     P1 := PByte(P4);
     for I := 0 to C - 1 do
     begin
+      if Result > Size - MinItemSize then
+        raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
       BN := TCnBigComplexDecimal.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
-        if Size > 0 then
-          L := BN.LoadFromMem(P1, Size - Result)
-        else
-          L := BN.LoadFromMem(P1);
-
-        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
+        L := BN.LoadFromMem(P1, Size - Result);
+        if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
           raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
         Add(BN);

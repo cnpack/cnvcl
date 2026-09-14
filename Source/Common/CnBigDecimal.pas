@@ -3132,6 +3132,11 @@ begin
 end;
 
 function TCnBigDecimalList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  // 单项最小长度：4 字节总长 + 4 字节 FScale + 内层 TCnBigNumber 的
+  // 4 字节总长 + 2 字节标志 + 4 字节长度
+  MinItemSize = SizeOf(Integer) + SizeOf(Integer) + SizeOf(Integer) +
+    SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer);
 var
   I, C, L: Integer;
   P1: PByte;
@@ -3143,12 +3148,16 @@ begin
     Exit;
 
   // 至少得放得下表示 Count 的 4 字节头部
-  if (Size > 0) and (Size < SizeOf(Integer)) then
+  if Size <= 0 then
+    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+  if Size < SizeOf(Integer) then
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
+    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+  if C > (Size - SizeOf(Integer)) div MinItemSize then
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   // 整体重建：先清掉原有内容
@@ -3161,16 +3170,14 @@ begin
     P1 := PByte(P4);
     for I := 0 to C - 1 do
     begin
+      if Result > Size - MinItemSize then
+        raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
       BN := TCnBigDecimal.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
-        if Size > 0 then
-          L := BN.LoadFromMem(P1, Size - Result)
-        else
-          L := BN.LoadFromMem(P1);
-
-        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
-          raise ECnBigNumberException.Create(SCnErrorBigDecimalMemSize);
+        L := BN.LoadFromMem(P1, Size - Result);
+        if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
+          raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
         Add(BN);
       except
@@ -4440,6 +4447,11 @@ begin
 end;
 
 function TCnBigBinaryList.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  // 单项最小长度：4 字节总长 + 4 字节 FScale + 内层 TCnBigNumber 的
+  // 4 字节总长 + 2 字节标志 + 4 字节长度
+  MinItemSize = SizeOf(Integer) + SizeOf(Integer) + SizeOf(Integer) +
+    SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer);
 var
   I, C, L: Integer;
   P1: PByte;
@@ -4451,12 +4463,16 @@ begin
     Exit;
 
   // 至少得放得下表示 Count 的 4 字节头部
-  if (Size > 0) and (Size < SizeOf(Integer)) then
+  if Size <= 0 then
+    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+  if Size < SizeOf(Integer) then
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
+    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+  if C > (Size - SizeOf(Integer)) div MinItemSize then
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   // 整体重建：先清掉原有内容
@@ -4469,16 +4485,14 @@ begin
     P1 := PByte(P4);
     for I := 0 to C - 1 do
     begin
+      if Result > Size - MinItemSize then
+        raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
       BN := TCnBigBinary.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
-        if Size > 0 then
-          L := BN.LoadFromMem(P1, Size - Result)
-        else
-          L := BN.LoadFromMem(P1);
-
-        if L <= 0 then  // 单项要么抛异常要么返回正数，<=0 视为异常
-          raise ECnBigNumberException.Create(SCnErrorBigDecimalMemSize);
+        L := BN.LoadFromMem(P1, Size - Result);
+        if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
+          raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
         Add(BN);
       except
