@@ -58,7 +58,7 @@ unit CnSEA;
 
 interface
 
-{$DEFINE SEA_TRACE}
+// {$DEFINE SEA_TRACE}
 
 uses
   SysUtils, Classes, Contnrs, CnBigNumber, CnPolynomial, CnPrime, CnECC, CnContainers,

@@ -1203,9 +1203,9 @@ resourcestring
   {* GCM 的 IV 长度必须为正}
   SCnErrorAEADCCMNonceLength = 'Invalid CCM Nonce Length %d, must be %d.';
   {* CCM 的 Nonce 长度非法}
-  SCnErrorAEADCCMPlainDataTooLong = 'CCM Plain Data too Long: %d.';
+  SCnErrorAEADCCMPlainDataTooLong = 'CCM Plain Data Too Long: %d.';
   {* CCM 明文长度超出上限}
-  SCnErrorAEADCCMEnDataTooLong = 'CCM En Data too Long: %d.';
+  SCnErrorAEADCCMEnDataTooLong = 'CCM En Data Too Long: %d.';
   {* CCM 密文长度超出上限}
   SCnErrorAEADChaCha20KeyLength = 'Invalid ChaCha20 Key Length %d, must be %d.';
   {* ChaCha20 密钥长度非法}
@@ -1215,25 +1215,25 @@ resourcestring
   {* XChaCha20 密钥长度非法}
   SCnErrorAEADXChaCha20Poly1305IVLength = 'Invalid XChaCha20-Poly1305 Iv Length %d, must be %d.';
   {* XChaCha20-Poly1305 的 IV 长度非法}
-  SCnErrorAEADBufferLengthNegative = '%s Byte Length must not be negative: %d.';
+  SCnErrorAEADBufferLengthNegative = '%s Byte Length must Not be Negative: %d.';
   {* AEAD 缓冲区长度不能为负数}
-  SCnErrorAEADBufferNilPositiveLength = '%s must not be nil when Byte Length is positive.';
+  SCnErrorAEADBufferNilPositiveLength = '%s must Not be nil when Byte Length is Positive.';
   {* AEAD 正长度缓冲区不能为 nil}
-  SCnErrorAEADGCMDataTooLong = '%s is too long for one GCM invocation: %d bytes.';
+  SCnErrorAEADGCMDataTooLong = '%s is Too Long for One GCM Invocation: %d Bytes.';
   {* 单次 GCM 输入长度超出上限}
-  SCnErrorAEADGHASHDataTooLong = 'GHASH Data is too long: %d bytes.';
+  SCnErrorAEADGHASHDataTooLong = 'GHASH Data is Too Long: %d Bytes.';
   {* GHASH 数据长度超出上限}
-  SCnErrorAEADGHASHAADTooLong = 'GHASH AAD is too long: %d bytes.';
+  SCnErrorAEADGHASHAADTooLong = 'GHASH AAD is Too Long: %d Bytes.';
   {* GHASH AAD 长度超出上限}
-  SCnErrorAEADGHASHContextDataOverflow = 'Invalid GHASH context or accumulated Data length overflow.';
+  SCnErrorAEADGHASHContextDataOverflow = 'Invalid GHASH Context or Accumulated Data Length overflow.';
   {* GHASH 上下文非法或累计数据长度溢出}
-  SCnErrorAEADGHASHContextInvalid = 'Invalid or overflowed GHASH context.';
+  SCnErrorAEADGHASHContextInvalid = 'Invalid or overflowed GHASH Context.';
   {* GHASH 上下文非法或已溢出}
-  SCnErrorAEADGCMIVLengthNegative = 'GCM Iv Byte Length must not be negative: %d.';
+  SCnErrorAEADGCMIVLengthNegative = 'GCM Iv Byte Length must Not be Negative: %d.';
   {* GCM IV 长度不能为负数}
-  SCnErrorAEADGCMOutputTagLengthOverflow = 'GCM ciphertext and Tag length overflow.';
+  SCnErrorAEADGCMOutputTagLengthOverflow = 'GCM Ciphertext and Tag Length Overflow.';
   {* GCM 密文和 Tag 总长度溢出}
-  SCnErrorAEADCCMNonceLengthNegative = 'CCM Nonce Length must not be negative: %d.';
+  SCnErrorAEADCCMNonceLengthNegative = 'CCM Nonce Length must Not be Negative: %d.';
   {* CCM Nonce 长度不能为负数}
 
 const
@@ -1320,24 +1320,48 @@ end;
 }
 procedure GMulBlock128(var X, Y: TCn128BitsBuffer; var R: TCn128BitsBuffer);
 var
-  I: Integer;
-  Z, V: TCn128BitsBuffer;
-  B: Boolean;
+  I, ByteIdx, BitMask: Integer;
+  Z0, Z1, Z2, Z3: Cardinal;
+  V0, V1, V2, V3: Cardinal;
+  Carry: Cardinal;
+  YByte: Byte;
 begin
-  FillChar(Z[0], SizeOf(TCn128BitsBuffer), 0);
-  Move(X[0], V[0], SizeOf(TCn128BitsBuffer));
+  V0 := UInt32NetworkToHost(PCardinal(@X[0])^);
+  V1 := UInt32NetworkToHost(PCardinal(@X[4])^);
+  V2 := UInt32NetworkToHost(PCardinal(@X[8])^);
+  V3 := UInt32NetworkToHost(PCardinal(@X[12])^);
 
+  Z0 := 0;
+  Z1 := 0;
+  Z2 := 0;
+  Z3 := 0;
   for I := 0 to 127 do
   begin
-    if AeadIsBitSet(@Y[0], I) then
-      MemoryXor(@Z[0], @V[0], SizeOf(TCn128BitsBuffer), @Z[0]);
+    ByteIdx := I shr 3;               // I div 8
+    BitMask := 1 shl (7 - (I and 7)); // 1 shl (7 - (I mod 8))
+    YByte := Y[ByteIdx];
+    if (YByte and BitMask) <> 0 then
+    begin
+      Z0 := Z0 xor V0;
+      Z1 := Z1 xor V1;
+      Z2 := Z2 xor V2;
+      Z3 := Z3 xor V3;
+    end;
 
-    B := AeadIsBitSet(@V[0], 127); // 判断大整数的高位是否是 1
-    MemoryShiftRight(@V[0], nil, SizeOf(TCn128BitsBuffer), 1);
-    if B then
-      MemoryXor(@V[0], @GHASH_POLY[0], SizeOf(TCn128BitsBuffer), @V[0]);
+    // V := V shl 1 (in GF(2^128) with reduction by E1000000...)
+    Carry := V3 and 1;
+
+    V3 := (V3 shr 1) or (V2 shl 31);
+    V2 := (V2 shr 1) or (V1 shl 31);
+    V1 := (V1 shr 1) or (V0 shl 31);
+    V0 := V0 shr 1;
+    V0 := V0 xor ($E1000000 and (0 - Carry));
   end;
-  Move(Z[0], R[0], SizeOf(TCn128BitsBuffer));
+
+  PCardinal(@R[0])^ := UInt32HostToNetwork(Z0);
+  PCardinal(@R[4])^ := UInt32HostToNetwork(Z1);
+  PCardinal(@R[8])^ := UInt32HostToNetwork(Z2);
+  PCardinal(@R[12])^ := UInt32HostToNetwork(Z3);
 end;
 
 procedure GHash128(var HashKey: TCnGHash128Key; Data: Pointer; DataByteLength: Integer;
