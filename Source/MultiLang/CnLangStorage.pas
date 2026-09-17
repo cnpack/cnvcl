@@ -504,12 +504,15 @@ begin
       ASearchPath := ActualPath + '*' + GetLanguageFileExt;
       if FindFirst(ASearchPath, faAnyFile, Sr) = 0 then
       begin
-        repeat
-          AFileName := ActualPath + Sr.Name;
-          if IsLanguageFile(AFileName) then
-            InitFromAFile(AFileName);
-        until FindNext(Sr) <> 0;
-        FindClose(Sr);
+        try
+          repeat
+            AFileName := ActualPath + Sr.Name;
+            if IsLanguageFile(AFileName) then
+              InitFromAFile(AFileName);
+          until FindNext(Sr) <> 0;
+        finally
+          FindClose(Sr);
+        end;
       end;
     end
     else
@@ -521,17 +524,19 @@ begin
       ASearchPath := ActualPath + '*';
       if FindFirst(ASearchPath, faDirectory, Sr) = 0 then
       begin
-        repeat
-          if (Sr.Name = '.') or (Sr.Name = '..') or (Sr.Attr and faDirectory = 0) then
-            Continue;
+        try
+          repeat
+            if (Sr.Name = '.') or (Sr.Name = '..') or (Sr.Attr and faDirectory = 0) then
+              Continue;
 
-          AFileName := ActualPath + Sr.Name + '\' + _CnChangeFileExt(FFileName, GetLanguageFileExt);
+            AFileName := ActualPath + Sr.Name + '\' + _CnChangeFileExt(FFileName, GetLanguageFileExt);
 
-          if FileExists(AFileName) and IsLanguageFile(AFileName) then
-            InitFromAFile(AFileName);
-
-        until FindNext(Sr) <> 0;
-        FindClose(Sr);
+            if FileExists(AFileName) and IsLanguageFile(AFileName) then
+              InitFromAFile(AFileName);
+          until FindNext(Sr) <> 0;
+        finally
+          FindClose(Sr);
+        end;
       end;
     end;
   finally

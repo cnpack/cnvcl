@@ -1929,7 +1929,7 @@ function BigNumberRandBytes(Num: TCnBigNumber; BytesCount: Integer): Boolean;
 }
 
 function BigNumberRandBits(Num: TCnBigNumber; BitsCount: Integer): Boolean;
-{* 产生固定位长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0。
+{* 产生固定位长度的正随机大数，不保证最高位置 1，甚至最高字节都不保证非 0。
 
    参数：
      Num: TCnBigNumber                    - 待容纳随机数的大数对象
@@ -4283,27 +4283,38 @@ end;
 
 // 产生固定字节长度的随机大数
 function BigNumberRandBytes(Num: TCnBigNumber; BytesCount: Integer): Boolean;
+var
+  Words: Integer;
 begin
   Result := False;
-  if BytesCount < 0 then
+  if (Num = nil) or (BytesCount < 0) then
     Exit;
   if BytesCount = 0 then
   begin
-    Result := BigNumberSetZero(Num);
+    BigNumberClear(Num);
+    Result := True;
     Exit;
   end;
 
-  if BigNumberWordExpand(Num, (BytesCount + BN_BYTES - 1) div BN_BYTES) <> nil then
+  // 避免向上取整时 BytesCount + BN_BYTES - 1 溢出。
+  Words := (BytesCount - 1) div BN_BYTES + 1;
+  if BigNumberWordExpand(Num, Words) <> nil then
   begin
-    // 用非重复初始化的快速版本
-    Result := CnRandomFillBytes2(PAnsiChar(Num.FD), BytesCount);
-    if Result then
-    begin
-      Num.FTop := (BytesCount + BN_BYTES - 1) div BN_BYTES;
-      BigNumberCorrectTop(Num);
-    end
-    else
-      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+    // 清除复用对象的符号及完整存储，尤其是末尾元素未被随机字节覆盖的部分。
+    BigNumberClear(Num);
+    try
+      Result := CnRandomFillBytes2(PAnsiChar(Num.FD), BytesCount);
+      if Result then
+      begin
+        Num.FTop := Words;
+        BigNumberCorrectTop(Num);
+      end
+      else
+        raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+    finally
+      if not Result then
+        BigNumberClear(Num);
+    end;
   end;
 end;
 
@@ -4331,7 +4342,9 @@ begin
   begin
     for I := C * 8 - 1 downto BitsCount do
     begin
-      if not BigNumberClearBit(Num, I) then
+      // BigNumberRandBytes may normalize an all-zero high limb away.
+      // A bit beyond the current top is already clear and needs no action.
+      if (Num.FTop > I div BN_BITS2) and not BigNumberClearBit(Num, I) then
         Exit;
     end;
   end;

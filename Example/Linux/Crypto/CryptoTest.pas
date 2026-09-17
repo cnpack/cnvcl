@@ -212,6 +212,7 @@ function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
+function TestBigNumberRandBytesReuse: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
 function TestBigNumberMontgomery: Boolean;
@@ -2001,6 +2002,7 @@ begin
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
   MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
+  MyAssert(TestBigNumberRandBytesReuse, 'TestBigNumberRandBytesReuse');
   MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
   MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
   MyAssert(TestBigNumberMontgomeryPowerMod, 'TestBigNumberMontgomeryPowerMod');
@@ -5970,6 +5972,51 @@ begin
   if not Result then Exit;
 
   N.Free;
+end;
+
+function TestBigNumberRandBytesReuse: Boolean;
+var
+  Num, Limit: TCnBigNumber;
+  I, Sign: Integer;
+begin
+  Result := False;
+  Num := TCnBigNumber.Create;
+  Limit := TCnBigNumber.Create;
+  try
+    // Reused storage must not retain either high bytes or the old sign.
+    for Sign := 0 to 1 do
+    begin
+      for I := 0 to 17 do
+      begin
+        Num.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+        Num.SetNegative(Sign <> 0);
+        if not BigNumberRandBytes(Num, I) then Exit;
+        if Num.IsNegative or (Num.GetBitsCount > I * 8) then Exit;
+      end;
+    end;
+    for I := 1 to 65 do
+    begin
+      Num.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      Num.SetNegative(True);
+      if not BigNumberRandBits(Num, I) then Exit;
+      if Num.IsNegative or (Num.GetBitsCount > I) then Exit;
+    end;
+    for I := 1 to 257 do
+    begin
+      Num.SetHex('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      Num.SetNegative(True);
+      Limit.SetWord(I);
+      if not BigNumberRandRange(Num, Limit) then Exit;
+      if Num.IsNegative or (BigNumberCompare(Num, Limit) >= 0) then Exit;
+    end;
+    Num.SetWord(123);
+    if BigNumberRandBytes(Num, -1) or not Num.IsWord(123) then Exit;
+    if BigNumberRandBytes(nil, 1) then Exit;
+    Result := True;
+  finally
+    Limit.Free;
+    Num.Free;
+  end;
 end;
 
 function TestBigNumberRandRangeDistribution: Boolean;
