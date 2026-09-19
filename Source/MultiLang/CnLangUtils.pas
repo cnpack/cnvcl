@@ -477,8 +477,10 @@ begin
       // 在不跳过空的情况下，RadioGroup 内部的 RadioButton 等也得强行跳过，否则会和 Items 等重复
       if not FSkipEmptyComponentName then
       begin
+{$IFDEF MSWINDOWS}
         if (AComponent is TCustomRadioGroup) and (T is TRadioButton) then
           Exit;
+{$ENDIF}
       end;
 
 {$IFDEF DEBUG_MULTILANG}
@@ -663,7 +665,7 @@ begin
           AStr := BaseName + DefDelimeter + AStr;
 
         if not SkipEmptyStr or ((AObject as TListViewItem).Text <> '') then
-          AddToStrings(AStr + DefEqual + CRLFStringToBRString(AObject as TListViewItem).Text));
+          AddToStrings(AStr + DefEqual + CRLFStringToBRString((AObject as TListViewItem).Text));
       end;
       Exit;
     end
@@ -692,7 +694,7 @@ begin
         AStr := BaseName + DefDelimeter + AStr;
 
       if not SkipEmptyStr or ((AObject as TTreeViewItem).Text <> '') then
-        AddToStrings(AStr + DefEqual + CRLFStringToBRString(AObject as TTreeViewItem).Text));
+        AddToStrings(AStr + DefEqual + CRLFStringToBRString((AObject as TTreeViewItem).Text));
       Exit;
     end;
 {$ENDIF}

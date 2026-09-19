@@ -4303,6 +4303,131 @@ end;
 
 {$IFDEF CPUX64}
 
+{$UNDEF NEED_PASCAL}
+{$IFDEF MACOS}
+  {$DEFINE NEED_PASCAL}
+{$ENDIF}
+
+{$IFDEF LINUX}
+  {$DEFINE NEED_PASCAL}
+{$ENDIF}
+
+{$IFDEF NEED_PASCAL}
+
+// Delphi 下的 MACOS/Linux 不支持 asm，将上面的纯 Pascal 复制过来
+
+procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+  DivRes := A div B;
+  ModRes := A mod B;
+end;
+
+procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal);
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+  DivRes := A div B;
+  ModRes := A mod B;
+end;
+
+procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+var
+  C: Integer;
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then
+  begin
+    DivRes := ALo div B;
+    ModRes := ALo mod B;
+  end
+  else
+  begin
+    if B < 0 then
+    begin
+      Int128DivInt64Mod(ALo, AHi, -B, DivRes, ModRes);
+      DivRes := -DivRes;
+      Exit;
+    end;
+
+    if AHi < 0 then
+    begin
+      AHi := not AHi;
+      ALo := not ALo;
+{$IFDEF SUPPORT_UINT64}
+      UInt64Add(UInt64(ALo), UInt64(ALo), 1, C);
+{$ELSE}
+      UInt64Add(ALo, ALo, 1, C);
+{$ENDIF}
+      if C > 0 then
+        AHi := AHi + C;
+
+      Int128DivInt64Mod(ALo, AHi, B, DivRes, ModRes);
+
+      if ModRes = 0 then
+        DivRes := -DivRes
+      else
+      begin
+        DivRes := -DivRes - 1;
+        ModRes := B - ModRes;
+      end;
+      Exit;
+    end;
+
+{$IFDEF SUPPORT_UINT64}
+    UInt128DivUInt64Mod(TUInt64(ALo), TUInt64(AHi), TUInt64(B), TUInt64(DivRes), TUInt64(ModRes));
+{$ELSE}
+    UInt128DivUInt64Mod(ALo, AHi, B, DivRes, ModRes);
+{$ENDIF}
+  end;
+end;
+
+procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
+var
+  I, Cnt: Integer;
+  Q, R: TUInt64;
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if AHi = 0 then
+  begin
+    DivRes := UInt64Div(ALo, B);
+    ModRes := UInt64Mod(ALo, B);
+  end
+  else
+  begin
+    // 有高位有低位咋办？先判断是否会溢出，如果 AHi >= B，则表示商要超 64 位，溢出
+    if UInt64Compare(AHi, B) >= 0 then
+      raise EIntOverflow.Create(SIntOverflow);
+
+    Q := 0;
+    R := 0;
+    Cnt := GetUInt64LowBits(AHi) + 64;
+    for I := Cnt downto 0 do
+    begin
+      R := R shl 1;
+      if IsUInt128BitSet(ALo, AHi, I) then  // 被除数的第 I 位是否是 0
+        R := R or 1
+      else
+        R := R and TUInt64(not 1);
+
+      if UInt64Compare(R, B) >= 0 then
+      begin
+        R := R - B;
+        Q := Q or (TUInt64(1) shl I);
+      end;
+    end;
+    DivRes := Q;
+    ModRes := R;
+  end;
+end;
+
+{$ELSE}
+
 // 64 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在 RCX 里，B 在 EDX/RDX 里，DivRes 地址在 R8 里，ModRes 地址在 R9 里
 procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler;
 asm
@@ -4346,6 +4471,8 @@ asm
         MOV     RAX, [RBP + $30]              // ModRes 地址放入 RAX
         MOV     [RAX], RDX                    // 余数放入 RAX 所指的 ModRes
 end;
+
+{$ENDIF}
 
 {$ELSE}
 

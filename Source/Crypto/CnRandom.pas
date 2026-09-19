@@ -253,16 +253,22 @@ const
   DEV_FILE = '/dev/urandom';
 
 {$IFDEF LINUX}
+
 const
   libc = 'libc.so.6';
   EINTR = 4;
 
-function getrandom(buf: Pointer; buflen: NativeUInt; flags: Cardinal): Integer; cdecl; external libc name 'getrandom';
+// Linux kernel 3.17/glibc 2.25 才加入 getrandom 函数，较老的版本如 UBuntu 16 等无法链接成功。
+function getrandom(Buf: Pointer; BufLen: NativeUInt; Flags: Cardinal): Integer; cdecl; external libc name 'getrandom';
+
 function __errno_location: PInteger; cdecl; external libc name '__errno_location';
+
 {$ENDIF}
 
 {$IFDEF MACOS}
-function CCRandomGenerateBytes(bytes: Pointer; count: NativeUInt): Integer; cdecl; external '/usr/lib/system/libcommonCrypto.dylib' name 'CCRandomGenerateBytes';
+
+function CCRandomGenerateBytes(Bytes: Pointer; Count: NativeUInt): Integer; cdecl; external '/usr/lib/system/libcommonCrypto.dylib' name 'CCRandomGenerateBytes';
+
 {$ENDIF}
 
 {$ENDIF}
