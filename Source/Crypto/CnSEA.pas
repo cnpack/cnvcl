@@ -2576,7 +2576,6 @@ begin
       Inc(I);
     end;
 
-
     // 注意：如果在达到阈值前触发 L > CN_SEA_MAX_MODPOLY_L 的保护，
     // 则已使用可用的模多项式。CnSeaCombineElkiesAtkin 中的 SkipVerify 逻辑将处理
     // 过滤较弱的情况。

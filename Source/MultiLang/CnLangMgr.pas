@@ -1005,7 +1005,6 @@ begin
   end;
 end;
 
-
 procedure TCnCustomLangManager.TranslateRecurComponent(AComponent: TComponent;
   AList: TList; const BaseName: TCnLangString; PreStore: TStrings; ManuallyTop: Boolean);
 var

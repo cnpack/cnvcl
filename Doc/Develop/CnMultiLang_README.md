@@ -6,6 +6,8 @@ CnPack 多语言组件包（CnPack Multi-Language Component Package）源于 CnPack 开发组
 
 CnPack 多语言组件包并不自行实现支持多语言功能的界面组件，而是提供针对系统界面组件或其他第三方界面组件的通用遍历、翻译能力，因而适用面广，对旧有项目的改造工作量较少。详情可参考文档目录中的《CnPack多语组件包概要设计说明书》及《CnPack多语组件帮助文档》。
 
+注意如果已经编译安装了 CnPack 组件包，则无需、也不应编译使用 CnPack 多语言组件包，会出现单元命名冲突。
+
 ## 许可协议
 
 CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnPack 许可协议的保护。License 文件中有该协议的详细描述，具体内容可参考协议文件。

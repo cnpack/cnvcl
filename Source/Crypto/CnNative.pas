@@ -1989,7 +1989,7 @@ function ConstTimeCompareBytes(const A, B: TBytes): Boolean;
      const A: TBytes                      - 待比较的字节数组一
      const B: TBytes                      - 待比较的字节数组二
 
-   返回值：Boolean                        - 是否相同
+   返回值：Boolean                        - 返回是否相等
 }
 
 function ConstTimeExpandBoolean8(V: Boolean): Byte;
