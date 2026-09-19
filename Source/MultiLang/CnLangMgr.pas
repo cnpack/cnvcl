@@ -1301,7 +1301,13 @@ begin
 
         TransStr := TranslateString(AStr, PreStore);
         if TransStr <> '' then
-          (AObject as TListItem).Caption := TransStr;
+        begin
+          try
+            (AObject as TListItem).Caption := TransStr;
+          except
+            ;
+          end;
+        end;
       end;
 
       AStr := 'SubItems.Text';
@@ -1310,7 +1316,13 @@ begin
 
       TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
-        (AObject as TListItem).SubItems.Text := TransStr;
+      begin
+        try
+          (AObject as TListItem).SubItems.Text := TransStr;
+        except
+          ;
+        end;
+      end;
       Exit;
     end
 {$ELSE}
@@ -1327,7 +1339,13 @@ begin
 
         TransStr := TranslateString(AStr, PreStore);
         if TransStr <> '' then
-          (AObject as TListViewItem).Text := TransStr;
+        begin
+          try
+            (AObject as TListViewItem).Text := TransStr;
+          except
+            ;
+          end;
+        end;
       end;
       Exit;
     end
@@ -1371,7 +1389,13 @@ begin
 
       TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
-        (AObject as TTreeNode).Text := TransStr;
+      begin
+        try
+          (AObject as TTreeNode).Text := TransStr;
+        except
+          ;
+        end;
+      end;
       Exit;
     end;
 {$ELSE}
@@ -1412,7 +1436,13 @@ begin
 
       TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
-        (AObject as TTreeViewItem).Text := TransStr;
+      begin
+        try
+          (AObject as TTreeViewItem).Text := TransStr;
+        except
+          ;
+        end;
+      end;
       Exit;
     end;
 {$ENDIF}
@@ -1435,15 +1465,19 @@ begin
         APropName := GetPropName(AObject, I);
         if (PropType(AObject, APropName) = tkClass) and (APropName = 'Action') then
         begin
-          // 存在 Action 属性，为tkClass
-          ActionObj := GetObjectProp(AObject, APropName);
-          if (ActionObj <> nil) and (ActionObj is TCustomAction)then
-          begin
-            // 有 Action 属性不为 nil 的，需要记录对应 Aciton 的 Caption 和 Hint 供比对
-            NeedCheckIgnoreAction := True;
-            ActionCaption := (ActionObj as TCustomAction).Caption;
-            ActionHint := (ActionObj as TCustomAction).Hint;
-            Break;
+          try
+            // 存在 Action 属性，为tkClass
+            ActionObj := GetObjectProp(AObject, APropName);
+            if (ActionObj <> nil) and (ActionObj is TCustomAction)then
+            begin
+              // 有 Action 属性不为 nil 的，需要记录对应 Aciton 的 Caption 和 Hint 供比对
+              NeedCheckIgnoreAction := True;
+              ActionCaption := (ActionObj as TCustomAction).Caption;
+              ActionHint := (ActionObj as TCustomAction).Hint;
+              Break;
+            end;
+          except
+            ;
           end;
         end;
       end;
@@ -1520,7 +1554,13 @@ begin
 {$ENDIF}
 
         if TransStr <> '' then
-          SetPropValue(AObject, APropName, TransStr);
+        begin
+          try
+            SetPropValue(AObject, APropName, TransStr);
+          except
+            ;
+          end;
+        end;
       end
       else if APropType = tkClass then
       begin
@@ -1566,15 +1606,19 @@ begin
                   AStr := BaseName + DefDelimeter + AStr;
 
                 TransStr := TranslateString(AStr, PreStore);
-                if TransStr <> '' then
-                begin
+                try
+                  if TransStr <> '' then
+                  begin
 {$IFDEF MSWINDOWS}
-                  StringToFontEx(TransStr, TCnFontControl(AObject).Font,
-                    GetParentFont(AObject as TComponent));
+                    StringToFontEx(TransStr, TCnFontControl(AObject).Font,
+                      GetParentFont(AObject as TComponent));
 {$ELSE}
-                  StringToFontEx(TransStr, CnFmxGetControlFont(TComponent(AObject)),
-                    CnFmxGetControlParentFont(AObject as TComponent));
+                    StringToFontEx(TransStr, CnFmxGetControlFont(TComponent(AObject)),
+                      CnFmxGetControlParentFont(AObject as TComponent));
 {$ENDIF}
+                  end;
+                except
+                  ;
                 end;
               end;
             end // 不按常规处理 TControl 的字体
