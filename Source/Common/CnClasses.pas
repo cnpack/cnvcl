@@ -57,6 +57,9 @@ uses
   {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} {$ENDIF} CnNative;
 
 type
+{$IFDEF SUPPORT_ANONYMOUS_METHOD}
+  TCnNotifyProc = reference to procedure(Sender: TObject);
+{$ENDIF}
 
 //==============================================================================
 // 用于线程同步的对象类
