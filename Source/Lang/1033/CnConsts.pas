@@ -82,7 +82,7 @@ var
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.8.0';
+  SCnPackVer = 'Ver 0.1.8.1';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';
