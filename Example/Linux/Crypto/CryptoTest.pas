@@ -208,6 +208,7 @@ function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
 function TestBigNumberIsPerfectPower: Boolean;
 function TestBigNumberIsPerfectSquare: Boolean;
+function TestBigNumberSqrt: Boolean;
 function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
@@ -1997,6 +1998,7 @@ begin
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
   MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
   MyAssert(TestBigNumberIsPerfectSquare, 'TestBigNumberIsPerfectSquare');
+  MyAssert(TestBigNumberSqrt, 'TestBigNumberSqrt');
   MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
@@ -5840,6 +5842,86 @@ begin
   if not Result then Exit;
 
   BigNumberFree(A);
+end;
+
+function TestBigNumberSqrt: Boolean;
+var
+  A, Res, Expected: TCnBigNumber;
+begin
+  // Test for the Loop Problem fix in BigNumberSqrt: when N = K*K + 2*K, the old code
+  // would loop infinitely because XNext converges but never reaches exact equality with X.
+  // The fix changes the condition from "= 0" to ">= 0" to handle the convergence properly.
+  // Note: BigNumberSqrt always returns True for valid numbers, it computes the floor square root.
+
+  A := BigNumberNew;
+  Res := BigNumberNew;
+  Expected := BigNumberNew;
+
+  // Test case: N = K^2 + 2*K, where K is large
+  // Example: K = 1000000, N = 1000000000000 + 2000000 = 1000002000000
+  // sqrt(1000002000000) should be 1000000 (floor)
+  A.SetDec('1000002000000');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('1000000');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  // Test: N = 1000000^2 + 2*1000000 + 1 = 1000002000001 = (1000001)^2
+  // sqrt(1000002000001) should be 1000001
+  A.SetDec('1000002000001');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('1000001');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  // Test with larger numbers that would trigger the convergence issue
+  // N = 9999999999999999, sqrt should be 99999999 (floor)
+  A.SetDec('9999999999999999');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('99999999');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  // N = 100000020000001 = (10000001)^2
+  // sqrt(100000020000001) should be 10000001
+  A.SetDec('100000020000001');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('10000001');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  // Test: N = 100000000^2 + 2*100000000 = 10000000200000000
+  // sqrt(10000000200000000) should be 100000000 (floor)
+  A.SetDec('10000000200000000');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('100000000');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  // Test: N = 999999, sqrt should be 999 (floor)
+  A.SetDec('999999');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('999');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  // Test: N = 1002001 = (1001)^2, sqrt should be 1001
+  A.SetDec('1002001');
+  Result := BigNumberSqrt(Res, A);
+  if not Result then Exit;
+  Expected.SetDec('1001');
+  Result := BigNumberCompare(Res, Expected) = 0;
+  if not Result then Exit;
+
+  BigNumberFree(A);
+  BigNumberFree(Res);
+  BigNumberFree(Expected);
 end;
 
 function TestBigNumberJacobiSymbol: Boolean;
