@@ -1386,7 +1386,10 @@ begin
     Exit;
 
   if S < 0 then
+  begin
     UInt128ShiftRight(N, -S);
+    Exit;
+  end;
 
   if S >= 128 then // 全移跑了
   begin
@@ -1423,7 +1426,10 @@ begin
     Exit;
 
   if S < 0 then
+  begin
     UInt128ShiftLeft(N, -S);
+    Exit;
+  end;
 
   if S >= 128 then // 全移跑了
   begin

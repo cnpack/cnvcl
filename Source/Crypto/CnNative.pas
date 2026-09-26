@@ -5323,11 +5323,30 @@ end;
 
 // 封装的 Int64 Mod，碰到负值时取反求模再模减
 function Int64Mod(M, N: Int64): Int64;
+var
+  T: Int64;
 begin
-  if M > 0 then
+  if M = 0 then
+    Result := 0
+  else if M > 0 then
     Result := M mod N
+  else if M = CN_MIN_INT64 then
+  begin
+    // -Low(Int64) = High(Int64) + 1 会溢出，拆开算
+    T := (High(Int64) mod N + 1) mod N;
+    if T > 0 then
+      Result := N - T
+    else
+      Result := 0;
+  end
   else
-    Result := N - ((-M) mod N);
+  begin
+    T := (-M) mod N;
+    if T > 0 then
+      Result := N - T
+    else
+      Result := 0;
+  end;
 end;
 
 function Int64CenterMod(A: Int64; N: Int64): Int64;
@@ -5800,7 +5819,7 @@ begin
       begin
         if (E and 1) <> 0 then
         begin
-          if (B <> 0) and (P > N div B) then
+          if (B <> 0) and (UInt64Compare(P, UInt64Div(N, B)) > 0) then
           begin
             Overflow := True;
             Break;
@@ -5810,7 +5829,7 @@ begin
         E := E shr 1;
         if E > 0 then
         begin
-          if (B <> 0) and (B > N div B) then
+          if (B <> 0) and (UInt64Compare(B, UInt64Div(N, B)) > 0) then
           begin
             Overflow := True;
             Break;
