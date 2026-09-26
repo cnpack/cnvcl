@@ -2411,7 +2411,7 @@ function BigNumberPowerWordMod(Res: TCnBigNumber; A: TCnBigNumber;
 function BigNumberPowerMod(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
   C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一。
-   该函数有蒙哥马利阶梯法与滑动窗口法两个版本，前者抗侧信道攻击但性能慢约一半，
+   该函数有固定时间乘法与滑动窗口法两个版本，前者抗侧信道攻击但性能慢约一半，
    因而默认我们使用前者，用户如果有高性能需要，可通过定义 FAST_POWERMOD 编译后者。
 
    参数：
@@ -6944,6 +6944,7 @@ var
   H: Integer;
   XL, XH, YL, YH, P1, P2, P3: TCnBigNumber;
 begin
+  Result := False;
   H := Num1.GetWordCount;
   if H < Num2.GetWordCount then
     H := Num2.GetWordCount;
@@ -6960,27 +6961,27 @@ begin
   P3 := FLocalBigNumberPool.Obtain;
 
   try
-    BigNumberCopyLow(XL, Num1, H);
-    BigNumberCopyHigh(XH, Num1, Num1.GetWordCount - H);
-    BigNumberCopyLow(YL, Num2, H);
-    BigNumberCopyHigh(YH, Num2, Num2.GetWordCount - H);
+    if BigNumberCopyLow(XL, Num1, H) = nil then Exit;
+    if BigNumberCopyHigh(XH, Num1, Num1.GetWordCount - H) = nil then Exit;
+    if BigNumberCopyLow(YL, Num2, H) = nil then Exit;
+    if BigNumberCopyHigh(YH, Num2, Num2.GetWordCount - H) = nil then Exit;
 
-    BigNumberAdd(P1, XH, XL);
-    BigNumberAdd(P2, YH, YL);
-    BigNumberMul(P3, P1, P2); // p3=(xh+xl)*(yh+yl)
+    if not BigNumberAdd(P1, XH, XL) then Exit;
+    if not BigNumberAdd(P2, YH, YL) then Exit;
+    if not BigNumberMul(P3, P1, P2) then Exit; // p3=(xh+xl)*(yh+yl)
 
-    BigNumberMul(P1, XH, YH); // p1 = xh*yh
-    BigNumberMul(P2, XL, YL); // p2 = xl*yl
+    if not BigNumberMul(P1, XH, YH) then Exit; // p1 = xh*yh
+    if not BigNumberMul(P2, XL, YL) then Exit; // p2 = xl*yl
 
     // p1 * 2^(BN_BITS2*2*h) + (p3 - p1 - p2) * 2^(BN_BITS2*h) + p2
-    BigNumberSub(P3, P3, P1);
-    BigNumberSub(P3, P3, P2);
-    BigNumberShiftLeft(P3, P3, BN_BITS2 * H); // P3 得到 (p3 - p1 - p2) * 2^(BN_BITS2*h)
+    if not BigNumberSub(P3, P3, P1) then Exit;
+    if not BigNumberSub(P3, P3, P2) then Exit;
+    if not BigNumberShiftLeft(P3, P3, BN_BITS2 * H) then Exit; // P3 得到 (p3 - p1 - p2) * 2^(BN_BITS2*h)
 
-    BigNumberShiftLeft(P1, P1, BN_BITS2 * 2 * H); // P1 得到 p1 * 2^(BN_BITS2*2*h)
+    if not BigNumberShiftLeft(P1, P1, BN_BITS2 * 2 * H) then Exit; // P1 得到 p1 * 2^(BN_BITS2*2*h)
 
-    BigNumberAdd(Res, P3, P1);
-    BigNumberAdd(Res, Res, P2);
+    if not BigNumberAdd(Res, P3, P1) then Exit;
+    if not BigNumberAdd(Res, Res, P2) then Exit;
     Res.SetNegative(Num1.IsNegative <> Num2.IsNegative);
     Result := True;
   finally

@@ -946,6 +946,9 @@ end;
 
 procedure TCnBitBuilder.SetBitLength(const Value: Integer);
 begin
+  if Value < 0 then
+    raise ERangeError.CreateResFmt(@SCnErrorByteCapacityFmt, [Value]);
+
   FBitLength := Value;
   EnsureCapacity(FBitLength);
 end;
@@ -960,6 +963,9 @@ end;
 
 procedure TCnBitBuilder.SetByteLength(const Value: Integer);
 begin
+  if Value < 0 then
+    raise ERangeError.CreateResFmt(@SCnErrorByteCapacityFmt, [Value]);
+
   FBitLength := Value * 8;
   EnsureCapacity(FBitLength);
 end;
