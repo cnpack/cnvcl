@@ -31,7 +31,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2027.07.18
+* 修改记录：2026.09.26
+*               拆分出内容输出编码字段
+*           2026.07.18
 *               增加输出到控制台的机制
 *           2026.01.30
 *               增加 POSIX 的内存输出支持，待测试
@@ -204,11 +206,15 @@ type
   // 时间戳格式类型
   TCnTimeStampType = (ttNone, ttDateTime, ttTickCount, ttCPUPeriod);
 
+  // 如果内容是字符串，则指示其编码
+  TCnMsgEncoding = (meDefault, meUtf8, meUtf16);
+
   {$NODEFINE TCnMsgAnnex}
   TCnMsgAnnex = packed record
   {* 放入数据区的每条信息的头描述结构 }
     Level:     Integer;                            // 自定义 Level 数（级别），供用户过滤用
-    Indent:    Integer;                            // 缩进数目，由 Enter 和 Leave 控制
+    Indent:    SmallInt;                           // 二字节缩进数目，由 Enter 和 Leave 控制
+    Encoding:  SmallInt;                           // 二字节字符串编码
     ProcessId: Cardinal;                           // 调用者的进程 ID
     ThreadId:  Cardinal;                           // 调用者的线程 ID
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar; // 自定义 Tag 值（标记），供用户过滤用
@@ -420,7 +426,8 @@ type
     procedure GetTraceFromAddr(RunAddr, FrameAddr, StackAddr: Pointer; Strings: TStrings);
 
     procedure InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer; const ATag: AnsiString;
-      ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: Cardinal; CPUPeriod: Int64);
+      ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: Cardinal; CPUPeriod: Int64;
+      MsgEncoding: TCnMsgEncoding);
     procedure InternalOutput(var Data; Size: Integer);
   public
     constructor Create;
@@ -3287,7 +3294,7 @@ end;
 
 procedure TCnDebugger.InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer;
   const ATag: AnsiString; ALevel, AIndent: Integer; AType: TCnMsgType;
-  ThreadID: Cardinal; CPUPeriod: Int64);
+  ThreadID: Cardinal; CPUPeriod: Int64; MsgEncoding: TCnMsgEncoding);
 var
   TagLen, MsgLen: Integer;
   MsgDesc: TCnMsgDesc;
@@ -3316,6 +3323,7 @@ var
     MsgDesc.Annex.ThreadId := ThreadID;
     MsgDesc.Annex.MsgType := Ord(AType);
     MsgDesc.Annex.TimeStampType := Ord(TimeStampType);
+    MsgDesc.Annex.Encoding := Ord(MsgEncoding);
 
     case TimeStampType of
       ttDateTime: MsgDesc.Annex.MsgDateTime := Date + Time;
@@ -3561,7 +3569,7 @@ begin
       ObjectBinaryToText(InStream, OutStream);
       ThrdID := GetCurrentThreadId;
       InternalOutputMsg(PAnsiChar(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
-        GetCurrentIndent(ThrdID), cmtComponent, ThrdID, 0);
+        GetCurrentIndent(ThrdID), cmtComponent, ThrdID, 0, meDefault);
     end
     else
       LogMsgWithTypeTag(SCnNilComponent, cmtComponent, ATag);
@@ -3689,10 +3697,15 @@ begin
   {$IFDEF UNICODE}
   Msg := AnsiString(AMsg);
   InternalOutputMsg(PAnsiChar(Msg), Length(Msg), AnsiString(ATag),
-    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod, meDefault);
+  {$ELSE}
+  {$IFDEF FPC}
+  InternalOutputMsg(PAnsiChar(AMsg), Length(AnsiString(AMsg)), AnsiString(ATag),
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod, meUtf8);
   {$ELSE}
   InternalOutputMsg(PAnsiChar(AMsg), Length(AnsiString(AMsg)), AnsiString(ATag),
-    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod, meDefault);
+  {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 {$ENDIF}
@@ -3838,7 +3851,7 @@ begin
 {$IFDEF DEBUG}
   ThrdID := GetCurrentThreadId;
   InternalOutputMsg(PAnsiChar(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
-    cmtMemoryDump, ThrdID, 0);
+    cmtMemoryDump, ThrdID, 0, meDefault);
 {$ENDIF}
 end;
 
@@ -4613,7 +4626,7 @@ begin
       ObjectBinaryToText(InStream, OutStream);
       ThrdID := GetCurrentThreadId;
       InternalOutputMsg(PAnsiChar(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
-        GetCurrentIndent(ThrdID), cmtComponent, ThrdID, 0);
+        GetCurrentIndent(ThrdID), cmtComponent, ThrdID, 0, meDefault);
     end
     else
       TraceMsgWithTypeTag(SCnNilComponent, cmtComponent, ATag);
@@ -4705,10 +4718,15 @@ begin
   {$IFDEF UNICODE}
   Msg := AnsiString(AMsg);
   InternalOutputMsg(PAnsiChar(Msg), Length(Msg), AnsiString(ATag),
-    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod, meDefault);
+  {$ELSE}
+  {$IFDEF FPC}
+  InternalOutputMsg(PAnsiChar(AMsg), Length(AMsg), AnsiString(ATag),
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod, meUtf8);
   {$ELSE}
   InternalOutputMsg(PAnsiChar(AMsg), Length(AMsg), AnsiString(ATag),
-    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod, meDefault);
+  {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 end;
@@ -4833,7 +4851,7 @@ begin
 {$IFNDEF NDEBUG}
   ThrdID := GetCurrentThreadId;
   InternalOutputMsg(PAnsiChar(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
-    cmtMemoryDump, ThrdID, 0);
+    cmtMemoryDump, ThrdID, 0, meDefault);
 {$ENDIF}
 end;
 
