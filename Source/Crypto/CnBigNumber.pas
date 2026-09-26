@@ -6675,7 +6675,7 @@ begin
       X.ShiftRight(Shift); // 取最高的 64 位或 63 位来估算平方根
 
       U := X.GetInt64;
-      U := UInt64Sqrt(U);
+      U := UInt64Sqrt(U) + 1;  // 加 1 保证初始值大于真正的平方根，牛顿迭代才能单调下降收敛
       X.SetInt64(U);
 
       X.ShiftLeft(Shift shr 1); // X 是估算的平方根
@@ -6688,9 +6688,11 @@ begin
         BigNumberAdd(XNext, XNext, X);
         XNext.ShiftRightOne;
 
-        if BigNumberCompare(XNext, X) = 0 then
+        if BigNumberCompare(XNext, X) >= 0 then
         begin
-          // 迭代 X 的整数部分不再变化时就是结果
+          // X 从大于平方根处单调下降，当 XNext 不再小于 X 时 X 即为平方根的整数部分。
+          // 此判断同时覆盖 XNext = X 的收敛与 N = K*K + 2K 时 X 在 K 和 K+1
+          // 之间振荡的情形，防止死循环
           BigNumberCopy(Res, X);
           Result := True;
           Exit;
