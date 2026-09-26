@@ -2299,7 +2299,7 @@ begin
   if FRowCount = 1 then
     Result := FMatrix[0, 0]
   else if FRowCount = 2 then
-    Result := FMatrix[0, 0] * FMatrix[1, 1] - FMatrix[0, 1] * FMatrix[1, 0]
+    Result := OperationSub(OperationMul(FMatrix[0, 0], FMatrix[1, 1]), OperationMul(FMatrix[0, 1], FMatrix[1, 0]))
   else if RowCount = 3 then
   begin
     Result := OperationSub(Add3(Mul3(FMatrix[0, 0], FMatrix[1, 1], FMatrix[2, 2]),
@@ -2693,7 +2693,7 @@ begin
   if FRowCount = 1 then
     Result := FMatrix[0, 0]
   else if FRowCount = 2 then
-    Result := FMatrix[0, 0] * FMatrix[1, 1] - FMatrix[0, 1] * FMatrix[1, 0]
+    Result := OperationSub(OperationMul(FMatrix[0, 0], FMatrix[1, 1]), OperationMul(FMatrix[0, 1], FMatrix[1, 0]))
   else if RowCount = 3 then
   begin
     Result := OperationSub(Add3(Mul3(FMatrix[0, 0], FMatrix[1, 1], FMatrix[2, 2]),

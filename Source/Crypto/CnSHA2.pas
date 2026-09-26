@@ -2413,15 +2413,19 @@ begin
   Size := Stream.Size;
   SavePos := Stream.Position;
   TotalBytes := 0;
+  CancelCalc := False;
+  _SHAInit;
   if Size = 0 then
+  begin
+    _SHAFinal;
+    _CopyResult;
+    Result := True;
     Exit;
+  end;
   if Size < BufSize then
     BufLen := Size
   else
     BufLen := BufSize;
-
-  CancelCalc := False;
-  _SHAInit;
  
   GetMem(Buf, BufLen);
   try

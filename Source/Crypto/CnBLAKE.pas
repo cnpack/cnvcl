@@ -1935,15 +1935,19 @@ begin
   Size := Stream.Size;
   SavePos := Stream.Position;
   TotalBytes := 0;
+  CancelCalc := False;
+  _BLAKEInit;
   if Size = 0 then
+  begin
+    _BLAKEFinal;
+    _CopyResult;
+    Result := True;
     Exit;
+  end;
   if Size < BufSize then
     BufLen := Size
   else
     BufLen := BufSize;
-
-  CancelCalc := False;
-  _BLAKEInit;
  
   GetMem(Buf, BufLen);
   try

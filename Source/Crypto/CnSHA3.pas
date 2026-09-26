@@ -2172,15 +2172,18 @@ begin
   Size := Stream.Size;
   SavePos := Stream.Position;
   TotalBytes := 0;
+  CancelCalc := False;
+  SHA3Init(Context, SHA3Type);
   if Size = 0 then
+  begin
+    SHA3Final(Context, D);
+    Result := True;
     Exit;
+  end;
   if Size < BufSize then
     BufLen := Size
   else
     BufLen := BufSize;
-
-  CancelCalc := False;
-  SHA3Init(Context, SHA3Type);
 
   GetMem(Buf, BufLen);
   try
@@ -2226,15 +2229,18 @@ begin
   Size := Stream.Size;
   SavePos := Stream.Position;
   TotalBytes := 0;
+  CancelCalc := False;
+  SHA3Init(Context, SHA3Type, DigestByteLength);
   if Size = 0 then
+  begin
+    SHA3Final(Context, D);
+    Result := True;
     Exit;
+  end;
   if Size < BufSize then
     BufLen := Size
   else
     BufLen := BufSize;
-
-  CancelCalc := False;
-  SHA3Init(Context, SHA3Type, DigestByteLength);
 
   GetMem(Buf, BufLen);
   try

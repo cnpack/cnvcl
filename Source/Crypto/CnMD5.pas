@@ -611,19 +611,20 @@ var
 begin
   Result := False;
   Size := Stream.Size;
-  if Size = 0 then
-    Exit;
-
   SavePos := Stream.Position;
   TotalBytes := 0;
-
+  CancelCalc := False;
+  MD5Init(Context);
+  if Size = 0 then
+  begin
+    MD5Final(Context, D);
+    Result := True;
+    Exit;
+  end;
   if Size < BufSize then
     BufLen := Size
   else
     BufLen := BufSize;
-
-  CancelCalc := False;
-  MD5Init(Context);
   GetMem(Buf, BufLen);
   try
     Stream.Position := 0;
