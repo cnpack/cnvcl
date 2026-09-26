@@ -5675,7 +5675,12 @@ var
 begin
   if N < 0 then
   begin
-    Result := BigNumberShiftRight(Res, Num, -N);
+    // N 为 CN_MIN_INT32 时 -N 溢出回绕仍为 CN_MIN_INT32，将导致左右移无限
+    // 互递归；位数超过大数宽度时结果为 0，用 CN_MAX_INT32 走既有的全移空分支
+    if N = CN_MIN_INT32 then
+      Result := BigNumberShiftRight(Res, Num, CN_MAX_INT32)
+    else
+      Result := BigNumberShiftRight(Res, Num, -N);
     Exit;
   end;
 
@@ -5723,7 +5728,11 @@ var
 begin
   if N < 0 then
   begin
-    Result := BigNumberShiftLeft(Res, Num, -N);
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判走全移空分支
+    if N = CN_MIN_INT32 then
+      Result := BigNumberShiftLeft(Res, Num, CN_MAX_INT32)
+    else
+      Result := BigNumberShiftLeft(Res, Num, -N);
     Exit;
   end;
 

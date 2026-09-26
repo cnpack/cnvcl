@@ -2741,7 +2741,13 @@ begin
 
   if BitCount < 0 then
   begin
-    MemoryShiftRight(AMem, BMem, MemByteLen, -BitCount);
+    // BitCount 为 CN_MIN_INT32 时 -BitCount 溢出回绕仍为 CN_MIN_INT32，将导致
+    // 左右移无限互递归；位数超过缓冲区位数时结果为全 0，用 CN_MAX_INT32 走
+    // 既有的清零分支
+    if BitCount = CN_MIN_INT32 then
+      MemoryShiftRight(AMem, BMem, MemByteLen, CN_MAX_INT32)
+    else
+      MemoryShiftRight(AMem, BMem, MemByteLen, -BitCount);
     Exit;
   end;
 
@@ -2798,7 +2804,11 @@ begin
 
   if BitCount < 0 then
   begin
-    MemoryShiftLeft(AMem, BMem, MemByteLen, -BitCount);
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判走清零分支
+    if BitCount = CN_MIN_INT32 then
+      MemoryShiftLeft(AMem, BMem, MemByteLen, CN_MAX_INT32)
+    else
+      MemoryShiftLeft(AMem, BMem, MemByteLen, -BitCount);
     Exit;
   end;
 

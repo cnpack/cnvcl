@@ -6330,7 +6330,18 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    Int64PolynomialShiftRight(P, -N)
+  begin
+    // N 为 CN_MIN_INT32 时 -N 溢出回绕仍为 CN_MIN_INT32，将导致左右移无限
+    // 互递归；此时按互转语义饱和为全零多项式（与右移越界的终态一致），
+    // 不能传 CN_MAX_INT32 给对向函数，否则 InsertBatch/DeleteLow 将超长循环
+    if N = CN_MIN_INT32 then
+    begin
+      P.Clear;
+      P.Add(0);
+    end
+    else
+      Int64PolynomialShiftRight(P, -N);
+  end
   else
     P.InsertBatch(0, N);
 end;
@@ -6340,7 +6351,16 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    Int64PolynomialShiftLeft(P, -N)
+  begin
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判饱和为全零多项式
+    if N = CN_MIN_INT32 then
+    begin
+      P.Clear;
+      P.Add(0);
+    end
+    else
+      Int64PolynomialShiftLeft(P, -N);
+  end
   else
   begin
     P.DeleteLow(N);
@@ -9330,7 +9350,15 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    BigNumberPolynomialShiftRight(P, -N)
+  begin
+    // N 为 CN_MIN_INT32 时 -N 溢出回绕仍为 CN_MIN_INT32，将导致左右移无限
+    // 互递归；且该量与 MaxDegree 相加也会 Integer 溢出，故特判饱和为全零
+    // 多项式（ResetValue，与右移越界的终态一致），不得传 CN_MAX_INT32
+    if N = CN_MIN_INT32 then
+      P.ResetValue
+    else
+      BigNumberPolynomialShiftRight(P, -N);
+  end
   else
   begin
     OldMaxDegree := P.MaxDegree;
@@ -9349,7 +9377,13 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    BigNumberPolynomialShiftLeft(P, -N)
+  begin
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判 ResetValue
+    if N = CN_MIN_INT32 then
+      P.ResetValue
+    else
+      BigNumberPolynomialShiftLeft(P, -N);
+  end
   else
   begin
     OldMaxDegree := P.MaxDegree;
@@ -12672,7 +12706,19 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    BigComplexPolynomialShiftRight(P, -N)
+  begin
+    // N 为 CN_MIN_INT32 时 -N 溢出回绕仍为 CN_MIN_INT32，将导致左右移无限
+    // 互递归；此时按互转语义饱和为全零多项式（终态与右移越界一致），
+    // 不得传 CN_MAX_INT32 给对向函数，否则 Delete/Insert 将超长循环
+    if N = CN_MIN_INT32 then
+    begin
+      while P.Count > 1 do
+        P.Delete(0);
+      P[0].SetZero;
+    end
+    else
+      BigComplexPolynomialShiftRight(P, -N);
+  end
   else
     for I := 1 to N do
       P.Insert(0, TCnBigComplex.Create);
@@ -12685,7 +12731,17 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    BigComplexPolynomialShiftLeft(P, -N)
+  begin
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判饱和为全零多项式
+    if N = CN_MIN_INT32 then
+    begin
+      while P.Count > 1 do
+        P.Delete(0);
+      P[0].SetZero;
+    end
+    else
+      BigComplexPolynomialShiftLeft(P, -N);
+  end
   else
   begin
     for I := 1 to N do
@@ -17628,7 +17684,19 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    BigComplexDecimalPolynomialShiftRight(P, -N)
+  begin
+    // N 为 CN_MIN_INT32 时 -N 溢出回绕仍为 CN_MIN_INT32，将导致左右移无限
+    // 互递归；此时按互转语义饱和为全零多项式（终态与右移越界一致），
+    // 不得传 CN_MAX_INT32 给对向函数，否则 Delete/Insert 将超长循环
+    if N = CN_MIN_INT32 then
+    begin
+      while P.Count > 1 do
+        P.Delete(0);
+      P[0].SetZero;
+    end
+    else
+      BigComplexDecimalPolynomialShiftRight(P, -N);
+  end
   else
     for I := 1 to N do
       P.Insert(0, TCnBigComplexDecimal.Create);
@@ -17641,7 +17709,17 @@ begin
   if N = 0 then
     Exit
   else if N < 0 then
-    BigComplexDecimalPolynomialShiftLeft(P, -N)
+  begin
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判饱和为全零多项式
+    if N = CN_MIN_INT32 then
+    begin
+      while P.Count > 1 do
+        P.Delete(0);
+      P[0].SetZero;
+    end
+    else
+      BigComplexDecimalPolynomialShiftLeft(P, -N);
+  end
   else
   begin
     for I := 1 to N do

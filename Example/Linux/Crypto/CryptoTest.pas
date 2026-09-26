@@ -85,6 +85,7 @@ function TestEndian: Boolean;
 function TestStrToUInt64: Boolean;
 function TestUInt64Div: Boolean;
 function TestUInt64Mod: Boolean;
+function TestMemoryShiftMinInteger: Boolean;
 
 // =========================== Constant Time ===================================
 
@@ -215,6 +216,7 @@ function TestBigNumberAKSIsPrime: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
 function TestBigNumberBPSWPerfectSquareLoop: Boolean;
 function TestBigNumberRandBytesReuse: Boolean;
+function TestBigNumberShiftMinInteger: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
 function TestBigNumberMontgomery: Boolean;
@@ -265,6 +267,7 @@ function TestUInt128Add: Boolean;
 function TestUInt128Sub: Boolean;
 function TestUInt128Mul: Boolean;
 function TestUInt128DivMod: Boolean;
+function TestUInt128ShiftMinInteger: Boolean;
 
 // ===============================  Math =======================================
 
@@ -1878,6 +1881,7 @@ begin
   MyAssert(TestStrToUInt64, 'TestStrToUInt64');
   MyAssert(TestUInt64Div, 'TestUInt64Div');
   MyAssert(TestUInt64Mod, 'TestUInt64Mod');
+  MyAssert(TestMemoryShiftMinInteger, 'TestMemoryShiftMinInteger');
 
 // =========================== Constant Time ===================================
 
@@ -2013,6 +2017,7 @@ begin
   MyAssert(TestBigNumberMontgomery, 'TestBigNumberMontgomery');
   MyAssert(TestBigNumberMontgomeryPowerMod, 'TestBigNumberMontgomeryPowerMod');
   MyAssert(TestBigNumberLoadSaveMem, 'TestBigNumberLoadSaveMem');
+  MyAssert(TestBigNumberShiftMinInteger, 'TestBigNumberShiftMinInteger');
   MyAssert(TestBigNumberListLoadSaveMem, 'TestBigNumberListLoadSaveMem');
 
 // ============================== BigRational ==================================
@@ -2058,6 +2063,7 @@ begin
   MyAssert(TestUInt128Sub, 'TestUInt128Sub');
   MyAssert(TestUInt128Mul, 'TestUInt128Mul');
   MyAssert(TestUInt128DivMod, 'TestUInt128DivMod');
+  MyAssert(TestUInt128ShiftMinInteger, 'TestUInt128ShiftMinInteger');
 
 // ===============================  Math =======================================
 
@@ -2664,6 +2670,28 @@ begin
     and (UInt64Mod(A6, B6) = 1229782934524998452)
     and (UInt64Mod(A7, B7) = 825307441)
     and (UInt64Mod(A8, B8) = 3617008645339807486);
+end;
+
+function TestMemoryShiftMinInteger: Boolean;
+var
+  Buf: array[0..7] of Byte;
+  I: Integer;
+begin
+  // 回归用例：移位位数 = MinInteger（$80000000）。CnNative 的 MemoryShiftLeft/
+  // MemoryShiftRight 在 BitCount < 0 时调用对向移位函数并传 -BitCount，而
+  // -Low(Integer) 溢出回绕仍为 Low(Integer)，导致无限互递归直至栈溢出。
+  // 语义上移位位数超过缓冲区位数时结果应为全 0。
+  Result := False;
+  FillChar(Buf, SizeOf(Buf), 0);
+  Buf[0] := 1;
+  MemoryShiftLeft(@Buf, @Buf, SizeOf(Buf), Low(Integer));
+  for I := 0 to SizeOf(Buf) - 1 do
+    if Buf[I] <> 0 then Exit;
+  Buf[0] := 1;
+  MemoryShiftRight(@Buf, @Buf, SizeOf(Buf), Low(Integer));
+  for I := 0 to SizeOf(Buf) - 1 do
+    if Buf[I] <> 0 then Exit;
+  Result := True;
 end;
 
 // =========================== Constant Time ===================================
@@ -6074,6 +6102,31 @@ begin
   Result := not BigNumberBPSWIsPrime(1194649);
 end;
 
+function TestBigNumberShiftMinInteger: Boolean;
+var
+  Num, Res: TCnBigNumber;
+begin
+  // 回归用例：移位位数 = MinInteger（$80000000）。CnBigNumber 的
+  // BigNumberShiftLeft/BigNumberShiftRight 在 N < 0 时调用对向移位函数并传
+  // -N，而 -Low(Integer) 溢出回绕仍为 Low(Integer)，导致无限互递归直至栈溢出。
+  // 语义上左移 MinInteger 位等价于右移 MinInteger 位（远超任何实际位数），
+  // 结果应为 0。
+  Result := False;
+  Num := TCnBigNumber.Create;
+  Res := TCnBigNumber.Create;
+  try
+    Num.SetWord(1);
+    if not BigNumberShiftLeft(Res, Num, Low(Integer)) then Exit;
+    if not Res.IsZero then Exit;
+    if not BigNumberShiftRight(Res, Num, Low(Integer)) then Exit;
+    if not Res.IsZero then Exit;
+    Result := True;
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
 function TestBigNumberRandBytesReuse: Boolean;
 var
   Num, Limit: TCnBigNumber;
@@ -7505,6 +7558,27 @@ begin
   UInt128DivMod(A, B, R, M);
 
   Result := (UInt128ToStr(R) = '737095443184467440737095516') and (UInt128ToStr(M) = '1500');
+end;
+
+function TestUInt128ShiftMinInteger: Boolean;
+var
+  N: TCnUInt128;
+begin
+  // 回归用例：移位位数 = MinInteger（$80000000）。CnInt128 的 UInt128ShiftLeft/
+  // UInt128ShiftRight 在 S < 0 时调用对向移位函数并传 -S，而 -Low(Integer)
+  // 溢出回绕仍为 Low(Integer)，导致无限互递归直至栈溢出（Int128ShiftLeft/
+  // Int128ShiftRight 薄封装转发至 UInt128 版，同样受影响）。
+  // 语义上移位位数超过 128 位时结果应为全 0。
+  Result := False;
+  N.Lo64 := 1;
+  N.Hi64 := 0;
+  UInt128ShiftLeft(N, Low(Integer));
+  if (N.Lo64 <> 0) or (N.Hi64 <> 0) then Exit;
+  N.Lo64 := 1;
+  N.Hi64 := 0;
+  UInt128ShiftRight(N, Low(Integer));
+  if (N.Lo64 <> 0) or (N.Hi64 <> 0) then Exit;
+  Result := True;
 end;
 
 // ===============================  Math =======================================

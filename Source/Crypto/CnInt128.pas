@@ -1387,7 +1387,12 @@ begin
 
   if S < 0 then
   begin
-    UInt128ShiftRight(N, -S);
+    // S 为 CN_MIN_INT32 时 -S 溢出回绕仍为 CN_MIN_INT32，将导致左右移无限
+    // 互递归；位数超过 128 位时结果为全 0，用 CN_MAX_INT32 走既有的清零分支
+    if S = CN_MIN_INT32 then
+      UInt128ShiftRight(N, CN_MAX_INT32)
+    else
+      UInt128ShiftRight(N, -S);
     Exit;
   end;
 
@@ -1427,7 +1432,11 @@ begin
 
   if S < 0 then
   begin
-    UInt128ShiftLeft(N, -S);
+    // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判走清零分支
+    if S = CN_MIN_INT32 then
+      UInt128ShiftLeft(N, CN_MAX_INT32)
+    else
+      UInt128ShiftLeft(N, -S);
     Exit;
   end;
 
