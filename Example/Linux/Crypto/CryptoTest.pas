@@ -213,6 +213,7 @@ function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
+function TestBigNumberBPSWPerfectSquareLoop: Boolean;
 function TestBigNumberRandBytesReuse: Boolean;
 function TestBigNumberRandRangeDistribution: Boolean;
 function TestBigNumberKeepLowBits: Boolean;
@@ -245,6 +246,7 @@ function TestBitsTBits: Boolean;
 function TestBERInvalidLengthField: Boolean;
 function TestBERTruncatedInput: Boolean;
 function TestBERConstructedChildTruncated: Boolean;
+function TestBERIndefiniteLengthZeroConsumeLoop: Boolean;
 function TestPEMInvalidHeaderFooter: Boolean;
 function TestPEMCorruptedBase64: Boolean;
 function TestPEMEncryptedMissingDekInfo: Boolean;
@@ -703,6 +705,7 @@ function TestPrimeNumber4: Boolean;
 function TestPrimeNumber5: Boolean;
 function TestSquareRoot: Boolean;
 function TestBPSWIsPrime: Boolean;
+function TestInt64BPSWPerfectSquareLoop: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -2003,6 +2006,7 @@ begin
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
   MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
+  MyAssert(TestBigNumberBPSWPerfectSquareLoop, 'TestBigNumberBPSWPerfectSquareLoop');
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
   MyAssert(TestBigNumberRandBytesReuse, 'TestBigNumberRandBytesReuse');
   MyAssert(TestBigNumberKeepLowBits, 'TestBigNumberKeepLowBits');
@@ -2035,6 +2039,7 @@ begin
   MyAssert(TestBERInvalidLengthField, 'TestBERInvalidLengthField');
   MyAssert(TestBERTruncatedInput, 'TestBERTruncatedInput');
   MyAssert(TestBERConstructedChildTruncated, 'TestBERConstructedChildTruncated');
+  MyAssert(TestBERIndefiniteLengthZeroConsumeLoop, 'TestBERIndefiniteLengthZeroConsumeLoop');
   MyAssert(TestPEMInvalidHeaderFooter, 'TestPEMInvalidHeaderFooter');
   MyAssert(TestPEMCorruptedBase64, 'TestPEMCorruptedBase64');
   MyAssert(TestPEMEncryptedMissingDekInfo, 'TestPEMEncryptedMissingDekInfo');
@@ -2493,6 +2498,7 @@ begin
   MyAssert(TestPrimeNumber5, 'TestPrimeNumber5');
   MyAssert(TestSquareRoot, 'TestSquareRoot');
   MyAssert(TestBPSWIsPrime, 'TestBPSWIsPrime');
+  MyAssert(TestInt64BPSWPerfectSquareLoop, 'TestInt64BPSWPerfectSquareLoop');
 
 // ================================ 25519 ======================================
 
@@ -6056,6 +6062,18 @@ begin
   N.Free;
 end;
 
+function TestBigNumberBPSWPerfectSquareLoop: Boolean;
+begin
+  // 回归用例：N = 1093^2 = 1194649。1093 是 2-Wieferich 素数
+  // （2^1092 ≡ 1 mod 1093^2），故 N 能通过 BigNumberBPSWIsPrime 的基 2 Fermat
+  // 预检：2^(N-1) = (2^1092)^1094 ≡ 1 mod N，从而进入 D 值搜索循环。
+  // 而对 N = p^2 有 Jacobi(D, N) = Jacobi(D, p)^2 ∈ {0, 1}（1093 ≡ 5 mod 8，
+  // Jacobi(-1, N) = 1，负 D 同样如此），永不为 -1：若 CnBigNumber.pas 的
+  // D 搜索循环未对 Jacobi = 0 按合数短路，此调用将无限循环（审计高危 #4）。
+  // 期望（正确实现）：返回 False（合数），不得挂死。
+  Result := not BigNumberBPSWIsPrime(1194649);
+end;
+
 function TestBigNumberRandBytesReuse: Boolean;
 var
   Num, Limit: TCnBigNumber;
@@ -7090,6 +7108,43 @@ begin
   finally
     R.Free;
   end;
+end;
+
+function TestBERIndefiniteLengthZeroConsumeLoop: Boolean;
+var
+  HexInputs: array[0..1] of string;
+  B: TBytes;
+  R: TCnBerReader;
+  I: Integer;
+  Raised: Boolean;
+begin
+  // 回归保护：两个 3 字节畸形输入（曾一度被审计怀疑可致 ParseArea 死循环，
+  // 实测证实为误报——主循环每轮 Run 至少净增 2 字节（tag+长度各一次 Inc），
+  // 定长模式撞 Run >= ADataByteLen 抛异常，不定长模式撞 MaxRun 边界退出，必然终止）。
+  //   '308005'：SEQUENCE 不定长(30 80)，子区仅剩 1 字节 NULL tag(05)，无内容
+  //   '308001'：SEQUENCE 不定长(30 80)，子区仅剩 1 字节 BOOLEAN tag(01)，无内容
+  // 期望：快速抛 ECnBerException，不得静默解析成功，也不得挂死。
+  Result := False;
+  HexInputs[0] := '308005';
+  HexInputs[1] := '308001';
+  for I := 0 to Length(HexInputs) - 1 do
+  begin
+    B := HexToBytes(HexInputs[I]);
+    R := TCnBerReader.Create(@B[0], Length(B));
+    try
+      Raised := False;
+      try
+        R.ParseToTree;
+      except
+        on E: ECnBerException do
+          Raised := True;
+      end;
+      if not Raised then Exit;
+    finally
+      R.Free;
+    end;
+  end;
+  Result := True;
 end;
 
 function TestPEMInvalidHeaderFooter: Boolean;
@@ -20046,6 +20101,17 @@ begin
   Result := not CnInt64BPSWIsPrime(6) and not CnInt64BPSWIsPrime(125)
     and not CnInt64BPSWIsPrime(9999999999) and not CnInt64BPSWIsPrime(87178291200)
     and not CnInt64BPSWIsPrime(24036584) and not CnInt64BPSWIsPrime(9223372036854775784);
+end;
+
+function TestInt64BPSWPerfectSquareLoop: Boolean;
+begin
+  // 与 TestBigNumberBPSWPerfectSquareLoop 对应：CnPrime.pas 的 Int64 版
+  // CnInt64BPSWIsPrime 曾存在同样的 D 搜索死循环问题——无试除、基 2 Fermat
+  // 预检对 2-Wieferich 素数平方 N = 1093^2 放行，而对 N = p^2 有
+  // Jacobi(D, N) = Jacobi(D, p)^2 恒为 0 或 1，永不为 -1。
+  // 期望（正确实现）：返回 False（合数），不得挂死。
+  // 注意：未修复版本运行此用例将死循环，请定义 TEST_BPSW_DOS_LOOP 单独手工验证。
+  Result := not CnInt64BPSWIsPrime(1194649);
 end;
 
 // ================================ 25519 ========================================

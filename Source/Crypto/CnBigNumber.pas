@@ -10346,7 +10346,7 @@ end;
 
 function BigNumberBPSWIsPrime(N: TCnBigNumber): Boolean;
 var
-  T: Integer;
+  T, J: Integer;
   X, Y, A, U: TCnBigNumber;
 begin
   Result := False;
@@ -10392,7 +10392,21 @@ begin
         X.AddWord(2);
 
       X.Negate;
-    until BigNumberJacobiSymbol(X, N) = -1;
+      J := BigNumberJacobiSymbol(X, N);
+      if J = 0 then
+      begin
+        // Jacobi 为 0 说明 gcd(|X|, N) > 1。合数 N 的最小素因子 <= sqrt(N) < N，
+        // 故首个 0 必在 |X| < N 时出现，此时 |X| 是 N 的真因子，N 为合数；
+        // 而 |X| = N 仅在 N 为素数时可达（D 恰好走到 N，返回 True）。
+        // 特别地，对奇完全平方数 N = p^2 有 Jacobi(X, N) = Jacobi(X, p)^2，
+        // 恒为 0 或 1 而永不为 -1，若不在此处理 0 将导致无限循环（DoS）。
+        BigNumberCopy(Y, X);
+        if Y.IsNegative then
+          Y.Negate;
+        Result := BigNumberCompare(Y, N) = 0;
+        Exit;
+      end;
+    until J = -1;
 
     // X 中拿到正确的 D 值，计算 Q 值放到 Y 中，P 值 1 也放 X 中
     X.SubWord(1);

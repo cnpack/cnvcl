@@ -3472,7 +3472,7 @@ end;
 
 function CnInt64BPSWIsPrime(N: Int64): Boolean;
 var
-  T, X, D, P, Q, U: Int64;
+  T, X, D, P, Q, U, J: Int64;
 begin
   Result := False;
   if N <= 1 then
@@ -3510,7 +3510,19 @@ begin
       D := D - 2;
 
     D := -D;
-  until CnInt64JacobiSymbol(D, N) = -1;
+    J := CnInt64JacobiSymbol(D, N);
+    if J = 0 then
+    begin
+      // Jacobi 为 0 说明 gcd(|D|, N) > 1。合数 N 的最小素因子 <= sqrt(N) < N，
+      // 故首个 0 必在 |D| < N 时出现，此时 N 为合数；而 |D| = N 仅在 N 为
+      // 素数时可达（D 恰好走到 N，返回 True）。
+      // 特别地，对奇完全平方数 N = p^2 有 Jacobi(D, N) = Jacobi(D, p)^2，
+      // 恒为 0 或 1 而永不为 -1，若不在此处理 0 将导致无限循环（DoS）。
+      // 注：D 从 -3 起交替取值，|D| 的量级远小于 Low(Int64)，Abs 无溢出风险。
+      Result := Abs(D) = N;
+      Exit;
+    end;
+  until J = -1;
 
   // 得到 D 后，计算 P 和 Q
   P := 1;
