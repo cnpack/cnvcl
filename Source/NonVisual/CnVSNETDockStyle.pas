@@ -20,7 +20,7 @@
 
 {*******************************************************}
 {                                                       }
-{       具有类似Visual Studio.NET的停靠风格             }
+{       具有类似 Visual Studio.NET 的停靠风格           }
 {       CnVSNETDockStyle 单元                           }
 {                                                       }
 {       版权 (C) 2002,2003 鲁小班                       }
@@ -835,8 +835,9 @@ begin
       VSChannel := TCnVSPopupPanel(ADockClient.ParentForm.HostDockSite).VSChannel;
       if VSChannel <> nil then
         Pane := VSChannel.FindPane(ADockClient.ParentForm)
-      else Pane := nil;
-      Pane := VSChannel.FindPane(ADockClient.ParentForm);
+      else
+        Pane := nil;
+
       if Pane <> nil then
       begin
         Pane.Visible := AVisible;

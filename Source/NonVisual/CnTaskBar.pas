@@ -660,9 +660,9 @@ end;
 
 procedure TCnSysToolBarBtn.SetEnabled(const Value: Boolean);
 begin
-  if FVisible <> Value then
+  if FEnabled <> Value then
   begin
-    FVisible := Value;
+    FEnabled := Value;
     EnableWindow(FHandle, Value);
   end;
 end;

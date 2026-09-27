@@ -171,7 +171,7 @@ var
   HookObj: TCnActionHookObj;
 begin
   Result := False;
-  if (Action <> nil) and (FHookItemList.IndexOf(Action) < 0) then
+  if Action <> nil then
   begin
     if IsHooked(TActionList(Action.ActionList)) and not IsActionHooked(Action) then
     begin

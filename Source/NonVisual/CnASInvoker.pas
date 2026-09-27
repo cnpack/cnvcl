@@ -488,7 +488,7 @@ function GetMethNum(const IntfMD: TIntfMetaData; const MethName: string;
     Result := Start;
     { Not needed for C++Builder }
     { TODO -oBB : The range of this loop looks suspicious - investigate ParamCount & confirm accuracy!! }
-    for I := 0 to entry.ParamCount do
+    for I := 0 to entry.ParamCount - 1 do
       if pfOut in entry.Params[I].Flags then
         Inc(Result);
   end;
@@ -1221,11 +1221,15 @@ begin
   Result := '';
   for EnumValue := GetTypeData(TypeInfo)^.MinValue to
     GetTypeData(TypeInfo)^.MaxValue do
+  begin
     if EnumValue in Value then
+    begin
       if Result = '' then
         Result := GetEnumName(TypeInfo, EnumValue)
       else
         Result := Result + ', ' + GetEnumName(TypeInfo, EnumValue);
+    end;
+  end;
   Result := '[' + Result + ']';
 end;
 
@@ -1237,7 +1241,7 @@ var
   EnumValue: 0..SizeOf(Integer) * 8 - 1;
   S: string;
   Strings: TStrings;
-  i: Integer;
+  I: Integer;
 begin
   Assert(TypeInfo^.Kind in [tkEnumeration, tkSet]);
   if TypeInfo^.Kind = tkSet then
@@ -1245,15 +1249,15 @@ begin
 
   Result := [];
   S := Trim(Value);
-  if (S[1] = '[') and (S[Length(S)] = ']') then
+  if (S <> '') and (S[1] = '[') and (S[Length(S)] = ']') then
   begin
     S := Copy(S, 2, Length(S) - 2);
     Strings := TStringList.Create;
     try
       Strings.CommaText := S;
-      for i := 0 to Strings.Count - 1 do
+      for I := 0 to Strings.Count - 1 do
       begin
-        EnumValue := GetEnumValue(TypeInfo, Trim(Strings[i]));
+        EnumValue := GetEnumValue(TypeInfo, Trim(Strings[I]));
         if (EnumValue < GetTypeData(TypeInfo)^.MinValue) or
           (EnumValue > GetTypeData(TypeInfo)^.MaxValue) then
           raise EConvertError.Create(Format(SInvalidSetStr, [Value]));

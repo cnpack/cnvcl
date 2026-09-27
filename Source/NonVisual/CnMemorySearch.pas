@@ -140,7 +140,6 @@ procedure TCnMemorySearchThread.Execute;
 var
   _SearchRet: Boolean;
 begin
-  { Place thread code here }
   _SearchRet := False;
   while not Terminated do
   begin
@@ -150,12 +149,12 @@ begin
 
     try
       case FOwner.SearchMethod of
-        smlSearchMemory: _SearchRet := Self.MemorySearch; //搜索内存模块模式
-        smlSearchFile: _SearchRet := Self.FileSearch; //搜索文件模式
+        smlSearchMemory: _SearchRet := Self.MemorySearch; // 搜索内存模块模式
+        smlSearchFile: _SearchRet := Self.FileSearch; // 搜索文件模式
       end;
     finally
       FOwner.DoSearchCompleteEvent(_SearchRet);
-      Self.Terminate; //搜索完成
+      Self.Terminate; // 搜索完成
       FOwner.FStartSearch := False;
     end;
   end;
@@ -358,7 +357,6 @@ end;
 
 destructor TCnMemorySearchThread.Destroy;
 begin
-  {.....}
   FOwner := nil;
   inherited Destroy;
 end;
@@ -373,7 +371,8 @@ end;
 
 destructor TCnMemorySearch.Destroy;
 begin
-
+  if Assigned(FSearchCallTH) then
+    FSearchCallTH.Terminate;
   inherited Destroy;
 end;
 

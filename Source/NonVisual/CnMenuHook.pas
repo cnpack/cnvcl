@@ -683,29 +683,31 @@ begin
   if Assigned(FOnBeforePopup) then
     FOnBeforePopup(Self, Menu);
 
-  // 调用原来的事件
+  // 调用原来的事件，用 try-finally 保证异常时也重新添加自定义菜单项，避免菜单残缺
   MenuObj := GetMenuObj(Menu);
-  if Assigned(MenuObj) then
-  begin
-    if Assigned(MenuObj.OldOnPopup) then
-      MenuObj.OldOnPopup(Sender);
-  end;
-
-  // 如果菜单项本身没有内容，则说明不会弹出，此处也不添加内容，避免强行弹出
-  if Menu.Items.Count = 0 then
-    Exit;
-
-  if Active then
-  begin
-    // 重新更新自定义菜单项
-    for I := 0 to MenuItemDefCount - 1 do
+  try
+    if Assigned(MenuObj) then
     begin
-      if MenuItemDefs[I].Active then
-        DoAddMenuItem(Menu, MenuItemDefs[I]);
+      if Assigned(MenuObj.OldOnPopup) then
+        MenuObj.OldOnPopup(Sender);
     end;
 
-    if Assigned(FOnAfterPopup) then
-      FOnAfterPopup(Self, Menu);
+    // 如果菜单项本身没有内容，则说明不会弹出，此处也不添加内容，避免强行弹出
+    if Menu.Items.Count = 0 then
+      Exit;
+  finally
+    if Active and (Menu.Items.Count > 0) then
+    begin
+      // 重新更新自定义菜单项
+      for I := 0 to MenuItemDefCount - 1 do
+      begin
+        if MenuItemDefs[I].Active then
+          DoAddMenuItem(Menu, MenuItemDefs[I]);
+      end;
+
+      if Assigned(FOnAfterPopup) then
+        FOnAfterPopup(Self, Menu);
+    end;
   end;
 end;
 

@@ -162,12 +162,19 @@ type
   TAddVectored = function(FirstHandler: Integer; VectoredHandler: Pointer): Pointer; stdcall;
 var
   _pAddVectored: TAddVectored;
+  H: THandle;
 begin
   Result := False;
   if FHandler <> nil then Exit;
-  _pAddVectored := GetProcAddress(LoadLibrary('Kernel32.dll'), 'AddVectoredExceptionHandler');
-  if not Assigned(_pAddVectored) then Exit;
-  FHandler := _pAddVectored(1, @Self.FOnCallbackInstance); //安装 VEH
+
+  H := LoadLibrary('Kernel32.dll');
+  _pAddVectored := GetProcAddress(H, 'AddVectoredExceptionHandler');
+  try
+    if not Assigned(_pAddVectored) then Exit;
+    FHandler := _pAddVectored(1, @Self.FOnCallbackInstance); // 安装 VEH
+  finally
+    FreeLibrary(H);
+  end;
   Result := True;
 end;
 
@@ -176,19 +183,26 @@ type
   TRemoveVectored = function(VectoredHandler: Pointer): Integer; stdcall;
 var
   _pRemoveVectored: TRemoveVectored;
+  H: THandle;
 begin
   if FHandler = nil then Exit;
-  _pRemoveVectored := GetProcAddress(LoadLibrary('Kernel32.dll'), 'RemoveVectoredExceptionHandler');
-  if Assigned(_pRemoveVectored) then _pRemoveVectored(FHandler); // 卸载 VEH
+
+  H := LoadLibrary('Kernel32.dll');
+  _pRemoveVectored := GetProcAddress(H, 'RemoveVectoredExceptionHandler');
+  try
+    if Assigned(_pRemoveVectored) then _pRemoveVectored(FHandler); // 卸载 VEH
+  finally
+    FreeLibrary(H);
+  end;
   FHandler := 0;
 end;
 
 function TCnVectoredException.DoVEHCallback(pException: PExceptionPointers): Integer;
 begin
   Result := 0;
-  if Assigned(Self.FOnCallback) then
+  if Assigned(FOnCallback) then
   try
-    Result := Self.FOnCallback(pException);
+    Result := FOnCallback(pException);
   except
   end;
 end;
@@ -232,50 +246,54 @@ end;
 
 procedure TCnHardwareBreakpoint.DoBreakpoint1(pException: PExceptionPointers);
 begin
-  if Assigned(Self.FOnBreakpoint1) then
+  if Assigned(FOnBreakpoint1) then
   try
-    Self.FOnBreakpoint1(pException);
+    FOnBreakpoint1(pException);
   except
-    on Error: Exception do DoHardwareBreakError(1, Error, pException);
+    on Error: Exception do
+      DoHardwareBreakError(1, Error, pException);
   end;
 end;
 
 procedure TCnHardwareBreakpoint.DoBreakpoint2(pException: PExceptionPointers);
 begin
-  if Assigned(Self.FOnBreakpoint2) then
+  if Assigned(FOnBreakpoint2) then
   try
-    Self.FOnBreakpoint2(pException);
+    FOnBreakpoint2(pException);
   except
-    on Error: Exception do DoHardwareBreakError(2, Error, pException);
+    on Error: Exception do
+      DoHardwareBreakError(2, Error, pException);
   end;
 end;
 
 procedure TCnHardwareBreakpoint.DoBreakpoint3(pException: PExceptionPointers);
 begin
-  if Assigned(Self.FOnBreakpoint3) then
+  if Assigned(FOnBreakpoint3) then
   try
-    Self.FOnBreakpoint3(pException);
+    FOnBreakpoint3(pException);
   except
-    on Error: Exception do DoHardwareBreakError(3, Error, pException);
+    on Error: Exception do
+      DoHardwareBreakError(3, Error, pException);
   end;
 end;
 
 procedure TCnHardwareBreakpoint.DoBreakpoint4(pException: PExceptionPointers);
 begin
-  if Assigned(Self.FOnBreakpoint4) then
+  if Assigned(FOnBreakpoint4) then
   try
-    Self.FOnBreakpoint4(pException);
+    FOnBreakpoint4(pException);
   except
-    on Error: Exception do DoHardwareBreakError(4, Error, pException);
+    on Error: Exception do
+      DoHardwareBreakError(4, Error, pException);
   end;
 end;
 
 
 procedure TCnHardwareBreakpoint.DoHardwareBreakError(ErrorId: Integer; Error: Exception;
-  pException: PExceptionPointers); //异常处理
+  pException: PExceptionPointers); // 异常处理
 begin
-  if Assigned(Self.FOnHardwareBreakError) then
-    Self.FOnHardwareBreakError(ErrorId, Error, pException);
+  if Assigned(FOnHardwareBreakError) then
+    FOnHardwareBreakError(ErrorId, Error, pException);
 end;
 
 function TCnHardwareBreakpoint.DoVEHCallback(pException: PExceptionPointers): Integer;
@@ -284,10 +302,14 @@ begin
   case PException^.ExceptionRecord^.ExceptionCode of
     EXCEPTION_SINGLE_STEP:
       begin
-        if PException^.ContextRecord^.Eip = FDr1 then Self.DoBreakpoint1(pException) else
-          if PException^.ContextRecord^.Eip = FDr2 then Self.DoBreakpoint2(pException) else
-            if PException^.ContextRecord^.Eip = FDr3 then Self.DoBreakpoint3(pException) else
-              if PException^.ContextRecord^.Eip = FDr4 then Self.DoBreakpoint4(pException);
+        if PException^.ContextRecord^.Eip = FDr1 then
+          DoBreakpoint1(pException)
+        else if PException^.ContextRecord^.Eip = FDr2 then
+          DoBreakpoint2(pException)
+        else if PException^.ContextRecord^.Eip = FDr3 then
+          DoBreakpoint3(pException)
+        else if PException^.ContextRecord^.Eip = FDr4 then
+          DoBreakpoint4(pException);
         Result := -1;
       end;
   end;

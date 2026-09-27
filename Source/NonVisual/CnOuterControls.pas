@@ -75,6 +75,7 @@ type
     procedure SetWindowCaption(const Value: string);
   public
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
 
     function GetPossibleWindows: TStringList;
     {* 获取可用的窗口 }
@@ -148,20 +149,26 @@ constructor TCnOuterControls.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FTextList := TStringList.Create;
-  FTextList.Clear;
   FHandleList := TStringList.Create;
-  FHandleList.Clear;
   FClassList := TStringList.Create;
-  FClassList.Clear;
   IHandleList := TStringList.Create;
-  IHandleList.Clear;
   IClassList := TStringList.Create;
-  IClassList.Clear;
   ITextList := TStringList.Create;
-  ITextList.Clear;
   FPossibleWindow := TStringList.Create;
-  FPossibleWindow.Clear;
+
   GetPossibleWindows;
+end;
+
+destructor TCnOuterControls.Destroy;
+begin
+  FTextList.Free;
+  FHandleList.Free;
+  FClassList.Free;
+  IHandleList.Free;
+  IClassList.Free;
+  ITextList.Free;
+  FPossibleWindow.Free;
+  inherited;
 end;
 
 function TCnOuterControls.GetPossibleWindows: TStringList;
@@ -184,6 +191,7 @@ begin
     Result := piInfo;
     Exit;
   end;
+
   piInfo.pHandle := StrToInt(FHandleList.Strings[Index]);
   piInfo.pClassName := FClassList.Strings[Index];
   piInfo.pText := FTextList.Strings[Index];
@@ -215,7 +223,8 @@ begin
   IHandleList.Clear;
   IClassList.Clear;
   ITextList.Clear;
-  if FProcessHandle <> 0 then EnumChildWindows(FProcessHandle, @EnumChildWndProc, 0);
+  if FProcessHandle <> 0 then
+    EnumChildWindows(FProcessHandle, @EnumChildWndProc, 0);
   FTextList := ITextList;
   FHandleList := IHandleList;
   FClassList := IClassList;

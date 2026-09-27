@@ -237,7 +237,11 @@ begin
         end;
       end;
     end;
-  Pointer(FileOpNotification) := Pointer(Integer(FileOpNotification) + OffSet);
+{$IFDEF CPU64BITS}
+    Pointer(FileOpNotification) := Pointer(NativeInt(FileOpNotification) + OffSet);
+{$ELSE}
+    Pointer(FileOpNotification) := Pointer(Integer(FileOpNotification) + OffSet);
+{$ENDIF}
   until Offset = 0;
 end;
 

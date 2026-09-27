@@ -119,7 +119,7 @@ type
   PDispIDsArray = ^TDispIDsArray;
 var
   IDs: PDispIDsArray absolute DispIDs;
-  i: Integer;
+  I: Integer;
   Name: WideString;
   Id: Integer;
 begin
@@ -130,15 +130,15 @@ begin
   else
     Result := S_OK;
     
-  for i := 0 to NameCount - 1 do
-    IDs[i] := DISPID_UNKNOWN;
+  for I := 0 to NameCount - 1 do
+    IDs[I] := DISPID_UNKNOWN;
     
   if NameCount = 1 then
   begin
     Name := PWideChar(Names^);
     //Name := UpperCase(Name);
     Id := GetMethNum(FIntfMD, Name);
-    if Id <> 0 then
+    if Id >= 0 then
     begin
       IDs[0] := Id;
     end
@@ -169,7 +169,7 @@ var
   DispParams: TDispParams;
   MethEntry: TIntfMethEntry;
   V: OleVariant;
-  i: Integer;
+  I: Integer;
   Context: TInvContext;
 begin
   if (DispID >= Low(FIntfMD.MDA)) and (DispID <= High(FIntfMD.MDA)) then
@@ -181,8 +181,8 @@ begin
       if DispParams.cArgs <= MethEntry.ParamCount then
       begin
         // Var 或 Out 类型的参数不能省略
-        for i := DispParams.cArgs to MethEntry.ParamCount - 1 do
-          if [pfVar, pfOut] * MethEntry.Params[i].Flags <> [] then
+        for I := DispParams.cArgs to MethEntry.ParamCount - 1 do
+          if [pfVar, pfOut] * MethEntry.Params[I].Flags <> [] then
           begin
             Result := DISP_E_BADPARAMCOUNT;
             Exit;
@@ -194,17 +194,17 @@ begin
           Context.AllocServerData(MethEntry);
           
           // 调用方法前转换 OleVariant 参数为方法参数
-          for i := 0 to MethEntry.ParamCount - 1 do
+          for I := 0 to MethEntry.ParamCount - 1 do
           begin
             // 如果参数转换出错，此处定义出错的参数序号
-            PInteger(ArgErr)^ := i;
+            PInteger(ArgErr)^ := I;
             // 传进来的参数和定义的顺序相反
-            if i < DispParams.cArgs then
-              V := OleVariant(DispParams.rgvarg^[DispParams.cArgs - 1 - i])
+            if I < DispParams.cArgs then
+              V := OleVariant(DispParams.rgvarg^[DispParams.cArgs - 1 - I])
             else
               V := Null;
-            TypeTranslator.CastVariantToNative(MethEntry.Params[i].Info,
-              V, Context.GetParamPointer(i));
+            TypeTranslator.CastVariantToNative(MethEntry.Params[I].Info,
+              V, Context.GetParamPointer(I));
           end;
 
           // 调用接口方法
@@ -212,15 +212,15 @@ begin
 
           // 调用完成后转换 var 和 out 参数为 OleVariant 参数
           { TODO : JScript 和 VBScript 似乎不支持变量参数？ }
-          for i := 0 to DispParams.cArgs - 1 do
-            if [pfVar, pfOut] * MethEntry.Params[i].Flags <> [] then
+          for I := 0 to DispParams.cArgs - 1 do
+            if [pfVar, pfOut] * MethEntry.Params[I].Flags <> [] then
             begin
               // 如果参数转换出错，此处定义出错的参数序号
-              PInteger(ArgErr)^ := i;
+              PInteger(ArgErr)^ := I;
               // 传进来的参数和定义的顺序相反
-              TypeTranslator.CastNativeToVariant(MethEntry.Params[i].Info,
-                V, Context.GetParamPointer(i));
-              OleVariant(DispParams.rgvarg^[DispParams.cArgs - 1 - i]) := V;
+              TypeTranslator.CastNativeToVariant(MethEntry.Params[I].Info,
+                V, Context.GetParamPointer(I));
+              OleVariant(DispParams.rgvarg^[DispParams.cArgs - 1 - I]) := V;
             end;
 
           PInteger(ArgErr)^ := 0;

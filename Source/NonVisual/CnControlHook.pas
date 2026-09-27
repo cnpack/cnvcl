@@ -333,6 +333,9 @@ begin
       FControlHookMgr.FList.Remove(Self);
       FControl.RemoveFreeNotification(FControlHookMgr);
       FControl.WindowProc := FOldWndProc;
+      // Control 即将置 nil，同步清空各 Item 的 FControl 引用，避免悬挂指针
+      for I := 0 to Count - 1 do
+        Items[I].FControl := nil;
       FControl := nil;
     end;
 
@@ -351,6 +354,8 @@ begin
 end;
 
 procedure TCnControlHookObject.DoFree;
+var
+  I: Integer;
 begin
   if Updating then
   begin
@@ -359,6 +364,9 @@ begin
       FControlHookMgr.FList.Remove(Self);
       FControl.RemoveFreeNotification(FControlHookMgr);
       FControl.WindowProc := FOldWndProc;
+      // Control 即将置 nil，同步清空各 Item 的 FControl 引用，避免悬挂指针
+      for I := 0 to Count - 1 do
+        Items[I].FControl := nil;
       FControl := nil;
     except
       Application.HandleException(Self);
@@ -411,13 +419,13 @@ begin
     finally
       Dec(FUpdateCount);
     end;
-
-    // 此处进行释放
-    if FAutoFree then
-      Free;
   except
     Application.HandleException(Self);
   end;
+
+  // 此处进行释放（移到异常保护之外，避免 Free 后 except 引用已释放的 Self）
+  if FAutoFree then
+    Free;
 end;
 
 //------------------------------------------------------------------------------

@@ -780,8 +780,8 @@ begin
     Exit;
   end;
 
-  SetLength(B, Length(S));
-  Move(S[1], B[0], Length(S));
+  SetLength(B, Length(S) * SizeOf(Char));
+  Move(S[1], B[0], Length(S)* SizeOf(Char));
   Result := WriteBytes(B);
 end;
 

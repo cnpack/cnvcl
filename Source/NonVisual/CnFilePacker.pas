@@ -591,7 +591,7 @@ var
 begin
   FillChar(ph, SizeOf(Tpackheader), #0);
   if DestFileName = '' then
-    ECnFilePackerException.Create(SFileNameError);
+    raise ECnFilePackerException.Create(SFileNameError);
 
   if not FileExists(DestFileName) then
   begin

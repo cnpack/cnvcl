@@ -72,7 +72,7 @@ type
     FDWSize: Cardinal;
     FCode: Word;
     FOldProtect: Cardinal;
-    FBakCode: array[0..255] of Char;
+    FBakCode: array[0..255] of Byte;
   public
     constructor Create;
     procedure Hook;
@@ -225,7 +225,7 @@ begin
     begin
       FillMemory(@FBakCode[0], 256, $90);
 
-        //备份代码
+      // 备份代码
       CopyMemory(@FBakCode[0], FAddr, FAddrSize);
       case FStyle of
         HT_LONG_JMP, HT_LONG_CALL:
@@ -236,7 +236,7 @@ begin
           end;
         HT_SHORT_JMP, HT_SHORT_CALL:
           begin
-              //计算相对地址
+            // 计算相对地址
             Addr := Cardinal(FEvent) - Cardinal(FAddr) - FDWSize;
             Code2 := FAddr;
             Code2^.Short := FCode;
@@ -260,33 +260,31 @@ end;
 
 { TCnHookAddress }
 
-function DoOnHookProc(Self: TCnHookAddress): DWORD; stdcall;
+function DoOnHookProc(ASelf: TCnHookAddress): DWORD; stdcall;
 var
   H: THandle;
 begin
   Result := 0;
-  if Assigned(Self.OnHookProc) then
+  if Assigned(ASelf.OnHookProc) then
   begin
-    if Self.FMutex then
+    if ASelf.FMutex then
     begin
-      H := OpenMutex(MUTEX_ALL_ACCESS, True, Self.FHookMark);
+      H := OpenMutex(MUTEX_ALL_ACCESS, True, ASelf.FHookMark);
+      if H = 0 then
+        H := CreateMutex(nil, False, ASelf.FHookMark);  // 否则创建一个
+      //统一等待，避免 CreateMutex 初始拥有参数在 Mutex 已存在时被忽略导致互斥失效
+      WaitForSingleObject(H, INFINITE);
 
-        //如果已经有就等待
-      if H <> 0 then
-        WaitForSingleObject(H, INFINITE)
-      else
-        H := CreateMutex(nil, True, Self.FHookMark);  //否则创建一个
+      // 执行事件
+      Result := ASelf.OnHookProc(ASelf.FHooker.Event);
 
-        //执行事件
-      Result := Self.OnHookProc(Self.FHooker.Event);
-
-        //销毁事件
+      // 销毁事件
       ReleaseMutex(H);
       CloseHandle(H);
     end
     else
-      //执行事件
-      Result := Self.OnHookProc(Self.FHooker.Event);
+      // 执行事件
+      Result := ASelf.OnHookProc(ASelf.FHooker.Event);
   end;
 end;
 
@@ -326,17 +324,17 @@ end;
 procedure TCnHookAddress.SetInit(const Value: Boolean);
 begin
   if FInit = Value then
-    Exit;  //跟上次一样则什么都不做
+    Exit;
 
   if Value then
-  begin  //初始化
+  begin  // 初始化
     if FInit = False then
     begin
       InitHook;
       FInit := True;
     end;
   end
-  else  //反初始化
+  else   // 反初始化
   begin
     if FInit then
     begin
@@ -349,7 +347,7 @@ end;
 procedure TCnHookAddress.SetHook(const Value: Boolean);
 begin
   if FHook = Value then
-    Exit;  //跟上次一样则什么都不做
+    Exit;
 
   if Value then
   begin
@@ -378,30 +376,32 @@ var
   Mark: AnsiString;
   Value1, Value2: DWORD;
 begin
-  //制定类型
+  // 制定类型
   FHooker.Style := HT_SHORT_JMP;
 
-  //分配内存
+  // 分配内存
   FDynamicCode := VirtualAlloc(nil, SizeOf(DynamicCode), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+  if FDynamicCode = nil then
+    RaiseLastWin32Error;
 
-  //保存地址
+  // 保存地址
   FDynamicCode^.EventAddr := @DoOnHookProc;
 
-  //写入相应语句
+  // 写入相应语句
   FDynamicCode.mov := $2589; // Mov
   FDynamicCode.EspConst := DWORD(@FDynamicCode.ParamEsp);
-  FDynamicCode^.Push := $68;  //PUSH
-  FDynamicCode^.Self := DWORD(Self);  //写上 Self
-  FDynamicCode^.Call := $15FF;  //CALL
-  FDynamicCode^.CallAddr := @FDynamicCode^.EventAddr;  //事件发生
-  FDynamicCode^.RetCode := $C2;  //RET
-  FDynamicCode^.RetXX := FRetCount * 4;  //RET XX
-  FDynamicCode^.ExtraData := FExtraData;  //额外数据
+  FDynamicCode^.Push := $68;  // PUSH
+  FDynamicCode^.Self := DWORD(Self);  // 写上 Self
+  FDynamicCode^.Call := $15FF;  // CALL
+  FDynamicCode^.CallAddr := @FDynamicCode^.EventAddr;  // 事件发生
+  FDynamicCode^.RetCode := $C2;  // RET
+  FDynamicCode^.RetXX := FRetCount * 4;  // RET XX
+  FDynamicCode^.ExtraData := FExtraData;  // 额外数据
 
-  //写入事件
+  // 写入事件
   FHooker.Event := FDynamicCode;
 
-  //制作 Mark
+  // 制作 Mark
   Value1 := GetCurrentProcess;
   Value2 := DWORD(Self.InstructionAddr);
   Mark := PStr(@Value1)^ + PStr(@Value2)^;
@@ -412,12 +412,12 @@ procedure TCnHookAddress.UnInitHook;
 var
   FDynamicCode: PDynamicCode;
 begin
-  //释放 Hook
+  // 释放 Hook
   Hook := False;
   FDynamicCode := FHooker.Event;
   FHooker.Event := nil;
 
-  //释放内存
+  // 释放内存
   VirtualFree(FDynamicCode, SizeOf(DynamicCode), MEM_DECOMMIT);
 end;
 
@@ -459,7 +459,7 @@ end;
 procedure TCnInProcessAPIHook.SetActive(const Value: Boolean);
 type
   PStr = ^Str;
-  Str = array[0..3] of Char;
+  Str = array[0..3] of AnsiChar;
 var
   Lib, Values: DWORD;
   tmp: string;
@@ -472,30 +472,30 @@ begin
   begin
     if Value then
     begin
-      //取得地址
+      // 取得地址
       Lib := LoadLibrary(PChar(FDllName));
       FHooker.InstructionAddr := GetProcAddress(Lib, PChar(FDllFunction));
       FreeLibrary(Lib);
 
-      //固定长度
+      // 固定长度
       FHooker.InstructionSize := 5;
-      //事件
+      // 事件
       FHooker.OnHookProc := OnHookProc;
-      //Self
+      // Self
       FHooker.ExtraData := Self;
 
-      //设置标记
+      // 设置标记
       Values := GetCurrentProcess;
       tmp := PStr(@Values)^;
       FHookMark := CharUpper(PChar(FDllName + FDllFunction + tmp));
 
-      //打开 Hook
+      // 打开 Hook
       FHooker.Init := True;
       FHooker.Hook := True;
     end
     else
     begin
-      //关闭 Hook
+      // 关闭 Hook
       FHooker.Hook := False;
       FHooker.Init := False;
     end;
@@ -509,7 +509,7 @@ var
   Param: Pointer;
   _Handle: THandle;
 begin
-  //取得 Self
+  // 取得 Self
   _Handle := 0;
   OBJ := Data^.ExtraData;
   if Assigned(OBJ.FOnAPIHookProc) then
@@ -521,23 +521,22 @@ begin
     if OBJ.Mutex then
     begin
       _Handle := OpenMutex(MUTEX_ALL_ACCESS, True, PChar(OBJ.FHookMark));
-      //如果已经有就等待
-      if _Handle <> 0 then
-        WaitForSingleObject(_Handle, INFINITE)
-      else
-        _Handle := CreateMutex(nil, True, PChar(OBJ.FHookMark));  //否则创建一个
+      if _Handle = 0 then
+        _Handle := CreateMutex(nil, False, PChar(OBJ.FHookMark));  //否则创建一个
+      //统一等待，避免 CreateMutex 初始拥有参数在 Mutex 已存在时被忽略导致互斥失效
+      WaitForSingleObject(_Handle, INFINITE);
     end;
 
-    //执行事件
+    // 执行事件
     if FRestoreWhenOnHook then
       OBJ.FHooker.Hook := False;
     Result := OBJ.FOnAPIHookProc(Params);
-    CopyMemory(Param, @Params[0], Obj.ParamCount * 4);  //参数写回
+    CopyMemory(Param, @Params[0], Obj.ParamCount * 4);  // 参数写回
     if FRestoreWhenOnHook then
       OBJ.FHooker.Hook := True;
     if OBJ.Mutex then
     begin
-      //销毁事件
+      // 销毁事件
       ReleaseMutex(_Handle);
       CloseHandle(_Handle);
     end;

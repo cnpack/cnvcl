@@ -369,6 +369,7 @@ type
     FBackground: Boolean;
     FKeyBoardCount: Integer;
     procedure RegisterRawInput;
+    procedure UnregisterRawInput;
     function GetKeyBoardCount: Integer;
     procedure SetEnabled(const Value: Boolean);
     procedure SetBackground(const Value: Boolean);
@@ -426,6 +427,8 @@ end;
 
 destructor TCnRawKeyBoard.Destroy;
 begin
+  if FRegistered then
+    UnregisterRawInput;
   if FHandle <> 0 then
   begin
     DeallocateHWnd(FHandle);
@@ -477,6 +480,17 @@ begin
     raise Exception.Create('RegisterRawInputDevices error!');
 end;
 
+procedure TCnRawKeyBoard.UnregisterRawInput;
+var
+  Device: array[0..0] of RAWINPUTDEVICE;
+begin
+  Device[0].usUsagePage := RIM_TYPEKEYBOARD;
+  Device[0].usUsage     := 6;
+  Device[0].dwFlags     := RIDEV_REMOVE;
+  Device[0].hwndTarget  := 0;
+  RegisterRawInputDevices(@Device, 1, SizeOf(RAWINPUTDEVICE));
+end;
+
 procedure TCnRawKeyBoard.SetEnabled(const Value: Boolean);
 begin
   if FEnabled <> Value then
@@ -488,6 +502,14 @@ begin
       begin
         RegisterRawInput;
         FRegistered := True;
+      end;
+    end
+    else if not FEnabled and FRegistered then
+    begin
+      if not (csDesigning in ComponentState) then
+      begin
+        UnregisterRawInput;
+        FRegistered := False;
       end;
     end;
   end;

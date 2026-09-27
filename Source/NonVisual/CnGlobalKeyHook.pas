@@ -23,9 +23,9 @@ unit CnGlobalKeyHook;
 {* |<PRE>
 ================================================================================
 * 软件名称：系统功能组件包
-* 单元名称：实现全局键盘勾子单元
+* 单元名称：实现全局键盘钩子单元
 * 单元作者：rarnu(rarnu@cnpack.org)
-* 备    注：使用系统API实现的无dll勾子组件
+* 备    注：使用系统 API 实现的无 dll 钩子组件
 * 开发平台：Windows2003 Server + Delphi2007 up2
 * 兼容测试：Windows2000/XP/2003/Vista + Delphi 7/2006/2007/2009
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -146,7 +146,7 @@ begin
     end;
   until Ok;
 
-  SetLength(FIDs, Length(FIDs)+1);
+  SetLength(FIDs, Length(FIDs) + 1);
   FIDs[High(FIDs)] := Result;
 end;
 
@@ -161,7 +161,7 @@ begin
       if Index < High(FIDs) then
         FIDs[Index] := FIDs[High(FIDs)];
 
-      SetLength(FIDs, Length(FIDs)-1);
+      SetLength(FIDs, Length(FIDs) - 1);
       Break;
     end;
   end;
@@ -277,7 +277,6 @@ end;
 constructor TCnCustomGlobalKeyHook.Create(AOwner: TComponent);
 begin
   inherited;
-
   if not (csDesigning in ComponentState) then
     FHandle := AllocateHWnd(WndProc);
 
@@ -292,7 +291,6 @@ begin
 
   if FHandle <> 0 then
     DeallocateHWnd(FHandle);
-
   inherited;
 end;
 
@@ -317,10 +315,13 @@ var
 begin
   if Message.Msg = WM_HOTKEY then
   begin
-    for Index := 0 to FHotKeys.Count-1 do
+    for Index := 0 to FHotKeys.Count - 1 do
+    begin
       if Integer(Message.WParam) = FHotKeys[Index].FID then
-      FHotKeys[Index].DoExecute;
-  end else
+        FHotKeys[Index].DoExecute;
+    end;
+  end
+  else
     Message.Result := DefWindowProc(FHandle, Message.Msg, Message.WParam,
       Message.LParam);
 end;

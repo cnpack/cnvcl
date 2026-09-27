@@ -1076,7 +1076,7 @@ begin
 end;
 
 procedure TCnCustomDockControl.UpdateCaption(Exclude: TControl);
-var i: Integer;
+var I: Integer;
   Host: TCnDockableForm;
 begin
   if Parent is TCnDockableForm then
@@ -2236,7 +2236,7 @@ begin
           S := PChar(Message.NotifyRec.MsgLParam);
           { Search for first CR/LF and end string there }
           for I := 1 to Length(S) do
-            if {$IFDEF UNICODE}CharInSet(S[i], [#13, #10]){$ELSE}S[I] in [#13, #10]{$ENDIF} then
+            if {$IFDEF UNICODE}CharInSet(S[I], [#13, #10]){$ELSE}S[I] in [#13, #10]{$ENDIF} then
             begin
               SetLength(S, I - 1);
               Break;
@@ -2264,7 +2264,7 @@ end;
 
 function TCnDockPageControl.GetDockClientFromMousePos(MousePos: TPoint): TControl;
 var
-  i, HitIndex: Integer;
+  I, HitIndex: Integer;
   HitTestInfo: TTCHitTestInfo;
   Page: TCnDockTabSheet;
 begin
@@ -2276,7 +2276,7 @@ begin
     if HitIndex >= 0 then
     begin
       Page := nil;
-      for i := 0 to HitIndex do
+      for I := 0 to HitIndex do
         Page := FindNextPage(Page, True, True);
       if (Page <> nil) and (Page.ControlCount > 0) then
       begin
@@ -2494,7 +2494,6 @@ end;
 
 constructor TCnDockPresident.Create;
 begin
-  { 创建列表和Hash表 }
   FDockServersList := TList.Create;
   FDockClientsList := TList.Create;
   FDockServersHash := TCnDockControlHashTable.Create(10, False);
@@ -2505,7 +2504,6 @@ end;
 
 destructor TCnDockPresident.Destroy;
 begin
-  { 删除列表和Hash表 }
   FDockableFormList.Free;
   FDockServersList.Free;
   FDockClientsList.Free;
@@ -2516,28 +2514,30 @@ begin
 end;
 
 function TCnDockPresident.FindDockClientForm(AName: string): TControl;
-var i: Integer;
+var
+  I: Integer;
 begin
   Result := nil;
-  for i := 0 to FDockServersList.Count - 1 do
+  for I := 0 to FDockClientsList.Count - 1 do
   begin
-    if TControl(FDockServersList[i]).Name = AName then
+    if TControl(FDockClientsList[I]).Name = AName then
     begin
-      Result := TControl(FDockServersList[i]);
+      Result := TControl(FDockClientsList[I]);
       Exit;
     end;
   end;
 end;
 
 function TCnDockPresident.FindDockServerForm(AName: string): TControl;
-var i: Integer;
+var
+  I: Integer;
 begin
   Result := nil;
-  for i := 0 to FDockClientsList.Count - 1 do
+  for I := 0 to FDockServersList.Count - 1 do
   begin
-    if TControl(FDockClientsList[i]).Name = AName then
+    if TControl(FDockServersList[I]).Name = AName then
     begin
-      Result := TControl(FDockClientsList[i]);
+      Result := TControl(FDockServersList[I]);
       Exit;
     end;
   end;
@@ -2620,18 +2620,18 @@ begin
 end;
 
 procedure TCnDockPresident.BeginLoad;
-var i: Integer;
+var I: Integer;
 begin
   Inc(FLoadCount);
   if FLoadCount = 1 then
   begin
     FDockServersHash.MakeEmpty;
-    for i := 0 to FDockServersList.Count - 1 do
-      FDockServersHash.Insert(TControl(FDockServersList[i]).Name, FDockServersList[i]);
+    for I := 0 to FDockServersList.Count - 1 do
+      FDockServersHash.Insert(TControl(FDockServersList[I]).Name, FDockServersList[I]);
 
     FDockClientsHash.MakeEmpty;
-    for i := 0 to FDockClientsList.Count - 1 do
-      FDockClientsHash.Insert(TControl(FDockClientsList[i]).Name, FDockClientsList[i]);
+    for I := 0 to FDockClientsList.Count - 1 do
+      FDockClientsHash.Insert(TControl(FDockClientsList[I]).Name, FDockClientsList[I]);
   end;
 end;
 
