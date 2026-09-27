@@ -300,8 +300,11 @@ end;
 
 procedure TCnActionListHook.SetActive(const Value: Boolean);
 begin
-  FActive := Value;
-  UpdateHookedActions;
+  if Value <> FActive then
+  begin
+    FActive := Value;
+    UpdateHookedActions;
+  end;
 end;
 
 procedure TCnActionListHook.UnHookActionItems(ActionList: TActionList);

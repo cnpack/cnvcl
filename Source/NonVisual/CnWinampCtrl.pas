@@ -383,7 +383,7 @@ end;
 
 function TCnWinampCtrl.GetIsFound: Boolean;
 begin
-  Result := FWndWinamp <> 0; //INVALID_HANDLE_VALUE [DWord(-1)]; 2005.3.7 QQCAT
+  Result := (FWndWinamp <> 0) and IsWindow(FWndWinamp); //INVALID_HANDLE_VALUE [DWord(-1)]; 2005.3.7 QQCAT
 end;
 
 procedure TCnWinampCtrl.GetPlayListCount;

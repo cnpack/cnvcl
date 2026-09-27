@@ -345,7 +345,6 @@ end;
 
 destructor TCnTrayIcon.Destroy;
 begin
-  Destroying;
   UnHookApp;
   FEnabled := False;
   FIcon.OnChange := nil;

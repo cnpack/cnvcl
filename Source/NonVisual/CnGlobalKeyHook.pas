@@ -317,7 +317,7 @@ begin
   begin
     for Index := 0 to FHotKeys.Count - 1 do
     begin
-      if Integer(Message.WParam) = FHotKeys[Index].FID then
+      if WPARAM(Message.WParam) = WPARAM(FHotKeys[Index].FID) then
         FHotKeys[Index].DoExecute;
     end;
   end

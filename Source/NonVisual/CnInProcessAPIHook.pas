@@ -474,8 +474,12 @@ begin
     begin
       // 取得地址
       Lib := LoadLibrary(PChar(FDllName));
+      if Lib = 0 then
+        raise Exception.Create('LoadLibrary failed: ' + FDllName);
       FHooker.InstructionAddr := GetProcAddress(Lib, PChar(FDllFunction));
       FreeLibrary(Lib);
+      if FHooker.InstructionAddr = nil then
+        raise Exception.Create('GetProcAddress failed: ' + FDllFunction);
 
       // 固定长度
       FHooker.InstructionSize := 5;

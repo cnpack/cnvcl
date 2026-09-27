@@ -1249,6 +1249,7 @@ var AZone: TCnVCDockZone;
   AverageSize: Integer;
 begin
   ChildCount := Parent.VisibleChildCount - Integer((Exclude <> nil) and (Exclude.ParentZone = Parent));
+  if ChildCount <= 0 then Exit;
   AverageSize := DockSiteSizeA div ChildCount;
   Assert(AverageSize > 0);
   AZone := TCnVCDockZone(Parent.FirstVisibleChildZone);

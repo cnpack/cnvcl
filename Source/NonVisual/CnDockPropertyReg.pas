@@ -182,7 +182,7 @@ begin
     end;
     1:
     begin
-      if Page.PageCount >= 0 then
+      if Page.PageCount > 0 then
       begin
         if Page.ActivePageIndex = Page.PageCount - 1 then
           Page.ActivePageIndex := 0
@@ -191,7 +191,7 @@ begin
     end;
     2:
     begin
-      if Page.PageCount >= 0 then
+      if Page.PageCount > 0 then
       begin
         if Page.ActivePageIndex = 0 then
           Page.ActivePageIndex := Page.PageCount - 1
@@ -200,7 +200,7 @@ begin
     end;
     3:
     begin
-      if Page.PageCount >= 0 then
+      if Page.PageCount > 0 then
         Page.ActivePage.Free;
     end;
   end;

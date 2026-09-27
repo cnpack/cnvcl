@@ -1414,6 +1414,7 @@ procedure TCnThreadPool.SetAdjustInterval(const Value: DWORD);
 var
   DueTo: Int64;
 begin
+  DueTo := -1;
   FAdjustInterval := Value;
   if FHTimReduce <> 0 then
     SetWaitableTimer(FHTimReduce, DueTo, Value, nil, nil, False);

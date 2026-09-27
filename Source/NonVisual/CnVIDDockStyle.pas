@@ -1958,14 +1958,17 @@ begin
       end;
       PaintDockGrabberRect(Canvas, Control, DrawRect);
       { 设置Canvas的字体和画刷的属性 }
-      if ActiveControl = Control then
-        Canvas.Font.Assign(Option.ActiveFont)
-      else Canvas.Font.Assign(Option.InactiveFont);
-      Canvas.Brush.Style := bsClear;
-      DrawRect := ARect;
-      GetCaptionRect(DrawRect);
-      uFormat := DT_SINGLELINE or (UINT(Option.TextEllipsis) * DT_END_ELLIPSIS) or TextAlignment[Option.TextAlignment];
-      DrawText(Canvas.Handle, PChar(TForm(Control).Caption), -1, DrawRect, uFormat);
+      if Option <> nil then
+      begin
+        if ActiveControl = Control then
+          Canvas.Font.Assign(Option.ActiveFont)
+        else Canvas.Font.Assign(Option.InactiveFont);
+        Canvas.Brush.Style := bsClear;
+        DrawRect := ARect;
+        GetCaptionRect(DrawRect);
+        uFormat := DT_SINGLELINE or (UINT(Option.TextEllipsis) * DT_END_ELLIPSIS) or TextAlignment[Option.TextAlignment];
+        DrawText(Canvas.Handle, PChar(TForm(Control).Caption), -1, DrawRect, uFormat);
+      end;
       DrawCloseButton(Canvas, FindControlZone(Control), Right-RightOffset-ButtonWidth, Top+TopOffset);
     end
     else if GrabbersPosition = gpBottom then

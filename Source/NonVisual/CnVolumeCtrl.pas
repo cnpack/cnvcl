@@ -1334,7 +1334,7 @@ begin
     if not mGetControlDetails(Hmx, Mxcd) then
       Exit;
 
-    Result := Boolean(MxMute.fValue);
+    Result := MxMute.fValue <> 0;
   finally
     mixerClose(Hmx);
   end;

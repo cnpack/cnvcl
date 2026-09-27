@@ -543,7 +543,7 @@ begin
                 cx := (wRect.Right - wRect.Left - FBorderLeft - FBorderRight);
                 cy := (wRect.Bottom - wRect.Top - FBorderTop - FBorderBottom);
 
-                FBuffer.Canvas.StretchDraw(Rect(DescRect.Left,DescRect.Top,cx,cy), FBitmap); ///Edit By LXY
+                FBuffer.Canvas.StretchDraw(Rect(DescRect.Left, DescRect.Top, DescRect.Left + cx, DescRect.Top + cy), FBitmap); ///Edit By LXY
                 DoPaintImage(ACanvas);
 
               end;

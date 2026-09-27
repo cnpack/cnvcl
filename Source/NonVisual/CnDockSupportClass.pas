@@ -566,7 +566,7 @@ destructor TCnBaseGetFormEventComponent.Destroy;
 begin
   if not (csDesigning in ComponentState) then
   begin
-    if @FOldWindowProc <> nil then
+    if Assigned(FOldWindowProc) then
       FParentForm.WindowProc := FOldWindowProc;
     FOldWindowProc := nil;
     { ¼Ì³Ð×ÔTCustomForm }

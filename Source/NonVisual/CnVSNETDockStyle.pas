@@ -850,8 +850,9 @@ begin
       VSChannel := TCnVSPopupPanel(ADockClient.ParentForm.HostDockSite.Parent.HostDockSite).VSChannel;
       if VSChannel <> nil then
         Pane := VSChannel.FindPane(ADockClient.ParentForm)
-      else Pane := nil;
-      Pane := VSChannel.FindPane(ADockClient.ParentForm);
+      else
+	    Pane := nil;
+
       if Pane <> nil then
       begin
         Pane.Visible := AVisible;

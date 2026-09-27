@@ -65,19 +65,19 @@ const
   {Author}
   gs_CnAuthorName = 'Zhou Yibo';
   gs_CnComparyName = 'None';
-  gs_CnHomePage = 'http://www.pigtwo.com' + #10#13 +
+  gs_CnHomePage = 'http://www.pigtwo.com' + #13#10 +
   'http://www.pigtwo.com/CtrlData/WebSite/luxiaoban.htm';
-  gs_CnEmail = 'zhouyibo2000@sina.com' + #10#13 +
+  gs_CnEmail = 'zhouyibo2000@sina.com' + #13#10 +
   'luxiaoban@sina.com';
   {About}
   gs_CnAbout = 'About';
-  gs_CnDockManagerAbout = 'It is %s, version %s,' + #10#13 +
-                          'Copywrite: %s-%s, Author: %s, Company: %s,' + #10#13 +
-                          'Website: %s,' + #10#13 +
+  gs_CnDockManagerAbout = 'It is %s, version %s,' + #13#10 +
+                          'Copywrite: %s-%s, Author: %s, Company: %s,' + #13#10 +
+                          'Website: %s,' + #13#10 +
                           'Email: %s';
-  gs_CnDockStyleAbout =   'It is %s, version %s,' + #10#13 +
-                          'Copywright: %s-%s, Author: %s, Company: %s,' + #10#13 +
-                          'Website: %s,' + #10#13 +
+  gs_CnDockStyleAbout =   'It is %s, version %s,' + #13#10 +
+                          'Copywright: %s-%s, Author: %s, Company: %s,' + #13#10 +
+                          'Website: %s,' + #13#10 +
                           'Email: %s';
   {Splitter}
   gs_CnStringSplitter = ' ';

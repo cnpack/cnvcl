@@ -178,7 +178,7 @@ begin
   begin
     CopyMemory(@_NtHead, Pointer(TCnNativeInt(aFileStream.Memory) + _DosHead._lfanew), SizeOf(_NtHead));
     Result.CodeHeadSize := _NtHead.OptionalHeader.SizeOfHeaders;
-    Result.CodeStartAddr := _NtHead.OptionalHeader.SizeOfHeaders + 1;
+    Result.CodeStartAddr := _NtHead.OptionalHeader.SizeOfHeaders;
     Result.CodeSize := _NtHead.OptionalHeader.SizeOfCode;
     Result.CodeBaseAddr := _NtHead.OptionalHeader.ImageBase + _NtHead.OptionalHeader.BaseOfCode;
   end;
@@ -227,12 +227,14 @@ begin
 
             Result.CodeHeadSize := _NtHead.OptionalHeader.SizeOfHeaders;
             Result.CodeStartAddr := _NtHead.OptionalHeader.ImageBase + _NtHead.OptionalHeader.BaseOfCode;
-            Result.CodeSize := _NtHead.OptionalHeader.BaseOfData;
+            Result.CodeSize := _NtHead.OptionalHeader.SizeOfCode;
           end;
+          CloseHandle(_Handle);
           Break;
         end;
       until (Module32Next(_ModuleSnap, _Me32) = False)
     end;
+    CloseHandle(_ModuleSnap);
   end;
 end;
 

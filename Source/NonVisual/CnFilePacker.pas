@@ -227,6 +227,7 @@ end;
 
 procedure Check(var ADirName: string);
 begin
+  if ADirName = '' then Exit;
   if ADirName[Length(ADirName)] <> '\' then
     ADirName := ADirName + '\';
 end;
@@ -519,6 +520,7 @@ begin
   for I := 0 to FFileinfoCount - 1 do
   begin
     S := {$IFDEF UNICODE}string{$ENDIF}(FPackFileInformations[I].Name);
+    if S = '' then Continue;
     if S[Length(s)] = '?' then
     begin
       S := IncludeTrailingBackslash(_CnExtractFilePath(S));

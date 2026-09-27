@@ -430,7 +430,8 @@ begin
         if hhkNTKeyboard = 0 then
           Exit;
         UnhookWindowsHookEx(hhkNTKeyboard); // Ð¶ÔØ¹³×Ó
-        EnableCTRLALTDEL(True);
+        if FBlockCtrlAltDelete then
+          EnableCTRLALTDEL(True);
         SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);
         hhkNTKeyboard := 0;
       end;
