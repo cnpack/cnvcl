@@ -152,6 +152,7 @@ type
     FOnFreeMemory   : TFreeMemoryEvent;
     FMemTypeItem : PCnMemoryTypeItem;  // 注册返回的内存类型块指针
     FRegistered: Boolean;              // 是否已经注册到内存池管理器了
+    FRegLock : SyncObjs.TCriticalSection;  // 注册/注销互斥锁，保证多线程首次并发租借时只注册一次
 
     procedure EnsureRegister;
     procedure DoRegister;
@@ -450,6 +451,8 @@ begin
       begin
         FreeMemoryBlockItem(MemoryTypeItem, BlockItem);
         MemoryTypeItem^.MemoryBlockList.Remove(BlockItem);
+        // 被释放的是空闲块，空闲计数须同步递减，否则 Cardinal 下溢打乱租借/统计/清理策略
+        Dec(MemoryTypeItem^.IdelCount);
         Dec(ReleaseCount);
       end;
     end;
@@ -467,6 +470,7 @@ begin
   FThreshold := 20;
   FMemorySize := 1024;
   FRegistered := False;
+  FRegLock := SyncObjs.TCriticalSection.Create;
   // 使用延迟注册方式，避免初始化参数造成反复注册
   // DoRegister;
 end;
@@ -474,13 +478,20 @@ end;
 destructor TCnCustomSimpleMemPool.Destroy;
 begin
   DoUnregister;
+  FRegLock.Free;
   inherited;
 end;
 
 procedure TCnCustomSimpleMemPool.EnsureRegister;
 begin
-  if not FRegistered then
-    DoRegister;
+  // 加锁保证多线程首次并发租借时只注册一次（原检查与置位无同步，可能双重注册）
+  FRegLock.Enter;
+  try
+    if not FRegistered then
+      DoRegister;
+  finally
+    FRegLock.Release;
+  end;
 end;
 
 procedure TCnCustomSimpleMemPool.DoRegister;
@@ -496,11 +507,16 @@ end;
 
 procedure TCnCustomSimpleMemPool.DoUnregister;
 begin
-  if FRegistered then
-  begin
-    CnSimpleMemPoolMgr.UnregisterMemoryType(FMemTypeItem);
-    FMemTypeItem := nil;
-    FRegistered := False;
+  FRegLock.Enter;
+  try
+    if FRegistered then
+    begin
+      CnSimpleMemPoolMgr.UnregisterMemoryType(FMemTypeItem);
+      FMemTypeItem := nil;
+      FRegistered := False;
+    end;
+  finally
+    FRegLock.Release;
   end;
 end;
 
