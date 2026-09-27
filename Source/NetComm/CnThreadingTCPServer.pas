@@ -484,6 +484,16 @@ begin
       FOpening := False;
     end;
   end;
+
+  // Bind/Listen 失败时回滚状态并关闭 socket，
+  // 避免停留在"Active 但未监听"状态导致无法重试且监听 socket 泄漏
+  if (FSocket <> INVALID_SOCKET) and not FListening then
+  begin
+    FActive := False;
+    CnCloseSocket(FSocket);
+    FSocket := INVALID_SOCKET;
+    FActualLocalPort := 0;
+  end;
 end;
 
 procedure TCnThreadingTCPServer.SetActive(const Value: Boolean);
@@ -521,8 +531,14 @@ var
   Len, Ret: Integer;
   ClientThread: TCnTCPClientThread;
 begin
-  FServer.FBytesReceived := 0;
-  FServer.FBytesSent := 0;
+  // 统计清零须与 IncRecv/IncSent 一样持 FCountLock，避免与客户端线程的统计并发冲突
+  FServer.FCountLock.Enter;
+  try
+    FServer.FBytesReceived := 0;
+    FServer.FBytesSent := 0;
+  finally
+    FServer.FCountLock.Leave;
+  end;
 
   while not Terminated do
   begin

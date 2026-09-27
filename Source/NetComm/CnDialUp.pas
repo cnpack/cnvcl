@@ -149,8 +149,10 @@ type
 type
   TOnStatusEvent = procedure(Sender: TObject; MessageText: string; Error: Boolean) of object;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnDialUp = class(TCnComponent)
   private
@@ -205,7 +207,10 @@ type
 implementation
 
 var
-  xSelf: Pointer;
+  // 当前拨号实例注册表：同一进程同时只允许一个拨号流程，RAS 回调据此路由
+  // 到正确实例（替代原全局 xSelf 在多实例下互相覆盖、回调操作错误实例的缺陷）
+  GDialerLock: TRTLCriticalSection;
+  GDialing: TCnDialUp = nil;
 
   RasHangUp: function(hConn: THRasConn): Longint; stdcall;
   RasEnumConnections: function(RasConnArray: LPRasConn; var lpcb: Longint; var lpcConnections: Longint): Longint; stdcall;
@@ -221,16 +226,41 @@ begin
   FTimer.Enabled := False;
   if AsyncStatus = False then Exit;
   if Assigned(FOnStatusEvent) then
-    FOnStatusEvent(TCnDialUp(xSelf), StatusStr, ErrorStat);
+    FOnStatusEvent(Self, StatusStr, ErrorStat);
   AsyncStatus := False;
 end;
 
 procedure RasCallback(Msg: Integer; State: TRasConnState; Error: Integer); stdcall;
+var
+  D: TCnDialUp;
 begin
-  while TCnDialUp(xSelf).AsyncStatus = True do ;
-  TCnDialUp(xSelf).AsyncStatus := True;
-  TCnDialUp(xSelf).FTimer.Enabled := True;
-  TCnDialUp(xSelf).StatusStr := TCnDialUp(xSelf).StatusString(State, Error, TCnDialUp(xSelf).ErrorStat);
+  EnterCriticalSection(GDialerLock);
+  try
+    D := GDialing;
+  finally
+    LeaveCriticalSection(GDialerLock);
+  end;
+  if D = nil then Exit;
+
+  // 等待上一次状态事件被主线程 Timer 消费；加入 Sleep 避免无暂停的紧密自旋占满 CPU
+  while D.AsyncStatus do
+    Sleep(1);
+
+  D.StatusStr := D.StatusString(State, Error, D.ErrorStat);
+  D.AsyncStatus := True;
+  D.FTimer.Enabled := True;
+
+  // 连接建立、断开（含出错）即本次拨号流程结束，注销注册以便其它实例拨号
+  if (Error <> 0) or (State = RASCS_Connected) or (State = RASCS_Disconnected) then
+  begin
+    EnterCriticalSection(GDialerLock);
+    try
+      if GDialing = D then
+        GDialing := nil;
+    finally
+      LeaveCriticalSection(GDialerLock);
+    end;
+  end;
 end;
 
 constructor TCnDialUp.Create(AOwner: TComponent);
@@ -266,6 +296,15 @@ end;
 
 destructor TCnDialUp.Destroy;
 begin
+  // 若本实例处于拨号注册中，先注销，避免回调访问已释放对象
+  EnterCriticalSection(GDialerLock);
+  try
+    if GDialing = Self then
+      GDialing := nil;
+  finally
+    LeaveCriticalSection(GDialerLock);
+  end;
+
   // If the RASAPI32 DLL was loaded, then free it.
   if RasInstalled then
     FreeLibrary(hRasDLL);
@@ -317,7 +356,9 @@ begin
     GoOffline;
     FillChar(DialParams, SizeOf(TRasDialParams), 0);
     DialParams.dwSize := SizeOf(TRasDialParams);
-    StrPCopy(DialParams.szEntryName, {$IFDEF UNICODE}AnsiString{$ENDIF}(FConnectTo));
+
+    // StrPCopy 无边界检查，超长输入会栈溢出，改用 StrLCopy 按缓冲区大小截断
+    StrLCopy(DialParams.szEntryName, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(FConnectTo)), SizeOf(DialParams.szEntryName) - 1);
     B := False;
     R := RasGetEntryDialParams(nil, DialParams, B);
     if R <> 0 then
@@ -328,9 +369,10 @@ begin
         FOnStatusEvent(Self, FLangStrList[2], True);
       Exit;
     end;
+
     DialParams.dwSize := SizeOf(TRasDialParams);
-    StrPCopy(DialParams.szUserName, {$IFDEF UNICODE}AnsiString{$ENDIF}(FUsername));
-    StrPCopy(DialParams.szPassword, {$IFDEF UNICODE}AnsiString{$ENDIF}(FPassword));
+    StrLCopy(DialParams.szUserName, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(FUsername)), SizeOf(DialParams.szUserName) - 1);
+    StrLCopy(DialParams.szPassword, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(FPassword)), SizeOf(DialParams.szPassword) - 1);
     R := RasSetEntryDialParams(nil, DialParams, False);
     if R <> 0 then
     begin
@@ -340,12 +382,36 @@ begin
         FOnStatusEvent(Self, FLangStrList[2], True);
       Exit;
     end;
-    xSelf := Self;
+
+    // 注册为当前拨号实例；已有其它实例在拨号时直接失败，
+    // 而不是像原全局 xSelf 那样互相覆盖导致回调路由到错误实例
+    EnterCriticalSection(GDialerLock);
+    try
+      if (GDialing <> nil) and (GDialing <> Self) then
+      begin
+        Result := False;
+        Exit;
+      end;
+      GDialing := Self;
+    finally
+      LeaveCriticalSection(GDialerLock);
+    end;
+
     AsyncStatus := False;
     hRAS := 0;
+    // dwNotifierType = 0 表示 lpNotifier 是 RasDialFunc 型函数指针（官方文档：
+    // 0=RasDialFunc、1=RasDialFunc1、2=RasDialFunc2，见 RasDialA function (ras.h)），
     R := RasDial(nil, nil, DialParams, 0, @RasCallback, hRAS);
     if R <> 0 then
     begin
+      // 拨号发起失败，注销当前实例
+      EnterCriticalSection(GDialerLock);
+      try
+        if GDialing = Self then
+          GDialing := nil;
+      finally
+        LeaveCriticalSection(GDialerLock);
+      end;
       Result := False;
       RasGetErrorString(R, PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(C)), 100);
       GoOffline;
@@ -386,7 +452,6 @@ var
   Stat: TRasConnStatus;
 begin
   Result := '';
-
   if not RasInstalled then Exit;
 
   Entries[1].dwSize := SizeOf(TRasConn);
@@ -395,12 +460,17 @@ begin
   Stat.dwSize := SizeOf(TRasConnStatus);
   R := RasEnumConnections(@Entries[1], BufSize, NumEntries);
   if R = 0 then
+  begin
     if NumEntries > 0 then
-      for I := 1 to NumEntries do begin
+    begin
+      for I := 1 to NumEntries do
+      begin
         RasGetConnectStatus(Entries[I].hrasconn, Stat);
         if Stat.rasconnstate = RASCS_Connected then
           Result := Entries[I].szEntryName + ' (' + {$IFDEF UNICODE}string{$ENDIF}(Entries[I].szDeviceName) + ')'
       end;
+    end;
+  end;
 end;
 
 procedure TCnDialUp.GoOffline;
@@ -408,13 +478,17 @@ var
   Entries: array[1..100] of TRasConn;
   BufSize, NumEntries, R, I, E: Integer;
 begin
-
   if not RasInstalled then Exit;
 
-  for E := 0 to 6 do begin
+  for E := 0 to 6 do
+  begin
     Entries[1].dwSize := SizeOf(TRasConn);
+    // 必须在每次枚举前传入缓冲区实际大小（原代码未赋值，把栈上随机值当大小传入，
+    // 导致 RasEnumConnections 通常失败、挂断根本不执行）
+    BufSize := SizeOf(TRasConn) * 100;
     R := RasEnumConnections(@Entries[1], BufSize, NumEntries);
-    if R = 0 then begin
+    if R = 0 then
+    begin
       if NumEntries > 0 then
         for I := 1 to NumEntries do RasHangUp(Entries[I].hrasconn);
     end;
@@ -431,7 +505,6 @@ begin
   ES := False;
 
   if not RasInstalled then Exit;
-
   if Error <> 0 then
   begin
     RasGetErrorString(Error, PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(C)), 100);
@@ -473,6 +546,12 @@ begin
   Email := SCnPack_TeamEmail;
   Comment := SCnDialUpComment;
 end;
+
+initialization
+  InitializeCriticalSection(GDialerLock);
+
+finalization
+  DeleteCriticalSection(GDialerLock);
 
 end.
 
