@@ -386,9 +386,32 @@ var
   P: PChar;
   Q: PAnsiChar;
   Len: Byte;
+  I, LabelLen, WireLen: Integer;
 begin
-  Result := Buf;
-  if (Length(Name) <= 1) or (Length(Name) > 63) then
+  // 失败时返回 nil。按 RFC 1035 校验：非空、不含空标签（首尾点/连续点）、
+  // 单个 label 不超过 63 字节、整个域名编码后（各 label 及其长度字节 + 结尾 0）不超过 255 字节
+  Result := nil;
+  if (Length(Name) <= 1) or (Buf = nil) then
+    Exit;
+
+  WireLen := 1; // 结尾 #0
+  LabelLen := 0;
+  for I := 1 to Length(Name) do
+  begin
+    if Name[I] = '.' then
+    begin
+      if (LabelLen = 0) or (LabelLen > 63) then
+        Exit;
+      Inc(WireLen, LabelLen + 1);
+      LabelLen := 0;
+    end
+    else
+      Inc(LabelLen);
+  end;
+  if (LabelLen = 0) or (LabelLen > 63) then
+    Exit;
+  Inc(WireLen, LabelLen + 1);
+  if WireLen > 255 then
     Exit;
 
   P := @Name[1];
@@ -431,10 +454,12 @@ var
   PW: PWORD;
 begin
   Result := nil;
-  if (Length(Name) <= 1) or (Length(Name) > 63) then
+  // 整个域名的显示长度上限为 253 字节（编码后线格式不超过 255）
+  if (Length(Name) <= 1) or (Length(Name) > 253) then
     Exit;
 
-  SetLength(Result, SizeOf(TCnDNSHeader) + Length(Name) + SizeOf(Byte) + 2 * SizeOf(Word));
+  // 线格式域名为 Length(Name) + 各 label 长度字节 + 结尾 0，共 Length(Name) + 2 字节
+  SetLength(Result, SizeOf(TCnDNSHeader) + Length(Name) + 2 * SizeOf(Byte) + 2 * SizeOf(Word));
   Head := PCnDNSHeader(@Result[0]);
   CnSetDNSHeaderId(Head, RandId);  // 查询 ID 号
   CnSetDNSHeaderQR(Head, True);    // 是查询类型
@@ -489,9 +514,12 @@ begin
       begin
         B := PB^;
         Inc(PB);
-        Inc(Result);
-        if Result >= MaxLen then
+        Inc(Result); // 指针第一字节
+        if Result + 1 >= MaxLen then
+        begin
+          Inc(Result); // 指针第二字节一并计入，保证与实际消费字节数一致
           Exit;
+        end;
 
         if PAnsiChar(PB) >= PacketEnd then
           raise ECnDNSException.Create(SCnDNSParsePacketEndReachedPrem);
@@ -501,7 +529,10 @@ begin
           raise ECnDNSException.Create(SCnDNSParsePointerOutOfBounds);
 
         if Base + Idx = StrData then  // 避免下一个指向本块，导致无限递归
+        begin
+          Inc(Result); // 指针第二字节一并计入，保证与实际消费字节数一致
           Exit;
+        end;
 
         ParseIndexedString(StrResult, Base, Base + Idx, PacketSize, 0, Depth + 1);
         Inc(PB);
@@ -568,7 +599,10 @@ begin
           raise ECnDNSException.Create(SCnDNSParsePointerOutOfBounds);
 
         if Base + Idx = StrData then  // 避免下一个指向本块，导致无限递归
+        begin
+          Inc(Result); // 指针第二字节一并计入，保证与实际消费字节数一致
           Exit;
+        end;
 
         ParseIndexedString(StrResult, Base, Base + Idx, PacketSize, 0, Depth + 1);
         Inc(PB);
@@ -647,6 +681,8 @@ var
     H: PCnDNSResourceRecordAfterName;
     S: string;
     Len: Integer;
+    PB, TxtEnd: PByte;
+    ASeg: AnsiString;
   begin
     Result := ResourceRecordData;
     if ResourceRecordData >= PacketEnd then Exit;
@@ -691,8 +727,23 @@ var
       end
       else if Resource.RType = CN_DNS_TYPE_TXT then
       begin
-        SetLength(S, Resource.RDLength);
-        Move(H^.RData[0], S[1], Resource.RDLength);
+        // TXT 的 RData 按 RFC 1035 为若干个带 1 字节长度前缀的 character-string，
+        // 必须按字节逐段解码（此前按 WideChar 分配却只填充字节，内容错解码）
+        S := '';
+        PB := PByte(PAnsiChar(@H^.RData[0]));
+        TxtEnd := PB;
+        Inc(TxtEnd, Resource.RDLength);
+        while NativeUInt(PB) < NativeUInt(TxtEnd) do
+        begin
+          Len := PB^; // 本段长度前缀
+          Inc(PB);
+          if NativeUInt(PB) + Len > NativeUInt(TxtEnd) then
+            raise ECnDNSException.Create(SCnDNSParseStringLengthOutOfBounds);
+
+          SetString(ASeg, PAnsiChar(PB), Len);
+          S := S + string(ASeg);
+          Inc(PB, Len);
+        end;
         Resource.RDString := S;
       end
       else
@@ -733,7 +784,7 @@ begin
   // 解析包头后部的可变部分，先按 Question 解析 QD，再按 Resource Record 解析其余仨
   Data := PAnsiChar(@Head^.SectionData[0]);
   I := 1;
-  while I <= Packet.QDCount do
+  while (I <= Packet.QDCount) and (Data < PacketEnd) do
   begin
     // 解析 QD 里的 Question 们
     Q := Packet.AddQuestion;
@@ -742,7 +793,7 @@ begin
   end;
 
   I := 1;
-  while I <= Packet.ANCount do
+  while (I <= Packet.ANCount) and (Data < PacketEnd) do
   begin
     // 解析 AN 里的 Resource Record 们
     R := Packet.AddAnswer;
@@ -751,7 +802,7 @@ begin
   end;
 
   I := 1;
-  while I <= Packet.NSCount do
+  while (I <= Packet.NSCount) and (Data < PacketEnd) do
   begin
     // 解析 NS 里的 Resource Record 们
     R := Packet.AddNameServer;
@@ -760,7 +811,7 @@ begin
   end;
 
   I := 1;
-  while I <= Packet.ARCount do
+  while (I <= Packet.ARCount) and (Data < PacketEnd) do
   begin
     // 解析 AR 里的 Resource Record 们
     R := Packet.AddAdditionalRecord;
@@ -781,14 +832,15 @@ var
   Buf: TBytes;
 begin
   if ID = 0 then
-  begin
-    Randomize;
-    ID := Trunc(Random * 65535);
-  end;
+    ID := Random(65536); // 覆盖完整的 0..65535（Randomize 已在单元初始化节执行一次）
 
   Buf := TCnDNS.BuildDNSQueryPacket(Name, ID, QueryType, QueryClass);
-  FUDP.SendBuffer(@Buf[0], Length(Buf));
-  SetLength(Buf, 0);
+  try
+    if Length(Buf) > 0 then // 名称非法时查询包为空，不发送（避免对空数组取 @Buf[0]）
+      FUDP.SendBuffer(@Buf[0], Length(Buf));
+  finally
+    SetLength(Buf, 0);
+  end;
 end;
 
 procedure TCnDNS.UDPDataReceived(Sender: TComponent; Buffer: Pointer;
@@ -800,7 +852,14 @@ begin
   begin
     Packet := TCnDNSPacketObject.Create;
     try
-      ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
+      try
+        ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
+      except
+        // 局域网内可能存在伪造/畸形的 UDP 报文，解析失败时静默丢弃，
+        // 防止异常穿透到 UDP 消息处理线程导致应用崩溃
+        on E: ECnDNSException do
+          Exit;
+      end;
       FOnResponse(Self, Packet);
     finally
       Packet.Free;
@@ -835,5 +894,8 @@ procedure TCnDNSQuestion.DumpToStrings(List: TStrings);
 begin
   List.Add(Format('QType %d, QClass %d, QName: %s', [FQType, FQClass, FQName]));
 end;
+
+initialization
+  Randomize; // 全进程只播种一次，避免每次生成查询 ID 时重播种削弱随机性
 
 end.

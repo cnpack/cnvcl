@@ -50,6 +50,7 @@ type
     Domain: string;
     Host: string;
     Port: Word;
+    IPv4: Cardinal; {* 服务主机的 IPv4 地址（主机序），0 表示未知，可用 TCnIp.IntToIP 转字符串 *}
     TxtRaw: TBytes;
     Local: Boolean;
   end;
@@ -67,6 +68,7 @@ type
     FDomain: string;
     FTypeName: string;
     FPort: Word;
+    FIPv4: Cardinal;
   public
     TxtRaw: TBytes;
 
@@ -75,6 +77,8 @@ type
     property Domain: string read FDomain write FDomain;
     property Host: string read FHost write FHost;
     property Port: Word read FPort write FPort;
+    property IPv4: Cardinal read FIPv4 write FIPv4;
+    {* 服务主机的 IPv4 地址（主机序），0 表示未知，由 A 记录填充 *}
     property ExpireTick: Cardinal read FExpireTick write FExpireTick;
     property IsLocal: Boolean read FIsLocal write FIsLocal;
   end;
@@ -288,7 +292,8 @@ var
 begin
   P := PAnsiChar(@Buf[0]);
   Q := TCnDNS.BuildNameBuffer(Name, P);
-  Stream.WriteBuffer(Buf[0], Q - P);
+  if Q <> nil then // 名称非法时 BuildNameBuffer 返回 nil，此时不写出内容
+    Stream.WriteBuffer(Buf[0], Q - P);
 end;
 
 function NameEncodedLength(const Name: string): Word;
@@ -298,7 +303,10 @@ var
 begin
   P := PAnsiChar(@Buf[0]);
   Q := TCnDNS.BuildNameBuffer(Name, P);
-  Result := Word(Q - P);
+  if Q = nil then
+    Result := 0
+  else
+    Result := Word(Q - P);
 end;
 
 function EncodeName(const Name: string): TBytes;
@@ -309,7 +317,10 @@ var
 begin
   P := PAnsiChar(@Buf[0]);
   Q := TCnDNS.BuildNameBuffer(Name, P);
-  L := Q - P;
+  if Q = nil then
+    L := 0
+  else
+    L := Q - P;
   SetLength(Result, L);
   if L > 0 then
     Move(Buf[0], Result[0], L);
@@ -389,7 +400,11 @@ begin
 {$IFDEF MSWINDOWS}
   Result := GetTickCount;
 {$ELSE}
-  Result := Cardinal(0);
+{$IFDEF FPC}
+  Result := Cardinal(GetTickCount64);
+{$ELSE}
+  Result := Cardinal(TThread.GetTickCount64); // 此前恒返回 0，导致 POSIX 上缓存过期清理完全失效
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -399,7 +414,11 @@ var
   P: PAnsiChar;
   PW: PWORD;
 begin
-  SetLength(Result, SizeOf(TCnDNSHeader) + Length(Name) + SizeOf(Byte) + 2 *
+  Result := nil;
+  // 线格式域名为 Length(Name) + 2 字节，分配时留足空间
+  if (Length(Name) <= 1) or (Length(Name) > 253) then
+    Exit;
+  SetLength(Result, SizeOf(TCnDNSHeader) + Length(Name) + 2 * SizeOf(Byte) + 2 *
     SizeOf(Word));
   Head := PCnDNSHeader(@Result[0]);
   CnSetDNSHeaderId(Head, 0);
@@ -408,6 +427,11 @@ begin
   CnSetDNSHeaderQDCount(Head, 1);
   P := PAnsiChar(@Head^.SectionData[0]);
   PW := PWORD(TCnDNS.BuildNameBuffer(Name, P));
+  if PW = nil then
+  begin
+    SetLength(Result, 0);
+    Exit;
+  end;
   PW^ := UInt16HostToNetwork(QType);
   Inc(PW);
   PW^ := UInt16HostToNetwork(QClass);
@@ -588,6 +612,7 @@ begin
   Svc.Domain := Item.Domain;
   Svc.Host := Item.Host;
   Svc.Port := Item.Port;
+  Svc.IPv4 := Item.IPv4;
   Svc.TxtRaw := Item.TxtRaw;
   Svc.Local := Item.IsLocal;
   if Assigned(FOnServiceAdded) then
@@ -603,6 +628,7 @@ begin
   Svc.Domain := Item.Domain;
   Svc.Host := Item.Host;
   Svc.Port := Item.Port;
+  Svc.IPv4 := Item.IPv4;
   Svc.TxtRaw := Item.TxtRaw;
   Svc.Local := Item.IsLocal;
   if Assigned(FOnServiceUpdated) then
@@ -625,6 +651,7 @@ begin
       Svc.Domain := Item.Domain;
       Svc.Host := Item.Host;
       Svc.Port := Item.Port;
+      Svc.IPv4 := Item.IPv4;
       Svc.TxtRaw := Item.TxtRaw;
       Svc.Local := Item.IsLocal;
       FServices.Delete(I);
@@ -642,10 +669,17 @@ begin
   FLastFromIP := FromIP;
   Packet := TCnDNSPacketObject.Create;
   try
-    TCnDNS.ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
-    DoBrowsePtrAnswer(Packet);
-    DoResolveAnswers(Packet);
-    SweepExpiredCache;
+    try
+      TCnDNS.ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
+      DoBrowsePtrAnswer(Packet);
+      DoResolveAnswers(Packet);
+      SweepExpiredCache;
+    except
+      // mDNS 网段内任何主机都可能发送报文，畸形包解析失败时静默丢弃，
+      // 防止异常穿透到 UDP 消息处理线程导致应用崩溃
+      on E: ECnDNSException do
+        Exit;
+    end;
   finally
     Packet.Free;
   end;
@@ -754,14 +788,18 @@ var
     end
     else if R.RType = CN_DNS_TYPE_A then
     begin
+      // A 记录的属主名即服务主机名，只刷新与更新匹配条目，并保存 IP 地址
+      // （此前丢弃 IP 且刷新所有条目，导致 Resolve 拿不到服务地址）
       for J := 0 to FServices.Count - 1 do
       begin
         Item := TCnMDNSServiceItem(FServices[J]);
-        if Item.Host <> '' then
+        if (Item.Host <> '') and (Item.Host = Name) then
         begin
+          Item.IPv4 := R.IP;
           Ttl := R.TTL;
           if Ttl > 0 then
             Item.ExpireTick := GetTick + Ttl * 1000;
+          DoServiceUpdated(Item);
         end;
       end;
     end;
@@ -780,7 +818,8 @@ var
   Buf: TBytes;
 begin
   Buf := BuildQuerySimple(TypeName, CN_DNS_TYPE_PTR, CN_DNS_CLASS_IN);
-  FUDP.SendBuffer(@Buf[0], Length(Buf), False);
+  if Length(Buf) > 0 then // 名称非法时查询包为空，不发送
+    FUDP.SendBuffer(@Buf[0], Length(Buf), False);
   SetLength(Buf, 0);
 end;
 
@@ -789,10 +828,12 @@ var
   Buf: TBytes;
 begin
   Buf := BuildQuerySimple(Instance, CN_DNS_TYPE_SRV, SetCacheFlush(CN_DNS_CLASS_IN));
-  FUDP.SendBuffer(@Buf[0], Length(Buf), False);
+  if Length(Buf) > 0 then
+    FUDP.SendBuffer(@Buf[0], Length(Buf), False);
   SetLength(Buf, 0);
   Buf := BuildQuerySimple(Instance, CN_DNS_TYPE_TXT, SetCacheFlush(CN_DNS_CLASS_IN));
-  FUDP.SendBuffer(@Buf[0], Length(Buf), False);
+  if Length(Buf) > 0 then
+    FUDP.SendBuffer(@Buf[0], Length(Buf), False);
   SetLength(Buf, 0);
 end;
 

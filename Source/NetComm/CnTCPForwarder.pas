@@ -206,9 +206,16 @@ begin
   Forwarder := TCnTCPForwarder(ClientSocket.Server);
 
   Client := TCnForwarderClientSocket(ClientSocket);
+  // OnAccept 中可能已断开连接，此时不能继续使用无效句柄
+  if Client.Socket = INVALID_SOCKET then
+    Exit;
+
   Client.RemoteSocket := Forwarder.CheckSocketError(CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
   if Client.RemoteSocket = INVALID_SOCKET then
+  begin
+    Client.Shutdown;
     Exit;
+  end;
 
   FillChar(SockAddress, SizeOf(SockAddress), 0);
   SockAddress.sin_family := AF_INET;
@@ -222,10 +229,11 @@ begin
   Ret := Forwarder.CheckSocketError(CnConnect(Client.RemoteSocket, SockAddress, SizeOf(SockAddress)));
   if Ret <> 0 then
   begin
-    // 连接远程服务器失败，出错退出
+    // 连接远程服务器失败，出错退出，同时关闭客户端连接避免句柄泄漏
     Forwarder.CheckSocketError(CnCloseSocket(Client.RemoteSocket));
 
     Client.RemoteSocket := INVALID_SOCKET;
+    Client.Shutdown;
     Exit;
   end;
 

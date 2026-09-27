@@ -350,7 +350,7 @@ var
   {$IFDEF FPC}
   S: array[0..256] of AnsiChar;
   {$ELSE}
-  Pif: Pifaddrs;
+  Pif, OldPif: Pifaddrs;
   InAddr: in_addr;
   {$ENDIF}
 {$ENDIF}
@@ -411,25 +411,33 @@ begin
       sInt.Add(pAddrStr);
   end;
   {$ELSE}
-  getifaddrs(Pif);
-  while Pif <> nil do
-  begin
-    // 先不处理 BROADCAST 标记
-    if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
+  sInt.Clear; // 与其它平台分支保持一致，避免多次调用累积重复项
+  if getifaddrs(OldPif) <> 0 then
+    Exit;
+  try
+    Pif := OldPif;
+    while Pif <> nil do
     begin
-      InAddr := Psockaddr_in(Pif^.ifa_addr)^.sin_addr;
-      if IsBroadCast then
-        InAddr.s_addr := InAddr.s_addr or not
-          Psockaddr_in(Pif^.ifa_netmask)^.sin_addr.s_addr;
+      // ifa_addr 可能为 nil（部分接口条目），需先判断再解引用
+      if (Pif^.ifa_addr <> nil) and (Pif^.ifa_addr^.sa_family = AF_INET) and
+         ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
+      begin
+        InAddr := Psockaddr_in(Pif^.ifa_addr)^.sin_addr;
+        if IsBroadCast and (Pif^.ifa_netmask <> nil) then
+          InAddr.s_addr := InAddr.s_addr or not
+            Psockaddr_in(Pif^.ifa_netmask)^.sin_addr.s_addr;
 
-      pAddrStr := string(inet_ntoa(InAddr));
+        pAddrStr := string(inet_ntoa(InAddr));
 
-      if sInt.IndexOf(pAddrStr) < 0 then
-        sInt.Add(pAddrStr);
+        if sInt.IndexOf(pAddrStr) < 0 then
+          sInt.Add(pAddrStr);
+      end;
+      Pif := Pif^.ifa_next;
     end;
-    Pif := Pif^.ifa_next;
+  finally
+    // 释放链表头指针（Pif 遍历后已指向 nil，不能直接释放）
+    freeifaddrs(OldPif);
   end;
-  freeifaddrs(Pif);
   {$ENDIF}
 {$ENDIF}
 end;

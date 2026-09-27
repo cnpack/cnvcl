@@ -441,7 +441,7 @@ begin
   InternalRentMemory(Pointer(Result));
   
   Result.SocketOverlappedType := sotUnknow;
-  if BufCount > SizeOf(Result.Buffer) then
+  if BufCount > Cardinal(CN_MAX_WSABUF_COUNT) then // BufCount 是 WSABUF 个数，而非字节数
     raise Exception.CreateFmt(SCnErrorSendBufferOverflow, [CN_MAX_WSABUF_COUNT]);
 
   Move(Buffer^, Result.Buffer, SizeOf(WSABUF) * BufCount);
@@ -466,7 +466,7 @@ end;
 procedure TCnIocpSocketAdapter.DoRecvEvent(Sender: TObject; Error, Transferred: Cardinal; Buffer: PWSABUF;
   BufCount: Cardinal; Param: Pointer);
 begin
-  if Assigned(FOnSendEvent) then
+  if Assigned(FOnRecvEvent) then
     FOnRecvEvent(Sender, Error, Transferred, Buffer, BufCount, Param);
 end;
 

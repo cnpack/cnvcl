@@ -290,21 +290,31 @@ begin
   FTTL := 64;
   FPingCount := 4;
   FDelay := 0;
-  FTimeOut := 10;
+  FTimeOut := 1000; // 超时单位为毫秒（Windows IcmpSendEcho / POSIX SO_RCVTIMEO），默认 1 秒
   FDataString := SCnPingData;
 
 {$IFDEF MSWINDOWS}
+  // WSA 环境在构造时初始化一次，析构时统一清理，避免每次 Ping 的引用计数开销与失衡
+  if WSAStartup(MAKEWORD(2, 0), FWSAData) <> 0 then
+    raise Exception.Create(SInitFailed);
   FHICMP := IcmpCreateFile(); // 取得 DLL 句柄
   if FHICMP = INVALID_HANDLE_VALUE then
+  begin
+    WSACleanup;
     raise Exception.Create(SICMPRunError);
+  end;
 {$ENDIF}
 end;
 
 destructor TCnPing.Destroy;
 begin
 {$IFDEF MSWINDOWS}
+  // FHICMP 有效即代表构造函数中 WSAStartup 已成功，需要配对 WSACleanup
   if FHICMP <> INVALID_HANDLE_VALUE then
+  begin
     IcmpCloseHandle(FHICMP);
+    WSACleanup;
+  end;
 {$ENDIF}
   inherited Destroy;
 end;
@@ -368,9 +378,11 @@ end;
 
 function TCnPing.GetDataString: string;
 begin
+  // 纯读取，不产生副作用；空值返回默认载荷（FDataString 已在 Create 中初始化）
   if FDataString = '' then
-    FDataString := SCnPingData;
-  Result := FDataString;
+    Result := SCnPingData
+  else
+    Result := FDataString;
 end;
 
 function TCnPing.Ping(var aReply: string): Boolean;
@@ -470,10 +482,7 @@ begin
     FillChar(IPOpt, Sizeof(IPOpt), 0); // 初始化发送数据结构
     IPOpt.TTL := FTTL;
 
-    try // Ping开始
-      if WSAStartup(MAKEWORD(2, 0), FWSAData) <> 0 then
-        raise Exception.Create(SInitFailed);
-
+    try // Ping开始（WSA 环境已在构造函数中初始化）
       if IcmpSendEcho(FHICMP, // dll handle
         aIP.Address, // target
         pReqData,    // data
@@ -503,8 +512,6 @@ begin
       end;
     end;
   finally
-    WSACleanUP;
-
     aReply := GetReplyString(Result, aIP, pCIER);
     if pRevData <> nil then
     begin
@@ -525,8 +532,9 @@ begin
     Exit;
   end;
 
-  tv.tv_sec := 3;
-  tv.tv_usec := 0;
+  // 接收超时使用 FTimeOut 属性（毫秒），与 Windows 路径的单位保持一致
+  tv.tv_sec := FTimeOut div 1000;
+  tv.tv_usec := (FTimeOut mod 1000) * 1000;
   CnSetSockOpt(Sock, SOL_SOCKET, SO_RCVTIMEO, @tv, SizeOf(tv));
 
   pReqData := nil;
@@ -632,9 +640,9 @@ begin
       if Assigned(FOnError) then
         FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, SICMPRunError);
     end;
-
-    CnCloseSocket(Sock);
   finally
+    // 关闭 socket 必须放在 finally 内，保证发送失败或异常路径也能释放
+    CnCloseSocket(Sock);
     if aReply = '' then
       aReply := GetReplyString(Result, aIP, nil);
     if pReqData <> nil then

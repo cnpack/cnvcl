@@ -2453,7 +2453,7 @@ var
   SL: TStringList;
   I, ZC, E: Integer;
 begin
-  FillChar(Result[0], 0, SizeOf(TCnIPv6Array));
+  FillChar(Result[0], SizeOf(TCnIPv6Array), 0);
 
   SL := TStringList.Create;
   try
@@ -2520,14 +2520,12 @@ begin
 end;
 
 procedure CnFillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
-var
-  W: Word;
 begin
   if IPHeader <> nil then
   begin
     IPHeader^.Checksum := 0;
-    W := CnGetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
-    CnSetIPCheckSum(IPHeader, W);
+    // CnGetNetworkCheckSum 返回值已是网络字节序，直接写入（与 ICMP 版本保持一致）
+    IPHeader^.Checksum := CnGetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
   end;
 end;
 
@@ -2767,7 +2765,7 @@ end;
 
 procedure CnSetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader; Precedence: Byte);
 begin
-  IPHeader^.TypeOfService := (Precedence shl 5) or (IPHeader^.TypeOfService and not CN_IP_TOS_PRECEDENCE_MASK);
+  IPHeader^.TypeOfService := ((Precedence and $07) shl 5) or (IPHeader^.TypeOfService and not CN_IP_TOS_PRECEDENCE_MASK);
 end;
 
 procedure CnSetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader; Delay: Boolean);
@@ -3052,17 +3050,20 @@ end;
 
 procedure CnSetNTPLeapIndicator(const NTPPacket: PCnNTPPacket; LeapIndicator: Integer);
 begin
-  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or ((LeapIndicator and $03) shl 6);
+  // 先清空闰秒标识位段(bit7-6)再置位，避免重复调用时残留旧值
+  NTPPacket^.LIVNMode := (NTPPacket^.LIVNMode and not $C0) or ((LeapIndicator and $03) shl 6);
 end;
 
 procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: Integer);
 begin
-  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or ((VersionNumber and $07) shl 3);
+  // 先清空版本号位段(bit5-3)再置位，避免重复调用时残留旧值
+  NTPPacket^.LIVNMode := (NTPPacket^.LIVNMode and not $38) or ((VersionNumber and $07) shl 3);
 end;
 
 procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
 begin
-  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or (NTPMode and $07);
+  // 先清空模式位段(bit2-0)再置位，避免重复调用时残留旧值
+  NTPPacket^.LIVNMode := (NTPPacket^.LIVNMode and not $07) or (NTPMode and $07);
 end;
 
 function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
@@ -3169,7 +3170,7 @@ end;
 
 procedure CnSetDNSHeaderOpCode(const DNSHeader: PCnDNSHeader; QueryType: Byte);
 begin
-  DNSHeader^.QrOpcodeAATCRD := (DNSHeader^.QrOpcodeAATCRD and $87) or Byte(QueryType shl 3);
+  DNSHeader^.QrOpcodeAATCRD := (DNSHeader^.QrOpcodeAATCRD and $87) or ((QueryType and $0F) shl 3);
 end;
 
 procedure CnSetDNSHeaderAA(const DNSHeader: PCnDNSHeader; AuthoritativeAnswer: Boolean);
@@ -3268,7 +3269,7 @@ begin
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       Len := 4;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
-      Len := 6;
+      Len := 16;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
         Len := SocksReq^.DestionationAddress.DomainNameLen + 1;
@@ -3325,7 +3326,7 @@ begin
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       Len := 4;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
-      Len := 6;
+      Len := 16;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
         Len := SocksResp^.BindAddress.DomainNameLen + 1;
@@ -3377,7 +3378,7 @@ begin
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       Len := 4;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
-      Len := 6;
+      Len := 16;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
         Len := SocksReq^.DestionationAddress.DomainNameLen + 1;
@@ -3429,7 +3430,7 @@ begin
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       Len := 4;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
-      Len := 6;
+      Len := 16;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
         Len := SocksResp^.BindAddress.DomainNameLen + 1;
@@ -3615,7 +3616,7 @@ begin
     OL := 0;
   end
   else
-    LSNI := PCnTLSHandShakeServerNameIndication(TCnIntAddress(SNI) + OL - SizeOf(Word));
+    LSNI := PCnTLSHandShakeServerNameIndication(TCnIntAddress(SNI) + OL); // NameType 位于 LSNI + 2，即前一条目结束处
 
   // 给新的位置增加内容
   LSNI^.NameType := CN_TLS_EXTENSION_NAMETYPE_HOSTNAME;
@@ -4111,6 +4112,8 @@ end;
 
 procedure CnSetTLSHandShakeServerKeyExchangeECPoint(const SKE: PCnTLSHandShakeServerKeyExchange; ECPoint: TBytes);
 begin
+  if Length(ECPoint) > SizeOf(SKE^.ECPoint) then // 防止越过 ECPoint 数组写入后续字段
+    Exit;
   SKE^.ECPointLength := Length(ECPoint);
   if SKE^.ECPointLength > 0 then
     Move(ECPoint[0], SKE^.ECPoint[0], SKE^.ECPointLength);

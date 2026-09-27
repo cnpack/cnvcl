@@ -267,11 +267,19 @@ begin
   Result := WinSock.accept(S, Addr, AddrLen);
 {$ELSE}
 {$IFDEF FPC}
-  SockLen := AddrLen^;
-  Result := fpAccept(S, Addr, @SockLen);
-  AddrLen^ := SockLen;
+  if AddrLen <> nil then // AddrLen 允许为 nil（不关心对端地址），先判断再解引用
+  begin
+    SockLen := AddrLen^;
+    Result := fpAccept(S, Addr, @SockLen);
+    AddrLen^ := SockLen;
+  end
+  else
+    Result := fpAccept(S, Addr, nil);
 {$ELSE}
-  Result := Posix.SysSocket.accept(S, Addr^, Cardinal(AddrLen^));
+  if AddrLen <> nil then
+    Result := Posix.SysSocket.accept(S, Addr^, Cardinal(AddrLen^))
+  else
+    Result := Posix.SysSocket.accept(S, Addr^, 0); // 不关心对端地址，长度传 0
 {$ENDIF}
 {$ENDIF}
 end;

@@ -749,7 +749,7 @@ begin
   begin
     for I := 0 to IPv6s - 1 do
     begin
-      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) <> '0000:0000:0000:0000:0000:000:0000:0001' then
+      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) <> '0000:0000:0000:0000:0000:0000:0000:0001' then
       begin
         FIPv6.IPv6Address := FLocalIPv6s[I].IPv6Address;
         FIPv6.SubnetMask := FLocalIPv6s[I].SubnetMask;
@@ -766,14 +766,14 @@ begin
 
     for I := 0 to IPv6s - 1 do
     begin
-      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) = '0000:0000:0000:0000:0000:000:0000:0001' then
+      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) = '0000:0000:0000:0000:0000:0000:0000:0001' then
       begin
-        if I <> IPs - 1 then
+        if I <> IPv6s - 1 then // 应使用 IPv6 数组的数量，误用 IPv4 数量会越界读写
         begin
           // 和最后一个交换，也就是把环回地址放最后
           Move(FLocalIPv6s[I], aIPv6, SizeOf(TCnIPv6Info));
-          Move(FLocalIPv6s[IPs - 1], FLocalIPv6s[I], SizeOf(TCnIPv6Info));
-          Move(aIPv6, FLocalIPv6s[IPs - 1], SizeOf(TCnIPv6Info));
+          Move(FLocalIPv6s[IPv6s - 1], FLocalIPv6s[I], SizeOf(TCnIPv6Info));
+          Move(aIPv6, FLocalIPv6s[IPv6s - 1], SizeOf(TCnIPv6Info));
         end;
         Break;
       end;
@@ -1475,41 +1475,46 @@ begin
     WSACleanUp;
   end;
 {$ELSE}
-  getifaddrs(Pif);
-  OldPif := Pif;
-  while Pif <> nil do // 先统计符合条件的数量
-  begin
-    if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
-      Inc(Result);
-    Pif := Pif^.ifa_next;
-  end;
-  SetLength(aLocalIP, Result);
-  if Result <= 0 then
+  if getifaddrs(OldPif) <> 0 then
     Exit;
-
-  Pif := OldPif;
-  iIP := 0;
-  while Pif <> nil do
-  begin
-    if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
+  try
+    Pif := OldPif;
+    while Pif <> nil do // 先统计符合条件的数量
     begin
-      pAddrInet := Psockaddr_in(Pif^.ifa_addr)^;
-      aLocalIP[iIP].IPAddress := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
-      pAddrInet := Psockaddr_in(Pif^.ifa_netmask)^;
-      aLocalIP[iIP].SubnetMask := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
-      pAddrInet := Psockaddr_in(Pif^.ifa_dstaddr)^;
-      aLocalIP[iIP].BroadCast := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
-      SetFlags := Pif^.ifa_flags;
-      aLocalIP[iIP].UpState := (SetFlags and IFF_UP) = IFF_UP;
-      aLocalIP[iIP].Loopback := (SetFlags and IFF_LOOPBACK) = IFF_LOOPBACK;
-      aLocalIP[iIP].SupportBroadcast := (SetFlags and IFF_BROADCAST) =
-        IFF_BROADCAST;
-
-      Inc(iIP);
+      if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
+        Inc(Result);
+      Pif := Pif^.ifa_next;
     end;
-    Pif := Pif^.ifa_next;
+    SetLength(aLocalIP, Result);
+    if Result <= 0 then
+      Exit;
+
+    Pif := OldPif;
+    iIP := 0;
+    while Pif <> nil do
+    begin
+      if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
+      begin
+        pAddrInet := Psockaddr_in(Pif^.ifa_addr)^;
+        aLocalIP[iIP].IPAddress := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
+        pAddrInet := Psockaddr_in(Pif^.ifa_netmask)^;
+        aLocalIP[iIP].SubnetMask := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
+        pAddrInet := Psockaddr_in(Pif^.ifa_dstaddr)^;
+        aLocalIP[iIP].BroadCast := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
+        SetFlags := Pif^.ifa_flags;
+        aLocalIP[iIP].UpState := (SetFlags and IFF_UP) = IFF_UP;
+        aLocalIP[iIP].Loopback := (SetFlags and IFF_LOOPBACK) = IFF_LOOPBACK;
+        aLocalIP[iIP].SupportBroadcast := (SetFlags and IFF_BROADCAST) =
+          IFF_BROADCAST;
+
+        Inc(iIP);
+      end;
+      Pif := Pif^.ifa_next;
+    end;
+  finally
+    // 释放链表头指针（Pif 遍历后已指向 nil，不能直接释放）
+    freeifaddrs(OldPif);
   end;
-  freeifaddrs(Pif);
 {$ENDIF}
 end;
 
