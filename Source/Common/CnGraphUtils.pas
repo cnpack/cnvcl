@@ -799,7 +799,7 @@ var
 
   GdiPlusHandle: THandle = 0;
   StartupInput: TGDIPlusStartupInput;
-  GdiplusToken: ULONG;
+  GdiplusToken: ULONG = 0;
 
   //---------- 初始化/关闭 ----------
   GdiplusStartup: TGdiplusStartup = nil;
@@ -980,10 +980,11 @@ end;
 
 procedure CnShutDownGdiPlus;
 begin
-  if CnGdiPlusAvailable then
+  if CnGdiPlusAvailable and (GdiplusToken <> 0) then
   begin
     if Assigned(GdiplusShutdown) then
       GdiplusShutdown(GdiplusToken);
+
     GdiplusToken := 0;
     CnGdiPlusAvailable := False;
   end;
@@ -1737,13 +1738,14 @@ initialization
     else
     begin
       // ── 第四步：EXE 项目自动初始化 GDI+ 令牌 ──
-      if not IsLibrary then
+      if not ModuleIsLib then
         CnStartUpGdiPlus;
     end;
   end;
 
 finalization
-  if CnGdiPlusAvailable then
+  // EXE 项目才自动卸载，否则需要外部调用
+  if CnGdiPlusAvailable and not ModuleIsLib then
     CnShutDownGdiPlus;
 
   {$IFNDEF SUPPORT_GDIPLUS}
