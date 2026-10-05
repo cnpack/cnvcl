@@ -852,7 +852,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AesIv: TCnAESBuffer;
+  AesIv: TCnAESIv;
   DesKey: TCnDESKey;
   Des3Key: TCn3DESKey;
   DesIv: TCnDESIv;
@@ -965,7 +965,7 @@ var
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
   IvStr: AnsiString;
-  AesIv: TCnAESBuffer;
+  AesIv: TCnAESIv;
   DesKey: TCnDESKey;
   Des3Key: TCn3DESKey;
   DesIv: TCnDESIv;
@@ -1002,6 +1002,10 @@ begin
     end
     else
       Exit;
+
+    FillChar(AesIv[0], SizeOf(TCnAESBuffer), 0);
+    FillChar(DesIv[0], SizeOf(TCnDESIv), 0);
+    FillChar(Sm4Iv[0], SizeOf(TCnSM4Iv), 0);
 
     // DS 中是密文，要解到 Stream 中
     if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then

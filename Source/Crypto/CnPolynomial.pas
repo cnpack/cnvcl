@@ -6281,6 +6281,9 @@ begin
 
     P[E] := F;
   end;
+
+  P.CorrectTop;
+  Result := True;
 end;
 
 {$WARNINGS ON}
@@ -7373,7 +7376,7 @@ begin
   for I := 0 to P.MaxDegree do
   begin
     P[I] := Int64NonNegativeMulMod(P[I], K, Prime);
-    if B then
+    if B and (P[I] <> 0) then
       P[I] := Prime - P[I];
   end;
 end;
@@ -9946,17 +9949,21 @@ begin
   else
   begin
     D := FLocalBigNumberPool.Obtain;
-    BigNumberCopy(D, P[0]);
+    try
+      BigNumberCopy(D, P[0]);
 
-    for I := 0 to P.MaxDegree - 1 do
-    begin
-      BigNumberGcd(D, D, P[I + 1]);
-      if D.IsOne then
-        Break;
+      for I := 0 to P.MaxDegree - 1 do
+      begin
+        BigNumberGcd(D, D, P[I + 1]);
+        if D.IsOne then
+          Break;
+      end;
+
+      if not D.IsOne then
+        BigNumberPolynomialDivBigNumber(P, D);
+    finally
+      FLocalBigNumberPool.Recycle(D);
     end;
-
-    if not D.IsOne then
-      BigNumberPolynomialDivBigNumber(P, D);
   end;
 end;
 

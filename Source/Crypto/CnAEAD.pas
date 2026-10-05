@@ -3067,6 +3067,7 @@ begin
   ValidateAEADBuffer(PlainData, PlainByteLength, 'ChaCha20-Poly1305 Plain Data');
   ValidateAEADBuffer(AAD, AADByteLength, 'ChaCha20-Poly1305 AAD');
   ValidateAEADBuffer(OutEnData, PlainByteLength, 'ChaCha20-Poly1305 Output');
+
   // 严格校验密钥与 Nonce 长度，禁止静默补零或截断
   if (Key = nil) or (KeyByteLength <> SizeOf(TCnChaChaKey)) then
     raise ECnAEADError.CreateFmt(SCnErrorAEADChaCha20KeyLength,
@@ -3085,6 +3086,7 @@ begin
   FillChar(Poly1305Context, SizeOf(Poly1305Context), 0);
   FillChar(Lens[0], SizeOf(Lens), 0);
   FillChar(Zeros[0], SizeOf(Zeros), 0);
+
   try
     MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
     MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
@@ -3102,6 +3104,7 @@ begin
     // 先算 AAD 及其 Padding
     if AADByteLength > 0 then
       Poly1305Update(Poly1305Context, AAD, AADByteLength);
+
     PadLen := AADByteLength mod 16;
     if PadLen <> 0 then
     begin

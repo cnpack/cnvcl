@@ -1124,13 +1124,9 @@ begin
     Dec(ByteLength, 64);
   end;
 
+  Context.BufLen := Left + ByteLength;
   if ByteLength > 0 then
-  begin
     Move(Input^, Context.Buf[Left], ByteLength);
-    Context.BufLen := Left + ByteLength;
-  end
-  else
-    Context.BufLen := 0;
 end;
 
 procedure BLAKE224256UpdateW(var Context: TCnBLAKE256Context; Input: PWideChar; CharLength: Cardinal);
@@ -1359,13 +1355,9 @@ begin
     Dec(ByteLength, 128);
   end;
 
+  Context.BufLen := Left + ByteLength;
   if ByteLength > 0 then
-  begin
     Move(Input^, Context.Buf[Left], ByteLength);
-    Context.BufLen := Left + ByteLength;
-  end
-  else
-    Context.BufLen := 0;
 end;
 
 procedure BLAKE384512UpdateW(var Context: TCnBLAKE512Context; Input: PWideChar; CharLength: Cardinal);

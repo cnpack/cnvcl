@@ -5562,7 +5562,10 @@ begin
   MaskedSeed := PByteArray(TCnIntAddress(EnData) + 1);
   MaskedDB := PByteArray(TCnIntAddress(EnData) + MdLen + 1);
 
-  ParamHash := SHA1Buffer(DigestParam^, ParamByteLen);
+  if DigestParam = nil then
+    ParamHash := SHA1(nil, 0)
+  else
+    ParamHash := SHA1Buffer(DigestParam^, ParamByteLen);
 
   // 把 MaskedDB 先算出来
   if not Pkcs1Sha1MGF(@MaskedDB[0], DBLen, @Seed[0], MdLen) then

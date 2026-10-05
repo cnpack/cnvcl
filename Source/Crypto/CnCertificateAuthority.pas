@@ -4041,6 +4041,8 @@ begin
     List := TStringList.Create;
     try
       Node := Node.GetNextSibling; // 签名算法节点后的同级节点是 Issuer
+      if Node = nil then Exit;
+
       ExtractDNValuesToList(Node, List);
       Certificate.BasicCertificate.Issuer.CountryName := List.Values[SDN_COUNTRYNAME];
       Certificate.BasicCertificate.Issuer.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
@@ -4051,10 +4053,10 @@ begin
       Certificate.BasicCertificate.Issuer.EmailAddress := List.Values[SDN_EMAILADDRESS];
 
       Node := Node.GetNextSibling; // Issuer 节点后的同级节点是有效期
-      if Node = nil then
-        Exit;
+      if Node = nil then Exit;
       if Node.Count <> 2 then
         Exit;
+
       if not (Node.Items[0].BerTag in [CN_BER_TAG_UTCTIME,
         CN_BER_TAG_GENERALIZEDTIME]) then
         Exit;
@@ -4075,6 +4077,8 @@ begin
         Exit;
 
       Node := Node.GetNextSibling; // UTC Time 节点后的同级节点是 Subject
+      if Node = nil then Exit;
+
       ExtractDNValuesToList(Node, List);
       Certificate.BasicCertificate.Subject.CountryName := List.Values[SDN_COUNTRYNAME];
       Certificate.BasicCertificate.Subject.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
@@ -4089,6 +4093,8 @@ begin
     end;
 
     Node := Node.GetNextSibling; // Subject 节点后的同级节点是被签发者的公钥
+    if Node = nil then Exit;
+
     IsRSA := False;
     if (Node.Count = 2) and (Node.Items[0].Count = 2) then
       IsRSA := CompareObjectIdentifier(Node.Items[0].Items[0],
@@ -4114,6 +4120,7 @@ begin
 
     // 解开被签发者的公钥
     Node := Node.Items[1]; // 指向 BitString
+    if Node = nil then Exit;
     if IsRSA then
     begin
       if not ExtractRSAPublicKey(Node, Certificate.BasicCertificate.SubjectRSAPublicKey)

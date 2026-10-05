@@ -11041,6 +11041,7 @@ var
   Priv: TCnNTRUPrivateKey;
   Pub: TCnNTRUPublicKey;
   Data, En, De: TBytes;
+  I, J: Integer;
 begin
   NTRU := nil;
   Priv := nil;
@@ -11059,6 +11060,29 @@ begin
 
     // 解出的内容有后续 #0
     Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+    if not Result then Exit;
+
+    // 随机短明文回归：解密结果多项式被 CorrectTop 收缩后，序列化读系数不得越界
+    for I := 1 to 50 do
+    begin
+      SetLength(Data, 1 + Random(8));
+      for J := 0 to High(Data) do
+        Data[J] := Random(256);
+      En := NTRU.EncryptBytes(Pub, Data);
+      De := NTRU.DecryptBytes(Priv, En);
+
+      if Length(De) < Length(Data) then
+      begin
+        Result := False;
+        Exit;
+      end;
+      for J := 0 to High(Data) do
+        if De[J] <> Data[J] then
+        begin
+          Result := False;
+          Exit;
+        end;
+    end;
   finally
     Pub.Free;
     Priv.Free;
@@ -11074,6 +11098,7 @@ var
   Priv: TCnNTRUPrivateKey;
   Pub: TCnNTRUPublicKey;
   Data, En, De: TBytes;
+  I, J: Integer;
 begin
   NTRU := nil;
   Priv := nil;
@@ -11092,6 +11117,29 @@ begin
 
     // 解出的内容有后续 #0
     Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+    if not Result then Exit;
+
+    // 随机短明文回归：解密结果多项式被 CorrectTop 收缩后，序列化读系数不得越界
+    for I := 1 to 50 do
+    begin
+      SetLength(Data, 1 + Random(8));
+      for J := 0 to High(Data) do
+        Data[J] := Random(256);
+      En := NTRU.EncryptBytes(Pub, Data);
+      De := NTRU.DecryptBytes(Priv, En);
+
+      if Length(De) < Length(Data) then
+      begin
+        Result := False;
+        Exit;
+      end;
+      for J := 0 to High(Data) do
+        if De[J] <> Data[J] then
+        begin
+          Result := False;
+          Exit;
+        end;
+    end;
   finally
     Pub.Free;
     Priv.Free;
@@ -11107,6 +11155,7 @@ var
   Priv: TCnNTRUPrivateKey;
   Pub: TCnNTRUPublicKey;
   Data, En, De: TBytes;
+  I, J: Integer;
 begin
   NTRU := nil;
   Priv := nil;
@@ -11125,6 +11174,29 @@ begin
 
     // 解出的内容有后续 #0
     Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+    if not Result then Exit;
+
+    // 随机短明文回归：解密结果多项式被 CorrectTop 收缩后，序列化读系数不得越界
+    for I := 1 to 50 do
+    begin
+      SetLength(Data, 1 + Random(8));
+      for J := 0 to High(Data) do
+        Data[J] := Random(256);
+      En := NTRU.EncryptBytes(Pub, Data);
+      De := NTRU.DecryptBytes(Priv, En);
+
+      if Length(De) < Length(Data) then
+      begin
+        Result := False;
+        Exit;
+      end;
+      for J := 0 to High(Data) do
+        if De[J] <> Data[J] then
+        begin
+          Result := False;
+          Exit;
+        end;
+    end;
   finally
     Pub.Free;
     Priv.Free;
@@ -15424,6 +15496,7 @@ begin
   D1 := BLAKE224StringA(S);
   BLAKE224Init(C);
   BLAKE224Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE224Update(C, nil, 0);  // 零长度 Update 不应丢弃缓冲区已缓冲数据
   BLAKE224Update(C, PAnsiChar(S2), Length(S2));
   BLAKE224Final(C, D2);
 
@@ -15476,6 +15549,7 @@ begin
   D1 := BLAKE256StringA(S);
   BLAKE256Init(C);
   BLAKE256Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE256Update(C, nil, 0);  // 零长度 Update 不应丢弃缓冲区已缓冲数据
   BLAKE256Update(C, PAnsiChar(S2), Length(S2));
   BLAKE256Final(C, D2);
 
@@ -15529,6 +15603,7 @@ begin
   D1 := BLAKE384StringA(S);
   BLAKE384Init(C);
   BLAKE384Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE384Update(C, nil, 0);  // 零长度 Update 不应丢弃缓冲区已缓冲数据
   BLAKE384Update(C, PAnsiChar(S2), Length(S2));
   BLAKE384Final(C, D2);
 
@@ -15582,6 +15657,7 @@ begin
   D1 := BLAKE512StringA(S);
   BLAKE512Init(C);
   BLAKE512Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE512Update(C, nil, 0);  // 零长度 Update 不应丢弃缓冲区已缓冲数据
   BLAKE512Update(C, PAnsiChar(S2), Length(S2));
   BLAKE512Final(C, D2);
 

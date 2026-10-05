@@ -4800,14 +4800,31 @@ begin
   Stream := nil;
 
   try
-    if BigNumberCompare(InSignature.H, SM9.Order) >= 0 then Exit;
-    if not SM9.IsPointOnCurve(InSignature.S) then Exit;
+    if BigNumberCompare(InSignature.H, SM9.Order) >= 0 then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
+
+    if not SM9.IsPointOnCurve(InSignature.S) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
 
     G := TCnFP12.Create;
     AP := TCnFP2AffinePoint.Create;
 
     // 先用公钥计算出一个线性对 FP12
     FP2PointToFP2AffinePoint(AP, SignatureMasterPublicKey);
+    if AP.IsAtInfinity or not AP.IsOnCurve(SM9.FiniteFieldSize) then
+    begin
+      // 签名主公钥必须是 G2 曲线 y^2 = x^3 + 5u 上的点，无穷远点同样视为非法
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
+
+    // 先用公钥计算出一个线性对 FP12
     SM9RatePairing(G, AP, SM9.Generator);
 
     // 计算 FP12 的幂

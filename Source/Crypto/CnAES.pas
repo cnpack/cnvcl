@@ -55,7 +55,9 @@ unit CnAES;
 *           注意：ECB 块处理模式因不安全，除必要的外部要求场合外，不推荐使用。
 *
 * 开发平台：Delphi5 + Win 7
-* 修改记录：2024.07.25 V1.3
+* 修改记录：2026.10.05 V1.4
+*               独立出 TCnAESIv 初始化向量类型，和其他对称加密保持一致
+*           2024.07.25 V1.3
 *               加入 CTR 模式的支持，遵循 RFC 3686 规范
 *           2024.05.26 V1.2
 *               补充部分支持 C++Builder 的函数
@@ -91,6 +93,9 @@ type
   TCnAESBuffer = array [0..15] of Byte;
   {* AES 加解密块 16 字节}
 
+  TCnAESIv = array [0..15] of Byte;
+  {* AES 初始化向量 16 字节}
+
   TCnAESKey128 = array [0..15] of Byte;
   {* AES128 的密钥结构，16 字节}
 
@@ -111,6 +116,9 @@ type
 
   PCnAESBuffer = ^TCnAESBuffer;
   {* AES 加解密块指针}
+
+  PCnAESIv = ^TCnAESIv;
+  {* AES 初始化向量指针}
 
   PCnAESKey128 = ^TCnAESKey128;
   {* AES128 的密钥结构指针}
@@ -426,20 +434,20 @@ procedure EncryptAES256StreamECBExpanded(Source: TStream; Count: Cardinal;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES128 CBC 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES128 CBC 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -447,27 +455,27 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES192 CBC 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES192 CBC 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -475,27 +483,27 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES256 CBC 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES256 CBC 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -503,7 +511,7 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
@@ -513,20 +521,20 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
 
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure EncryptAES128StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 {* AES128 CBC 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES128 CBC 模式加密流，使用扩展密钥。
 
@@ -534,27 +542,27 @@ procedure EncryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAES192StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 {* AES192 CBC 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES192 CBC 模式加密流，使用扩展密钥。
 
@@ -562,27 +570,27 @@ procedure EncryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAES256StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 {* AES256 CBC 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES256 CBC 模式加密流，使用扩展密钥。
 
@@ -590,7 +598,7 @@ procedure EncryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
@@ -602,21 +610,21 @@ procedure EncryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES128 CFB 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES128 CFB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -624,28 +632,28 @@ procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES192 CFB 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES192 CFB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -653,28 +661,28 @@ procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES256 CFB 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES256 CFB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -682,7 +690,7 @@ procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
@@ -692,20 +700,20 @@ procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
 
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure EncryptAES128StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 {* AES128 CFB 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES128 CFB 模式加密流，使用扩展密钥。
 
@@ -713,26 +721,26 @@ procedure EncryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES192StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 {* AES192 CFB 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES192 CFB 模式加密流，使用扩展密钥。
 
@@ -740,26 +748,26 @@ procedure EncryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES256StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 {* AES256 CFB 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES256 CFB 模式加密流，使用扩展密钥。
 
@@ -767,7 +775,7 @@ procedure EncryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
@@ -779,20 +787,20 @@ procedure EncryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES128 OFB 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES128 OFB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -800,28 +808,28 @@ procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES192 OFB 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES192 OFB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -829,27 +837,27 @@ procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES256 OFB 模式加密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES256 OFB 模式加密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -857,7 +865,7 @@ procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
@@ -867,20 +875,20 @@ procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
 
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure EncryptAES128StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 {* AES128 OFB 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES128 OFB 模式加密流，使用扩展密钥。
 
@@ -888,27 +896,27 @@ procedure EncryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAES192StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 {* AES192 OFB 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文??
 
    返回值：（无）
 }
 procedure EncryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES192 OFB 模式加密流，使用扩展密钥。
 
@@ -916,27 +924,27 @@ procedure EncryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
 }
 
 procedure EncryptAES256StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 {* AES256 OFB 模式加密流。
 
    参数：
      Source: TStream                      - 待加密的明文流
      Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的密文流
 
    返回值：（无）
 }
 procedure EncryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES256 OFB 模式加密流，使用扩展密钥。
 
@@ -944,7 +952,7 @@ procedure EncryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待加密的明文流
      Count: Cardinal                                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的密文流
 
    返回值：（无）
@@ -1517,20 +1525,20 @@ procedure DecryptAES256StreamECBExpanded(Source: TStream; Count: Cardinal;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES128 CBC 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES128 CBC 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1538,27 +1546,27 @@ procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES192 CBC 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES192 CBC 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1566,27 +1574,27 @@ procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES256 CBC 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES256 CBC 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1594,7 +1602,7 @@ procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
@@ -1604,20 +1612,20 @@ procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
 
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure DecryptAES128StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 {* AES128 CBC 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES128 CBC 模式解密流，使用扩展密钥。
 
@@ -1625,26 +1633,26 @@ procedure DecryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES192StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 {* AES192 CBC 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES192 CBC 模式解密流，使用扩展密钥。
 
@@ -1652,26 +1660,26 @@ procedure DecryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES256StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 {* AES256 CBC 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES256 CBC 模式解密流，使用扩展密钥。
 
@@ -1679,7 +1687,7 @@ procedure DecryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
@@ -1691,20 +1699,20 @@ procedure DecryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES128 CFB 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES128 CFB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1712,26 +1720,26 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES192 CFB 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES192 CFB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1739,26 +1747,26 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES256 CFB 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES256 CFB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1766,7 +1774,7 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
@@ -1776,20 +1784,20 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
 
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure DecryptAES128StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 {* AES128 CFB 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES128 CFB 模式解密流，使用扩展密钥。
 
@@ -1797,26 +1805,26 @@ procedure DecryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES192StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 {* AES192 CFB 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES192 CFB 模式解密流，使用扩展密钥。
 
@@ -1824,26 +1832,26 @@ procedure DecryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES256StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 {* AES256 CFB 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES256 CFB 模式解密流，使用扩展密钥。
 
@@ -1851,7 +1859,7 @@ procedure DecryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
@@ -1863,20 +1871,20 @@ procedure DecryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES128 OFB 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES128 OFB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1884,27 +1892,27 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES192 OFB 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES192 OFB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1912,27 +1920,27 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream); overload;
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream); overload;
 {* AES256 OFB 模式解密流。仅在 Delphi 下可用。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream); overload;
 {* AES256 OFB 模式解密流，使用扩展密钥。仅在 Delphi 下可用。
 
@@ -1940,7 +1948,7 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
@@ -1950,20 +1958,20 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
 
 // 新增的六函数，Delphi 和 C++Builder 下均可用
 procedure DecryptAES128StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 {* AES128 OFB 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey128              - 16 字节 AES128 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES128 OFB 模式解密流，使用扩展密钥。
 
@@ -1971,26 +1979,26 @@ procedure DecryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey128              - 扩展 AES128 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES192StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 {* AES192 OFB 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey192              - 24 字节 AES192 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES192 OFB 模式解密流，使用扩展密钥。
 
@@ -1998,26 +2006,26 @@ procedure DecryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey192              - 扩展 AES192 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES256StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 {* AES256 OFB 模式解密流。
 
    参数：
      Source: TStream                      - 待解密的密文流
      Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const Key: TCnAESKey256              - 32 字节 AES256 密钥
-     const InitVector: TCnAESBuffer       - 16 字节初始化向量
+     const InitVector: TCnAESIv           - 16 字节初始化向量
      Dest: TStream                        - 输出的明文流
 
    返回值：（无）
 }
 procedure DecryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 {* AES256 OFB 模式解密流，使用扩展密钥。
 
@@ -2025,7 +2033,7 @@ procedure DecryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
      Source: TStream                                      - 待解密的密文流
      Count: Cardinal                                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
      const ExpandedKey: TCnAESExpandedKey256              - 扩展 AES256 密钥
-     const InitVector: TCnAESBuffer                       - 16 字节初始化向量
+     const InitVector: TCnAESIv                           - 16 字节初始化向量
      Dest: TStream                                        - 输出的明文流
 
    返回值：（无）
@@ -2250,78 +2258,78 @@ function AESDecryptEcbStrFromHex(const HexStr: AnsiString; Key: AnsiString;
 }
 
 function AESEncryptCbcStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType = kbt128): AnsiString;
 {* AES CBC 模式加密字符串并将其转换成十六进制。
 
    参数：
      Value: AnsiString                    - 待加密的明文字符串
      Key: AnsiString                      - AES 密钥字符串，长度根据加密类型确定为 16、24、32 字节，太长则截断，不足则补 #0
-     const Iv: TCnAESBuffer               - 16 字节初始化向量
+     const Iv: TCnAESIv                   - 16 字节初始化向量
      KeyBit: TCnKeyBitType                - AES 加密类型
 
    返回值：AnsiString                     - 返回密文十六进制字符串
 }
 
 function AESDecryptCbcStrFromHex(const HexStr: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType = kbt128): AnsiString;
 {* AES CBC 解密十六进制字符串。
 
    参数：
      const HexStr: AnsiString             - 待解密的十六进制密文字符串
      Key: AnsiString                      - AES 密钥字符串，长度根据加密类型确定为 16、24、32 字节，太长则截断，不足则补 #0
-     const Iv: TCnAESBuffer               - 16 字节初始化向量
+     const Iv: TCnAESIv                   - 16 字节初始化向量
      KeyBit: TCnKeyBitType                - AES 加密类型
 
    返回值：AnsiString                     - 返回明文字符串
 }
 
 function AESEncryptCfbStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType = kbt128): AnsiString;
 {* AES CFB 模式加密字符串并将其转换成十六进制。
 
    参数：
      Value: AnsiString                    - 待加密的明文字符串
      Key: AnsiString                      - AES 密钥字符串，长度根据加密类型确定为 16、24、32 字节，太长则截断，不足则补 #0
-     const Iv: TCnAESBuffer               - 16 字节初始化向量
+     const Iv: TCnAESIv                   - 16 字节初始化向量
      KeyBit: TCnKeyBitType                - AES 加密类型
 
    返回值：AnsiString                     - 返回密文十六进制字符串
 }
 
 function AESDecryptCfbStrFromHex(const HexStr: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType = kbt128): AnsiString;
 {* AES CFB 解密十六进制字符串。
 
    参数：
      const HexStr: AnsiString             - 待解密的十六进制密文字符串
      Key: AnsiString                      - AES 密钥字符串，长度根据加密类型确定为 16、24、32 字节，太长则截断，不足则补 #0
-     const Iv: TCnAESBuffer               - 16 字节初始化向量
+     const Iv: TCnAESIv                   - 16 字节初始化向量
      KeyBit: TCnKeyBitType                - AES 加密类型
 
    返回值：AnsiString                     - 返回明文字符串
 }
 
 function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType = kbt128): AnsiString;
 {* AES OFB 模式加密字符串并将其转换成十六进制。
 
    参数：
      Value: AnsiString                    - 待加密的明文字符串
      Key: AnsiString                      - AES 密钥字符串，长度根据加密类型确定为 16、24、32 字节，太长则截断，不足则补 #0
-     const Iv: TCnAESBuffer               - 16 字节初始化向量
+     const Iv: TCnAESIv                   - 16 字节初始化向量
      KeyBit: TCnKeyBitType                - AES 加密类型
 
    返回值：AnsiString                     - 返回密文十六进制字符串
 }
 
 function AESDecryptOfbStrFromHex(const HexStr: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType = kbt128): AnsiString;
 {* AES OFB 解密十六进制字符串。
 
    参数：
      const HexStr: AnsiString             - 待解密的十六进制密文字符串
      Key: AnsiString                      - AES 密钥字符串，长度根据加密类型确定为 16、24、32 字节，太长则截断，不足则补 #0
-     const Iv: TCnAESBuffer               - 16 字节初始化向量
+     const Iv: TCnAESIv                   - 16 字节初始化向量
      KeyBit: TCnKeyBitType                - AES 加密类型
 
    返回值：AnsiString                     - 返回明文字符串
@@ -2915,19 +2923,7 @@ procedure EncryptAES128(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
-  I: Integer;
-  Dummy: Byte;
 begin
-  Dummy := 0;
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(ForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(InverseTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastInverseTable[I]);
-  CnAESPreloadDummy := Dummy;
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
@@ -3118,20 +3114,7 @@ procedure EncryptAES192(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
-  I: Integer;
-  Dummy: Byte;
 begin
-  Dummy := 0;
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(ForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(InverseTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastInverseTable[I]);
-  CnAESPreloadDummy := Dummy;
-
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
@@ -3356,20 +3339,7 @@ procedure EncryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey2
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
-  I: Integer;
-  Dummy: Byte;
 begin
-  Dummy := 0;
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(ForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(InverseTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastInverseTable[I]);
-  CnAESPreloadDummy := Dummy;
-
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
@@ -3872,20 +3842,7 @@ procedure DecryptAES128(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
-  I: Integer;
-  Dummy: Byte;
 begin
-  Dummy := 0;
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(ForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(InverseTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastInverseTable[I]);
-  CnAESPreloadDummy := Dummy;
-
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[40];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[41];
@@ -4076,20 +4033,7 @@ procedure DecryptAES192(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey1
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
-  I: Integer;
-  Dummy: Byte;
 begin
-  Dummy := 0;
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(ForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(InverseTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastInverseTable[I]);
-  CnAESPreloadDummy := Dummy;
-
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[48];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[49];
@@ -4314,20 +4258,7 @@ procedure DecryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey2
 var
   T0, T1: array [0..3] of Cardinal;
   W0, W1, W2, W3: Cardinal;
-  I: Integer;
-  Dummy: Byte;
 begin
-  Dummy := 0;
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(ForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastForwardTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(InverseTable[I]);
-  for I := 0 to 255 do
-    Dummy := Dummy xor Byte(LastInverseTable[I]);
-  CnAESPreloadDummy := Dummy;
-
   // initializing
   T0[0] := PCardinal(@InBuf[0])^ xor Key[56];
   T0[1] := PCardinal(@InBuf[4])^ xor Key[57];
@@ -4994,39 +4925,39 @@ end;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES128StreamCBC(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES128StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES192StreamCBC(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES192StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES256StreamCBC(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES256StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
@@ -5035,7 +4966,7 @@ end;
 {$ENDIF}
 
 procedure EncryptAES128StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
@@ -5048,7 +4979,7 @@ begin
 end;
 
 procedure EncryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -5064,7 +4995,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5105,7 +5036,7 @@ begin
 end;
 
 procedure EncryptAES192StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
@@ -5118,7 +5049,7 @@ begin
 end;
 
 procedure EncryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192;  const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192;  const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -5134,7 +5065,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5175,7 +5106,7 @@ begin
 end;
 
 procedure EncryptAES256StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
@@ -5188,7 +5119,7 @@ begin
 end;
 
 procedure EncryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -5204,7 +5135,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5250,39 +5181,39 @@ end;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES128StreamCBC(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES128StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES192StreamCBC(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES192StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES256StreamCBC(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES256StreamCBCExpanded(Source, Count, ExpandedKey, InitVector, Dest);
@@ -5291,7 +5222,7 @@ end;
 {$ENDIF}
 
 procedure DecryptAES128StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
@@ -5304,7 +5235,7 @@ begin
 end;
 
 procedure DecryptAES128StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -5324,7 +5255,7 @@ begin
   if Count mod SizeOf(TCnAESBuffer) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
 
-  Vector1 := InitVector;
+  Move(InitVector[0], Vector1[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5348,7 +5279,7 @@ begin
 end;
 
 procedure DecryptAES192StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
@@ -5361,7 +5292,7 @@ begin
 end;
 
 procedure DecryptAES192StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -5381,7 +5312,7 @@ begin
   if Count mod SizeOf(TCnAESBuffer) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
 
-  Vector1 := InitVector;
+  Move(InitVector[0], Vector1[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5405,7 +5336,7 @@ begin
 end;
 
 procedure DecryptAES256StreamCBC(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
@@ -5418,7 +5349,7 @@ begin
 end;
 
 procedure DecryptAES256StreamCBCExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -5438,7 +5369,7 @@ begin
   if Count mod SizeOf(TCnAESBuffer) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);        // CBC 由于密文最后输出是因为 AES 分块加密产生的（不是其他的异或）所以必须整数块
 
-  Vector1 := InitVector;
+  Move(InitVector[0], Vector1[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5467,39 +5398,39 @@ end;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES128StreamCFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES192StreamCFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES256StreamCFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
@@ -5508,7 +5439,7 @@ end;
 {$ENDIF}
 
 procedure EncryptAES128StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
@@ -5521,7 +5452,7 @@ begin
 end;
 
 procedure EncryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -5537,7 +5468,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5576,7 +5507,7 @@ begin
 end;
 
 procedure EncryptAES192StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
@@ -5589,7 +5520,7 @@ begin
 end;
 
 procedure EncryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -5605,7 +5536,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5644,7 +5575,7 @@ begin
 end;
 
 procedure EncryptAES256StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
@@ -5657,7 +5588,7 @@ begin
 end;
 
 procedure EncryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -5673,7 +5604,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5717,39 +5648,39 @@ end;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES128StreamCFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES192StreamCFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES256StreamCFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
@@ -5758,7 +5689,7 @@ end;
 {$ENDIF}
 
 procedure DecryptAES128StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
@@ -5767,7 +5698,7 @@ begin
 end;
 
 procedure DecryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -5785,7 +5716,7 @@ begin
     Exit;
 
   // CFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
@@ -5824,7 +5755,7 @@ begin
 end;
 
 procedure DecryptAES192StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
@@ -5833,7 +5764,7 @@ begin
 end;
 
 procedure DecryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -5851,7 +5782,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5890,7 +5821,7 @@ begin
 end;
 
 procedure DecryptAES256StreamCFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
@@ -5899,7 +5830,7 @@ begin
 end;
 
 procedure DecryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -5916,7 +5847,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -5960,39 +5891,39 @@ end;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES128StreamOFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES192StreamOFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 begin
   EncryptAES256StreamOFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   EncryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
@@ -6001,7 +5932,7 @@ end;
 {$ENDIF}
 
 procedure EncryptAES128StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
@@ -6014,7 +5945,7 @@ begin
 end;
 
 procedure EncryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -6030,7 +5961,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -6068,7 +5999,7 @@ begin
 end;
 
 procedure EncryptAES192StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
@@ -6081,7 +6012,7 @@ begin
 end;
 
 procedure EncryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -6097,7 +6028,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -6136,7 +6067,7 @@ begin
 end;
 
 procedure EncryptAES256StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
@@ -6149,7 +6080,7 @@ begin
 end;
 
 procedure EncryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut, Vector: TCnAESBuffer;
@@ -6165,7 +6096,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -6209,39 +6140,39 @@ end;
 
 // 因 C++Builder 的 overload 混乱问题，以下六函数仅 Delphi 下可用
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES128StreamOFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES192StreamOFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 begin
   DecryptAES256StreamOFB(Source, Count, Key, InitVector, Dest);
 end;
 
 procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 begin
   DecryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
@@ -6250,7 +6181,7 @@ end;
 {$ENDIF}
 
 procedure DecryptAES128StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey128; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey128; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
@@ -6259,7 +6190,7 @@ begin
 end;
 
 procedure DecryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey128; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -6277,7 +6208,7 @@ begin
     Exit;
 
   // OFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
@@ -6316,7 +6247,7 @@ begin
 end;
 
 procedure DecryptAES192StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey192; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey192; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
@@ -6325,7 +6256,7 @@ begin
 end;
 
 procedure DecryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey192; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -6342,7 +6273,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -6381,7 +6312,7 @@ begin
 end;
 
 procedure DecryptAES256StreamOFB(Source: TStream; Count: Cardinal;
-  const Key: TCnAESKey256; const InitVector: TCnAESBuffer; Dest: TStream);
+  const Key: TCnAESKey256; const InitVector: TCnAESIv; Dest: TStream);
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
@@ -6390,7 +6321,7 @@ begin
 end;
 
 procedure DecryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESBuffer;
+  const ExpandedKey: TCnAESExpandedKey256; const InitVector: TCnAESIv;
   Dest: TStream);
 var
   TempIn, TempOut: TCnAESBuffer;
@@ -6407,7 +6338,7 @@ begin
   if Count = 0 then
     Exit;
 
-  Vector := InitVector;
+  Move(InitVector[0], Vector[0], SizeOf(TCnAESBuffer));
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
@@ -6950,7 +6881,7 @@ end;
 
 // AES CBC 加密字符串并将其转换成十六进制
 function AESEncryptCbcStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TCnAESKey128;
@@ -7000,7 +6931,7 @@ end;
 
 // AES CBC 解密十六进制字符串
 function AESDecryptCbcStrFromHex(const HexStr: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TCnAESKey128;
@@ -7053,7 +6984,7 @@ end;
 
 // AES CFB 模式加密字符串并将其转换成十六进制
 function AESEncryptCfbStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TCnAESKey128;
@@ -7103,7 +7034,7 @@ end;
 
 // AES CFB 解密十六进制字符串
 function AESDecryptCfbStrFromHex(const HexStr: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TCnAESKey128;
@@ -7156,7 +7087,7 @@ end;
 
 // AES OFB 模式加密字符串并将其转换成十六进制
 function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TCnAESKey128;
@@ -7206,7 +7137,7 @@ end;
 
 // AES OFB 解密十六进制字符串
 function AESDecryptOfbStrFromHex(const HexStr: AnsiString; Key: AnsiString;
-  const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType): AnsiString;
+  const Iv: TCnAESIv; KeyBit: TCnKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TCnAESKey128;
@@ -7479,7 +7410,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AESIv: TCnAESBuffer;
+  AESIv: TCnAESIv;
 begin
   if Length(Value) <= 0 then
   begin
@@ -7540,7 +7471,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AESIv: TCnAESBuffer;
+  AESIv: TCnAESIv;
 begin
   if Length(Value) <= 0 then
   begin
@@ -7601,7 +7532,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AESIv: TCnAESBuffer;
+  AESIv: TCnAESIv;
 begin
   if Length(Value) <= 0 then
   begin
@@ -7662,7 +7593,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AESIv: TCnAESBuffer;
+  AESIv: TCnAESIv;
 begin
   if Length(Value) <= 0 then
   begin
@@ -7723,7 +7654,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AESIv: TCnAESBuffer;
+  AESIv: TCnAESIv;
 begin
   if Length(Value) <= 0 then
   begin
@@ -7780,7 +7711,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  AESIv: TCnAESBuffer;
+  AESIv: TCnAESIv;
 begin
   if Length(Value) <= 0 then
   begin
@@ -8030,6 +7961,26 @@ function AESDecryptCtrBytesFromHex(const HexStr: AnsiString; Key, Nonce, Iv: TBy
 begin
   Result := AESDecryptCtrBytes(HexToBytes(string(HexStr)), Key, Nonce, Iv, KeyBit);
 end;
+
+procedure InitAesTable;
+var
+  I: Integer;
+  Dummy: Byte;
+begin
+  Dummy := 0;
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(ForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastForwardTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(InverseTable[I]);
+  for I := 0 to 255 do
+    Dummy := Dummy xor Byte(LastInverseTable[I]);
+  CnAESPreloadDummy := Dummy;
+end;
+
+initialization
+  InitAesTable;
 
 end.
 

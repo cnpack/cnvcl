@@ -1416,6 +1416,9 @@ procedure SHA3Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: 
 var
   R, Idx: Cardinal;
 begin
+  if Context.BlockLen = 0 then                          // 避免 Final 后再 Update 出错
+    Exit;
+
   Idx := Context.Index;                                 // Index 是 Block 中的初始位置指针
   repeat
     if ByteLength < Context.BlockLen - Idx then

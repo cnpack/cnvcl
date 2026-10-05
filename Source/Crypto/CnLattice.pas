@@ -520,7 +520,11 @@ begin
   try
     for I := 0 to C - 1 do
     begin
-      B := Cardinal(Int64NonNegativeMod(P[I], Modulus));
+      // 解密结果可能被 CorrectTop 收缩，超出实际次数的高次系数按 0 处理，不可直接读取
+      if I <= P.MaxDegree then
+        B := Cardinal(Int64NonNegativeMod(P[I], Modulus))
+      else
+        B := 0;
       Bld.AppendDWordRange(B, Blk - 1); // 0 到 Blk - 1 共 Blk 位
     end;
     // CheckSum 为 True 时最高的 N - 1 次项是检验项，不参与输入
@@ -568,9 +572,14 @@ end;
 
 destructor TCnNTRUPrivateKey.Destroy;
 begin
+  // 私钥分量属于敏感数据，销毁前安全清零，防止残留在已释放堆块中
+  FFQ.SafeClear;
   FFQ.Free;
+  FFP.SafeClear;
   FFP.Free;
+  FG.SafeClear;
   FG.Free;
+  FF.SafeClear;
   FF.Free;
   inherited;
 end;
@@ -627,6 +636,9 @@ var
   L: Integer;
 begin
   Result := nil;
+  if Length(EnData) <= 0 then
+    Exit;
+
   En := nil;
   De := nil;
 
@@ -682,6 +694,9 @@ var
   L: Integer;
 begin
   Result := nil;
+  if Length(Data) <= 0 then
+    Exit;
+
   Pl := nil;
   En := nil;
 

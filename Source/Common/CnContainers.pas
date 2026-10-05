@@ -388,6 +388,8 @@ type
     {* 排序，默认从小到大}
     function Extract(Item: Integer): Integer; reintroduce;
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    procedure SafeClear;
+    {* 安全清零全部内容（含 Capacity 范围内的残留数据），用于敏感数据销毁}
 
     property Items[Index: Integer]: Integer read Get write Put; default;
     property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
@@ -422,6 +424,8 @@ type
     function Add(Item: Int64): Integer;
     procedure AddList(List: TCnInt64List);
     procedure Clear; virtual;
+    procedure SafeClear;
+    {* 安全清零全部内容（含 Capacity 范围内的残留数据），用于敏感数据销毁}
     procedure Delete(Index: Integer);
     procedure DeleteLow(ACount: Integer);
     {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
@@ -480,6 +484,8 @@ type
     function Add(Item: Cardinal): Integer;
     procedure AddList(List: TCnUInt32List);
     procedure Clear; virtual;
+    procedure SafeClear;
+    {* 安全清零全部内容（含 Capacity 范围内的残留数据），用于敏感数据销毁}
     procedure Delete(Index: Integer);
     class procedure Error(const Msg: string; Data: Integer); overload; virtual;
     class procedure Error(Msg: PResStringRec; Data: Integer); overload;
@@ -535,6 +541,8 @@ type
     function Add(Item: TUInt64): TUInt64;
     procedure AddList(List: TCnUInt64List);
     procedure Clear; virtual;
+    procedure SafeClear;
+    {* 安全清零全部内容（含 Capacity 范围内的残留数据），用于敏感数据销毁}
     procedure Delete(Index: TUInt64);
     class procedure Error(const Msg: string; Data: Integer); overload; virtual;
     class procedure Error(Msg: PResStringRec; Data: Integer); overload;
@@ -586,6 +594,8 @@ type
     function Add(Item: Extended): Integer;
     procedure AddList(List: TCnExtendedList);
     procedure Clear; virtual;
+    procedure SafeClear;
+    {* 安全清零全部内容（含 Capacity 范围内的残留数据），用于敏感数据销毁}
     procedure Delete(Index: Integer);
     procedure DeleteLow(ACount: Integer);
     {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
@@ -1518,6 +1528,13 @@ end;
 
 { TCnIntegerList }
 
+procedure TCnIntegerList.SafeClear;
+begin
+  if (List <> nil) and (Capacity > 0) then
+    MemorySafeZero(List, Capacity * SizeOf(Pointer));
+  Clear;
+end;
+
 function TCnIntegerList.Add(Item: Integer): Integer;
 begin
   if FIgnoreDuplicated and (IndexOf(IntegerToPointer(Item)) >= 0) then
@@ -1626,6 +1643,13 @@ procedure TCnInt64List.Clear;
 begin
   SetCount(0);
   SetCapacity(0);
+end;
+
+procedure TCnInt64List.SafeClear;
+begin
+  if (FList <> nil) and (FCapacity > 0) then
+    MemorySafeZero(FList, FCapacity * SizeOf(Int64));
+  Clear;
 end;
 
 procedure TCnInt64List.Delete(Index: Integer);
@@ -1874,6 +1898,13 @@ begin
   SetCapacity(0);
 end;
 
+procedure TCnUInt32List.SafeClear;
+begin
+  if (FList <> nil) and (FCapacity > 0) then
+    MemorySafeZero(FList, FCapacity * SizeOf(Cardinal));
+  Clear;
+end;
+
 procedure TCnUInt32List.Delete(Index: Integer);
 begin
   if (Index < 0) or (Index >= FCount) then
@@ -2110,6 +2141,13 @@ procedure TCnUInt64List.Clear;
 begin
   SetCount(0);
   SetCapacity(0);
+end;
+
+procedure TCnUInt64List.SafeClear;
+begin
+  if (FList <> nil) and (FCapacity > 0) then
+    MemorySafeZero(FList, Integer(FCapacity) * SizeOf(TUInt64));
+  Clear;
 end;
 
 procedure TCnUInt64List.Delete(Index: TUInt64);
@@ -2353,6 +2391,13 @@ procedure TCnExtendedList.Clear;
 begin
   SetCount(0);
   SetCapacity(0);
+end;
+
+procedure TCnExtendedList.SafeClear;
+begin
+  if (FList <> nil) and (FCapacity > 0) then
+    MemorySafeZero(FList, FCapacity * SizeOf(Extended));
+  Clear;
 end;
 
 procedure TCnExtendedList.Delete(Index: Integer);
