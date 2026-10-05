@@ -47,7 +47,9 @@ unit CnBase64;
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.05.11 V1.7
+* 修改记录：2026.10.05 V1.8
+*               将 FixZero 参数默认改为 False
+*           2026.05.11 V1.7
 *               加入 Base32 的编解码实现
 *           2023.10.04 V1.6
 *               删除慢速实现。Base64Encode 与 Base64Decode 支持 Base64URL 的编码与解码
@@ -140,7 +142,7 @@ function Base64Encode(const InputData: TBytes; var OutputData: string;
 }
 
 function Base64Decode(const InputData: string; OutputData: TStream;
-  FixZero: Boolean = True): Integer; overload;
+  FixZero: Boolean = False): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入流。如解码成功返回 ECN_BASE64_OK。
 
    参数：
@@ -152,7 +154,7 @@ function Base64Decode(const InputData: string; OutputData: TStream;
 }
 
 function Base64Decode(const InputData: string; var OutputData: AnsiString;
-  FixZero: Boolean = True): Integer; overload;
+  FixZero: Boolean = False): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入字符串。如解码成功返回 ECN_BASE64_OK。
 
    参数：
@@ -164,7 +166,7 @@ function Base64Decode(const InputData: string; var OutputData: AnsiString;
 }
 
 function Base64Decode(const InputData: string; OutputData: Pointer;
-  DataByteLen: Integer; FixZero: Boolean = True): Integer; overload;
+  DataByteLen: Integer; FixZero: Boolean = False): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入内存区。如解码成功返回 ECN_BASE64_OK。
 
    参数：
@@ -177,7 +179,7 @@ function Base64Decode(const InputData: string; OutputData: Pointer;
 }
 
 function Base64Decode(const InputData: string; out OutputData: TBytes;
-  FixZero: Boolean = True): Integer; overload;
+  FixZero: Boolean = False): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入字节数组。如解码成功返回 ECN_BASE64_OK。
 
    参数：
@@ -653,7 +655,8 @@ begin
   Result := ECN_BASE64_OK;
 end;
 
-function Base64Decode(const InputData: string; var OutputData: AnsiString; FixZero: Boolean): Integer;
+function Base64Decode(const InputData: string; var OutputData: AnsiString;
+  FixZero: Boolean): Integer;
 var
   Data: TBytes;
 begin

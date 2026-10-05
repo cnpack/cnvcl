@@ -7822,6 +7822,9 @@ end;
 function BigNumberDirectMulMod(Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 begin
   Result := False;
+  if Res = C then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
+
   if A = B then
   begin
     if not BigNumberSqr(Res, A) then
@@ -7832,9 +7835,6 @@ begin
     if not BigNumberMul(Res, A, B) then
       Exit;
   end;
-
-  if Res = C then
-    raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
 
   if not BigNumberNonNegativeMod(Res, Res, C) then
     Exit;
@@ -9624,7 +9624,6 @@ begin
     end;
 
     BigNumberFindFactors(P, Factors);
-    T := FLocalBigNumberPool.Obtain;
     BigNumberDiv(T, R, Num, P);
     BigNumberFindFactors(T, Factors);
   finally
