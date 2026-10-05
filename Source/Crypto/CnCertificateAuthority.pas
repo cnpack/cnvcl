@@ -590,13 +590,37 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   StateOrProvinceName: string; const LocalityName: string; const
   OrganizationName: string; const OrganizationalUnitName: string; const
   CommonName: string; const EmailAddress: string; CASignType: TCnCASignType =
-  ctSha1RSA): Boolean; overload;
+  ctSha256RSA): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 RSA 证书请求文件。
 
    参数：
      PrivateKey: TCnRSAPrivateKey         - 用于生成证书请求文件的 RSA 私钥
      PublicKey: TCnRSAPublicKey           - 用于生成证书请求文件的 RSA 公钥
      const OutCSRFile: string             - 输出的证书请求文件名
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
+
+function CnCANewCertificateSignRequestStream(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; OutCSRStream: TStream; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const
+  OrganizationName: string; const OrganizationalUnitName: string; const
+  CommonName: string; const EmailAddress: string; CASignType: TCnCASignType =
+  ctSha256RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 RSA 证书请求流。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 用于生成证书请求流的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 用于生成证书请求流的 RSA 公钥
+     OutCSRStream: TStream                - 输出的证书请求流
      const CountryName: string            - 国家名
      const StateOrProvinceName: string    - 州名或省名
      const LocalityName: string           - 地区名或城市名
@@ -634,13 +658,38 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
    返回值：Boolean                        - 返回生成是否成功
 }
 
+function CnCANewCertificateSignRequestStream(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; OutCSRStream: TStream; const
+  CountryName: string; const StateOrProvinceName: string; const LocalityName:
+  string; const OrganizationName: string; const OrganizationalUnitName: string;
+  const CommonName: string; const EmailAddress: string; CASignType:
+  TCnCASignType = ctSha256Ecc): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求流。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey         - 用于生成证书请求流的 ECC 私钥
+     PublicKey: TCnEccPublicKey           - 用于生成证书请求流的 ECC 公钥
+     CurveType: TCnEccCurveType           - 用于生成证书请求流的椭圆曲线类型
+     OutCSRStream: TStream                - 输出的证书请求流
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
+
 function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const
   OrganizationName: string; const OrganizationalUnitName: string; const
   CommonName: string; const EmailAddress: string; const IntSerialNum: string;
   NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha1RSA): Boolean; overload;
+  ctSha256RSA): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
@@ -662,13 +711,41 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
    返回值：Boolean                        - 返回生成是否成功
 }
 
+function CnCANewSelfSignedCertificateStream(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const
+  OrganizationName: string; const OrganizationalUnitName: string; const
+  CommonName: string; const EmailAddress: string; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
+  ctSha256RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书流，使用 v1 格式。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 用于生成自签名证书流的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 用于生成自签名证书流的 RSA 公钥
+     OutCRTStream: TStream                - 输出的证书流
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     const IntSerialNum: string           - 序列号
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
+
 function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha1RSA): Boolean; overload;
+  ctSha256RSA): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
@@ -676,6 +753,35 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
      PublicKey: TCnEccPublicKey           - 用于生成自签名证书的 ECC 公钥
      CurveType: TCnEccCurveType           - 用于生成自签名证书的椭圆曲线类型
      const OutCRTFile: string             - 输出的证书文件名
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     const IntSerialNum: string           - 序列号
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
+
+function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; OutCRTStream: TStream; const
+  CountryName: string; const StateOrProvinceName: string; const LocalityName:
+  string; const OrganizationName: string; const OrganizationalUnitName: string;
+  const CommonName: string; const EmailAddress: string; const IntSerialNum:
+  string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
+  ctSha256RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey         - 用于生成自签名证书流的 ECC 私钥
+     PublicKey: TCnEccPublicKey           - 用于生成自签名证书流的 ECC 公钥
+     CurveType: TCnEccCurveType           - 用于生成自签名证书流的椭圆曲线类型
+     OutCRTStream: TStream                - 输出的证书流
      const CountryName: string            - 国家名
      const StateOrProvinceName: string    - 州名或省名
      const LocalityName: string           - 地区名或城市名
@@ -723,6 +829,38 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnRSAPrivateKey; PublicKey:
    返回值：Boolean                                                        - 返回生成是否成功
 }
 
+function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const
+  OrganizationName: string; const OrganizationalUnitName: string; const
+  CommonName: string; const EmailAddress: string; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
+  ctSha256RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书流，使用 v2 格式。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey                                         - 用于生成自签名证书流的 RSA 私钥
+     PublicKey: TCnRSAPublicKey                                           - 用于生成自签名证书流的 RSA 公钥
+     OutCRTStream: TStream                                                - 输出的证书文件流
+     const CountryName: string                                            - 国家名
+     const StateOrProvinceName: string                                    - 州名或省名
+     const LocalityName: string                                           - 地区名或城市名
+     const OrganizationName: string                                       - 组织名
+     const OrganizationalUnitName: string                                 - 组织单位名
+     const CommonName: string                                             - 域名
+     const EmailAddress: string                                           - 电子邮件地址
+     const IntSerialNum: string                                           - 序列号
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
 function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
@@ -739,6 +877,39 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
      PublicKey: TCnEccPublicKey                                           - 用于生成自签名证书的 ECC 公钥
      CurveType: TCnEccCurveType                                           - 用于生成自签名证书的椭圆曲线类型
      const OutCRTFile: string                                             - 输出的证书文件名
+     const CountryName: string                                            - 国家名
+     const StateOrProvinceName: string                                    - 州名或省名
+     const LocalityName: string                                           - 地区名或城市名
+     const OrganizationName: string                                       - 组织名
+     const OrganizationalUnitName: string                                 - 组织单位名
+     const CommonName: string                                             - 域名
+     const EmailAddress: string                                           - 电子邮件地址
+     const IntSerialNum: string                                           - 序列号
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
+function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; OutCRTStream: TStream; const
+  CountryName: string; const StateOrProvinceName: string; const LocalityName:
+  string; const OrganizationName: string; const OrganizationalUnitName: string;
+  const CommonName: string; const EmailAddress: string; const IntSerialNum:
+  string; NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
+  ctSha256Ecc): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书流，使用 v2 格式。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey                                         - 用于生成自签名证书流的 ECC 私钥
+     PublicKey: TCnEccPublicKey                                           - 用于生成自签名证书流的 ECC 公钥
+     CurveType: TCnEccCurveType                                           - 用于生成自签名证书流的椭圆曲线类型
+     OutCRTStream: TStream                                                - 输出的证书文件流
      const CountryName: string                                            - 国家名
      const StateOrProvinceName: string                                    - 州名或省名
      const LocalityName: string                                           - 地区名或城市名
@@ -993,7 +1164,7 @@ function CnCALoadCertificateFromStream(Stream: TStream; Certificate:
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha1RSA): Boolean; overload;
+  ctSha256RSA): Boolean; overload;
 {* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v1 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
@@ -1764,8 +1935,8 @@ begin
   ExtCtx.BerTypeMask := $80;
   ExtSeq := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, ExtCtx);
 
-  if Assigned(StandardExt) and (StandardExt.SubjectAltName <> nil) and (StandardExt.SubjectAltName.Count
-    > 0) then
+  if (StandardExt <> nil) and (StandardExt.SubjectAltName <> nil) and
+    (StandardExt.SubjectAltName.Count > 0) then
   begin
     Inner := TCnBerWriter.Create;
     try
@@ -1812,7 +1983,7 @@ begin
     end;
   end;
 
-  if Assigned(StandardExt) then
+  if StandardExt <> nil then
   begin
     // 构造 KeyUsage 的 DER BIT STRING TLV 并直接写入 OCTET STRING
     // 位定义采用 RFC 5280：最高位为 bit 0（digitalSignature），按位逐个下降
@@ -1848,6 +2019,7 @@ begin
       B[2] := UnusedBits;
       B[3] := KUByte;
       Mem.Write(B[0], 4);
+
       // 扩展项写入
       ExtItem := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, ExtSeq);
       Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_KEYUSAGE[0],
@@ -1863,7 +2035,7 @@ begin
     end;
   end;
 
-  if Assigned(StandardExt) then
+  if StandardExt <> nil then
   begin
     Inner := TCnBerWriter.Create;
     try
@@ -1894,7 +2066,7 @@ begin
     end;
   end;
 
-  if Assigned(StandardExt) and (StandardExt.ExtendedKeyUsage <> []) then
+  if (StandardExt <> nil) and (StandardExt.ExtendedKeyUsage <> []) then
   begin
     Inner := TCnBerWriter.Create;
     try
@@ -1938,7 +2110,7 @@ begin
     end;
   end;
 
-  if Assigned(StandardExt) and (Length(StandardExt.AuthorityKeyIdentifier) > 0) then
+  if (StandardExt <> nil) and (Length(StandardExt.AuthorityKeyIdentifier) > 0) then
   begin
     Inner := TCnBerWriter.Create;
     try
@@ -1953,7 +2125,7 @@ begin
     end;
   end;
 
-  if Assigned(PrivateInternetExt) then
+  if PrivateInternetExt <> nil then
   begin
     Inner := TCnBerWriter.Create;
     try
@@ -1984,8 +2156,8 @@ begin
     end;
   end;
 
-  if Assigned(StandardExt) and (StandardExt.CRLDistributionPoints <> nil) and (StandardExt.CRLDistributionPoints.Count
-    > 0) then
+  if (StandardExt <> nil) and (StandardExt.CRLDistributionPoints <> nil) and
+    (StandardExt.CRLDistributionPoints.Count > 0) then
   begin
     Inner := TCnBerWriter.Create;
     try
@@ -2018,12 +2190,49 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnRSAPrivateKey; PublicKey:
   PrivateInternetExt: TCnCertificatePrivateInternetExtensions; CASignType:
   TCnCASignType): Boolean;
 var
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
+  Stream := TMemoryStream.Create;
+  try
+    Result := CnCANewSelfSignedCertificateStream2(PrivateKey, PublicKey, Stream,
+      CountryName, StateOrProvinceName, LocalityName, OrganizationName,
+      OrganizationalUnitName, CommonName, EmailAddress, IntSerialNum, NotBefore,
+      NotAfter, StandardExt, PrivateInternetExt, CASignType);
+
+    if Result then
+      Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+        PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const
+  OrganizationName: string; const OrganizationalUnitName: string; const
+  CommonName: string; const EmailAddress: string; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
   SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Stream: TMemoryStream;
   Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
@@ -2033,10 +2242,17 @@ begin
   if NotAfter <= NotBefore then
     Exit;
 
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTStream = nil) then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
   Writer := nil;
   SerialNum := nil;
   UTCTime := nil;
-  Stream := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -2116,13 +2332,10 @@ begin
     if not GenerateRSASignatureNode(Writer, Root, BasicNode, PrivateKey, CASignType) then
       Exit;
 
-    Stream := TMemoryStream.Create;
-    Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
-      PEM_CERTIFICATE_TAIL, Stream);
+    Writer.SaveToStream(OutCRTStream);
+    Result := True;
   finally
     Writer.Free;
-    Stream.Free;
     SerialNum.Free;
     UTCTime.Free;
   end;
@@ -2154,10 +2367,65 @@ begin
   if CurveType = ctCustomized then
     Exit;
 
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
+  Stream := TMemoryStream.Create;
+  try
+    Result := CnCANewSelfSignedCertificateStream2(PrivateKey, PublicKey, CurveType, Stream,
+      CountryName, StateOrProvinceName, LocalityName, OrganizationName,
+      OrganizationalUnitName, CommonName, EmailAddress, IntSerialNum,
+      NotBefore, NotAfter, StandardExt, PrivateInternetExt, CASignType);
+
+    if Result then
+      Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+        PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; OutCRTStream: TStream; const
+  CountryName: string; const StateOrProvinceName: string; const LocalityName:
+  string; const OrganizationName: string; const OrganizationalUnitName: string;
+  const CommonName: string; const EmailAddress: string; const IntSerialNum:
+  string; NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Buf: TBytes;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
+  Crit: TCnCertificateExtensionCriticals;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+  if CurveType = ctCustomized then
+    Exit;
+
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTStream = nil) then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
   Writer := nil;
   SerialNum := nil;
   UTCTime := nil;
-  Stream := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -2239,13 +2507,10 @@ begin
       CurveType, CASignType) then
       Exit;
 
-    Stream := TMemoryStream.Create;
-    Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
-      PEM_CERTIFICATE_TAIL, Stream);
+    Writer.SaveToStream(OutCRTStream);
+    Result := True;
   finally
     Writer.Free;
-    Stream.Free;
     SerialNum.Free;
     UTCTime.Free;
   end;
@@ -2542,14 +2807,43 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   OrganizationName: string; const OrganizationalUnitName: string; const
   CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
 var
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') then
+    Exit;
+
+  Stream := TMemoryStream.Create;
+  try
+    Result := CnCANewCertificateSignRequestStream(PrivateKey, PublicKey, Stream,
+      CountryName, StateOrProvinceName, LocalityName, OrganizationName, OrganizationalUnitName,
+      CommonName, EmailAddress, CASignType);
+
+    if Result then
+      Result := SaveMemoryToPemFile(OutCSRFile, PEM_CERTIFICATE_REQUEST_HEAD,
+        PEM_CERTIFICATE_REQUEST_TAIL, Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCANewCertificateSignRequestStream(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; OutCSRStream: TStream; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const
+  OrganizationName: string; const OrganizationalUnitName: string; const
+  CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
+var
   B: Byte;
   Writer, HashWriter: TCnBerWriter;
-  Stream: TMemoryStream;
   Root, DNRoot, InfoRoot, PubNode: TCnBerWriteNode;
 begin
   Result := False;
-
-  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRFile = '') then
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRStream = nil) then
     Exit;
 
   if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
@@ -2560,7 +2854,6 @@ begin
   B := 0;
   Writer := nil;
   HashWriter := nil;
-  Stream := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -2597,14 +2890,11 @@ begin
       Exit;
 
     // 保存
-    Stream := TMemoryStream.Create;
-    Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCSRFile, PEM_CERTIFICATE_REQUEST_HEAD,
-      PEM_CERTIFICATE_REQUEST_TAIL, Stream);
+    Writer.SaveToStream(OutCSRStream);
+    Result := True;
   finally
     Writer.Free;
     HashWriter.Free;
-    Stream.Free;
   end;
 end;
 
@@ -2615,14 +2905,43 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   const CommonName: string; const EmailAddress: string; CASignType:
   TCnCASignType): Boolean;
 var
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') then
+    Exit;
+
+  Stream := TMemoryStream.Create;
+  try
+    Result := CnCANewCertificateSignRequestStream(PrivateKey, PublicKey, CurveType,
+      Stream, CountryName, StateOrProvinceName, LocalityName, OrganizationName,
+      OrganizationalUnitName, CommonName, EmailAddress, CASignType);
+
+    if Result then
+      Result := SaveMemoryToPemFile(OutCSRFile, PEM_CERTIFICATE_REQUEST_HEAD,
+        PEM_CERTIFICATE_REQUEST_TAIL, Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCANewCertificateSignRequestStream(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; OutCSRStream: TStream; const
+  CountryName: string; const StateOrProvinceName: string; const LocalityName:
+  string; const OrganizationName: string; const OrganizationalUnitName: string;
+  const CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
+var
   B: Byte;
   Writer, HashWriter: TCnBerWriter;
-  Stream: TMemoryStream;
   Root, DNRoot, InfoRoot, PubNode: TCnBerWriteNode;
 begin
   Result := False;
-
-  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRFile = '') then
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRStream = nil) then
     Exit;
 
   if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
@@ -2633,7 +2952,6 @@ begin
   B := 0;
   Writer := nil;
   HashWriter := nil;
-  Stream := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -2670,14 +2988,11 @@ begin
     GenerateEccSignatureNode(Writer, Root, InfoRoot, PrivateKey, CurveType, CASignType);
 
     // 保存
-    Stream := TMemoryStream.Create;
-    Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCSRFile, PEM_CERTIFICATE_REQUEST_HEAD,
-      PEM_CERTIFICATE_REQUEST_TAIL, Stream);
+    Writer.SaveToStream(OutCSRStream);
+    Result := True;
   finally
     Writer.Free;
     HashWriter.Free;
-    Stream.Free;
   end;
 end;
 
@@ -4359,12 +4674,45 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   CommonName: string; const EmailAddress: string; const IntSerialNum: string;
   NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
 var
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
+  Stream := TMemoryStream.Create;
+  try
+    Result := CnCANewSelfSignedCertificateStream(PrivateKey, PublicKey, Stream,
+      CountryName, StateOrProvinceName, LocalityName, OrganizationName, OrganizationalUnitName,
+      CommonName, EmailAddress, IntSerialNum, NotBefore, NotAfter, CASignType);
+
+    if Result then
+      Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+        PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCANewSelfSignedCertificateStream(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const
+  OrganizationName: string; const OrganizationalUnitName: string; const
+  CommonName: string; const EmailAddress: string; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
   SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Stream: TMemoryStream;
   Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
@@ -4373,10 +4721,17 @@ begin
   if NotAfter <= NotBefore then
     Exit;
 
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTStream = nil) then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
   Writer := nil;
   SerialNum := nil;
   UTCTime := nil;
-  Stream := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -4453,13 +4808,10 @@ begin
       Exit;
 
     // 保存
-    Stream := TMemoryStream.Create;
-    Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
-      PEM_CERTIFICATE_TAIL, Stream);
+    Writer.SaveToStream(OutCRTStream);
+    Result := True;
   finally
     Writer.Free;
-    Stream.Free;
     SerialNum.Free;
     UTCTime.Free;
   end;
@@ -4472,12 +4824,48 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
 var
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+  if CurveType = ctCustomized then
+    Exit;
+
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
+  Stream := TMemoryStream.Create;
+  try
+    Result := CnCANewSelfSignedCertificateStream(PrivateKey, PublicKey, CurveType, Stream,
+      CountryName, StateOrProvinceName, LocalityName, OrganizationName, OrganizationalUnitName,
+      CommonName, EmailAddress, IntSerialNum, NotBefore, NotAfter, CASignType);
+
+    if Result then
+      Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+        PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; OutCRTStream: TStream; const
+  CountryName: string; const StateOrProvinceName: string; const LocalityName:
+  string; const OrganizationName: string; const OrganizationalUnitName: string;
+  const CommonName: string; const EmailAddress: string; const IntSerialNum:
+  string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
   SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Stream: TMemoryStream;
   Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
@@ -4488,10 +4876,17 @@ begin
   if CurveType = ctCustomized then
     Exit;
 
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCRTStream = nil) then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') or (IntSerialNum = '') then
+    Exit;
+
   Writer := nil;
   SerialNum := nil;
   UTCTime := nil;
-  Stream := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -4570,13 +4965,10 @@ begin
       Exit;
 
     // 保存
-    Stream := TMemoryStream.Create;
-    Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
-      PEM_CERTIFICATE_TAIL, Stream);
+    Writer.SaveToStream(OutCRTStream);
+    Result := True;
   finally
     Writer.Free;
-    Stream.Free;
     SerialNum.Free;
     UTCTime.Free;
   end;
