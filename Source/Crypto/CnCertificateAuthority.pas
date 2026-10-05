@@ -538,6 +538,7 @@ type
     FDigestValue: Pointer;
     FSignValue: Pointer;
     FCASignType: TCnCASignType;
+    FOuterSignType: TCnCASignType;
     FRSADigestType: TCnRSASignDigestType;
     FBasicCertificate: TCnBasicCertificate;
     FIsRSA: Boolean;
@@ -565,7 +566,9 @@ type
     property BasicCertificate: TCnBasicCertificate read FBasicCertificate;
     {* 证书基本信息类，包括签发者与被签发者的信息}
     property CASignType: TCnCASignType read FCASignType write FCASignType;
-    {* 签发者使用的杂凑与签名算法}
+    {* 签发者使用的杂凑与签名算法，加载证书时取自 TBS 内层被签名保护的 signature 字段}
+    property OuterSignType: TCnCASignType read FOuterSignType write FOuterSignType;
+    {* 外层不受签名保护的 signatureAlgorithm 算法，与 CASignType 不一致说明证书被篡改}
     property SignValue: Pointer read FSignValue write FSignValue;
     {* 杂凑后签名的结果}
     property SignLength: Integer read FSignLength write FSignLength;
@@ -3573,6 +3576,8 @@ begin
         Exit;
       if not ExtractCASignType(SignAlgNode.Items[0], OuterType) then
         Exit;
+
+      // CRT.CASignType 来自 TBS 内层被签名保护的字段，外层不一致即拒绝
       if OuterType <> CRT.CASignType then
         Exit;
 
@@ -3585,7 +3590,7 @@ begin
       // RSA 证书的杂凑值要用父公钥才能从证书里解密出来
       if not ExtractSignaturesByPublicKey(True, ParentPublicKey,
         nil, SignAlgNode, SignValueNode,
-        CRT.FCASignType, CRT.FRSADigestType, CRT.FSignValue,
+        OuterType, CRT.FRSADigestType, CRT.FSignValue,
         CRT.FDigestValue, CRT.FSignLength, CRT.FDigestLength) then
         Exit;
 
@@ -3679,6 +3684,8 @@ begin
         Exit;
       if not ExtractCASignType(Root.Items[1].Items[0], OuterType) then
         Exit;
+
+      // CRT.CASignType 来自 TBS 内层被签名保护的字段，外层不一致即拒绝
       if OuterType <> CRT.CASignType then
         Exit;
 
@@ -4034,6 +4041,8 @@ begin
     if (Node = nil) or (Node.Count < 1)
       or not ExtractCASignType(Node.Items[0], SignTypeTmp) then
         Exit;
+
+    // CASignType 取自 TBS 内层被签名保护的字段，此后不得再被外层值覆盖
     Certificate.CASignType := SignTypeTmp;
     Certificate.IsRSA := Certificate.CASignType in RSA_CA_TYPES;
 
@@ -4139,8 +4148,10 @@ begin
     begin
       Result := ExtractSignaturesByPublicKey(IsRSA, Certificate.BasicCertificate.SubjectRSAPublicKey,
         Certificate.BasicCertificate.SubjectEccPublicKey, SignAlgNode, SignValueNode,
-        Certificate.FCASignType, Certificate.FRSADigestType, Certificate.FSignValue,
+        SignTypeTmp, Certificate.FRSADigestType, Certificate.FSignValue,
         Certificate.FDigestValue, Certificate.FSignLength, Certificate.FDigestLength);
+      if Result then
+        Certificate.OuterSignType := SignTypeTmp; // 外层不受签名保护的算法单独记录，不回写 CASignType
 
       if Result and not IsRSA then
       begin
@@ -4167,9 +4178,11 @@ begin
         (Certificate.FCASignType = ctSha1RSA) or
         (Certificate.FCASignType = ctSha256RSA);
       Result := ExtractSignaturesByPublicKey(IsRSA, nil, nil, SignAlgNode,
-        SignValueNode, Certificate.FCASignType,
+        SignValueNode, SignTypeTmp,
         DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
         DummyInteger);
+      if Result then
+        Certificate.OuterSignType := SignTypeTmp; // 外层不受签名保护的算法单独记录，不回写 CASignType
     end;
 
     // 解开标准扩展与私有互联网扩展节点
@@ -4182,8 +4195,10 @@ begin
         if Node.Count = 1 then
           Node := Node.Items[0];
 
-        Result := ExtractExtensions(Node, Certificate.BasicCertificate.StandardExtension,
-          Certificate.BasicCertificate.PrivateInternetExtension);
+        // 空扩展序列合法（生成端可能未写任何扩展），直接跳过而非拒绝
+        if Node.Count > 0 then
+          Result := ExtractExtensions(Node, Certificate.BasicCertificate.StandardExtension,
+            Certificate.BasicCertificate.PrivateInternetExtension);
       end;
     end;
   finally

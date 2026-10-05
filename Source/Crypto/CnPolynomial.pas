@@ -6985,12 +6985,14 @@ function Int64PolynomialCompose(Res: TCnInt64Polynomial;
   F, P: TCnInt64Polynomial): Boolean;
 var
   I: Integer;
+  C: Int64;
   R, X, T: TCnInt64Polynomial;
 begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
+    C := F[0];  // 先取出常数项，Res 可能与 F 为同一对象，SetOne 会将其覆盖
     Res.SetOne;
-    Res[0] := F[0];
+    Res[0] := C;
     Result := True;
     Exit;
   end;
@@ -7615,12 +7617,14 @@ function Int64PolynomialGaloisCompose(Res: TCnInt64Polynomial;
   F, P: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   I: Integer;
+  C: Int64;
   R, X, T: TCnInt64Polynomial;
 begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
+    C := Int64NonNegativeMod(F[0], Prime);  // 先取出常数项，Res 可能与 F 为同一对象，SetOne 会将其覆盖
     Res.SetOne;
-    Res[0] := Int64NonNegativeMod(F[0], Prime);
+    Res[0] := C;
     Result := True;
     Exit;
   end;
@@ -10092,12 +10096,19 @@ function BigNumberPolynomialCompose(Res: TCnBigNumberPolynomial;
   F, P: TCnBigNumberPolynomial): Boolean;
 var
   I: Integer;
+  C: TCnBigNumber;
   R, X, T: TCnBigNumberPolynomial;
 begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
-    Res.SetOne;
-    BigNumberCopy(Res[0], F[0]);
+    C := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberCopy(C, F[0]);  // 先取出常数项，Res 可能与 F 为同一对象，SetOne 会将其覆盖
+      Res.SetOne;
+      BigNumberCopy(Res[0], C);
+    finally
+      FLocalBigNumberPool.Recycle(C);
+    end;
     Result := True;
     Exit;
   end;
@@ -11803,12 +11814,19 @@ function BigNumberPolynomialGaloisCompose(Res: TCnBigNumberPolynomial;
   F, P: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 var
   I: Integer;
+  C: TCnBigNumber;
   R, X, T: TCnBigNumberPolynomial;
 begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
-    Res.SetOne;
-    BigNumberNonNegativeMod(Res[0], F[0], Prime);
+    C := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberCopy(C, F[0]);  // 先取出常数项，Res 可能与 F 为同一对象，SetOne 会将其覆盖
+      Res.SetOne;
+      BigNumberNonNegativeMod(Res[0], C, Prime);
+    finally
+      FLocalBigNumberPool.Recycle(C);
+    end;
     Result := True;
     Exit;
   end;

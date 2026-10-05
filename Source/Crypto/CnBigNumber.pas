@@ -7376,8 +7376,34 @@ end;
 
 function BigNumberNonNegativeMod(Remain: TCnBigNumber;
   Num: TCnBigNumber; Divisor: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
 begin
   Result := False;
+  if Remain = Divisor then
+  begin
+    // Dest 与除数为同一对象时，求余及后续修正都会破坏 Divisor，
+    // 需先快照除数，非别名路径不受影响
+    T := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberCopy(T, Divisor);
+      if not BigNumberMod(Remain, Num, T) then
+        Exit;
+
+      Result := True;
+      if Remain.FNeg = 0 then
+        Exit;
+
+      if T.FNeg <> 0 then
+        Result := BigNumberSub(Remain, Remain, T)
+      else
+        Result := BigNumberAdd(Remain, Remain, T);
+    finally
+      FLocalBigNumberPool.Recycle(T);
+    end;
+    Exit;
+  end;
+
   if not BigNumberMod(Remain, Num, Divisor) then
     Exit;
 

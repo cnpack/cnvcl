@@ -223,6 +223,7 @@ function TestBigNumberMontgomery: Boolean;
 function TestBigNumberMontgomeryPowerMod: Boolean;
 function TestBigNumberLoadSaveMem: Boolean;
 function TestBigNumberListLoadSaveMem: Boolean;
+function TestBigNumberNonNegativeModAlias: Boolean;
 
 // ============================== BigRational ==================================
 
@@ -2019,6 +2020,7 @@ begin
   MyAssert(TestBigNumberLoadSaveMem, 'TestBigNumberLoadSaveMem');
   MyAssert(TestBigNumberShiftMinInteger, 'TestBigNumberShiftMinInteger');
   MyAssert(TestBigNumberListLoadSaveMem, 'TestBigNumberListLoadSaveMem');
+  MyAssert(TestBigNumberNonNegativeModAlias, 'TestBigNumberNonNegativeModAlias');
 
 // ============================== BigRational ==================================
 
@@ -6620,6 +6622,59 @@ begin
   finally
     Restored.Free;
     L.Free;
+  end;
+end;
+
+function TestBigNumberNonNegativeModAlias: Boolean;
+{* 专测 BigNumberNonNegativeMod 在 Dest 与 Divisor 为同一对象时的别名正确性，
+   负余数修正阶段不得把除数破坏后自减/自加得到 0 或 2 倍除数 }
+var
+  D, R, Num, E: TCnBigNumber;
+
+  function CheckAlias(NumVal, DivVal, Expect: Integer): Boolean;
+  begin
+    Num.SetInteger(NumVal);
+    D.SetInteger(DivVal);
+    E.SetInteger(Expect);
+    // Dest 与 Divisor 为同一对象
+    BigNumberNonNegativeMod(D, Num, D);
+    Result := BigNumberCompare(D, E) = 0;
+  end;
+
+begin
+  Result := False;
+  D := TCnBigNumber.Create;
+  Num := TCnBigNumber.Create;
+  E := TCnBigNumber.Create;
+  try
+    // 负余数需修正的场景，别名时曾静默得 0
+    if not CheckAlias(-3, 7, 4) then Exit;       // -3    mod  7
+    if not CheckAlias(-1005, 7, 3) then Exit;    // -1005 mod  7
+    if not CheckAlias(-1005, -7, 3) then Exit;   // -1005 mod -7
+
+    // 正余数场景回归
+    if not CheckAlias(3, 7, 3) then Exit;        // 3     mod  7
+    if not CheckAlias(1005, 7, 4) then Exit;     // 1005  mod  7
+
+    // 非别名路径回归，且 Divisor 不得被破坏
+    R := TCnBigNumber.Create;
+    try
+      Num.SetInteger(-1005);
+      D.SetInteger(7);
+      E.SetInteger(3);
+      BigNumberNonNegativeMod(R, Num, D);
+      if BigNumberCompare(R, E) <> 0 then Exit;
+      E.SetInteger(7);
+      if BigNumberCompare(D, E) <> 0 then Exit;
+    finally
+      R.Free;
+    end;
+
+    Result := True;
+  finally
+    Num.Free;
+    D.Free;
+    E.Free;
   end;
 end;
 
