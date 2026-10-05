@@ -7065,7 +7065,7 @@ begin
     if not D.IsOne then
     begin
       Int64PolynomialDiv(P1, nil, P1, D);
-      Int64PolynomialDiv(P1, nil, P1, D);
+      Int64PolynomialDiv(P2, nil, P2, D);
     end;
   finally
     FLocalInt64PolynomialPool.Recycle(D);
@@ -7869,7 +7869,7 @@ begin
     if not D.IsOne then
     begin
       Int64PolynomialGaloisDiv(P1, nil, P1, D, Prime);
-      Int64PolynomialGaloisDiv(P1, nil, P1, D, Prime);
+      Int64PolynomialGaloisDiv(P2, nil, P2, D, Prime);
     end;
   finally
     FLocalInt64PolynomialPool.Recycle(D);
@@ -10179,7 +10179,7 @@ begin
     if not D.IsOne then
     begin
       BigNumberPolynomialDiv(P1, nil, P1, D);
-      BigNumberPolynomialDiv(P1, nil, P1, D);
+      BigNumberPolynomialDiv(P2, nil, P2, D);
     end;
   finally
     FLocalBigNumberPolynomialPool.Recycle(D);
@@ -12080,7 +12080,7 @@ begin
     if not D.IsOne then
     begin
       BigNumberPolynomialGaloisDiv(P1, nil, P1, D, Prime);
-      BigNumberPolynomialGaloisDiv(P1, nil, P1, D, Prime);
+      BigNumberPolynomialGaloisDiv(P2, nil, P2, D, Prime);
     end;
   finally
     FLocalBigNumberPolynomialPool.Recycle(D);

@@ -5730,7 +5730,11 @@ begin
   begin
     // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判走全移空分支
     if N = CN_MIN_INT32 then
-      Result := BigNumberShiftLeft(Res, Num, CN_MAX_INT32)
+    begin
+      // 注意 Low(Integer) 取负也会超出正的 High(Integer) 导致越界重新变成负的
+      // 如采用 Int64 扩展成 High(Integer) + 1，则会内存分配失败，干脆将此行为直接定为失败
+      Result := False;
+    end
     else
       Result := BigNumberShiftLeft(Res, Num, -N);
     Exit;

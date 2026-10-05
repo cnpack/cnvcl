@@ -6109,8 +6109,6 @@ begin
   // 回归用例：移位位数 = MinInteger（$80000000）。CnBigNumber 的
   // BigNumberShiftLeft/BigNumberShiftRight 在 N < 0 时调用对向移位函数并传
   // -N，而 -Low(Integer) 溢出回绕仍为 Low(Integer)，导致无限互递归直至栈溢出。
-  // 语义上左移 MinInteger 位等价于右移 MinInteger 位（远超任何实际位数），
-  // 结果应为 0。
   Result := False;
   Num := TCnBigNumber.Create;
   Res := TCnBigNumber.Create;
@@ -6118,8 +6116,9 @@ begin
     Num.SetWord(1);
     if not BigNumberShiftLeft(Res, Num, Low(Integer)) then Exit;
     if not Res.IsZero then Exit;
-    if not BigNumberShiftRight(Res, Num, Low(Integer)) then Exit;
-    if not Res.IsZero then Exit;
+
+    // 右移 Low(Integer) 应当返回失败，因为左移超界了
+    if BigNumberShiftRight(Res, Num, Low(Integer)) then Exit;
     Result := True;
   finally
     Res.Free;
@@ -14885,6 +14884,7 @@ var
   D1, D2: TCnSHA384Digest;
   C: TCnSHA384Context;
   S, S1, S2: AnsiString;
+  I: Integer;
 begin
   S1 := '0123456789abcdefghi';
   S2 := 'jklmnop';
@@ -14897,6 +14897,22 @@ begin
   SHA384Final(C, D2);
 
   Result := SHA384Match(D1, D2);
+
+  // 跨块边界场景：第一次 Update 留 19 字节余数，第二次 Update 后总长 219 >= 128，
+  // 尾余数 91 字节必须从 Data[0] 重写。触发 CnSHA2.pas SHA512Update 尾部偏移错误。
+  S1 := '0123456789abcdefghi';  // 19 字节
+  S2 := '';
+  for I := 1 to 200 do
+    S2 := S2 + AnsiChar(Chr(32 + (I mod 95)));
+  S := S1 + S2;
+
+  D1 := SHA384StringA(S);
+  SHA384Init(C);
+  SHA384Update(C, PAnsiChar(S1), Length(S1));
+  SHA384Update(C, PAnsiChar(S2), Length(S2));
+  SHA384Final(C, D2);
+
+  Result := Result and SHA384Match(D1, D2);
 end;
 
 function TestSHA512: Boolean;
@@ -14926,6 +14942,7 @@ var
   D1, D2: TCnSHA512Digest;
   C: TCnSHA512Context;
   S, S1, S2: AnsiString;
+  I: Integer;
 begin
   S1 := '0123456789abcdefghi';
   S2 := 'jklmnop';
@@ -14938,6 +14955,22 @@ begin
   SHA512Final(C, D2);
 
   Result := SHA512Match(D1, D2);
+
+  // 跨块边界场景：第一次 Update 留 19 字节余数，第二次 Update 后总长 219 >= 128，
+  // 尾余数 91 字节必须从 Data[0] 重写。触发 CnSHA2.pas SHA512Update 尾部偏移错误。
+  S1 := '0123456789abcdefghi';  // 19 字节
+  S2 := '';
+  for I := 1 to 200 do
+    S2 := S2 + AnsiChar(Chr(32 + (I mod 95)));
+  S := S1 + S2;
+
+  D1 := SHA512StringA(S);
+  SHA512Init(C);
+  SHA512Update(C, PAnsiChar(S1), Length(S1));
+  SHA512Update(C, PAnsiChar(S2), Length(S2));
+  SHA512Final(C, D2);
+
+  Result := Result and SHA512Match(D1, D2);
 end;
 
 function TestSHA512224: Boolean;

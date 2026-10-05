@@ -1734,7 +1734,7 @@ begin
 
   RemainLength := NewLength mod 128;
   Input := PAnsiChar(TCnNativeUInt(Input) + (BlockCount shl 7));
-  Move(Input^, Context.Data[Context.DataLen], RemainLength);
+  Move(Input^, Context.Data[0], RemainLength);
 
   Context.DataLen := RemainLength;
   Inc(Context.TotalLen, (BlockCount + 1) shl 7);
