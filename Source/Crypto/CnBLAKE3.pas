@@ -1044,7 +1044,7 @@ begin
   BLAKE3Final(Context, Result);
 end;
 
-function FileSizeIsLargeThanMaxOrCanNotMap3(const AFileName: string; out IsEmpty: Boolean): Boolean;
+function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
 {$IFDEF MSWINDOWS}
 var
   H: THandle;
@@ -1091,7 +1091,7 @@ begin
   else
     BLAKE3Init(Context);
   FileIsZeroSize := False;
-  if FileSizeIsLargeThanMaxOrCanNotMap3(FileName, FileIsZeroSize) then
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try

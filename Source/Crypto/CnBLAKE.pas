@@ -2035,6 +2035,7 @@ begin
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 {$ELSE}
   Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+  IsEmpty := False;
 {$ENDIF}
 end;
 

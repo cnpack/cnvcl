@@ -262,7 +262,7 @@ var
   Z, Y, X, Sum, E, P: Cardinal;
   Q: Integer;
 begin
-  if DataLongWordLength <= 0 then
+  if (DataLongWordLength <= 0) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
     raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;
@@ -295,7 +295,7 @@ var
   Z, Y, X, Sum, E, P: Cardinal;
   Q: Integer;
 begin
-  if DataLongWordLength <= 0 then
+  if (DataLongWordLength <= 0) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
     raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;

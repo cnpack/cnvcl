@@ -46,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnMatrix;
+  SysUtils, SysConst, Classes, CnNative, CnMatrix;
 
 type
   ECnHammingException = class(Exception);
@@ -590,6 +590,9 @@ function TCnGalois2Power8Rule.Divide(X, Y: Int64): Int64;
 var
   A, B: Integer;
 begin
+  if Y = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
   CheckGalois2Power8Values(X, Y);
   // 查到对数结果，减，还原
   if X = 0 then
@@ -844,5 +847,10 @@ begin
     V.Free;
   end;
 end;
+
+initialization
+
+finalization
+  FreeAndNil(FGalois2Power8Rule);
 
 end.

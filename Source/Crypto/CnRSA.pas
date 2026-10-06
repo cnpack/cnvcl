@@ -2720,6 +2720,13 @@ begin
   FPrimeKey2.Clear;
   FPrivKeyProduct.Clear;
   FPrivKeyExponent.Clear;
+
+  if FUseCRT then
+  begin
+    FQInv.Clear;
+    FDQ1.Clear;
+    FDP1.Clear;
+  end;
 end;
 
 procedure TCnRSAPrivateKey.UpdateCRT;

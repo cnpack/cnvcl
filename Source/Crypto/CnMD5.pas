@@ -721,6 +721,34 @@ begin
   MD5Final(Context, Result);
 end;
 
+function FileSizeIsLargeThanMaxOrCanNotMap(const FileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
+var
+  H: THandle;
+  Info: BY_HANDLE_FILE_INFORMATION;
+  Rec : Int64Rec;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  Result := False;
+  IsEmpty := False;
+  H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
+  if H = INVALID_HANDLE_VALUE then Exit;
+  try
+    if not GetFileInformationByHandle(H, Info) then Exit;
+  finally
+    CloseHandle(H);
+  end;
+  Rec.Lo := Info.nFileSizeLow;
+  Rec.Hi := Info.nFileSizeHigh;
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
+  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+  IsEmpty := False;
+{$ENDIF}
+end;
+
 // 对指定文件内容进行 MD5 计算
 function MD5File(const FileName: string;
   CallBack: TCnMD5CalcProgressFunc): TCnMD5Digest;
@@ -733,34 +761,6 @@ var
 {$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
-
-  function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
-{$IFDEF MSWINDOWS}
-  var
-    H: THandle;
-    Info: BY_HANDLE_FILE_INFORMATION;
-    Rec : Int64Rec;
-{$ENDIF}
-  begin
-{$IFDEF MSWINDOWS}
-    Result := False;
-    IsEmpty := False;
-    H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
-    if H = INVALID_HANDLE_VALUE then Exit;
-    try
-      if not GetFileInformationByHandle(H, Info) then Exit;
-    finally
-      CloseHandle(H);
-    end;
-    Rec.Lo := Info.nFileSizeLow;
-    Rec.Hi := Info.nFileSizeHigh;
-    Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
-    IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
-{$ELSE}
-    Result := True; // 非 Windows 平台返回 True，表示不 Mapping
-{$ENDIF}
-  end;
-
 begin
   FileIsZeroSize := False;
   if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
