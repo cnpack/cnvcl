@@ -340,6 +340,7 @@ function TestQRDecoderData: Boolean;
 
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 function TestInt64Polynomial: Boolean;
+function TestInt64PolynomialGCD: Boolean;
 function TestBigNumberPolynomial: Boolean;
 function TestBigComplexPolynomial: Boolean;
 function TestBigComplexDecimalPolynomial: Boolean;
@@ -2139,6 +2140,7 @@ begin
 
   MyAssert(TestBigNumberPolynomialGaloisPrimePowerModularInverse, 'TestBigNumberPolynomialGaloisPrimePowerModularInverse');
   MyAssert(TestInt64Polynomial, 'TestInt64Polynomial');
+  MyAssert(TestInt64PolynomialGCD, 'TestInt64PolynomialGCD');
   MyAssert(TestBigNumberPolynomial, 'TestBigNumberPolynomial');
   MyAssert(TestBigComplexPolynomial, 'TestBigComplexPolynomial');
   MyAssert(TestBigComplexDecimalPolynomial, 'TestBigComplexDecimalPolynomial');
@@ -9770,6 +9772,67 @@ begin
     Res.Free;
     P2.Free;
     P1.Free;
+  end;
+end;
+
+function TestInt64PolynomialGCD: Boolean;
+{* 回归保护：整数环多项式 GCD 曾有两处错误：双常数分支误用无符号整数 GCD
+   函数（负系数被按位当成巨大的无符号数，gcd(-3,-9) 曾得 1），且伪余数链
+   从未做 content 归一化与首项正化（gcd(5-4X,-2) 曾得 -2、
+   gcd(4-3X+7X^2-X^3,4) 曾得 4、gcd(4+2X,6) 曾得 6）。系数按低次在前 }
+var
+  F, G, R: TCnInt64Polynomial;
+
+  function Check(FCoef, GCoef, Expect: array of Int64): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+    F.MaxDegree := High(FCoef);
+    for I := 0 to High(FCoef) do
+      F[I] := FCoef[I];
+    G.MaxDegree := High(GCoef);
+    for I := 0 to High(GCoef) do
+      G[I] := GCoef[I];
+    if not Int64PolynomialGreatestCommonDivisor(R, F, G) then
+      Exit;
+    if R.MaxDegree <> High(Expect) then
+      Exit;
+    for I := 0 to High(Expect) do
+      if R[I] <> Expect[I] then
+        Exit;
+    Result := True;
+  end;
+
+begin
+  Result := False;
+  F := TCnInt64Polynomial.Create;
+  G := TCnInt64Polynomial.Create;
+  R := TCnInt64Polynomial.Create;
+  try
+    // 报告三例
+    if not Check([5, -4], [-2], [1]) then Exit;
+    if not Check([-3], [-9], [3]) then Exit;
+    if not Check([4, -3, 7, -1], [4], [1]) then Exit;
+
+    // content 提取与首项正化
+    if not Check([4, 2], [6], [2]) then Exit;
+    if not Check([6], [4], [2]) then Exit;
+    if not Check([2, 2], [4], [2]) then Exit;
+
+    // 正常路径回归
+    if not Check([-1, 0, 1], [1, 1], [1, 1]) then Exit;
+    if not Check([1, 0, -1], [1, 1], [1, 1]) then Exit;
+    if not Check([1, 3, 2], [2, 2], [1, 1]) then Exit;
+
+    // 零多项式特例：gcd(0, f) 取首项系数为正的代表
+    if not Check([0], [5, -4], [-5, 4]) then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    G.Free;
+    F.Free;
   end;
 end;
 

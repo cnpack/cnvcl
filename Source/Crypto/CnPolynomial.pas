@@ -6843,6 +6843,9 @@ var
   var
     T: Int64;
   begin
+    // 系数可能为负，Pascal 的 mod 符号随被除数，先取绝对值保证结果非负
+    A := Abs(A);
+    B := Abs(B);
     while B <> 0 do
     begin
       T := B;
@@ -6870,8 +6873,9 @@ begin
     end;
 
     Result := D;
-    if Result > 1 then
-      Int64PolynomialDivWord(P, Result);
+    // content 为负时同样是公因子，须按绝对值提出
+    if Abs(Result) > 1 then
+      Int64PolynomialDivWord(P, Abs(Result));
   end;
 end;
 
@@ -6891,7 +6895,7 @@ function Int64PolynomialGreatestCommonDivisor(Res: TCnInt64Polynomial;
 var
   A, B, C: TCnInt64Polynomial;
   MF: Int64;
-  GcdValue: Int64;
+  CA, CB, GcdValue: Int64;
 begin
   A := nil;
   B := nil;
@@ -6912,14 +6916,33 @@ begin
       Int64PolynomialCopy(B, P1);
     end;
 
+    // 有一方为零多项式：gcd(f, 0) = f，结果取首项系数为正的代表
+    if A.IsZero or B.IsZero then
+    begin
+      if A.IsZero then
+        Int64PolynomialCopy(Res, B)
+      else
+        Int64PolynomialCopy(Res, A);
+      if not Res.IsZero and (Res[Res.MaxDegree] < 0) then
+        Int64PolynomialMulWord(Res, -1);
+      Result := True;
+      Exit;
+    end;
+
     // 特殊处理：如果两个多项式都是常数项，直接计算整数 GCD
     if (A.MaxDegree = 0) and (B.MaxDegree = 0) then
     begin
-      GcdValue := CnInt64GreatestCommonDivisor(A[0], B[0]);
+      // 必须用有符号版本，无符号版会把负系数当成巨大的无符号数
+      GcdValue := CnInt64GreatestCommonDivisor2(A[0], B[0]);
       Res.SetCoefficients([GcdValue]);
       Result := True;
       Exit;
     end;
+
+    // Z[X] 上 gcd 的系数部分 = 两个输入 content 的 gcd，先取出并把输入本原化
+    CA := Abs(Int64PolynomialReduce(A));
+    CB := Abs(Int64PolynomialReduce(B));
+    GcdValue := CnInt64GreatestCommonDivisor2(CA, CB);
 
     C := FLocalInt64PolynomialPool.Obtain;
     while not B.IsZero do
@@ -6933,6 +6956,10 @@ begin
       Int64PolynomialCopy(A, C);        // 原始 B 给 A
     end;
 
+    // 余式链已逐轮本原化，乘回系数部分的 gcd，并统一为首项系数为正的代表
+    Int64PolynomialMulWord(A, GcdValue);
+    if (A.MaxDegree > 0) and (A[A.MaxDegree] < 0) then
+      Int64PolynomialMulWord(A, -1);
     Int64PolynomialCopy(Res, A);
     Result := True;
   finally
