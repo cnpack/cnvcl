@@ -257,6 +257,7 @@ function TestPEMEncryptedCorruptedBase64: Boolean;
 function TestCARejectInvalidCert: Boolean;
 function TestCAUTCTimeGeneralizedTime: Boolean;
 function TestCAValidityCheckNoFile: Boolean;
+function TestCASignTypeConsistency: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -2054,6 +2055,7 @@ begin
   MyAssert(TestCARejectInvalidCert, 'TestCARejectInvalidCert');
   MyAssert(TestCAUTCTimeGeneralizedTime, 'TestCAUTCTimeGeneralizedTime');
   MyAssert(TestCAValidityCheckNoFile, 'TestCAValidityCheckNoFile');
+  MyAssert(TestCASignTypeConsistency, 'TestCASignTypeConsistency');
 
 // =============================== Int128 ======================================
 
@@ -7514,6 +7516,133 @@ begin
     TCnRSAPrivateKey(nil), TCnRSAPublicKey(nil), '', 'CN', 'State', 'City',
     'Org', 'Unit', 'TestCA', 'a@b.com', '1', ValidFromUTC, ValidFromUTC,
     nil, nil, ctSha256RSA);
+end;
+
+function TestCASignTypeConsistency: Boolean;
+{* 签名算法一致性攻击回归（无文件版）：TBS 内层 signature 被篡改、外层
+   signatureAlgorithm 保持原值的证书必须被验证拒绝，且 CASignType 必须始终
+   来自被签名保护的内层字段、不被不受保护的外层字段覆盖。全程内存流操作。
+   RSA 系签名算法 OID 内容为等长的 2A 86 48 86 F7 0D 01 01 0X，改尾字节即可
+   等长替换算法，无需重算任何 DER 长度 }
+var
+  CAPriv: TCnRSAPrivateKey;
+  CAPub: TCnRSAPublicKey;
+  Ecc: TCnEcc;
+  EPriv: TCnEccPrivateKey;
+  EPub: TCnEccPublicKey;
+  Std: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  CRT: TCnCertificate;
+  St: TMemoryStream;
+  P: PAnsiChar;
+  I, Count: Integer;
+const
+  RSAOID = #$2A#$86#$48#$86#$F7#$0D#$01#$01; // RSA 系算法 OID 公共前缀
+  ECCOID = #$2A#$86#$48#$CE#$3D#$04#$03;     // ECDSA 系签名算法 OID 公共前缀
+begin
+  Result := False;
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  Ecc := TCnEcc.Create(ctSM2);
+  EPriv := TCnEccPrivateKey.Create;
+  EPub := TCnEccPublicKey.Create;
+  Std := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  CRT := TCnCertificate.Create;
+  St := TMemoryStream.Create;
+  try
+    // ---- RSA 场景 ----
+    // 生成内外算法一致（sha256RSA）的自签根证书
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, St, 'CN', 'State',
+      'City', 'Org', 'Unit', 'TestCA', 'a@b.com', '1', Now - 1, Now + 365,
+      Std, PrivExt, ctSha256RSA) then
+      Exit;
+
+    // 未篡改证书验证必须通过
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    // 等长篡改 TBS 内层 signature 的 OID 尾字节：sha256RSA(#0B) -> sha1RSA(#05)。
+    // 该前缀在 DER 中恰出现 3 处：TBS 内层 signature、SPKI 的 rsaEncryption
+    // (尾字节 #01)、外层 signatureAlgorithm，只改第 1 处
+    Count := 0;
+    P := St.Memory;
+    for I := 0 to St.Size - Length(RSAOID) do
+    begin
+      if CompareMem(P + I, PAnsiChar(RSAOID), Length(RSAOID)) then
+      begin
+        Inc(Count);
+        if Count = 1 then
+          (P + I + Length(RSAOID))^ := #05;
+      end;
+    end;
+    if Count <> 3 then
+      Exit;
+
+    // 内层声称 sha1RSA 而签名实为 sha256RSA：验证必须拒绝（修复前 CASignType
+    // 被外层覆盖成 sha256RSA，会按正确摘要验签通过）
+    St.Position := 0;
+    if CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    // 加载语义：CASignType 来自 TBS 内层，外层算法单独记录
+    St.Position := 0;
+    if not CnCALoadCertificateFromStream(St, CRT) then
+      Exit;
+    if CRT.CASignType <> ctSha1RSA then
+      Exit;
+    if CRT.OuterSignType <> ctSha256RSA then
+      Exit;
+
+    // ---- ECC 场景 ----
+    // 生成内外算法一致（ecdsa-with-SHA256）的自签根证书
+    Ecc.GenerateKeys(EPriv, EPub);
+    St.Clear;
+    if not CnCANewSelfSignedCertificateStream(EPriv, EPub, ctSM2, St, 'CN',
+      'State', 'City', 'Org', 'Unit', 'TestEcc', 'a@b.com', '3',
+      Now - 1, Now + 365) then
+      Exit;
+
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    // 等长篡改内层算法：ecdsa-with-SHA256(#02) -> ecdsa-with-SHA384(#03)。
+    // 该前缀仅出现 2 处（SPKI 的 id-ecPublicKey 前缀不同，不匹配），
+    // 第 1 处即 TBS 内层 signature
+    Count := 0;
+    P := St.Memory;
+    for I := 0 to St.Size - Length(ECCOID) do
+    begin
+      if CompareMem(P + I, PAnsiChar(ECCOID), Length(ECCOID)) then
+      begin
+        Inc(Count);
+        if Count = 1 then
+          (P + I + Length(ECCOID))^ := #03;
+      end;
+    end;
+    if Count <> 2 then
+      Exit;
+
+    // 内层声称 SHA384 而签名实为 SHA256：验证必须拒绝
+    St.Position := 0;
+    if CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    Result := True;
+  finally
+    St.Free;
+    CRT.Free;
+    PrivExt.Free;
+    Std.Free;
+    EPub.Free;
+    EPriv.Free;
+    Ecc.Free;
+    CAPub.Free;
+    CAPriv.Free;
+  end;
 end;
 
 // =============================== Int128 ======================================

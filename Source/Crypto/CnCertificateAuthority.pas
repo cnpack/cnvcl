@@ -745,7 +745,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha256RSA): Boolean; overload;
+  ctSha256Ecc): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
@@ -774,7 +774,7 @@ function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; Public
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha256RSA): Boolean; overload;
+  ctSha256Ecc): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
@@ -829,7 +829,7 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnRSAPrivateKey; PublicKey:
    返回值：Boolean                                                        - 返回生成是否成功
 }
 
-function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnRSAPrivateKey; PublicKey:
+function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const
   OrganizationName: string; const OrganizationalUnitName: string; const
@@ -894,7 +894,7 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
    返回值：Boolean                                                        - 返回生成是否成功
 }
 
-function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnEccPrivateKey; PublicKey:
+function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; OutCRTStream: TStream; const
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
@@ -2206,7 +2206,7 @@ begin
 
   Stream := TMemoryStream.Create;
   try
-    Result := CnCANewSelfSignedCertificateStream2(PrivateKey, PublicKey, Stream,
+    Result := CnCANewSelfSignedCertificate2Stream(PrivateKey, PublicKey, Stream,
       CountryName, StateOrProvinceName, LocalityName, OrganizationName,
       OrganizationalUnitName, CommonName, EmailAddress, IntSerialNum, NotBefore,
       NotAfter, StandardExt, PrivateInternetExt, CASignType);
@@ -2219,7 +2219,7 @@ begin
   end;
 end;
 
-function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnRSAPrivateKey; PublicKey:
+function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const
   OrganizationName: string; const OrganizationalUnitName: string; const
@@ -2377,7 +2377,7 @@ begin
 
   Stream := TMemoryStream.Create;
   try
-    Result := CnCANewSelfSignedCertificateStream2(PrivateKey, PublicKey, CurveType, Stream,
+    Result := CnCANewSelfSignedCertificate2Stream(PrivateKey, PublicKey, CurveType, Stream,
       CountryName, StateOrProvinceName, LocalityName, OrganizationName,
       OrganizationalUnitName, CommonName, EmailAddress, IntSerialNum,
       NotBefore, NotAfter, StandardExt, PrivateInternetExt, CASignType);
@@ -2390,7 +2390,7 @@ begin
   end;
 end;
 
-function CnCANewSelfSignedCertificateStream2(PrivateKey: TCnEccPrivateKey; PublicKey:
+function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; OutCRTStream: TStream; const
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
@@ -2839,7 +2839,7 @@ function CnCANewCertificateSignRequestStream(PrivateKey: TCnRSAPrivateKey; Publi
   CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
 var
   B: Byte;
-  Writer, HashWriter: TCnBerWriter;
+  Writer: TCnBerWriter;
   Root, DNRoot, InfoRoot, PubNode: TCnBerWriteNode;
 begin
   Result := False;
@@ -2853,7 +2853,6 @@ begin
 
   B := 0;
   Writer := nil;
-  HashWriter := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -2894,7 +2893,6 @@ begin
     Result := True;
   finally
     Writer.Free;
-    HashWriter.Free;
   end;
 end;
 
@@ -2937,7 +2935,7 @@ function CnCANewCertificateSignRequestStream(PrivateKey: TCnEccPrivateKey; Publi
   const CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
 var
   B: Byte;
-  Writer, HashWriter: TCnBerWriter;
+  Writer: TCnBerWriter;
   Root, DNRoot, InfoRoot, PubNode: TCnBerWriteNode;
 begin
   Result := False;
@@ -2951,7 +2949,6 @@ begin
 
   B := 0;
   Writer := nil;
-  HashWriter := nil;
 
   try
     Writer := TCnBerWriter.Create;
@@ -2992,7 +2989,6 @@ begin
     Result := True;
   finally
     Writer.Free;
-    HashWriter.Free;
   end;
 end;
 
@@ -3429,7 +3425,11 @@ begin
     MemStream := TMemoryStream.Create;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_REQUEST_HEAD,
       PEM_CERTIFICATE_REQUEST_TAIL, MemStream) then
-      Exit;
+    begin
+      // 非 PEM 输入按二进制 ASN.1(CER) 处理，由后面加载
+      Stream.Position := 0;
+      MemStream.LoadFromStream(Stream);
+    end;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
     try
@@ -3569,6 +3569,7 @@ begin
   InfoStream := nil;
 
   try
+    Stream.Position := 0;
     CSR := TCnCertificateRequest.Create;
     if not CnCALoadCertificateSignRequestFromStream(Stream, CSR) then
       Exit;
@@ -3577,7 +3578,11 @@ begin
     Stream.Position := 0;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_REQUEST_HEAD,
       PEM_CERTIFICATE_REQUEST_TAIL, MemStream) then
-      Exit;
+    begin
+      // 非 PEM 输入按二进制 ASN.1(CER) 处理，由后面加载
+      Stream.Position := 0;
+      MemStream.LoadFromStream(Stream);
+    end;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
     try
@@ -3709,7 +3714,11 @@ begin
     Stream.Position := 0;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, MemStream) then
-      Exit;
+    begin
+      // 非 PEM 输入按二进制 ASN.1(CER) 处理，由后面加载
+      Stream.Position := 0;
+      MemStream.LoadFromStream(Stream);
+    end;
 
     Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
     try
