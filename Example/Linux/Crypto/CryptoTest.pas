@@ -21499,7 +21499,11 @@ begin
 
     Result := CnInt64ShamirReconstruct(P, X, Y, R);
     if not Result then Exit;
-    if R <> S then Exit(False);
+    if R <> S then
+    begin
+      Result := False;
+      Exit;
+    end;
 
     // 大于默认素数表上限的秘密：须自动生成比 Secret 大的素数并完整还原，
     // 否则秘密会被 mod Prime 静默截断
@@ -21509,14 +21513,22 @@ begin
     P := 0;
     Result := CnInt64ShamirSplit(S, 5, 3, Shares, P);
     if not Result then Exit;
-    if P <= S then Exit(False);
+    if P <= S then
+    begin
+      Result := False;
+      Exit;
+    end;
 
     X.Add(1); X.Add(3); X.Add(5);
     Y.Add(Shares[0]); Y.Add(Shares[2]); Y.Add(Shares[4]);
 
     Result := CnInt64ShamirReconstruct(P, X, Y, R);
     if not Result then Exit;
-    if R <> S then Exit(False);
+    if R <> S then
+    begin
+      Result := False;
+      Exit;
+    end;
 
     // 边界情况：Int64 范围内最大素数 2^63 - 25 本身作为秘密，不存在更大的素数，
     // 拆分必须直接失败并返回 ECN_SECRET_PRIME_ERROR，而非静默生成错误分片
@@ -21524,9 +21536,9 @@ begin
     Y.Clear;
     S := 9223372036854775783;
     P := 0;
-    Result := CnInt64ShamirSplit(S, 5, 3, Shares, P);
-    if Result then Exit(False);
-    if CnGetLastError <> ECN_SECRET_PRIME_ERROR then Exit(False);
+    Result := not CnInt64ShamirSplit(S, 5, 3, Shares, P);
+    if not Result then Exit;
+    Result := CnGetLastError = ECN_SECRET_PRIME_ERROR;
   finally
     Y.Free;
     X.Free;
