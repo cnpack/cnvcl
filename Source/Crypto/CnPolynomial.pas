@@ -7402,11 +7402,14 @@ begin
     N := -N;
 
   K := CnInt64ModularInverse2(N, Prime);
-  for I := 0 to P.MaxDegree do
+  if K <> 0 then
   begin
-    P[I] := Int64NonNegativeMulMod(P[I], K, Prime);
-    if B and (P[I] <> 0) then
-      P[I] := Prime - P[I];
+    for I := 0 to P.MaxDegree do
+    begin
+      P[I] := Int64NonNegativeMulMod(P[I], K, Prime);
+      if B and (P[I] <> 0) then
+        P[I] := Prime - P[I];
+    end;
   end;
 end;
 
@@ -11186,6 +11189,8 @@ var
   I: Integer;
   K, T: TCnBigNumber;
 begin
+  Result := False;
+
   if (N = 0) or Prime.IsZero then
     raise EDivByZero.Create(SDivByZero);
 
@@ -11197,10 +11202,13 @@ begin
     T := FLocalBigNumberPool.Obtain;
     T.SetWord(N);
 
-    BigNumberModularInverse(K, T, Prime);
+    // 各项除以 N 即乘 N 的逆元；N 与 Prime 不互素时逆元不存在，直接失败
+    if not BigNumberModularInverse(K, T, Prime, True) then
+      Exit;
+
     for I := 0 to P.MaxDegree do
     begin
-      BigNumberMul(P[I], P[I], T);
+      BigNumberMul(P[I], P[I], K);
       BigNumberNonNegativeMod(P[I], P[I], Prime);
     end;
   finally
@@ -15223,13 +15231,16 @@ begin
     N := -N;
 
   K := CnInt64ModularInverse2(N, Prime);
-  for I := P.FXs.Count - 1 downto 0 do
+  if K <> 0 then
   begin
-    for J := P.YFactorsList[I].Count - 1 downto 0 do
+    for I := P.FXs.Count - 1 downto 0 do
     begin
-      P.YFactorsList[I][J] := Int64NonNegativeMulMod(P.YFactorsList[I][J], K, Prime);
-      if B and (P.YFactorsList[I][J] <> 0) then
-        P.YFactorsList[I][J] := Prime - P.YFactorsList[I][J];
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        P.YFactorsList[I][J] := Int64NonNegativeMulMod(P.YFactorsList[I][J], K, Prime);
+        if B and (P.YFactorsList[I][J] <> 0) then
+          P.YFactorsList[I][J] := Prime - P.YFactorsList[I][J];
+      end;
     end;
   end;
 end;

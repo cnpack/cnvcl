@@ -362,6 +362,7 @@ function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
 function TestBigNumberPolynomialGaloisPowerWindowed: Boolean;
+function TestBigNumberPolynomialGaloisDivWord: Boolean;
 function TestBigNumberPolynomialGaloisHalfGcd: Boolean;
 function TestBigNumberPolynomialLoadSaveMem: Boolean;
 function TestBigNumberRationalPolynomialLoadSaveMem: Boolean;
@@ -462,6 +463,8 @@ function TestCRC64ECMA: Boolean;
 
 function TestXXH32: Boolean;
 function TestXXH64: Boolean;
+function TestXXH32Incremental: Boolean;
+function TestXXH64Incremental: Boolean;
 
 // ================================ MD5 ========================================
 
@@ -516,6 +519,7 @@ function TestSHAKE1281: Boolean;
 function TestSHAKE1282: Boolean;
 function TestSHAKE2561: Boolean;
 function TestSHAKE2562: Boolean;
+function TestSHA3SqueezeMulti: Boolean;
 
 // ================================ BLAKE ======================================
 
@@ -2164,6 +2168,7 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisPowerBarrett, 'TestBigNumberPolynomialGaloisPowerBarrett');
   MyAssert(TestBigNumberPolynomialGaloisPowerWindowed, 'TestBigNumberPolynomialGaloisPowerWindowed');
   MyAssert(TestBigNumberPolynomialGaloisHalfGcd, 'TestBigNumberPolynomialGaloisHalfGcd');
+  MyAssert(TestBigNumberPolynomialGaloisDivWord, 'TestBigNumberPolynomialGaloisDivWord');
   MyAssert(TestBigNumberPolynomialLoadSaveMem, 'TestBigNumberPolynomialLoadSaveMem');
   MyAssert(TestBigNumberRationalPolynomialLoadSaveMem, 'TestBigNumberRationalPolynomialLoadSaveMem');
   MyAssert(TestBigNumberPolynomialListLoadSaveMem, 'TestBigNumberPolynomialListLoadSaveMem');
@@ -2263,6 +2268,8 @@ begin
 
   MyAssert(TestXXH32, 'TestXXH32');
   MyAssert(TestXXH64, 'TestXXH64');
+  MyAssert(TestXXH32Incremental, 'TestXXH32Incremental');
+  MyAssert(TestXXH64Incremental, 'TestXXH64Incremental');
 
 // ================================ MD5 ========================================
 
@@ -2317,6 +2324,7 @@ begin
   MyAssert(TestSHAKE1282, 'TestSHAKE1282');
   MyAssert(TestSHAKE2561, 'TestSHAKE2561');
   MyAssert(TestSHAKE2562, 'TestSHAKE2562');
+  MyAssert(TestSHA3SqueezeMulti, 'TestSHA3SqueezeMulti');
 
 // ================================ BLAKE ======================================
 
@@ -10741,6 +10749,35 @@ begin
   end;
 end;
 
+function TestBigNumberPolynomialGaloisDivWord: Boolean;
+var
+  P: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+  Ret: Boolean;
+begin
+  P := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  try
+    // P = 1 + 2X + 3X^2, 除以 N = 2, Prime = 7
+    // 2^-1 mod 7 = 4, 系数乘 4 再 mod 7 => 4 + X + 5X^2（N-02 回归）
+    P.SetCoefficients([1, 2, 3]);
+    Prime.SetWord(7);
+    Result := BigNumberPolynomialGaloisDivWord(P, 2, Prime);
+    if not Result then Exit;
+    Result := P.ToString = '5X^2+X+4';
+    if not Result then Exit;
+
+    // N 与 Prime 不互素时逆元不存在，应返回 False 而非静默出错
+    P.SetCoefficients([1, 2, 3]);
+    Prime.SetWord(4);
+    Ret := BigNumberPolynomialGaloisDivWord(P, 2, Prime);
+    Result := not Ret;
+  finally
+    P.Free;
+    Prime.Free;
+  end;
+end;
+
 function TestBigNumberPolynomialGaloisHalfGcd: Boolean;
 var
   Prime: TCnBigNumber;
@@ -15043,6 +15080,92 @@ begin
   Result := DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) = '785BD894067C2F38';
 end;
 
+function TestXXH32Incremental: Boolean;
+var
+  Ctx: TCnXXH32Context;
+  Data: TBytes;
+  Dig, Ref: TCnXXH32Digest;
+  S: AnsiString;
+  A, B: Integer;
+begin
+  Result := False;
+
+  // 标准测试向量
+  S := 'abc';
+  Dig := XXH32(PAnsiChar(S), Length(S), 0);
+  if DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) <> '32D153FF' then Exit;
+
+  Dig := XXH32(nil, 0, 0);
+  if DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) <> '02CC5D05' then Exit;
+
+  S := 'a';
+  Dig := XXH32(PAnsiChar(S), Length(S), 0);
+  if DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) <> '550D7456' then Exit;
+
+  // 流式分段 Update 与一次性计算必须一致，覆盖 Mem 缓冲区按字节寻址的回归（N-01）
+  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack Test');
+  Ref := XXH32Bytes(Data);
+  for A := 0 to Length(Data) do
+    for B := A to Length(Data) do
+    begin
+      XXH32Init(Ctx, 0);
+      if A > 0 then
+        XXH32Update(Ctx, PAnsiChar(@Data[0]), A);
+      if B > A then
+        XXH32Update(Ctx, PAnsiChar(@Data[A]), B - A);
+      if Length(Data) > B then
+        XXH32Update(Ctx, PAnsiChar(@Data[B]), Length(Data) - B);
+      XXH32Final(Ctx, Dig);
+      if DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) <>
+        DataToHex(@Ref[0], SizeOf(TCnXXH32Digest)) then
+        Exit;
+    end;
+  Result := True;
+end;
+
+function TestXXH64Incremental: Boolean;
+var
+  Ctx: TCnXXH64Context;
+  Data: TBytes;
+  Dig, Ref: TCnXXH64Digest;
+  S: AnsiString;
+  A, B: Integer;
+begin
+  Result := False;
+
+  // 标准测试向量
+  S := 'abc';
+  Dig := XXH64(PAnsiChar(S), Length(S), 0);
+  if DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) <> '44BC2CF5AD770999' then Exit;
+
+  Dig := XXH64(nil, 0, 0);
+  if DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) <> 'EF46DB3751D8E999' then Exit;
+
+  S := 'a';
+  Dig := XXH64(PAnsiChar(S), Length(S), 0);
+  if DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) <> 'D24EC4F1A98C6E5B' then Exit;
+
+  // 流式分段 Update 与一次性计算必须一致
+  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack Test');
+  Ref := XXH64Bytes(Data);
+  for A := 0 to Length(Data) do
+    for B := A to Length(Data) do
+    begin
+      XXH64Init(Ctx, 0);
+      if A > 0 then
+        XXH64Update(Ctx, PAnsiChar(@Data[0]), A);
+      if B > A then
+        XXH64Update(Ctx, PAnsiChar(@Data[A]), B - A);
+      if Length(Data) > B then
+        XXH64Update(Ctx, PAnsiChar(@Data[B]), Length(Data) - B);
+      XXH64Final(Ctx, Dig);
+      if DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) <>
+        DataToHex(@Ref[0], SizeOf(TCnXXH64Digest)) then
+        Exit;
+    end;
+  Result := True;
+end;
+
 // ================================ MD5 ========================================
 
 function TestMD5: Boolean;
@@ -15748,6 +15871,50 @@ begin
     '19076908C8A1D6A4E7639E0FDBFA1B5201095051AAC3E3997779E588377EAC979313E3' +
     '9C3721DC9F912CF7FDF1A9038CBABA8E9F3D95951A5D819BFFD0B080319FCD12DA0516' +
     'BAF54B779E79E437D3EC';
+end;
+
+function TestSHA3SqueezeMulti: Boolean;
+var
+  Ctx: TCnSHA3Context;
+  D: TCnSHA3_256Digest;
+  A, B, Whole: TBytes;
+  S: AnsiString;
+  J: Integer;
+begin
+  // SHA3-256 二次 Final 不应越界写崩溃，且首次摘要正确（N-03 回归）
+  SHA3_256Init(Ctx);
+  S := 'abc';
+  SHA3_256Update(Ctx, PAnsiChar(S), Length(S));
+  SHA3_256Final(Ctx, D);
+  Result := DataToHex(@D[0], SizeOf(D)) = '3A985DA74FE225B2045C172D6BD390BD' +
+    '855F086E3E9D525B46BFE24511431532';
+  if not Result then Exit;
+
+  // 二次 Final：上下文已被擦除，摘要输出应确定为全零而非未初始化内容
+  SHA3_256Final(Ctx, D);
+  Result := DataToHex(@D[0], SizeOf(D)) = StringOfChar('0', 64);
+  if not Result then Exit;
+
+  // SHAKE128 先取满一整块 168 字节再继续 Squeeze，须与一次取足等价（N-03 死循环回归）
+  S := 'abc';
+  SHAKE128Init(Ctx, 168);
+  SHAKE128Absorb(Ctx, PAnsiChar(S), Length(S));
+  A := SHAKE128Squeeze(Ctx, 168);
+  B := SHAKE128Squeeze(Ctx, 168);
+
+  SHAKE128Init(Ctx, 336);
+  SHAKE128Absorb(Ctx, PAnsiChar(S), Length(S));
+  Whole := SHAKE128Squeeze(Ctx, 336);
+
+  Result := (Length(A) = 168) and (Length(B) = 168) and (Length(Whole) = 336);
+  if not Result then Exit;
+  for J := 0 to 167 do
+    if (A[J] <> Whole[J]) or (B[J] <> Whole[168 + J]) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  Result := True;
 end;
 
 // ================================ BLAKE ======================================

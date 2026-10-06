@@ -672,7 +672,7 @@ end;
 
 destructor TCnPDFDataCryptor.Destroy;
 begin
-  SetLength(FKey, 0);
+  MemorySafeFree(FKey);
   inherited;
 end;
 

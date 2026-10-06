@@ -58,7 +58,7 @@ type
   {* XXH32 的上下文结构}
     TotalLen: TUInt64;
     V1, V2, V3, V4: Cardinal;
-    Mem: array[0..15] of Cardinal;
+    Mem: array[0..15] of Byte;
     MemSize: Cardinal;
     Seed: Cardinal;
   end;

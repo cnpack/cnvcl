@@ -1472,6 +1472,12 @@ end;
 // SHA3_224/256/384/512 专用
 procedure SHA3Final(var Context: TCnSHA3Context; var Digest: TCnSHA3GeneralDigest); overload;
 begin
+  if Context.BlockLen = 0 then        // 避免 Final 后再次 Final 时 BlockLen - 1 下标越界
+  begin
+    // 上下文已被此前的 Final 擦除，置零输出，避免包装层 Move 出未初始化内容
+    FillChar(Digest[0], SizeOf(Digest), 0);
+    Exit;
+  end;
   Context.Block[Context.Index] := 6;
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
@@ -1484,6 +1490,8 @@ procedure SHA3Final(var Context: TCnSHA3Context; out Digest: TBytes); overload;
 var
   Idx, DL: Cardinal;
 begin
+  if Context.BlockLen = 0 then        // 避免 Final 后再次 Final 时 BlockLen - 1 下标越界
+    Exit;
   Context.Block[Context.Index] := $1F;
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
@@ -1529,6 +1537,12 @@ begin
 
   BlockLen := Context.BlockLen;
 
+  if BlockLen = 0 then                // 避免 Final 后再 Squeeze 出错
+  begin
+    Result := nil;
+    Exit;
+  end;
+
   // 如果是第一次进入，先完成 Absorb 阶段
   if Context.Squeezed = 0 then
   begin
@@ -1537,6 +1551,14 @@ begin
     SHA3_Transform(Context);
     Context.Squeezed := 1;     // 标记已经完成吸收阶段
     Context.SqueezeCount := 0; // 重置挤压计数
+  end
+  else if Context.SqueezeCount >= BlockLen then
+  begin
+    // 上轮 Squeeze 恰好用完整块时计数停在 BlockLen，此处须先换块，
+    // 否则本次 BytesToCopy 恒为 0，循环永不退出
+    FillChar(Context.Block[0], SizeOf(Context.Block), 0);
+    SHA3_Transform(Context);
+    Context.SqueezeCount := 0;
   end;
 
   // 初始化输出数组

@@ -2140,7 +2140,7 @@ function BigNumberMulFloat(Res: TCnBigNumber; Num: TCnBigNumber; F: Extended): B
 function BigNumberDiv(Res: TCnBigNumber; Remain: TCnBigNumber; Num: TCnBigNumber;
   Divisor: TCnBigNumber): Boolean;
 {* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功，
-   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数。
+   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数。Res 不能是 Remain。
    被除数与除数均以正数相除得到正的商和正的余数，之后的正负规则举例如下：
    正被除数正除数得到正商和正余数，如  1005 /  100 =  10 ...  5
    负被除数正除数得到负商和负余数，如 -1005 /  100 = -10 ... -5
@@ -7141,6 +7141,9 @@ begin
 
   if BigNumberIsZero(Divisor) then
     raise EDivByZero.Create(SDivByZero);
+
+  if Res = Remain then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
 
   if BigNumberUnsignedCompare(Num, Divisor) < 0 then
   begin
