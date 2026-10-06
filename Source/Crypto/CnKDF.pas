@@ -461,7 +461,7 @@ var
   PAddr: Pointer;
 begin
   Result := nil;
-  if (Length(Salt) <= 0) or (Count <= 0) or (DerivedKeyByteLength <=0) then
+  if (Count <= 0) or (DerivedKeyByteLength <= 0) then
     raise ECnKDFException.Create(SCnErrorKDFParam);
 
   if (Password = nil) or (Length(Password) = 0) then

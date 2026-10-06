@@ -436,8 +436,8 @@ end;
 
 destructor TCnDynamicToken.Destroy;
 begin
-  SetLength(FSeedKey, 0);
-  SetLength(FChallengeCode, 0);
+  MemorySafeFree(FSeedKey);
+  MemorySafeFree(FChallengeCode);
   inherited;
 end;
 
@@ -659,7 +659,7 @@ end;
 
 destructor TCnHOTPGenerator.Destroy;
 begin
-  SetLength(FSeedKey, 0);
+  MemorySafeFree(FSeedKey);
   inherited;
 end;
 
@@ -753,7 +753,7 @@ end;
 
 destructor TCnTOTPGenerator.Destroy;
 begin
-  SetLength(FSeedKey, 0);
+  MemorySafeFree(FSeedKey);
   inherited;
 end;
 

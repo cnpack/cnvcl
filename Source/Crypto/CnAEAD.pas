@@ -1886,7 +1886,7 @@ begin
     begin
       Move(Iv^, Y[0], CN_GCM_NONCE_LENGTH);
       Cnt := 1;
-      M := Int32HostToNetwork(Cnt);
+      M := UInt32HostToNetwork(Cnt);
       Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
     end
     else
@@ -3141,7 +3141,7 @@ begin
     MemorySafeZero(@Lens[0], SizeOf(Lens));
     MemorySafeZero(@Zeros[0], SizeOf(Zeros));
 
-    FreeAndNil(Context); // Poly1305Final 里已 FreeAndNil，但如之前异常，此处确保 Context 也能释放
+    FreeAndNil(Poly1305Context); // Poly1305Final 里已 FreeAndNil，但如之前异常，此处确保 Context 也能释放
     if not Completed then
     begin
       FillChar(OutTag[0], SizeOf(OutTag), 0);

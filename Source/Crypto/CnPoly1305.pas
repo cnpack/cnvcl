@@ -423,13 +423,16 @@ begin
     BigNumberDirectMulMod(Context.A, Context.R, Context.A, Prime);
   end;
 
-  BigNumberAdd(Context.A, Context.A, Context.S);
-  BigNumberKeepLowBits(Context.A, 8 * CN_POLY1305_DIGSIZE);
+  if Context <> nil then
+  begin
+    BigNumberAdd(Context.A, Context.A, Context.S);
+    BigNumberKeepLowBits(Context.A, 8 * CN_POLY1305_DIGSIZE);
 
-  Context.A.ToBinary(@Digest[0], CN_POLY1305_DIGSIZE);
-  ReverseMemory(@Digest[0], SizeOf(TCnPoly1305Digest));
+    Context.A.ToBinary(@Digest[0], CN_POLY1305_DIGSIZE);
+    ReverseMemory(@Digest[0], SizeOf(TCnPoly1305Digest));
 
-  FreeAndNil(Context);
+    FreeAndNil(Context);
+  end;
 end;
 
 initialization
