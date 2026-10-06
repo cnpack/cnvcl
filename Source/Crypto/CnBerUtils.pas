@@ -1322,11 +1322,17 @@ begin
   IntValue := 0;
   CopyDataTo(@IntValue);
 
-  // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
-  if ByteSize = SizeOf(Word) then
-    IntValue := Integer(UInt16NetworkToHost(Word(IntValue)))
-  else if ByteSize = SizeOf(Cardinal) then
-    IntValue := UInt32NetworkToHost(IntValue);
+  // 按实际编码长度交换字节，不能按目标宽度交换，否则长度不足时结果整体错位。
+  // 1 字节无需交换，2..4 字节统一 32 位交换后右移对齐（移位位数 = 字节差 * 8）
+  if FBerDataLength > 1 then
+    IntValue := Integer(UInt32NetworkToHost(Cardinal(IntValue)) shr
+      ((SizeOf(Cardinal) - FBerDataLength) * 8));
+
+  // 负数（补码符号位为 1）且未占满目标宽度时符号扩展
+  if (FBerDataLength > 0) and (FBerDataLength < ByteSize) and
+    ((IntValue and (1 shl (FBerDataLength * 8 - 1))) <> 0) then
+    IntValue := IntValue or (not ((1 shl (FBerDataLength * 8)) - 1));
+
   Result := IntValue;
 end;
 
@@ -1341,7 +1347,16 @@ begin
 
   Result := 0;
   CopyDataTo(@Result);
-  Result := Int64NetworkToHost(Result);
+
+  // 按实际编码长度交换字节；1 字节无需交换，2..8 字节统一 64 位交换后右移对齐
+  if FBerDataLength > 1 then
+    Result := Int64(UInt64NetworkToHost(UInt64(Result)) shr
+      ((SizeOf(Int64) - FBerDataLength) * 8));
+
+  // 负数（补码符号位为 1）且未占满目标宽度时符号扩展
+  if (FBerDataLength > 0) and (FBerDataLength < SizeOf(Int64)) and
+    ((Result and (Int64(1) shl (FBerDataLength * 8 - 1))) <> 0) then
+    Result := Result or (not ((Int64(1) shl (FBerDataLength * 8)) - 1));
 end;
 
 function TCnBerReadNode.AsByte: Byte;

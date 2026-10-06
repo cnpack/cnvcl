@@ -250,6 +250,7 @@ function TestBERInvalidLengthField: Boolean;
 function TestBERTruncatedInput: Boolean;
 function TestBERConstructedChildTruncated: Boolean;
 function TestBERIndefiniteLengthZeroConsumeLoop: Boolean;
+function TestBERShortIntegerConvert: Boolean;
 function TestPEMInvalidHeaderFooter: Boolean;
 function TestPEMCorruptedBase64: Boolean;
 function TestPEMEncryptedMissingDekInfo: Boolean;
@@ -2048,6 +2049,7 @@ begin
   MyAssert(TestBERTruncatedInput, 'TestBERTruncatedInput');
   MyAssert(TestBERConstructedChildTruncated, 'TestBERConstructedChildTruncated');
   MyAssert(TestBERIndefiniteLengthZeroConsumeLoop, 'TestBERIndefiniteLengthZeroConsumeLoop');
+  MyAssert(TestBERShortIntegerConvert, 'TestBERShortIntegerConvert');
   MyAssert(TestPEMInvalidHeaderFooter, 'TestPEMInvalidHeaderFooter');
   MyAssert(TestPEMCorruptedBase64, 'TestPEMCorruptedBase64');
   MyAssert(TestPEMEncryptedMissingDekInfo, 'TestPEMEncryptedMissingDekInfo');
@@ -7254,6 +7256,57 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function TestBERShortIntegerConvert: Boolean;
+{* 回归保护：TCnBerReadNode 的 AsByte/AsSmallInt/AsInteger/AsCardinal/AsInt64
+   必须按 INTEGER 的实际编码长度做字节交换并做补码符号扩展，长度不足目标
+   宽度时不得按目标宽度交换（曾整体字节错位），负数不得缺失符号扩展，
+   AsInt64 曾对非 8 字节编码一律按 8 字节交换导致任何短编码全错。
+   编码统一包一层 SEQUENCE，INTEGER 节点取 Items[1] }
+var
+  B: TBytes;
+  R: TCnBerReader;
+  N: TCnBerReadNode;
+
+  function CheckHex(const Hex: string; ExpectSI, ExpectInt: Integer;
+    Expect64: Int64): Boolean;
+  begin
+    // ExpectSI/ExpectInt 传 Low(Integer) 表示该宽度必然超长、应抛异常
+    Result := False;
+    B := HexToBytes(Hex);
+    R := TCnBerReader.Create(@B[0], Length(B));
+    try
+      R.ParseToTree;
+      N := R.Items[1];
+      if ExpectSI <> Low(Integer) then
+        if N.AsSmallInt <> ExpectSI then
+          Exit;
+      if ExpectInt <> Low(Integer) then
+        if N.AsInteger <> ExpectInt then
+          Exit;
+      if N.AsInt64 <> Expect64 then
+        Exit;
+      Result := True;
+    finally
+      R.Free;
+    end;
+  end;
+
+begin
+  Result := CheckHex('3003020105', 5, 5, 5)                  // 1 字节 5
+    and CheckHex('30030201FE', -2, -2, -2)                  // 1 字节 -2，符号扩展
+    and CheckHex('300402020100', 256, 256, 256)             // 2 字节等长 256
+    and CheckHex('3004020203E8', 1000, 1000, 1000)          // 2 字节等长 1000
+    and CheckHex('30040202FFFF', -1, -1, -1)                // 2 字节 -1，符号扩展
+    and CheckHex('30040202FF00', -256, -256, -256)          // 2 字节 -256
+    and CheckHex('30050203800000', Low(Integer), -8388608, -8388608)  // 3 字节负数
+    and CheckHex('30050203011170', Low(Integer), 70000, 70000)        // 3 字节 70000
+    and CheckHex('30060204000186A0', Low(Integer), 100000, 100000)    // 4 字节 100000
+    and CheckHex('30060204FFFFFFFF', Low(Integer), -1, -1)            // 4 字节 -1
+    and CheckHex('300A02080000000010000000', Low(Integer), Low(Integer),
+      268435456)                                            // 8 字节等长 AsInt64
+    and CheckHex('300A0208FFFFFFFFFFFFFFFE', Low(Integer), Low(Integer), -2);
 end;
 
 function TestPEMInvalidHeaderFooter: Boolean;

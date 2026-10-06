@@ -11237,7 +11237,7 @@ begin
       BigNumberMul(P[I], P[I], K);
       BigNumberNonNegativeMod(P[I], P[I], Prime);
 
-      if B then
+      if B and not P[I].IsZero then
         BigNumberSub(P[I], Prime, P[I]);
     end;
   finally
@@ -15201,7 +15201,7 @@ begin
     for J := P.YFactorsList[I].Count - 1 downto 0 do
     begin
       P.YFactorsList[I][J] := Int64NonNegativeMulMod(P.YFactorsList[I][J], K, Prime);
-      if B then
+      if B and (P.YFactorsList[I][J] <> 0) then
         P.YFactorsList[I][J] := Prime - P.YFactorsList[I][J];
     end;
   end;
@@ -16968,7 +16968,7 @@ begin
         for J := P.YFactorsList[I].Count - 1 downto 0 do
         begin
           BigNumberDirectMulMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, K, Prime);
-          if B then
+          if B and not P.YFactorsList[I][J].Value.IsZero then
             BigNumberSub(P.YFactorsList[I][J].Value, Prime, P.YFactorsList[I][J].Value);
         end;
     end;
