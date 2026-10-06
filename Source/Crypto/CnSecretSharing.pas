@@ -251,7 +251,9 @@ function CnInt64ShamirSplit(Secret: Int64; ShareCount: Integer; Threshold: Integ
 {* 用 Shamir 门限方案实现 Int64 的秘密共享。将一 Int64 值拆分为 ShareCount 个 Int64 值
    只需要其中 Threshold 个值及其顺序就能还原 Secret，返回是否拆分成功。
    拆分值放 OutShares 中，对应顺序值为其下标 + 1（如第 0 项对应 1）。
-   相关素数可以在 Prime 中指定，如为 0，则生成符合要求的素数值返回。
+   相关素数可以在 Prime 中指定，如为 0，则生成符合要求的素数值返回；
+   如传入的 Prime 非素数或不大于 Secret，内部会重新生成；若 Secret 过大导致
+   Int64 范围内不存在更大的素数，则拆分直接失败并返回 ECN_SECRET_PRIME_ERROR。
 
    参数：
      Secret: Int64                        - 待拆分的秘密数据
@@ -442,6 +444,7 @@ function CnInt64ShamirSplit(Secret: Int64; ShareCount, Threshold: Integer;
 var
   Poly: TCnInt64Polynomial;
   I: Integer;
+  J: Int64;
 begin
   Result := False;
 
@@ -457,8 +460,38 @@ begin
       Prime := CN_PRIME_NUMBERS_SQRT_UINT32[High(CN_PRIME_NUMBERS_SQRT_UINT32)]
     else
     begin
-      // TODO: 寻找一个比 Secret 大的素数
+      // 寻找一个比 Secret 大的素数：从 Secret + 1 起向上逐个测试。
+      // Int64 范围内素数间隙远小于此搜索代价，必然很快找到；
+      // 但 Secret 太接近 High(Int64) 时可能不存在更大的正素数，此时必须直接报错失败，
+      // 绝不能带着 <= Secret 的 Prime 继续计算，否则 Poly[0] := Secret 会被 mod Prime 静默截断。
+      Prime := 0;
+      if Secret < High(Int64) then
+      begin
+        J := Secret + 1;
+        while Prime = 0 do
+        begin
+          if CnInt64IsPrime(J) then
+            Prime := J
+          else if J < High(Int64) then
+            Inc(J)
+          else
+            Break; // 已到 High(Int64) 仍非素数，范围内无更大的素数
+        end;
+      end;
+
+      if Prime <= 0 then
+      begin
+        _CnSetLastError(ECN_SECRET_PRIME_ERROR);
+        Exit;
+      end;
     end;
+  end;
+
+  // 最终防线：无论如何进入多项式生成前必须保证 Prime 是大于 Secret 的素数
+  if (Prime <= Secret) or not CnInt64IsPrime(Prime) then
+  begin
+    _CnSetLastError(ECN_SECRET_PRIME_ERROR);
+    Exit;
   end;
 
   Poly := nil;

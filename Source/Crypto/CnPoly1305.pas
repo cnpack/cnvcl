@@ -73,6 +73,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    procedure Clear;
   end;
 
 function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCnPoly1305Digest;
@@ -285,6 +287,15 @@ begin
 end;
 
 { TCnPoly1305Context }
+
+procedure TCnPoly1305Context.Clear;
+begin
+  R.Clear;
+  S.Clear;
+  A.Clear;
+  N.Clear;
+  MemorySafeZero(@Buf[0], SizeOf(Buf));
+end;
 
 constructor TCnPoly1305Context.Create;
 begin

@@ -46,7 +46,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Contnrs, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
+  SysUtils, Classes, Contnrs, {$IFDEF ANDROID} FMX.Types, {$ENDIF} CnConsts,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
@@ -739,6 +739,7 @@ function TestPaillier2: Boolean;
 // ============================= SecretSharing =================================
 
 function TestSecretSharingShamir: Boolean;
+function TestSecretSharingInt64Shamir: Boolean;
 function TestSecretSharingFeldmanVss: Boolean;
 
 // ================================ OTS ========================================
@@ -2539,6 +2540,7 @@ begin
 // ============================= SecretSharing =================================
 
   MyAssert(TestSecretSharingShamir, 'TestSecretSharingShamir');
+  MyAssert(TestSecretSharingInt64Shamir, 'TestSecretSharingInt64Shamir');
   MyAssert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
 
 // ================================ OTS ========================================
@@ -21473,6 +21475,62 @@ begin
     Orders.Free;
     P.Free;
     S.Free;
+  end;
+end;
+
+function TestSecretSharingInt64Shamir: Boolean;
+var
+  S, P, R: Int64;
+  Shares, X, Y: TCnInt64List;
+begin
+  Shares := TCnInt64List.Create;
+  X := TCnInt64List.Create;
+  Y := TCnInt64List.Create;
+
+  try
+    // 普通小秘密：内部自动生成素数，用门限个数分片子集即可还原
+    S := 42;
+    P := 0;
+    Result := CnInt64ShamirSplit(S, 5, 3, Shares, P);
+    if not Result then Exit;
+
+    X.Add(1); X.Add(3); X.Add(5);
+    Y.Add(Shares[0]); Y.Add(Shares[2]); Y.Add(Shares[4]);
+
+    Result := CnInt64ShamirReconstruct(P, X, Y, R);
+    if not Result then Exit;
+    if R <> S then Exit(False);
+
+    // 大于默认素数表上限的秘密：须自动生成比 Secret 大的素数并完整还原，
+    // 否则秘密会被 mod Prime 静默截断
+    X.Clear;
+    Y.Clear;
+    S := 123456789012345678;
+    P := 0;
+    Result := CnInt64ShamirSplit(S, 5, 3, Shares, P);
+    if not Result then Exit;
+    if P <= S then Exit(False);
+
+    X.Add(1); X.Add(3); X.Add(5);
+    Y.Add(Shares[0]); Y.Add(Shares[2]); Y.Add(Shares[4]);
+
+    Result := CnInt64ShamirReconstruct(P, X, Y, R);
+    if not Result then Exit;
+    if R <> S then Exit(False);
+
+    // 边界情况：Int64 范围内最大素数 2^63 - 25 本身作为秘密，不存在更大的素数，
+    // 拆分必须直接失败并返回 ECN_SECRET_PRIME_ERROR，而非静默生成错误分片
+    X.Clear;
+    Y.Clear;
+    S := 9223372036854775783;
+    P := 0;
+    Result := CnInt64ShamirSplit(S, 5, 3, Shares, P);
+    if Result then Exit(False);
+    if CnGetLastError <> ECN_SECRET_PRIME_ERROR then Exit(False);
+  finally
+    Y.Free;
+    X.Free;
+    Shares.Free;
   end;
 end;
 
