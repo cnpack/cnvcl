@@ -47,6 +47,9 @@ const
   CN_PI = 3.1415926535897932384626;
   {* 圆周率的浮点值}
 
+  CN_LN_2 = 0.69314718055994530941723;
+  {* 2 的自然对数的浮点值}
+
   CN_FLOAT_DEFAULT_DIGIT = 10;
   {* 默认的浮点运算位数}
 
@@ -661,7 +664,8 @@ end;
 
 function FloatSqrt(F: Extended): Extended;
 var
-  X0: Extended;
+  X0, G, E: Extended;
+  J: Integer;
 begin
   if F < 0 then
     raise ECnMathException.Create(SCnErrorMathSqrtRange);
@@ -673,22 +677,51 @@ begin
     Exit;
   end;
 
-  X0 := F;
+  { 先归约到 [1,4)，把 4 的整数次幂提出来放到 E 上。
+    初值取被开方数本身（X0 := F）对 F 远小于 1 是灾难性的：首步给出
+    (F + 1)/2 ≈ 0.5，之后牛顿迭代一路减半，而原来的判据是绝对的
+    CnAbs(Result - X0) < SCN_EXTEND_GAP，会在减到 1e-11 量级时就提前触发。
+    于是相对精度只有 SCN_EXTEND_GAP / sqrt(F)，sqrt(1e-30) 会返回 7.27e-12。
+
+    这里乘 4 而不是乘 2，好处是任意 F 都能归约到 [1,4)，指数还原时
+    sqrt(F) = sqrt(G) * 2^E，E 总是整数，不需要额外处理奇偶。
+    归约后牛顿迭代从 1 或 2 起步，几次就到满精度。 }
+  G := F;
+  E := 0;
+  while G < 1 do
+  begin
+    G := G * 4;
+    E := E - 1;
+  end;
+  while G >= 4 do
+  begin
+    G := G / 4;
+    E := E + 1;
+  end;
+
+  // 牛顿迭代求 G 的平方根，收敛判据改为相对的
+  X0 := G;
   while True do
   begin
-    Result := (X0 + F/X0) / 2;
+    Result := (X0 + G/X0) / 2;
 
-    if CnAbs(Result - X0) < SCN_EXTEND_GAP then
+    if CnAbs(Result - X0) <= CnAbs(Result) * SCN_EXTEND_GAP then
       Break;
     X0 := Result;
   end;
+
+  // 把指数还原回去。这里不用 Math 库的 Power，免得为它多引一个单元
+  for J := 1 to Trunc(E) do
+    Result := Result * 2;
+  for J := 1 to Trunc(-E) do
+    Result := Result / 2;
 end;
 
 {$HINTS ON}
 
 function Int64LogN(N: Int64): Extended;
 var
-  I: Integer;
+  I, K, Den: Integer;
   F: Extended;
   Z, D: Extended;
 begin
@@ -699,32 +732,53 @@ begin
   if N = 1 then
     Exit;
 
+  { 下面的 atanh 级数只在 |z| << 1（也就是 N 接近 1）时收敛快。
+    整数 N 一大起来，z = (N-1)/(N+1) 就趋近 1，级数发散，
+    而收敛判据测的是 |D|，D 永远等不到 SCN_EXTEND_GAP，于是成了死循环：
+    实测 Int64LogN(2^20) 要 56 毫秒（660 万次迭代），
+    Int64LogN(1e8) 要 5.2 秒，Int64LogN(1e10) 起 20 秒不返回。
+
+    所以先把 N 归约到 [1,2)，把 2 的整数次幂提出来放到 K 上，
+    级数里始终只有 |z| <= 1/3，最多 17 项就到满精度。
+    迭代次数也用 CN_TAYLOR_MAX_ITERATIONS 卡住，不再有无上限的 while True。 }
+  F := N;
+  K := 0;
+  while F >= 2 do
+  begin
+    F := F / 2;
+    Inc(K);
+  end;
+
   //           [ z-1   1 (z-1)^3   1 (z-1)^5        ]
-  // lnz = 2 * | --- + - ------- + - ------- + .... |
+  // lnf = 2 * | --- + - ------- + - ------- + .... |
   //           [ z+1   3 (z+1)^3   5 (z+1)^5        ]
 
-  F := N;
   Z := (F - 1) / (F + 1);
   D := Z;
   Z := Z * Z;
-  I := 1;
+  Den := 1;
 
-  while True do
+  for I := 1 to CN_TAYLOR_MAX_ITERATIONS do
   begin
-    Result := Result + D / I;
-    Inc(I, 2);
-    D := D * Z;
+    Result := Result + D / Den;
 
-    if CnAbs(D) < SCN_EXTEND_GAP then
+    D := D * Z;
+    // 判据测的是「本项」而不是未除的幂 D，并按 1e-18 卡，
+    // 这样才能吃满 Extended 的 19 位有效数字
+    if CnAbs(D / Den) < 1e-18 then
       Break;
+    Inc(Den, 2);
   end;
   Result := Result * 2;
+
+  // 归约时 N = F * 2^K，所以 lnN = lnF + K * ln2
+  Result := Result + K * CN_LN_2;
 end;
 
 function FloatLogN(F: Extended): Extended;
 var
-  I: Integer;
-  Z, D: Extended;
+  I, K, Den: Integer;
+  Z, D, G: Extended;
 begin
   if F <= 0 then
     raise ERangeError.Create(SCnErrorMathLogRange);
@@ -733,25 +787,43 @@ begin
   if F = 1 then
     Exit;
 
+  { 与 Int64LogN 同样的理由，必须先归约到 [1,2)，否则大 F 直接死循环。
+    0 < F < 1 的情况靠反复乘 2 把 K 取负来覆盖。 }
+  G := F;
+  K := 0;
+  while G >= 2 do
+  begin
+    G := G / 2;
+    Inc(K);
+  end;
+  while G < 1 do
+  begin
+    G := G * 2;
+    Dec(K);
+  end;
+
   //           [ z-1   1 (z-1)^3   1 (z-1)^5        ]
-  // lnz = 2 * | --- + - ------- + - ------- + .... |
+  // lng = 2 * | --- + - ------- + - ------- + .... |
   //           [ z+1   3 (z+1)^3   5 (z+1)^5        ]
 
-  Z := (F - 1) / (F + 1);
+  Z := (G - 1) / (G + 1);
   D := Z;
   Z := Z * Z;
-  I := 1;
+  Den := 1;
 
-  while True do
+  for I := 1 to CN_TAYLOR_MAX_ITERATIONS do
   begin
-    Result := Result + D / I;
-    Inc(I, 2);
-    D := D * Z;
+    Result := Result + D / Den;
 
-    if CnAbs(D) < SCN_EXTEND_GAP then
+    D := D * Z;
+    if CnAbs(D / Den) < 1e-18 then
       Break;
+    Inc(Den, 2);
   end;
   Result := Result * 2;
+
+  // 归约时 F = G * 2^K，所以 lnF = lng + K * ln2
+  Result := Result + K * CN_LN_2;
 end;
 
 function Int64Log10(N: Int64): Extended;
@@ -921,11 +993,12 @@ begin
   end;
 end;
 
-function XavierGourdonEuler(BlockSize: Integer = 1000): string;
+function XavierGourdonEuler(BlockSize: Integer): string;
 var
   N, M, X: Integer;
   A: array of Integer;
 begin
+  Result := '';
   if BlockSize <= 0 then
     Exit;
 

@@ -1449,7 +1449,7 @@ end;
 // 普通 Trunc 浮点数最大只能返回 Int64，本函数返回最大 UInt64
 function UTrunc(F: Extended): TUInt64;
 var
-  T: Integer;
+  T, L: Integer;
   SignNeg: Boolean;
   Exponent: Integer;
   Mantissa: TUInt64;
@@ -1462,13 +1462,18 @@ begin
   if (Mantissa = 0) and SignNeg then       // 如果是负 0 则变成正 0
     SignNeg := False;
 
-  // Mantissa 有 64 位有效数字，其中小数点后 63 位，如果指数小于 0 说明小数点要往左移，那么值就是 0 了
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  else
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+
+  // Mantissa 有 64/53 位有效数字，其中小数点后 63/52 位，如果指数小于 0 说明小数点要往左移，那么值就是 0 了
   if Exponent < 0 then
     Result := 0
   else
   begin
     // 将小数点往右移 Exponent 位，小数点左边的是整数部分
-    T := 63 - Exponent;    // 小数点在 0 到 63 位的 63 位右边，小数点右移后在 T 位右边
+    T := L - Exponent;    // 小数点在 0 到 63/52 位的 63/52 位右边，小数点右移后在 T 位右边
     if T < 0 then
       raise ERangeError.Create(SRangeError); // Exponent 太大
 

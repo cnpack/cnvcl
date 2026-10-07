@@ -282,6 +282,8 @@ function TestCnFloor: Boolean;
 function TestCnCeil: Boolean;
 function TestInt64Sqrt: Boolean;
 function TestFloatSqrt: Boolean;
+function TestFloatSqrtSmall: Boolean;
+function TestComplexNumberSqrtSmall: Boolean;
 function TestUInt64NonNegativeRoot: Boolean;
 function TestInt64LogN: Boolean;
 function TestFloatLogN: Boolean;
@@ -289,6 +291,7 @@ function TestInt64Log10: Boolean;
 function TestFloatLog10: Boolean;
 function TestInt64Log2: Boolean;
 function TestFloatLog2: Boolean;
+function TestLogNAccuracy: Boolean;
 function TestFastSqrt: Boolean;
 function TestFastSqrt64: Boolean;
 function TestFastInverseSqrt: Boolean;
@@ -2092,6 +2095,8 @@ begin
   MyAssert(TestCnCeil, 'TestCnCeil');
   MyAssert(TestInt64Sqrt, 'TestInt64Sqrt');
   MyAssert(TestFloatSqrt, 'TestFloatSqrt');
+  MyAssert(TestFloatSqrtSmall, 'TestFloatSqrtSmall');
+  MyAssert(TestComplexNumberSqrtSmall, 'TestComplexNumberSqrtSmall');
   MyAssert(TestUInt64NonNegativeRoot, 'TestUInt64NonNegativeRoot');
   MyAssert(TestInt64LogN, 'TestInt64LogN');
   MyAssert(TestFloatLogN, 'TestFloatLogN');
@@ -2099,6 +2104,7 @@ begin
   MyAssert(TestFloatLog10, 'TestFloatLog10');
   MyAssert(TestInt64Log2, 'TestInt64Log2');
   MyAssert(TestFloatLog2, 'TestFloatLog2');
+  MyAssert(TestLogNAccuracy, 'TestLogNAccuracy');
   MyAssert(TestFastSqrt, 'TestFastSqrt');
   MyAssert(TestFastSqrt64, 'TestFastSqrt64');
   MyAssert(TestFastInverseSqrt, 'TestFastInverseSqrt');
@@ -8046,6 +8052,131 @@ begin
   Result := FloatEqual(R, 0.5);
 end;
 
+function TestFloatSqrtSmall: Boolean;
+var
+  Got, Want: Extended;
+  RelErr: Extended;
+begin
+  Result := False;
+  { FloatSqrt 用牛顿迭代，初值直接取被开方数 X0 := F，收敛判据是绝对的
+    CnAbs(Result - X0) < SCN_EXTEND_GAP（1e-11）。两个后果：
+
+      1. F 远小于 1 时初值是灾难性的，首步给出 (F + 1)/2 ≈ 0.5，
+         之后一路减半，而绝对的判据在减到 1e-11 量级时就提前触发；
+      2. 判据既然是绝对的，相对精度就只有 1e-11 / sqrt(F)。
+
+    下面用相对误差判断，既能抓住「卡在 1e-11 不动」，也能抓住相对精度退化。
+    这里刻意不调用 RTL 的 Sqrt 作真值 —— 测试用例应当自洽。 }
+
+  // -------- 对照组：O(1) 量级必须始终正确，防止修复引入回归 --------
+  if not FloatEqual(FloatSqrt(4), 2, 0.0000001) then Exit;
+  if not FloatEqual(FloatSqrt(2), 1.41421356237, 0.0000001) then Exit;
+  if not FloatEqual(FloatSqrt(0.25), 0.5, 0.0000001) then Exit;
+  if not FloatEqual(FloatSqrt(1), 1, 0.0000001) then Exit;
+  if FloatSqrt(1e-4) <= 0 then Exit;
+
+  // -------- 回代校验：对每个输入都必须满足 Got * Got ≈ F --------
+  // 这条不依赖外部真值，直接检验「平方回去是否等于原数」
+  Got := FloatSqrt(1e-4);
+  if not FloatAlmostZero(Got * Got - 1e-4, 0.0000000000001) then Exit;
+
+  Got := FloatSqrt(1e-10);
+  if not FloatAlmostZero(Got * Got - 1e-10, 0.0000000000001) then Exit;
+
+  // -------- 核心：|F| < 1 时结果必须为正且相对误差可控 --------
+  // 未修复时 1e-20 得 1.00207506355028E-10（相对误差 2.1e-3）
+  Got := FloatSqrt(1e-20);
+  if Got <= 0 then Exit;
+  if not FloatAlmostZero(Got * Got - 1e-20, 0.0000000000001) then Exit;
+
+  // 未修复时 1e-30 得 7.27595765999641E-12，真值 1e-15（差 7 千倍）
+  Got := FloatSqrt(1e-30);
+  if Got <= 0 then Exit;
+  if not FloatAlmostZero(Got * Got - 1e-30, 0.0000000000001) then Exit;
+
+  // 未修复时 1e-100 得 7.27595761418343E-12，真值 1e-50
+  Got := FloatSqrt(1e-100);
+  if Got <= 0 then Exit;
+  if not FloatAlmostZero(Got * Got - 1e-100, 0.0000000000001) then Exit;
+
+  // -------- 相对误差断言：1e-20 平方根应有 14 位以上相对精度 --------
+  Got := FloatSqrt(1e-20);
+  Want := 1e-10;                      // 10^-20 的平方根就是 10^-10
+  RelErr := CnAbs((Got - Want) / Want);
+  if RelErr > 0.0000000001 then Exit;  // 1e-10
+
+  Got := FloatSqrt(1e-30);
+  Want := 1e-15;
+  RelErr := CnAbs((Got - Want) / Want);
+  if RelErr > 0.0000000001 then Exit;
+
+  Got := FloatSqrt(1e-100);
+  Want := 1e-50;
+  RelErr := CnAbs((Got - Want) / Want);
+  if RelErr > 0.0000000001 then Exit;
+
+  // -------- 单调性：F 越小 sqrt(F) 也必须越小 --------
+  // 未修复时 1e-30 与 1e-100 都返回 7.2759576...E-12，完全不单调
+  if not (FloatSqrt(1e-30) > FloatSqrt(1e-100)) then Exit;
+  if not (FloatSqrt(1e-20) > FloatSqrt(1e-30)) then Exit;
+  if not (FloatSqrt(1e-10) > FloatSqrt(1e-20)) then Exit;
+
+  // 绝对量级检查：未修复时这些值都塌在 7.27e-12 附近，与真值差几个数量级
+  if not (FloatSqrt(1e-30) < 1e-14) then Exit;
+  if not (FloatSqrt(1e-100) < 1e-49) then Exit;
+
+  Result := True;
+end;
+
+function TestComplexNumberSqrtSmall: Boolean;
+var
+  C1, Res, Temp: TCnComplexNumber;
+  RelErr: Extended;
+begin
+  Result := False;
+  { ComplexNumberSqrt 内部调用 FloatSqrt，所以 E-03 会顺着传染到复数开方。
+    这里只测实轴为正的纯实数复数（走 FloatSqrt 那条路），
+    断言同样用「平方回去是否等于原数」，不依赖外部真值。
+
+    这条对 FFT/DFT 有实际影响：小量级的频谱分量会被静默放大成 7.27e-12。 }
+
+  // -------- 对照组 --------
+  ComplexNumberSetValue(C1, 4, 0);
+  ComplexNumberSqrt(Res, C1);
+  if not (CnAbs(Res.R - 2) < 0.0000001) then Exit;
+  if not (CnAbs(Res.I) < 0.0000001) then Exit;
+
+  // -------- 小量级：1e-40 的平方根是 1e-20 --------
+  ComplexNumberSetValue(C1, 1e-40, 0);
+  ComplexNumberSqrt(Res, C1);
+  ComplexNumberMul(Temp, Res, Res);
+  if not (CnAbs(Temp.R - 1e-40) < 0.0000000000000001) then Exit;
+  if not (CnAbs(Temp.I) < 0.0000000000000001) then Exit;
+
+  // 未修复时得到 7.275958E-12，真值应为 1e-20
+  RelErr := CnAbs((Res.R - 1e-20) / 1e-20);
+  if RelErr > 0.0000001 then Exit;
+
+  // -------- 小量级：1e-60 的平方根是 1e-30 --------
+  ComplexNumberSetValue(C1, 1e-60, 0);
+  ComplexNumberSqrt(Res, C1);
+  ComplexNumberMul(Temp, Res, Res);
+  if not (CnAbs(Temp.R - 1e-60) < 0.0000000000000001) then Exit;
+  if not (CnAbs(Temp.I) < 0.0000000000000001) then Exit;
+
+  RelErr := CnAbs((Res.R - 1e-30) / 1e-30);
+  if RelErr > 0.0000001 then Exit;
+
+  // -------- 小量级：1e-20 的平方根是 1e-10 --------
+  ComplexNumberSetValue(C1, 1e-20, 0);
+  ComplexNumberSqrt(Res, C1);
+  ComplexNumberMul(Temp, Res, Res);
+  if not (CnAbs(Temp.R - 1e-20) < 0.0000000000000001) then Exit;
+  if not (CnAbs(Temp.I) < 0.0000000000000001) then Exit;
+
+  Result := True;
+end;
+
 function TestUInt64NonNegativeRoot: Boolean;
 begin
   Result := UInt64NonNegativeRoot(8, 3) = 2;
@@ -8159,6 +8290,91 @@ begin
 
   R := FloatLog2(2.0);
   Result := FloatAlmostZero(R - 1.0);
+end;
+
+function TestLogNAccuracy: Boolean;
+var
+  R, Want, RelErr: Extended;
+begin
+  Result := False;
+  { Int64LogN / FloatLogN 用 atanh 级数 ln z = 2 * Σ z^(2k+1)/(2k+1)，
+    其中 z = (F-1)/(F+1)。这个级数只在 |z| << 1（也就是 F 接近 1）时收敛快，
+    而代码既没有做参数归约（不提取 2 的幂），收敛判据又测的是 |D| 而不是
+    累积结果，还没有迭代上限。于是：
+
+      - F 稍大时灾难性抵消，精度只剩约 12 位（相对误差 1e-13 量级）；
+      - F 很大时 |z| 趋近 1，级数发散，循环永远等不到 |D| < 1e-11，实为死循环。
+
+    实测 Int64LogN(2^20) 要 56 毫秒（660 万次迭代），
+    FloatLogN(1e8) 要 5.4 秒，FloatLogN(1e10) 起 15 秒不返回。
+
+    下面只用能快速返回的点断言精度；死循环本身不适合放进测试套件，
+    因为跑挂了会挂住整个测试进程。 }
+
+  // -------- 对照组：小参数本来就对，防止修复引入回归 --------
+  if not FloatAlmostZero(Int64LogN(1)) then Exit;
+  if not FloatEqual(Int64LogN(2), 0.693147180559945, 0.0000001) then Exit;
+  if not FloatEqual(Int64LogN(3), 1.098612288668, 0.0000001) then Exit;
+  if not FloatEqual(Int64LogN(10), 2.302585092994046, 0.0000001) then Exit;
+  if not FloatAlmostZero(FloatLogN(1.0)) then Exit;
+  if not FloatEqual(FloatLogN(2.0), 0.693147180559945, 0.0000001) then Exit;
+  if not FloatEqual(FloatLogN(10.0), 2.302585092994046, 0.0000001) then Exit;
+  // F < 1 时结果必须为负
+  if not (FloatLogN(0.5) < 0) then Exit;
+  if not FloatEqual(FloatLogN(0.5), -0.693147180559945, 0.0000001) then Exit;
+
+  // -------- 核心断言：相对误差必须优于 1e-14 --------
+  // 未修复时 Int64LogN(1024) 得 6.931471805599072636，真值 6.931471805599453094
+  R := Int64LogN(1024);
+  Want := 6.931471805599453;
+  RelErr := CnAbs((R - Want) / Want);
+  if RelErr > 0.00000000000001 then Exit;   // 1e-14
+
+  R := Int64LogN(65536);
+  Want := 11.090354888959125;
+  RelErr := CnAbs((R - Want) / Want);
+  if RelErr > 0.00000000000001 then Exit;
+
+  // -------- Log2 / Log10 的整数幂必须精确到 1e-13 以内 --------
+  // 未修复时 Int64Log2(1024) = 9.999999999999451115
+  R := Int64Log2(1024);
+  RelErr := CnAbs(R - 10) / 10;
+  if RelErr > 0.0000000000001 then Exit;    // 1e-13
+
+  R := Int64Log2(65536);
+  RelErr := CnAbs(R - 16) / 16;
+  if RelErr > 0.0000000000001 then Exit;
+
+  R := Int64Log2(256);
+  RelErr := CnAbs(R - 8) / 8;
+  if RelErr > 0.0000000000001 then Exit;
+
+  // 未修复时 Int64Log10(1000) = 2.999999999999834750
+  R := Int64Log10(1000);
+  RelErr := CnAbs(R - 3) / 3;
+  if RelErr > 0.0000000000001 then Exit;
+
+  R := Int64Log10(100);
+  RelErr := CnAbs(R - 2) / 2;
+  if RelErr > 0.0000000000001 then Exit;
+
+  // -------- FloatLogN 在 1 附近也要够准 --------
+  R := FloatLogN(1.5);
+  Want := 0.405465108108164;
+  RelErr := CnAbs((R - Want) / Want);
+  if RelErr > 0.0000000000001 then Exit;
+
+  R := FloatLogN(1.0e-3);
+  Want := -6.907755278982137;
+  RelErr := CnAbs((R - Want) / Want);
+  if RelErr > 0.0000000000001 then Exit;
+
+  // -------- 幂律不变式：log(b^k) 应等于 k * log(b)，k 取整数 -------
+  // 未修复时偏差随 k 线性放大，这条能放大误差便于暴露
+  if not FloatEqual(Int64LogN(4) * 10, Int64LogN(1048576), 0.000001) then Exit;
+  if not FloatEqual(Int64Log10(1000000) * 2, Int64Log10(1000000000000), 0.000001) then Exit;
+
+  Result := True;
 end;
 
 function TestFastSqrt: Boolean;
@@ -9437,7 +9653,6 @@ begin
   Result := Pos(E_STR, S) = 1;
 end;
 
-
 function TestBigDecimalRoundToDigitsNoop: Boolean;
 var
   A, R: TCnBigDecimal;
@@ -9692,7 +9907,6 @@ begin
     L.Free;
   end;
 end;
-
 
 function TestBigBinaryToStringNegative: Boolean;
 var
@@ -11388,7 +11602,6 @@ begin
     Res.Free;
   end;
 end;
-
 
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
 var
@@ -17660,7 +17873,6 @@ begin
   DeData := ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD, Tag);
   Result := CompareBytes(DeData, Plain);
 end;
-
 
 function TestAEADXChaCha20Poly1305: Boolean;
 var
