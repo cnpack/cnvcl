@@ -307,6 +307,7 @@ function TestBigDecimalCos: Boolean;
 function TestBigDecimalArcSin: Boolean;
 function TestBigDecimalArcCos: Boolean;
 function TestBigDecimalArcTan: Boolean;
+function TestBigDecimalArcTanNegative: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
 function TestBigDecimalHyperbolicCos: Boolean;
 function TestBigDecimalSetDecValidation: Boolean;
@@ -2116,6 +2117,7 @@ begin
   MyAssert(TestBigDecimalArcSin, 'TestBigDecimalArcSin');
   MyAssert(TestBigDecimalArcCos, 'TestBigDecimalArcCos');
   MyAssert(TestBigDecimalArcTan, 'TestBigDecimalArcTan');
+  MyAssert(TestBigDecimalArcTanNegative, 'TestBigDecimalArcTanNegative');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
   MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
   MyAssert(TestBigDecimalSetDecValidation, 'TestBigDecimalSetDecValidation');
@@ -8778,6 +8780,134 @@ begin
   finally
     Res.Free;
     Num.Free;
+  end;
+end;
+
+function TestBigDecimalArcTanNegative: Boolean;
+var
+  Res, Num, Expect: TCnBigDecimal;
+  R: Extended;
+  PosStr: string;
+begin
+  Result := False;
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  Expect := TCnBigDecimal.Create;
+  try
+    { BigDecimalArcTan 用恒等式 arctan(x) = π/2 - arctan(1/x) 处理 |x| > 1，
+      但 IsGreaterThanOne 只按 |x| > 1 置位、不看符号。上面那段恒等式只对
+      x > +1 成立；x < -1 时应该是 arctan(x) = -π/2 - arctan(1/x)。
+      无条件加 +π/2 会把答案关于 π/2 反射，结果返回 π + 正确答案，
+      也就是一个落在 (π/2, π) 区间的正数。
+
+      分界点实测是 |x| = 1：-0.99 还对，-1.01 就开始错。 }
+
+    // -------- 对照组：|x| <= 1 必须始终正确，防止修复引入回归 --------
+    Num.SetExtended(0);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    if not Res.IsZero then Exit;
+
+    Num.SetExtended(0.5);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R - 0.463647609, 0.000000001) then Exit;
+
+    Num.SetExtended(-0.5);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R + 0.463647609, 0.000000001) then Exit;
+
+    Num.SetOne;
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R - 0.785398163, 0.000000001) then Exit;
+
+    Num.SetInt64(-1);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R + 0.785398163, 0.000000001) then Exit;
+
+    // -------- 正数 |x| > 1 走的是同一个分支，必须始终正确 --------
+    Num.SetExtended(2);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R - 1.107148718, 0.000000001) then Exit;
+
+    Num.SetExtended(10);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R - 1.471127674, 0.000000001) then Exit;
+
+    // -------- 核心断言：负数且 |x| > 1 的结果必须是负数 --------
+    // 未修复时返回的是 (π/2, π) 区间的正数
+    Num.SetExtended(-1.01);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    if not Res.IsNegative then Exit;
+
+    Num.SetExtended(-1.5);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    if not Res.IsNegative then Exit;
+
+    Num.SetExtended(-2);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    if not Res.IsNegative then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R + 1.107148718, 0.000000001) then Exit;
+
+    Num.SetExtended(-10);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    if not Res.IsNegative then Exit;
+    R := BigDecimalToExtended(Res);
+    if not FloatAlmostZero(R + 1.471127674, 0.000000001) then Exit;
+
+    Num.SetExtended(-100);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    if not Res.IsNegative then Exit;
+
+    // -------- 奇异性：arctan(-x) 必须严格等于 -arctan(x) --------
+    // 这条不依赖任何外部真值，纯内部一致性，|x| <= 1 当前已满足，|x| > 1 不满足
+    Num.SetExtended(2);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    PosStr := Res.ToString;
+
+    Num.SetExtended(-2);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    Expect.SetDec('-' + PosStr);
+    if BigDecimalCompare(Res, Expect) <> 0 then Exit;
+
+    Num.SetExtended(10);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    PosStr := Res.ToString;
+
+    Num.SetExtended(-10);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    Expect.SetDec('-' + PosStr);
+    if BigDecimalCompare(Res, Expect) <> 0 then Exit;
+
+    // 分界点两侧都要满足
+    Num.SetExtended(0.9999);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    PosStr := Res.ToString;
+
+    Num.SetExtended(-0.9999);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    Expect.SetDec('-' + PosStr);
+    if BigDecimalCompare(Res, Expect) <> 0 then Exit;
+
+    Num.SetExtended(1.0001);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    PosStr := Res.ToString;
+
+    Num.SetExtended(-1.0001);
+    if not BigDecimalArcTan(Res, Num, 30) then Exit;
+    Expect.SetDec('-' + PosStr);
+    if BigDecimalCompare(Res, Expect) <> 0 then Exit;
+
+    Result := True;
+  finally
+    Expect.Free;
+    Num.Free;
+    Res.Free;
   end;
 end;
 

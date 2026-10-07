@@ -1877,7 +1877,7 @@ var
   I, K, TargetPrecision: Integer;
   X, X2, Term, Sum, Denominator, Reciprocal, Pi: TCnBigDecimal;
   HalfOne, SqrtTerm, Denominator2, AbsX, Two: TCnBigDecimal;
-  IsGreaterThanOne: Boolean;
+  IsGreaterThanOne, IsNegArg: Boolean;
 begin
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
@@ -1899,6 +1899,10 @@ begin
   try
     TargetPrecision := Precision + 10;
     BigDecimalCopy(X, Num);
+
+    // 记下原始参数的符号。下面的 X 会被反复取绝对值、再折半迭代，
+    // 到了收尾处已经看不出原来到底是正还是负，所以必须在这里先存一份。
+    IsNegArg := X.IsNegative;
 
     // 检查是否 |x| > 1
     IsGreaterThanOne := False;
@@ -2041,7 +2045,16 @@ begin
         GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
         Pi.DivWord(2, TargetPrecision);
 
-        // 结果 = π/2 - arctan(1/x)
+        // arctan(x) = ±π/2 - arctan(1/x)，正负号取决于原始参数 x 的符号：
+        //   x >  1 时 arctan(x) =  π/2 - arctan(1/x)
+        //   x < -1 时 arctan(x) = -π/2 - arctan(1/x)
+        // 上面那句恒等式只对 x > +1 成立。如果这里无条件用 +π/2，
+        // x < -1 的结果就会被关于 π/2 反射，变成 π + 正确答案，
+        // 也就是一个落在 (π/2, π) 区间里的正数。
+        if IsNegArg then
+          Pi.SetNegative(True);
+
+        // 结果 = ±π/2 - arctan(1/x)
         BigDecimalSub(Sum, Pi, Sum);
       finally
         FLocalBigDecimalPool.Recycle(Pi);
