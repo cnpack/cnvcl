@@ -2292,7 +2292,7 @@ begin
   if FIgnoreDuplicated then
   begin
     DupIdx := IndexOf(Item);
-    if (DupIdx >= 0) and (DupIdx <> Index) then
+    if (DupIdx <> CN_NOT_FOUND_INDEX) and (DupIdx <> Index) then
       Exit;                    // 值在别的槽存在得拒绝
   end;
 
