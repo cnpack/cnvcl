@@ -3459,43 +3459,52 @@ var
   T, P10, S: TCnBigNumber;
   I: Integer;
   D: string;
+  Neg: Boolean;
 begin
   Result := '';
-  if Num <> nil then
+  if Num = nil then
+    Exit;
+
+  if Num.FScale = 0 then
   begin
-    if Num.FScale = 0 then
-    begin
-      Result := Num.FValue.ToDec;
-      Exit;
-    end
-    else if Num.FScale < 0 then
-    begin
-      T := FLocalBigNumberPool.Obtain;
-      try
-        BigNumberCopy(T, Num.FValue);
-        T.ShiftLeft(-Num.FScale);
-        Result := T.ToDec;
-      finally
-        FLocalBigNumberPool.Recycle(T);
-      end;
-    end
-    else // FScale > 0，有小数部分，单独拎出来处理
-    begin
-      T := FLocalBigNumberPool.Obtain;
-      S := nil;
-      P10 := nil;
+    Result := Num.FValue.ToDec;
+    Exit;
+  end
+  else if Num.FScale < 0 then
+  begin
+    T := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberCopy(T, Num.FValue);
+      T.ShiftLeft(-Num.FScale);
+      Result := T.ToDec;
+    finally
+      FLocalBigNumberPool.Recycle(T);
+    end;
+  end
+  else // FScale > 0，有小数部分，单独拎出来处理
+  begin
+    T := FLocalBigNumberPool.Obtain;
+    S := nil;
+    P10 := nil;
 
-      try
-        BigNumberCopy(T, Num.FValue);
-        T.ShiftRight(Num.FScale);
-        Result := T.ToDec;  // 先右移得到整数部分
+    Neg := Num.FValue.IsNegative;
+    try
+      // 有效数字全程按无符号运算，负号在取到整数部分后单独补上。
+      // 右移会把负号一起丢掉，若整数部分为 0（也就是 |值| < 1），
+      // 负号就再没有可以搭车输出的地方，最后会输出一个与自身状态相反的正数。
+      BigNumberCopy(T, Num.FValue);
+      T.SetNegative(False);
+      T.ShiftRight(Num.FScale);
+      Result := T.ToDec;  // 先右移得到整数部分
+      if Neg then
+        Result := '-' + Result;
 
-        // 再把剩下的转换成小数
-        BigNumberCopy(T, Num.FValue);
-        BigNumberKeepLowBits(T, Num.FScale); // 只保留小数部分
-        if T.IsZero then  // 如果没小数部分，就直接返回了
-          Exit;
-
+      // 再把剩下的转换成小数
+      BigNumberCopy(T, Num.FValue);
+      T.SetNegative(False);
+      BigNumberKeepLowBits(T, Num.FScale); // 只保留小数部分
+      if not T.IsZero then  // 没小数部分的话只输出整数部分
+      begin
         S := FLocalBigNumberPool.Obtain;
         P10 := FLocalBigNumberPool.Obtain;
         S.SetZero;
@@ -3508,19 +3517,20 @@ begin
           if T.IsBitSet(I) then
             BigNumberAdd(S, S, P10);
         end;
-        if S.IsZero then
-          Exit;
 
-        D := S.ToDec; // 注意 ToDec 后长度可能不够 FScale 个，前头要补零
-        if Length(D) < Num.FScale then
-          D := StringOfChar('0', Num.FScale - Length(D)) + D;
-        Result := Result + '.' + D;
-        Result := TrimRightZeroDot(Result);
-      finally
-        FLocalBigNumberPool.Recycle(T);
-        FLocalBigNumberPool.Recycle(S);
-        FLocalBigNumberPool.Recycle(P10);
+        if not S.IsZero then
+        begin
+          D := S.ToDec; // 注意 ToDec 后长度可能不够 FScale 个，前头要补零
+          if Length(D) < Num.FScale then
+            D := StringOfChar('0', Num.FScale - Length(D)) + D;
+          Result := Result + '.' + D;
+          Result := TrimRightZeroDot(Result);
+        end;
       end;
+    finally
+      FLocalBigNumberPool.Recycle(T);
+      FLocalBigNumberPool.Recycle(S);
+      FLocalBigNumberPool.Recycle(P10);
     end;
   end;
 end;
@@ -3793,6 +3803,7 @@ begin
   if Num1.FValue.IsZero then
   begin
     BigNumberCopy(Res.FValue, Num2.FValue);
+    Res.FScale := Num2.FScale;
     Res.FValue.Negate;
     Result := True;
     Exit;
@@ -3800,6 +3811,7 @@ begin
   else if Num2.FValue.IsZero then
   begin
     BigNumberCopy(Res.FValue, Num1.FValue);
+    Res.FScale := Num1.FScale;
     Result := True;
     Exit;
   end
