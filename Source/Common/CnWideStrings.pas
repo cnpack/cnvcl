@@ -937,6 +937,9 @@ begin
     if (Bytes[0] = $FF) and (Bytes[1] = $FE) then
     begin
       Dec(Size, 2);
+      if (Size and 1) <> 0 then // ·ÀÖ¹ÆæÊý³¬½ç
+        Dec(Size);
+
       SetLength(S, Size div 2);
       if Size > 0 then
         Move(Bytes[2], S[1], Size);
@@ -948,6 +951,9 @@ begin
     if (Bytes[0] = $FE) and (Bytes[1] = $FF) then
     begin
       Dec(Size, 2);
+      if (Size and 1) <> 0 then // ·ÀÖ¹ÆæÊý³¬½ç
+        Dec(Size);
+
       SetLength(S, Size div 2);
       if Size > 0 then
       begin
@@ -994,6 +1000,9 @@ begin
       end;
     cfeUtf16LE:
       begin
+        if (Size and 1) <> 0 then // ·ÀÖ¹ÆæÊý³¬½ç
+          Dec(Size);
+
         SetLength(S, Size div 2);
         if Size > 0 then
           Move(Bytes[0], S[1], Size);

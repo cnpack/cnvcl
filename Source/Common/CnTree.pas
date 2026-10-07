@@ -92,6 +92,7 @@ type
   TCnLeaf = class(TPersistent)
   {* 树叶基类}
   private
+    FIsRoot: Boolean;
     FData: Integer;
     FText: string;
     FObj: TObject;
@@ -112,6 +113,7 @@ type
     function GetLevel: Integer;
     function GetSubTreeHeight: Integer; virtual;
 
+    function HasParent(AParent: TCnLeaf): Boolean;
     procedure AssignTo(Dest: TPersistent); override;
     procedure DoDepthFirstTravel(PreOrder: Boolean = True; Reverse: Boolean = False);
     procedure DoWidthFirstTravel(Reverse: Boolean = False);
@@ -409,6 +411,10 @@ function GetNextSiblingItem(Item: TTreeViewItem): TTreeViewItem;
 
 implementation
 
+resourcestring
+  SCnErrorRootCanNotDelete = 'Root Can NOT be Deleted.';
+  SCnErrorTreeRingNotAllow = 'Tree Leaf Ring NOT Allowed.';
+
 {$IFDEF ENABLE_UIINTERACT}
 {$IFDEF SUPPORT_FMX}
 
@@ -506,8 +512,10 @@ procedure TCnLeaf.Delete;
 begin
   if FParent <> nil then
     FParent.DeleteChild(Index)
+  else if FIsRoot then
+    raise ECnTreeException.Create(SCnErrorRootCanNotDelete)
   else
-    raise ECnTreeException.Create('Root can NOT be deleted.');
+    Free; // 无 Parent 的孤立叶子节点 Delete 时等同于释放自己
 end;
 
 function TCnLeaf.ExtractChild(ALeaf: TCnLeaf): TCnLeaf;
@@ -518,9 +526,9 @@ begin
   begin
     AIndex := ALeaf.Index;
     Result := ALeaf.Parent.Items[AIndex];
+    ALeaf.Parent.FList.Delete(AIndex);
     if Result <> nil then
       Result.FParent := nil;
-    ALeaf.Parent.FList.Delete(AIndex);
   end
   else
     Result := nil;
@@ -865,6 +873,9 @@ end;
 
 procedure TCnLeaf.SetItems(AIndex: Integer; const Value: TCnLeaf);
 begin
+  if (Value <> nil) and ((Value = Self) or HasParent(Value)) then
+    raise ECnTreeException.Create(SCnErrorTreeRingNotAllow);
+
   if (AIndex >= 0) and (AIndex < Count) then
   begin
     FList.Items[AIndex] := Value;
@@ -883,6 +894,26 @@ begin
   end
   else
     inherited;
+end;
+
+function TCnLeaf.HasParent(AParent: TCnLeaf): Boolean;
+var
+  L: TCnLeaf;
+begin
+  Result := False;
+  if AParent = nil then
+    Exit;
+
+  L := FParent;
+  while L <> nil do
+  begin
+    if AParent = L then
+    begin
+      Result := True;
+      Exit;
+    end;
+    L := L.Parent;
+  end;
 end;
 
 function TCnLeaf.GetAbsoluteIndexFromParent(IndirectParentLeaf: TCnLeaf): Integer;
@@ -915,6 +946,7 @@ begin
   if FLeafClass = nil then
     FLeafClass := DefaultLeafClass;
   FRoot := CreateLeaf(Self);
+  FRoot.FIsRoot := True;
 end;
 
 constructor TCnTree.Create(LeafClass: TCnLeafClass);
@@ -985,6 +1017,7 @@ begin
     FLeaves.Clear;
     // FRoot 已经由 Fleaves 释放，无须再次释放.
     FRoot := CreateLeaf(Self);
+    FRoot.FIsRoot := True;
   finally
     FBatchUpdating := False;
   end;
@@ -1147,9 +1180,17 @@ begin
 
     // 顺便判断根节点
     if FRoot = Leaf1 then
-      FRoot := Leaf2
+    begin
+      FRoot.FIsRoot := False;
+      FRoot := Leaf2;
+      FRoot.FIsRoot := True;
+    end
     else if FRoot = Leaf2 then
+    begin
+      FRoot.FIsRoot := False;
       FRoot := Leaf1;
+      FRoot.FIsRoot := True;
+    end;
   end;
 end;
 

@@ -799,9 +799,10 @@ begin
     Res := FLocalBigNumberPool.Obtain;
     try
       Res.SetInt64(Num2);
-      if not Num1.IsInt then
-        BigNumberMul(Res, Num1.Denominator, Res);
+      BigNumberMul(Res, Num1.Denominator, Res);
       Result := BigNumberCompare(Num1.Numerator, Res);
+      if Num1.Denominator.IsNegative then
+        Result := -Result;
     finally
       FLocalBigNumberPool.Recycle(Res);
     end;
@@ -1203,6 +1204,16 @@ begin
   if IsInt then
   begin
     Result := FNumerator.ToDec;
+    if Length(Result) > 0 then
+    begin
+      if FDenominator.IsNegOne then // 分母如是负一，则值要改符号
+      begin
+        if Result[1] <> '-' then
+          Result := '-' + Result
+        else
+          Delete(Result, 1, 1);
+      end;
+    end;
     Exit;
   end;
 
@@ -1219,6 +1230,9 @@ begin
 
     BigNumberDiv(Res, Remain, FNumerator, FDenominator);
     Result := Res.ToDec;
+    if IsNeg then
+      Result := '-' + Result;
+
     if Remain.IsZero or (Digits <= 0) then
       Exit;
 
@@ -1253,6 +1267,17 @@ function TCnBigRational.ToString: string;
 begin
   if FDenominator.IsOne then
     Result := FNumerator.ToDec
+  else if FDenominator.IsNegOne then
+  begin
+    Result := FNumerator.ToDec;
+    if Length(Result) > 0 then
+    begin
+      if Result[1] <> '-' then
+        Result := '-' + Result
+      else
+        Delete(Result, 1, 1);
+    end;
+  end
   else
     Result := FNumerator.ToDec + ' / ' + FDenominator.ToDec;
 end;

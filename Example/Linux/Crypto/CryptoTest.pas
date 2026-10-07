@@ -234,6 +234,7 @@ function TestBigRationalNegReciprocal: Boolean;
 function TestBigRationalSetString: Boolean;
 function TestBigRationalLoadSaveMem: Boolean;
 function TestBigRationalListLoadSaveMem: Boolean;
+function TestBigRationalCompareNegDenominator: Boolean;
 
 // ================================ Bits =======================================
 
@@ -2039,6 +2040,7 @@ begin
   MyAssert(TestBigRationalSetString, 'TestBigRationalSetString');
   MyAssert(TestBigRationalLoadSaveMem, 'TestBigRationalLoadSaveMem');
   MyAssert(TestBigRationalListLoadSaveMem, 'TestBigRationalListLoadSaveMem');
+  MyAssert(TestBigRationalCompareNegDenominator, 'TestBigRationalCompareNegDenominator');
 
 // ================================ Bits =======================================
 
@@ -6964,6 +6966,87 @@ begin
   finally
     Restored.Free;
     L.Free;
+  end;
+end;
+
+function TestBigRationalCompareNegDenominator: Boolean;
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    { BigRationalCompare(Num1: TCnBigRational; Num2: Int64) 在交叉相乘分支里用
+      R.Numerator 与 Num2 * R.Denominator 比大小。分母为负时不等号方向会翻转，
+      返回的符号与真实值正好相反。SetValue 接受负分母且不做归一化（只有 Reduce
+      才把分母符号归正），所以这种状态可以直接构造出来。
+
+      这里只断言 BigRationalCompare 的可观测返回值，不断言 ToString、
+      Denominator 等内部表示，因此无论修复方式是「修正比较函数」还是
+      「在 SetValue 里把分母归正」，本用例都能通过。 }
+
+    // ------- 对照组：分母为正时必须始终正确，用于确认修复没有引入回归 -------
+    R.SetValue('1', '2');                            // 真实值 1/2
+    if BigRationalCompare(R, 0) <> 1 then Exit;
+    if BigRationalCompare(R, 1) <> -1 then Exit;
+    if BigRationalCompare(R, -1) <> 1 then Exit;
+    if BigRationalCompare(R, 2) <> -1 then Exit;
+    if BigRationalCompare(R, -2) <> 1 then Exit;
+
+    R.SetValue('-3', '4');                           // 真实值 -3/4
+    if BigRationalCompare(R, 0) <> -1 then Exit;
+    if BigRationalCompare(R, 1) <> -1 then Exit;
+    if BigRationalCompare(R, -1) <> 1 then Exit;
+    if BigRationalCompare(R, 2) <> -1 then Exit;
+    if BigRationalCompare(R, -2) <> 1 then Exit;
+
+    R.SetValue('2', '2');                            // 真实值 1，相等时必须返回 0
+    if BigRationalCompare(R, 1) <> 0 then Exit;
+    if BigRationalCompare(R, 0) <> 1 then Exit;
+
+    // ------- 负分母、分子为正：真实值为负 -------
+    R.SetValue('1', '-2');                           // 真实值 -1/2
+    if BigRationalCompare(R, 0) <> -1 then Exit;     // 未修复时返回  1
+    if BigRationalCompare(R, -1) <> 1 then Exit;     // 未修复时返回 -1
+    if BigRationalCompare(R, -2) <> 1 then Exit;     // 未修复时返回 -1
+    if BigRationalCompare(R, 1) <> -1 then Exit;
+    if BigRationalCompare(R, 2) <> -1 then Exit;
+
+    R.SetValue('3', '-4');                           // 真实值 -3/4
+    if BigRationalCompare(R, 0) <> -1 then Exit;     // 未修复时返回  1
+    if BigRationalCompare(R, -1) <> 1 then Exit;     // 未修复时返回 -1
+
+    // ------- 负分母、分子为负：真实值为正 -------
+    R.SetValue('-1', '-2');                          // 真实值 1/2
+    if BigRationalCompare(R, 0) <> 1 then Exit;      // 未修复时返回 -1
+    if BigRationalCompare(R, 1) <> -1 then Exit;     // 未修复时返回  1
+    if BigRationalCompare(R, 2) <> -1 then Exit;     // 未修复时返回  1
+
+    R.SetValue('-3', '-4');                          // 真实值 3/4
+    if BigRationalCompare(R, 0) <> 1 then Exit;      // 未修复时返回 -1
+    if BigRationalCompare(R, 1) <> -1 then Exit;     // 未修复时返回  1
+
+    // ------- 负分母且分母为 -1：IsInt 为真会跳过交叉相乘，与 0 比较时出错 -------
+    R.SetValue('5', '-1');                           // 真实值 -5
+    if BigRationalCompare(R, 0) <> -1 then Exit;     // 未修复时返回  1
+    if BigRationalCompare(R, -1) <> -1 then Exit;    // 未修复时返回  1
+    if BigRationalCompare(R, 1) <> -1 then Exit;
+    if BigRationalCompare(R, 2) <> -1 then Exit;
+
+    // ------- 负分母整数的相等判断同样被破坏 -------
+    R.SetValue('-1', '-1');                          // 真实值 1
+    if BigRationalCompare(R, 1) <> 0 then Exit;      // 未修复时返回 -1
+    if BigRationalCompare(R, 0) <> 1 then Exit;      // 未修复时返回 -1
+    if BigRationalCompare(R, -1) <> 1 then Exit;
+
+    // ------- 传递性：未修复时会出现 0 < -1/2 < 1 这种矛盾 -------
+    R.SetValue('1', '-2');                           // 真实值 -1/2
+    if BigRationalCompare(R, 0) >= 0 then Exit;
+    if BigRationalCompare(R, -1) <= 0 then Exit;
+
+    Result := True;
+  finally
+    R.Free;
   end;
 end;
 
