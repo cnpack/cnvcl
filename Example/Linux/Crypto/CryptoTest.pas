@@ -54,7 +54,7 @@ uses
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
   CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom,
-  CnOTP, CnStrings, CnHashMap, CnSEA;
+  CnOTP, CnStrings, CnHashMap, CnFloat, CnSEA;
 
 // 2009 ~ XE3 有 Local Const Too Many 的 Bug
 {$IFDEF VER200}
@@ -101,6 +101,10 @@ function TestRandomFillBytes: Boolean;
 function TestRandomNumbersRange: Boolean;
 function TestRandomShuffle: Boolean;
 function TestRandomDistribution: Boolean;
+
+// ================================ Float =======================================
+
+function TestExtendedToUInt64: Boolean;
 
 // ============================== Strings ======================================
 
@@ -1876,17 +1880,18 @@ begin
   {$ENDIF}
 {$ENDIF}
 
-  // 顺便打印指针长度
+  // 顺便打印指针长度与扩展精度浮点数长度
   MyWriteln('*** Pointer Size: ' + IntToStr(SizeOf(Pointer)));
+  MyWriteln('*** Extended Size: ' + IntToStr(SizeOf(Extended)));
 
 {$IFDEF CPUARM}
   MyWriteln('*** ARM ***');
 {$ENDIF}
 
   if CurrentByteOrderIsBigEndian then
-    MyWriteln('=== Big Endian ===');
+    MyWriteln('*** Big Endian ***');
   if CurrentByteOrderIsLittleEndian then
-    MyWriteln('=== Little Endian ===');
+    MyWriteln('*** Little Endian ***');
 
   CryptoTestOKCount := 0;
   CryptoTestFailCount := 0;
@@ -1914,6 +1919,10 @@ begin
   MyAssert(TestRandomNumbersRange, 'TestRandomNumbersRange');
   MyAssert(TestRandomShuffle, 'TestRandomShuffle');
   MyAssert(TestRandomDistribution, 'TestRandomDistribution');
+
+// ================================ Float =======================================
+
+  MyAssert(TestExtendedToUInt64, 'TestExtendedToUInt64');
 
 // ============================== Strings ======================================
 
@@ -3017,6 +3026,119 @@ begin
   // 如果算出的卡方值小于这个临界值左右（这里干脆直接用 30），
   // 就说明随机分布基本均匀（无法拒绝该分布均匀的假设）。
   Result := (ChiSquare < 30.0);
+end;
+
+// ================================ Float =======================================
+
+function TestExtendedToUInt64: Boolean;
+var
+  Back: Extended;
+  U: TUInt64;
+begin
+  Result := False;
+  { ExtendedToUInt64 / DoubleToUInt64 / SingleToUInt64 都是普通 Trunc 浮点数的
+    包装，内部走同一个 UTrunc。
+
+    UTrunc 的做法是 ExtractFloatExtended 取出符号、真实指数 E 和尾数 M，再算
+    T := L - E，把小数点右移 E 位，结果就是 M shr T。L 是「尾数小数点左边能有的
+    位数」：Extended 的尾数 64 位且最高位显式存储，所以 L = 63；Double 的尾数
+    53 位、最高位是隐含的，所以 L = 52。
+
+    坑就在 L 以前被写死成 63。在 SizeOf(Extended) = 8 的平台上（Extended 就是
+    Double），L 应该是 52。写死 63 时右移位数多了 11 位，结果整体偏小 2048 倍：
+    ExtendedToUInt64(1) 会得到 0，ExtendedToUInt64(2^32) 会得到 2097152。
+
+    下面只用 ExtendedToUInt64 这个公开入口验证，不碰 UTrunc 本身。 }
+
+  // -------- 基准：小值与取整语义 --------
+  if ExtendedToUInt64(0) <> 0 then Exit;
+  if ExtendedToUInt64(0.9) <> 0 then Exit;
+  if ExtendedToUInt64(1) <> 1 then Exit;
+  if ExtendedToUInt64(1.9) <> 1 then Exit;
+  if ExtendedToUInt64(2) <> 2 then Exit;
+  if ExtendedToUInt64(0.5) <> 0 then Exit;
+  if ExtendedToUInt64(0.999999) <> 0 then Exit;
+
+  // -------- 2 的整数次幂 --------
+  if ExtendedToUInt64(131072) <> 131072 then Exit;                    { 2^17 }
+  if ExtendedToUInt64(4294967296.0) <> 4294967296 then Exit;          { 2^32 }
+  if ExtendedToUInt64(1099511627776.0) <> 1099511627776 then Exit;    { 2^40 }
+
+  if SizeOf(Extended) > CN_EXTENDED_SIZE_8 then
+  begin
+    if ExtendedToUInt64(4611686018427387904.0) <> 4611686018427387904 then Exit;  { 2^62 }
+
+    // -------- 尾数最高位为 1 的情形 --------
+    // Extended 的尾数最高位是显式的整数位，E = 63 时 T = 0，M 整体就是结果。
+    // 修复前 L 写死 63 时，这一组在 Double 平台上会整体右移 11 位而全错。
+    if UInt64Compare(ExtendedToUInt64(9223372036854775808.0), $8000000000000000) <> 0 then Exit;
+    if UInt64Compare(ExtendedToUInt64(9223372036854775809.0), $8000000000000001) <> 0 then Exit;
+    if UInt64Compare(ExtendedToUInt64(18446744073709549568.0), $FFFFFFFFFFFFF800) <> 0 then Exit;
+  end;
+
+  // -------- 回环校验：转成 Extended 再转回来必须不变 --------
+  // 这条不依赖硬编码期望值，能直接盯住 L 取错导致的整体偏移。
+  // 这里必须直接比 Extended 本身，不能写 Trunc(Back)：Trunc 走 Int64 通路，
+  // 结果超出 Int64 时 RTL 会抛 EInvalidOp。
+  U := ExtendedToUInt64(4294967296.0);
+  Back := UInt64ToExtended(U);
+  if Back <> 4294967296.0 then Exit;
+
+  if SizeOf(Extended) > CN_EXTENDED_SIZE_8 then
+  begin
+    U := ExtendedToUInt64(18446744073709549568.0);
+    Back := UInt64ToExtended(U);
+    if Back <> 18446744073709549568.0 then Exit;
+  end;
+
+  // 1 必须真的是 1，这条最能暴露「L 多算了 11 位」的错误
+  if ExtendedToUInt64(1) <> 1 then Exit;
+
+  // -------- 超出 UInt64 必须报错，不能静默回绕 --------
+  try
+    U := ExtendedToUInt64(18446744073709551616.0);   { 2^64 }
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  // -------- 有效负数必须报错 --------
+  try
+    U := ExtendedToUInt64(-1);
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  // 负 0 的尾数为 0，不算「有效负数」，静默返回 0
+  if ExtendedToUInt64(-0.0) <> 0 then Exit;
+
+  // 而 -0.5 这类尾数非 0 的负数一律抛 ERangeError，
+  // 不会像 RTL 的 Trunc 那样朝 0 截断成 0 —— 这是 UTrunc 刻意的契约，
+  // 因为它的设计目的是把浮点当无符号整数用，负数一律视为越界。
+  try
+    U := ExtendedToUInt64(-0.5);
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  Result := True;
 end;
 
 // ============================== Strings ======================================

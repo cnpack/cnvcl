@@ -417,7 +417,7 @@ function ExtendedToUInt64(F: Extended): TUInt64;
 {* 把 Extended 赋值给用 Int64 有符号整型模拟的 64 位无符号整型，仨函数实现相同。
 
    参数：
-     F: Extended                          - 待赋值的双精度浮点数
+     F: Extended                          - 待赋值的扩展精度浮点数
 
    返回值：TUInt64                        - 返回的 64 位无符号整型值
 }
@@ -1246,7 +1246,8 @@ begin
   SignNegative := (PCardinal(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
   Exponent := ((PCardinal(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - CN_EXPONENT_OFFSET_SINGLE;
   Mantissa := PCardinal(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
-  Mantissa := Mantissa or (1 shl 23); // 高位再加个 1
+  if Exponent > -CN_EXPONENT_OFFSET_SINGLE then
+    Mantissa := Mantissa or (1 shl CN_SINGLE_SIGNIFICAND_BITLENGTH); // 规格化，高位再加个 1
 end;
 
 procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
@@ -1255,7 +1256,8 @@ begin
   SignNegative := (PUInt64(@Value)^ and CN_SIGN_DOUBLE_MASK) <> 0;
   Exponent := ((PUInt64(@Value)^ and CN_EXPONENT_DOUBLE_MASK) shr 52) - CN_EXPONENT_OFFSET_DOUBLE;
   Mantissa := PUInt64(@Value)^ and CN_SIGNIFICAND_DOUBLE_MASK;
-  Mantissa := Mantissa or (TUInt64(1) shl 52); // 高位再加个 1
+  if Exponent > -CN_EXPONENT_OFFSET_DOUBLE then
+    Mantissa := Mantissa or (TUInt64(1) shl CN_DOUBLE_SIGNIFICAND_BITLENGTH); // 规格化，高位再加个 1
 end;
 
 procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
