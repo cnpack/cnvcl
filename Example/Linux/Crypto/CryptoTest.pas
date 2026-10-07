@@ -312,6 +312,8 @@ function TestBigDecimalHyperbolicCos: Boolean;
 function TestBigDecimalSetDecValidation: Boolean;
 function TestBigDecimalLoadSaveMem: Boolean;
 function TestBigDecimalListLoadSaveMem: Boolean;
+function TestBigDecimalRoundToDigitsNoop: Boolean;
+function TestBigBinaryRoundToDigitsNoop: Boolean;
 function TestBigComplexDecimalEulerExp: Boolean;
 function TestBigComplexDecimalLn: Boolean;
 function TestBigComplexDecimalSin: Boolean;
@@ -324,6 +326,7 @@ function TestXavierGourdonEuler: Boolean;
 
 function TestBigBinaryLoadSaveMem: Boolean;
 function TestBigBinaryListLoadSaveMem: Boolean;
+function TestBigBinaryToStringNegative: Boolean;
 
 // ================================ QRCode =====================================
 
@@ -2118,6 +2121,8 @@ begin
   MyAssert(TestBigDecimalSetDecValidation, 'TestBigDecimalSetDecValidation');
   MyAssert(TestBigDecimalLoadSaveMem, 'TestBigDecimalLoadSaveMem');
   MyAssert(TestBigDecimalListLoadSaveMem, 'TestBigDecimalListLoadSaveMem');
+  MyAssert(TestBigDecimalRoundToDigitsNoop, 'TestBigDecimalRoundToDigitsNoop');
+  MyAssert(TestBigBinaryRoundToDigitsNoop, 'TestBigBinaryRoundToDigitsNoop');
   MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
   MyAssert(TestBigComplexDecimalLn, 'TestBigComplexDecimalLn');
   MyAssert(TestBigComplexDecimalSin, 'TestBigComplexDecimalSin');
@@ -2130,6 +2135,7 @@ begin
 
   MyAssert(TestBigBinaryLoadSaveMem, 'TestBigBinaryLoadSaveMem');
   MyAssert(TestBigBinaryListLoadSaveMem, 'TestBigBinaryListLoadSaveMem');
+  MyAssert(TestBigBinaryToStringNegative, 'TestBigBinaryToStringNegative');
 
 // ================================ QRCode =====================================
 
@@ -9301,6 +9307,172 @@ begin
   Result := Pos(E_STR, S) = 1;
 end;
 
+
+function TestBigDecimalRoundToDigitsNoop: Boolean;
+var
+  A, R: TCnBigDecimal;
+begin
+  Result := False;
+  A := TCnBigDecimal.Create;
+  R := TCnBigDecimal.Create;
+  try
+    { BigDecimalRoundToDigits 只在 DS = Num.FScale - Digits > 0 时才写 Res 并返回
+      True，DS <= 0 时既不碰 Res 又返回 False，也就是「值其实已经满足要求」被
+      报成了失败。
+
+      这个返回值会直接透出去：BigDecimalMul / BigDecimalDiv 内部就是这么调用的，
+      Result := BigDecimalRoundToDigits(Res, Res, MulPrecision, drTowardsZero);
+      于是 Mul(1.5, 1, 2) 这种「结果本来就合格」的乘法会返回 FALSE。
+
+      对照 BigDecimalChangeToScale：它 DS <= 0 时有 else 分支把 Num 拷进 Res 并
+      返回 True。同一个文件里两个姊妹函数对同一情形给出相反约定。
+
+      下面断言的是「无论如何 Res 都必须拿到值」，不关心具体应该返回 True 还是
+      False —— 但 Res 没被写这一条是明确的调用契约问题。 }
+
+    // -------- DS = 0：请求位数恰好等于现有位数 --------
+    A.SetDec('1.5');
+    R.SetDec('999');                        // 给个可辨识的初值
+    if not BigDecimalRoundToDigits(R, A, 1, drRound) then Exit;
+    if R.ToString <> '1.5' then Exit;      // 未修复时 R 仍是 999
+
+    A.SetDec('-1.5');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 1, drRound) then Exit;
+    if R.ToString <> '-1.5' then Exit;     // 未修复时 R 仍是 999
+
+    A.SetDec('12');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 0, drRound) then Exit;
+    if R.ToString <> '12' then Exit;
+
+    A.SetDec('-12');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 0, drRound) then Exit;
+    if R.ToString <> '-12' then Exit;
+
+    // -------- DS < 0：请求的位数比现有的还多，无法减少 --------
+    A.SetDec('1.5');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 3, drRound) then Exit;
+    if R.ToString <> '1.5' then Exit;      // 未修复时 R 仍是 999
+
+    A.SetDec('-1.5');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 3, drRound) then Exit;
+    if R.ToString <> '-1.5' then Exit;
+
+    A.SetDec('0.25');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 8, drRound) then Exit;
+    if R.ToString <> '0.25' then Exit;
+
+    // -------- 对照组：DS > 0 真正需要舍入，现在就是对的 --------
+    A.SetDec('1.23456');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 3, drRound) then Exit;
+    if R.ToString <> '1.235' then Exit;
+
+    A.SetDec('-1.23456');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, 3, drRound) then Exit;
+    if R.ToString <> '-1.235' then Exit;
+
+    // Res 与 Num 同对象是文档允许的用法，Mul/Div 内部就是这么调的
+    A.SetDec('1.23456');
+    if not BigDecimalRoundToDigits(A, A, 3, drRound) then Exit;
+    if A.ToString <> '1.235' then Exit;
+
+    A.SetDec('-1.23456');
+    if not BigDecimalRoundToDigits(A, A, 3, drRound) then Exit;
+    if A.ToString <> '-1.235' then Exit;
+
+    // Digits 为负表示舍入到整十次方
+    A.SetDec('1234');
+    R.SetDec('999');
+    if not BigDecimalRoundToDigits(R, A, -2, drRound) then Exit;
+    if R.ToString <> '1200' then Exit;
+
+    // -------- 上层 Mul / Div 的返回值不该被这条拖累 --------
+    A.SetDec('1.5');
+    R.SetDec('999');
+    if not BigDecimalMul(R, A, CnBigDecimalOne, 2) then Exit;   // 结果本来就合格
+    if R.ToString <> '1.5' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigBinaryRoundToDigitsNoop: Boolean;
+var
+  A, R: TCnBigBinary;
+begin
+  Result := False;
+  A := TCnBigBinary.Create;
+  R := TCnBigBinary.Create;
+  try
+    { BigBinaryRoundToDigits 与 BigDecimalRoundToDigits 是同一个毛病：
+      DS <= 0 时不写 Res 且返回 False。同文件里 BigBinaryChangeToScale 有
+      else 分支兜底，这里没有。 }
+
+    // -------- DS = 0 --------
+    A.SetDec('1.5');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 1, drRound) then Exit;
+    if R.ToString <> '1.5' then Exit;      // 未修复时 R 仍是 999
+
+    A.SetDec('-1.5');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 1, drRound) then Exit;
+    if R.ToString <> '-1.5' then Exit;
+
+    A.SetDec('3');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 0, drRound) then Exit;
+    if R.ToString <> '3' then Exit;
+
+    // -------- DS < 0 --------
+    A.SetDec('1.5');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 3, drRound) then Exit;
+    if R.ToString <> '1.5' then Exit;
+
+    A.SetDec('-1.5');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 3, drRound) then Exit;
+    if R.ToString <> '-1.5' then Exit;
+
+    A.SetDec('0.25');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 8, drRound) then Exit;
+    if R.ToString <> '0.25' then Exit;
+
+    // -------- 对照组：DS > 0 需要舍入，现在是好的 --------
+    A.SetDec('1.5');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 0, drRound) then Exit;
+    if R.ToString <> '2' then Exit;
+
+    A.SetDec('-1.5');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 0, drRound) then Exit;
+    if R.ToString <> '-2' then Exit;
+
+    A.SetDec('0.375');
+    R.SetDec('999');
+    if not BigBinaryRoundToDigits(R, A, 1, drRound) then Exit;
+    if R.ToString <> '0.5' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    A.Free;
+  end;
+end;
+
 // ============================== BigBinary ====================================
 
 function TestBigBinaryLoadSaveMem: Boolean;
@@ -9388,6 +9560,108 @@ begin
   finally
     Restored.Free;
     L.Free;
+  end;
+end;
+
+
+function TestBigBinaryToStringNegative: Boolean;
+var
+  B: TCnBigBinary;
+  PosStr: string;
+  I: Integer;
+const
+  { 这些值在二进制里都能精确表示，用来做「负数输出 = '-' + 正数输出」的对照 }
+  CASES: array[0..8] of string = ('0.25', '0.5', '0.125', '0.0625', '0.03125',
+    '0.1', '0.001', '0.9999', '0.0009765625');
+begin
+  Result := False;
+  B := TCnBigBinary.Create;
+  try
+    { BigBinaryToString 在 FScale > 0 的分支里，先用 ShiftRight 右移有效数字取出
+      整数部分，再用 KeepLowBits 取小数部分。右移会把负数的负号一起丢掉：当整数
+      部分非零时负号还能搭着整数部分一起输出，一旦整数部分为 0（即 |值| < 1），
+      负号就没有任何地方可以保留，于是输出一个与自身状态相反的正数。
+
+      IsNegative 和内部状态始终是正确的，错的只有输出。触发条件不是「FScale > 0」，
+      而是「FScale > 0 且整数部分为 0」—— -2.5 / -10.75 这类整数部分非零的负数
+      本来就是对的。
+
+      0.1、0.001 这类二进制无法精确表示的输入，只用「负数输出比正数输出多一个负号」
+      这个不变式来断言，不去钉死二进制展开的位数，以免把另一个独立问题牵扯进来。 }
+
+    // -------- 对照组：整数部分非零或无小数时必须始终正确，防止修复引入回归 --------
+    B.SetDec('0');
+    if B.ToString <> '0' then Exit;
+
+    B.SetDec('-2');
+    if B.ToString <> '-2' then Exit;
+
+    B.SetDec('-150');
+    if B.ToString <> '-150' then Exit;
+
+    B.SetDec('-1.0');                            // 整数部分非零的纯小数
+    if B.ToString <> '-1' then Exit;
+
+    B.SetDec('-2.5');
+    if B.ToString <> '-2.5' then Exit;
+
+    B.SetDec('-10.75');
+    if B.ToString <> '-10.75' then Exit;
+
+    B.SetDec('0.25');                            // 正的小数本来就是对的
+    if B.ToString <> '0.25' then Exit;
+
+    // -------- A-06：|值| < 1 的负数丢失负号 --------
+    B.SetDec('-0.25');
+    if B.ToString <> '-0.25' then Exit;          // 未修复时为 0.25
+
+    B.SetDec('-0.5');
+    if B.ToString <> '-0.5' then Exit;           // 未修复时为 0.5
+
+    B.SetDec('-0.125');
+    if B.ToString <> '-0.125' then Exit;         // 未修复时为 0.125
+
+    B.SetDec('-0.0625');
+    if B.ToString <> '-0.0625' then Exit;        // 未修复时为 0.0625
+
+    B.SetDec('-0.03125');
+    if B.ToString <> '-0.03125' then Exit;       // 未修复时为 0.03125
+
+    // 导出的独立函数同样要正确，ToString 只是它的包装
+    B.SetDec('-0.25');
+    if BigBinaryToString(B) <> '-0.25' then Exit; // 未修复时为 0.25
+
+    // -------- 负负号不变式：ToString 的符号必须与 IsNegative 一致 --------
+    for I := Low(CASES) to High(CASES) do
+    begin
+      B.SetDec(CASES[I]);
+      PosStr := B.ToString;
+      B.SetDec('-' + CASES[I]);
+      if not B.IsNegative then Exit;
+      if Copy(B.ToString, 1, 1) <> '-' then Exit;      // 未修复时没有负号
+      if B.ToString <> '-' + PosStr then Exit;
+    end;
+
+    // -------- 运算之后依然必须保留负号 --------
+    B.SetDec('-1');
+    B.DivWord(2);                                // -0.5
+    if B.ToString <> '-0.5' then Exit;          // 未修复时为 0.5
+
+    B.SetDec('-1');
+    B.DivWord(1024);                             // -0.0009765625
+    if B.ToString <> '-0.0009765625' then Exit; // 未修复时为 0.0009765625
+
+    B.SetDec('-3');
+    B.DivWord(2);                                // -1.5，整数部分非零，本来就对
+    if B.ToString <> '-1.5' then Exit;
+
+    B.SetDec('-7');
+    B.AddWord(1);                                // -6，仍是整数
+    if B.ToString <> '-6' then Exit;
+
+    Result := True;
+  finally
+    B.Free;
   end;
 end;
 

@@ -2679,7 +2679,7 @@ begin
 end;
 
 function BigDecimalRoundToDigits(Res: TCnBigDecimal; Num: TCnBigDecimal;
-  Digits: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
+  Digits: Integer; RoundMode: TCnBigRoundMode): Boolean;
 var
   DS: Integer;
   D, Q, R: TCnBigNumber;
@@ -2718,6 +2718,11 @@ begin
       FLocalBigNumberPool.Recycle(Q);
       FLocalBigNumberPool.Recycle(R);
     end;
+  end
+  else
+  begin
+    BigDecimalCopy(Res, Num);
+    Result := True;
   end;
 end;
 
@@ -3401,7 +3406,7 @@ begin
 
   ExtractFloatSingle(Value, N, E, S);
   // 把 1. 开头的有效数字当成整数，E 需要减 23
-  Result := InternalBigBinarySetFloat(N, E - 23, TUInt64(S), Res);
+  Result := InternalBigBinarySetFloat(N, E - CN_SINGLE_SIGNIFICAND_BITLENGTH, TUInt64(S), Res);
 end;
 
 function BigBinarySetDouble(Value: Double; Res: TCnBigBinary): Boolean;
@@ -3423,13 +3428,13 @@ begin
 
   ExtractFloatDouble(Value, N, E, S);
   // 把 1. 开头的有效数字当成整数，E 需要减 52
-  Result := InternalBigBinarySetFloat(N, E - 52, S, Res);
+  Result := InternalBigBinarySetFloat(N, E - CN_DOUBLE_SIGNIFICAND_BITLENGTH, S, Res);
 end;
 
 function BigBinarySetExtended(Value: Extended; Res: TCnBigBinary): Boolean;
 var
   N: Boolean;
-  E: Integer;
+  E, L: Integer;
   S: TUInt64;
 begin
   if ExtendedIsInfinite(Value) or ExtendedIsNan(Value) then
@@ -3443,9 +3448,14 @@ begin
     Exit;
   end;
 
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  else
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+
   ExtractFloatExtended(Value, N, E, S);
-  // 把 1. 开头的有效数字当成整数，E 需要减 63
-  Result := InternalBigBinarySetFloat(N, E - 63, S, Res);
+  // 把 1. 开头的有效数字当成整数，E 需要减去 Extendded 类型的有效数字长度
+  Result := InternalBigBinarySetFloat(N, E - L, S, Res);
 end;
 
 function BigBinarySetBigNumber(Num: TCnBigNumber; Res: TCnBigBinary): Boolean;
@@ -3686,19 +3696,30 @@ end;
 function BigBinaryToExtended(Num: TCnBigBinary): Extended;
 var
   T: TCnBigBinary;
-  E: Integer;
+  E, L: Integer;
   M: TUInt64;
 begin
+  if Num.Value.IsZero then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  else
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+
   T := FLocalBigBinaryPool.Obtain;
   try
     BigBinaryCopy(T, Num);
-    InternalBigBinaryChangeToBitsCount(T, CN_EXTENDED_SIGNIFICAND_BITLENGTH + 1);
+    InternalBigBinaryChangeToBitsCount(T, L + 1);
     // 无需清除最高位的 1
 
     M := BigNumberGetUInt64UsingInt64(T.FValue);
     E := -T.FScale;
 
-    CombineFloatExtended(Num.IsNegative, E + CN_EXTENDED_SIGNIFICAND_BITLENGTH, M, Result);
+    CombineFloatExtended(Num.IsNegative, E + L, M, Result);
   finally
     FLocalBigBinaryPool.Recycle(T);
   end;
@@ -3986,7 +4007,7 @@ begin
 end;
 
 function BigBinaryChangeToScale(Res: TCnBigBinary; Num: TCnBigBinary;
-  Scale: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
+  Scale: Integer; RoundMode: TCnBigRoundMode): Boolean;
 var
   DS: Integer;
   B, Neg: Boolean;
@@ -4022,7 +4043,7 @@ begin
 end;
 
 function BigBinaryRoundToDigits(Res: TCnBigBinary; Num: TCnBigBinary;
-  Digits: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
+  Digits: Integer; RoundMode: TCnBigRoundMode): Boolean;
 var
   DS: Integer;
   B, Neg: Boolean;
@@ -4047,6 +4068,11 @@ begin
 
     if Res <> Num then           // 如果 Num 是独立的，这里要还原其 Neg
       Num.FValue.SetNegative(Neg);
+    Result := True;
+  end
+  else
+  begin
+    BigBinaryCopy(Res, Num);
     Result := True;
   end;
 end;
@@ -4476,16 +4502,16 @@ begin
 
   // 至少得放得下表示 Count 的 4 字节头部
   if Size <= 0 then
-    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+    raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
   if Size < SizeOf(Integer) then
-    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+    raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
 
   P4 := PInteger(Mem);
   C := P4^;
   if C < 0 then
-    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+    raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
   if C > (Size - SizeOf(Integer)) div MinItemSize then
-    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+    raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
 
   // 整体重建：先清掉原有内容
   Clear;
@@ -4498,13 +4524,13 @@ begin
     for I := 0 to C - 1 do
     begin
       if Result > Size - MinItemSize then
-        raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+        raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
       BN := TCnBigBinary.Create;
       try
         // 把剩余可用长度交给单项 LoadFromMem 做边界检查
         L := BN.LoadFromMem(P1, Size - Result);
         if (L <= 0) or (L > Size - Result) then  // 单项要么抛异常要么返回正数，<=0 视为异常
-          raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
+          raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
 
         Add(BN);
       except
