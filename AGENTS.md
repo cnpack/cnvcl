@@ -145,7 +145,7 @@ cnvcl/
 
 | 文件 | 功能说明 |
 |------|----------|
-| `CnAES.pas` | AES 对称加密单元。支持 AES-128/192/256 的 ECB/CBC/CTR/GCM 等模式。 |
+| `CnAES.pas` | AES 对称加密单元。支持 AES-128/192/256 的 ECB/CBC/CTR/GCM 等模式，注意 CCM/GCM 模式的实现在 CnAEAD.pas 中。 |
 | `CnDES.pas` | DES/3DES 对称加密单元。支持 DES 和 Triple DES 的 ECB/CBC 模式。 |
 | `CnSM4.pas` | SM4 国密对称加密单元。实现 GB/T 32907-2016 规定的 SM4 分组密码算法。 |
 | `CnRC4.pas` | RC4 流密码单元。 |
