@@ -1086,7 +1086,12 @@ begin
   begin
     Sl := TStringList.Create;
     try
-      Sl.LoadFromStream(Stream);
+      try
+        Sl.LoadFromStream(Stream);
+      except
+        Exit;  // 编码混乱导致异常则捕捉并返回错误
+      end;
+
       if Sl.Count > 2 then
       begin
         HeadIndex := -1;
@@ -1107,7 +1112,6 @@ begin
             Sl.Delete(0);
 
         // 找到头了，现在找尾巴
-
         TailIndex := -1;
         for I := 0 to Sl.Count - 1 do
         begin
