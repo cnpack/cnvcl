@@ -21583,7 +21583,6 @@ begin
   // 预检对 2-Wieferich 素数平方 N = 1093^2 放行，而对 N = p^2 有
   // Jacobi(D, N) = Jacobi(D, p)^2 恒为 0 或 1，永不为 -1。
   // 期望（正确实现）：返回 False（合数），不得挂死。
-  // 注意：未修复版本运行此用例将死循环，请定义 TEST_BPSW_DOS_LOOP 单独手工验证。
   Result := not CnInt64BPSWIsPrime(1194649);
 end;
 
