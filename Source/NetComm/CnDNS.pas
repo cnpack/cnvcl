@@ -733,11 +733,11 @@ var
         PB := PByte(PAnsiChar(@H^.RData[0]));
         TxtEnd := PB;
         Inc(TxtEnd, Resource.RDLength);
-        while NativeUInt(PB) < NativeUInt(TxtEnd) do
+        while TCnNativeUInt(PB) < TCnNativeUInt(TxtEnd) do
         begin
           Len := PB^; // 本段长度前缀
           Inc(PB);
-          if NativeUInt(PB) + Len > NativeUInt(TxtEnd) then
+          if TCnNativeUInt(PB) + Len > TCnNativeUInt(TxtEnd) then
             raise ECnDNSException.Create(SCnDNSParseStringLengthOutOfBounds);
 
           SetString(ASeg, PAnsiChar(PB), Len);
