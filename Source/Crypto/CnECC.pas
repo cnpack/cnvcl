@@ -2282,6 +2282,16 @@ function CnInt64PolynomialEccPointsEqual(P1: TCnInt64PolynomialEccPoint;
 
 // ============================= 其他辅助函数 ==================================
 
+function CheckInt64EccPublicKey(Ecc: TCnInt64Ecc; var PublicKey: TCnInt64PublicKey): Boolean;
+{* 检验给定 Int64 曲线的 PublicKey 是否合法，包括不能是无穷远点，必须在曲线上，阶得是椭圆曲线的阶的子群。
+
+   参数：
+     Ecc: TCnEcc                          - 用于校验的椭圆曲线实例
+     var PublicKey: TCnInt64PublicKey     - 待校验的椭圆曲线公钥
+
+   返回值：Boolean                        - 返回校验是否成功
+}
+
 function CheckEccPublicKey(Ecc: TCnEcc; PublicKey: TCnEccPublicKey): Boolean;
 {* 检验给定曲线的 PublicKey 是否合法，包括不能是无穷远点，必须在曲线上，阶得是椭圆曲线的阶的子群。
 
@@ -2479,8 +2489,8 @@ uses
 
 resourcestring
   SCnErrorEccCanNotCalucateAffine = 'Can NOT Calucate Affine %d,%d,%d + %d,%d,%d';
-  SCnErrorEccInfiniteFieldMustBeAPrimeNumber = 'Infinite Field must be a Prime Number.';
-  SCnErrorEccGeneratorPointMustBeInInfiniteField = 'Generator Point must be in Infinite Field.';
+  SCnErrorEccInfiniteFieldMustBeAPrimeNumber = 'Infinite Field Must be a Prime Number.';
+  SCnErrorEccGeneratorPointMustBeInInfiniteField = 'Generator Point Must be in Infinite Field.';
   SCnErrorEcc4A327B2 = 'Error: 4 * A^3 + 27 * B^2 = 0';
   SCnErrorEccInvalidFiniteFieldSize = 'Invalid Finite Field Size.';
   SCnErrorEccRandomkeyDForOrder = 'Error RandomKey %d for Order.';
@@ -2489,8 +2499,8 @@ resourcestring
   SCnErrorEccInvalidPrivateKeyOrData = 'Invalid Private Key or Data.';
   SCnErrorEccCanNotCalucate = 'Can NOT Calucate %s,%s + %s,%s';
   SCnErrorEccInverseError = 'Inverse Error.';
-  SCnErrorEccFieldExtensionMustOne = 'Field Extension must > 1.';
-  SCnErrorEccPrimitivePolynomialMaxDegreeMustBeField = 'Primitive Polynomial Max Degree must be Field Extension.';
+  SCnErrorEccFieldExtensionMustOne = 'Field Extension Must > 1.';
+  SCnErrorEccPrimitivePolynomialMaxDegreeMustBeField = 'Primitive Polynomial Max Degree Must be Field Extension.';
   SCnErrorEccPrimeNumberIsTooLarge = 'Prime Number is Too Large.';
   SCnErrorEccCurveType = 'Invalid Curve Type.';
   SCnErrorEccKeyData = 'Invalid Key or Data.';
@@ -3206,7 +3216,10 @@ end;
 procedure TCnInt64Ecc.GenerateKeys(out PrivateKey: TCnInt64PrivateKey;
   out PublicKey: TCnInt64PublicKey);
 begin
-  PrivateKey := RandomInt64LessThan(FOrder);      // 比 0 大但比基点阶小的随机数
+  repeat
+    PrivateKey := RandomInt64LessThan(FOrder);    // 比 0 大但比基点阶小的随机数
+  until PrivateKey > 0;
+
   PublicKey := FGenerator;
   MultiplePoint(PrivateKey, PublicKey);           // 基点乘 PrivateKey 次
 end;
@@ -3586,6 +3599,7 @@ begin
     begin
       Sum.X := 0;
       Sum.Y := 0;
+      Exit;
     end;
 
     Y := MyInt64ModularInverse(Y, FFiniteFieldSize);
@@ -3691,6 +3705,9 @@ begin
   Result := False;
   if (Ecc <> nil) and (SelfPrivateKey > 0) then
   begin
+    if not CheckInt64EccPublicKey(Ecc, OtherPublicKey) then // 对方公钥必须是椭圆曲线上的点，防止经典的无效曲线攻击
+      Exit;
+
     SharedSecretKey := OtherPublicKey;
     Ecc.MultiplePoint(SelfPrivateKey, SharedSecretKey);
     Result := True;
@@ -3924,13 +3941,9 @@ begin
             // 将 Y 是奇偶的信息带出去供外界在求得的两个 Y 值中求解
             if Ecc.PlainToPoint(FX, P) then
             begin
-              if P.Y.IsOdd and (C = EC_PUBLICKEY_COMPRESSED_ODD) then
-                BigNumberCopy(FY, P.Y)
-              else
-              begin
+              if P.Y.IsOdd <> (C = EC_PUBLICKEY_COMPRESSED_ODD) then
                 Ecc.PointInverse(P);
-                BigNumberCopy(FY, P.Y);
-              end;
+              BigNumberCopy(FY, P.Y);
             end
             else
               raise ECnEccException.Create(SCnErrorEccKeyData);
@@ -3985,9 +3998,9 @@ var
   Stream: TMemoryStream;
 begin
   if FY.IsZero then
-    B := 3          // 不知道 Y 具体值，无法确定奇偶，暂时写 03
+    B := EC_PUBLICKEY_COMPRESSED_ODD          // 不知道 Y 具体值，无法确定奇偶，暂时写 03
   else
-    B := 4;
+    B := EC_PUBLICKEY_UNCOMPRESSED;
 
   Stream := TMemoryStream.Create;
   try
@@ -4010,12 +4023,12 @@ begin
   SetLength(Prefix, 1);
   if FY.IsZero then
   begin
-    Prefix[0] := 3; // 不知道 Y 具体值，无法确定奇偶，暂时写 03
+    Prefix[0] := EC_PUBLICKEY_COMPRESSED_ODD; // 不知道 Y 具体值，无法确定奇偶，暂时写 03
     Result := ConcatBytes(Prefix, BigNumberToBytes(FX, FixedLen));
   end
   else
   begin
-    Prefix[0] := 4;
+    Prefix[0] := EC_PUBLICKEY_UNCOMPRESSED;
     Result := ConcatBytes(Prefix, BigNumberToBytes(FX, FixedLen));
     Result := ConcatBytes(Result, BigNumberToBytes(FY, FixedLen));
   end;
@@ -4124,9 +4137,10 @@ begin
 
   RandomKey := FEccBigNumberPool.Obtain;
   try
-    BigNumberRandRange(RandomKey, FOrder);    // 比 0 大但比基点阶小的随机数
-    if BigNumberIsZero(RandomKey) then
-      BigNumberSetOne(RandomKey);
+    repeat
+      if not BigNumberRandRange(RandomKey, FOrder) then    // 比 0 大但比基点阶小的随机数
+        raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+    until not BigNumberIsZero(RandomKey);
 
     // M + rK;
     OutDataPoint1.Assign(PublicKey);
@@ -4144,9 +4158,10 @@ end;
 procedure TCnEcc.GenerateKeys(PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey);
 begin
-  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
-    PrivateKey.SetOne;
+  repeat
+    if not BigNumberRandRange(PrivateKey, FOrder) then         // 比 0 大但比基点阶小的随机数
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+  until not PrivateKey.IsZero;
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
@@ -4154,9 +4169,10 @@ end;
 
 procedure TCnEcc.GenerateKey(PrivateKey: TCnEccPrivateKey);
 begin
-  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
-    PrivateKey.SetOne;
+  repeat
+    if not BigNumberRandRange(PrivateKey, FOrder) then         // 比 0 大但比基点阶小的随机数
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+  until not PrivateKey.IsZero;
 end;
 
 function TCnEcc.GetBitsCount: Integer;
@@ -4219,10 +4235,17 @@ begin
   FOrder.SetHex(Order);
   FCoFactor := H;
 
+  // 释放后等后续再延迟创建
+  FreeAndNil(F2Inverse);
+
   // 确保 4*a^3+27*b^2 <> 0
-  Discriminant := TCnBigNumber.Create;
-  T := TCnBigNumber.Create;
+  Discriminant := nil;
+  T := nil;
+
   try
+    Discriminant := FEccBigNumberPool.Obtain;
+    T := FEccBigNumberPool.Obtain;
+
     // a^3 = a * a * a (mod p)
     BigNumberMul(Discriminant, FCoefficientA, FCoefficientA);
     BigNumberMod(Discriminant, Discriminant, FFiniteFieldSize);
@@ -4246,8 +4269,8 @@ begin
     if BigNumberIsZero(Discriminant) then
       raise ECnEccException.Create(SCnErrorEcc4A327B2);
   finally
-    T.Free;
-    Discriminant.Free;
+    FEccBigNumberPool.Recycle(T);
+    FEccBigNumberPool.Recycle(Discriminant);
   end;
 
 //  由调用者保证有限域边界为素数
@@ -6796,6 +6819,30 @@ begin
     esdtSHA512: Result := 'SHA512';
   else
     Result := '<Unknown>';
+  end;
+end;
+
+function CheckInt64EccPublicKey(Ecc: TCnInt64Ecc;
+  var PublicKey: TCnInt64PublicKey): Boolean;
+var
+  P: TCnInt64EccPoint;
+begin
+  Result := False;
+  if Ecc <> nil then
+  begin
+    if (PublicKey.X <= 0) or (PublicKey.Y <= 0) then
+      Exit;
+
+    if (PublicKey.X >= Ecc.FFiniteFieldSize) or
+       (PublicKey.Y >= Ecc.FFiniteFieldSize) then
+      Exit;
+
+    if not Ecc.IsPointOnCurve(PublicKey) then
+      Exit;
+
+    P := PublicKey;
+    Ecc.MultiplePoint(Ecc.Order, P);
+    Result := (P.X = 0) and (P.Y = 0);
   end;
 end;
 
