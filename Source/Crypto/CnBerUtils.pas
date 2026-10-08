@@ -1350,7 +1350,7 @@ begin
 
   // 按实际编码长度交换字节；1 字节无需交换，2..8 字节统一 64 位交换后右移对齐
   if FBerDataLength > 1 then
-    Result := Int64(UInt64NetworkToHost(UInt64(Result)) shr
+    Result := Int64(UInt64NetworkToHost(TUInt64(Result)) shr
       ((SizeOf(Int64) - FBerDataLength) * 8));
 
   // 负数（补码符号位为 1）且未占满目标宽度时符号扩展
