@@ -7821,8 +7821,8 @@ var
   P: PAnsiChar;
   I, Count: Integer;
 const
-  RSAOID = #$2A#$86#$48#$86#$F7#$0D#$01#$01; // RSA 系算法 OID 公共前缀
-  ECCOID = #$2A#$86#$48#$CE#$3D#$04#$03;     // ECDSA 系签名算法 OID 公共前缀
+  RSAOID: AnsiString = #$2A#$86#$48#$86#$F7#$0D#$01#$01; // RSA 系算法 OID 公共前缀
+  ECCOID: AnsiString = #$2A#$86#$48#$CE#$3D#$04#$03;     // ECDSA 系签名算法 OID 公共前缀
 begin
   Result := False;
   CAPriv := TCnRSAPrivateKey.Create;
