@@ -5827,10 +5827,14 @@ var
   CnInt64PolynomialZero: TCnInt64Polynomial = nil;
   {* 表示 0 的 Int64 多项式常量}
 
+{$IFNDEF BCB5}
+
   CnBigNumberPolynomialOne: TCnBigNumberPolynomial = nil;
   {* 表示 1 的大数多项式常量}
   CnBigNumberPolynomialZero: TCnBigNumberPolynomial = nil;
   {* 表示 0 的大数多项式常量}
+
+{$ENDIF}
 
 implementation
 
@@ -18537,14 +18541,18 @@ initialization
   CnInt64PolynomialOne := TCnInt64Polynomial.Create([1]);
   CnInt64PolynomialZero := TCnInt64Polynomial.Create([0]);
 
+{$IFNDEF BCB5}
   CnBigNumberPolynomialOne := TCnBigNumberPolynomial.Create([1]);
   CnBigNumberPolynomialZero := TCnBigNumberPolynomial.Create([0]);
+{$ENDIF}
 
 finalization
   // CnInt64PolynomialOne.ToString; // 手工调用防止被编译器忽略
 
+{$IFNDEF BCB5}
   CnBigNumberPolynomialOne.Free;
   CnBigNumberPolynomialZero.Free;
+{$ENDIF}
 
   CnInt64PolynomialOne.Free;
   CnInt64PolynomialZero.Free;
