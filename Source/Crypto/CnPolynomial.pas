@@ -7594,7 +7594,6 @@ var
   P: Int64;
 begin
   // 原始 X 和 Modulus 是模 PrimeRoot^Exponent 下的，各系数对 PrimeRoot 求模得到 F 和 G 俩多项式
-
   if Exponent < 2 then
     raise ECnPolynomialException.Create(SCnErrorPolynomialInvalidExponent);
 
@@ -7625,7 +7624,6 @@ begin
     while N <= Exponent do
     begin
       // T := (p * T - X * T^2) in Ring(p^n, M)
-
       P := Int64NonNegativPower(PrimeRoot, N);
 
       Int64PolynomialGaloisMul(F, T, T, P);

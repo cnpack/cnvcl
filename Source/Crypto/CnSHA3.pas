@@ -1536,7 +1536,6 @@ begin
   end;
 
   BlockLen := Context.BlockLen;
-
   if BlockLen = 0 then                // ±‹√‚ Final ∫Û‘Ÿ Squeeze ≥ˆ¥Ì
   begin
     Result := nil;
