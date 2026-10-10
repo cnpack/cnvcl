@@ -1,4 +1,5 @@
 {******************************************************************************}
+{                                                                              }
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
 {                   (C)Copyright 2001-2026 CnPack 开发组                       }
@@ -18,38 +19,13 @@
 {                                                                              }
 {******************************************************************************}
 
-{******************************************************************************}
-{                                                                              }
-{                                 MD5 Message-Digest for Delphi 4              }
-{                                                                              }
-{                                 Delphi 4 Unit implementing the               }
-{                      RSA Data Security, Inc. MD5 Message-Digest Algorithm    }
-{                                                                              }
-{                          Implementation of Ronald L. Rivest's RFC 1321       }
-{                                                                              }
-{                      Copyright ?1997-1999 Medienagentur Fichtner & Meyer     }
-{                                  Written by Matthias Fichtner                }
-{                                                                              }
-{ -----------------------------------------------------------------------------}
-{        See RFC 1321 for RSA Data Security's copyright and license notice!    }
-{ -----------------------------------------------------------------------------}
-{        The latest release of md5.pas will always be available from           }
-{        the distribution site at: http://www.fichtner.net/delphi/md5/         }
-{ -----------------------------------------------------------------------------}
-{                       Please send questions, bug reports and suggestions     }
-{                      regarding this code to: mfichtner@fichtner-meyer.com    }
-{ -----------------------------------------------------------------------------}
-{                        This code is provided "as is" without express or      }
-{                     implied warranty of any kind. Use it at your own risk.   }
-{******************************************************************************}
-
 unit CnMD5;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：MD5 杂凑算法实现单元
 * 单元作者：何清（QSoft） hq.com@263.net; http://qsoft.51.net
-*           基于 Ronald L. Rivest 的 MD5.pas 改写，保留原始声明
+*           部分基于 Ronald L. Rivest 的 MD5.pas 改写并补充大量功能。
 * 备    注：本单元实现了 MD5 杂凑算法及对应的 HMAC 算法。
 *           注意，因 MD5 算法本身已不再安全，本单元除必要的外部要求场合外，不建议使用。
 * 开发平台：PWin2000Pro + Delphi 5.0
@@ -62,7 +38,7 @@ unit CnMD5;
 *           2014.11.14 V1.2
 *               汇编切换至 Pascal 以支持跨平台
 *           2003.09.18 V1.1
-*               好不容易找到了该单元原作者的版权声明
+*               好不容易找到了该单元原作者
 *           2003.09.18 V1.0
 *               创建单元
 ================================================================================

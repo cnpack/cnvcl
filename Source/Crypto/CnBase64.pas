@@ -1,4 +1,5 @@
 {******************************************************************************}
+{                                                                              }
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
 {                   (C)Copyright 2001-2026 CnPack 开发组                       }
@@ -18,13 +19,6 @@
 {                                                                              }
 {******************************************************************************}
 
-{ -----------------------------------------------------------------------------}
-{ uTBase64 v1.0 - Simple Base64 encoding/decoding class                        }
-{ Base64 described in RFC2045, Page 24, (w) 1996 Freed & Borenstein            }
-{ Delphi implementation (w) 1999 Dennis D. Spreen (dennis@spreendigital.de)    }
-{ This unit is freeware. Just drop me a line if this unit is useful for you.   }
-{ -----------------------------------------------------------------------------}
-
 unit CnBase64;
 {* |<PRE>
 ================================================================================
@@ -33,7 +27,7 @@ unit CnBase64;
 * 单元作者：詹葵（Solin） solin@21cn.com; http://www.ilovezhuzhu.net
 *           wr960204
 *           CnPack 开发组 (master@cnpack.org)
-*           部分内容基于 Dennis D. Spreen 的 UTBASE64.pas 改写，保留原有版权信息。
+*           部分内容基于 Dennis D. Spreen 的 UTBASE64.pas 改写，并补充大量功能。
 * 备    注：本单元实现了标准 Base64 与 Base64URL 的编码与解码功能，以及 RFC 4648 中的
 *           Base32 编码解码功能（Base16 即大写 HEX，无需额外实现）。
 *
