@@ -2381,7 +2381,7 @@ procedure TCnExtendedList.AddList(List: TCnExtendedList);
 var
   I: Integer;
 begin
-  if (List <> nil) and (List.Count > 0) then
+  if (List <> Self) and (List <> nil) and (List.Count > 0) then
   begin
     for I := 0 to List.Count - 1 do
       Add(List[I]);

@@ -3069,6 +3069,9 @@ procedure TCnRationalNumber.Reciprocal;
 var
   T: Int64;
 begin
+  if FNumerator = 0 then
+    raise ECnMatrixException.Create(SCnErrorMatrixDenominatorZero);
+
   T := FDenominator;
   FDenominator := FNumerator;
   FNumerator := T;
@@ -3205,6 +3208,7 @@ begin
   if Number1.IsInt and Number2.IsInt then
   begin
     Res.Numerator := Number1.Numerator + Number2.Numerator;
+    Res.Denominator := 1;
   end
   else
   begin
@@ -3247,6 +3251,7 @@ begin
   if Number1.IsInt and Number2.IsInt then
   begin
     Res.Numerator := Number1.Numerator - Number2.Numerator;
+    Res.Denominator := 1;
   end
   else
   begin

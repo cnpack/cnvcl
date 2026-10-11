@@ -1000,7 +1000,7 @@ var
   A: array of Integer;
 begin
   Result := '';
-  if BlockSize <= 0 then
+  if BlockSize <= 1 then
     Exit;
 
   SetLength(A, BlockSize);

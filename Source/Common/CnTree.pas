@@ -114,7 +114,6 @@ type
     function GetLevel: Integer;
     function GetSubTreeHeight: Integer; virtual;
 
-    function HasParent(AParent: TCnLeaf): Boolean;
     procedure AssignTo(Dest: TPersistent); override;
     procedure DoDepthFirstTravel(PreOrder: Boolean = True; Reverse: Boolean = False);
     procedure DoWidthFirstTravel(Reverse: Boolean = False);
@@ -780,7 +779,7 @@ var
   AParent: TCnLeaf;
 begin
   Result := False;
-  if Value.Tree <> Self.Tree then
+  if (Value = nil) or (Value.Tree <> Self.Tree) then
     Exit;
     
   AParent := FParent;
@@ -874,7 +873,7 @@ end;
 
 procedure TCnLeaf.SetItems(AIndex: Integer; const Value: TCnLeaf);
 begin
-  if (Value <> nil) and ((Value = Self) or HasParent(Value)) then
+  if (Value <> nil) and ((Value = Self) or HasAsParent(Value)) then
     raise ECnTreeException.Create(SCnErrorTreeRingNotAllow);
 
   if (AIndex >= 0) and (AIndex < Count) then
@@ -895,26 +894,6 @@ begin
   end
   else
     inherited;
-end;
-
-function TCnLeaf.HasParent(AParent: TCnLeaf): Boolean;
-var
-  L: TCnLeaf;
-begin
-  Result := False;
-  if AParent = nil then
-    Exit;
-
-  L := FParent;
-  while L <> nil do
-  begin
-    if AParent = L then
-    begin
-      Result := True;
-      Exit;
-    end;
-    L := L.Parent;
-  end;
 end;
 
 function TCnLeaf.GetAbsoluteIndexFromParent(IndirectParentLeaf: TCnLeaf): Integer;

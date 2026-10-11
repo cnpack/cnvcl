@@ -1202,7 +1202,7 @@ UseExponent:
           else
           begin
             t := ExponentI div 3 + 1;
-            if t > MaxHexDigits then
+            if t > MaxOctDigits then
               goto UseExponent
             else
             begin
@@ -1220,7 +1220,7 @@ UseExponent:
         begin
           // ExpFlag = 2, X.XXXXXXX^Y, Y < 0
           t := 2 + (k + ExponentI - 1) div 3;
-          if t > MaxHexDigits then
+          if t > MaxOctDigits then
             goto UseExponent
           else
           begin
@@ -1293,7 +1293,7 @@ begin
     ExtractFloatDouble(D, SignNegative, Exponent, Mantissa);
   end
   else
-    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [ExtendedSize]);
 end;
 
 procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
@@ -1387,7 +1387,7 @@ begin
     Move(D, ValueAddr^, SizeOf(Double));
   end
   else
-    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [ExtendedSize]);
 end;
 
 {$HINTS ON}

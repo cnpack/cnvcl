@@ -712,8 +712,9 @@ begin
 
   try
     Zip.Utf8 := True;
+    Zip.Password := Password;
     Zip.CreateZipFile(FileName);
-    Zip.AddDirectory(DirName);
+    Zip.AddDirectory(DirName, Compression);
     Zip.Save;
     Result := True;
   finally
@@ -734,6 +735,7 @@ begin
 
   Zip := TCnZipReader.Create;
   try
+    Zip.Password := Password;
     Zip.OpenZipFile(FileName);
     Zip.ExtractAllTo(DirName);
     Result := True;
@@ -1050,14 +1052,12 @@ begin
     else
       AFileName := IncludeTrailingBackslash(Path) + ExtractFileName(AFileName);
 
+    if AFileName[Length(AFileName)] in ['\', '/'] then
+      Exit;
+
     Dir := ExtractFileDir(AFileName);
     if CreateSubdirs and (Dir <> '') then
       ForceDirectories(Dir);
-
-{$WARNINGS OFF}
-    if AFileName[Length(AFileName) - 1] in ['\', '/'] then
-      Exit;
-{$WARNINGS ON}
 
     OutStream := TFileStream.Create(AFileName, fmCreate);
     try
@@ -1364,7 +1364,7 @@ begin
   if FDirFiles = nil then
     FDirFiles := TStringList.Create
   else
-    FDirFiles.Free;
+    FreeAndNil(FDirFiles);
 
   CnFindFile(DirName, '*', FindFileCallback);
 
@@ -1591,6 +1591,7 @@ begin
 
   FOutStream := TFileStream.Create(ZipFileName, fmCreate);
   FStartFileData := FOutStream.Position;
+  FEndFileData := FStartFileData;
 end;
 
 destructor TCnZipWriter.Destroy;

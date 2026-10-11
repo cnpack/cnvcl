@@ -447,6 +447,7 @@ begin
 
   FOnCustomHashCode := nil;
   FUseCustomHash := False;
+  FCurPos := -1;
 
   CreateList(AListLength);
 end;
@@ -1255,6 +1256,7 @@ begin
     repeat
       if KeyEqual(Key, Node.Key {$IFNDEF CPU64BITS}, KeyHigh32, Node.Key32 {$ENDIF}) then // 找到了 Key，直接塞 Value
       begin
+        DoFreeNode(Node);
         Result := PutKeyValueToNode(Node);
         Inc(FModCount);
         Exit;
@@ -1346,6 +1348,7 @@ var
   I: Integer;
   Node, T: TCnHashNode;
 begin
+  Inc(FModCount);
   for I := Low(FTable) to High(FTable) do
   begin
     Node := FTable[I];

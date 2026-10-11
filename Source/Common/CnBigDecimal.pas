@@ -3658,6 +3658,12 @@ var
   E: Integer;
   M: Cardinal;
 begin
+  if Num.Value.IsZero then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
   T := FLocalBigBinaryPool.Obtain;
   try
     BigBinaryCopy(T, Num);
@@ -3679,6 +3685,12 @@ var
   E: Integer;
   M: TUInt64;
 begin
+  if Num.Value.IsZero then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
   T := FLocalBigBinaryPool.Obtain;
   try
     BigBinaryCopy(T, Num);
