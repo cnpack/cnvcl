@@ -29,7 +29,9 @@ unit CnStrings;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备    注：AnsiStringList 移植自 Delphi 7 的 StringList
-* 最后更新：2025.08.14
+* 最后更新：2025.10.11
+*               增加一个 CnExtractStrings 函数
+*           2025.08.14
 *               增加一个分隔符分隔的全匹配搜索实现函数
 *           2022.10.25
 *               增加 StringBuilder 的实现，支持 Ansi 和 Unicode 模式
@@ -713,18 +715,59 @@ function CnStringReplaceW(const S: WideString; const OldPattern: WideString;
 
 function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
   Boolean; StartCount: Integer = 1): Integer;
-{* 增强的字符串查找函数，支持查找第几个，首个的 StartCount 为 1}
+{* 增强的字符串查找函数，支持查找第几个，首个的 StartCount 为 1。
+
+   参数：
+     const SubStr: string                 - 要查找的子串
+     const S: string                      - 被查找的源字符串
+     CaseSensitive: Boolean               - 是否区分大小写
+     WholeWords: Boolean                  - 是否全字匹配
+     StartCount: Integer = 1              - 查找第几次出现，默认为 1（即首次）
+
+   返回值：Integer                        - 子串在源串中的位置，未找到返回 0
+}
 
 procedure CnSplitString(const Sub: string; const Str: string; Strings: TStrings);
-{* 字符串劈分函数，不限于字符劈分}
+{* 字符串劈分函数，不限于字符劈分。
+
+   参数：
+     const Sub: string                    - 用作分隔符的子串
+     const Str: string                    - 待劈分的源字符串
+     Strings: TStrings                    - 接收劈分结果的字符串列表
+}
+
+function CnExtractStrings(Separators, WhiteSpace: TSysCharSet; const Content: string;
+  Strings: TStrings): Integer;
+{* 字符串按字符劈分函数，不走 PChar 参数以避免与脚本引擎不兼容。
+
+   参数：
+     Separators: TSysCharSet              - 分隔符字符集
+     WhiteSpace: TSysCharSet              - 空白字符集（会被跳过）
+     const Content: string                - 待劈分的源字符串
+     Strings: TStrings                    - 接收劈分结果的字符串列表
+
+   返回值：Integer                        - 实际提取到的字符串数量
+}
 
 function NativeStringToUIString(const Str: string): string;
-{* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
-   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
+{* Lazarus/FPC 的 Ansi 模式专用字符串转换函数，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
+   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。
+
+   参数：
+     const Str: string                    - 待转换的字符串
+
+   返回值：string                         - 返回字符串转换结果
+}
 
 function UIStringToNativeString(const Str: string): string;
-{* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
-   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
+{* Lazarus/FPC 的 Ansi 模式专用字符串转换函数，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
+   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。
+
+   参数：
+     const Str: string                    - 待转换的字符串
+
+   返回值：string                         - 返回字符串转换结果
+}
 
 implementation
 
@@ -2591,6 +2634,111 @@ begin
     // 如果删除后字符串为空，且原字符串以分隔符结尾，则需要添加一个空条目
     if S = '' then
       Strings.Add('');
+  end;
+end;
+
+function CnExtractStrings(Separators, WhiteSpace: TSysCharSet; const Content: string;
+  Strings: TStrings): Integer;
+var
+  Head, Tail: PChar;
+  EOS, InQuote: Boolean;
+  QuoteChar: Char;
+  Item: string;
+begin
+  Result := 0;
+  if (Strings = nil) or (Content = '') or (Length(Content) <= 0)
+    or (Content[1] = #0) then
+    Exit;
+
+  Tail := @Content[1];
+  InQuote := False;
+  QuoteChar := #0;
+  Strings.BeginUpdate;
+  try
+{$IFDEF UNICODE}
+    Include(WhiteSpace, #13);
+    Include(WhiteSpace, #10);
+
+    Include(Separators, #0);
+    Include(Separators, #13);
+    Include(Separators, #10);
+    Include(Separators, '''');
+    Include(Separators, '"');
+{$ENDIF}
+    repeat
+{$IFDEF UNICODE}
+      while (Tail^ in WhiteSpace) do
+        Inc(Tail);
+      Head := Tail;
+      while True do
+      begin
+        while (InQuote and not ((Tail^ = #0) or (Tail^ = QuoteChar))) or
+          not (Tail^ in Separators) do
+            Inc(Tail);
+
+        if (Tail^ in ['''', '"']) then
+        begin
+          if (QuoteChar <> #0) and (QuoteChar = Tail^) then
+            QuoteChar := #0
+          else if QuoteChar = #0 then
+            QuoteChar := Tail^;
+          InQuote := QuoteChar <> #0;
+          Inc(Tail);
+        end
+        else
+          Break;
+      end;
+
+      EOS := Tail^ = #0;
+      if (Head <> Tail) and (Head^ <> #0) then
+      begin
+        if Strings <> nil then
+        begin
+          SetString(Item, Head, Tail - Head);
+          Strings.Add(Item);
+        end;
+        Inc(Result);
+      end;
+      Inc(Tail);
+{$ELSE}
+      while Tail^ in WhiteSpace + [#13, #10] do
+        Tail := StrNextChar(Tail);
+
+      Head := Tail;
+      while True do
+      begin
+        while (InQuote and not (Tail^ in [QuoteChar, #0])) or
+          not (Tail^ in Separators + [#0, #13, #10, '''', '"']) do
+          Tail := StrNextChar(Tail);
+
+        if Tail^ in ['''', '"'] then
+        begin
+          if (QuoteChar <> #0) and (QuoteChar = Tail^) then
+            QuoteChar := #0
+          else if QuoteChar = #0 then
+            QuoteChar := Tail^;
+          InQuote := QuoteChar <> #0;
+          Tail := StrNextChar(Tail);
+        end
+        else
+          Break;
+      end;
+
+      EOS := Tail^ = #0;
+      if (Head <> Tail) and (Head^ <> #0) then
+      begin
+        if Strings <> nil then
+        begin
+          SetString(Item, Head, Tail - Head);
+          Strings.Add(Item);
+        end;
+        Inc(Result);
+      end;
+      Tail := StrNextChar(Tail);
+{$ENDIF}
+    until EOS;
+  finally
+    Strings.EndUpdate;
   end;
 end;
 
