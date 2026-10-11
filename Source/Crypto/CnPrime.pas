@@ -943,7 +943,7 @@ function CnUInt32LeastCommonMultiple(A: Cardinal; B: Cardinal): Cardinal;
 }
 
 function CnInt64LeastCommonMultiple(A: TUInt64; B: TUInt64): TUInt64;
-{* 求两个 64 位无符号整数的最小公倍数，不考虑溢出的情况
+{* 求两个 64 位无符号整数的最小公倍数，溢出则抛异常。
 
    参数：
      A: TUInt64                           - 64 位无符号整数一
@@ -953,7 +953,7 @@ function CnInt64LeastCommonMultiple(A: TUInt64; B: TUInt64): TUInt64;
 }
 
 function CnInt64LeastCommonMultiple2(A: Int64; B: Int64): Int64;
-{* 求两个 64 位有符号整数的最小公倍数，不考虑溢出的情况
+{* 求两个 64 位有符号整数的最小公倍数，不考虑溢出的情况。
 
    参数：
      A: Int64                             - 64 位有符号整数一
@@ -963,7 +963,7 @@ function CnInt64LeastCommonMultiple2(A: Int64; B: Int64): Int64;
 }
 
 procedure CnGenerateUInt32DiffieHellmanPrimeMaxRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
-{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt32
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt32。
 
    参数：
      out Prime: Cardinal                  - 生成的 32 位无符号 Diffie-Hellman 算法所需的素数
@@ -973,7 +973,7 @@ procedure CnGenerateUInt32DiffieHellmanPrimeMaxRoot(out Prime: Cardinal; out Max
 }
 
 procedure CnGenerateInt64DiffieHellmanPrimeMaxRoot(out Prime: TUInt64; out MaxRoot: TUInt64);
-{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt64
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt64。
 
    参数：
      out Prime: TUInt64                   - 生成的 64 位无符号 Diffie-Hellman 算法所需的素数
@@ -1460,6 +1460,7 @@ resourcestring
   SCnErrorInvalidPrime = 'Invalid Prime';
   SCnErrorInvalidParam = 'Invalid Parameter';
   SCnErrorCryptoRandomFailed = 'Cryptographically Secure Random Number Generation Failed';
+  SCnErrorUInt64Overflow = 'UInt64 Overflow';
 
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
 function CnPickRandomSmallPrime: Integer;
@@ -1841,6 +1842,12 @@ function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 var
   T: UInt64;
 begin
+  if B = 0 then
+  begin
+    Result := 1 mod C;
+    Exit;
+  end;
+
   T := 1;
   A := A mod C;
 
@@ -2246,10 +2253,16 @@ end;
 
 function CnInt64LeastCommonMultiple(A, B: TUInt64): TUInt64;
 var
-  D: TUInt64;
+  D, L, H: TUInt64;
 begin
   D := CnInt64GreatestCommonDivisor(A, B);
-  Result := UInt64Mul(UInt64Div(A, D), B);
+  L := 0;
+  H := 0;
+  UInt64MulUInt64(UInt64Div(A, D), B, L, H);
+  if H = 0 then // 超出 UInt64 则抛溢出异常
+    Result := L
+  else
+    raise EIntOverflow.Create(SCnErrorUInt64Overflow);
 end;
 
 function CnInt64LeastCommonMultiple2(A, B: Int64): Int64;

@@ -3132,8 +3132,8 @@ begin
   if not CnInt64IsPrime(FieldPrime) then // or not CnInt64IsPrime(Order) then
     raise ECnEccException.Create(SCnErrorEccInfiniteFieldMustBeAPrimeNumber);
 
-  if not (GX >= 0) and (GX < FieldPrime) or
-    not (GY >= 0) and (GY < FieldPrime) then
+  if not ((GX >= 0) and (GX < FieldPrime)) or
+    not ((GY >= 0) and (GY < FieldPrime)) then
     raise ECnEccException.Create(SCnErrorEccGeneratorPointMustBeInInfiniteField);
 
   // ÒªÈ·±£ 4*a^3+27*b^2 <> 0

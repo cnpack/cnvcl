@@ -2007,6 +2007,7 @@ begin
   end
   else
   begin
+    SetLength(Result, 0);
     GCMEncrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
       Length(AAD), nil, OutTag, EncryptType);
   end;
@@ -2046,9 +2047,9 @@ begin
   end
   else
   begin
-    if not GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), nil, InTag, EncryptType) then
-      SetLength(Result, 0);
+    SetLength(Result, 0);
+    GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag, EncryptType);
   end;
 end;
 
@@ -2596,6 +2597,7 @@ begin
   end
   else
   begin
+    SetLength(Result, 0);
     CCMEncrypt(K, Length(Key), N, Length(Nonce), P, Length(PlainData), A,
       Length(AAD), nil, OutTag, EncryptType);
   end;
@@ -2923,9 +2925,9 @@ begin
   end
   else
   begin
-    if not CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
-      Length(AAD), nil, InTag, EncryptType) then
-      SetLength(Result, 0);
+    SetLength(Result, 0);
+    CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
+      Length(AAD), nil, InTag, EncryptType);
   end;
 end;
 
@@ -3299,6 +3301,7 @@ begin
   end
   else
   begin
+    SetLength(Result, 0);
     ChaCha20Poly1305Encrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
       Length(AAD), nil, OutTag);
   end;
@@ -3337,9 +3340,9 @@ begin
   end
   else
   begin
-    if not ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), nil, InTag) then
-      SetLength(Result, 0);
+    SetLength(Result, 0);
+    ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag);
   end;
 end;
 
@@ -3470,6 +3473,7 @@ begin
   end
   else
   begin
+    SetLength(Result, 0);
     XChaCha20Poly1305Encrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
       Length(AAD), nil, OutTag);
   end;
@@ -3508,9 +3512,9 @@ begin
   end
   else
   begin
-    if not XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), nil, InTag) then
-      SetLength(Result, 0);
+    SetLength(Result, 0);
+    XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag);
   end;
 end;
 

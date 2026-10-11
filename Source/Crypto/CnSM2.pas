@@ -2120,6 +2120,9 @@ begin
         Exit;
       end;
 
+      if OutSignature.S.IsZero then
+        Continue;
+
       Result := True;
       _CnSetLastError(ECN_SM2_OK);
 

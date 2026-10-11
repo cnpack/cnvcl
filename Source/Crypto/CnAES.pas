@@ -5687,7 +5687,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  DecryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES128StreamCFBExpanded(Source: TStream; Count: Cardinal;
@@ -5753,7 +5757,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  DecryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES192StreamCFBExpanded(Source: TStream; Count: Cardinal;
@@ -5819,7 +5827,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  DecryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES256StreamCFBExpanded(Source: TStream; Count: Cardinal;
@@ -6179,7 +6191,11 @@ var
   ExpandedKey: TCnAESExpandedKey128;
 begin
   ExpandAESKeyForEncryption128(Key, ExpandedKey);
-  DecryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES128StreamOFBExpanded(Source: TStream; Count: Cardinal;
@@ -6245,7 +6261,11 @@ var
   ExpandedKey: TCnAESExpandedKey192;
 begin
   ExpandAESKeyForEncryption192(Key, ExpandedKey);
-  DecryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES192StreamOFBExpanded(Source: TStream; Count: Cardinal;
@@ -6310,7 +6330,11 @@ var
   ExpandedKey: TCnAESExpandedKey256;
 begin
   ExpandAESKeyForEncryption256(Key, ExpandedKey);
-  DecryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  try
+    DecryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
+  finally
+    MemorySafeZero(@ExpandedKey, SizeOf(ExpandedKey));
+  end;
 end;
 
 procedure DecryptAES256StreamOFBExpanded(Source: TStream; Count: Cardinal;

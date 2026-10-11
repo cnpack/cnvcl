@@ -3878,7 +3878,7 @@ begin
 
   if BigNumberWordExpand(Res, I) = nil then
   begin
-    BigNumberFree(Res);
+    Res.SetZero;
     Exit;
   end;
 
@@ -6038,7 +6038,7 @@ end;
 procedure BigNumberOrWord(Num: TCnBigNumber; W: TCnBigNumberElement);
 begin
   if Num.FTop > 0 then
-    PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] and W
+    PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] or W
   else
     Num.SetWord(W);
 end;
@@ -6157,7 +6157,7 @@ begin
 
   if BigNumberExpandBits(Res, (I + 2) * 4) = nil then // 多分配一点
   begin
-    BigNumberFree(Res);
+    Res.SetZero;
     Exit;
   end;
 
@@ -6337,7 +6337,7 @@ begin
 
   if BigNumberExpandBits(Res, (I + 2) * 4) = nil then // 一位十进制数少于 4 位，这里多扩展一点点
   begin
-    BigNumberFree(Res);
+    Res.SetZero;
     Exit;
   end;
 
@@ -7773,7 +7773,8 @@ begin
       BigNumberCopy(T, A);
       BigNumberSetNegative(T, False);
       Result := BigNumberUnsignedMulMod(Res, T, B, C);
-      BigNumberSub(Res, C, Res);
+      if not Res.IsZero then
+        BigNumberSub(Res, C, Res);
     finally
       FLocalBigNumberPool.Recycle(T);
     end;
@@ -7785,7 +7786,8 @@ begin
       BigNumberCopy(T, B);
       BigNumberSetNegative(T, False);
       Result := BigNumberUnsignedMulMod(Res, A, T, C);
-      BigNumberSub(Res, C, Res);
+      if not Res.IsZero then
+        BigNumberSub(Res, C, Res);
     finally
       FLocalBigNumberPool.Recycle(T);
     end;
@@ -9661,7 +9663,7 @@ begin
     BigNumberDiv(T, R, Num, P);
     BigNumberFindFactors(T, Factors);
   finally
-    FLocalBigNumberPool.Remove(T);
+    FLocalBigNumberPool.Recycle(T);
     FLocalBigNumberPool.Recycle(D);
     FLocalBigNumberPool.Recycle(S);
     FLocalBigNumberPool.Recycle(R);
