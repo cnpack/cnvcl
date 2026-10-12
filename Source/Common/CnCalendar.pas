@@ -1426,7 +1426,8 @@ function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
 
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
 {* 获得某公历日的等效标准日数，似乎是离格利高里历往前推到儒略历公元元年元月 0 日的日数。
-   注意由于内部计算特殊场合的要求，该函数的年参数允许使用连续年份 0，日期参数允许使用日 0；
+   注意由于内部计算特殊场合的要求，该函数的年参数使用天文连续年份，也就是包含 0 的。
+   且日期参数允许使用日 0，相当于 1 日前一天。
    其他日期非法时抛出异常。
 
    参数：
@@ -6997,7 +6998,7 @@ end;
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean): Integer;
 var
-  EquDay1, EquDay2: Integer;
+  Day1, Day2: Integer;
   AYear, AMonth, ADay: Integer;
   ALeap: Boolean;
 begin
@@ -7015,7 +7016,7 @@ begin
   if not GetDayFromLunar(ALunarYear, ALunarMonth, 1, IsLeapMonth, AYear, AMonth, ADay) then
     Exit;
 
-  EquDay1 := GetEquStandardDays(AYear, AMonth, ADay);
+  Day1 := Trunc(GetJulianDate(AYear, AMonth, ADay));
 
   ALeap := False;
   if (GetLunarLeapMonth(ALunarYear) = ALunarMonth) or
@@ -7046,8 +7047,8 @@ begin
   if not GetDayFromLunar(ALunarYear, ALunarMonth, 1, ALeap, AYear, AMonth, ADay) then
     Exit;
 
-  EquDay2 := GetEquStandardDays(AYear, AMonth, ADay);
-  Result := EquDay2 - EquDay1;
+  Day2 := Trunc(GetJulianDate(AYear, AMonth, ADay));
+  Result := Day2 - Day1;
 end;
 
 // 返回公历日期是否合法
@@ -7075,19 +7076,14 @@ begin
     raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
   if ADay = 0 then
     Exit;
-  if AYear = 0 then
+
+  if AYear <= 0 then
   begin
-    if ADay > GetMonthDays(-1, AMonth) then
+    if ADay > GetMonthDays(AYear -1, AMonth) then
       raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
   end
   else
     ValidDate(AYear, AMonth, ADay);
-
-  //ZeroYearToNonZeroYear(AYear);
-  //if ADay > GetMonthDays(AYear, AMonth) then
-  //  raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
-  //
-  //ValidDate(AYear, AMonth, ADay);
 end;
 
 // 返回农历日期是否合法
