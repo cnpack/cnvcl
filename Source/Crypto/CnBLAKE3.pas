@@ -1122,10 +1122,19 @@ begin
               finally
                 UnmapViewOfFile(ViewPointer);
               end;
+            end
+            else
+            begin
+              raise ECnNativeException.Create(SCnErrorMapViewOfFile + IntToStr(GetLastError));
             end;
           finally
             CloseHandle(MapHandle);
           end;
+        end
+        else
+        begin
+          if not FileIsZeroSize then
+            raise ECnNativeException.Create(SCnErrorCreateFileMapping + IntToStr(GetLastError));
         end;
       finally
         CloseHandle(FileHandle);

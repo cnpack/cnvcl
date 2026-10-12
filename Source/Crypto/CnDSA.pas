@@ -327,7 +327,9 @@ begin
           else
             Exit;
           end;
-        end;
+        end
+        else
+          Exit;
       end;
     dhtMD5:
       begin

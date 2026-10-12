@@ -6863,7 +6863,7 @@ var
   I: Integer;
 begin
   Result := '';
-  if not GanZhi in [0..59] then
+  if not (GanZhi in [0..59]) then
     Exit;
 
   I := GanZhi div 2;
@@ -7082,6 +7082,12 @@ begin
   end
   else
     ValidDate(AYear, AMonth, ADay);
+
+  //ZeroYearToNonZeroYear(AYear);
+  //if ADay > GetMonthDays(AYear, AMonth) then
+  //  raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
+  //
+  //ValidDate(AYear, AMonth, ADay);
 end;
 
 // 返回农历日期是否合法
@@ -7535,13 +7541,6 @@ var
   T: Integer;
   DayTable: PDayTable;
   IsJunlian229: Boolean;
-
-  // 判断 0 连续的年份是否是儒略历里多出来的闰年，也就是逢非四的百年
-  function IsJulianNotGregorianLeap(AYear: Integer): Boolean;
-  begin
-    Result := ((AYear mod 100) = 0) and ((AYear mod 400) <> 0);
-  end;
-
 begin
   Result := False;
   AYear := CN_CALENDAR_INVALID_NUM;
@@ -8044,7 +8043,7 @@ begin
   end;
 
   I := 0;
-  while I < High(CN_DT_AT) do
+  while I < High(CN_DT_AT) - 5 do
   begin
     if Y < CN_DT_AT[I + 5] then
       Break;
@@ -9231,7 +9230,7 @@ begin
   if GetLunarFromDay(AYear, AMonth, ADay, LY, LM, LD, Leap) then
     Result := (LM + LD + 4) mod 6 // 农历月日和除以 6，余数为 0 是大安，所以加 4
   else
-    raise ECnDateTimeException.CreateFmt(SCnErrorConvertLunarDate, [AYear, AMonth, ADay]);
+    Result := -1;
 end;
 
 // 根据吉神方位数字获得吉神方位名称
@@ -9620,7 +9619,7 @@ var
   K, K1: Real;
   T, Rpi, Zone, F0, Fc, J0, Aa0, Ab0, Ac0, ShuoTime, WangTime: Real;
   Aa, Ab, Ac, F1, J: Real;
-  I, M, D, Ms, LunDay, LunDay0, WangDay: Integer;
+  M, D, Ms, LunDay, LunDay0, WangDay: Integer;
   S, R, P, Q: Real;
   StdDays: Integer;
   PFR: PCnLunarDateFixRange;

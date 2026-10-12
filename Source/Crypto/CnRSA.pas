@@ -1775,14 +1775,23 @@ begin
   // 验证 d
   Result := False;
   if (PrivateKey = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
     Exit;
+  end;
 
   if not BigNumberEqual(PrivateKey.PrivKeyProduct, PublicKey.PubKeyProduct) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
     Exit;
+  end;
 
   // e 只允许 3 或 65537
   if not PublicKey.PubKeyExponent.IsWord(65537) and not PublicKey.PubKeyExponent.IsWord(3) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
     Exit;
+  end;
 
   T := nil;
   P := nil;
@@ -1792,7 +1801,10 @@ begin
     T := TCnBigNumber.Create;
     BigNumberMul(T, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
     if not BigNumberEqual(T, PublicKey.PubKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
       Exit;
+    end;
 
     // 验证 d 是否是 e * d mod (p-1)(q-1) = 1
     P := TCnBigNumber.Create;
@@ -1808,7 +1820,10 @@ begin
 
     BigNumberMod(P, M, T);
     if not P.IsOne then
+    begin
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
       Exit;
+    end;
 
     Result := True;
     _CnSetLastError(ECN_RSA_OK);
