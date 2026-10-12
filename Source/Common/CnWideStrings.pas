@@ -902,6 +902,8 @@ begin
   if Size = 0 then
   begin
     Clear;
+    FLoadFormat := wlfUnicode;
+    FHasBOM := False;
     Exit;
   end;
 
@@ -1013,6 +1015,9 @@ begin
       end;
     cfeUtf16BE:
       begin
+        if (Size and 1) <> 0 then
+          Dec(Size);
+
         SetLength(S, Size div 2);
         if Size > 0 then
         begin
@@ -1708,11 +1713,11 @@ begin
     while (Text^ <> #0) and (Idx < AnsiOffset) do // Idx 0 开始，AnsiOffset 1 开始，所以用 <
     begin
       Inc(Result, CalcUtf8LengthFromWideChar(Text^));
-      Inc(Text);
       if Ord(Text^) > $FF then // 大于 $FF 的转成 Ansi 必然占两字节
         Inc(Idx, 2)
       else
         Inc(Idx);
+      Inc(Text);
     end;
   end;
 end;
@@ -1958,11 +1963,11 @@ begin
     while (Text^ <> #0) and (Idx < AnsiDisplayOffset) do // Idx 0 开始，AnsiDisplayOffset 1 开始，所以用 <
     begin
       Inc(Result, CalcUtf8LengthFromWideChar(Text^));
-      Inc(Text);
       if Calculator(Text^) then
         Inc(Idx, SizeOf(WideChar))
       else
         Inc(Idx, SizeOf(AnsiChar));
+      Inc(Text);
     end;
   end;
 end;
