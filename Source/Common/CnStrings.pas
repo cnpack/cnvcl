@@ -798,6 +798,11 @@ var
 begin
   if Offset = 1 then
     Result := Pos(SubStr, S)
+  else if SubStr = '' then
+  begin
+    Result := 0;
+    Exit;
+  end
   else
   begin
     I := Offset;
@@ -866,7 +871,7 @@ begin
       BCS[L] := PLen - I - 1;
   end;
 
-  // 再进行搜索
+  // 再进行搜索，采用 Horspool 语义：失配时始终按与模式末字符对齐的母串字符 Str[I] 查表右移
   I := FromIndex + PLen - 1;
   while I < SLen do
   begin
@@ -876,7 +881,8 @@ begin
     begin
       if Pattern[Y] <> Str[X] then
       begin
-        Inc(I, BCS[Ord(Str[X]) and $FF]);
+        // 不可按失配处的字符 Str[X] 查表：该位移与失配位置无关，会越过下一个可能的匹配起点
+        Inc(I, BCS[Ord(Str[I]) and $FF]);
         Break;
       end;
 
@@ -2213,7 +2219,7 @@ begin
   for I := 0 to Count - 1 do
   begin
     Key := Get(I);
-    P := AnsiPos('=', string(Key));
+    P := AnsiPos(NameValueSeparator, string(Key));
     if P <> 0 then
     begin
       if not CaseSensitive then

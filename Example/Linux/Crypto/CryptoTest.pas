@@ -113,6 +113,7 @@ function TestUtf8: Boolean;
 function TestStringReplace: Boolean;
 function TestStringBuilder: Boolean;
 function TestAnsiStringListDelimitedText: Boolean;
+function TestFastPositionBadCharRule: Boolean;
 
 // ============================== Containers ==================================
 
@@ -1931,6 +1932,7 @@ begin
   MyAssert(TestStringReplace, 'TestStringReplace');
   MyAssert(TestStringBuilder, 'TestStringBuilder');
   MyAssert(TestAnsiStringListDelimitedText, 'TestAnsiStringListDelimitedText');
+  MyAssert(TestFastPositionBadCharRule, 'TestFastPositionBadCharRule');
 
 // ============================== Containers ==================================
 
@@ -3420,6 +3422,70 @@ begin
   finally
     SL.Free;
   end;
+end;
+
+function TestFastPositionBadCharRule: Boolean;
+{ CnStrings.FastPosition 使用全局坏字符位移表 BCS[c] = PLen - 1 - last[c]，失配时直接按
+  BCS[失配字符] 右移，与失配位置 Y 无关。模式内部失配（已匹配一段后缀之后才失配）时，
+  该位移会越过下一个可能出现的匹配起点，甚至直接跳过母串末尾，导致返回 -1 或返回
+  不是首个匹配位置的偏移量。以下用例中前 8 组为存在真实匹配的用例，末 5 组为正常路径对照。 }
+
+  function CheckFastPosition(const S, P: string; FromIndex, Expect: Integer): Boolean;
+  var
+    Got: Integer;
+  begin
+    Got := FastPosition(PChar(S), PChar(P), FromIndex);
+    Result := Got = Expect;
+    if not Result then
+      MyWriteln('    FastPosition(' + QuotedStr(S) + ', ' + QuotedStr(P) + ', ' +
+        IntToStr(FromIndex) + ') = ' + IntToStr(Got) + ', expect ' + IntToStr(Expect));
+  end;
+
+begin
+  { 'aa' 在母串下标 1 处真实存在，PLen = 2 时 BCS['X'] = PLen = 2，
+    失配在 Y = 0 发生却仍按 2 右移，直接跳过匹配起点并越界返回 -1。 }
+  Result := CheckFastPosition('Xaa', 'aa', 0, 1);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('Xn aa', 'aa', 0, 3);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('abXaa', 'aa', 0, 3);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('qqXwwaa', 'aa', 0, 5);
+  if not Result then Exit;
+
+  { 位移落在后面的匹配位置上：返回的不是首个匹配位置。 }
+  Result := CheckFastPosition('Xaaa', 'aa', 0, 1);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('mississippi', 'iss', 0, 1);
+  if not Result then Exit;
+
+  { 失配后位移越过母串末尾，直接返回 -1。 }
+  Result := CheckFastPosition('mississippi', 'sissi', 0, 3);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('XYZabcabcXYZabc', 'abcabc', 0, 3);
+  if not Result then Exit;
+
+  { 以下为对照用例：首字符即失配、模式前 PLen-1 字节命中、FromIndex 偏移、
+    以及确实不存在匹配时，这些路径当前是正确的。 }
+  Result := CheckFastPosition('abcdef', 'abc', 0, 0);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('hello world', 'world', 0, 6);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('Xaa', 'aa', 1, 1);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('ba', 'ab', 0, -1);
+  if not Result then Exit;
+
+  Result := CheckFastPosition('zzzz', 'ab', 0, -1);
+  if not Result then Exit;
 end;
 
 function TestRingBufferBackOverwrite: Boolean;
