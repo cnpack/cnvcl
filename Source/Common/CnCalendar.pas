@@ -496,6 +496,30 @@ function GetMonthDays(AYear, AMonth: Integer): Integer;
    返回值：Integer                        - 返回该月天数
 }
 
+function GetYearDays(AYear: Integer): Integer;
+{* 取某公历年全年的天数，闰年 366 天，平年 365 天。不考虑 1582 年 10 月的特殊情况，
+   即 1582 年返回 365 天，与逐月调用 GetMonthDays 累加的结果一致。
+
+   参数：
+     AYear: Integer                       - 某公历年，不能为 0
+
+   返回值：Integer                        - 返回该年的天数，365 或 366
+}
+
+function GetYearDaysWith1582(AYear: Integer): Integer;
+{* 取某公历年全年的天数，但会计入 1582 年格里高利改历删去的那 10 天，
+   即 1582 年返回 355 天，其余年份与 GetYearDays 相同。
+   年份不能为 0，其余年份支持公元前，按无公元 0 年的连续推算的闰年规则处理。
+
+   注意 GetMonthDays 不考虑 1582 年 10 月的特殊情况，1582 年 10 月仍返回 31 天，
+   所以各月天数之和为 365 而非本函数的 355，详见 GetDayFromYearBeginWith1582。
+
+   参数：
+     AYear: Integer                       - 某公历年，不能为 0
+
+   返回值：Integer                        - 返回该年的天数，355 或 365 或 366
+}
+
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean = False): Integer;
 {* 取农历年的某月天数。年份或月份非法时抛出异常；指定的闰月不存在或没有对应公历日期时返回 -1。
@@ -532,6 +556,34 @@ function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     AHour, AMinute, ASecond: Integer     - 待计算的时、分、秒
+
+   返回值：Extended                       - 返回该时刻到年初的天数，时间折算成小数
+}
+
+function GetDayFromYearBeginWith1582(AYear, AMonth, ADay: Integer): Integer; overload;
+{* 取某公历日期到年初的天数，但会计入 1582 年格里高利改历删去的那 10 天。与
+   GetDayFromYearBegin 的返回值只在 1582 年 10 月 15 日及以后相差 10 天，
+   10 月 15 日之前两者完全相同。年份值不能为 0，日期非法时抛出异常。
+
+   本函数给出的日序跳过了被删去的那 10 天，因此与 GetMonthDays、ExtractMonthDay
+   不再互逆，只适用于需要同 GetJieQiDayTimeFromYear 这类按混合历计日序的量作比较的
+   场合；其余场合仍应使用 GetDayFromYearBegin。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日，年份值不能为 0
+
+   返回值：Integer                        - 返回该日到年初的天数
+}
+
+function GetDayFromYearBeginWith1582(AYear, AMonth, ADay, AHour: Integer;
+  AMinute: Integer = 0; ASecond: Integer = 0): Extended; overload;
+{* 取某日期到年初的天数，小时、分、秒数折算入小数。与 GetDayFromYearBegin 的
+   返回值只在 1582 年 10 月 15 日及以后相差 10 天，年份值不能为 0，
+   日期或时间非法时抛出异常。适用范围同上一重载。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日，年份值不能为 0
      AHour, AMinute, ASecond: Integer     - 待计算的时、分、秒
 
    返回值：Extended                       - 返回该时刻到年初的天数，时间折算成小数
@@ -6969,6 +7021,22 @@ begin
   end;
 end;
 
+// 取本年天数，不考虑 1582 年 10 月的特殊情况
+function GetYearDays(AYear: Integer): Integer;
+begin
+  Result := 365;
+  if GetIsLeapYear(AYear) then
+    Inc(Result);
+end;
+
+// 取本年天数，1582 年被格里高利改历删去 10 天，只有 355 天
+function GetYearDaysWith1582(AYear: Integer): Integer;
+begin
+  Result := GetYearDays(AYear);
+  if AYear = 1582 then // 格里高利改历删去 10 月 5 日至 14 日
+    Dec(Result, 10);
+end;
+
 // 获得某农历年的历史上增加的闰月，返回 1~12 对应一月到十二月，返回 0 表示无额外闰月
 function GetLunarAdditionalLeapMonth(AYear: Integer): Integer;
 begin
@@ -7079,7 +7147,7 @@ begin
 
   if AYear <= 0 then
   begin
-    if ADay > GetMonthDays(AYear -1, AMonth) then
+    if ADay > GetMonthDays(AYear - 1, AMonth) then
       raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
   end
   else
@@ -7410,6 +7478,25 @@ begin
   ValidTime(AHour, AMinute, ASecond);
   Result := GetDayFromYearBeginUnchecked(AYear, AMonth, ADay);
   Result := Result + (AHour / 24.0) + (AMinute / 1440.0) + (ASecond / 86400.0);
+end;
+
+// 1582 年格里高利改历删去了 10 月 5 日至 14 日共 10 天。此后 GetJieQiDayTimeFromYear
+// 给出的节气日序按混合历计数，它比 GetDayFromYearBegin 的纯年积日在 1582 年 10 月 15 日
+// 及以后少 10 天。凡是把公历日期与节气日序直接比较的场合，都要改用
+// GetDayFromYearBeginWith1582，否则 1582 年会整整错 10 天。
+function GetDayFromYearBeginWith1582(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := GetDayFromYearBegin(AYear, AMonth, ADay);
+  if (AYear = 1582) and ((AMonth > 10) or ((AMonth = 10) and (ADay >= 15))) then
+    Dec(Result, 10);
+end;
+
+function GetDayFromYearBeginWith1582(AYear, AMonth, ADay, AHour: Integer;
+  AMinute, ASecond: Integer): Extended;
+begin
+  Result := GetDayFromYearBegin(AYear, AMonth, ADay, AHour, AMinute, ASecond);
+  if (AYear = 1582) and ((AMonth > 10) or ((AMonth = 10) and (ADay >= 15))) then
+    Result := Result - 10;
 end;
 
 // 从距年首天数返回月和日数，年份用来判断是否是闰年，返回 False 表示不合法日期
@@ -8219,6 +8306,12 @@ begin
   ActualYear := AYear;
 
   Days := GetJieQiDayTimeFromYear(AYear, N + 1);
+
+  // 节气日序按混合历计数，1582 年 10 月 4 日之后比纯年积日少 10 天，
+  // 这里加回后再按月长拆分，否则该年晚季的节气日期会早 10 天
+  if (AYear = 1582) and (Days > GetDayFromYearBegin(1582, 10, 4)) then
+    Days := Days + 10;
+
   Neg := Days < 0; // 小于 0 表示在前一年，可能是小寒
 
   for I := 1 to 12 do
@@ -8716,7 +8809,7 @@ begin
     end;
   end;
 
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay);
 
   // 找到了立春后的第一个寅日
   if JianStart > 0 then
@@ -8862,7 +8955,7 @@ begin
     Exit;
   end;
 
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay, AHour);
 
   // 调整年的记录。因为年的天干地支计算是以立春为分界的，
   // 如本日是本公历年的立春日前，则属于前一年。立春本身算这一年
@@ -8890,7 +8983,7 @@ begin
     Exit;
   end;
 
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay, AHour);
 
   JieQi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)); // 2 月的立春
   if Days < JieQi then
@@ -9086,18 +9179,14 @@ begin
     JiaZiQians[I] := JiaZiHous[I] - 60;               // 得到六个节气前甲子日的距年首天数，第 0 个为距上一年的
   end;
 
-  JiaZiHous[0] := JiaZiHous[0] - 365;
-  JiaZiQians[0] := JiaZiQians[0] - 365;
-  JieQis[0] := JieQis[0] - 365;          // 均换算成距本年年初的天数
-  if GetIsLeapYear(PreYear) then
-  begin
-    Dec(JiaZiHous[0]);
-    Dec(JiaZiQians[0]);
-  end;
+  // 均换算成距本年年初的天数，上年用混合历的年长，1582 年只有 355 天
+  JiaZiHous[0] := JiaZiHous[0] - GetYearDaysWith1582(PreYear);
+  JiaZiQians[0] := JiaZiQians[0] - GetYearDaysWith1582(PreYear);
+  JieQis[0] := JieQis[0] - GetYearDaysWith1582(PreYear);
 
   // JiaZiHous 内是六个节气后甲子日的距本年年首的天数，第 0 个可能为负值，表示在去年
   // JiaZiQians 内是六个节气前甲子日的距本年年首的天数，第 0、1 个可能为负值，表示在去年
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay);
   for I := High(JiaZiHous) downto Low(JiaZiHous) do
   begin
     Matched := False;
@@ -9162,7 +9251,7 @@ begin
   ValidDate(AYear, AMonth, ADay);
 
   SCH := GetShiChenFromHour(AHour);
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay);
 
   DayGanZhi := GetGanZhiFromDay(AYear, AMonth, ADay, AHour);
   if not ExtractGanZhi(DayGanZhi, DayGan, DayZhi) then
@@ -9359,7 +9448,7 @@ begin
   ValidDate(AYear, AMonth, ADay);
 
   DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay);
 
   if (Days >= DongZhi) and (Days - DongZhi < 81) then // 在今年的九九内
   begin
@@ -9376,10 +9465,8 @@ begin
     // 获得上一年的冬至日
     DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
 
-    // 获得此日离上一年年首的长度
-    Days := Days + 365;
-    if GetIsLeapYear(AYear) then
-      Inc(Days);
+    // 获得此日离上一年年首的长度，上年用混合历的年长，1582 年只有 355 天
+    Days := Days + GetYearDaysWith1582(AYear);
 
     if (Days >= DongZhi) and (Days - DongZhi < 81) then
     begin
@@ -9530,7 +9617,7 @@ var
 begin
   ValidDate(AYear, AMonth, ADay);
   Result := AYear;
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay);
 
   // 如本日是立春日前，则是属于前一年
   if Days < GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN) then

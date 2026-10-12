@@ -205,7 +205,7 @@ const
   SMemLeakDlgReport = 'Found %d memory leaks. [There are %d allocated before replace memory manager.]';
   SMemMgrODSReport = 'Get = %d  Free = %d  Realloc = %d';
   SMemMgrOverflow = 'Memory Manager''s list capability overflow, Please enlarge it!';
-  SMemMgrRunTime = '%d hour(s) %d minute(s) %d second(s)¡£';
+  SMemMgrRunTime = '%d hour(s) %d minute(s) %d second(s).';
   SOldAllocMemCount = 'There are %d allocated before replace memory manager.';
   SAppRunTime = 'Application total run time: ';
   SMemSpaceCanUse = 'HeapStatus.TotalAddrSpace: %d KB';
