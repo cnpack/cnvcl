@@ -1093,6 +1093,9 @@ begin
   end;
 end;
 
+function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
+  Source: PWideChar; SourceChars: Cardinal): Cardinal; forward;
+
 procedure TCnWideStringList.SaveToStream(Stream: TStream; AFormat: TCnWideListFormat);
 var
   S: WideString;
@@ -1112,14 +1115,19 @@ begin
       HeaderStr := #$EF#$BB#$BF;
       Stream.WriteBuffer(Pointer(HeaderStr)^, Length(HeaderStr) * SizeOf(AnsiChar));
     end;
-{$IFDEF MSWINDOWS}
-    Len := WideCharToMultiByte(CP_UTF8, 0, PWideChar(S), -1, nil, 0, nil, nil);
-    SetLength(SA, Len);
-    WideCharToMultiByte(CP_UTF8, 0, PWideChar(S), -1, PAnsiChar(SA), Len, nil, nil);
-{$ELSE}
-    SA := UTF8Encode(S);
-{$ENDIF}
-    Stream.WriteBuffer(Pointer(SA)^, Length(SA) * SizeOf(AnsiChar) - 1);
+    // 统一使用本单元的 UTF-8 编码实现，返回值含结尾 #0，剔除后才是实际内容字节数
+    Len := 0;
+    if Length(S) > 0 then
+    begin
+      SetLength(SA, Length(S) * 4); // 单个宽字符最多编码为 4 个 UTF-8 字节
+      Len := InternalUnicodeToUtf8(PAnsiChar(SA), Length(SA) + 1, PWideChar(S), Length(S));
+    end;
+    if Len > 0 then
+      SetLength(SA, Len - 1)
+    else
+      SA := '';
+    if Length(SA) > 0 then
+      Stream.WriteBuffer(Pointer(SA)^, Length(SA) * SizeOf(AnsiChar));
   end
   else if AFormat = wlfUnicode then
   begin

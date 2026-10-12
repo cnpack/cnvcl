@@ -114,6 +114,7 @@ function TestStringReplace: Boolean;
 function TestStringBuilder: Boolean;
 function TestAnsiStringListDelimitedText: Boolean;
 function TestFastPositionBadCharRule: Boolean;
+function TestWideStringListSaveUtf8: Boolean;
 
 // ============================== Containers ==================================
 
@@ -1933,6 +1934,7 @@ begin
   MyAssert(TestStringBuilder, 'TestStringBuilder');
   MyAssert(TestAnsiStringListDelimitedText, 'TestAnsiStringListDelimitedText');
   MyAssert(TestFastPositionBadCharRule, 'TestFastPositionBadCharRule');
+  MyAssert(TestWideStringListSaveUtf8, 'TestWideStringListSaveUtf8');
 
 // ============================== Containers ==================================
 
@@ -3431,14 +3433,8 @@ function TestFastPositionBadCharRule: Boolean;
   不是首个匹配位置的偏移量。以下用例中前 8 组为存在真实匹配的用例，末 5 组为正常路径对照。 }
 
   function CheckFastPosition(const S, P: string; FromIndex, Expect: Integer): Boolean;
-  var
-    Got: Integer;
   begin
-    Got := FastPosition(PChar(S), PChar(P), FromIndex);
-    Result := Got = Expect;
-    if not Result then
-      MyWriteln('    FastPosition(' + QuotedStr(S) + ', ' + QuotedStr(P) + ', ' +
-        IntToStr(FromIndex) + ') = ' + IntToStr(Got) + ', expect ' + IntToStr(Expect));
+    Result := FastPosition(PChar(S), PChar(P), FromIndex) = Expect;
   end;
 
 begin
@@ -3487,6 +3483,105 @@ begin
   Result := CheckFastPosition('zzzz', 'ab', 0, -1);
   if not Result then Exit;
 end;
+
+function TestWideStringListSaveUtf8: Boolean;
+{ CnWideStrings.TCnWideStringList.SaveToStream 在 wlfUtf8 分支中，Windows 下
+  WideCharToMultiByte(-1) 返回的 SA 含结尾 #0，按 Length(SA) - 1 写入恰好剔除 #0；
+  非 Windows 下 UTF8Encode 返回的 SA 本身不含 #0，再减 1 会把最后一个内容字节丢掉。
+  本用例逐字节比对保存结果，并检查文件尾部为完整的 CRLF。 }
+
+var
+  L, L2: TCnWideStringList;
+  M: TMemoryStream;
+  Saved: AnsiString;
+  I: Integer;
+
+  function WidePair(C1, C2: Integer): WideString;
+  begin
+    SetLength(Result, 2);
+    Result[1] := WideChar(C1);
+    Result[2] := WideChar(C2);
+  end;
+
+  function CheckSaveUtf8(WriteBOM: Boolean): Boolean;
+  var
+    Expected: AnsiString;
+  begin
+    Expected := CnUtf8EncodeWideString(L.Text);
+    if WriteBOM then
+      Expected := #$EF#$BB#$BF + Expected;
+    L.WriteBOM := WriteBOM;
+    M.Clear;
+    L.SaveToStream(M, wlfUtf8);
+    SetLength(Saved, M.Size);
+    if M.Size > 0 then
+      Move(M.Memory^, Saved[1], M.Size);
+
+    Result := (M.Size = Length(Expected)) and (Saved = Expected);
+  end;
+
+begin
+  L := TCnWideStringList.Create;
+  M := TMemoryStream.Create;
+  try
+    L.Add('a=1');
+    L.Add('b=2');
+    Result := CheckSaveUtf8(True);
+    if not Result then Exit;
+
+    Result := CheckSaveUtf8(False);
+    if not Result then Exit;
+
+    { 末行含多字节字符时，被截掉的是其最后一个连续字节 }
+    L.Clear;
+    L.Add('a=1');
+    L.Add('name=' + WidePair($4E2D, $6587));
+    Result := CheckSaveUtf8(True);
+    if not Result then Exit;
+
+    { 末行含增补平面字符（代理对），整个字符占 4 个 UTF-8 字节 }
+    L.Clear;
+    L.Add('a=1');
+    L.Add(WidePair($D83D, $DE00));
+    Result := CheckSaveUtf8(True);
+    if not Result then Exit;
+
+    { 仅有一项且以多字节字符收尾，不带 BOM }
+    L.Clear;
+    L.Add(WidePair($4E2D, $6587));
+    Result := CheckSaveUtf8(False);
+    if not Result then Exit;
+
+    { GetTextStr 在每一项后都追加 CRLF，保存结果尾部必须是完整的 CRLF }
+    Result := (Length(Saved) >= 2) and (Saved[Length(Saved)] = #10) and
+      (Saved[Length(Saved) - 1] = #13);
+    if not Result then Exit;
+
+    { 保存后重新加载，条目内容必须完全一致 }
+    L2 := TCnWideStringList.Create;
+    try
+      L.WriteBOM := True;
+      M.Clear;
+      L.SaveToStream(M, wlfUtf8);
+      M.Position := 0;
+      L2.LoadFromStream(M);
+      Result := L2.Count = L.Count;
+      if not Result then Exit;
+      for I := 0 to L.Count - 1 do
+        if L2.Strings[I] <> L.Strings[I] then
+        begin
+          Result := False;
+          Exit;
+        end;
+    finally
+      L2.Free;
+    end;
+  finally
+    M.Free;
+    L.Free;
+  end;
+end;
+
 
 function TestRingBufferBackOverwrite: Boolean;
 var
