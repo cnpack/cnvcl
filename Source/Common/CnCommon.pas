@@ -1460,6 +1460,19 @@ function FindClassInAllRttiType(const ClassName: string): TPersistentClass;
 
 {$ENDIF}
 
+function CnExtractStrings(Separators, WhiteSpace: TSysCharSet; const Content: string;
+  Strings: TStrings): Integer;
+{* 字符串按字符劈分函数，不走 PChar 参数以避免与脚本引擎不兼容。
+
+   参数：
+     Separators: TSysCharSet              - 分隔符字符集
+     WhiteSpace: TSysCharSet              - 空白字符集（会被跳过）
+     const Content: string                - 待劈分的源字符串
+     Strings: TStrings                    - 接收劈分结果的字符串列表
+
+   返回值：Integer                        - 实际提取到的字符串数量
+}
+
 implementation
 
 uses
@@ -9453,6 +9466,12 @@ begin
 end;
 
 {$ENDIF}
+
+function CnExtractStrings(Separators, WhiteSpace: TSysCharSet; const Content: string;
+  Strings: TStrings): Integer;
+begin
+  Result := ExtractStrings(Separators, WhiteSpace, PChar(Content), Strings);
+end;
 
 { TCnWideMemIniFile }
 
