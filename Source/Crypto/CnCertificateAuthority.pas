@@ -560,7 +560,7 @@ type
     }
 
     property IsSelfSigned: Boolean read GetIsSelfSigned;
-    {* 是否自签名证书，使用签发者与被签发者信息是否相同来判断}
+    {* 是否自签名证书。该属性使用签发者与被签发者信息是否相同来判断，并不验签名}
     property IsRSA: Boolean read FIsRSA write FIsRSA;
     {* 是否是 RSA 证书，否则是 ECC 证书。这个字段指签发者的证书类型}
 

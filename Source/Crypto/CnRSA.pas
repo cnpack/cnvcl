@@ -3054,8 +3054,7 @@ end;
 // 将一片内存区域按指定的 Padding 模式与类型填充后进行 RSA 加解密计算
 function RSAPaddingCrypt(PaddingType, BlockSize: Integer; PlainData: Pointer;
   DataByteLen: Integer; OutBuf: Pointer; PublicKey: TCnRSAPublicKey;
-  PrivateKey: TCnRSAPrivateKey;
-  PaddingMode: TCnRSAPaddingMode): Boolean;
+  PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 var
   Stream: TMemoryStream;
   Res, Data: TCnBigNumber;
@@ -3129,14 +3128,14 @@ end;
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 begin
-  Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM, PublicKey.BitsCount div 8,
+  Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM, PublicKey.BytesCount,
     PlainData, DataByteLen, OutBuf, PublicKey, nil, PaddingMode);
 end;
 
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean;
 begin
-  Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.BitsCount div 8,
+  Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.BytesCount,
     PlainData, DataByteLen, OutBuf, nil, PrivateKey, cpmPKCS1);
   // 私钥加密只支持 PKCS1 对齐方式，不支持 OAEP 对齐方式
 end;

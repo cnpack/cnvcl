@@ -250,6 +250,7 @@ resourcestring
   SCnErrorPDFKeyLength = 'Invalid Key Length';
   SCnErrorPDFDataLength = 'Invalid Data Length';
   SCnErrorPDFEncryptParams = 'Invalid Encrypt Params';
+  SCnErrorPDFPadding = 'Invalid PDF Padding';
 
 function CnPDFFindEncryptionMethod(Version, Revision, KeyBitLength: Integer;
   const CFMValue: string = ''): TCnPDFEncryptionMethod;
@@ -627,7 +628,8 @@ begin
     Res := AESDecryptCbcBytes(Res, K, Iv, kbt128);
     if Length(Res) > 0 then // 解密后再解除 PKCS5 对齐
     begin
-      BytesRemovePKCS7Padding(Res);
+      if not BytesRemovePKCS7Padding(Res) then
+        raise ECnPDFCryptException.Create(SCnErrorPDFPadding);
       Data := Res;
     end;
   end;

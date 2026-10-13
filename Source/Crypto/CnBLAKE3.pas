@@ -982,6 +982,7 @@ begin
   BLAKE3Final(Context, Result);
 end;
 
+// 注意：因 BLAKE3 支持 XOF，本函数因而无法负责 Final，只能由调用方决定输出长度并收尾
 function InternalBLAKE3Stream(Stream: TStream; const BufSize: Cardinal;
   var Context: TCnBLAKE3Context; CallBack: TCnBLAKE3CalcProgressFunc): Boolean;
 var
