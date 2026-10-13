@@ -107,7 +107,7 @@ uses
 
   0：全 0
   -0：全 0 但符号位为 1
-  正负无穷大：指数全 1，有效数全 0，符号 0 或 1
+  正负无穷大：指数全 1，有效数全 0（扩展双精度 10 字节，有效数字的最高位需 1），符号 0 或 1
 }
 
 type
@@ -554,6 +554,7 @@ const
 resourcestring
   SCnErrorExtendedSizeFmt = 'Extended Size Error %d';
   SCnErrorExtendedInvalidFormat = 'Invalid Invariant Extended Value';
+  SCnErrorFloatExponentFmt = 'Invalid Exponent %d';
 
 type
   TExtendedRec10 = packed record
@@ -776,7 +777,7 @@ UseExponent:
                 // Add zeros at tail
                 SetLength(Result, IntExp);
                 for i := i + 1 to IntExp do
-                  Result := '0';
+                  Result[i] := '0';
               end;
             end;
           end
@@ -791,7 +792,7 @@ UseExponent:
               Exp[1] := '0';
               Exp[2] := '.';
               for i := 3 to IntExp + 1 do
-                Exp := '0';   //}
+                Exp[i] := '0';   //}
               Result := Exp + Result;
             end;
           end;
@@ -856,7 +857,7 @@ const
   function ToHex(const S: AnsiString; LeftToDot: Boolean): AnsiString;
   var
     i, l, t, m, k: Integer;
-    Buf: array[1..20] of AnsiChar;
+    Buf: array[1..64] of AnsiChar;
   begin
     { LeftToDot = True, S will be patched with zeroes on its left side.
       For example, S = '110', after patching, S = '0110'.
@@ -1081,7 +1082,7 @@ const
   function ToOct(const S: AnsiString; LeftToDot: Boolean): AnsiString;
   var
     i, l, t, m, k: Integer;
-    Buf: array[1..30] of AnsiChar;
+    Buf: array[1..64] of AnsiChar;
   begin
     { LeftToDot = True, S will be patched with zeroes on its left side.
       For example, S = '110', after patching, S = '0110'.
@@ -1302,7 +1303,7 @@ begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
     raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 
-  SignNegative := (PCnQuadruple(@Value)^.W1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
+  SignNegative := (PCnQuadruple(@Value)^.W1 and (CN_SIGN_QUADRUPLE_MASK shr 16)) <> 0;
   Exponent := (PCnQuadruple(@Value)^.W1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
 
   // Extract 16 Bytes to Mantissas
@@ -1313,6 +1314,9 @@ end;
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
 begin
+  if (Exponent < CN_SINGLE_MIN_EXPONENT) or (Exponent > CN_SINGLE_MAX_EXPONENT) then
+    raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+
   Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
   PCardinal(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
   Inc(Exponent, CN_EXPONENT_OFFSET_SINGLE);
@@ -1327,6 +1331,9 @@ end;
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
 begin
+  if (Exponent < CN_DOUBLE_MIN_EXPONENT) or (Exponent > CN_DOUBLE_MAX_EXPONENT) then
+    raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+
   Mantissa := Mantissa and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
   PUInt64(@Value)^ := Mantissa and CN_SIGNIFICAND_DOUBLE_MASK;
   Inc(Exponent, CN_EXPONENT_OFFSET_DOUBLE);
@@ -1347,6 +1354,12 @@ var
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
+    if (Exponent < CN_EXTENDED_MIN_EXPONENT) or (Exponent > CN_EXTENDED_MAX_EXPONENT) then
+      raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+
+    if SizeOf(Extended) = CN_EXTENDED_SIZE_16 then
+      FillChar(Value, SizeOf(Extended), 0);
+
     PExtendedRec10(@Value)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
 
@@ -1372,6 +1385,12 @@ var
 begin
   if (ExtendedSize = CN_EXTENDED_SIZE_10) or (ExtendedSize = CN_EXTENDED_SIZE_16) then
   begin
+    if (Exponent < CN_EXTENDED_MIN_EXPONENT) or (Exponent > CN_EXTENDED_MAX_EXPONENT) then
+      raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+
+    if ExtendedSize = CN_EXTENDED_SIZE_16 then
+      FillChar(ValueAddr, ExtendedSize, 0);
+
     PExtendedRec10(ValueAddr)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
 
@@ -1515,7 +1534,7 @@ function ExtendedIsInfinite(AValue: Extended): Boolean;
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
     Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
-              ((PExtendedRec10(@AValue)^.Mantissa) = 0)
+              ((PExtendedRec10(@AValue)^.Mantissa) = $8000000000000000)
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsInfinite(AValue)
   else

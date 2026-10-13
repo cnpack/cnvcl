@@ -273,7 +273,7 @@ const
     '占门厕', '碓磨炉', '厨灶炉', '仓库栖', '占房床',
 
     '占门碓', '碓磨厕', '厨灶炉', '仓库门', '房床栖',
-    '占门床', '占碓磨', '厨灶厕', '仓库卢', '房床门',
+    '占门床', '占碓磨', '厨灶厕', '仓库炉', '房床门',
 
     '门鸡栖', '碓磨床', '厨灶碓', '仓库厕', '仓库厕',
     '占大门', '碓磨栖', '厨灶床', '仓库碓', '房床厕',
@@ -8302,7 +8302,7 @@ begin
   if not (N in [0..23]) then
     raise ECnDateTimeException.CreateFmt(SCnErrorJieQiIndexIsInvalid, [N]);
 
-  Result := True;
+  Result := False;
   ActualYear := AYear;
 
   Days := GetJieQiDayTimeFromYear(AYear, N + 1);
@@ -8314,6 +8314,7 @@ begin
 
   Neg := Days < 0; // 小于 0 表示在前一年，可能是小寒
 
+  AMonth := CN_CALENDAR_INVALID_NUM;
   for I := 1 to 12 do
   begin
     Day := GetMonthDays(AYear, I);
@@ -8325,6 +8326,10 @@ begin
       Break;
     end;
   end;
+
+  if AMonth = CN_CALENDAR_INVALID_NUM then
+    Exit;
+
   ADay := Floor(Days);
 
   Days := Days - ADay;
@@ -8383,6 +8388,7 @@ begin
     AMonth := 12;
     ADay := GetMonthDays(AYear, AMonth) + ADay;
   end;
+  Result := True;
 end;
 
 // 获得公历年月日是本年的什么节气，0-23，对应立春到大寒，无则返回 -1
@@ -9490,7 +9496,7 @@ begin
   FuDay := CN_CALENDAR_INVALID_NUM;
   ValidDate(AYear, AMonth, ADay);
 
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Days := GetDayFromYearBeginWith1582(AYear, AMonth, ADay);
   XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAZHI)); // 获得夏至日
   LiQiu := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LIQIU));   // 获得立秋日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
