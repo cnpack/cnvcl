@@ -47,7 +47,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Contnrs, {$IFDEF ANDROID} FMX.Types, {$ENDIF} CnConsts,
+  SysUtils, Classes, Contnrs, Math, {$IFDEF ANDROID} FMX.Types, {$ENDIF} CnConsts,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
@@ -107,6 +107,7 @@ function TestRandomDistribution: Boolean;
 
 function TestExtendedToUInt64: Boolean;
 function TestExtendedToUInt64BigRange: Boolean;
+function TestExtendedIsInfiniteAndNan: Boolean;
 
 // ============================== Strings ======================================
 
@@ -1933,6 +1934,7 @@ begin
 
   MyAssert(TestExtendedToUInt64, 'TestExtendedToUInt64');
   MyAssert(TestExtendedToUInt64BigRange, 'TestExtendedToUInt64BigRange');
+  MyAssert(TestExtendedIsInfiniteAndNan, 'TestExtendedIsInfiniteAndNan');
 
 // ============================== Strings ======================================
 
@@ -3267,6 +3269,49 @@ begin
       Result := False;
   end;
   if not Result then Exit;
+
+  Result := True;
+end;
+
+function TestExtendedIsInfiniteAndNan: Boolean;
+var
+  V: Extended;
+begin
+  Result := False;
+  { 盯住 ExtendedIsInfinite 里那句「尾数等于 $8000000000000000」的判断。
+
+    裸十六进制字面量 $8000000000000000 在 FPC 下被定成负的 Int64
+    （-9223372036854775808），而 Mantissa 是 QWord，两者比较时 FPC 恒判为假，
+    于是无穷大永远判不出来——编译期还会给一条
+    "Comparison might be always false due to range of constant and expression"。
+    Delphi 给该字面量定的是 UInt64，所以同一个写法在 Delphi 下是对的、在 FPC 下是错的。
+
+    这个用例不依赖平台尺寸：8 字节 Extended 时走 DoubleIsInfinite / DoubleIsNan，
+    10 与 16 字节时走上面那句尾数判断，两条路径都要经得起这三条断言。 }
+
+  // 正无穷：是无穷大，且不是 NaN
+  V := Math.Infinity;
+  if not ExtendedIsInfinite(V) then Exit;
+  if ExtendedIsNan(V) then Exit;
+
+  // 负无穷：同上
+  V := Math.NegInfinity;
+  if not ExtendedIsInfinite(V) then Exit;
+  if ExtendedIsNan(V) then Exit;
+
+  // NaN：是 NaN，且不是无穷大
+  V := Math.NaN;
+  if not ExtendedIsNan(V) then Exit;
+  if ExtendedIsInfinite(V) then Exit;
+
+  // -------- 反向用例：普通值与零不能被误判 --------
+  V := 1.0;
+  if ExtendedIsInfinite(V) then Exit;
+  if ExtendedIsNan(V) then Exit;
+
+  V := 0.0;
+  if ExtendedIsInfinite(V) then Exit;
+  if ExtendedIsNan(V) then Exit;
 
   Result := True;
 end;

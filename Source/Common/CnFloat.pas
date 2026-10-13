@@ -1566,7 +1566,7 @@ function ExtendedIsInfinite(AValue: Extended): Boolean;
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
     Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
-              ((PExtendedRec10(@AValue)^.Mantissa) = $8000000000000000)
+              ((PExtendedRec10(@AValue)^.Mantissa) = TUInt64($8000000000000000))
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsInfinite(AValue)
   else
