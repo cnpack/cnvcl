@@ -572,7 +572,9 @@ begin
     begin
       if J <> I then
       begin
-        N := Int64NonNegativeMulMod(N, InOrders[J], Prime);
+        // 分子须连乘 (0 - X_j) 即 -X_j。原先误乘 +X_j，会漏掉 (-1)^(n-1) 因子，
+        // 导致偶数份重构静默返回 -Secret mod Prime 且仍报成功。
+        N := Int64NonNegativeMulMod(N, Int64AddMod(0, -InOrders[J], Prime), Prime);
         D := Int64NonNegativeMulMod(D, Int64AddMod(X, -InOrders[J], Prime), Prime);
       end;
     end;
@@ -668,7 +670,7 @@ function CnShamirReconstruct(Prime: TCnBigNumber; InOrders, InShares: TCnBigNumb
   OutSecret: TCnBigNumber): Boolean;
 var
   I, J: Integer;
-  X, Y, T, N, D: TCnBigNumber;
+  X, Y, T, N, D, NegX: TCnBigNumber;
 begin
   Result := False;
   if Prime.IsNegative or Prime.IsZero or (InOrders.Count < 2) or (InOrders.Count <> InShares.Count) then
@@ -684,6 +686,7 @@ begin
   N := nil;
   D := nil;
   T := nil;
+  NegX := nil;
 
   try
     OutSecret.SetZero;
@@ -691,6 +694,7 @@ begin
     T := TCnBigNumber.Create;
     N := TCnBigNumber.Create;
     D := TCnBigNumber.Create;
+    NegX := TCnBigNumber.Create;
 
     for I := 0 to InOrders.Count - 1 do
     begin
@@ -706,7 +710,12 @@ begin
       begin
         if J <> I then
         begin
-          if not BigNumberDirectMulMod(N, N, InOrders[J], Prime) then
+          // 分子须连乘 (0 - X_j) 即 -X_j。原先误乘 +X_j，会漏掉 (-1)^(n-1) 因子，
+          // 导致偶数份重构静默返回 -Secret mod Prime 且仍报成功。
+          if not BigNumberSubMod(NegX, Prime, InOrders[J], Prime) then  // NegX = -X_j mod Prime
+            Exit;
+
+          if not BigNumberDirectMulMod(N, N, NegX, Prime) then
             Exit;
 
           if not BigNumberSubMod(T, X, InOrders[J], Prime) then
@@ -733,6 +742,7 @@ begin
     T.Free;
     D.Free;
     N.Free;
+    NegX.Free;
   end;
 end;
 

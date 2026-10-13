@@ -964,7 +964,7 @@ end;
 
 procedure TCnBitBuilder.SetByteLength(const Value: Integer);
 begin
-  if Value < 0 then
+  if (Value < 0) or (Value > FMaxByteCapacity) or (Value > High(Integer) div 8) then
     raise ERangeError.CreateResFmt(@SCnErrorByteCapacityFmt, [Value]);
 
   FBitLength := Value * 8;

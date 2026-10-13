@@ -1799,7 +1799,7 @@ procedure PutBytesToMemory(const Data: TBytes; Mem: Pointer; MaxByteSize: Intege
 }
 
 function CompareBytes(const A: TBytes; const B: TBytes): Boolean; overload;
-{* 比较两个字节数组内容是否相同。
+{* 比较两个字节数组内容是否相同。注意两个空数组判为相同，返回 True。
 
    参数：
      const A: TBytes                      - 待比较的字节数组一
@@ -1833,7 +1833,7 @@ function CompareBytesWithDiffIndex(const A, B: TBytes; out DiffIndex: Integer): 
 
 function MoveMost(const Source; var Dest; ByteLen: Integer; MostLen: Integer): Integer;
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，返回实际移动的字节数。
-   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen。
+   如 ByteLen 小于 MostLen（即使 <= 0），则 Dest 尾部填充 0，要求 Dest 容纳至少 MostLen。
 
    参数：
      const Source                         - 待移动的源位置。不传地址，传变量本身
@@ -1974,6 +1974,7 @@ function ConstTimeEqual64(A: TUInt64; B: TUInt64): Boolean;
 
 function ConstTimeCompareMem(P1, P2: Pointer; ByteLength: Integer): Boolean;
 {* 针对俩相同长度的内存块的执行时间固定的比较，内容相同时返回 True。
+   注意零或负长度或空指针均返回 False 表示不等。
 
    参数：
      P1: Pointer                          - 待比较的第一个内存块地址
@@ -3965,11 +3966,13 @@ end;
 
 function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
 begin
-  if (MostLen <= 0) or (ByteLen <= 0) then
+  if MostLen <= 0 then
   begin
     Result := 0;
     Exit;
   end;
+  if ByteLen < 0 then
+    ByteLen := 0;
 
   if ByteLen > MostLen then
     ByteLen := MostLen
@@ -3980,7 +3983,8 @@ begin
     // TODO: 要变为 FillChar(Dest + ByteLen, MostLen - ByteLen, 0); 以只填充不满的部分
   end;
 
-  Move(Source, Dest, ByteLen);
+  if ByteLen > 0 then
+    Move(Source, Dest, ByteLen);
   Result := ByteLen;
 end;
 
@@ -4089,6 +4093,12 @@ var
   I: Integer;
   Diff: Byte;
 begin
+  if (ByteLength <= 0) or (P1 = nil) or (P2 = nil) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   Diff := 0;
   B1 := PByte(P1);
   B2 := PByte(P2);
@@ -4107,6 +4117,8 @@ function ConstTimeCompareBytes(const A, B: TBytes): Boolean;
 begin
   if Length(A) <> Length(B) then
     Result := False
+  else if Length(A) = 0 then
+    Result := True
   else
     Result := ConstTimeCompareMem(@A[0], @B[0], Length(A));
 end;

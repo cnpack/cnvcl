@@ -764,6 +764,7 @@ function TestPaillier2: Boolean;
 function TestSecretSharingShamir: Boolean;
 function TestSecretSharingInt64Shamir: Boolean;
 function TestSecretSharingFeldmanVss: Boolean;
+function TestSecretSharingShamirEvenShares: Boolean;
 
 // ================================ OTS ========================================
 
@@ -2588,6 +2589,7 @@ begin
   MyAssert(TestSecretSharingShamir, 'TestSecretSharingShamir');
   MyAssert(TestSecretSharingInt64Shamir, 'TestSecretSharingInt64Shamir');
   MyAssert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
+  MyAssert(TestSecretSharingShamirEvenShares, 'TestSecretSharingShamirEvenShares');
 
 // ================================ OTS ========================================
 
@@ -23126,6 +23128,98 @@ begin
     Y.Free;
     X.Free;
     Shares.Free;
+  end;
+end;
+
+function TestSecretSharingShamirEvenShares: Boolean;
+var
+  S64, P64, R64: Int64;
+  Shares64, X64, Y64: TCnInt64List;
+  S, P, R: TCnBigNumber;
+  Orders, Shares, X, Y: TCnBigNumberList;
+  I, K: Integer;
+begin
+  // 拉格朗日插值的分子项必须乘以 -X_j，缺失该负号会丢失 (-1)^(n-1) 因子，
+  // 导致偶数份重构静默返回 -Secret mod Prime，且函数仍返回 True。
+  // 本文件既有的 TestSecretSharingShamir 与 TestSecretSharingInt64Shamir
+  // 均只使用 3 份（奇数）分片，从未覆盖偶数份场景，故该缺陷一直未被发现。
+  Result := False;
+
+  // ================= Int64 路径：CnInt64ShamirSplit/Reconstruct ==============
+  Shares64 := TCnInt64List.Create;
+  X64 := TCnInt64List.Create;
+  Y64 := TCnInt64List.Create;
+  try
+    S64 := 100;
+    P64 := 65537;
+    if not CnInt64ShamirSplit(S64, 6, 3, Shares64, P64) then
+      Exit;
+    if Shares64.Count <> 6 then
+      Exit;
+
+    // 门限为 3，分别用 3/4/5/6 份重构。其中 3、5 份为奇数，4、6 份为偶数，
+    // 每一种份数都必须还原出原秘密 100。
+    for K := 3 to 6 do
+    begin
+      X64.Clear;
+      Y64.Clear;
+      for I := 0 to K - 1 do
+      begin
+        X64.Add(I + 1);          // 分片顺序号从 1 开始
+        Y64.Add(Shares64[I]);
+      end;
+
+      R64 := 0;
+      if not CnInt64ShamirReconstruct(P64, X64, Y64, R64) then
+        Exit;
+      if R64 <> S64 then
+        Exit;
+    end;
+  finally
+    Y64.Free;
+    X64.Free;
+    Shares64.Free;
+  end;
+
+  // ================ BigNumber 路径：CnShamirSplit/Reconstruct ================
+  S := TCnBigNumber.FromDec('12345678901234567890');
+  P := TCnBigNumber.FromDec('170141183460469231731687303715884105727');  // 2^127-1，梅森素数
+  R := TCnBigNumber.Create;
+
+  Orders := TCnBigNumberList.Create;
+  Shares := TCnBigNumberList.Create;
+  X := TCnBigNumberList.Create;
+  Y := TCnBigNumberList.Create;
+  try
+    if not CnShamirSplit(S, 6, 3, Orders, Shares, P) then
+      Exit;
+    if (Shares.Count <> 6) or (Orders.Count <> 6) then
+      Exit;
+
+    for K := 3 to 6 do
+    begin
+      X.Clear;
+      Y.Clear;
+      for I := 0 to K - 1 do
+      begin
+        X.Add.SetWord(I + 1);
+        BigNumberCopy(Y.Add, Shares[I]);
+      end;
+
+      if not CnShamirReconstruct(P, X, Y, R) then
+        Exit;
+      if R.ToDec <> S.ToDec then
+        Exit;
+    end;
+
+    Result := True;
+  finally
+    Y.Free;
+    X.Free;
+    Shares.Free;
+    R.Free;
+    P.Free;
+    S.Free;
   end;
 end;
 

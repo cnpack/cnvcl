@@ -266,8 +266,8 @@ type
   end;
 
 function CnGetCurrentTimeZoneUTCBiasMinutes: Integer;
-{* 跨平台实现获取当前时区与 UTC 时间差了多少分钟，也即本地时间减 UTC 时间。
-   使用时注意，本地时间减去该返值，即为 UTC 时间。
+{* 跨平台实现获取 UTC 时间与当前时区差了多少分钟，也即 UTC 时间减本地时间。
+   使用时注意，本地时间加上该返回值，即为 UTC 时间。
 
    参数：
      （无）
