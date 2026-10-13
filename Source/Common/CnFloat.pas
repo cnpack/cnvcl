@@ -135,6 +135,9 @@ type
   ECnFloatSizeError = class(Exception);
   {* 浮点数长度异常}
 
+  ECnFloatRangeError = class(Exception);
+  {* 浮点数范围异常}
+
   ECnFloatFormatError = class(Exception);
   {* 浮点数文本格式错误异常}
 
@@ -299,6 +302,7 @@ procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
 {* 把符号位、指数、有效数字拼成单精度浮点数，要求有效数字为正规化的，也即共 24 位且最高位为 1。
+   指数需要在单精度合法范围内，否则抛异常。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -312,6 +316,7 @@ procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
 {* 把符号位、指数、有效数字拼成双精度浮点数，要求有效数字为正规化的，也即共 53 位且最高位为 1。
+   指数需要在双精度合法范围内，否则抛异常。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -327,6 +332,7 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。该函数实现依赖平台的 Extended 尺寸。
    要求有效数字为正规化的，也即共 64 位且最高位为 1。
+   指数需要在依赖平台尺寸的扩展精度合法范围内，否则抛异常。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -342,6 +348,7 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。该函数实现与本平台的 Extended 尺寸无关。
    要求有效数字为正规化的，也即共 64 位且最高位为 1。
+   指数需要在依赖平台尺寸的扩展精度合法范围内，否则抛异常。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -355,9 +362,10 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
 
 procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
   MantissaLo: TUInt64; MantissaHi: TUInt64; var Value: Extended);
-{* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节
+{* 把符号位、指数、有效数字拼成四倍精度浮点数，只在 Extended 为 16 字节
    且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）。
    要求有效数字为正规化的，也即共 112 位且最高位为 1。
+   指数需要在依赖平台尺寸的扩展精度合法范围内，否则抛异常。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -1315,7 +1323,7 @@ procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
 begin
   if (Exponent < CN_SINGLE_MIN_EXPONENT) or (Exponent > CN_SINGLE_MAX_EXPONENT) then
-    raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
   Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
   PCardinal(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
@@ -1332,7 +1340,7 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
 begin
   if (Exponent < CN_DOUBLE_MIN_EXPONENT) or (Exponent > CN_DOUBLE_MAX_EXPONENT) then
-    raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
   Mantissa := Mantissa and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
   PUInt64(@Value)^ := Mantissa and CN_SIGNIFICAND_DOUBLE_MASK;
@@ -1355,7 +1363,7 @@ begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
     if (Exponent < CN_EXTENDED_MIN_EXPONENT) or (Exponent > CN_EXTENDED_MAX_EXPONENT) then
-      raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
     if SizeOf(Extended) = CN_EXTENDED_SIZE_16 then
       FillChar(Value, SizeOf(Extended), 0);
@@ -1386,10 +1394,10 @@ begin
   if (ExtendedSize = CN_EXTENDED_SIZE_10) or (ExtendedSize = CN_EXTENDED_SIZE_16) then
   begin
     if (Exponent < CN_EXTENDED_MIN_EXPONENT) or (Exponent > CN_EXTENDED_MAX_EXPONENT) then
-      raise ECnFloatSizeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
     if ExtendedSize = CN_EXTENDED_SIZE_16 then
-      FillChar(ValueAddr, ExtendedSize, 0);
+      FillChar(ValueAddr^, ExtendedSize, 0);
 
     PExtendedRec10(ValueAddr)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
@@ -1416,6 +1424,9 @@ procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
 begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
     raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
+
+  if (Exponent < CN_EXTENDED_MIN_EXPONENT) or (Exponent > CN_EXTENDED_MAX_EXPONENT) then
+    raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
   MantissaHi := MantissaHi and not (TUInt64(1) shl 48); // 去掉 112 位上的 1，如果有的话
   PCnQuadruple(@Value)^.Lo := MantissaLo;
@@ -1489,17 +1500,38 @@ begin
   else
     L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
 
-  // Mantissa 有 64/53 位有效数字，其中小数点后 63/52 位，如果指数小于 0 说明小数点要往左移，那么值就是 0 了
+  // 真实值等于 Mantissa 乘以 2 的 Exponent - L 次方，Mantissa 共 L + 1 位有效数字。
+  // 指数小于 0 时真实值小于 1，截断为 0，注意此时右移量会达到 L 以上，不能真的去移位
   if Exponent < 0 then
-    Result := 0
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  if Exponent < L then
+  begin
+    // 小数点往左移 T 位，丢掉小数部分即得整数部分，T 在 0 到 L 之间，不会达到 64
+    T := L - Exponent;
+    Result := Mantissa shr T;
+  end
   else
   begin
-    // 将小数点往右移 Exponent 位，小数点左边的是整数部分
-    T := L - Exponent;    // 小数点在 0 到 63/52 位的 63/52 位右边，小数点右移后在 T 位右边
-    if T < 0 then
+    // 小数点往右移，也就是要左移。8 字节 Extended 时指数最大 1023，远大于 L 的 52，必须支持
+    T := Exponent - L;                     // 左移位数，可能为 0
+    if T = 0 then
+    begin
+      Result := Mantissa;
+      Exit;
+    end;
+
+    if T >= 64 then
       raise ERangeError.Create(SRangeError); // Exponent 太大
 
-    Result := Mantissa shr T;
+    // 左移前先检查最高 T 位，不为 0 说明结果放不进 UInt64
+    if (Mantissa shr (64 - T)) <> 0 then
+      raise ERangeError.Create(SRangeError); // Exponent 太大
+
+    Result := Mantissa shl T;
   end;
 end;
 

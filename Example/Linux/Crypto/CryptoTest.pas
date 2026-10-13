@@ -106,6 +106,7 @@ function TestRandomDistribution: Boolean;
 // ================================ Float =======================================
 
 function TestExtendedToUInt64: Boolean;
+function TestExtendedToUInt64BigRange: Boolean;
 
 // ============================== Strings ======================================
 
@@ -1931,6 +1932,7 @@ begin
 // ================================ Float =======================================
 
   MyAssert(TestExtendedToUInt64, 'TestExtendedToUInt64');
+  MyAssert(TestExtendedToUInt64BigRange, 'TestExtendedToUInt64BigRange');
 
 // ============================== Strings ======================================
 
@@ -3143,6 +3145,119 @@ begin
   // 因为它的设计目的是把浮点当无符号整数用，负数一律视为越界。
   try
     U := ExtendedToUInt64(-0.5);
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  Result := True;
+end;
+
+// UTrunc 在 SizeOf(Extended) = 8 的平台上（Win64、多数 ARM64，此时 Extended 就是 Double）
+// 曾经只能处理「真实指数 E 不大于尾数位宽 L」的情形：它只会做右移 Mantissa shr (L - E)，
+// E 大于 L 时移位量为负，直接抛 ERangeError。于是 2^53 及以上的值一律取不出来，
+// 哪怕它们完全落在 UInt64 范围内。这里包一层，把「本该成功却抛异常」转成 False，
+// 好让 MyAssert 干净地报错，而不是让异常冒出去打断整个测试。
+function TestExtendedToUInt64BigRange: Boolean;
+const
+  { 达到 2^63 的期望值必须写成类型化常量：裸十六进制字面量 $8000000000000000
+    在 FPC 下会被当成负的 Int64，与 QWord 比较时恒为假，直接写会让用例永远通过而失去意义。 }
+  CN_UINT64_2_63: TUInt64 = $8000000000000000;
+  CN_UINT64_1E19: TUInt64 = $8AC7230489E80000;
+  CN_UINT64_MAXD: TUInt64 = $FFFFFFFFFFFFF800;
+  CN_UINT64_2_60: TUInt64 = $1000000000000000;
+var
+  Back: Extended;
+  U: TUInt64;
+
+  function TryExtendedToUInt64(F: Extended; out U: TUInt64): Boolean;
+  begin
+    Result := False;
+    U := 0;
+    try
+      U := ExtendedToUInt64(F);
+      Result := True;
+    except
+      on ERangeError do
+        Result := False;
+    end;
+  end;
+
+begin
+  Result := False;
+  { 针对 UTrunc 在 8 字节 Extended 平台上「指数大于 L 就抛异常」的缺陷。
+
+    真实值等于 Mantissa * 2^(E - L)。E 大于 L 时小数点要往右移，Mantissa 得左移，
+    而旧实现只写了右移分支，E > L 时 T := L - E 为负就直接抛异常。
+    Double 的 L 是 52，所以 8 字节平台上 2^53 及以上的值全部取不出来。
+
+    下面每个字面量在 Double 与 80 位 Extended 里都能精确表示，
+    因此期望值在两种平台上一致，不会因为舍入而误判。 }
+
+  // -------- 2^53 是最小触发点，此时 E = 53 > L = 52 --------
+  if not TryExtendedToUInt64(9007199254740992.0, U) then Exit;
+  if U <> 9007199254740992 then Exit;
+
+  if not TryExtendedToUInt64(18014398509481984.0, U) then Exit;   { 2^54 }
+  if U <> 18014398509481984 then Exit;
+
+  if not TryExtendedToUInt64(1000000000000000000.0, U) then Exit; { 1e18，在 Double 里正好精确 }
+  if U <> 1000000000000000000 then Exit;
+
+  if not TryExtendedToUInt64(4611686018427387904.0, U) then Exit; { 2^62 }
+  if U <> 4611686018427387904 then Exit;
+
+  // -------- 达到 2^63 的不能用十进制字面量直接比，会被当成有符号 Int64 --------
+  if not TryExtendedToUInt64(9223372036854775808.0, U) then Exit; { 2^63 }
+  if UInt64Compare(U, CN_UINT64_2_63) <> 0 then Exit;
+
+  if not TryExtendedToUInt64(10000000000000000000.0, U) then Exit; { 1e19 }
+  if UInt64Compare(U, CN_UINT64_1E19) <> 0 then Exit;
+
+  if not TryExtendedToUInt64(18446744073709549568.0, U) then Exit; { 2^64 - 2048，Double 能表示的最大 UInt64 }
+  if UInt64Compare(U, CN_UINT64_MAXD) <> 0 then Exit;
+
+  // -------- DoubleToUInt64 / SingleToUInt64 走同一个 UTrunc，一并验证 --------
+  try
+    if DoubleToUInt64(1000000000000000000.0) <> 1000000000000000000 then Exit;
+    if UInt64Compare(SingleToUInt64(1152921504606846976.0), CN_UINT64_2_60) <> 0 then Exit; { Single 里的 2^60 }
+  except
+    on ERangeError do
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  // -------- 回环：转成 Extended 再转回来必须一致 --------
+  if not TryExtendedToUInt64(1000000000000000000.0, U) then Exit;
+  Back := UInt64ToExtended(U);
+  if Back <> 1000000000000000000.0 then Exit;
+
+  if not TryExtendedToUInt64(18446744073709549568.0, U) then Exit;
+  Back := UInt64ToExtended(U);
+  if Back <> 18446744073709549568.0 then Exit;
+
+  // -------- 改成左移后，超出 UInt64 仍必须抛 ERangeError，不能静默回绕 --------
+  try
+    U := ExtendedToUInt64(18446744073709551616.0);   { 2^64 }
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  try
+    U := ExtendedToUInt64(1e20);
     Result := False;
     Exit;
   except
