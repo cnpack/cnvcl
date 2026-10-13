@@ -2171,6 +2171,13 @@ begin
           PutIndexedBigIntegerToBigNumber(Reader.Items[7], PublicKey.PubKeyExponent);
         end;
 
+        if PublicKey.PubKeyExponent.IsEven or
+          (BigNumberCompareInteger(PublicKey.PubKeyExponent, 3) < 0) then
+        begin
+          _CnSetLastError(ECN_RSA_INVALID_BITS);
+          Exit;
+        end;
+
         Result := True;
       end;
     end;
@@ -2204,6 +2211,13 @@ begin
         begin
           PutIndexedBigIntegerToBigNumber(Reader.Items[1], PublicKey.PubKeyProduct);
           PutIndexedBigIntegerToBigNumber(Reader.Items[2], PublicKey.PubKeyExponent);
+        end;
+
+        if PublicKey.PubKeyExponent.IsEven or
+          (BigNumberCompareInteger(PublicKey.PubKeyExponent, 3) < 0) then
+        begin
+          _CnSetLastError(ECN_RSA_INVALID_BITS);
+          Exit;
         end;
 
         Result := True;
@@ -3060,6 +3074,12 @@ var
   Res, Data: TCnBigNumber;
 begin
   Result := False;
+  if DataByteLen < 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
   Res := nil;
   Data := nil;
   Stream := nil;
@@ -3584,7 +3604,12 @@ begin
       if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
         Break;
     end;
+
     Result := TotalBytes > 0;
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
   finally
     Stream.Free;
     SetLength(OutBuf, 0);
@@ -3634,12 +3659,16 @@ begin
       if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
         Break;
     end;
+
     Result := TotalBytes > 0;
     if Result then
     begin
       Pending.Position := 0;
       OutStream.CopyFrom(Pending, Pending.Size);
-    end;
+      _CnSetLastError(ECN_RSA_OK);
+    end
+    else
+       _CnSetLastError(ECN_RSA_INVALID_INPUT);
   finally
     if Pending.Size > 0 then
       MemorySafeZero(Pending.Memory, Pending.Size);
@@ -3703,7 +3732,12 @@ begin
       if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
         Break;
     end;
+
     Result := TotalBytes > 0;
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
   finally
     Stream.Free;
     SetLength(OutBuf, 0);
@@ -3756,9 +3790,12 @@ begin
     Result := TotalBytes > 0;
     if Result then
     begin
+      _CnSetLastError(ECN_RSA_OK);
       Pending.Position := 0;
       OutStream.CopyFrom(Pending, Pending.Size);
-    end;
+    end
+    else
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
   finally
     if Pending.Size > 0 then
       MemorySafeZero(Pending.Memory, Pending.Size);
@@ -5394,6 +5431,12 @@ var
   DBMask: TBytes;
 begin
   Result := False;
+  if DataByteLen < 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
   EmLen:= ToByteLen - 1;
 
   MdLen := SizeOf(TCnSHA1Digest);
@@ -5472,8 +5515,13 @@ var
   SeedMask: TBytes;
 begin
   Result := False;
-  EmLen:= ToByteLen - 1;
+  if DataByteLen < 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
 
+  EmLen:= ToByteLen - 1;
   case DigestType of
     rsdtMD5: MdLen := SizeOf(TCnMD5Digest);
     rsdtSHA1: MdLen := SizeOf(TCnSHA1Digest);
