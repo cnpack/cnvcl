@@ -124,6 +124,9 @@ function TestRingBufferOverwriteBoundaries: Boolean;
 function TestExtendedListIndexOf: Boolean;
 function TestHashMapInt64: Boolean;
 function TestLinkedQueueDestroyDeep: Boolean;
+function TestInt64ListMoveIgnoreDuplicated: Boolean;
+function TestUInt32ListMoveIgnoreDuplicated: Boolean;
+function TestUInt64ListMoveIgnoreDuplicated: Boolean;
 
 // ============================== Calendar =====================================
 
@@ -749,6 +752,7 @@ function Test448CalcKey: Boolean;
 function Test448Sign1: Boolean;
 function Test448Sign2: Boolean;
 function Test448RejectSmallOrderForgery: Boolean;
+function Test448KeyExchangeSmallOrderPoint: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -1944,6 +1948,9 @@ begin
   MyAssert(TestExtendedListIndexOf, 'TestExtendedListIndexOf');
   MyAssert(TestHashMapInt64, 'TestHashMapInt64');
   MyAssert(TestLinkedQueueDestroyDeep, 'TestLinkedQueueDestroyDeep');
+  MyAssert(TestInt64ListMoveIgnoreDuplicated, 'TestInt64ListMoveIgnoreDuplicated');
+  MyAssert(TestUInt32ListMoveIgnoreDuplicated, 'TestUInt32ListMoveIgnoreDuplicated');
+  MyAssert(TestUInt64ListMoveIgnoreDuplicated, 'TestUInt64ListMoveIgnoreDuplicated');
 
 // ============================== Calendar =====================================
 
@@ -2569,6 +2576,7 @@ begin
   MyAssert(Test448Sign1, 'Test448Sign1');
   MyAssert(Test448Sign2, 'Test448Sign2');
   MyAssert(Test448RejectSmallOrderForgery, 'Test448RejectSmallOrderForgery');
+  MyAssert(Test448KeyExchangeSmallOrderPoint, 'Test448KeyExchangeSmallOrderPoint');
 
 // =============================== Paillier ====================================
 
@@ -3582,7 +3590,6 @@ begin
   end;
 end;
 
-
 function TestRingBufferBackOverwrite: Boolean;
 var
   R: TCnObjectRingBuffer;
@@ -3856,6 +3863,342 @@ begin
   finally
     Q.Free;
   end;
+end;
+
+//==============================================================================
+// Move combined with IgnoreDuplicated
+//
+// Move opens the destination slot by writing the item value 0 over the source
+// element (FList^[CurIndex] := 0), then deletes the source and calls
+// Insert(NewIndex, 0). With IgnoreDuplicated := True that placeholder insert is
+// silently skipped as soon as another 0 is still in the list, so Count stays one
+// short and the trailing FList^[NewIndex] := Item either overwrites a live
+// element or lands on the slot right after Count.
+//==============================================================================
+
+const
+  CN_TEST_MOVE_SIZE = 6;
+
+type
+  TTestMoveInt64Array = array[0..CN_TEST_MOVE_SIZE] of Int64;
+  TTestMoveUInt32Array = array[0..CN_TEST_MOVE_SIZE] of Cardinal;
+  TTestMoveUInt64Array = array[0..CN_TEST_MOVE_SIZE] of TUInt64;
+
+// Reference semantics of Move: delete the element at CurIndex, then insert it
+// at NewIndex, so every element in between shifts by exactly one slot.
+procedure CnTestMoveInt64Ref(const A: TTestMoveInt64Array; ACount, CurIndex,
+  NewIndex: Integer; var B: TTestMoveInt64Array; var BCount: Integer);
+var
+  I: Integer;
+begin
+  BCount := 0;
+  for I := 0 to ACount - 1 do
+    if I <> CurIndex then
+    begin
+      B[BCount] := A[I];
+      Inc(BCount);
+    end;
+  for I := BCount downto NewIndex + 1 do
+    B[I] := B[I - 1];
+  B[NewIndex] := A[CurIndex];
+  Inc(BCount);
+end;
+
+procedure CnTestMoveUInt32Ref(const A: TTestMoveUInt32Array; ACount, CurIndex,
+  NewIndex: Integer; var B: TTestMoveUInt32Array; var BCount: Integer);
+var
+  I: Integer;
+begin
+  BCount := 0;
+  for I := 0 to ACount - 1 do
+    if I <> CurIndex then
+    begin
+      B[BCount] := A[I];
+      Inc(BCount);
+    end;
+  for I := BCount downto NewIndex + 1 do
+    B[I] := B[I - 1];
+  B[NewIndex] := A[CurIndex];
+  Inc(BCount);
+end;
+
+procedure CnTestMoveUInt64Ref(const A: TTestMoveUInt64Array; ACount, CurIndex,
+  NewIndex: Integer; var B: TTestMoveUInt64Array; var BCount: Integer);
+var
+  I: Integer;
+begin
+  BCount := 0;
+  for I := 0 to ACount - 1 do
+    if I <> CurIndex then
+    begin
+      B[BCount] := A[I];
+      Inc(BCount);
+    end;
+  for I := BCount downto NewIndex + 1 do
+    B[I] := B[I - 1];
+  B[NewIndex] := A[CurIndex];
+  Inc(BCount);
+end;
+
+// Run every (CurIndex, NewIndex) pair and compare against the reference result.
+function CnTestInt64MoveSweep(const A: TTestMoveInt64Array; ACount: Integer;
+  IgnoreDup: Boolean): Boolean;
+var
+  L: TCnInt64List;
+  B: TTestMoveInt64Array;
+  CurIndex, NewIndex, I, BCount: Integer;
+begin
+  Result := False;
+  L := TCnInt64List.Create;
+  try
+    for CurIndex := 0 to ACount - 1 do
+      for NewIndex := 0 to ACount - 1 do
+      begin
+        if CurIndex = NewIndex then
+          Continue;
+
+        L.Clear;
+        L.IgnoreDuplicated := False;
+        for I := 0 to ACount - 1 do
+          L.Add(A[I]);
+        L.IgnoreDuplicated := IgnoreDup;
+
+        CnTestMoveInt64Ref(A, ACount, CurIndex, NewIndex, B, BCount);
+        L.Move(CurIndex, NewIndex);
+        if L.Count <> BCount then
+          Exit;
+        for I := 0 to BCount - 1 do
+          if L[I] <> B[I] then
+            Exit;
+      end;
+    Result := True;
+  finally
+    L.Free;
+  end;
+end;
+
+function CnTestUInt32MoveSweep(const A: TTestMoveUInt32Array; ACount: Integer;
+  IgnoreDup: Boolean): Boolean;
+var
+  L: TCnUInt32List;
+  B: TTestMoveUInt32Array;
+  CurIndex, NewIndex, I, BCount: Integer;
+begin
+  Result := False;
+  L := TCnUInt32List.Create;
+  try
+    for CurIndex := 0 to ACount - 1 do
+      for NewIndex := 0 to ACount - 1 do
+      begin
+        if CurIndex = NewIndex then
+          Continue;
+
+        L.Clear;
+        L.IgnoreDuplicated := False;
+        for I := 0 to ACount - 1 do
+          L.Add(A[I]);
+        L.IgnoreDuplicated := IgnoreDup;
+
+        CnTestMoveUInt32Ref(A, ACount, CurIndex, NewIndex, B, BCount);
+        L.Move(CurIndex, NewIndex);
+        if L.Count <> BCount then
+          Exit;
+        for I := 0 to BCount - 1 do
+          if L[I] <> B[I] then
+            Exit;
+      end;
+    Result := True;
+  finally
+    L.Free;
+  end;
+end;
+
+function CnTestUInt64MoveSweep(const A: TTestMoveUInt64Array; ACount: Integer;
+  IgnoreDup: Boolean): Boolean;
+var
+  L: TCnUInt64List;
+  B: TTestMoveUInt64Array;
+  CurIndex, NewIndex, I, BCount: Integer;
+begin
+  Result := False;
+  L := TCnUInt64List.Create;
+  try
+    for CurIndex := 0 to ACount - 1 do
+      for NewIndex := 0 to ACount - 1 do
+      begin
+        if CurIndex = NewIndex then
+          Continue;
+
+        L.Clear;
+        L.IgnoreDuplicated := False;
+        for I := 0 to ACount - 1 do
+          L.Add(A[I]);
+        L.IgnoreDuplicated := IgnoreDup;
+
+        CnTestMoveUInt64Ref(A, ACount, CurIndex, NewIndex, B, BCount);
+        L.Move(CurIndex, NewIndex);
+        if L.Count <> BCount then
+          Exit;
+        for I := 0 to BCount - 1 do
+          if L[TUInt64(I)] <> B[I] then
+            Exit;
+      end;
+    Result := True;
+  finally
+    L.Free;
+  end;
+end;
+
+function TestInt64ListMoveIgnoreDuplicated: Boolean;
+var
+  L: TCnInt64List;
+  A: TTestMoveInt64Array;
+  N: TTestMoveInt64Array;
+begin
+  Result := False;
+
+  // A list that already holds the placeholder value 0.
+  A[0] := 1;
+  A[1] := 0;
+  A[2] := 3;
+  A[3] := 4;
+  A[4] := 5;
+  A[5] := 6;
+
+  // 1. Every (CurIndex, NewIndex) pair with IgnoreDuplicated := True must
+  //    still yield Count = ACount and the reference element order.
+  if not CnTestInt64MoveSweep(A, CN_TEST_MOVE_SIZE, True) then
+    Exit;
+
+  // 2. NewIndex = last slot while Count = Capacity. The moved element is
+  //    written one slot past Count, so it disappears from the list although
+  //    its source slot was freed.
+  L := TCnInt64List.Create;
+  try
+    L.Count := 4;
+    if L.Capacity <> 4 then
+      Exit;
+    L[0] := 1;
+    L[1] := 2;
+    L[2] := 0;
+    L[3] := 9;
+    L.IgnoreDuplicated := True;
+    L.Move(0, 3);
+    if L.Count <> 4 then
+      Exit;
+    if (L[0] <> 2) or (L[1] <> 0) or (L[2] <> 9) or (L[3] <> 1) then
+      Exit;
+  finally
+    L.Free;
+  end;
+
+  // 3. Baseline: the same moves with IgnoreDuplicated off, and a list without
+  //    0 with IgnoreDuplicated on, must stay correct.
+  if not CnTestInt64MoveSweep(A, CN_TEST_MOVE_SIZE, False) then
+    Exit;
+  N[0] := 11;
+  N[1] := 12;
+  N[2] := 13;
+  N[3] := 14;
+  N[4] := 15;
+  N[5] := 16;
+  Result := CnTestInt64MoveSweep(N, CN_TEST_MOVE_SIZE, True);
+end;
+
+function TestUInt32ListMoveIgnoreDuplicated: Boolean;
+var
+  L: TCnUInt32List;
+  A: TTestMoveUInt32Array;
+  N: TTestMoveUInt32Array;
+begin
+  Result := False;
+
+  A[0] := 1;
+  A[1] := 0;
+  A[2] := 3;
+  A[3] := 4;
+  A[4] := 5;
+  A[5] := 6;
+
+  if not CnTestUInt32MoveSweep(A, CN_TEST_MOVE_SIZE, True) then
+    Exit;
+
+  L := TCnUInt32List.Create;
+  try
+    L.Count := 4;
+    if L.Capacity <> 4 then
+      Exit;
+    L[0] := 1;
+    L[1] := 2;
+    L[2] := 0;
+    L[3] := 9;
+    L.IgnoreDuplicated := True;
+    L.Move(0, 3);
+    if L.Count <> 4 then
+      Exit;
+    if (L[0] <> 2) or (L[1] <> 0) or (L[2] <> 9) or (L[3] <> 1) then
+      Exit;
+  finally
+    L.Free;
+  end;
+
+  if not CnTestUInt32MoveSweep(A, CN_TEST_MOVE_SIZE, False) then
+    Exit;
+  N[0] := 11;
+  N[1] := 12;
+  N[2] := 13;
+  N[3] := 14;
+  N[4] := 15;
+  N[5] := 16;
+  Result := CnTestUInt32MoveSweep(N, CN_TEST_MOVE_SIZE, True);
+end;
+
+function TestUInt64ListMoveIgnoreDuplicated: Boolean;
+var
+  L: TCnUInt64List;
+  A: TTestMoveUInt64Array;
+  N: TTestMoveUInt64Array;
+begin
+  Result := False;
+
+  A[0] := 1;
+  A[1] := 0;
+  A[2] := 3;
+  A[3] := 4;
+  A[4] := 5;
+  A[5] := 6;
+
+  if not CnTestUInt64MoveSweep(A, CN_TEST_MOVE_SIZE, True) then
+    Exit;
+
+  L := TCnUInt64List.Create;
+  try
+    L.Count := 4;
+    if L.Capacity <> 4 then
+      Exit;
+    L[0] := 1;
+    L[1] := 2;
+    L[2] := 0;
+    L[3] := 9;
+    L.IgnoreDuplicated := True;
+    L.Move(0, 3);
+    if L.Count <> 4 then
+      Exit;
+    if (L[0] <> 2) or (L[1] <> 0) or (L[2] <> 9) or (L[3] <> 1) then
+      Exit;
+  finally
+    L.Free;
+  end;
+
+  if not CnTestUInt64MoveSweep(A, CN_TEST_MOVE_SIZE, False) then
+    Exit;
+  N[0] := 11;
+  N[1] := 12;
+  N[2] := 13;
+  N[3] := 14;
+  N[4] := 15;
+  N[5] := 16;
+  Result := CnTestUInt64MoveSweep(N, CN_TEST_MOVE_SIZE, True);
 end;
 
 // ================================ Calendar ======================================
@@ -22326,6 +22669,97 @@ begin
     Sig.Free;
     PubKey.Free;
     Ed.Free;
+  end;
+end;
+
+function Test448KeyExchangeSmallOrderPoint: Boolean;
+const
+  X448_ALICE_PRIV = '9A8F4925D1519F5775CF46B04B5800D4EE9EE8BAE8BC5565D498C28DD9C9BAF574A9419744897391006382A6F127AB1D9AC2D8C0A598726B';
+  X448_ALICE_PUB = '9B08F7CC31B7E3E67D22D5AEA121074A273BD2B83DE09C63FAA73D2C22C5D9BBC836647241D953D40C5B12DA88120D53177F80E532C41FA0';
+var
+  Priv: TCnCurve448PrivateKey;
+  Raw: TCnEccPrivateKey;
+  Clamped: TCnBigNumber;
+  Curve: TCnCurve448;
+  Peer, Pub, Expect, Shared: TCnEccPoint;
+  D: TCnCurve448Data;
+begin
+  Result := False;
+  Priv := nil;
+  Raw := nil;
+  Clamped := nil;
+  Curve := nil;
+  Peer := nil;
+  Pub := nil;
+  Expect := nil;
+  Shared := nil;
+
+  try
+    Priv := TCnCurve448PrivateKey.Create;
+    Raw := TCnEccPrivateKey.Create;
+    Clamped := TCnBigNumber.Create;
+    Curve := TCnCurve448.Create;
+    Peer := TCnEccPoint.Create;
+    Pub := TCnEccPoint.Create;
+    Expect := TCnEccPoint.Create;
+    Shared := TCnEccPoint.Create;
+
+    // 1. 私钥必须按 RFC 7748 钳位（清低 2 位、置第 447 位）后才能参与标量乘，
+    // 此处传入低 2 位为 1 的通用私钥，结果须与手工钳位后计算的一致。
+    Raw.SetHex(X448_ALICE_PRIV);
+    if not Raw.IsBitSet(0) or not Raw.IsBitSet(1) then
+      Exit;
+
+    BigNumberCopy(Clamped, Raw);
+    CnProcessCurve448ScalarNumber(Clamped);
+    Expect.Assign(Curve.Generator);
+    Curve.MultiplePoint(Clamped, Expect);
+    if not CnCurve448KeyExchangeStep1(Raw, Pub, Curve) then
+      Exit;
+    if not CnEccPointsEqual(Pub, Expect) then
+      Exit;
+
+    // 钳位在副本上进行，不能改动调用方传入的私钥对象
+    if not Raw.IsBitSet(0) or not Raw.IsBitSet(1) then
+      Exit;
+
+    // 2. RFC 7748 中的公钥向量必须保持不变。
+    Priv.LoadFromHex(X448_ALICE_PRIV);
+    if not CnCurve448KeyExchangeStep1(Priv, Pub, Curve) then
+      Exit;
+    CnCurve448PointToData(Pub, D);
+    if DataToHex(@D[0], SizeOf(TCnCurve448Data)) <> X448_ALICE_PUB then
+      Exit;
+
+    // 3. 对方发来小阶点时标量乘结果为全零，共享密钥退化为公开已知的常量，
+    // RFC 7748 6.1 要求直接拒绝。u = 0、u = 1 与 u = p - 1 都是 X448 的低阶点。
+    Peer.X.SetZero;
+    if CnCurve448KeyExchangeStep2(Priv, Peer, Shared) then
+      Exit;
+    Peer.X.SetOne;
+    if CnCurve448KeyExchangeStep2(Priv, Peer, Shared) then
+      Exit;
+    BigNumberCopy(Peer.X, Curve.FiniteFieldSize);
+    Peer.X.SubWord(1);
+    if CnCurve448KeyExchangeStep2(Priv, Peer, Shared) then
+      Exit;
+
+    // 4. 正常协商仍然成功，不受以上拒绝逻辑影响。
+    if not CnCurve448KeyExchangeStep1(Priv, Pub, Curve) then
+      Exit;
+    if not CnCurve448KeyExchangeStep2(Priv, Pub, Shared) then
+      Exit;
+
+    Result := not Shared.IsZero;
+  finally
+    Shared.Free;
+    Expect.Free;
+    Pub.Free;
+    Peer.Free;
+    Curve.Free;
+    Clamped.Free;
+    Raw.Free;
+    Priv.Free;
   end;
 end;
 

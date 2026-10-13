@@ -56,7 +56,10 @@ unit CnContainers;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.09.11 V1.6
+* 修改记录：2026.10.13 V1.7
+*               修复 TCnInt64List/TCnUInt32List/TCnUInt64List 的 Move 查重模式
+*               下占位值被吞导致元素丢失或写到 Count 之外的问题
+*           2026.09.11 V1.6
 *               为 TCnIntegerList/TCnInt64List 增加 IgnoreDuplicated 查重功能，
 *               并修复 UInt32/UInt64 列表查重模式的若干问题
 *           2025.04.06 V1.5
@@ -1785,11 +1788,27 @@ begin
   begin
     if (NewIndex < 0) or (NewIndex >= FCount) then
       Error(SCnInt64ListError, NewIndex);
-    Item := Get(CurIndex);
-    FList^[CurIndex] := 0;
-    Delete(CurIndex);
-    Insert(NewIndex, 0);
-    FList^[NewIndex] := Item;
+    if (CurIndex < 0) or (CurIndex >= FCount) then
+      Error(SCnInt64ListError, CurIndex);
+
+    // 直接移位腾出目标位置，不再经 Insert 搬运占位值。
+    // 否则查重模式下占位值可能被判为重复而跳过插入，导致 Count 少一，
+    // 被移动的元素覆盖其他元素或落到 Count 之外。
+    Item := FList^[CurIndex];
+    if CurIndex < NewIndex then
+    begin
+      // CurIndex 与 NewIndex 之间的元素整体左移一格
+      System.Move(FList^[CurIndex + 1], FList^[CurIndex],
+        (NewIndex - CurIndex) * SizeOf(Int64));
+      FList^[NewIndex] := Item;
+    end
+    else
+    begin
+      // NewIndex 与 CurIndex 之间的元素整体右移一格
+      System.Move(FList^[NewIndex], FList^[NewIndex + 1],
+        (CurIndex - NewIndex) * SizeOf(Int64));
+      FList^[NewIndex] := Item;
+    end;
   end;
 end;
 
@@ -2031,11 +2050,27 @@ begin
   begin
     if (NewIndex < 0) or (NewIndex >= FCount) then
       Error(@SListIndexError, NewIndex);
-    Item := Get(CurIndex);
-    FList^[CurIndex] := 0;
-    Delete(CurIndex);
-    Insert(NewIndex, 0);
-    FList^[NewIndex] := Item;
+    if (CurIndex < 0) or (CurIndex >= FCount) then
+      Error(@SListIndexError, CurIndex);
+
+    // 直接移位腾出目标位置，不再经 Insert 搬运占位值。
+    // 否则查重模式下占位值可能被判为重复而跳过插入，导致 Count 少一，
+    // 被移动的元素覆盖其他元素或落到 Count 之外。
+    Item := FList^[CurIndex];
+    if CurIndex < NewIndex then
+    begin
+      // CurIndex 与 NewIndex 之间的元素整体左移一格
+      System.Move(FList^[CurIndex + 1], FList^[CurIndex],
+        (NewIndex - CurIndex) * SizeOf(Cardinal));
+      FList^[NewIndex] := Item;
+    end
+    else
+    begin
+      // NewIndex 与 CurIndex 之间的元素整体右移一格
+      System.Move(FList^[NewIndex], FList^[NewIndex + 1],
+        (CurIndex - NewIndex) * SizeOf(Cardinal));
+      FList^[NewIndex] := Item;
+    end;
   end;
 end;
 
@@ -2276,11 +2311,27 @@ begin
   begin
     if (UInt64Compare(NewIndex, 0) < 0) or (UInt64Compare(NewIndex, FCount) >= 0) then
       Error(@SListIndexError, NewIndex);
-    Item := Get(CurIndex);
-    FList^[CurIndex] := 0;
-    Delete(CurIndex);
-    Insert(NewIndex, 0);
-    FList^[NewIndex] := Item;
+    if (UInt64Compare(CurIndex, 0) < 0) or (UInt64Compare(CurIndex, FCount) >= 0) then
+      Error(@SListIndexError, CurIndex);
+
+    // 直接移位腾出目标位置，不再经 Insert 搬运占位值。
+    // 否则查重模式下占位值可能被判为重复而跳过插入，导致 Count 少一，
+    // 被移动的元素覆盖其他元素或落到 Count 之外。
+    Item := FList^[CurIndex];
+    if CurIndex < NewIndex then
+    begin
+      // CurIndex 与 NewIndex 之间的元素整体左移一格
+      System.Move(FList^[CurIndex + 1], FList^[CurIndex],
+        Integer(NewIndex - CurIndex) * SizeOf(TUInt64));
+      FList^[NewIndex] := Item;
+    end
+    else
+    begin
+      // NewIndex 与 CurIndex 之间的元素整体右移一格
+      System.Move(FList^[NewIndex], FList^[NewIndex + 1],
+        Integer(CurIndex - NewIndex) * SizeOf(TUInt64));
+      FList^[NewIndex] := Item;
+    end;
   end;
 end;
 

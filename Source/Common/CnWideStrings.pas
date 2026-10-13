@@ -872,7 +872,12 @@ var
 begin
   New(P);
   P^.FString := S;
-  FList.Insert(Index, P);
+  try
+    FList.Insert(Index, P);
+  except
+    Dispose(P);
+    raise;
+  end;
 end;
 
 procedure TCnWideStringList.LoadFromFile(const FileName: WideString);

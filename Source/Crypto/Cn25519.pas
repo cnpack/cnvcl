@@ -3019,22 +3019,36 @@ function CnCurve448KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
   OutPointToAnother: TCnEccPoint; Curve448: TCnCurve448): Boolean;
 var
   Is448Nil: Boolean;
+  ClampedKey: TCnBigNumber;
 begin
   Result := False;
   if (SelfPrivateKey = nil) or (OutPointToAnother = nil) then
     Exit;
 
+  ClampedKey := nil;
   Is448Nil := Curve448 = nil;
 
   try
     if Is448Nil then
       Curve448 := TCnCurve448.Create;
 
+    // 按 RFC 7748 对私钥执行 clamp（清低 2 位、置第 447 位），
+    // 消除小子群分量并固定梯循环长度，防止计时侧信道泄露私钥位长。
+    // 使用副本避免修改调用方的原始私钥对象
+    ClampedKey := TCnBigNumber.Create;
+    BigNumberCopy(ClampedKey, SelfPrivateKey);
+    CnProcessCurve448ScalarNumber(ClampedKey);
+
     OutPointToAnother.Assign(Curve448.Generator);
-    Curve448.MultiplePoint(SelfPrivateKey, OutPointToAnother);
+    Curve448.MultiplePoint(ClampedKey, OutPointToAnother);
+
+    // 私钥异常时可能得到零点公钥，后续密钥协商将退化为已知常量，必须拒绝
+    if OutPointToAnother.IsZero then
+      Exit;
 
     Result := True;
   finally
+    ClampedKey.Free;
     if Is448Nil then
       Curve448.Free;
   end;
@@ -3044,22 +3058,35 @@ function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve448: TCnCurve448): Boolean;
 var
   Is448Nil: Boolean;
+  ClampedKey: TCnBigNumber;
 begin
   Result := False;
   if (SelfPrivateKey = nil) or (InPointFromAnother = nil) or (OutKey = nil) then
     Exit;
 
+  ClampedKey := nil;
   Is448Nil := Curve448 = nil;
 
   try
     if Is448Nil then
       Curve448 := TCnCurve448.Create;
 
+    // 同 Step1，对私钥执行 RFC 7748 clamp 后再参与标量乘
+    ClampedKey := TCnBigNumber.Create;
+    BigNumberCopy(ClampedKey, SelfPrivateKey);
+    CnProcessCurve448ScalarNumber(ClampedKey);
+
     OutKey.Assign(InPointFromAnother);
-    Curve448.MultiplePoint(SelfPrivateKey, OutKey);
+    Curve448.MultiplePoint(ClampedKey, OutKey);
+
+    // RFC 7748 6.1 要求检查共享密钥，对方发来 small-order 低阶点时
+    // 标量乘结果为无穷远点（全零），若不拒绝将导致共享密钥退化为已知常量
+    if OutKey.IsZero then
+      Exit;
 
     Result := True;
   finally
+    ClampedKey.Free;
     if Is448Nil then
       Curve448.Free;
   end;
@@ -3156,6 +3183,8 @@ begin
   // 后 57 字节作为 Hash 的入口参数，除了未来被 Hash 外不参与计算因而可以不用倒序
   if OutHashPrefix <> nil then
     OutHashPrefix.SetBinary(@Dig[CN_448_EDWARDS_BLOCK_BYTESIZE], CN_448_EDWARDS_BLOCK_BYTESIZE);
+
+  MemorySafeZero(@Dig[0], SizeOf(TCnSHAKE256Digest));
 end;
 
 { TCnTwistedEdwardsCurve }

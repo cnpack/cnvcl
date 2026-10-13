@@ -1775,7 +1775,7 @@ begin
   Move(DB[0], PrivateKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
   Move(DB[0], PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
   Move(DB[SizeOf(TCnMLDSASeed)], P1[0], CN_MLDSA_DIGEST_SIZE);
-  Move(DB[SizeOf(TCnMLDSASeed) + CN_MLDSA_DIGEST_SIZE], PrivateKey.Key[0], CN_MLDSA_DIGEST_SIZE);
+  Move(DB[SizeOf(TCnMLDSASeed) + CN_MLDSA_DIGEST_SIZE], PrivateKey.Key[0], SizeOf(TCnMLDSASeed));
 
   // 用 p 生成矩阵，NTT 形式，Row 行 Col 列
   GenerateMatrix(PrivateKey.GenerationSeed, Matrix);
