@@ -404,7 +404,7 @@ begin
     raise ECnPDFCryptException.Create(SCnErrorPDFKeyLength);
 
   SetLength(Result, KL);
-  MoveMost(Dig[0], Result[0], KL, SizeOf(TCnMD5Digest));
+  Move(Dig[0], Result[0], KL);
   // Result 是从多次 MD5 结果中取出的指定长度最多 16 的字节作为 RC4 密钥
 end;
 
