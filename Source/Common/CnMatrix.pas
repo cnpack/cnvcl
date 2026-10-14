@@ -3162,7 +3162,13 @@ end;
 function TCnRationalNumber.ToString: string;
 begin
   if IsInt or (FNumerator = 0) then
-    Result := IntToStr(FNumerator)
+  begin
+    // 分母可能为 -1（未规约形式），此时真实值是分子的相反数
+    if FDenominator < 0 then
+      Result := IntToStr(-FNumerator)
+    else
+      Result := IntToStr(FNumerator);
+  end
   else
     Result := IntToStr(FNumerator) + '/' + IntToStr(FDenominator);
 end;

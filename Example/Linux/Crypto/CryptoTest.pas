@@ -54,7 +54,7 @@ uses
   CnPolynomial, CnBits, CnBerUtils, CnCertificateAuthority, CnLattice, CnOTS,
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
-  CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom,
+  CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnMatrix, CnQRCode, CnRandom,
   CnOTP, CnStrings, CnHashMap, CnFloat, CnSEA;
 
 // 2009 ~ XE3 有 Local Const Too Many 的 Bug
@@ -249,6 +249,12 @@ function TestBigRationalSetString: Boolean;
 function TestBigRationalLoadSaveMem: Boolean;
 function TestBigRationalListLoadSaveMem: Boolean;
 function TestBigRationalCompareNegDenominator: Boolean;
+function TestBigRationalAddCompareNegOneDenominator: Boolean;
+
+// ============================== Matrix =======================================
+
+function TestRationalNumberNegOneDenominator: Boolean;
+function TestMatrixZigZagRowCol: Boolean;
 
 // ================================ Bits =======================================
 
@@ -2078,6 +2084,12 @@ begin
   MyAssert(TestBigRationalLoadSaveMem, 'TestBigRationalLoadSaveMem');
   MyAssert(TestBigRationalListLoadSaveMem, 'TestBigRationalListLoadSaveMem');
   MyAssert(TestBigRationalCompareNegDenominator, 'TestBigRationalCompareNegDenominator');
+  MyAssert(TestBigRationalAddCompareNegOneDenominator, 'TestBigRationalAddCompareNegOneDenominator');
+
+// ============================== Matrix =======================================
+
+  MyAssert(TestRationalNumberNegOneDenominator, 'TestRationalNumberNegOneDenominator');
+  MyAssert(TestMatrixZigZagRowCol, 'TestMatrixZigZagRowCol');
 
 // ================================ Bits =======================================
 
@@ -8010,6 +8022,310 @@ begin
   finally
     R.Free;
   end;
+end;
+
+function TestBigRationalAddCompareNegOneDenominator: Boolean;
+var
+  A, B, R: TCnBigRational;
+begin
+  Result := False;
+  A := TCnBigRational.Create;
+  B := TCnBigRational.Create;
+  R := TCnBigRational.Create;
+  try
+    { BigRationalAdd 与 BigRationalCompare(对象重载) 的 IsInt 快速路径原先直接
+      加/比分子，未考虑分母为 -1 的未规约形式。SetValue 接受负分母且不做归一化
+      (只有 Reduce 才把分母符号归正)，因此 3/-1 这种真实值为负的整数可直接构造出来，
+      修复前会在加法与比较中丢失符号。本用例只断言可观测结果，无论修复方式是
+      「修正快速路径」还是「在 SetValue 里归正分母」都能通过。 }
+
+    // ------- 对照组：分母为 1 的规约形式必须始终正确，确认无回归 -------
+    A.SetValue('2', '1');
+    B.SetValue('3', '1');
+    R.Assign(A); R.Add(B);
+    if R.ToString <> '5' then Exit;
+
+    A.SetValue('1', '2');
+    B.SetValue('1', '3');
+    R.Assign(A); R.Add(B);                  // 1/2 + 1/3 = 5/6，走非整通用路径
+    if R.ToString <> '5 / 6' then Exit;
+
+    // ------- BigRationalAdd：分母为 -1 的未规约形式 -------
+    A.SetValue('3', '-1');                  // 真实值 -3
+    B.SetValue('5', '1');                   // 真实值  5
+    R.Assign(A); R.Add(B);                  // -3 + 5 = 2，修复前得 8
+    if R.ToString <> '2' then Exit;
+
+    A.SetValue('-3', '-1');                 // 真实值 3
+    B.SetValue('5', '1');
+    R.Assign(A); R.Add(B);                  // 3 + 5 = 8，修复前得 2
+    if R.ToString <> '8' then Exit;
+
+    A.SetValue('3', '-1');
+    B.SetValue('5', '-1');                  // 真实值 -5
+    R.Assign(A); R.Add(B);                  // -3 + -5 = -8，修复前得 8
+    if R.ToString <> '-8' then Exit;
+
+    A.SetValue('3', '1');
+    B.SetValue('5', '-1');
+    R.Assign(A); R.Add(B);                  // 3 + -5 = -2，修复前得 8
+    if R.ToString <> '-2' then Exit;
+
+    A.SetValue('3', '-1');
+    B.SetValue('3', '1');
+    R.Assign(A); R.Add(B);                  // -3 + 3 = 0
+    if R.ToString <> '0' then Exit;
+    if R.IsNegative then Exit;              // 零不能带负号
+
+    // 自加：Res = Num1 = Num2
+    A.SetValue('3', '-1');
+    A.Add(A);                               // -3 + -3 = -6
+    if A.ToString <> '-6' then Exit;
+
+    // Res = Num2 的别名场景
+    A.SetValue('3', '-1');
+    R.SetValue('5', '1');
+    BigRationalAdd(R, A, R);                // -3 + 5 = 2
+    if R.ToString <> '2' then Exit;
+
+    // ------- BigRationalCompare(对象重载)：分母为 -1 的未规约形式 -------
+    A.SetValue('5', '-1');                  // 真实值 -5
+    B.SetValue('3', '1');                   // 真实值  3
+    if BigRationalCompare(A, B) <> -1 then Exit;  // -5 < 3，修复前返回 1
+
+    A.SetValue('3', '-1');
+    B.SetValue('5', '1');
+    if BigRationalCompare(A, B) <> -1 then Exit;  // -3 < 5
+
+    A.SetValue('3', '-1');
+    B.SetValue('5', '-1');
+    if BigRationalCompare(A, B) <> 1 then Exit;   // -3 > -5
+
+    A.SetValue('-3', '-1');                 // 真实值 3
+    B.SetValue('5', '1');
+    if BigRationalCompare(A, B) <> -1 then Exit;  // 3 < 5
+
+    A.SetValue('3', '-1');
+    B.SetValue('3', '1');                   // -3 与 3
+    if BigRationalCompare(A, B) <> -1 then Exit;
+
+    A.SetValue('3', '-1');
+    B.SetValue('3', '-1');
+    if BigRationalCompare(A, B) <> 0 then Exit;   // -3 与 -3 相等
+
+    // 零与负整数的比较：0/-1 真实值为 0
+    A.SetValue('0', '-1');
+    B.SetValue('-3', '1');
+    if BigRationalCompare(A, B) <> 1 then Exit;   // 0 > -3
+
+    // 规约形式回归
+    A.SetValue('1', '2');
+    B.SetValue('2', '3');
+    if BigRationalCompare(A, B) <> -1 then Exit;
+    A.SetValue('5', '1');
+    B.SetValue('3', '1');
+    if BigRationalCompare(A, B) <> 1 then Exit;
+    A.SetValue('-5', '1');
+    B.SetValue('-3', '1');
+    if BigRationalCompare(A, B) <> -1 then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// ============================== Matrix =======================================
+
+function TestRationalNumberNegOneDenominator: Boolean;
+var
+  A, B, R: TCnRationalNumber;
+begin
+  Result := False;
+  A := TCnRationalNumber.Create;
+  B := TCnRationalNumber.Create;
+  R := TCnRationalNumber.Create;
+  try
+    { CnRationalNumberAdd/Sub 的 IsInt 快速路径与 TCnRationalNumber.ToString
+      原先未考虑分母为 -1 的未规约形式。SetValue 接受负分母且不归一化(只有 Reduce
+      才归正)，因此 3/-1 这种真实值为负的整数可直接构造出来，修复前会在加减与
+      字符串输出中丢失符号。本用例只断言可观测结果。 }
+
+    // ------- CnRationalNumberAdd：分母为 -1 的未规约形式 -------
+    A.SetValue(3, -1); B.SetValue(5, 1);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '2' then Exit;         // -3 + 5，修复前得 8
+
+    A.SetValue(-3, -1); B.SetValue(5, 1);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '8' then Exit;         // 3 + 5，修复前得 2
+
+    A.SetValue(3, -1); B.SetValue(5, -1);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '-8' then Exit;        // -3 + -5，修复前得 8
+
+    A.SetValue(3, 1); B.SetValue(5, -1);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '-2' then Exit;        // 3 + -5，修复前得 8
+
+    A.SetValue(3, -1); B.SetValue(3, 1);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '0' then Exit;         // -3 + 3
+
+    // 自加：Res = Num1 = Num2
+    A.SetValue(3, -1);
+    A.Add(A);
+    if A.ToString <> '-6' then Exit;        // -3 + -3
+
+    // Res = Num2 的别名场景
+    A.SetValue(3, -1); R.SetValue(5, 1);
+    CnRationalNumberAdd(R, A, R);
+    if R.ToString <> '2' then Exit;
+
+    // 三数连加
+    A.SetValue(3, -1); B.SetValue(5, 1);
+    CnRationalNumberAdd3(R, A, B, B);
+    if R.ToString <> '7' then Exit;         // -3 + 5 + 5
+
+    // 规约形式回归
+    A.SetValue(2, 1); B.SetValue(3, 1);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '5' then Exit;
+
+    A.SetValue(1, 2); B.SetValue(1, 3);
+    CnRationalNumberAdd(R, A, B);
+    if R.ToString <> '5/6' then Exit;
+
+    // Add(Int64) 方法原本就正确，回归
+    A.SetValue(3, -1);
+    A.Add(5);
+    if A.ToString <> '2' then Exit;
+
+    // ------- CnRationalNumberSub：分母为 -1 的未规约形式 -------
+    A.SetValue(3, -1); B.SetValue(5, 1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '-8' then Exit;        // -3 - 5，修复前得 -2
+
+    A.SetValue(5, 1); B.SetValue(3, -1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '8' then Exit;         // 5 - -3，修复前得 2
+
+    A.SetValue(3, -1); B.SetValue(5, -1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '2' then Exit;         // -3 - -5，修复前得 -2
+
+    A.SetValue(3, 1); B.SetValue(5, -1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '8' then Exit;         // 3 - -5，修复前得 -2
+
+    A.SetValue(-3, -1); B.SetValue(5, 1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '-2' then Exit;        // 3 - 5，修复前得 -8
+
+    A.SetValue(3, -1); B.SetValue(3, 1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '-6' then Exit;        // -3 - 3，修复前得 0
+
+    // 自减：Res = Num1 = Num2
+    A.SetValue(5, 1);
+    A.Sub(A);
+    if A.ToString <> '0' then Exit;
+
+    // 规约形式回归
+    A.SetValue(5, 1); B.SetValue(3, 1);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '2' then Exit;
+
+    A.SetValue(1, 2); B.SetValue(1, 3);
+    CnRationalNumberSub(R, A, B);
+    if R.ToString <> '1/6' then Exit;
+
+    // Sub(Int64) 方法原本就正确，回归
+    A.SetValue(3, -1);
+    A.Sub(5);
+    if A.ToString <> '-8' then Exit;
+
+    // ------- TCnRationalNumber.ToString：分母为 -1 的未规约形式 -------
+    A.SetValue(3, -1);
+    if A.ToString <> '-3' then Exit;        // 修复前得 3
+    A.SetValue(-3, -1);
+    if A.ToString <> '3' then Exit;         // 修复前得 -3
+    A.SetValue(5, -1);
+    if A.ToString <> '-5' then Exit;
+    A.SetValue(0, -1);
+    if A.ToString <> '0' then Exit;
+
+    // 规约形式不受影响
+    A.SetValue(3, 1);
+    if A.ToString <> '3' then Exit;
+    A.SetValue(-3, 1);
+    if A.ToString <> '-3' then Exit;
+    A.SetValue(0, 5);
+    if A.ToString <> '0' then Exit;
+    A.SetValue(3, 2);
+    if A.ToString <> '3/2' then Exit;
+    A.SetValue(3, -2);
+    if A.ToString <> '3/-2' then Exit;      // 分数分支保持原样
+
+    Result := True;
+  finally
+    R.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestMatrixZigZagRowCol: Boolean;
+var
+  N, Row, Col, Idx, R, C: Integer;
+begin
+  Result := False;
+
+  // ---- 源码注释中的 4 阶示例表：索引 -> 行列 ----
+  //   0  1  5  6
+  //   2  4  7 12
+  //   3  8 11 13
+  //   9 10 14 15
+  ZigZagToRowCol(0,  R, C, 4); if (R <> 0) or (C <> 0) then Exit;
+  ZigZagToRowCol(1,  R, C, 4); if (R <> 0) or (C <> 1) then Exit;
+  ZigZagToRowCol(2,  R, C, 4); if (R <> 1) or (C <> 0) then Exit;
+  ZigZagToRowCol(3,  R, C, 4); if (R <> 2) or (C <> 0) then Exit;
+  ZigZagToRowCol(4,  R, C, 4); if (R <> 1) or (C <> 1) then Exit;
+  ZigZagToRowCol(5,  R, C, 4); if (R <> 0) or (C <> 2) then Exit;
+  ZigZagToRowCol(6,  R, C, 4); if (R <> 0) or (C <> 3) then Exit;
+  ZigZagToRowCol(7,  R, C, 4); if (R <> 1) or (C <> 2) then Exit;
+  ZigZagToRowCol(8,  R, C, 4); if (R <> 2) or (C <> 1) then Exit;
+  ZigZagToRowCol(9,  R, C, 4); if (R <> 3) or (C <> 0) then Exit;
+  ZigZagToRowCol(10, R, C, 4); if (R <> 3) or (C <> 1) then Exit;
+  ZigZagToRowCol(11, R, C, 4); if (R <> 2) or (C <> 2) then Exit;
+  ZigZagToRowCol(12, R, C, 4); if (R <> 1) or (C <> 3) then Exit;
+  ZigZagToRowCol(13, R, C, 4); if (R <> 2) or (C <> 3) then Exit;
+  ZigZagToRowCol(14, R, C, 4); if (R <> 3) or (C <> 2) then Exit;
+  ZigZagToRowCol(15, R, C, 4); if (R <> 3) or (C <> 3) then Exit;
+
+  // ---- 反向：RowColToZigZag 与示例表一致 ----
+  if RowColToZigZag(0, 0, 4) <> 0 then Exit;
+  if RowColToZigZag(3, 1, 4) <> 10 then Exit;
+  if RowColToZigZag(1, 3, 4) <> 12 then Exit;
+  if RowColToZigZag(3, 3, 4) <> 15 then Exit;
+
+  // ---- 全量往返：1 到 8 阶方阵每个行列经索引转回后必须与原行列一致 ----
+  for N := 1 to 8 do
+    for Row := 0 to N - 1 do
+      for Col := 0 to N - 1 do
+      begin
+        Idx := RowColToZigZag(Row, Col, N);
+        ZigZagToRowCol(Idx, R, C, N);
+        if (R <> Row) or (C <> Col) then Exit;
+      end;
+
+  // ---- 5 阶方阵右下区抽样 ----
+  ZigZagToRowCol(19, R, C, 5); if (R <> 4) or (C <> 2) then Exit;
+  ZigZagToRowCol(21, R, C, 5); if (R <> 2) or (C <> 4) then Exit;
+
+  Result := True;
 end;
 
 // ================================ Bits =======================================
