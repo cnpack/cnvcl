@@ -34,7 +34,10 @@ unit CnFloat;
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007，且 Extended 或以上只支持小端模式
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.01.13
+* 修改记录：2026.10.14
+*               10 字节扩展精度浮点数结构 TCnExtendedRec10 由实现段移到接口段并公开，
+*               供 CnMath 等单元共用
+*           2023.01.13
 *               兼容处理 Win64 下 Extended 是 8 字节 Double 而不是 10 字节扩展精度的问题
 *               兼容处理 MacOS64/Linux64 下的 16 字节 Extended（只截断处理前 10 字节）
 *           2022.02.17
@@ -132,6 +135,18 @@ type
   PCnOctuple = ^TCnOctuple;
   {* 指向八倍精度结构的指针}
 
+  TCnExtendedRec10 = packed record
+  {* 10 字节扩展精度浮点数的内存布局，即 Win32 与 macOS/Linux x86 平台上 Extended 的实际
+     格式，也用于截取 16 字节 Extended 的前 10 字节。小端下尾数在低 8 字节，符号位与
+     15 位指数域都在 ExpSign 里；大端下布局不同，不适用本结构。}
+    Mantissa: TUInt64;
+    {* 8 字节尾数，最高位 63 是显式的整数位}
+    ExpSign: Word;
+    {* 低 15 位为指数域，最高位为符号位}
+  end;
+  PCnExtendedRec10 = ^TCnExtendedRec10;
+  {* 指向 10 字节扩展精度浮点数结构的指针}
+
   ECnFloatSizeError = class(Exception);
   {* 浮点数长度异常}
 
@@ -224,10 +239,20 @@ const
   CN_EXTENDED_MAX_EXPONENT                = 16383;
   {* 扩展精度浮点数的最大指数}
 
+  CN_SINGLE_MIN_NORMAL_EXPONENT           = CN_SINGLE_MIN_EXPONENT + 1;
+  {* 单精度浮点数的最小规格化指数。非规格化数的指数也按约定取该值}
+
+  CN_DOUBLE_MIN_NORMAL_EXPONENT           = CN_DOUBLE_MIN_EXPONENT + 1;
+  {* 双精度浮点数的最小规格化指数。非规格化数的指数也按约定取该值}
+
 procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
 {* 从单精度浮点数中解出符号位、指数、添加了最高位 1 并去除了小数点的完整有效数字。
-   注意：指数为真实指数；有效数字为低 24 位，其中原始的为 0~22 位，第 23 位为补上去的 1。
+   重要约定：真值 = (-1)^符号位 × 有效数字 × 2^(指数 - 23)，对全部有限单精度值成立。
+   规格化数的有效数字共 24 位且第 23 位为隐含前导 1，此时指数为浮点值中解出来的原始指数。
+   非规格化数（含零）没有隐含前导 1，有效数字就是裸小数，指数取最小规格化指数 -126，
+   上述公式仍然精确成立。
+   无穷与非数不在约定范围内。
 
    参数：
      Value: Single                        - 待解开的单精度浮点数
@@ -241,7 +266,11 @@ procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
 procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 {* 从双精度浮点数中解出符号位、指数、添加了最高位 1 并去除了小数点的完整有效数字。
-   注意：指数为真实指数；有效数字为低 53 位，其中原始的为 0~51 位，第 52 位为补上去的 1。
+   重要约定：值 = (-1)^符号位 × 有效数字 × 2^(指数 - 52)，对全部有限双精度值成立。
+   规格化数的有效数字共 53 位且第 52 位为隐含前导 1，此时指数为浮点值中解出来的原始指数。
+   非规格化数（含零）没有隐含前导 1，有效数字就是裸小数，指数取最小规格化指数 -1022，
+   上述公式仍然精确成立。
+   无穷与非数不在约定范围内。
 
    参数：
      Value: Double                        - 待解开的双精度浮点数
@@ -301,8 +330,13 @@ procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
-{* 把符号位、指数、有效数字拼成单精度浮点数，要求有效数字为正规化的，也即共 24 位且最高位为 1。
-   指数需要在单精度合法范围内，否则抛异常。
+{* 把符号位、指数、有效数字拼成单精度浮点数，与 ExtractFloatSingle 互为逆操作。
+   重要约定：生成的真值 = (-1)^符号位 × 有效数字 × 2^(指数 - 23)。
+   有效数字共 24 位且第 23 位为 1 时表示规格化数（该位即隐含前导 1，写入时去除）；
+   第 23 位为 0 时表示非规格化数，整个有效数字就是小数部分，指数应取 -126。
+   有效数字为 0 时结果为带符号零。
+   在以上约定下，Combine(Extract(V)) 对全部有限单精度值位精确成立。
+   无法精确表示（尾数超宽、指数越界导致上溢或下溢）时抛 ECnFloatRangeError。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -315,8 +349,13 @@ procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
-{* 把符号位、指数、有效数字拼成双精度浮点数，要求有效数字为正规化的，也即共 53 位且最高位为 1。
-   指数需要在双精度合法范围内，否则抛异常。
+{* 把符号位、指数、有效数字拼成双精度浮点数，与 ExtractFloatDouble 互为逆操作。
+   重要约定：生成的真值 = (-1)^符号位 × 有效数字 × 2^(指数 - 52)。
+   有效数字共 53 位且第 52 位为 1 时表示规格化数（该位即隐含前导 1，写入时去除）；
+   第 52 位为 0 时表示非规格化数，整个有效数字就是小数部分，指数应取 -1022。
+   有效数字为 0 时结果为带符号零。
+   在以上约定下，Combine(Extract(V)) 对全部有限双精度值位精确成立。
+   无法精确表示（尾数超宽、指数越界导致上溢或下溢）时抛 ECnFloatRangeError。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -563,14 +602,6 @@ resourcestring
   SCnErrorExtendedSizeFmt = 'Extended Size Error %d';
   SCnErrorExtendedInvalidFormat = 'Invalid Invariant Extended Value';
   SCnErrorFloatExponentFmt = 'Invalid Exponent %d';
-
-type
-  TExtendedRec10 = packed record
-  {* 10 字节的扩展精度浮点数，只 Win32 下有效}
-    Mantissa: TUInt64;
-    ExpSign: Word;
-  end;
-  PExtendedRec10 = ^TExtendedRec10;
 
 {$IFDEF WIN32}
 {$IFDEF COMPILER7_UP}
@@ -1257,7 +1288,11 @@ begin
   Exponent := ((PCardinal(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - CN_EXPONENT_OFFSET_SINGLE;
   Mantissa := PCardinal(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
   if Exponent > -CN_EXPONENT_OFFSET_SINGLE then
-    Mantissa := Mantissa or (1 shl CN_SINGLE_SIGNIFICAND_BITLENGTH); // 规格化，高位再加个 1
+    Mantissa := Mantissa or (1 shl CN_SINGLE_SIGNIFICAND_BITLENGTH) // 规格化，高位再加个 1
+  else
+    // 非规格化数没有隐含前导 1，指数取最小规格化指数，使统一公式
+    // 值 = 有效数字 * 2^(指数 - 23) 仍然精确成立
+    Exponent := CN_SINGLE_MIN_NORMAL_EXPONENT;
 end;
 
 procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
@@ -1267,7 +1302,11 @@ begin
   Exponent := ((PUInt64(@Value)^ and CN_EXPONENT_DOUBLE_MASK) shr 52) - CN_EXPONENT_OFFSET_DOUBLE;
   Mantissa := PUInt64(@Value)^ and CN_SIGNIFICAND_DOUBLE_MASK;
   if Exponent > -CN_EXPONENT_OFFSET_DOUBLE then
-    Mantissa := Mantissa or (TUInt64(1) shl CN_DOUBLE_SIGNIFICAND_BITLENGTH); // 规格化，高位再加个 1
+    Mantissa := Mantissa or (TUInt64(1) shl CN_DOUBLE_SIGNIFICAND_BITLENGTH) // 规格化，高位再加个 1
+  else
+    // 非规格化数没有隐含前导 1，指数取最小规格化指数，使统一公式
+    // 值 = 有效数字 * 2^(指数 - 52) 仍然精确成立
+    Exponent := CN_DOUBLE_MIN_NORMAL_EXPONENT;
 end;
 
 procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
@@ -1275,9 +1314,9 @@ procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
-    SignNegative := (PExtendedRec10(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-    Exponent := (PExtendedRec10(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
-    Mantissa := PExtendedRec10(@Value)^.Mantissa; // 有 1，不用加了
+    SignNegative := (PCnExtendedRec10(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
+    Exponent := (PCnExtendedRec10(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    Mantissa := PCnExtendedRec10(@Value)^.Mantissa; // 有 1，不用加了
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     ExtractFloatDouble(Value, SignNegative, Exponent, Mantissa)
@@ -1292,9 +1331,9 @@ var
 begin
   if (ExtendedSize = CN_EXTENDED_SIZE_10) or (ExtendedSize = CN_EXTENDED_SIZE_16) then
   begin
-    SignNegative := (PExtendedRec10(ValueAddr)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-    Exponent := (PExtendedRec10(ValueAddr)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
-    Mantissa := PExtendedRec10(ValueAddr)^.Mantissa; // 有 1，不用加了
+    SignNegative := (PCnExtendedRec10(ValueAddr)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
+    Exponent := (PCnExtendedRec10(ValueAddr)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    Mantissa := PCnExtendedRec10(ValueAddr)^.Mantissa; // 有 1，不用加了
   end
   else if ExtendedSize = CN_EXTENDED_SIZE_8 then
   begin
@@ -1321,15 +1360,50 @@ end;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
+var
+  Frac: Cardinal;
+  Shift: Integer;
 begin
   if (Exponent < CN_SINGLE_MIN_EXPONENT) or (Exponent > CN_SINGLE_MAX_EXPONENT) then
     raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
-  Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
-  PCardinal(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
-  Inc(Exponent, CN_EXPONENT_OFFSET_SINGLE);
+  if Mantissa = 0 then
+  begin
+    // 零
+    PCardinal(@Value)^ := 0;
+    if SignNegative then
+      PCardinal(@Value)^ := CN_SIGN_SINGLE_MASK;
+    Exit;
+  end;
 
-  PCardinal(@Value)^ := PCardinal(@Value)^ or (LongWord(Exponent) shl 23);
+  if (Mantissa and Cardinal(1 shl CN_SINGLE_SIGNIFICAND_BITLENGTH)) = 0 then
+  begin
+    // 非规格化数：无隐含前导 1，整个有效数字就是小数部分，指数域为 0
+    if Mantissa > CN_SIGNIFICAND_SINGLE_MASK then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    PCardinal(@Value)^ := Mantissa;
+  end
+  else if Exponent >= CN_SINGLE_MIN_NORMAL_EXPONENT then
+  begin
+    // 规格化数：去掉第 23 位的隐含前导 1 后作为小数域，指数域为 Exponent + 127
+    PCardinal(@Value)^ := (Mantissa and CN_SIGNIFICAND_SINGLE_MASK)
+      or (Cardinal(Exponent + CN_EXPONENT_OFFSET_SINGLE) shl 23);
+  end
+  else
+  begin
+    // 尾数呈规格化形态但指数低于最小规格化指数，真值落在非规格化区间：
+    // 右移变成小数部分，不能整除说明无法精确表示
+    Shift := CN_SINGLE_MIN_NORMAL_EXPONENT - Exponent;
+    if Shift >= CN_SINGLE_SIGNIFICAND_BITLENGTH then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    Frac := Mantissa shr Shift;
+    if (Mantissa and ((Cardinal(1) shl Shift) - 1)) <> 0 then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    if Frac > CN_SIGNIFICAND_SINGLE_MASK then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    PCardinal(@Value)^ := Frac;
+  end;
+
   if SignNegative then
     PCardinal(@Value)^ := PCardinal(@Value)^ or CN_SIGN_SINGLE_MASK
   else
@@ -1338,15 +1412,50 @@ end;
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
+var
+  Frac: TUInt64;
+  Shift: Integer;
 begin
   if (Exponent < CN_DOUBLE_MIN_EXPONENT) or (Exponent > CN_DOUBLE_MAX_EXPONENT) then
     raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
 
-  Mantissa := Mantissa and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
-  PUInt64(@Value)^ := Mantissa and CN_SIGNIFICAND_DOUBLE_MASK;
-  Inc(Exponent, CN_EXPONENT_OFFSET_DOUBLE);
+  if Mantissa = 0 then
+  begin
+    // 零
+    PUInt64(@Value)^ := 0;
+    if SignNegative then
+      PUInt64(@Value)^ := CN_SIGN_DOUBLE_MASK;
+    Exit;
+  end;
 
-  PUInt64(@Value)^ := PUInt64(@Value)^ or (TUInt64(Exponent) shl 52);
+  if (Mantissa and (TUInt64(1) shl CN_DOUBLE_SIGNIFICAND_BITLENGTH)) = 0 then
+  begin
+    // 非规格化数：无隐含前导 1，整个有效数字就是小数部分，指数域为 0
+    if Mantissa > CN_SIGNIFICAND_DOUBLE_MASK then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    PUInt64(@Value)^ := Mantissa;
+  end
+  else if Exponent >= CN_DOUBLE_MIN_NORMAL_EXPONENT then
+  begin
+    // 规格化数：去掉第 52 位的隐含前导 1 后作为小数域，指数域为 Exponent + 1023
+    PUInt64(@Value)^ := (Mantissa and CN_SIGNIFICAND_DOUBLE_MASK)
+      or (TUInt64(Exponent + CN_EXPONENT_OFFSET_DOUBLE) shl 52);
+  end
+  else
+  begin
+    // 尾数呈规格化形态但指数低于最小规格化指数，真值落在非规格化区间：
+    // 右移变成小数部分，不能整除说明无法精确表示
+    Shift := CN_DOUBLE_MIN_NORMAL_EXPONENT - Exponent;
+    if Shift >= CN_DOUBLE_SIGNIFICAND_BITLENGTH then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    Frac := Mantissa shr Shift;
+    if (Mantissa and ((TUInt64(1) shl Shift) - 1)) <> 0 then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    if Frac > CN_SIGNIFICAND_DOUBLE_MASK then
+      raise ECnFloatRangeError.CreateFmt(SCnErrorFloatExponentFmt, [Exponent]);
+    PUInt64(@Value)^ := Frac;
+  end;
+
   if SignNegative then
     PUInt64(@Value)^ := PUInt64(@Value)^ or CN_SIGN_DOUBLE_MASK
   else
@@ -1368,14 +1477,14 @@ begin
     if SizeOf(Extended) = CN_EXTENDED_SIZE_16 then
       FillChar(Value, SizeOf(Extended), 0);
 
-    PExtendedRec10(@Value)^.Mantissa := Mantissa;
+    PCnExtendedRec10(@Value)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
 
-    PExtendedRec10(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
+    PCnExtendedRec10(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
     if SignNegative then
-      PExtendedRec10(@Value)^.ExpSign := PExtendedRec10(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
+      PCnExtendedRec10(@Value)^.ExpSign := PCnExtendedRec10(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
     else
-      PExtendedRec10(@Value)^.ExpSign := PExtendedRec10(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+      PCnExtendedRec10(@Value)^.ExpSign := PCnExtendedRec10(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
   begin
@@ -1399,14 +1508,14 @@ begin
     if ExtendedSize = CN_EXTENDED_SIZE_16 then
       FillChar(ValueAddr^, ExtendedSize, 0);
 
-    PExtendedRec10(ValueAddr)^.Mantissa := Mantissa;
+    PCnExtendedRec10(ValueAddr)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
 
-    PExtendedRec10(ValueAddr)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
+    PCnExtendedRec10(ValueAddr)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
     if SignNegative then
-      PExtendedRec10(ValueAddr)^.ExpSign := PExtendedRec10(ValueAddr)^.ExpSign or CN_SIGN_EXTENDED_MASK
+      PCnExtendedRec10(ValueAddr)^.ExpSign := PCnExtendedRec10(ValueAddr)^.ExpSign or CN_SIGN_EXTENDED_MASK
     else
-      PExtendedRec10(ValueAddr)^.ExpSign := PExtendedRec10(ValueAddr)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+      PCnExtendedRec10(ValueAddr)^.ExpSign := PCnExtendedRec10(ValueAddr)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
   end
   else if ExtendedSize = CN_EXTENDED_SIZE_8 then
   begin
@@ -1565,8 +1674,8 @@ end;
 function ExtendedIsInfinite(AValue: Extended): Boolean;
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
-    Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
-              ((PExtendedRec10(@AValue)^.Mantissa) = TUInt64($8000000000000000))
+    Result := ((PCnExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
+              ((PCnExtendedRec10(@AValue)^.Mantissa) = TUInt64($8000000000000000))
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsInfinite(AValue)
   else
@@ -1588,8 +1697,8 @@ end;
 function ExtendedIsNan(AValue: Extended): Boolean;
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
-    Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
-              ((PExtendedRec10(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0)
+    Result := ((PCnExtendedRec10(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
+              ((PCnExtendedRec10(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0)
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsNan(AValue)
   else
