@@ -108,6 +108,8 @@ function TestRandomDistribution: Boolean;
 function TestExtendedToUInt64: Boolean;
 function TestExtendedToUInt64BigRange: Boolean;
 function TestExtendedIsInfiniteAndNan: Boolean;
+function TestFloatInfinityAndNan: Boolean;
+function TestFloatSubnormalContract: Boolean;
 
 // ============================== Strings ======================================
 
@@ -1943,6 +1945,8 @@ begin
   MyAssert(TestExtendedToUInt64, 'TestExtendedToUInt64');
   MyAssert(TestExtendedToUInt64BigRange, 'TestExtendedToUInt64BigRange');
   MyAssert(TestExtendedIsInfiniteAndNan, 'TestExtendedIsInfiniteAndNan');
+  MyAssert(TestFloatInfinityAndNan, 'TestFloatInfinityAndNan');
+  MyAssert(TestFloatSubnormalContract, 'TestFloatSubnormalContract');
 
 // ============================== Strings ======================================
 
@@ -3306,17 +3310,17 @@ begin
     10 与 16 字节时走上面那句尾数判断，两条路径都要经得起这三条断言。 }
 
   // 正无穷：是无穷大，且不是 NaN
-  V := Math.Infinity;
+  V := ExtendedInfinity;
   if not ExtendedIsInfinite(V) then Exit;
   if ExtendedIsNan(V) then Exit;
 
   // 负无穷：同上
-  V := Math.NegInfinity;
+  V := ExtendedInfinity(True);
   if not ExtendedIsInfinite(V) then Exit;
   if ExtendedIsNan(V) then Exit;
 
   // NaN：是 NaN，且不是无穷大
-  V := Math.NaN;
+  V := ExtendedNan;
   if not ExtendedIsNan(V) then Exit;
   if ExtendedIsInfinite(V) then Exit;
 
@@ -3328,6 +3332,517 @@ begin
   V := 0.0;
   if ExtendedIsInfinite(V) then Exit;
   if ExtendedIsNan(V) then Exit;
+
+  Result := True;
+end;
+
+function TestFloatInfinityAndNan: Boolean;
+{ 盯住 CnMath 新增的六个构造函数：SingleInfinity、DoubleInfinity、ExtendedInfinity、
+  SingleNan、DoubleNan、ExtendedNan。
+
+  它们按 IEEE 754 位模式直接构造，因此对三种精度的正负无穷与静默 NaN 都要满足：
+  构造出来的值能被 CnFloat 的 IsInfinite / IsNan 正确识别、符号正确、且不被对方
+  误判。另外用位模式再钉一遍 Single 与 Double，确保编码没有写错位。
+
+  注意不要反过来用 S = S 或 Math.IsNan 之类去判断 NaN，那属于被测对象本身。}
+var
+  S: Single;
+  D: Double;
+  E: Extended;
+begin
+  Result := False;
+
+  // -------- Single --------
+  S := SingleInfinity;
+  if not SingleIsInfinite(S) then Exit;
+  if SingleIsNan(S) then Exit;
+  if S <= 0 then Exit;
+  if PCardinal(@S)^ <> $7F800000 then Exit;
+
+  S := SingleInfinity(True);
+  if not SingleIsInfinite(S) then Exit;
+  if SingleIsNan(S) then Exit;
+  if S >= 0 then Exit;
+  if PCardinal(@S)^ <> $FF800000 then Exit;
+
+  S := SingleNan;
+  if not SingleIsNan(S) then Exit;
+  if SingleIsInfinite(S) then Exit;
+  if PCardinal(@S)^ <> $7FC00000 then Exit;
+
+  // -------- Double --------
+  D := DoubleInfinity;
+  if not DoubleIsInfinite(D) then Exit;
+  if DoubleIsNan(D) then Exit;
+  if D <= 0 then Exit;
+  if PUInt64(@D)^ <> $7FF0000000000000 then Exit;
+
+  D := DoubleInfinity(True);
+  if not DoubleIsInfinite(D) then Exit;
+  if DoubleIsNan(D) then Exit;
+  if D >= 0 then Exit;
+  if PUInt64(@D)^ <> TUInt64($FFF0000000000000) then Exit;
+
+  D := DoubleNan;
+  if not DoubleIsNan(D) then Exit;
+  if DoubleIsInfinite(D) then Exit;
+  if PUInt64(@D)^ <> TUInt64($7FF8000000000000) then Exit;
+
+  // -------- Extended --------
+  // 不比对位模式：8、10、16 字节三种布局的编码不同，只验证语义
+  E := ExtendedInfinity;
+  if not ExtendedIsInfinite(E) then Exit;
+  if ExtendedIsNan(E) then Exit;
+  if E <= 0 then Exit;
+
+  E := ExtendedInfinity(True);
+  if not ExtendedIsInfinite(E) then Exit;
+  if ExtendedIsNan(E) then Exit;
+  if E >= 0 then Exit;
+
+  E := ExtendedNan;
+  if not ExtendedIsNan(E) then Exit;
+  if ExtendedIsInfinite(E) then Exit;
+
+  // -------- 反向用例：普通值与零不能被误判 --------
+  S := 1.0;
+  if SingleIsInfinite(S) or SingleIsNan(S) then Exit;
+  D := 0.0;
+  if DoubleIsInfinite(D) or DoubleIsNan(D) then Exit;
+  E := -0.0;
+  if ExtendedIsInfinite(E) or ExtendedIsNan(E) then Exit;
+
+  Result := True;
+end;
+
+// ------------------------ Float 次正态数统一契约 ------------------------
+//
+// 背景：CnFloat 的 ExtractFloatSingle/Double 旧实现对非正规数（含零）返回
+//       指数 -127/-1023，而尾数并未补隐含前导 1，使其文档承诺的统一公式
+//         值 = (-1)^符号位 x 尾数 * 2^(指数 - 位宽)
+//       对非正规数恒差一半。凡按该公式消费的代码（BigDecimalSetDouble、
+//       BigDecimalSetSingle 等）随之对次正态入值偏小一半。
+//       修复后：次正态数的指数取最小规格化指数（Single -126 / Double -1022），
+//       公式对全部有限值成立；CombineFloatSingle/Double 同时重写为
+//       零/规格化/次正态三态感知，与 Extract 严格互逆。
+// 覆盖范围：仅 Single 与 Double。Extended 的尾数含显式整数位，旧约定本就
+//       公式一致，不在本次改动范围内（用例末尾以 Extended 作对照验证）。
+
+// Combine(Extract(V)) 必须位精确还原（扩展精度，对照组用）
+function FloatTestCheckRoundTripExtended(const Name: string; const V: Extended): Boolean;
+var
+  N: Boolean;
+  E: Integer;
+  M: TUInt64;
+  W: Extended;
+begin
+  ExtractFloatExtended(V, N, E, M);
+  try
+    CombineFloatExtended(N, E, M, W);
+    // 16 字节格式的低 6 字节是填充，只比较有效部分；8 字节平台则全比
+    if SizeOf(Extended) >= 10 then
+      Result := CompareMem(@V, @W, 10)
+    else
+      Result := CompareMem(@V, @W, SizeOf(Extended));
+  except
+    on Ex: Exception do
+    begin
+      Result := False;
+    end;
+  end;
+end;
+
+// 取十进制串的前 N 位有效数字（跳过前导零），避免依赖各 ToString 的具体格式
+function FloatTestSigDigits(const S: string; N: Integer): string;
+var
+  I: Integer;
+  Started: Boolean;
+begin
+  Result := '';
+  Started := False;
+  for I := 1 to Length(S) do
+    if (S[I] >= '0') and (S[I] <= '9') then
+    begin
+      if S[I] <> '0' then
+        Started := True;
+      if Started then
+      begin
+        Result := Result + S[I];
+        if Length(Result) >= N then
+          Break;
+      end
+    end;
+end;
+
+// 直接从双精度原始位模式按统一契约独立分解，校验 ExtractFloatDouble 的输出。
+// 神谕不调用任何 CnFloat 转换函数，纯粹按 IEEE754 位域计算
+function FloatTestCheckExtractDouble(const V: Double): Boolean;
+var
+  Bits: TUInt64;
+  N, N2: Boolean;
+  E, E2: Integer;
+  M, M2: TUInt64;
+begin
+  Bits := PUInt64(@V)^;
+  N2 := (Bits shr 63) <> 0;
+  if (Bits shr 52) and $7FF = 0 then
+  begin
+    // 次正态数（含零）：无隐含前导 1，尾数是裸小数，指数取最小规格化指数
+    E2 := -1022;
+    M2 := Bits and $000FFFFFFFFFFFFF;
+  end
+  else
+  begin
+    E2 := Integer((Bits shr 52) and $7FF) - 1023;
+    M2 := (Bits and $000FFFFFFFFFFFFF) or (TUInt64(1) shl 52);
+  end;
+
+  ExtractFloatDouble(V, N, E, M);
+  Result := (N = N2) and (E = E2) and (M = M2);
+end;
+
+// 同上，单精度版本
+function FloatTestCheckExtractSingle(const V: Single): Boolean;
+var
+  Bits: Cardinal;
+  N, N2: Boolean;
+  E, E2: Integer;
+  M, M2: Cardinal;
+begin
+  Bits := PCardinal(@V)^;
+  N2 := (Bits shr 31) <> 0;
+  if (Bits shr 23) and $FF = 0 then
+  begin
+    E2 := -126;
+    M2 := Bits and $007FFFFF;
+  end
+  else
+  begin
+    E2 := Integer((Bits shr 23) and $FF) - 127;
+    M2 := (Bits and $007FFFFF) or Cardinal(1 shl 23);
+  end;
+
+  ExtractFloatSingle(V, N, E, M);
+  Result := (N = N2) and (E = E2) and (M = M2);
+end;
+
+// Combine(Extract(V)) 必须位精确还原（双精度）
+function FloatTestCheckRoundTripDouble(const V: Double): Boolean;
+var
+  N: Boolean;
+  E: Integer;
+  M: TUInt64;
+  W: Double;
+begin
+  ExtractFloatDouble(V, N, E, M);
+  try
+    CombineFloatDouble(N, E, M, W);
+    Result := PUInt64(@V)^ = PUInt64(@W)^;
+  except
+    on Ex: Exception do
+    begin
+      Result := False;
+    end;
+  end;
+end;
+
+// Combine(Extract(V)) 必须位精确还原（单精度）
+function FloatTestCheckRoundTripSingle(const V: Single): Boolean;
+var
+  N: Boolean;
+  E: Integer;
+  M: Cardinal;
+  W: Single;
+begin
+  ExtractFloatSingle(V, N, E, M);
+  try
+    CombineFloatSingle(N, E, M, W);
+    Result := PCardinal(@V)^ = PCardinal(@W)^;
+  except
+    on Ex: Exception do
+    begin
+      Result := False;
+    end;
+  end;
+end;
+
+// 直接从双精度原始位模式构造精确有理值，返回其前 N 位有效数字。
+// 不经过 ExtractFloat*/BigDecimalSet* 等任何待测路径，作为独立 oracle
+function FloatTestExactDoubleDigits(Bits: TUInt64; N: Integer): string;
+var
+  R: TCnBigRational;
+  Num, Den: TCnBigNumber;
+  E: Integer;
+  M: TUInt64;
+begin
+  if (Bits shr 52) and $7FF = 0 then
+  begin
+    E := -1022;
+    M := Bits and $000FFFFFFFFFFFFF;
+  end
+  else
+  begin
+    E := Integer((Bits shr 52) and $7FF) - 1023;
+    M := (Bits and $000FFFFFFFFFFFFF) or (TUInt64(1) shl 52);
+  end;
+
+  Num := TCnBigNumber.Create;
+  Den := TCnBigNumber.Create;
+  R := TCnBigRational.Create;
+  try
+    BigNumberSetUInt64UsingInt64(Num, M);
+    Num.SetNegative((Bits shr 63) <> 0);
+    Den.SetOne;
+    if E >= 52 then
+      Num.ShiftLeft(E - 52)      // 整数值：分子乘 2 的幂
+    else
+      Den.ShiftLeft(52 - E);     // 小数值：分母乘 2 的幂
+    R.SetValue(Num, Den);
+    // 次正态数最小约 2^-1074，小数点后需 1074 位才露出有效数字，取 400 位足够覆盖全部用例
+    Result := FloatTestSigDigits(R.ToDec(400), N);
+  finally
+    R.Free;
+    Den.Free;
+    Num.Free;
+  end;
+end;
+
+// 单精度版本的独立 oracle
+function FloatTestExactSingleDigits(Bits: Cardinal; N: Integer): string;
+var
+  R: TCnBigRational;
+  Num, Den: TCnBigNumber;
+  E: Integer;
+  M: Cardinal;
+begin
+  if (Bits shr 23) and $FF = 0 then
+  begin
+    E := -126;
+    M := Bits and $007FFFFF;
+  end
+  else
+  begin
+    E := Integer((Bits shr 23) and $FF) - 127;
+    M := (Bits and $007FFFFF) or Cardinal(1 shl 23);
+  end;
+
+  Num := TCnBigNumber.Create;
+  Den := TCnBigNumber.Create;
+  R := TCnBigRational.Create;
+  try
+    BigNumberSetUInt64UsingInt64(Num, M);
+    Num.SetNegative((Bits shr 31) <> 0);
+    Den.SetOne;
+    if E >= 23 then
+      Num.ShiftLeft(E - 23)
+    else
+      Den.ShiftLeft(23 - E);
+    R.SetValue(Num, Den);
+    Result := FloatTestSigDigits(R.ToDec(400), N);
+  finally
+    R.Free;
+    Den.Free;
+    Num.Free;
+  end;
+end;
+
+function TestFloatSubnormalContract: Boolean;
+var
+  A: TCnBigDecimal;
+  V, W: Double;
+  S, SW: Single;
+  EV: Extended;
+  DBits: array[0..14] of TUInt64;
+  SBits: array[0..9] of Cardinal;
+  I: Integer;
+begin
+  Result := False;
+
+  // ---------- 收集双精度测试位模式 ----------
+  // 边界值与符号组合直接给位模式；典型次正态值运行时构造后取位模式，
+  // 保证用例与具体平台的浮点运算结果无关（只认最终位模式）
+  DBits[0] := $0000000000000000;   // +0.0
+  DBits[1] := TUInt64($8000000000000000);   // -0.0
+  DBits[2] := $3FF0000000000000;   // 1.0
+  DBits[3] := $3FE0000000000000;   // 0.5
+  DBits[4] := TUInt64($BFF8000000000000);   // -1.5
+  DBits[5] := $0010000000000000;   // 2^-1022 最小规格化数
+  DBits[6] := $0008000000000000;   // 2^-1023 次正态数
+  DBits[7] := $0000000000000001;   // 2^-1074 最小次正态数
+  DBits[8] := TUInt64($8000000000000001);   // -2^-1074
+  DBits[9] := TUInt64($000FFFFFFFFFFFFF);   // 最大次正态数
+  V := 1E-300;               DBits[10] := PUInt64(@V)^;   // 规格化小数
+  V := 123456.789;           DBits[11] := PUInt64(@V)^;   // 规格化常见值
+  V := StrToFloat('1e-310'); DBits[12] := PUInt64(@V)^;   // 字面量解析出的次正态数
+  V := 1E-308 * 1E-10;       DBits[13] := PUInt64(@V)^;   // 下溢运算产生的次正态数
+  V := Exp(-740);            DBits[14] := PUInt64(@V)^;   // 函数计算产生的次正态数
+
+  // ---------- 收集单精度测试位模式 ----------
+  SBits[0] := $00000000;    // +0.0
+  SBits[1] := $80000000;    // -0.0
+  SBits[2] := $3F800000;    // 1.0
+  SBits[3] := $3F000000;    // 0.5
+  SBits[4] := $00800000;    // 2^-126 最小规格化数
+  SBits[5] := $00400000;    // 2^-127 次正态数
+  SBits[6] := $00000001;    // 2^-149 最小次正态数
+  SBits[7] := $80000001;    // -2^-149
+  SBits[8] := $007FFFFF;    // 最大次正态数
+  S := 1E-40;
+  SBits[9] := PCardinal(@S)^;          // 字面量解析出的次正态数
+
+  // ---------- 一、Extract 输出必须满足统一契约（独立位模式神谕） ----------
+  for I := 0 to 14 do
+  begin
+    Move(DBits[I], V, SizeOf(V));
+    if not FloatTestCheckExtractDouble(V) then
+      Exit;
+  end;
+  for I := 0 to 9 do
+  begin
+    Move(SBits[I], S, SizeOf(S));
+    if not FloatTestCheckExtractSingle(S) then
+      Exit;
+  end;
+
+  // ---------- 二、Combine(Extract(V)) 必须位精确往返 ----------
+  for I := 0 to 14 do
+  begin
+    Move(DBits[I], V, SizeOf(V));
+    if not FloatTestCheckRoundTripDouble(V) then
+      Exit;
+  end;
+  for I := 0 to 9 do
+  begin
+    Move(SBits[I], S, SizeOf(S));
+    if not FloatTestCheckRoundTripSingle(S) then
+      Exit;
+  end;
+
+  // ---------- 三、Combine 的零陷阱与次正态编码分支 ----------
+  // 旧实现在 (符号=False, 指数=0, 尾数=0) 时会错误产出 1.0
+  W := 0.0;
+  CombineFloatDouble(False, 0, 0, W);
+  if PUInt64(@W)^ <> 0 then Exit;
+
+  CombineFloatDouble(True, 0, 0, W);
+  if PUInt64(@W)^ <> $8000000000000000 then Exit;
+
+  SW := 0.0;
+  CombineFloatSingle(False, 0, 0, SW);
+  if PCardinal(@SW)^ <> 0 then Exit;
+
+  CombineFloatSingle(True, 0, 0, SW);
+  if PCardinal(@SW)^ <> $80000000 then Exit;
+
+  // 规格化形态的尾数配次规格化指数：真值落在次正态区间，应精确编码。
+  // (False, -1023, 2^52) 的真值是 2^-1023，位模式 $0008000000000000；
+  // 旧实现会给出 0.0
+  W := 0.0;
+  CombineFloatDouble(False, -1023, TUInt64(1) shl 52, W);
+  if PUInt64(@W)^ <> $0008000000000000 then Exit;
+
+  // 不能整除说明无法精确表示，应抛 ECnFloatRangeError 而非静默出错
+  try
+    CombineFloatDouble(False, -1023, (TUInt64(1) shl 52) + 1, W);
+  except
+    on Ex: ECnFloatRangeError do
+      Result := True; // 期望的异常
+  end;
+
+  if not Result then Exit;
+
+  // ---- 单精度对称用例：同一个 Exponent = -126 下的两种形态 ----
+  // 尾数 bit23 = 1 是正规化（该位即隐含前导 1，写入时摘掉），指数域 = 1；
+  // 尾数 bit23 = 0 是非正规化（裸小数），指数域 = 0。两者互不干扰
+  SW := 0.0;
+  CombineFloatSingle(False, -126, 1 shl 23, SW);
+  if PCardinal(@SW)^ <> $00800000 then Exit;
+
+  SW := 0.0;
+  CombineFloatSingle(False, -126, $007FFFFF, SW);
+  if PCardinal(@SW)^ <> $007FFFFF then Exit;
+
+  // 规格化形态的尾数配次规格化指数 -127：右移一位进小数域，
+  // (False, -127, 2^23) 的真值是 2^-127，位模式 $00400000
+  SW := 0.0;
+  CombineFloatSingle(False, -127, 1 shl 23, SW);
+  if PCardinal(@SW)^ <> $00400000 then Exit;
+
+  // 不能整除说明无法精确表示，应抛 ECnFloatRangeError 而非静默出错
+  try
+    CombineFloatSingle(False, -127, (1 shl 23) + 1, SW);
+  except
+    on Ex: ECnFloatRangeError do
+      Result := True; // 期望的异常
+  end;
+
+  if not Result then Exit;
+
+  // 指数越界同样必须拒绝
+  try
+    CombineFloatSingle(False, -128, 1 shl 23, SW);
+  except
+    on Ex: ECnFloatRangeError do
+      Result := True; // 期望的异常
+  end;
+
+  if not Result then Exit;
+
+  // ---------- 四、消费端：BigDecimalSetDouble 必须精确且往返一致 ----------
+  A := TCnBigDecimal.Create;
+  try
+    for I := 0 to 14 do
+    begin
+      // BigDecimal 不区分正负零，-0.0 的位精确往返不在其能力范围内，跳过
+      if DBits[I] = TUInt64($8000000000000000) then
+        Continue;
+
+      Move(DBits[I], V, SizeOf(V));
+
+      // 4.1 精确十进制对拍：与独立构造的精确有理数比较前 15 位有效数字
+      A.SetDouble(V);
+      if FloatTestSigDigits(A.ToString, 15) <> FloatTestExactDoubleDigits(DBits[I], 15) then
+        Exit;
+
+      // 4.2 ToDouble 必须位精确还原（旧实现对次正态数会丢一半甚至变 0）
+      W := BigDecimalToDouble(A);
+      if PUInt64(@W)^ <> DBits[I] then
+        Exit;
+    end;
+
+    // ---------- 五、消费端：BigDecimalSetSingle/ToSingle 同理 ----------
+    for I := 0 to 9 do
+    begin
+      if SBits[I] = $80000000 then
+        Continue;
+
+      Move(SBits[I], S, SizeOf(S));
+
+      A.SetSingle(S);
+      if FloatTestSigDigits(A.ToString, 15) <> FloatTestExactSingleDigits(SBits[I], 15) then
+        Exit;
+
+      SW := BigDecimalToSingle(A);
+      if PCardinal(@SW)^ <> SBits[I] then
+        Exit;
+    end;
+  finally
+    A.Free;
+  end;
+
+  // ---------- 六、对照组：Extended 不在本次改动范围，且本就公式一致 ----------
+  // 80 位 Extended 尾数含显式整数位，次正态数的公式旧约定即成立；
+  // 8 字节平台（Win64）上 Extended 实为 Double，转调修复后的 Double 路径。
+  // 两者都应满足 Combine(Extract(V)) 位精确往返
+  Move(DBits[7], V, SizeOf(V));    // 2^-1074
+  EV := V;                         // Double -> Extended 为精确转换
+  if not FloatTestCheckRoundTripExtended('Extended 2^-1074', EV) then Exit;
+  EV := 1.5;
+  if not FloatTestCheckRoundTripExtended('Extended 1.5', EV) then Exit;
+  EV := 0.5;
+  if not FloatTestCheckRoundTripExtended('Extended 0.5', EV) then Exit;
+  EV := 123456.789;
+  if not FloatTestCheckRoundTripExtended('Extended 123456.789', EV) then Exit;
 
   Result := True;
 end;
@@ -4851,7 +5366,7 @@ const
   function TimeOK(V: TDateTime): Boolean;
   begin
     Result := False;
-    if IsNan(V) or IsInfinite(V) then Exit;
+    if ExtendedIsNan(V) or ExtendedIsInfinite(V) then Exit;
     if V < -1 then Exit;
     if V > 1.0000001 then Exit;
     Result := True;

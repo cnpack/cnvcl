@@ -35,8 +35,10 @@ unit CnFloat;
 * 兼容测试：Delphi 2007，且 Extended 或以上只支持小端模式
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2026.10.14
+*               加入 Single、Double 与 Extended 的无穷大与 NaN 构造函数，兼容 Delphi 5 等
+*               Math 单元没有 Infinity 常量的版本
 *               10 字节扩展精度浮点数结构 TCnExtendedRec10 由实现段移到接口段并公开，
-*               供 CnMath 等单元共用
+*               供 CnBigDecimal 等单元共用
 *           2023.01.13
 *               兼容处理 Win64 下 Extended 是 8 字节 Double 而不是 10 字节扩展精度的问题
 *               兼容处理 MacOS64/Linux64 下的 16 字节 Extended（只截断处理前 10 字节）
@@ -201,6 +203,16 @@ const
 
   CN_SIGNIFICAND_QUADRUPLE_MASK = $FFFF;
   {* 四倍精度浮点数的有效数字掩码，只针对前四字节，还有加上后面所有内容}
+
+  CN_SINGLE_NAN_QUIET_MASK = $00400000;
+  {* 单精度 NaN 的静默位，即尾数域的最高位。该位为 1 表示是静默 NaN，参与运算时
+     只把 NaN 传播下去而不触发无效操作异常；该位为 0 则是信号 NaN，部分平台会报异常}
+
+  CN_DOUBLE_NAN_QUIET_MASK = $0008000000000000;
+  {* 双精度 NaN 的静默位，即尾数域的最高位，含义同单精度}
+
+  CN_EXTENDED_NAN_QUIET_MASK = $4000000000000000;
+  {* 80 位扩展精度 NaN 的静默位，即尾数域的次高位，其最高位是固定的显式整数位}
 
   CN_SINGLE_SIGNIFICAND_BITLENGTH         = 23;
   {* 单精度浮点数的有效数字位长度}
@@ -468,6 +480,69 @@ function ExtendedToUInt64(F: Extended): TUInt64;
      F: Extended                          - 待赋值的扩展精度浮点数
 
    返回值：TUInt64                        - 返回的 64 位无符号整型值
+}
+
+function SingleInfinity(Negative: Boolean = False): Single;
+{* 构造单精度浮点数的正或负无穷大。老版本 Delphi（如 Delphi 5）的 Math 单元并没有
+   Infinity 与 NegInfinity 常量，而用 1.0 / 0.0 的方式又会触发无效操作检测并抛出
+   EInvalidOp 异常，因此直接按 IEEE 754 的位模式构造：指数域全 1、尾数域全 0，
+   符号位为 1 时得到负无穷。判定请用同单元的 SingleIsInfinite。
+
+   参数：
+     Negative: Boolean                     - 是否取负无穷，False 为正无穷
+
+   返回值：Single                          - 返回构造出的正或负无穷大
+}
+
+function DoubleInfinity(Negative: Boolean = False): Double;
+{* 构造双精度浮点数的正或负无穷大，按 IEEE 754 的位模式构造：指数域全 1、尾数域全 0。
+   判定请用同单元的 DoubleIsInfinite。
+
+   参数：
+     Negative: Boolean                     - 是否取负无穷，False 为正无穷
+
+   返回值：Double                          - 返回构造出的正或负无穷大
+}
+
+function ExtendedInfinity(Negative: Boolean = False): Extended;
+{* 构造扩展精度浮点数的正或负无穷大。Win32 与 macOS/Linux x86 平台上 Extended 是
+   10 字节扩展精度（macOS/Linux x86_64 的 16 字节格式截取前 10 字节），其无穷为
+   "伪无穷"，即指数域全 1 且尾数的显式整数位为 1；Win64 与 ARM 平台上 Extended 实为
+   8 字节 Double，按双精度构造。判定请用同单元的 ExtendedIsInfinite。
+
+   参数：
+     Negative: Boolean                     - 是否取负无穷，False 为正无穷
+
+   返回值：Extended                        - 返回构造出的正或负无穷大
+}
+
+function SingleNan: Single;
+{* 构造单精度浮点数的静默 NaN（Quiet NaN），即指数域全 1、尾数域最高位的
+   静默位为 1、其余尾数位为 0。请用同单元的 SingleIsNan 判定，不要用 S = S 之类的
+   比较判断，部分平台会因此触发无效操作异常。
+
+   参数：（无）
+
+   返回值：Single                          - 返回构造出的静默 NaN
+}
+
+function DoubleNan: Double;
+{* 构造双精度浮点数的静默 NaN（Quiet NaN），即指数域全 1、尾数域最高位的
+   静默位为 1、其余尾数位为 0。请用同单元的 DoubleIsNan 判定。
+
+   参数：（无）
+
+   返回值：Double                          - 返回构造出的静默 NaN
+}
+
+function ExtendedNan: Extended;
+{* 构造扩展精度浮点数的静默 NaN。10 字节与 16 字节平台上为"伪 NaN"，即指数域全 1
+   且尾数含显式整数位与静默位；Win64 与 ARM 平台上 Extended 实为 8 字节 Double，
+   按双精度构造。请用同单元的 ExtendedIsNan 判定。
+
+   参数：（无）
+
+   返回值：Extended                        - 返回构造出的静默 NaN
 }
 
 function SingleIsInfinite(AValue: Single): Boolean;
@@ -1658,6 +1733,76 @@ function ExtendedToUInt64(F: Extended): TUInt64;
 begin
   Result := UTrunc(F);
 end;
+
+function SingleInfinity(Negative: Boolean = False): Single;
+begin
+  PCardinal(@Result)^ := CN_EXPONENT_SINGLE_MASK; // 指数域全 1、尾数域全 0
+  if Negative then
+    PCardinal(@Result)^ := PCardinal(@Result)^ or CN_SIGN_SINGLE_MASK;
+end;
+
+function DoubleInfinity(Negative: Boolean = False): Double;
+begin
+  PUInt64(@Result)^ := CN_EXPONENT_DOUBLE_MASK; // 指数域全 1、尾数域全 0
+  if Negative then
+    PUInt64(@Result)^ := PUInt64(@Result)^ or CN_SIGN_DOUBLE_MASK;
+end;
+
+{$HINTS OFF}
+{$WARNINGS OFF}
+
+function ExtendedInfinity(Negative: Boolean = False): Extended;
+var
+  P: PCnExtendedRec10;
+begin
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+  begin
+    // Win64 与 ARM 平台上 Extended 实为 8 字节 Double
+    PDouble(@Result)^ := DoubleInfinity(Negative);
+  end
+  else
+  begin
+    if SizeOf(Extended) = CN_EXTENDED_SIZE_16 then
+      FillChar(Result, SizeOf(Extended), 0); // 16 字节格式的低 6 字节是填充，必须先清零
+
+    P := PCnExtendedRec10(@Result);
+    P.Mantissa := TUInt64($8000000000000000); // 伪无穷：尾数最高位是显式整数位
+    P.ExpSign := CN_EXPONENT_EXTENDED_MASK;   // 指数域全 1
+    if Negative then
+      P.ExpSign := P.ExpSign or CN_SIGN_EXTENDED_MASK;
+  end;
+end;
+
+function SingleNan: Single;
+begin
+  PCardinal(@Result)^ := CN_EXPONENT_SINGLE_MASK or CN_SINGLE_NAN_QUIET_MASK;
+end;
+
+function DoubleNan: Double;
+begin
+  PUInt64(@Result)^ := CN_EXPONENT_DOUBLE_MASK or CN_DOUBLE_NAN_QUIET_MASK;
+end;
+
+function ExtendedNan: Extended;
+var
+  P: PCnExtendedRec10;
+begin
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    PDouble(@Result)^ := DoubleNan
+  else
+  begin
+    if SizeOf(Extended) = CN_EXTENDED_SIZE_16 then
+      FillChar(Result, SizeOf(Extended), 0);
+
+    P := PCnExtendedRec10(@Result);
+    P.Mantissa := TUInt64($8000000000000000); // 显式整数位
+    P.Mantissa := P.Mantissa or CN_EXTENDED_NAN_QUIET_MASK;
+    P.ExpSign := CN_EXPONENT_EXTENDED_MASK;
+  end;
+end;
+
+{$WARNINGS ON}
+{$HINTS ON}
 
 function SingleIsInfinite(AValue: Single): Boolean;
 begin
