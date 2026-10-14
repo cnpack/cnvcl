@@ -159,6 +159,8 @@ function TestCalendarReviewBCLunarRoundTrip: Boolean;
 function TestCalendarReviewLunarRange: Boolean;
 function TestCalendarReviewGanZhiInvalidInput: Boolean;
 function TestCalendarReviewStrictDateValidation: Boolean;
+function TestCalendarReviewSunRiseSet: Boolean;
+function TestCalendarReviewSunRiseSetQuad: Boolean;
 
 // ============================== Complex ======================================
 
@@ -1986,6 +1988,8 @@ begin
   MyAssert(TestCalendarReviewLunarRange, 'TestCalendarReviewLunarRange');
   MyAssert(TestCalendarReviewGanZhiInvalidInput, 'TestCalendarReviewGanZhiInvalidInput');
   MyAssert(TestCalendarReviewStrictDateValidation, 'TestCalendarReviewStrictDateValidation');
+  MyAssert(TestCalendarReviewSunRiseSet, 'TestCalendarReviewSunRiseSet');
+  MyAssert(TestCalendarReviewSunRiseSetQuad, 'TestCalendarReviewSunRiseSetQuad');
 
 // =============================== Complex =====================================
 
@@ -4709,6 +4713,161 @@ begin
   Result := (Get5XingFromGanZhi(-1) = -1) and
     (Get5XingFromGanZhi(10, 12) = -1) and
     (Get5XingLongFromGanZhi(-1) = '');
+end;
+
+function TestCalendarReviewSunRiseSet: Boolean;
+
+  // 短白昼日的固定参数。白昼短到日出与日落落在同一个 2 小时采样窗口里时，
+  // DoSunCalc 走的是 nz = 2 分支；修复前该分支没有置 rise / sett 标志，
+  // 于是明明有日出日落却返回 stAllwaysDown，三个时间全是 -1。
+  // 下面每组都用解析式日出方程核算过，参考白昼长度都在 2 小时以内。
+  //
+  // 字段：名称、年、月、日、纬度、经度、时区、参考白昼小时数
+  type
+    TSunCase = record
+      Name: string;
+      Y, M, D: Integer;
+      Lat, Lon: Extended;
+      Tz: Integer;
+      RefLen: Extended;
+    end;
+
+const
+  SHORT_DAY_CASES: array[0..7] of TSunCase = (
+    (Name: 'Murmansk 摩尔曼斯克';   Y: 2024; M:  1; D: 11; Lat: 68.97; Lon:  33.08; Tz:  3; RefLen: 0.42),
+    (Name: 'Murmansk 摩尔曼斯克';   Y: 2024; M:  1; D: 12; Lat: 68.97; Lon:  33.08; Tz:  3; RefLen: 1.07),
+    (Name: 'Murmansk 摩尔曼斯克';   Y: 2024; M:  1; D: 13; Lat: 68.97; Lon:  33.08; Tz:  3; RefLen: 1.47),
+    (Name: 'Murmansk 摩尔曼斯克';   Y: 2024; M:  1; D: 14; Lat: 68.97; Lon:  33.08; Tz:  3; RefLen: 1.79),
+    (Name: 'Murmansk 摩尔曼斯克';   Y: 2024; M: 11; D: 30; Lat: 68.97; Lon:  33.08; Tz:  3; RefLen: 0.79),
+    (Name: 'Kiruna 基律纳';         Y: 2024; M:  1; D:  2; Lat: 67.86; Lon:  20.23; Tz:  1; RefLen: 0.49),
+    (Name: 'Kiruna 基律纳';         Y: 2024; M: 12; D:  9; Lat: 67.86; Lon:  20.23; Tz:  1; RefLen: 0.72),
+    (Name: 'Tromso 特罗姆瑟';       Y: 2024; M: 11; D: 26; Lat: 69.65; Lon:  18.96; Tz:  1; RefLen: 0.81)
+  );
+
+var
+  I: Integer;
+  RT, TT, ST: TDateTime;
+  T: TCnSunRiseSetType;
+  Len: Extended;
+
+begin
+  Result := False;
+
+  // -------- 短白昼日必须有日出日落，不能因为 nz = 2 被判成极夜 --------
+  for I := Low(SHORT_DAY_CASES) to High(SHORT_DAY_CASES) do
+  begin
+    T := GetSunRiseSetTime(EncodeDate(SHORT_DAY_CASES[I].Y, SHORT_DAY_CASES[I].M,
+      SHORT_DAY_CASES[I].D), SHORT_DAY_CASES[I].Lon, SHORT_DAY_CASES[I].Lat,
+      SHORT_DAY_CASES[I].Tz, RT, TT, ST);
+
+    if T <> stNormal then Exit;            // 修复前这里就会退出
+    if (RT < 0) or (ST < 0) then Exit;     // 时间不能还是 -1
+    if ST <= RT then Exit;                 // 日落必须晚于日出
+
+    Len := (ST - RT) * 24;
+    // 白昼确实很短，且和参考值不能差太多（算法本身有分钟级误差，放 0.6 小时余量）
+    if (Len > 3.0) or (Abs(Len - SHORT_DAY_CASES[I].RefLen) > 0.6) then Exit;
+    // 日中时刻应当落在日出与日落之间
+    if (TT <= RT) or (TT >= ST) then Exit;
+  end;
+
+  // -------- 反向对照：真极夜不能因为修了这个缺陷而变成 stNormal --------
+  T := GetSunRiseSetTime(EncodeDate(2024, 1, 15), 15.65, 78.22, 1, RT, TT, ST);
+  if T <> stAllwaysDown then Exit;         // 朗伊尔城 1 月是真极夜
+
+  // -------- 反向对照：真极昼也不能变成 stNormal，且日中时刻仍要给出 --------
+  T := GetSunRiseSetTime(EncodeDate(2024, 6, 15), 15.65, 78.22, 1, RT, TT, ST);
+  if T <> stAllwaysUp then Exit;           // 朗伊尔城 6 月是真极昼
+  if TT < 0 then Exit;
+
+  // -------- 常规对照：中低纬度全年都是 stNormal，白昼长度要在合理区间 --------
+  T := GetSunRiseSetTime(EncodeDate(2024, 6, 21), 116.41, 39.90, 8, RT, TT, ST);
+  if T <> stNormal then Exit;              // 北京夏至
+  Len := (ST - RT) * 24;
+  if (Len < 13.0) or (Len > 16.0) then Exit;
+
+  T := GetSunRiseSetTime(EncodeDate(2024, 1, 15), 122.37, 53.47, 8, RT, TT, ST);
+  if T <> stNormal then Exit;              // 漠河冬季
+  Len := (ST - RT) * 24;
+  if (Len < 7.0) or (Len > 9.5) then Exit;
+
+  T := GetSunRiseSetTime(EncodeDate(2024, 3, 20), -21.94, 64.15, 0, RT, TT, ST);
+  if T <> stNormal then Exit;              // 雷克雅未克春分
+  Len := (ST - RT) * 24;
+  if (Len < 11.0) or (Len > 13.5) then Exit;
+
+  Result := True;
+end;
+
+function TestCalendarReviewSunRiseSetQuad: Boolean;
+
+// 盯住 DoSunCalc 里那条二次求根链路（Quad）的数值退化保护。
+//
+// Quad 用三个采样点 (ym, yz, yp) 拟合抛物线求地平线交点。当三点近似共线时
+// 二次项 A 趋于 0：A 恰为 0 会在 -B / (2 * A) 处除零抛 EDivByZero，被外层
+// GetSunRiseSetTime 的裸 except 吞成 stError；A 极小则 xe 与 dx 都是巨大数，
+// 相减造成灾难性抵消，z1 / z2 会算出垃圾甚至 NaN / Inf。
+// 退化时应当改走直线 B * x + c = 0，最多只有一个交点。
+//
+// 需要说明的是：在真实数据里 A 落在 1e-4 ~ 1e-2 量级，退化分支几乎走不到，
+// 所以这个用例是一条「护栏」而不是红转绿的回归用例——它保证将来若有人改动
+// Quad 而把除零保护去掉、或让求根结果溢出成 NaN / Inf，能被立刻发现。
+// 用隔离探针可以稳定复现退化本身：三点共线时 A = 0 会抛 EDivByZero。
+
+type
+  TQuadCase = record
+    Name: string;
+    Y, M, D: Integer;
+    Lat, Lon: Extended;
+    Tz: Integer;
+  end;
+
+const
+  QUAD_CASES: array[0..7] of TQuadCase = (
+    (Name: 'Reykjavik 06-20'; Y: 2024; M:  6; D: 20; Lat:  64.15; Lon:  -21.94; Tz:  0),
+    (Name: 'Kiruna 07-16';    Y: 2024; M:  7; D: 16; Lat:  67.86; Lon:   20.23; Tz:  1),
+    (Name: 'Murmansk 07-22';  Y: 2024; M:  7; D: 22; Lat:  68.97; Lon:   33.08; Tz:  3),
+    (Name: 'Murmansk 07-24';  Y: 2024; M:  7; D: 24; Lat:  68.97; Lon:   33.08; Tz:  3),
+    (Name: 'Longyear 04-18';  Y: 2024; M:  4; D: 18; Lat:  78.22; Lon:   15.65; Tz:  1),
+    (Name: 'Alert 04-06';     Y: 2024; M:  4; D:  6; Lat:  82.50; Lon:  -62.35; Tz: -4),
+    (Name: 'Zhongshan 11-20'; Y: 2024; M: 11; D: 20; Lat: -69.37; Lon:   76.37; Tz:  5),
+    (Name: 'Beijing 06-21';   Y: 2024; M:  6; D: 21; Lat:  39.90; Lon:  116.41; Tz:  8)
+  );
+
+  // 返回值要么是 -1（该事件不存在），要么是 [0, 1] 内的有限时刻，
+  // 不能出现 NaN 或 Infinity
+  function TimeOK(V: TDateTime): Boolean;
+  begin
+    Result := False;
+    if IsNan(V) or IsInfinite(V) then Exit;
+    if V < -1 then Exit;
+    if V > 1.0000001 then Exit;
+    Result := True;
+  end;
+
+var
+  I: Integer;
+  RT, TT, ST: TDateTime;
+  T: TCnSunRiseSetType;
+
+begin
+  Result := False;
+
+  for I := Low(QUAD_CASES) to High(QUAD_CASES) do
+  begin
+    T := GetSunRiseSetTime(EncodeDate(QUAD_CASES[I].Y, QUAD_CASES[I].M,
+      QUAD_CASES[I].D), QUAD_CASES[I].Lon, QUAD_CASES[I].Lat,
+      QUAD_CASES[I].Tz, RT, TT, ST);
+
+    // 除零被裸 except 吞掉后的表现就是 stError
+    if T = stError then Exit;
+
+    if not TimeOK(RT) then Exit;
+    if not TimeOK(TT) then Exit;
+    if not TimeOK(ST) then Exit;
+  end;
+
+  Result := True;
 end;
 
 // ============================== Complex ======================================

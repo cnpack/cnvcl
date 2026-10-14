@@ -6379,6 +6379,30 @@ begin
   A := 0.5 * (ym + yp) - yz;
   B := 0.5 * (yp - ym);
   c := yz;
+
+  // 三个采样点近似共线时 A 趋于 0，二次曲线退化成直线。此时若继续走二次求根：
+  // A 恰好为 0 会在下面除零抛 EDivByZero；A 极小则 xe 与 dx 都是巨大数，
+  // 两者相减造成灾难性抵消，z1 / z2 会算出垃圾值。
+  // 退化情形直接按直线 B * x + c = 0 求根，最多只有一个交点。
+  if Abs(A) <= 1.0e-15 * (Abs(B) + Abs(c)) then
+  begin
+    xe := 0;
+    ye := c;
+    if B <> 0.0 then
+    begin
+      z1 := -c / B;
+      z2 := z1;
+      if Abs(z1) <= 1.0 then
+        nz := 1;
+    end
+    else
+    begin
+      z1 := 0;
+      z2 := 0;
+    end;
+    Exit;
+  end;
+
   xe := -B / (2 * A);
   ye := (A * xe + B) * xe + c;
   dis := B * B - 4.0 * A * c;
@@ -6547,6 +6571,12 @@ begin
         utrise := hour + z1;
         utset := hour + z2;
       end;
+
+      // 日出日落落在同一个 2 小时采样窗口里（高纬度短白昼日）时走的是这个分支，
+      // 必须和 nz = 1 分支一样置上标志，否则下面 rise or sett 为假，
+      // 会把有日出日落的日子误判成极昼或极夜
+      rise := True;
+      sett := True;
     end;
 
     ym := yp;
