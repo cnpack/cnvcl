@@ -33,7 +33,10 @@ unit CnBigDecimal;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.12.05 V1.3
+* 修改记录：2026.10.14 V1.4
+*               BigDecimal 与 BigBinary 转浮点数时支持非规格化数与溢出，尾数按 IEEE754
+*               规则做最近舍入（半到偶）；修正舍入进位归一化时把指数多加了 1 的问题
+*           2024.12.05 V1.3
 *               去掉一批无用的 const 声明并调整注释
 *           2021.12.05 V1.3
 *               增加与 TCnBigRational 互相转换的函数以及求平方根的函数
@@ -2016,10 +2019,91 @@ begin
 end;
 
 // 通过巨大的变换让大十进制浮点数的原始值等于 Value / 2^Scale，并且有效数字满足特定位数 
+type
+  TCnFloatConvertStatus = (fcsNormal, fcsZero, fcsOverflow);
+  {* 大数尾数按 IEEE754 规则整理的结果：规格化、应返回零、应返回无穷 }
+
+// 把已归一到 Bits 位的尾数按 IEEE754 规则整理成 CombineFloat* 可接受的参数。
+//   M            - 完整尾数，共 Bits 位（含隐含前导 1 或显式整数位），Bits <= 64
+//   Exp          - M 最高位对应的无偏二进制指数，即原值 = M * 2^(Exp - Bits + 1)
+//   MinNormalExp - 规格化数的最小无偏指数：Single -126 / Double -1022 / Extended -16382
+//   ImplicitLeadingOne - True 表示有效数字含隐含前导 1（Single/Double，最高位
+//                  写入时会被 Combine 去除）；False 表示含显式整数位（80 位 Extended）
+// 调整后：
+//   fcsNormal  - M 为完整尾数，Exp 为可传给 CombineFloat* 的无偏指数
+//   fcsZero    - 原值小于最小次正规数的一半，调用方应返回带符号零
+//   fcsOverflow- 原值超出规格化上界，调用方应返回带符号无穷
+function InternalAdjustFloatMantissa(var M: TUInt64; Bits: Integer;
+  var Exp: Integer; MinNormalExp: Integer; ImplicitLeadingOne: Boolean): TCnFloatConvertStatus;
+var
+  Shift: Integer;
+  RoundBit, Sticky: Boolean;
+begin
+  // 超出规格化上界（最大无偏指数为 -MinNormalExp + 1），应返回无穷
+  if Exp > -MinNormalExp + 1 then
+  begin
+    Result := fcsOverflow;
+    Exit;
+  end;
+
+  if Exp >= MinNormalExp then
+  begin
+    // 规格化范围。注意不能剥离最高位的前导 1：CombineFloatSingle/Double
+    // 以该位区分规格化与非规格化形态，剥离后会误判成非规格化数
+    Result := fcsNormal;
+    Exit;
+  end;
+
+  // 次正态范围：右移并把结果舍入到最近（半到偶）
+  Shift := MinNormalExp - Exp;   // >= 1
+  if Shift > Bits then          // 尾数整体被移出，连最小次正态的一半都不到
+  begin
+    Result := fcsZero;
+    Exit;
+  end;
+
+  RoundBit := (M and (TUInt64(1) shl (Shift - 1))) <> 0;
+  if RoundBit and (Shift > 1) then
+    Sticky := (M and ((TUInt64(1) shl (Shift - 1)) - 1)) <> 0
+  else
+    Sticky := False;
+
+  M := M shr Shift;
+  if RoundBit and (Sticky or ((M and 1) <> 0)) then
+    Inc(M);
+
+  if M = 0 then
+  begin
+    Result := fcsZero;
+    Exit;
+  end;
+
+  if (M and (TUInt64(1) shl (Bits - 1))) <> 0 then
+  begin
+    // 进位后成为最小规格化数
+    M := TUInt64(1) shl (Bits - 1);
+    Exp := MinNormalExp;
+    Result := fcsNormal;
+    Exit;
+  end;
+
+  // 次正态：指数字段为 0。注意两种格式的契约差异：
+  //   隐前导 1 格式（Single/Double，ImplicitLeadingOne 为 True）：尾数是裸小数，
+  //     指数取最小规格化指数，使 值 = 尾数 * 2^(指数 - (Bits - 1)) 成立；
+  //   显整数位格式（Extended，ImplicitLeadingOne 为 False）：尾数含整数位，
+  //     指数取最小规格化指数 - 1（即指数域为 0），公式同样成立。
+  if ImplicitLeadingOne then
+    Exp := MinNormalExp
+  else
+    Exp := MinNormalExp - 1;
+  Result := fcsNormal;
+end;
+
 function InternalBigDecimalConvertToBitsCount(Num: TCnBigDecimal; BitsCount: Integer): Boolean;
 var
   C, D: Integer;
-  Di, R: TCnBigNumber;
+  Di, R, Tmp: TCnBigNumber;
+  RoundBit, Sticky, Neg: Boolean;
 begin
 //  FValue * 10^-FScale 要变成 M * 2^E 次方的形式，FValue 就得乘以 5^-FScale，如果 FScale < 0，就是直接乘 5^-FScale
 //  如果 FScale > 0，意味着 FValue 要除以 5 的 FScale 次方，
@@ -2045,8 +2129,11 @@ begin
         Di.PowerWord(Num.FScale); // 得到除数
 
         // FValue / Di 要得到小数结果，所以不能直接 BigNumberDiv，得将 FValue 扩大 2 的整数次方
-        // 扩大多少次方取决于精度，可以认为需要小数点后十进制 FScale 位，胡乱折算成 2 进制
-        C := Num.FScale * 2;
+        // 扩大多少次方取决于精度，需要让除得的商至少保留 BitsCount 个有效位：
+        // 5 的 FScale 次方约占用 2.33 * FScale 个二进制位，商的有效位数约为
+        // bits(FValue) + C - 2.33 * FScale，因此 C 取 2.5 * FScale + BitsCount + 8 并留足余量。
+        // 原先只放大 2 * FScale 位，位数不足时商会直接变成 0，小数值会整体算错
+        C := (Num.FScale * 5) div 2 + BitsCount + 8;
         if C < CN_BIG_BINARY_DEFAULT_PRECISION then
           C := CN_BIG_BINARY_DEFAULT_PRECISION;
 
@@ -2070,8 +2157,40 @@ begin
     else if C > BitsCount then
     begin
       D := C - BitsCount;  // 要截掉 D 个位，也就是要把 FScale 减少 D
+
+      // 先取舍入位与粘滞位，再做最近舍入（半到偶），避免直接截断差 1 ulp
+      RoundBit := Num.FValue.IsBitSet(D - 1);
+      if RoundBit and (D > 1) then
+      begin
+        Tmp := FLocalBigNumberPool.Obtain;
+        try
+          BigNumberCopy(Tmp, Num.FValue);
+          BigNumberKeepLowBits(Tmp, D - 1);  // 只留被丢弃的低 D - 1 位
+          Sticky := not Tmp.IsZero;
+        finally
+          FLocalBigNumberPool.Recycle(Tmp);
+        end;
+      end
+      else
+        Sticky := False;
+
       Num.FValue.ShiftRight(D);
       Num.FScale := Num.FScale - D;
+
+      if RoundBit and (Sticky or Num.FValue.IsOdd) then
+      begin
+        // AddWord 对负数执行的是减法，此处要加的是尾数量值，需先清符号再恢复
+        Neg := Num.FValue.IsNegative;
+        Num.FValue.SetNegative(False);
+        BigNumberAddWord(Num.FValue, 1);
+        Num.FValue.SetNegative(Neg);
+        // 进位可能多出一位（如 0b1111 变 0b10000），需右移回指定位数并调整 FScale
+        if Num.FValue.GetBitsCount > BitsCount then
+        begin
+          Num.FValue.ShiftRight(1);
+          Dec(Num.FScale); // 尾数减半则除数也要减半，否则值被多除了一个 2
+        end;
+      end;
     end;
     Result := True;
   end;
@@ -2081,7 +2200,8 @@ function BigDecimalToSingle(Num: TCnBigDecimal): Single;
 var
   T: TCnBigDecimal;
   E: Integer;
-  M: Cardinal;
+  M: TUInt64;
+  St: TCnFloatConvertStatus;
 begin
   if Num.Value.IsZero then
   begin
@@ -2093,12 +2213,24 @@ begin
   try
     BigDecimalCopy(T, Num);
     InternalBigDecimalConvertToBitsCount(T, CN_SINGLE_SIGNIFICAND_BITLENGTH + 1);
-    T.FValue.ClearBit(T.FValue.GetBitsCount - 1); // 清除最高位的 1
 
-    M := T.FValue.GetWord;
-    E := -T.FScale;
+    M := BigNumberGetUInt64UsingInt64(T.FValue);          // 完整尾数，共 24 位
+    E := CN_SINGLE_SIGNIFICAND_BITLENGTH - T.FScale;      // 无偏二进制指数
 
-    CombineFloatSingle(Num.IsNegative, E + CN_SINGLE_SIGNIFICAND_BITLENGTH, M, Result);
+    St := InternalAdjustFloatMantissa(M, CN_SINGLE_SIGNIFICAND_BITLENGTH + 1, E,
+      CN_SINGLE_MIN_NORMAL_EXPONENT, True);
+    case St of
+      fcsZero:
+        begin
+          Result := 0.0;
+          if Num.IsNegative then
+            Result := -Result;
+        end;
+      fcsOverflow:
+        Result := SingleInfinity(Num.IsNegative);
+      fcsNormal:
+        CombineFloatSingle(Num.IsNegative, E, Cardinal(M), Result);
+    end;
   finally
     FLocalBigDecimalPool.Recycle(T);
   end;
@@ -2109,6 +2241,7 @@ var
   T: TCnBigDecimal;
   E: Integer;
   M: TUInt64;
+  St: TCnFloatConvertStatus;
 begin
   if Num.Value.IsZero then
   begin
@@ -2120,12 +2253,24 @@ begin
   try
     BigDecimalCopy(T, Num);
     InternalBigDecimalConvertToBitsCount(T, CN_DOUBLE_SIGNIFICAND_BITLENGTH + 1);
-    T.FValue.ClearBit(T.FValue.GetBitsCount - 1); // 清除最高位的 1
 
-    M := BigNumberGetUInt64UsingInt64(T.FValue);
-    E := -T.FScale;
+    M := BigNumberGetUInt64UsingInt64(T.FValue);          // 完整尾数，共 53 位
+    E := CN_DOUBLE_SIGNIFICAND_BITLENGTH - T.FScale;      // 无偏二进制指数
 
-    CombineFloatDouble(Num.IsNegative, E + CN_DOUBLE_SIGNIFICAND_BITLENGTH, M, Result);
+    St := InternalAdjustFloatMantissa(M, CN_DOUBLE_SIGNIFICAND_BITLENGTH + 1, E,
+      CN_DOUBLE_MIN_NORMAL_EXPONENT, True);
+    case St of
+      fcsZero:
+        begin
+          Result := 0.0;
+          if Num.IsNegative then
+            Result := -Result;
+        end;
+      fcsOverflow:
+        Result := DoubleInfinity(Num.IsNegative);
+      fcsNormal:
+        CombineFloatDouble(Num.IsNegative, E, M, Result);
+    end;
   finally
     FLocalBigDecimalPool.Recycle(T);
   end;
@@ -2136,6 +2281,9 @@ var
   T: TCnBigDecimal;
   E, L: Integer;
   M: TUInt64;
+  St: TCnFloatConvertStatus;
+  ImplicitLeadingOne: Boolean;
+  MinNormal: Integer;
 begin
   if Num.Value.IsZero then
   begin
@@ -2144,20 +2292,39 @@ begin
   end;
 
   if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
-    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  begin
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH;       // 8 字节 Extended 按 Double 处理
+    ImplicitLeadingOne := True;
+    MinNormal := CN_DOUBLE_MIN_NORMAL_EXPONENT;
+  end
   else
-    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+  begin
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;     // 80/128 位 Extended 尾数含整数位
+    ImplicitLeadingOne := False;
+    MinNormal := CN_EXTENDED_MIN_NORMAL_EXPONENT;
+  end;
 
   T := FLocalBigDecimalPool.Obtain;
   try
     BigDecimalCopy(T, Num);
     InternalBigDecimalConvertToBitsCount(T, L + 1);
-    // 无需清除最高位的 1
 
     M := BigNumberGetUInt64UsingInt64(T.FValue);
-    E := -T.FScale;
+    E := L - T.FScale;                          // 无偏二进制指数
 
-    CombineFloatExtended(Num.IsNegative, E + L, M, Result);
+    St := InternalAdjustFloatMantissa(M, L + 1, E, MinNormal, ImplicitLeadingOne);
+    case St of
+      fcsZero:
+        begin
+          Result := 0.0;
+          if Num.IsNegative then
+            Result := -Result;
+        end;
+      fcsOverflow:
+        Result := ExtendedInfinity(Num.IsNegative);
+      fcsNormal:
+        CombineFloatExtended(Num.IsNegative, E, M, Result);
+    end;
   finally
     FLocalBigDecimalPool.Recycle(T);
   end;
@@ -3632,6 +3799,8 @@ end;
 function InternalBigBinaryChangeToBitsCount(Num: TCnBigBinary; BitsCount: Integer): Boolean;
 var
   C, D: Integer;
+  Tmp: TCnBigNumber;
+  RoundBit, Sticky, Neg: Boolean;
 begin
   Result := False;
   if Num <> nil then
@@ -3645,8 +3814,41 @@ begin
     end
     else if C > BitsCount then
     begin
-      D := C - BitsCount;  // 要截掉 D 个位，也就是要把 FScale 减少 D，
-      BigBinaryChangeToScale(Num, Num, Num.FScale - D);
+      D := C - BitsCount;  // 要截掉 D 个位，也就是要把 FScale 减少 D
+
+      // 先取舍入位与粘滞位，再做最近舍入（半到偶），避免直接截断差 1 ulp
+      RoundBit := Num.FValue.IsBitSet(D - 1);
+      if RoundBit and (D > 1) then
+      begin
+        Tmp := FLocalBigNumberPool.Obtain;
+        try
+          BigNumberCopy(Tmp, Num.FValue);
+          BigNumberKeepLowBits(Tmp, D - 1);  // 只留被丢弃的低 D - 1 位
+          Sticky := not Tmp.IsZero;
+        finally
+          FLocalBigNumberPool.Recycle(Tmp);
+        end;
+      end
+      else
+        Sticky := False;
+
+      Num.FValue.ShiftRight(D);
+      Num.FScale := Num.FScale - D;
+
+      if RoundBit and (Sticky or Num.FValue.IsOdd) then
+      begin
+        // AddWord 对负数执行的是减法，此处要加的是尾数量值，需先清符号再恢复
+        Neg := Num.FValue.IsNegative;
+        Num.FValue.SetNegative(False);
+        BigNumberAddWord(Num.FValue, 1);
+        Num.FValue.SetNegative(Neg);
+        // 进位可能多出一位，需右移回指定位数并调整 FScale
+        if Num.FValue.GetBitsCount > BitsCount then
+        begin
+          Num.FValue.ShiftRight(1);
+          Dec(Num.FScale); // 尾数减半则除数也要减半，否则值被多除了一个 2
+        end;
+      end;
     end;
     Result := True;
   end;
@@ -3656,7 +3858,8 @@ function BigBinaryToSingle(Num: TCnBigBinary): Single;
 var
   T: TCnBigBinary;
   E: Integer;
-  M: Cardinal;
+  M: TUInt64;
+  St: TCnFloatConvertStatus;
 begin
   if Num.Value.IsZero then
   begin
@@ -3668,12 +3871,24 @@ begin
   try
     BigBinaryCopy(T, Num);
     InternalBigBinaryChangeToBitsCount(T, CN_SINGLE_SIGNIFICAND_BITLENGTH + 1);
-    T.FValue.ClearBit(T.FValue.GetBitsCount - 1); // 清除最高位的 1
 
-    M := T.FValue.GetWord;
-    E := -T.FScale;
+    M := BigNumberGetUInt64UsingInt64(T.FValue);          // 完整尾数，共 24 位
+    E := CN_SINGLE_SIGNIFICAND_BITLENGTH - T.FScale;      // 无偏二进制指数
 
-    CombineFloatSingle(Num.IsNegative, E + CN_SINGLE_SIGNIFICAND_BITLENGTH, M, Result);
+    St := InternalAdjustFloatMantissa(M, CN_SINGLE_SIGNIFICAND_BITLENGTH + 1, E,
+      CN_SINGLE_MIN_NORMAL_EXPONENT, True);
+    case St of
+      fcsZero:
+        begin
+          Result := 0.0;
+          if Num.IsNegative then
+            Result := -Result;
+        end;
+      fcsOverflow:
+        Result := SingleInfinity(Num.IsNegative);
+      fcsNormal:
+        CombineFloatSingle(Num.IsNegative, E, Cardinal(M), Result);
+    end;
   finally
     FLocalBigBinaryPool.Recycle(T);
   end;
@@ -3684,6 +3899,7 @@ var
   T: TCnBigBinary;
   E: Integer;
   M: TUInt64;
+  St: TCnFloatConvertStatus;
 begin
   if Num.Value.IsZero then
   begin
@@ -3695,12 +3911,24 @@ begin
   try
     BigBinaryCopy(T, Num);
     InternalBigBinaryChangeToBitsCount(T, CN_DOUBLE_SIGNIFICAND_BITLENGTH + 1);
-    T.FValue.ClearBit(T.FValue.GetBitsCount - 1); // 清除最高位的 1
 
-    M := BigNumberGetUInt64UsingInt64(T.FValue);
-    E := -T.FScale;
+    M := BigNumberGetUInt64UsingInt64(T.FValue);          // 完整尾数，共 53 位
+    E := CN_DOUBLE_SIGNIFICAND_BITLENGTH - T.FScale;      // 无偏二进制指数
 
-    CombineFloatDouble(Num.IsNegative, E + CN_DOUBLE_SIGNIFICAND_BITLENGTH, M, Result);
+    St := InternalAdjustFloatMantissa(M, CN_DOUBLE_SIGNIFICAND_BITLENGTH + 1, E,
+      CN_DOUBLE_MIN_NORMAL_EXPONENT, True);
+    case St of
+      fcsZero:
+        begin
+          Result := 0.0;
+          if Num.IsNegative then
+            Result := -Result;
+        end;
+      fcsOverflow:
+        Result := DoubleInfinity(Num.IsNegative);
+      fcsNormal:
+        CombineFloatDouble(Num.IsNegative, E, M, Result);
+    end;
   finally
     FLocalBigBinaryPool.Recycle(T);
   end;
@@ -3711,6 +3939,9 @@ var
   T: TCnBigBinary;
   E, L: Integer;
   M: TUInt64;
+  St: TCnFloatConvertStatus;
+  ImplicitLeadingOne: Boolean;
+  MinNormal: Integer;
 begin
   if Num.Value.IsZero then
   begin
@@ -3719,20 +3950,39 @@ begin
   end;
 
   if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
-    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  begin
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH;       // 8 字节 Extended 按 Double 处理
+    ImplicitLeadingOne := True;
+    MinNormal := CN_DOUBLE_MIN_NORMAL_EXPONENT;
+  end
   else
-    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+  begin
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;     // 80/128 位 Extended 尾数含整数位
+    ImplicitLeadingOne := False;
+    MinNormal := CN_EXTENDED_MIN_NORMAL_EXPONENT;
+  end;
 
   T := FLocalBigBinaryPool.Obtain;
   try
     BigBinaryCopy(T, Num);
     InternalBigBinaryChangeToBitsCount(T, L + 1);
-    // 无需清除最高位的 1
 
     M := BigNumberGetUInt64UsingInt64(T.FValue);
-    E := -T.FScale;
+    E := L - T.FScale;                          // 无偏二进制指数
 
-    CombineFloatExtended(Num.IsNegative, E + L, M, Result);
+    St := InternalAdjustFloatMantissa(M, L + 1, E, MinNormal, ImplicitLeadingOne);
+    case St of
+      fcsZero:
+        begin
+          Result := 0.0;
+          if Num.IsNegative then
+            Result := -Result;
+        end;
+      fcsOverflow:
+        Result := ExtendedInfinity(Num.IsNegative);
+      fcsNormal:
+        CombineFloatExtended(Num.IsNegative, E, M, Result);
+    end;
   finally
     FLocalBigBinaryPool.Recycle(T);
   end;

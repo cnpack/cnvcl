@@ -257,6 +257,9 @@ const
   CN_DOUBLE_MIN_NORMAL_EXPONENT           = CN_DOUBLE_MIN_EXPONENT + 1;
   {* 双精度浮点数的最小规格化指数。非规格化数的指数也按约定取该值}
 
+  CN_EXTENDED_MIN_NORMAL_EXPONENT         = CN_EXTENDED_MIN_EXPONENT + 1;
+  {* 扩展精度浮点数的最小规格化指数。非规格化数的指数也按约定取该值}
+
 procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
 {* 从单精度浮点数中解出符号位、指数、添加了最高位 1 并去除了小数点的完整有效数字。
