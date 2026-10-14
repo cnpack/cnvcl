@@ -30,7 +30,9 @@ unit CnBigRational;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.26 V1.2
+* 修改记录：2026.10.14 V1.3
+*               修复 BigRationalAdd 与 BigRationalCompare 在分母为 -1 的未规约形式下符号处理错误的问题
+*           2026.01.26 V1.2
 *               增加大有理数列表类的实现，更改部分函数名以与其他类一致
 *           2021.12.06 V1.1
 *               加入池机制，调整函数名与参数顺序以与其他类一致
@@ -644,8 +646,16 @@ var
 begin
   if Num1.IsInt and Num2.IsInt then
   begin
-    BigNumberAdd(Res.Numerator, Num1.Numerator, Num2.Numerator);
+    // 注意分母可能为 -1（未规约形式），不能直接加分子，先按分母符号归一成带符号整数再运算
+    B1 := Num1.Denominator.IsNegOne;
+    B2 := Num2.Denominator.IsNegOne;
+    if B1 = B2 then
+      BigNumberAdd(Res.Numerator, Num1.Numerator, Num2.Numerator)
+    else
+      BigNumberSub(Res.Numerator, Num1.Numerator, Num2.Numerator);
     Res.Denominator.SetOne;
+    if B1 then // 上面用的是未翻符号的 Num1.Numerator，结果要翻回来
+      Res.Numerator.SetNegative(not Res.Numerator.IsNegative);
     Exit;
   end
   else if Num1.IsZero then
@@ -758,6 +768,7 @@ end;
 function BigRationalCompare(Num1, Num2: TCnBigRational): Integer;
 var
   Res: TCnBigRational;
+  T1, T2: TCnBigNumber;
 begin
   if not Num1.IsNegative and Num2.IsNegative then
     Result := 1
@@ -766,7 +777,23 @@ begin
   else if Num1.IsZero and Num2.IsZero then
     Result := 0
   else if Num1.IsInt and Num2.IsInt then
-    Result := BigNumberCompare(Num1.Numerator, Num2.Numerator)
+  begin
+    // 注意分母可能为 -1（未规约形式），不能直接比分子，先归一成带符号整数再比较
+    T1 := FLocalBigNumberPool.Obtain;
+    T2 := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberCopy(T1, Num1.Numerator);
+      if Num1.Denominator.IsNegOne then
+        T1.SetNegative(not T1.IsNegative);
+      BigNumberCopy(T2, Num2.Numerator);
+      if Num2.Denominator.IsNegOne then
+        T2.SetNegative(not T2.IsNegative);
+      Result := BigNumberCompare(T1, T2);
+    finally
+      FLocalBigNumberPool.Recycle(T2);
+      FLocalBigNumberPool.Recycle(T1);
+    end;
+  end
   else
   begin
     //  同号，非整，比较

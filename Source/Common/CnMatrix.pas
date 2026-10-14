@@ -2119,7 +2119,9 @@ begin
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
 
-  Minor := TCnRationalMatrix.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1);
+  Minor := TCnRationalMatrix(Matrix1.ClassType.NewInstance);
+  Minor.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1); // 用子类实现
+
   T := TCnRationalNumber.Create;
   try
     for I := 0 to Matrix1.RowCount - 1 do
@@ -3207,8 +3209,16 @@ var
 begin
   if Number1.IsInt and Number2.IsInt then
   begin
-    Res.Numerator := Number1.Numerator + Number2.Numerator;
+    // 注意分母可能为 -1（未规约形式），不能直接加分子，先按分母符号归成带符号整数再运算
+    B1 := Number1.Denominator < 0;
+    B2 := Number2.Denominator < 0;
+    if B1 = B2 then
+      Res.Numerator := Number1.Numerator + Number2.Numerator
+    else
+      Res.Numerator := Number1.Numerator - Number2.Numerator;
     Res.Denominator := 1;
+    if B1 then // 上面用的是未翻符号的 Number1.Numerator，结果要翻回来
+      Res.Numerator := -Res.Numerator;
   end
   else
   begin
@@ -3250,8 +3260,16 @@ var
 begin
   if Number1.IsInt and Number2.IsInt then
   begin
-    Res.Numerator := Number1.Numerator - Number2.Numerator;
+    // 注意分母可能为 -1（未规约形式），不能直接减分子，先按分母符号归成带符号整数再运算
+    B1 := Number1.Denominator < 0;
+    B2 := Number2.Denominator < 0;
+    if B1 = B2 then
+      Res.Numerator := Number1.Numerator - Number2.Numerator
+    else
+      Res.Numerator := Number1.Numerator + Number2.Numerator;
     Res.Denominator := 1;
+    if B1 then // 上面用的是未翻符号的 Number1.Numerator，结果要翻回来
+      Res.Numerator := -Res.Numerator;
   end
   else
   begin

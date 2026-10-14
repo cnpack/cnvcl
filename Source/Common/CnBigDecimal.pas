@@ -1571,7 +1571,7 @@ begin
       Exit;
     end;
   end;
-  Result := ''; // 全是 '0' 时返回空字符串
+  Result := '0'; // 全是 '0' 时返回一个 0
 end;
 
 // 根据精度数字整出一个差值供迭代求解过程中停止
@@ -2294,7 +2294,7 @@ begin
     begin
       // 没有小数部分
       DecimalCount := 0;
-      IntCount := P + Num.FScale;
+      IntCount := P - Num.FScale;
     end;
     Result := True;
   end;
