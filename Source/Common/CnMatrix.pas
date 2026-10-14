@@ -49,7 +49,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, CnMath;
+  SysUtils, Classes, Contnrs, CnNative, CnMath;
 
 type
   ECnMatrixException = class(Exception);
@@ -1379,6 +1379,13 @@ resourcestring
   SCnErrorAdjointSquare = 'Only Square can Adjoint';
   SCnErrorInverseZeroDeteminant = 'NO Inverse Matrix for Deteminant is 0';
   SCnErrorDeterminantSquare = 'Only Square can Determinant';
+  SCnErrorInt64Overflow = 'Int64 Overflow in Rational Operation.';
+
+const
+  // 浮点矩阵判断奇异的相对阈值：|行列式| <= 缩放因子 * 该值 时视为奇异。
+  // 缩放因子取各行绝对值之和的乘积（Hadamard 上界），
+  // 避免固定绝对阈值对小数值矩阵（如 diag(1e-5, 1e-4)）误判为奇异
+  CN_MATRIX_SINGULAR_RELATIVE_GAP = 1.0E-12;
 
 procedure CheckCount(Value: Integer);
 begin
@@ -1390,6 +1397,27 @@ procedure CheckIndex(Value: Integer);
 begin
   if Value < 0 then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColIndexFmt, [Value]);
+end;
+
+// 计算浮点矩阵行列式的相对尺度：各行绝对值之和的乘积，即 Hadamard 上界。
+// 用于以相对阈值判断矩阵是否奇异，矩阵某行全零时结果为 0
+function InternalFloatMatrixDeterminantScale(M: TCnFloatMatrix): Extended;
+var
+  I, J: Integer;
+  RowSum, Scale: Extended;
+begin
+  Scale := 1.0;
+  if M <> nil then
+  begin
+    for I := 0 to M.RowCount - 1 do
+    begin
+      RowSum := 0.0;
+      for J := 0 to M.ColCount - 1 do
+        RowSum := RowSum + Abs(M.Value[I, J]);
+      Scale := Scale * RowSum;
+    end;
+  end;
+  Result := Scale;
 end;
 
 {
@@ -2155,10 +2183,12 @@ end;
 
 procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix);
 var
-  D: Extended;
+  D, Scale: Extended;
 begin
   D := Matrix1.Determinant;
-  if FloatAlmostZero(D) then
+  Scale := InternalFloatMatrixDeterminantScale(Matrix1);
+  // 与 IsSingular 保持同一套相对阈值，避免绝对阈值拒绝可逆的小数值矩阵
+  if Abs(D) <= Scale * CN_MATRIX_SINGULAR_RELATIVE_GAP then
     raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
 
   CnMatrixAdjoint(Matrix1, Matrix2);
@@ -2804,11 +2834,19 @@ begin
 end;
 
 function TCnFloatMatrix.IsSingular: Boolean;
+var
+  Det, Scale: Extended;
 begin
   if not IsSquare then
     Result := False
   else
-    Result := FloatAlmostZero(Determinant);
+  begin
+    Det := Determinant;
+    Scale := InternalFloatMatrixDeterminantScale(Self);
+    // 相对阈值：与 Hadamard 上界比较。Scale 为 0（存在全零行）时
+    // 只有行列式精确为 0 才判奇异，全零矩阵因此仍被正确判定
+    Result := Abs(Det) <= Scale * CN_MATRIX_SINGULAR_RELATIVE_GAP;
+  end;
 end;
 
 function TCnFloatMatrix.IsSquare: Boolean;
@@ -3022,6 +3060,11 @@ end;
 
 function TCnRationalNumber.Equal(Value: TCnRationalNumber): Boolean;
 begin
+  // 交叉相乘判等。两项乘积任一溢出 Int64 时抛异常，避免静默回绕
+  if IsInt64MulOverflow(FNumerator, Value.Denominator)
+    or IsInt64MulOverflow(FDenominator, Value.Numerator) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   Result := FNumerator * Value.Denominator = FDenominator * Value.Numerator;
 end;
 
@@ -3182,7 +3225,8 @@ begin
     Result := Int64Gcd(B, A mod B);
 end;
 
-// 求两个 Int64 的最小公倍数，要求都大于 0，暂不考虑可能溢出的情况
+// 求两个 Int64 的最小公倍数，要求都大于 0。结果超出 Int64 范围时抛异常，
+// 避免静默回绕导致后续运算拿到错误结果
 function Int64Lcm(A, B: Int64): Int64;
 var
   D: Int64;
@@ -3195,14 +3239,26 @@ begin
 
   D := Int64Gcd(A, B);
   if D = 1 then
-    Result := A * B
+  begin
+    if IsInt64MulOverflow(A, B) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+    Result := A * B;
+  end
   else
   begin
-    // 大数先除，避免溢出
+    // 大数先除，避免溢出；先除后乘在结果本身不溢出时不会溢出，但仍需确认
     if A > B then
-      Result := A div D * B
+    begin
+      if IsInt64MulOverflow(A div D, B) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      Result := (A div D) * B;
+    end
     else
-      Result := B div D * A;
+    begin
+      if IsInt64MulOverflow(B div D, A) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      Result := (B div D) * A;
+    end;
   end;
 end;
 
@@ -3388,7 +3444,7 @@ end;
 
 function CnRationalNumberCompare(Number1, Number2: TCnRationalNumber): Integer;
 var
-  R: Int64;
+  L, R: Int64;
 begin
   if not Number1.IsNegative and Number2.IsNegative then
     Result := 1
@@ -3396,13 +3452,26 @@ begin
     Result := -1
   else  // 同符号才需要计算
   begin
-    R := Number1.Numerator * Number2.Denominator - Number2.Numerator * Number1.Denominator;
-    if R > 0 then
+    // 交叉相乘比较大小。两项乘积任一溢出 Int64 时抛异常，
+    // 避免静默回绕得到错误的比较结果
+    if IsInt64MulOverflow(Number1.Numerator, Number2.Denominator)
+      or IsInt64MulOverflow(Number2.Numerator, Number1.Denominator) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    // 直接比较两个乘积，避免相减再溢出
+    L := Number1.Numerator * Number2.Denominator;
+    R := Number2.Numerator * Number1.Denominator;
+    if L > R then
       Result := 1
-    else if R < 0 then
+    else if L < R then
       Result := -1
     else
       Result := 0;
+
+    // 两分母异号时不等号方向要翻转：
+    // a/b 与 c/d 的大小关系由 (a*d - c*b) 与 (b*d) 是否同号决定
+    if (Number1.Denominator < 0) <> (Number2.Denominator < 0) then
+      Result := -Result;
   end;
 end;
 
