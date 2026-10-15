@@ -268,6 +268,9 @@ type
     function IndexOfName(const Name: AnsiString): Integer; override;
   end;
 
+  ECnStringBuilderModeError = class(EInvalidOperation);
+  {* TCnStringBuilder 追加内容与当前 Ansi/Wide 模式不一致时抛出的异常}
+
   TCnStringBuilder = class
   {* 输出形式灵活的 StringBuilder，暂时只支持添加，不支持删除。
      非 Unicode 版本支持 string 和 WideString，Unicode 版本支持 AnsiString 和 string}
@@ -287,6 +290,12 @@ type
     function GetCharCapacity: Integer;
     procedure SetCharCapacity(const Value: Integer);
     procedure SetCharLength(const Value: Integer);
+    function GetAnsiContent(Len: Integer): AnsiString;
+    {* 按 Ansi 视图返回当前模式下的原始内容，Unicode 版取 FAnsiData，非 Unicode 版取 FData}
+    function GetWideContent(Len: Integer): WideString;
+    {* 按 Wide 视图返回当前模式下的原始内容，Unicode 版取 FData，非 Unicode 版取 FWideData}
+    function GetModeName: string;
+    {* 返回当前模式名称，仅用于异常提示}
   protected
     procedure ExpandCharCapacity;
     {* 根据 CharLength 的要求来扩展内部存储为 CharLength * 2，如 CharLength 太短则固定扩展 Capacity 的 0.5 倍}
@@ -321,6 +330,7 @@ type
 {$IFDEF UNICODE}
     function AppendAnsi(const Value: AnsiString): TCnStringBuilder;
     {* 将 AnsiString 添加到 Unicode 环境下的 FAnsiData。由调用者根据 AnsiMode 控制。
+        注意：要求当前处于 AnsiMode，否则抛出 ECnStringBuilderModeError 异常。
 
        参数：
          const Value: AnsiString          - 待添加的单字节字符串
@@ -331,6 +341,7 @@ type
 {$ELSE}
     function AppendWide(const Value: WideString): TCnStringBuilder;
     {* 将 WideString 添加到非 Unicode 环境中的 FWideData，由调用者根据 AnsiMode 控制。
+        注意：要求当前处于 AnsiMode，否则抛出 ECnStringBuilderModeError 异常。
 
        参数：
          const Value: WideString          - 待添加的宽字符串
@@ -556,9 +567,10 @@ type
     }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 返回内容的 string 形式，无论是否 Unicode 环境，只要 AnsiMode 与编译器的 Unicode 支持一致。
-       换句话说非 Unicode 环境中 AnsiMode 为 True 时才返回 AnsiString，
-       Unicode 环境中 AnsiMode 为 False 时才返回 UnicodeString，其余情况返回空。
+    {* 返回内容的 string 形式，仅当 AnsiMode 与当前编译器的 Unicode 支持一致时才返回内容：
+       非 Unicode 环境中 AnsiMode 为 True、或 Unicode 环境中 AnsiMode 为 False。
+       其余情形返回空串。
+       需要无视模式取回内容时请改用 ToAnsiString 或 ToWideString。
 
        参数：
          （无）
@@ -568,7 +580,7 @@ type
 
     function ToAnsiString: AnsiString;
     {* 强行返回内容的 AnsiString 形式，无论 AnsiMode 如何。
-       可在 Unicode 环境中使用，如在非 Unicode 环境中使用，等同于 ToString。
+       AnsiMode 下直接返回单字节存储，否则由宽字节存储转换（不可映射字符会变为 '?'）。
 
        参数：
          （无）
@@ -578,7 +590,7 @@ type
 
     function ToWideString: WideString;
     {* 强行返回内容的 WideString 形式，无论 AnsiMode 如何。
-       可在非 Unicode 环境中使用，如在 Unicode 环境中使用，等同于 ToString。
+       非 AnsiMode 下直接返回宽字节存储，否则由单字节存储转换。
 
        参数：
          （无）
@@ -770,6 +782,7 @@ resourcestring
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
   SListCapacityError = 'Error New Capacity or Length Value %d';
   SCnErrorAnsiStringHashSize = 'AnsiString Hash Size Must be Greater than Zero.';
+  SCnErrorStringBuilderMode = 'TCnStringBuilder Append Mode NOT Match. Current Mode is %s.';
 
 function NativeStringToUIString(const Str: string): string;
 begin
@@ -2697,6 +2710,10 @@ function TCnStringBuilder.AppendAnsi(const Value: AnsiString): TCnStringBuilder;
 var
   Delta, OL: Integer;
 begin
+  // 写入 FAnsiData，要求处于 Ansi 模式，否则目标缓冲区为空会造成访问违例
+  if not FAnsiMode then
+    raise ECnStringBuilderModeError.CreateFmt(SCnErrorStringBuilderMode, [GetModeName]);
+
   Delta := Length(Value);
   if Delta <> 0 then
   begin
@@ -2722,6 +2739,10 @@ function TCnStringBuilder.AppendWide(const Value: WideString): TCnStringBuilder;
 var
   Delta, OL: Integer;
 begin
+  // 写入 FWideData，要求处于非 Ansi 模式，否则目标缓冲区为空会造成访问违例
+  if FAnsiMode then
+    raise ECnStringBuilderModeError.CreateFmt(SCnErrorStringBuilderMode, [GetModeName]);
+
   Delta := Length(Value);
   if Delta <> 0 then
   begin
@@ -2829,6 +2850,16 @@ function TCnStringBuilder.AppendString(const Value: string): TCnStringBuilder;
 var
   Delta, OL: Integer;
 begin
+{$IFDEF UNICODE}
+  // Unicode 版 FData 是非 Ansi 模式下的存储
+  if FAnsiMode then
+    raise ECnStringBuilderModeError.CreateFmt(SCnErrorStringBuilderMode, [GetModeName]);
+{$ELSE}
+  // 非 Unicode 版 FData 是 Ansi 模式下的存储
+  if not FAnsiMode then
+    raise ECnStringBuilderModeError.CreateFmt(SCnErrorStringBuilderMode, [GetModeName]);
+{$ENDIF}
+
   Delta := Length(Value);
   if Delta <> 0 then
   begin
@@ -2849,8 +2880,50 @@ begin
   Result := Self;
 end;
 
+function TCnStringBuilder.GetModeName: string;
+begin
+  if FAnsiMode then
+    Result := 'Ansi'
+  else
+    Result := 'Wide';
+end;
+
+// 按 Ansi 视图返回当前模式下的原始内容，Unicode 版取 FAnsiData，非 Unicode 版取 FData
+function TCnStringBuilder.GetAnsiContent(Len: Integer): AnsiString;
+begin
+{$IFDEF UNICODE}
+  if Len = CharCapacity then
+    Result := FAnsiData
+  else
+    Result := Copy(FAnsiData, 1, Len);
+{$ELSE}
+  if Len = CharCapacity then
+    Result := FData
+  else
+    Result := Copy(FData, 1, Len);
+{$ENDIF}
+end;
+
+// 按 Wide 视图返回当前模式下的原始内容，Unicode 版取 FData，非 Unicode 版取 FWideData
+function TCnStringBuilder.GetWideContent(Len: Integer): WideString;
+begin
+{$IFDEF UNICODE}
+  if Len = CharCapacity then
+    Result := FData
+  else
+    Result := Copy(FData, 1, Len);
+{$ELSE}
+  if Len = CharCapacity then
+    Result := FWideData
+  else
+    Result := Copy(FWideData, 1, Len);
+{$ENDIF}
+end;
+
 function TCnStringBuilder.ToString: string;
 begin
+  // 仅当 AnsiMode 与编译器的 Unicode 支持一致时才返回内容（此时 FData 才有用），
+  // 其余情形返回空串（也即未使用的 FData）。需要无视模式取回内容时，请改用 ToAnsiString 或 ToWideString。
   if FCharLength = CharCapacity then
     Result := FData
   else
@@ -2859,46 +2932,20 @@ end;
 
 function TCnStringBuilder.ToAnsiString: AnsiString;
 begin
-{$IFDEF UNICODE}
-  if FAnsiMode then // Unicode 环境下如果是 Ansi 模式，用 FAnsiData，无需转换
-  begin
-    if FCharLength = CharCapacity then
-      Result := FAnsiData
-    else
-      Result := Copy(FAnsiData, 1, FCharLength);
-  end
-  else  // Unicode 环境下如果是非 Ansi 模式，用 FData，进行 AnsiString 转换
-  begin
-    if FCharLength = CharCapacity then
-      Result := AnsiString(FData)
-    else
-      Result := AnsiString(Copy(FData, 1, FCharLength));
-  end;
-{$ELSE}
-  Result := ToString; // 非 Unicode 环境下等于 ToString
-{$ENDIF}
+  // 按 FAnsiMode 选择视图，四种组合均能取回内容
+  if FAnsiMode then
+    Result := GetAnsiContent(FCharLength)
+  else
+    Result := AnsiString(GetWideContent(FCharLength));
 end;
 
 function TCnStringBuilder.ToWideString: WideString;
 begin
-{$IFNDEF UNICODE}
-  if FAnsiMode then // 非 Unicode 环境下如果是 Ansi 模式，用 FData，进行 WideString 转换
-  begin
-    if FCharLength = CharCapacity then
-      Result := WideString(FData)
-    else
-      Result := WideString(Copy(FData, 1, FCharLength));
-  end
-  else // 非 Unicode 环境下如果是非 Ansi 模式，用 FWideData，无需转换
-  begin
-    if FCharLength = CharCapacity then
-      Result := FWideData
-    else
-      Result := Copy(FWideData, 1, FCharLength);
-  end;
-{$ELSE}
-  Result := ToString; // Unicode 环境下等于 ToString
-{$ENDIF}
+  // 按 FAnsiMode 选择视图，四种组合均能取回内容
+  if FAnsiMode then
+    Result := WideString(GetAnsiContent(FCharLength))
+  else
+    Result := GetWideContent(FCharLength);
 end;
 
 function TCnStringBuilder.Append(Value: Integer): TCnStringBuilder;

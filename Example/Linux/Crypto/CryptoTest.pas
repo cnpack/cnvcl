@@ -117,6 +117,8 @@ function TestUtf8: Boolean;
 function TestStringReplace: Boolean;
 function TestStringBuilder: Boolean;
 function TestAnsiStringListDelimitedText: Boolean;
+function TestStringBuilderAnsiModeToString: Boolean;
+function TestStringBuilderAppendModeMismatch: Boolean;
 function TestFastPositionBadCharRule: Boolean;
 function TestWideStringListSaveUtf8: Boolean;
 
@@ -1954,6 +1956,8 @@ begin
   MyAssert(TestUtf8, 'TestUtf8');
   MyAssert(TestStringReplace, 'TestStringReplace');
   MyAssert(TestStringBuilder, 'TestStringBuilder');
+  MyAssert(TestStringBuilderAnsiModeToString, 'TestStringBuilderAnsiModeToString');
+  MyAssert(TestStringBuilderAppendModeMismatch, 'TestStringBuilderAppendModeMismatch');
   MyAssert(TestAnsiStringListDelimitedText, 'TestAnsiStringListDelimitedText');
   MyAssert(TestFastPositionBadCharRule, 'TestFastPositionBadCharRule');
   MyAssert(TestWideStringListSaveUtf8, 'TestWideStringListSaveUtf8');
@@ -3727,7 +3731,10 @@ begin
   if PUInt64(@W)^ <> 0 then Exit;
 
   CombineFloatDouble(True, 0, 0, W);
-  if PUInt64(@W)^ <> $8000000000000000 then Exit;
+  { FPC 会把无类型十六进制常量 $8000000000000000 识别成负值 Int64，与 QWord 直接比较
+    结果不可靠（编译器还会提示 "Comparison might be always false"），必须显式定型。
+    同文件 3671/3674/3678/3679/3390 行等处均已按此写法处理。 }
+  if PUInt64(@W)^ <> TUInt64($8000000000000000) then Exit;
 
   SW := 0.0;
   CombineFloatSingle(False, 0, 0, SW);
@@ -4070,6 +4077,180 @@ begin
     C := 'X';
     SB.Append(C, 5);
     Result := SB.ToString = 'XXXXX';
+  finally
+    SB.Free;
+  end;
+end;
+
+function TestStringBuilderAnsiModeToString: Boolean;
+{ CnStrings.TCnStringBuilder 取字符串接口说明：
+
+  ToString        仅当 AnsiMode 与当前编译器的 Unicode 支持一致时才返回内容，其余返回空串。
+  ToAnsiString    无视 AnsiMode，总能取回单字节内容。
+  ToWideString    无视 AnsiMode，总能取回宽字节内容。
+
+  原始实现中，ToAnsiString 在 非Unicode+非Ansi、ToWideString 在 Unicode+Ansi 两处
+  因退化为 Result := ToString 而返回空串，违反其“无视模式”的契约。
+  Full 参数用于覆盖 FCharLength = CharCapacity 的快速路径。 }
+
+  function CheckRow(const Mode: string; AnsiMode, Full: Boolean;
+    ExpectTo, ExpectAnsi, ExpectWide: AnsiString): Boolean;
+  var
+    B: TCnStringBuilder;
+    A: AnsiString;
+    GTo, GAnsi, GWide: AnsiString;
+  begin
+    A := 'Content';
+    if Full then
+      A := StringOfChar('C', 16); // 恻好填满 CharCapacity，命中 CharLength = CharCapacity 分支
+
+    B := TCnStringBuilder.Create(AnsiMode);
+    try
+      B.Append(string(A)); // 两种编译器下 Append 均会按模式分流，可用
+      GTo := AnsiString(B.ToString);
+      GAnsi := B.ToAnsiString;
+      GWide := AnsiString(B.ToWideString);
+
+      Result := (GTo = ExpectTo) and (GAnsi = ExpectAnsi) and (GWide = ExpectWide)
+        and (B.CharLength = Length(A));
+    finally
+      B.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+
+{$IFDEF UNICODE}
+  // Unicode 版：Ansi 模式与编译器不一致，ToString 按契约返回空串
+  Result := CheckRow('Unicode.AnsiMode', True, False, '', 'Content', 'Content');
+  if not Result then Exit;
+
+  Result := CheckRow('Unicode.AnsiMode/full', True, True,
+    '', 'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC');
+  if not Result then Exit;
+
+  Result := CheckRow('Unicode.WideMode', False, False, 'Content', 'Content', 'Content');
+  if not Result then Exit;
+
+  Result := CheckRow('Unicode.WideMode/full', False, True,
+    'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC');
+  if not Result then Exit;
+{$ELSE}
+  Result := CheckRow('Ansi.AnsiMode', True, False, 'Content', 'Content', 'Content');
+  if not Result then Exit;
+
+  Result := CheckRow('Ansi.AnsiMode/full', True, True,
+    'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC');
+  if not Result then Exit;
+
+  // 非 Unicode 版：非 Ansi 模式与编译器不一致，ToString 按契约返回空串
+  Result := CheckRow('Ansi.WideMode', False, False, '', 'Content', 'Content');
+  if not Result then Exit;
+
+  Result := CheckRow('Ansi.WideMode/full', False, True,
+    '', 'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC');
+  if not Result then Exit;
+{$ENDIF}
+end;
+
+function TestStringBuilderAppendModeMismatch: Boolean;
+{ CnStrings.TCnStringBuilder.AppendAnsi / AppendWide 不检查 FAnsiMode, 直接向本模式下
+  并未分配的存储写入, 却又用当前模式的 GetCharCapacity 判断是否需要扩容: Unicode 版在
+  非 Ansi 模式下调 AppendAnsi、非 Unicode 版在 Ansi 模式下调 AppendWide 时, 目标缓冲区
+  指针为 nil, Move 写入地址 0, 触发 EAccessViolation。本用例要求跨模式追加要么被安全
+  拒绝, 要么内容能完整读回, 二者都不满足即视为缺陷。 }
+
+  { 在与自身模式不匹配的构建器上追加一次。返回 True 表示被显式拒绝或内容可读回。 }
+  function WrongModeAppend(AsChar: Boolean): Boolean;
+  var
+    B: TCnStringBuilder;
+    A: AnsiString;
+    W: WideString;
+    Len: Integer;
+  begin
+    Result := False;
+    B := TCnStringBuilder.Create;
+    try
+      B.Append('Base');
+      Len := B.CharLength;
+
+      try
+        if AsChar then
+        begin
+          {$IFDEF UNICODE}
+          B.AppendAnsiChar(AnsiChar('X'));
+          {$ELSE}
+          B.AppendWideChar(WideChar('X'));
+          {$ENDIF}
+        end
+        else
+        begin
+          {$IFDEF UNICODE}
+          A := 'Ansi';
+          B.AppendAnsi(A);
+          {$ELSE}
+          W := 'Wide';
+          B.AppendWide(W);
+          {$ENDIF}
+        end;
+      except
+        on E: ECnStringBuilderModeError do
+        begin
+          Result := True; // 被显式拒绝, 符合修复后的约定
+          Exit;
+        end;
+      end;
+
+      { 未抛异常: 要求内容仍可完整读回, 不允许静默丢失 }
+      Result := (B.CharLength > Len) and (Length(B.ToString) = B.CharLength);
+    finally
+      B.Free;
+    end;
+  end;
+
+var
+  SB: TCnStringBuilder;
+  A: AnsiString;
+begin
+  { 跨模式追加: 字符串与单字符各一次 }
+  Result := WrongModeAppend(False);
+  if not Result then Exit;
+
+  Result := WrongModeAppend(True);
+  if not Result then Exit;
+
+  { 控制组一: 显式 Ansi 模式 + 与模式匹配的追加必须正常工作, 保证修复不误伤正常路径 }
+  SB := TCnStringBuilder.Create(True);
+  try
+    A := 'ABC';
+    {$IFDEF UNICODE}
+    SB.AppendAnsi(A);
+    SB.AppendAnsiChar(AnsiChar('D'));
+    {$ELSE}
+    SB.Append(A);
+    SB.AppendAnsiChar(AnsiChar('D'));
+    {$ENDIF}
+    Result := SB.ToAnsiString = (A + 'D');
+    if not Result then Exit;
+  finally
+    SB.Free;
+  end;
+
+  { 控制组二: 非 Ansi 模式 + 与模式匹配的追加 }
+  SB := TCnStringBuilder.Create(False);
+  try
+    A := 'ABCD';
+    {$IFDEF UNICODE}
+    SB.Append('ABC');
+    SB.AppendWideChar(WideChar('D'));
+    Result := (AnsiString(SB.ToString) = A) and (SB.ToAnsiString = A);
+    {$ELSE}
+    SB.AppendWide(WideString('ABC'));
+    SB.AppendWideChar(WideChar('D'));
+    Result := AnsiString(SB.ToWideString) = A;
+    {$ENDIF}
+    if not Result then Exit;
   finally
     SB.Free;
   end;
