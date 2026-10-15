@@ -1502,7 +1502,13 @@ begin
     // ¡„
     PUInt64(@Value)^ := 0;
     if SignNegative then
+    begin
+{$IFDEF SUPPORT_UINT64}
+      PUInt64(@Value)^ := TUInt64(CN_SIGN_DOUBLE_MASK);
+{$ELSE}
       PUInt64(@Value)^ := CN_SIGN_DOUBLE_MASK;
+{$ENDIF}
+    end;
     Exit;
   end;
 
