@@ -845,6 +845,11 @@ begin
     Exit;
   SLen := StrLen(Str);
 
+  if FromIndex < 0 then
+    FromIndex := 0;
+  if FromIndex + PLen > SLen then
+    Exit;
+
   // 如果是单字符搜索模式
   if PLen = 1 then
   begin
@@ -2003,6 +2008,22 @@ end;
 
 procedure TCnAnsiStringList.SetCapacity(NewCapacity: Integer);
 begin
+  if NewCapacity < 0 then
+    Error(@SListCapacityError, NewCapacity);
+  if NewCapacity > MaxInt div SizeOf(TCnAnsiStringItem) then
+    Error(@SListCapacityError, NewCapacity);
+  if NewCapacity = FCapacity then
+    Exit;
+
+  if NewCapacity = 0 then
+  begin
+    if FList <> nil then
+      FreeMem(FList);
+    FList := nil;
+    FCapacity := 0;
+    Exit;
+  end;
+
   ReallocMem(FList, NewCapacity * SizeOf(TCnAnsiStringItem));
   FCapacity := NewCapacity;
 end;
@@ -2267,7 +2288,7 @@ end;
 
 function IsSepCharW(AChar: WideChar): Boolean;
 begin
-  Result := (Ord(AChar) < 127) and not (AnsiChar(AChar) in ['0'..'9', 'A'..'Z', 'a'..'z', '_']);
+  Result := (Ord(AChar) <= 127) and not (AnsiChar(AChar) in ['0'..'9', 'A'..'Z', 'a'..'z', '_']);
 end;
 
 function CnStringReplace(const S, OldPattern, NewPattern: string;
