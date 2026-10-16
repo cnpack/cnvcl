@@ -303,6 +303,9 @@ function CnShamirReconstruct(Prime: TCnBigNumber; InOrders: TCnBigNumberList;
   InShares: TCnBigNumberList; OutSecret: TCnBigNumber): Boolean;
 {* 用 Shamir 门限方案实现大数范围内的秘密共享。将 Threshold 个拆分后的大数值与其对应序号并结合
    大素数重组成 Secret，返回是否重组成功。成功则秘密值放 Secret 中返回。
+   注意：InOrders 中每个 x 坐标必须在 [1, Prime) 范围内且两两互异，
+   否则返回 False 并设置错误码 ECN_SECRET_INVALID_INPUT。
+
 
    参数：
      Prime: TCnBigNumber                  - 拆分时使用的素数
@@ -537,7 +540,8 @@ begin
   // 旧实现不做校验：重复索引会导致拉格朗日分母连乘出 0，而底层 CnInt64ModularInverse2
   // 对 gcd<>1 静默返回 0，函数最终仍返回 True 并输出一个看似合法的错误"秘密"；
   // 索引 0 则等价于允许注入伪造点 (0, Y)，可直接把秘密改写为攻击者指定的值。
-  // 注意 BigNumber 版的 BigNumberModularInverse 失败会正确报错，此处对齐其行为。
+  // 注：大数版 BigNumberModularInverse 默认不检查 gcd，D 为 0 时同样静默返回错误逆值，
+  //     因此大数版 CnShamirReconstruct 也必须做相同的预检。
   for I := 0 to InOrders.Count - 1 do
   begin
     if (InOrders[I] < 1) or (InOrders[I] >= Prime) then
@@ -677,6 +681,28 @@ begin
   begin
     _CnSetLastError(ECN_SECRET_INVALID_INPUT);
     Exit;
+  end;
+
+  // 预检：每个份额的 x 坐标必须在 [1, Prime) 内且两两互异。
+  // x 坐标重复时拉格朗日插值分母 D 为 0，BigNumberModularInverse 默认不检查
+  // gcd，会静默返回错误逆值，导致本函数返回 True 并输出看似合法实则错误的
+  // 秘密；x 为 0 时等价于把份额值 (0, Y) 直接当作插值点秘密，同样错误，均需拦截。
+  for I := 0 to InOrders.Count - 1 do
+  begin
+    if InOrders[I].IsNegative or InOrders[I].IsZero or
+      (BigNumberCompare(InOrders[I], Prime) >= 0) then
+    begin
+      _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+      Exit;
+    end;
+    for J := I + 1 to InOrders.Count - 1 do
+    begin
+      if BigNumberCompare(InOrders[I], InOrders[J]) = 0 then
+      begin
+        _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+        Exit;
+      end;
+    end;
   end;
 
   // 拉格朗日插值公式，InOrder 是一堆 X 坐标，InShares 是一堆 Y 坐标
