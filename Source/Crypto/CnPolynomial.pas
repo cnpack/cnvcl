@@ -3609,6 +3609,10 @@ function BigNumberPolynomialGaloisSquareFreeFactorization(Factors: TCnBigNumberP
    4. 否则 ai = GCD(bi, di), bi+1 = bi / ai, ci+1 = di / ai, di+1 = ci+1 - bi+1'
    5. Factors[i] = ai 即为 i 重因子（去重后）
 
+   注意：非首一输入自动归一化为首一多项式后处理，输出因子恒为首一；
+   导数恒为零（F 为 p 次幂）时自动取 p 次根递归分解；若违反 ch(F) > deg(F)
+   前提（存在重数 >= ch(F) 的因子），结果可能遗漏部分因子
+
    参数：
      Factors: TCnBigNumberPolynomialList  - 用来容纳各平方自由的大整系数多项式对象
      F: TCnBigNumberPolynomial            - 待分解的一元大整系数多项式
@@ -18153,11 +18157,42 @@ end;
 function BigNumberPolynomialGaloisSquareFreeFactorization(Factors: TCnBigNumberPolynomialList;
   F: TCnBigNumberPolynomial; Prime: TCnBigNumber): Integer;
 var
-  A0, B, C, D, G: TCnBigNumberPolynomial;
-  Temp: TCnBigNumberPolynomial;
+  A0, B, C, D, G, Temp, FM, Root: TCnBigNumberPolynomial;
+  LC, INV, T1: TCnBigNumber;
+  I, PInt, Deg, Iter: Integer;
 begin
   Result := 0;
   if F.IsZero then Exit;
+
+  // 防护：非首一输入先归一化为首一多项式再递归处理。否则 Yun 迭代会
+  // 卡在非首一的常数因子上死循环。归一化后输出的因子恒为首一。
+  if (F.MaxDegree > 0) and (not F.IsMonic) then
+  begin
+    FM := FLocalBigNumberPolynomialPool.Obtain;
+    LC := FLocalBigNumberPool.Obtain;
+    INV := FLocalBigNumberPool.Obtain;
+    T1 := FLocalBigNumberPool.Obtain;
+    try
+      FM.SetZero;
+      BigNumberCopy(LC, F[F.MaxDegree]);
+      if not BigNumberPrimeModularInverse(INV, LC, Prime) then
+        Exit;
+      for I := 0 to F.MaxDegree do
+      begin
+        BigNumberMul(T1, F[I], INV);
+        BigNumberMod(T1, T1, Prime);
+        FM.SetCoefficent(I, T1);
+      end;
+      FM.CorrectTop;
+      Result := BigNumberPolynomialGaloisSquareFreeFactorization(Factors, FM, Prime);
+    finally
+      FLocalBigNumberPolynomialPool.Recycle(FM);
+      FLocalBigNumberPool.Recycle(LC);
+      FLocalBigNumberPool.Recycle(INV);
+      FLocalBigNumberPool.Recycle(T1);
+    end;
+    Exit;
+  end;
 
   A0 := FLocalBigNumberPolynomialPool.Obtain;
   B := FLocalBigNumberPolynomialPool.Obtain;
@@ -18165,9 +18200,37 @@ begin
   D := FLocalBigNumberPolynomialPool.Obtain;
   G := FLocalBigNumberPolynomialPool.Obtain;
   Temp := FLocalBigNumberPolynomialPool.Obtain;
+  Root := FLocalBigNumberPolynomialPool.Obtain;
   try
     // Step 1: a0 = GCD(F, F')
     BigNumberPolynomialGaloisDerivative(Temp, F, Prime);
+
+    // 防护：特征 p 下 F' 恒为零且 F 非常数，说明 F 是 p 次幂，
+    // 其不同平方自由因子与其 p 次根 G(x) = sum(c_{i*p} * x^i) 相同，
+    // 取 p 次根后递归分解，不再静默返回 0 个因子。
+    if Temp.IsZero then
+    begin
+      if F.MaxDegree = 0 then
+      begin
+        // 非零常数：视为单个平方自由因子
+        Factors.Add(BigNumberPolynomialDuplicate(F));
+        Result := 1;
+        Exit;
+      end;
+      if not Prime.IsInt64 then
+        Exit; // 非常数且 F' = 0 必有 p <= deg(F)，否则视为异常输入
+      PInt := Integer(Prime.GetInt64);
+      if PInt < 2 then
+        Exit;
+      Root.SetZero;
+      Deg := F.MaxDegree;
+      for I := 0 to Deg div PInt do
+        Root.SetCoefficent(I, F[I * PInt]);
+      Root.CorrectTop;
+      Result := BigNumberPolynomialGaloisSquareFreeFactorization(Factors, Root, Prime);
+      Exit;
+    end;
+
     if not BigNumberPolynomialGaloisGreatestCommonDivisor(A0, F, Temp, Prime) then
       Exit;
 
@@ -18189,9 +18252,20 @@ begin
     BigNumberPolynomialGaloisDerivative(Temp, B, Prime);
     BigNumberPolynomialGaloisSub(D, C, Temp, Prime);
 
-    // Step 4: Iterate: while bi ≠ 1
+    // Step 4: Iterate: while bi != 1
+    // 首一合法输入下每轮要么使 deg(bi) 严格下降要么结束；迭代上限为兜底
+    // 防护，超出即显式返回失败（0），避免任何未预见的输入造成死循环。
+    Deg := F.MaxDegree;
+    Iter := 0;
     while (B.MaxDegree > 0) or (not B.IsOne) do
     begin
+      Inc(Iter);
+      if Iter > Deg then
+      begin
+        Result := 0;
+        Exit;
+      end;
+
       // ai = GCD(bi, di)
       BigNumberPolynomialSetZero(G);
       if not BigNumberPolynomialGaloisGreatestCommonDivisor(G, B, D, Prime) then
@@ -18235,6 +18309,7 @@ begin
     FLocalBigNumberPolynomialPool.Recycle(D);
     FLocalBigNumberPolynomialPool.Recycle(G);
     FLocalBigNumberPolynomialPool.Recycle(Temp);
+    FLocalBigNumberPolynomialPool.Recycle(Root);
   end;
 end;
 

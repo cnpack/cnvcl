@@ -395,6 +395,8 @@ function TestPolynomialPowerTrunc: Boolean;
 function TestBigNumberPolynomialDerivative: Boolean;
 function TestBigNumberPolynomialGaloisDerivative: Boolean;
 function TestBigNumberPolynomialGaloisSquareFreeFactorization: Boolean;
+function TestBigNumberPolynomialGaloisSquareFreeDerivZero: Boolean;
+function TestBigNumberPolynomialGaloisSquareFreeNonMonic: Boolean;
 function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 function TestBigNumberPolynomialGaloisFactorCantorZassenhaus: Boolean;
 function TestBigNumberPolynomialGaloisPowerBarrett: Boolean;
@@ -2248,6 +2250,8 @@ begin
   MyAssert(TestBigNumberPolynomialDerivative, 'TestBigNumberPolynomialDerivative');
   MyAssert(TestBigNumberPolynomialGaloisDerivative, 'TestBigNumberPolynomialGaloisDerivative');
   MyAssert(TestBigNumberPolynomialGaloisSquareFreeFactorization, 'TestBigNumberPolynomialGaloisSquareFreeFactorization');
+  MyAssert(TestBigNumberPolynomialGaloisSquareFreeDerivZero, 'TestBigNumberPolynomialGaloisSquareFreeDerivZero');
+  MyAssert(TestBigNumberPolynomialGaloisSquareFreeNonMonic, 'TestBigNumberPolynomialGaloisSquareFreeNonMonic');
   MyAssert(TestBigNumberPolynomialGaloisFindLinearFactors, 'TestBigNumberPolynomialGaloisFindLinearFactors');
   MyAssert(TestBigNumberPolynomialGaloisFactorCantorZassenhaus, 'TestBigNumberPolynomialGaloisFactorCantorZassenhaus');
   MyAssert(TestBigNumberPolynomialGaloisPowerBarrett, 'TestBigNumberPolynomialGaloisPowerBarrett');
@@ -13812,6 +13816,63 @@ begin
   end;
 end;
 
+function TestBigNumberPolynomialGaloisSquareFreeDerivZero: Boolean;
+// H5(b) 复现用例：F = X^2 + 1 在 GF(2) 上，特征 2 导致导数 F' 恒为零，
+// 当前实现静默返回 0 个因子且不报错。正确结果应为 1 个平方自由因子 (X + 1)。
+// 本用例当前 FAIL，修复 H5 后应转绿。
+var
+  F: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+  Factors: TCnBigNumberPolynomialList;
+begin
+  Result := False;
+  F := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  Factors := TCnBigNumberPolynomialList.Create;
+  try
+    Factors.Clear;
+    F.SetCoefficients([1, 0, 1]);  // X^2 + 1 = (X + 1)^2 in GF(2)
+    Prime.SetWord(2);
+    if BigNumberPolynomialGaloisSquareFreeFactorization(Factors, F, Prime) <> 1 then
+      Exit;
+    if Factors.Count <> 1 then Exit;
+    if Factors[0].MaxDegree <> 1 then Exit;
+    Result := True;
+  finally
+    F.Free;
+    Prime.Free;
+    Factors.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGaloisSquareFreeNonMonic: Boolean;
+// H5(a) 复现用例：F = 2*(X + 1)^2 = 2X^2 + 4X + 2 在 GF(5) 上，非首一输入。
+// 当前实现会进入死循环（测试程序将卡在本用例）。正确结果应为 1 个平方自由因子 (X + 1)。
+// 本用例当前因死循环无法通过，修复 H5 后应转绿。
+var
+  F: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+  Factors: TCnBigNumberPolynomialList;
+begin
+  Result := False;
+  F := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  Factors := TCnBigNumberPolynomialList.Create;
+  try
+    Factors.Clear;
+    F.SetCoefficients([2, 4, 2]);  // 2*(X + 1)^2 = 2X^2 + 4X + 2 in GF(5)
+    Prime.SetWord(5);
+    if BigNumberPolynomialGaloisSquareFreeFactorization(Factors, F, Prime) <> 1 then
+      Exit;
+    if Factors.Count <> 1 then Exit;
+    if Factors[0].MaxDegree <> 1 then Exit;
+    Result := True;
+  finally
+    F.Free;
+    Prime.Free;
+    Factors.Free;
+  end;
+end;
 function TestBigNumberPolynomialGaloisFindLinearFactors: Boolean;
 var
   F: TCnBigNumberPolynomial;

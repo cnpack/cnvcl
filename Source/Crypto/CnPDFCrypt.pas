@@ -495,12 +495,21 @@ function CnPDFCheckUserPassword(const UserPass: AnsiString; Version, Revision: I
   KeyBitLength: Integer): TBytes;
 var
   N: TBytes;
+  Match: Boolean;
 begin
   if (Length(OwnerCipher) = 0) or (Length(UserCipher) = 0) or (Length(ID) = 0) then
     raise ECnPDFCryptException.Create(SCnErrorPDFEncryptParams);
 
   N := CnPDFCalcUserCipher(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength);
-  if ConstTimeCompareBytes(N, UserCipher) then
+  if Revision = 2 then
+    Match := ConstTimeCompareBytes(N, UserCipher)
+  else if Revision in [3, 4] then
+    Match := (Length(N) >= SizeOf(TCnMD5Digest)) and
+      (Length(UserCipher) >= SizeOf(TCnMD5Digest)) and
+      ConstTimeCompareMem(@N[0], @UserCipher[0], SizeOf(TCnMD5Digest))
+  else
+    Match := ConstTimeCompareBytes(N, UserCipher);
+  if Match then
     Result := CnPDFCalcEncryptKey(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength)
   else
     Result := nil;
