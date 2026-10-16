@@ -31,7 +31,9 @@ unit CnFEC;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.12.14 V1.3
+* 修改记录：2026.10.16 V1.4
+*               修正伽罗华域 2^8 矩阵行列式将 0xFF 归一化为 0 的问题
+*           2025.12.14 V1.3
 *               实现 Reed Solomon 纠错码
 *           2023.11.16 V1.2
 *               调整校验的参数顺序
@@ -645,11 +647,9 @@ end;
 
 function TCnGalois2Power8Matrix.Determinant: Int64;
 begin
+  // 伽罗华域 2^8 的运算结果只可能是 0..255，0xFF(255) 是非零域元素，
+  // 不能用 mod 255 做归一化，否则会把 255 误并成 0，导致可逆矩阵被误判为奇异
   Result := inherited Determinant;
-  if Result < 0 then
-    Inc(Result, GALOIS2POWER8_LIMIT)
-  else
-    Result := Result mod GALOIS2POWER8_LIMIT;
 end;
 
 procedure TCnGalois2Power8Matrix.Divide(Factor: Int64);

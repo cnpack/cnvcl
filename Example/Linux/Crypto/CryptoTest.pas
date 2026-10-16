@@ -117,6 +117,7 @@ function TestUtf8: Boolean;
 function TestStringReplace: Boolean;
 function TestStringBuilder: Boolean;
 function TestAnsiStringListDelimitedText: Boolean;
+function TestAnsiStringsNameValueByteIndex: Boolean;
 function TestStringBuilderAnsiModeToString: Boolean;
 function TestStringBuilderAppendModeMismatch: Boolean;
 function TestFastPositionBadCharRule: Boolean;
@@ -671,6 +672,9 @@ function TestFNV1a: Boolean;
 
 function TestHamming: Boolean;
 function TestReedSolomon: Boolean;
+function TestGalois2Power8MatrixDet255: Boolean;
+function TestGalois2Power8MatrixAdjoint255: Boolean;
+function TestReedSolomonErasureCombinations: Boolean;
 
 // ================================ DSA ========================================
 
@@ -1959,6 +1963,7 @@ begin
   MyAssert(TestStringBuilderAnsiModeToString, 'TestStringBuilderAnsiModeToString');
   MyAssert(TestStringBuilderAppendModeMismatch, 'TestStringBuilderAppendModeMismatch');
   MyAssert(TestAnsiStringListDelimitedText, 'TestAnsiStringListDelimitedText');
+  MyAssert(TestAnsiStringsNameValueByteIndex, 'TestAnsiStringsNameValueByteIndex');
   MyAssert(TestFastPositionBadCharRule, 'TestFastPositionBadCharRule');
   MyAssert(TestWideStringListSaveUtf8, 'TestWideStringListSaveUtf8');
 
@@ -2511,6 +2516,9 @@ begin
 
   MyAssert(TestHamming, 'TestHamming');
   MyAssert(TestReedSolomon, 'TestReedSolomon');
+  MyAssert(TestGalois2Power8MatrixDet255, 'TestGalois2Power8MatrixDet255');
+  MyAssert(TestGalois2Power8MatrixAdjoint255, 'TestGalois2Power8MatrixAdjoint255');
+  MyAssert(TestReedSolomonErasureCombinations, 'TestReedSolomonErasureCombinations');
 
 // ================================ DSA ========================================
 
@@ -4305,6 +4313,67 @@ begin
     SL.Delimiter := ';';
     R := SL.DelimitedText;
     Result := R = 'a;b;c';
+  finally
+    SL.Free;
+  end;
+end;
+
+function TestAnsiStringsNameValueByteIndex: Boolean;
+{ CnStrings.TCnAnsiStrings.ExtractName / IndexOfName / GetValue 通过
+  AnsiPos(string(NameValueSeparator), string(S)) 取分隔符位置，随后把该位置
+  当作字节下标去切 AnsiString。Unicode 版下存在两类错位：
+    A. string(AnsiChar) 是零扩展成 U+00XX，而 string(AnsiString) 走运行期
+       ANSI 代码页转换，两边对高位字节永远对不上，AnsiPos 恒返回 0，
+       Names / IndexOfName / Values 全部失效。与代码页无关，必然触发。
+    B. 分隔符位置是转换后的字符下标，却被当作字节下标切 AnsiString，DBCS
+       代码页（936/950 等）下字符数少于字节数，名称被截断；单字节代码页下
+       字符数与字节数相等，不会触发。
+  本用例锁定正确的字节语义。汉字一律写成 #$XX 字节形式，避免文件编码影响。
+  GBK 字节：名=$C3$FB 称=$B3$C6 值=$D6$B5 }
+var
+  SL: TCnAnsiStringList;
+  Name2, ValueStr, Item: AnsiString;
+  Gap: Integer;
+begin
+  Name2 := #$C3#$FB#$B3#$C6;   // 两个 GBK 双字节字符
+  ValueStr := #$D6#$B5;        // 一个 GBK 双字节字符
+  Result := False;
+
+  // ---------- A. 高位字节分隔符：Unicode 版必然失效 ----------
+  SL := TCnAnsiStringList.Create;
+  try
+    SL.NameValueSeparator := AnsiChar(#$81);
+    Item := Name2 + AnsiChar(#$81) + ValueStr;
+    SL.Add(Item);
+
+    Result := SL.Names[0] = Name2;
+    if not Result then Exit;
+
+    Result := SL.IndexOfName(Name2) = 0;
+    if not Result then Exit;
+
+    Result := SL.Values[Name2] = ValueStr;
+    if not Result then Exit;
+
+    Result := SL.ValueFromIndex[0] = ValueStr;
+    if not Result then Exit;
+  finally
+    SL.Free;
+  end;
+
+  // ---------- B. 默认 '=' 分隔符 + DBCS 名称 ----------
+  SL := TCnAnsiStringList.Create;
+  try
+    Item := Name2 + '=' + ValueStr;
+    SL.Add(Item);
+
+    Result := SL.Names[0] = Name2;
+    if not Result then Exit;
+
+    Result := SL.IndexOfName(Name2) = 0;
+    if not Result then Exit;
+
+    Result := SL.Values[Name2] = ValueStr;
   finally
     SL.Free;
   end;
@@ -21111,6 +21180,310 @@ begin
 
   B := CnVerifyReedSolomonCode(B, Length(R), Idxs);
   Result := CompareBytes(D, B);
+end;
+
+// 按 CnFEC 内部 VandermondeGalois 的规则重建 RS 生成矩阵，供独立求擦除子矩阵的行列式用
+procedure BuildReedSolomonVandermondeMatrix(Matrix: TCnGalois2Power8Matrix; RowCount,
+  ColCount: Integer);
+var
+  I, J: Integer;
+  Arr: array[0..15] of Int64;
+begin
+  Matrix.RowCount := RowCount;
+  Matrix.ColCount := ColCount;
+
+  for I := 0 to ColCount - 1 do
+    for J := 0 to ColCount - 1 do
+      if I = J then
+        Matrix.Value[I, J] := 1
+      else
+        Matrix.Value[I, J] := 0;
+
+  for J := 0 to ColCount - 1 do
+    Matrix.Value[ColCount, J] := 1;
+
+  for I := 0 to ColCount - 1 do
+    Arr[I] := I + 1;
+
+  for I := ColCount + 1 to RowCount - 1 do
+  begin
+    for J := 0 to ColCount - 1 do
+    begin
+      Matrix.Value[I, J] := Arr[J];
+      Arr[J] := CnGalois2Power8Rule.Multiply(Arr[J], Arr[J]);
+    end;
+  end;
+end;
+
+// 按行优先顺序把一批 0~255 的值填进矩阵
+procedure FillGalois2Power8Matrix(Matrix: TCnGalois2Power8Matrix; const Values: array of Int64);
+var
+  I, J, K: Integer;
+begin
+  K := 0;
+  for I := 0 to Matrix.RowCount - 1 do
+    for J := 0 to Matrix.ColCount - 1 do
+    begin
+      Matrix.Value[I, J] := Values[K];
+      Inc(K);
+    end;
+end;
+
+// 用高斯消元法在 GP(2^8) 上独立求行列式，不经过 TCnGalois2Power8Matrix.Determinant，
+// 避免与被测实现共用同一个 mod 255 归一化缺陷，用作参照值
+function Galois2Power8DeterminantRef(Matrix: TCnGalois2Power8Matrix): Int64;
+var
+  A: array[0..15, 0..15] of Int64;
+  N, I, J, K, Pivot: Integer;
+  T, Factor: Int64;
+  Rule: TCnCalculationRule;
+begin
+  N := Matrix.RowCount;
+  for I := 0 to N - 1 do
+    for J := 0 to N - 1 do
+      A[I, J] := Matrix.Value[I, J];
+
+  Rule := CnGalois2Power8Rule;
+  Result := 1;
+  for J := 0 to N - 1 do
+  begin
+    Pivot := -1;
+    for I := J to N - 1 do
+      if A[I, J] <> 0 then
+      begin
+        Pivot := I;
+        Break;
+      end;
+
+    if Pivot < 0 then
+    begin
+      Result := 0;
+      Exit;
+    end;
+
+    if Pivot <> J then
+    begin
+      // GP(2^8) 中 -1 = 1，交换两行不改变行列式的值
+      for K := 0 to N - 1 do
+      begin
+        T := A[J, K];
+        A[J, K] := A[Pivot, K];
+        A[Pivot, K] := T;
+      end;
+    end;
+
+    Result := Rule.Multiply(Result, A[J, J]);
+    for I := J + 1 to N - 1 do
+      if A[I, J] <> 0 then
+      begin
+        Factor := Rule.Divide(A[I, J], A[J, J]);
+        for K := J to N - 1 do
+          A[I, K] := Rule.Subtract(A[I, K], Rule.Multiply(Factor, A[J, K]));
+      end;
+  end;
+end;
+
+// CnFEC.pas 的 TCnGalois2Power8Matrix.Determinant 把结果做了 mod 255 归一化，
+// 而 0xFF(255) 是非零域元素，会被误并成 0，将可逆矩阵误判为奇异
+function TestGalois2Power8MatrixDet255: Boolean;
+var
+  M: TCnGalois2Power8Matrix;
+begin
+  Result := False;
+
+  // 1x1 矩阵 [255]，行列式应为 255 而不是 0
+  M := TCnGalois2Power8Matrix.Create(1, 1);
+  try
+    FillGalois2Power8Matrix(M, [255]);
+    Result := M.Determinant = 255;
+    if not Result then
+    begin
+      MyWriteln('  Det([255]) = ' + IntToStr(M.Determinant) + ', expected 255');
+      Exit;
+    end;
+    Result := not M.IsSingular;
+  finally
+    M.Free;
+  end;
+  if not Result then Exit;
+
+  // 3x3 对角矩阵 diag(255, 1, 1)，真行列式 = 255
+  M := TCnGalois2Power8Matrix.Create(3, 3);
+  try
+    FillGalois2Power8Matrix(M, [255, 0, 0, 0, 1, 0, 0, 0, 1]);
+    Result := (M.Determinant = 255) and (not M.IsSingular);
+  finally
+    M.Free;
+  end;
+  if not Result then Exit;
+
+  // 实测定位的 3x3 子式（N=4/M=13 擦除组合 0,2,10,12 的 adj[1,1]），真值 255
+  M := TCnGalois2Power8Matrix.Create(3, 3);
+  try
+    FillGalois2Power8Matrix(M, [1, 0, 0, 1, 92, 246, 1, 116, 2]);
+    Result := Galois2Power8DeterminantRef(M) = 255;
+    if not Result then Exit;
+    Result := M.Determinant = 255;
+  finally
+    M.Free;
+  end;
+  if not Result then Exit;
+
+  // N=4/M=13 擦除组合 (0, 1, 10, 12) 的 4x4 子矩阵，真行列式 = 255，
+  // 修复前被归一化成 0，CnVerifyReedSolomonCode 会误报奇异矩阵异常
+  M := TCnGalois2Power8Matrix.Create(4, 4);
+  try
+    FillGalois2Power8Matrix(M, [1, 0, 0, 0, 0, 1, 0, 0, 1, 93, 92, 246, 1, 117, 116, 2]);
+    Result := Galois2Power8DeterminantRef(M) = 255;
+    if not Result then Exit;
+    Result := (M.Determinant = 255) and (not M.IsSingular);
+  finally
+    M.Free;
+  end;
+end;
+
+// 伴随矩阵里真值为 255 的子式被归一化成 0，会让可逆矩阵的逆矩阵错误且不抛异常
+function TestGalois2Power8MatrixAdjoint255: Boolean;
+var
+  M, Adj, Inv, P: TCnGalois2Power8Matrix;
+begin
+  Result := False;
+
+  // N=4/M=13 擦除组合 (0, 2, 10, 12) 的 4x4 子矩阵，真行列式 = 11（可逆），
+  // 但其 adj[1,1] 对应的 3x3 子式真值为 255，修复前该位置被错误置 0
+  M := TCnGalois2Power8Matrix.Create(4, 4);
+  Adj := nil;
+  Inv := nil;
+  P := nil;
+  try
+    FillGalois2Power8Matrix(M, [1, 0, 0, 0, 0, 0, 1, 0, 1, 93, 92, 246, 1, 117, 116, 2]);
+
+    Result := Galois2Power8DeterminantRef(M) = 11;
+    if not Result then Exit;
+
+    Adj := TCnGalois2Power8Matrix.Create(4, 4);
+    CnMatrixAdjoint(M, Adj);
+    Result := Adj.Value[1, 1] = 255;
+    if not Result then
+    begin
+      MyWriteln('  Adjoint[1,1] = ' + IntToStr(Adj.Value[1, 1]) + ', expected 255');
+      Exit;
+    end;
+
+    Inv := TCnGalois2Power8Matrix.Create(4, 4);
+    CnMatrixInverse(M, Inv);
+
+    P := TCnGalois2Power8Matrix.Create(4, 4);
+    CnMatrixMul(M, Inv, P);
+    Result := P.IsE;
+  finally
+    P.Free;
+    Inv.Free;
+    Adj.Free;
+    M.Free;
+  end;
+end;
+
+// N=4/M=13 穷举全部 715 个擦除组合：真可逆的擦除子矩阵必须既不抛异常、又能精确恢复原始数据。
+// 修复前实测有 1 个真行列式 = 255 的组合（0,1,10,12）被误报奇异异常，
+// 另有 18 个组合因伴随矩阵中真值为 255 的子式被置 0 而静默恢复出错误数据
+function TestReedSolomonErasureCombinations: Boolean;
+var
+  V, SubM: TCnGalois2Power8Matrix;
+  Data, Basis, Code, CodeB, B, Idxs, Rec: TBytes;
+  I, J, K, L, RIdx, CIdx, InvertibleCount, FailCount: Integer;
+  IdxArr: array[0..3] of Integer;
+  Det: Int64;
+  RecHex: string;
+begin
+  Result := False;
+  V := nil;
+  SubM := nil;
+  InvertibleCount := 0;
+  FailCount := 0;
+
+  SetLength(Data, 4);
+  Data[0] := $DE;
+  Data[1] := $AD;
+  Data[2] := $BE;
+  Data[3] := $EF;
+  Code := CnCalcReedSolomonCode(Data, 13);
+  if Length(Code) <> 13 then
+    Exit;
+
+  try
+    // 重建库内部的 13 行 4 列范德蒙生成矩阵，并用基向量的纠错码交叉校验重建结果
+    V := TCnGalois2Power8Matrix.Create(13, 4);
+    BuildReedSolomonVandermondeMatrix(V, 13, 4);
+    SetLength(Basis, 4);
+    for J := 0 to 3 do
+    begin
+      FillChar(Basis[0], Length(Basis), 0);
+      Basis[J] := 1;
+      CodeB := CnCalcReedSolomonCode(Basis, 13);
+      if Length(CodeB) <> 13 then
+        Exit;
+      for I := 0 to 12 do
+        if V.Value[I, J] <> CodeB[I] then
+        begin
+          MyWriteln('  Rebuilt Vandermonde Matrix mismatch at [' + IntToStr(I) + ',' + IntToStr(J) + ']');
+          Exit;
+        end;
+    end;
+
+    SubM := TCnGalois2Power8Matrix.Create(4, 4);
+    for I := 0 to 12 do
+      for J := I + 1 to 12 do
+        for K := J + 1 to 12 do
+          for L := K + 1 to 12 do
+          begin
+            IdxArr[0] := I;
+            IdxArr[1] := J;
+            IdxArr[2] := K;
+            IdxArr[3] := L;
+
+            for RIdx := 0 to 3 do
+              for CIdx := 0 to 3 do
+                SubM.Value[RIdx, CIdx] := V.Value[IdxArr[RIdx], CIdx];
+
+            // 该生成矩阵对部分擦除组合真奇异，属另一问题，此处只考察真可逆的组合
+            Det := Galois2Power8DeterminantRef(SubM);
+            if Det = 0 then
+              Continue;
+
+            Inc(InvertibleCount);
+
+            SetLength(B, 4);
+            SetLength(Idxs, 4);
+            for RIdx := 0 to 3 do
+            begin
+              B[RIdx] := Code[IdxArr[RIdx]];
+              Idxs[RIdx] := IdxArr[RIdx];
+            end;
+
+            try
+              Rec := CnVerifyReedSolomonCode(B, 13, Idxs);
+              if (Length(Rec) <> 4) or (not CompareBytes(Rec, Data, 4)) then
+              begin
+                Inc(FailCount);
+                RecHex := '';
+                if Length(Rec) > 0 then
+                  RecHex := DataToHex(@Rec[0], Length(Rec));
+                MyWriteln('  Wrong Data for Invertible Erasures (' + IntToStr(I) + ',' +
+                  IntToStr(J) + ',' + IntToStr(K) + ',' + IntToStr(L) + '): ' + RecHex);
+              end;
+            except
+              Inc(FailCount);
+              MyWriteln('  Exception for Invertible Erasures (' + IntToStr(I) + ',' +
+                IntToStr(J) + ',' + IntToStr(K) + ',' + IntToStr(L) + ')');
+            end;
+          end;
+
+    Result := (FailCount = 0) and (InvertibleCount > 0);
+  finally
+    SubM.Free;
+    V.Free;
+  end;
 end;
 
 // ================================ DSA ========================================
