@@ -905,8 +905,16 @@ begin
 end;
 
 procedure TCnZipBase.SetFileComment(Index: Integer; const Value: string);
+var
+  Comment: AnsiString;
 begin
-  FileInfo[Index]^.FileComment := StringToRaw(Value);
+  // FileCommentLength 是写中央目录时使用的字节长度，必须与 FileComment 同步：
+  // 否则新注释会以 0 长度写出，或按旧长度越界截取；超长注释与 Save 的归档注释一致，截断到 $FFFF
+  Comment := StringToRaw(Value);
+  if Length(Comment) > $FFFF then
+    SetLength(Comment, $FFFF);
+  FileInfo[Index]^.FileComment := Comment;
+  FileInfo[Index]^.FileCommentLength := Length(Comment);
 end;
 
 procedure TCnZipBase.SetPassword(const Value: AnsiString);
@@ -1061,15 +1069,11 @@ begin
 
     OutStream := TFileStream.Create(AFileName, fmCreate);
     try
-      if (LocalHeader.Flag and (1 shl 3)) = 0 then
-      begin
-        if FileInfo[Index].UncompressedSize > 0 then
-          OutStream.CopyFrom(CompressionStream, FileInfo[Index].UncompressedSize);
-      end
-      else
-      begin
+      // 注意：Delphi 的 TStream.CopyFrom 在 Count <= 0 时会先把源流位置重置为 0
+      // 并复制整条流，因此 UncompressedSize 为 0 的空文件（如 Java 等工具生成的
+      // 带 Data Descriptor 标志的流式 Zip 中的空条目）必须跳过复制，不能调用 CopyFrom。
+      if FileInfo[Index].UncompressedSize > 0 then
         OutStream.CopyFrom(CompressionStream, FileInfo[Index].UncompressedSize);
-      end;
     finally
       OutStream.Free;
     end;
@@ -1202,7 +1206,16 @@ begin
          (BackBuf[I + 2] = ((CN_SIGNATURE_ZIPENDOFHEADER shr 16) and $FF)) and
          (BackBuf[I + 3] = ((CN_SIGNATURE_ZIPENDOFHEADER shr 24) and $FF)) then
       begin
-        Move(BackBuf[I + 4], Header^, SizeOf(Header^));
+        // 校验候选 EOCD：完整记录（18 字节）必须落在流尾之内，否则是残缺的
+        // 尾部数据或数据区中的伪签名，跳过以免越界读取
+        if I + 4 + SizeOf(Header^) > BackRead then
+          Continue;
+
+        // 从流中读取记录，而不是从块缓冲 Move：候选可能跨越块尾，缓冲中其后
+        // 不足 18 字节，直接 Move 会越界读取堆内存
+        Stream.Position := Stream.Size - BackRead + I + 4;
+        VerifyRead(Stream, Header^, SizeOf(Header^));
+
         if Header^.CommentLength > 0 then
         begin
           Stream.Position := Stream.Size - BackRead + I + 4 + SizeOf(Header^);
@@ -1474,8 +1487,10 @@ begin
   New(LocalHeader);
   FillChar(LocalHeader^, SizeOf(LocalHeader^), 0);
 
-  InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  InStream := nil;
   try
+    InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+
     LocalHeader^.Flag := 0;
     LocalHeader^.CompressionMethod := Word(Compression);
     LocalHeader^.ModifiedDateTime := WinDateTimeToFileDate(GetFileDateTime(FileName));
@@ -1499,8 +1514,13 @@ begin
 
     LocalHeader^.ExtraFieldLength := 0;
     AddStream(InStream, LocalHeader);
+    // AddStream 成功返回后，LocalHeader 的所有权已经移交给 FFileList，不能再释放
+    LocalHeader := nil;
   finally
     InStream.Free;
+    // 打开文件或写入流时若发生异常，释放尚未移交给 FFileList 的局部头，避免内存泄漏
+    if LocalHeader <> nil then
+      Dispose(LocalHeader);
   end;
 end;
 
