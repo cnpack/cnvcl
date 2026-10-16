@@ -1898,7 +1898,6 @@ begin
   begin
     Inc(CryptoTestFailCount);
     MyWriteln('!!! Fail !!!');
-    Readln;
   end;
 
   Assert(V);

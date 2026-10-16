@@ -1972,12 +1972,12 @@ begin
         Stream.Write(CN_SM2_DEF_UID[0], SizeOf(CN_SM2_DEF_UID));
     end;
 
-    BigNumberWriteBinaryToStream(SM2.CoefficientA, Stream);
-    BigNumberWriteBinaryToStream(SM2.CoefficientB, Stream);
-    BigNumberWriteBinaryToStream(SM2.Generator.X, Stream);
-    BigNumberWriteBinaryToStream(SM2.Generator.Y, Stream);
-    BigNumberWriteBinaryToStream(PublicKey.X, Stream, SM2.BytesCount);
-    BigNumberWriteBinaryToStream(PublicKey.Y, Stream, SM2.BytesCount);
+    BigNumberWriteBinaryToStream(SM2.CoefficientA, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(SM2.CoefficientB, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(SM2.Generator.X, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(SM2.Generator.Y, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(PublicKey.X, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(PublicKey.Y, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
 
     Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // Ëã³ö ZA
   finally
@@ -2327,8 +2327,8 @@ var
 begin
   Stream := TMemoryStream.Create;
   try
-    BigNumberWriteBinaryToStream(UV.X, Stream);
-    BigNumberWriteBinaryToStream(UV.Y, Stream);
+    BigNumberWriteBinaryToStream(UV.X, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(UV.Y, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
     Stream.Write(Za[0], SizeOf(TCnSM3Digest));
     Stream.Write(Zb[0], SizeOf(TCnSM3Digest));
 
@@ -2360,18 +2360,18 @@ begin
 
   Stream := TMemoryStream.Create;
   try
-    BigNumberWriteBinaryToStream(UV.X, Stream);
+    BigNumberWriteBinaryToStream(UV.X, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
     Stream.Write(Za[0], SizeOf(TCnSM3Digest));
     Stream.Write(Zb[0], SizeOf(TCnSM3Digest));
-    BigNumberWriteBinaryToStream(P1.X, Stream);
-    BigNumberWriteBinaryToStream(P1.Y, Stream);
-    BigNumberWriteBinaryToStream(P2.X, Stream);
-    BigNumberWriteBinaryToStream(P2.Y, Stream);
+    BigNumberWriteBinaryToStream(P1.X, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(P1.Y, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(P2.X, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
+    BigNumberWriteBinaryToStream(P2.Y, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
     Sm3Dig := SM3(PAnsiChar(Stream.Memory), Stream.Size);
 
     Stream.Clear;
     Stream.Write(B, 1);
-    BigNumberWriteBinaryToStream(UV.Y, Stream);
+    BigNumberWriteBinaryToStream(UV.Y, Stream, CN_SM2_FINITEFIELD_BYTESIZE);
     Stream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));
 
     Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);
