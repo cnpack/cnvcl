@@ -495,6 +495,7 @@ function TestAESCtr256: Boolean;
 
 function TestCRC8CCITT: Boolean;
 function TestCRC16CCITT: Boolean;
+function TestCRC16CCITTFalse: Boolean;
 function TestCRC32: Boolean;
 function TestCRC64ECMA: Boolean;
 
@@ -2349,6 +2350,7 @@ begin
 
   MyAssert(TestCRC8CCITT, 'TestCRC8CCITT');
   MyAssert(TestCRC16CCITT, 'TestCRC16CCITT');
+  MyAssert(TestCRC16CCITTFalse, 'TestCRC16CCITTFalse');
   MyAssert(TestCRC32, 'TestCRC32');
   MyAssert(TestCRC64ECMA, 'TestCRC64ECMA');
 
@@ -18244,7 +18246,27 @@ var
   S: AnsiString;
 begin
   S := 'CnPack Test';
-  Result := CRC16Calc(0, S[1], Length(S)) = $F352;
+  // CCITT-FALSE 正确值（原 $F352 为 M1 缺陷实现的自录值）
+  Result := CRC16Calc(0, S[1], Length(S)) = $0F51;
+end;
+
+function TestCRC16CCITTFalse: Boolean;
+var
+  S: AnsiString;
+  I: Integer;
+  W: Word;
+begin
+  // CRC-16/CCITT-FALSE 官方校验值："123456789" 应为 $29B1
+  S := '123456789';
+  Result := CRC16Calc(0, S[1], Length(S)) = $29B1;
+  if Result then
+  begin
+    // 增量接口 CalcCRC16Byte 逐字节链接（初值 $FFFF）须与整体接口自洽
+    W := $FFFF;
+    for I := 1 to Length(S) do
+      W := CalcCRC16Byte(W, Byte(S[I]));
+    Result := W = $29B1;
+  end;
 end;
 
 function TestCRC32: Boolean;

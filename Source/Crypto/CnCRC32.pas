@@ -33,7 +33,10 @@ unit CnCRC32;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.02.08 V1.7
+* 修改记录：2026.10.16 V1.8
+*               修复 CRC16 表法公式（应为 shl 8 xor Table[(shr 8) xor B]），
+*               并删除数据循环后多余的两轮补零，使增量与整体接口自洽
+*           2021.02.08 V1.7
 *               增加 CRC8/CRC16 的支持并注明类型、多项式与初始值、结果异或值
 *           2019.12.12 V1.6
 *               支持 TBytes
@@ -704,7 +707,7 @@ end;
 
 function CalcCRC16Byte(OrgCRC16: Word; B: Byte): Word;
 begin
-  Result := ((OrgCRC16 shl 8) or B) xor CRC16Table[OrgCRC16 shr 8];
+  Result := Word(Word(OrgCRC16 shl 8) xor CRC16Table[(OrgCRC16 shr 8) xor B]);
 end;
 
 // 计算 CRC16 值
@@ -718,14 +721,11 @@ begin
 
   P := PByte(@Data);
   while Len > 0 do
-  begin                     // 这里用 or 比较奇怪
-    Result := (Word(Result shl 8) or P^) xor CRC16Table[Result shr 8];
+  begin
+    Result := Word(Word(Result shl 8) xor CRC16Table[(Result shr 8) xor P^]);
     Inc(P);
     Dec(Len);
   end;
-
-  Result := Word(Result shl 8) xor CRC16Table[Result shr 8];
-  Result := Word(Result shl 8) xor CRC16Table[Result shr 8];
 end;
 
 // 计算 CRC16 值
