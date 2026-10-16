@@ -31,7 +31,10 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.04.05 V1.8
+* 修改记录：2026.10.16 V1.9
+*               默认摘要算法改为 SHA256；读取路径自动探测 MD5/SHA256 摘要；
+*               ckeDES 保留兼容使用，文档标注其弱密钥风险
+*           2026.04.05 V1.8
 *               增强部分安全性
 *           2026.03.24 V1.7
 *               特定版本的编译器 TStringList 写 Stream 会带 BOM 且无法控制，换实现
@@ -86,13 +89,15 @@ type
 
   TCnKeyEncryptMethod = (ckeNone, ckeDES, cke3DES, ckeAES128, ckeAES192, ckeAES256,
     ckeSM4);
-  {* PEM 格式支持的加密类型}
+  {* PEM 格式支持的加密类型。
+     注意：ckeDES 仅 56 位密钥，强度不足易被暴力破解，仅为与旧版 openssl 兼容保留，
+     新文件建议选用 AES 系列算法。}
 
 // ======================= PEM 文件读写函数，支持加解密 ========================
 
 function LoadPemFileToMemory(const FileName: string; const ExpectHead: string;
   const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
+  KeyHashMethod: TCnKeyHashMethod = ckhSha256): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码。
 
    参数：
@@ -108,7 +113,7 @@ function LoadPemFileToMemory(const FileName: string; const ExpectHead: string;
 
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead: string;
   const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
+  KeyHashMethod: TCnKeyHashMethod = ckhSha256): Boolean;
 {* 从 PEM 格式编码的流中验证指定头尾后读入实际内容并解密进行 Base64 解码。
 
    参数：
@@ -124,7 +129,7 @@ function LoadPemStreamToMemory(Stream: TStream; const ExpectHead: string;
 
 function SaveMemoryToPemFile(const FileName: string; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
+  KeyHashMethod: TCnKeyHashMethod = ckhSha256; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将流的内容进行 Base64 编码后加密分行并补上头尾再写入文件，Append 为 True 时表示追加。
 
    参数：
@@ -142,7 +147,7 @@ function SaveMemoryToPemFile(const FileName: string; const Head: string; const T
 
 function SaveMemoryToPemStream(Stream: TStream; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
+  KeyHashMethod: TCnKeyHashMethod = ckhSha256; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将流的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加。
 
    参数：
@@ -961,7 +966,7 @@ function DecryptPemString(const S, M1, M2, HexIv, Password: string; Stream: TMem
   KeyHash: TCnKeyHashMethod): Boolean;
 var
   DS: TMemoryStream;
-  Keys: array[0..31] of Byte; // 最长的 Key 也只有 32 字节
+  Keys: array[0..31] of Byte; // 最长的 Key 也只是 32 字节
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
@@ -972,6 +977,8 @@ var
   DesIv: TCnDESIv;
   Sm4Key: TCnSM4Key;
   Sm4Iv: TCnSM4Iv;
+  TryHash: TCnKeyHashMethod;
+  TryIndex: Integer;
 begin
   Result := False;
   DS := nil;
@@ -984,90 +991,105 @@ begin
     if ECN_BASE64_OK <> Base64Decode(S, DS, False) then
       Exit;
 
-    DS.Position := 0;
     SetLength(IvStr, HexToData(HexIv));
     if Length(IvStr) > 0 then
       HexToData(HexIv, @IvStr[1]);
 
-    // 根据密码明文与 Salt 以及 Hash 算法计算出加解密的 Key
-    FillChar(Keys[0], SizeOf(Keys), 0);
-    if KeyHash = ckhMd5 then
+    // DEK-Info 头部不记录摘要算法，先按调用方指定的摘要派生密钥尝试解密，
+    // PKCS7 补位验证失败后自动换另一种摘要重试。这样 openssl 1.x/LibreSSL
+    // 默认 MD5 与 3.x 默认 SHA256 加密的文件均无需显式指定即可读取。
+    for TryIndex := 0 to 1 do
     begin
-      if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys)) then
-        Exit;
-    end
-    else if KeyHash = ckhSha256 then
-    begin
-      if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys), ckdSha256) then
-        Exit;
-    end
-    else
-      Exit;
+      if TryIndex = 0 then
+        TryHash := KeyHash
+      else if KeyHash = ckhMd5 then
+        TryHash := ckhSha256
+      else
+        TryHash := ckhMd5;
 
-    FillChar(AesIv[0], SizeOf(TCnAESBuffer), 0);
-    FillChar(DesIv[0], SizeOf(TCnDESIv), 0);
-    FillChar(Sm4Iv[0], SizeOf(TCnSM4Iv), 0);
+      FillChar(Keys[0], SizeOf(Keys), 0);
+      if TryHash = ckhMd5 then
+      begin
+        if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys)) then
+          Continue;
+      end
+      else
+      begin
+        if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys),
+          ckdSha256) then
+          Continue;
+      end;
 
-    // DS 中是密文，要解到 Stream 中
-    if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
-    begin
-      // 解开 AES-256-CBC 加密的密文
-      Move(Keys[0], AESKey256[0], SizeOf(TCnAESKey256));
-      Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
+      FillChar(AesIv[0], SizeOf(TCnAESBuffer), 0);
+      FillChar(DesIv[0], SizeOf(TCnDESIv), 0);
+      FillChar(Sm4Iv[0], SizeOf(TCnSM4Iv), 0);
 
-      DecryptAES256StreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
-      if RemovePKCS7Padding(Stream) then
-        Result := True;
-    end
-    else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
-    begin
-      // 解开 AES-192-CBC 加密的密文
-      Move(Keys[0], AESKey192[0], SizeOf(TCnAESKey192));
-      Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
+      DS.Position := 0;
+      if TryIndex > 0 then
+      begin
+        // 清掉上一次失败尝试写入的数据再重试
+        Stream.Size := 0;
+        Stream.Position := 0;
+      end;
 
-      DecryptAES192StreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
-      if RemovePKCS7Padding(Stream) then
-        Result := True;
-    end
-    else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
-    begin
-      // 解开 AES-128-CBC 加密的密文，但 D5 下貌似可能碰到编译器的 Bug 导致出 AV。
-      Move(Keys[0], AESKey128[0], SizeOf(TCnAESKey128));
-      Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
+      // DS 里是密文，要拆到 Stream 里
+      if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
+      begin
+        // 解开 AES-256-CBC 加密的流
+        Move(Keys[0], AESKey256[0], SizeOf(TCnAESKey256));
+        Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
-      DecryptAES128StreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
-      if RemovePKCS7Padding(Stream) then
-        Result := True;
-    end
-    else if (M1 = ENC_TYPE_DES) and (M2 = ENC_BLOCK_CBC) then
-    begin
-      // 解开 DES-CBC 加密的密文
-      Move(Keys[0], DesKey[0], SizeOf(TCnDESKey));
-      Move(IvStr[1], DesIv[0], Min(SizeOf(TCnDESIv), Length(IvStr)));
+        DecryptAES256StreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
+        Result := RemovePKCS7Padding(Stream);
+      end
+      else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
+      begin
+        // 解开 AES-192-CBC 加密的流
+        Move(Keys[0], AESKey192[0], SizeOf(TCnAESKey192));
+        Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
-      DESDecryptStreamCBC(DS, DS.Size, DesKey, DesIv, Stream);
-      if RemovePKCS7Padding(Stream) then
-        Result := True;
-    end
-    else if (M1 = ENC_TYPE_3DES) and (M2 = ENC_BLOCK_CBC) then
-    begin
-      // 解开 3DES-CBC 加密的密文
-      Move(Keys[0], Des3Key[0], SizeOf(TCn3DESKey));
-      Move(IvStr[1], DesIv[0], Min(SizeOf(TCn3DESIv), Length(IvStr)));
+        DecryptAES192StreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
+        Result := RemovePKCS7Padding(Stream);
+      end
+      else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
+      begin
+        // 解开 AES-128-CBC 加密的流
+        Move(Keys[0], AESKey128[0], SizeOf(TCnAESKey128));
+        Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
-      TripleDESDecryptStreamCBC(DS, DS.Size, Des3Key, DesIv, Stream);
-      if RemovePKCS7Padding(Stream) then
-        Result := True;
-    end
-    else if (M1 = ENC_TYPE_SM4) and (M2 = ENC_BLOCK_CBC) then
-    begin
-      // 解开 SM4-CBC 加密的密文
-      Move(Keys[0], Sm4Key[0], SizeOf(TCnSM4Key));
-      Move(IvStr[1], Sm4Iv[0], Min(SizeOf(TCnSM4Iv), Length(IvStr)));
+        DecryptAES128StreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
+        Result := RemovePKCS7Padding(Stream);
+      end
+      else if (M1 = ENC_TYPE_DES) and (M2 = ENC_BLOCK_CBC) then
+      begin
+        // 解开 DES-CBC 加密的流
+        Move(Keys[0], DesKey[0], SizeOf(TCnDESKey));
+        Move(IvStr[1], DesIv[0], Min(SizeOf(TCnDESIv), Length(IvStr)));
 
-      SM4DecryptStreamCBC(DS, DS.Size, Sm4Key, Sm4Iv, Stream);
-      if RemovePKCS7Padding(Stream) then
-        Result := True;
+        DESDecryptStreamCBC(DS, DS.Size, DesKey, DesIv, Stream);
+        Result := RemovePKCS7Padding(Stream);
+      end
+      else if (M1 = ENC_TYPE_3DES) and (M2 = ENC_BLOCK_CBC) then
+      begin
+        // 解开 3DES-CBC 加密的流
+        Move(Keys[0], Des3Key[0], SizeOf(TCn3DESKey));
+        Move(IvStr[1], DesIv[0], Min(SizeOf(TCn3DESIv), Length(IvStr)));
+
+        TripleDESDecryptStreamCBC(DS, DS.Size, Des3Key, DesIv, Stream);
+        Result := RemovePKCS7Padding(Stream);
+      end
+      else if (M1 = ENC_TYPE_SM4) and (M2 = ENC_BLOCK_CBC) then
+      begin
+        // 解开 SM4-CBC 加密的流
+        Move(Keys[0], Sm4Key[0], SizeOf(TCnSM4Key));
+        Move(IvStr[1], Sm4Iv[0], Min(SizeOf(TCnSM4Iv), Length(IvStr)));
+
+        SM4DecryptStreamCBC(DS, DS.Size, Sm4Key, Sm4Iv, Stream);
+        Result := RemovePKCS7Padding(Stream);
+      end;
+
+      if Result then
+        Break;
     end;
   finally
     DS.Free;
