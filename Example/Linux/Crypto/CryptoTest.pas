@@ -300,6 +300,9 @@ function TestUInt128Sub: Boolean;
 function TestUInt128Mul: Boolean;
 function TestUInt128DivMod: Boolean;
 function TestUInt128ShiftMinInteger: Boolean;
+function TestInt128CompareNegative: Boolean;
+function TestInt128DivModNegExact: Boolean;
+function TestUInt128AddWordCarry: Boolean;
 
 // ===============================  Math =======================================
 
@@ -2155,6 +2158,9 @@ begin
   MyAssert(TestUInt128Mul, 'TestUInt128Mul');
   MyAssert(TestUInt128DivMod, 'TestUInt128DivMod');
   MyAssert(TestUInt128ShiftMinInteger, 'TestUInt128ShiftMinInteger');
+  MyAssert(TestInt128CompareNegative, 'TestInt128CompareNegative');
+  MyAssert(TestInt128DivModNegExact, 'TestInt128DivModNegExact');
+  MyAssert(TestUInt128AddWordCarry, 'TestUInt128AddWordCarry');
 
 // ===============================  Math =======================================
 
@@ -10396,6 +10402,59 @@ begin
   N.Hi64 := 0;
   UInt128ShiftRight(N, Low(Integer));
   if (N.Lo64 <> 0) or (N.Hi64 <> 0) then Exit;
+  Result := True;
+end;
+
+function TestInt128CompareNegative: Boolean;
+var
+  A, B: TCnInt128;
+begin
+  Result := False;
+  A := StrToInt128('-2');
+  B := StrToInt128('-1');
+  if Int128Compare(A, B) <> -1 then Exit;
+  if Int128Compare(B, A) <> 1 then Exit;
+  if Int128Compare(A, A) <> 0 then Exit;
+  A := StrToInt128('-3');
+  B := StrToInt128('-5');
+  if Int128Compare(A, B) <> 1 then Exit;
+
+  // 对照：Hi64 不同或均非负时原逻辑正确
+  A := StrToInt128('-1');
+  B := StrToInt128('0');
+  if Int128Compare(A, B) <> -1 then Exit;
+  A := StrToInt128('2');
+  B := StrToInt128('1');
+  if Int128Compare(A, B) <> 1 then Exit;
+  Result := True;
+end;
+
+function TestInt128DivModNegExact: Boolean;
+var
+  A, B, R, M: TCnInt128;
+begin
+  Result := False;
+  A := StrToInt128('-6');
+  B := StrToInt128('2');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '-3') or (Int128ToStr(M) <> '0') then Exit;
+
+  // 对照：非整除走正常路径，截断除法商 -3 余 -1
+  A := StrToInt128('-7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '-3') or (Int128ToStr(M) <> '-1') then Exit;
+  Result := True;
+end;
+
+function TestUInt128AddWordCarry: Boolean;
+var
+  A, R: TCnUInt128;
+begin
+  Result := False;
+  A := StrToUInt128('147573952589676412925');
+  R := StrToUInt128('147573952589676412936');
+  UInt128Add(R, A, 5);
+  if UInt128ToStr(R) <> '147573952589676412930' then Exit;
   Result := True;
 end;
 

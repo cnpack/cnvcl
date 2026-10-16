@@ -29,7 +29,12 @@ unit CnInt128;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.06.14 V1.1
+* 修改记录：2026.10.17 V1.2
+*               修复 Int128Compare 在 Hi64 相等且为负时错误翻转比较
+*               结果；修复 Int128DivMod 余数归零提前退出跳过符号修
+*               正；修复 UInt128Add(R,A,V) 进位误用 R.Hi64 而非
+*               A.Hi64。
+*           2022.06.14 V1.1
 *               实现除法与求余，待测试
 *           2022.06.11 V1.0
 *               创建单元，实现功能
@@ -897,7 +902,7 @@ begin
 
       // 如果此时 M 为 0，貌似可以跳出，都没余数了
       if Int128IsZero(M) then
-        Exit;
+        Break; // 余数已为 0，退出循环后仍需做商与余数的符号修正
     end;
 
     if Sft > 0 then
@@ -1049,8 +1054,7 @@ begin
   else
   begin
     R := UInt64Compare(A.Lo64, B.Lo64); // 低 64 位须作为无符号数比较
-    if A.Hi64 < 0 then // 如果是负值，则变号
-      R := -R;
+    // Hi64 相等（含同为负值）时低 64 位按无符号比较已得正确次序，不可再翻转
 
     if R > 0 then
       Result := 1
@@ -1239,7 +1243,7 @@ var
   C: Integer;
 begin
   UInt64Add(R.Lo64, A.Lo64, V, C);
-  R.Hi64 := R.Hi64 + C;
+  R.Hi64 := A.Hi64 + C;
 end;
 
 // 两个 128 位无符号整数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零
