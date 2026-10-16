@@ -10663,9 +10663,11 @@ begin
   // Carmichael 数误判为素数。现改为约减界求 R + gcd 检查 + 真正的多项式环
   // 同余检查（约减界的设计说明见上方常量注释与 CnPrime.pas 中的同名修复）。
   LG2 := BigNumberLog2(N);      // 整数会有误差，需要用到浮点，一般不会超出浮点范围
-  LG22 := Trunc(LG2 * LG2);
-  if LG22 > AKS_ORDER_TARGET_MAX then
-    LG22 := AKS_ORDER_TARGET_MAX;
+  // 钳位保护：LG2^2 超过封顶值时直接取封顶，避免数值超出 Int64 范围时 Trunc 溢出（仅理论上的超大 N 可达）。
+  if LG2 * LG2 >= AKS_ORDER_TARGET_MAX then
+    LG22 := AKS_ORDER_TARGET_MAX
+  else
+    LG22 := Trunc(LG2 * LG2);
   if LG22 < 1 then
     LG22 := 1;
 

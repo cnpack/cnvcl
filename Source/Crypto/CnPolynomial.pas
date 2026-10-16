@@ -7624,13 +7624,13 @@ begin
     N := 2;
     while N <= Exponent do
     begin
-      // T := (p * T - X * T^2) in Ring(p^n, M)
+      // T := (2 * T - X * T^2) in Ring(p^n, M)
       P := Int64NonNegativPower(PrimeRoot, N);
 
       Int64PolynomialGaloisMul(F, T, T, P);
       Int64PolynomialGaloisMul(F, F, X, P);
 
-      Int64PolynomialGaloisMulWord(T, PrimeRoot, P);
+      Int64PolynomialGaloisMulWord(T, PrimeRoot, 2);
       Int64PolynomialGaloisSub(T, T, F, P, Modulus);
 
       N := N + 1;
