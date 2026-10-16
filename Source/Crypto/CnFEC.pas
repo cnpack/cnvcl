@@ -32,6 +32,8 @@ unit CnFEC;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.16 V1.4
+*               修正 Reed Solomon 纠删码生成矩阵改用标准系统范德蒙矩阵，
+*               保证任意丢失 M-N 片后仍可恢复（MDS 性质）
 *               修正伽罗华域 2^8 矩阵行列式将 0xFF 归一化为 0 的问题
 *           2025.12.14 V1.3
 *               实现 Reed Solomon 纠错码
@@ -693,11 +695,13 @@ begin
   inherited;
 end;
 
-// 生成 M 行 N 列的在伽罗华域上的范德蒙矩阵
+// 生成 M 行 N 列的系统 RS 生成矩阵 [I | P]：在互异非零求值点 1..M 上取 N 列范德蒙矩阵
+// V_full，再右乘其顶部 N 行方块 A 的逆，得到 G = V_full * A^-1。这样前 N 行是单位阵
+// （前 N 字节保留原始数据），且任意 N 行均可逆，满足任意丢失 M-N 片仍可恢复的要求
 procedure VandermondeGalois(V: TCnGalois2Power8Matrix; M, N: Integer);
 var
   I, J: Integer;
-  Arr: array of Int64;
+  A, AInv, T: TCnGalois2Power8Matrix;
 begin
   if (M <= 0) or (N <= 0) or (M <= N) then
     raise ECnReedSolomonException.Create(SCnErrorVandermondeMatrixParam);
@@ -705,32 +709,43 @@ begin
   if V = nil then
     Exit;
 
+  // GF(2^8) 上互异非零求值点最多 255 个
+  if M > 255 then
+    raise ECnReedSolomonException.Create(SCnErrorVandermondeMatrixParam);
+
   V.RowCount := M;
   V.ColCount := N;
 
-  for I := 0 to N - 1 do
+  for I := 0 to M - 1 do
   begin
-    for J := 0 to N - 1 do
-      if I = J then
-        V.Value[I, J] := 1
-      else
-        V.Value[I, J] := 0;
+    V.Value[I, 0] := 1;
+    for J := 1 to N - 1 do
+      V.Value[I, J] := CnGalois2Power8Rule.Multiply(V.Value[I, J - 1], I + 1);
   end;
 
-  for J := 0 to N - 1 do
-    V.Value[N, J] := 1;
-
-  SetLength(Arr, N);
-  for I := 0 to N - 1 do
-    Arr[I] := I + 1;
-
-  for I := N + 1 to M - 1 do
-  begin
-    for J := 0 to N - 1 do
+  A := TCnGalois2Power8Matrix.Create(N, N);
+  AInv := TCnGalois2Power8Matrix.Create(N, N);
+  T := TCnGalois2Power8Matrix.Create(M, N);
+  try
+    for I := 0 to N - 1 do
     begin
-      V.Value[I, J] := Arr[J];
-      Arr[J] := CnGalois2Power8Rule.Multiply(Arr[J], Arr[J]);
+      for J := 0 to N - 1 do
+        A.Value[I, J] := V.Value[I, J];
     end;
+
+    CnMatrixInverse(A, AInv);
+
+    for I := 0 to M - 1 do
+    begin
+      for J := 0 to N - 1 do
+        T.Value[I, J] := V.Value[I, J];
+    end;
+
+    CnMatrixMul(T, AInv, V);
+  finally
+    T.Free;
+    AInv.Free;
+    A.Free;
   end;
 end;
 

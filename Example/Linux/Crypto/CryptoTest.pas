@@ -675,6 +675,8 @@ function TestReedSolomon: Boolean;
 function TestGalois2Power8MatrixDet255: Boolean;
 function TestGalois2Power8MatrixAdjoint255: Boolean;
 function TestReedSolomonErasureCombinations: Boolean;
+function TestReedSolomonMDSProperty: Boolean;
+function TestReedSolomonVandermondeDistinctRows: Boolean;
 
 // ================================ DSA ========================================
 
@@ -2519,6 +2521,8 @@ begin
   MyAssert(TestGalois2Power8MatrixDet255, 'TestGalois2Power8MatrixDet255');
   MyAssert(TestGalois2Power8MatrixAdjoint255, 'TestGalois2Power8MatrixAdjoint255');
   MyAssert(TestReedSolomonErasureCombinations, 'TestReedSolomonErasureCombinations');
+  MyAssert(TestReedSolomonMDSProperty, 'TestReedSolomonMDSProperty');
+  MyAssert(TestReedSolomonVandermondeDistinctRows, 'TestReedSolomonVandermondeDistinctRows');
 
 // ================================ DSA ========================================
 
@@ -21182,37 +21186,84 @@ begin
   Result := CompareBytes(D, B);
 end;
 
-// 按 CnFEC 内部 VandermondeGalois 的规则重建 RS 生成矩阵，供独立求擦除子矩阵的行列式用
-procedure BuildReedSolomonVandermondeMatrix(Matrix: TCnGalois2Power8Matrix; RowCount,
-  ColCount: Integer);
+// 穷举 (M, N) 纠删码的全部 C(M,N) 个擦除组合做端到端恢复验证：作为 MDS 纠删码，
+// 必须容忍任意丢失 M-N 片，任意 N 片存活都必须既能精确恢复原始数据、又不抛异常。
+// 返回失败的组合数（负值表示编码长度异常）；MaxDetail 限制最多打印多少条失败明细
+function CheckReedSolomonMDS(CodeByteLength, DataByteLength, MaxDetail: Integer): Integer;
 var
-  I, J: Integer;
-  Arr: array[0..15] of Int64;
+  Data, Code, B, Idxs, Rec: TBytes;
+  Pos: array[0..15] of Integer;
+  I, J, Total, ExceptionCount, WrongCount: Integer;
+  Done: Boolean;
+  PosText, RecHex: string;
 begin
-  Matrix.RowCount := RowCount;
-  Matrix.ColCount := ColCount;
-
-  for I := 0 to ColCount - 1 do
-    for J := 0 to ColCount - 1 do
-      if I = J then
-        Matrix.Value[I, J] := 1
-      else
-        Matrix.Value[I, J] := 0;
-
-  for J := 0 to ColCount - 1 do
-    Matrix.Value[ColCount, J] := 1;
-
-  for I := 0 to ColCount - 1 do
-    Arr[I] := I + 1;
-
-  for I := ColCount + 1 to RowCount - 1 do
+  SetLength(Data, DataByteLength);
+  for I := 0 to DataByteLength - 1 do
+    Data[I] := $10 + I;
+  Code := CnCalcReedSolomonCode(Data, CodeByteLength);
+  if Length(Code) <> CodeByteLength then
   begin
-    for J := 0 to ColCount - 1 do
+    Result := -1;
+    Exit;
+  end;
+
+  // 组合下标从 0,1,...,N-1 开始，到 M-N,...,M-1 结束
+  for I := 0 to DataByteLength - 1 do
+    Pos[I] := I;
+
+  Total := 0;
+  ExceptionCount := 0;
+  WrongCount := 0;
+  Done := False;
+  while not Done do
+  begin
+    PosText := '';
+    for I := 0 to DataByteLength - 1 do
     begin
-      Matrix.Value[I, J] := Arr[J];
-      Arr[J] := CnGalois2Power8Rule.Multiply(Arr[J], Arr[J]);
+      if I > 0 then
+        PosText := PosText + ',';
+      PosText := PosText + IntToStr(Pos[I]);
+    end;
+
+    SetLength(B, DataByteLength);
+    SetLength(Idxs, DataByteLength);
+    for I := 0 to DataByteLength - 1 do
+    begin
+      B[I] := Code[Pos[I]];
+      Idxs[I] := Pos[I];
+    end;
+
+    try
+      Rec := CnVerifyReedSolomonCode(B, CodeByteLength, Idxs);
+      if (Length(Rec) <> DataByteLength) or (not CompareBytes(Rec, Data, DataByteLength)) then
+      begin
+        Inc(WrongCount);
+        if WrongCount + ExceptionCount <= MaxDetail then
+        begin
+          RecHex := '';
+          if Length(Rec) > 0 then
+            RecHex := DataToHex(@Rec[0], Length(Rec));
+        end;
+      end;
+    except
+      Inc(ExceptionCount);
+    end;
+    Inc(Total);
+
+    J := DataByteLength - 1;
+    while (J >= 0) and (Pos[J] = CodeByteLength - DataByteLength + J) do
+      Dec(J);
+    if J < 0 then
+      Done := True
+    else
+    begin
+      Inc(Pos[J]);
+      for I := J + 1 to DataByteLength - 1 do
+        Pos[I] := Pos[I - 1] + 1;
     end;
   end;
+
+  Result := ExceptionCount + WrongCount;
 end;
 
 // 按行优先顺序把一批 0~255 的值填进矩阵
@@ -21222,11 +21273,13 @@ var
 begin
   K := 0;
   for I := 0 to Matrix.RowCount - 1 do
+  begin
     for J := 0 to Matrix.ColCount - 1 do
     begin
       Matrix.Value[I, J] := Values[K];
       Inc(K);
     end;
+  end;
 end;
 
 // 用高斯消元法在 GP(2^8) 上独立求行列式，不经过 TCnGalois2Power8Matrix.Determinant，
@@ -21240,8 +21293,10 @@ var
 begin
   N := Matrix.RowCount;
   for I := 0 to N - 1 do
+  begin
     for J := 0 to N - 1 do
       A[I, J] := Matrix.Value[I, J];
+  end;
 
   Rule := CnGalois2Power8Rule;
   Result := 1;
@@ -21249,11 +21304,13 @@ begin
   begin
     Pivot := -1;
     for I := J to N - 1 do
+    begin
       if A[I, J] <> 0 then
       begin
         Pivot := I;
         Break;
       end;
+    end;
 
     if Pivot < 0 then
     begin
@@ -21274,12 +21331,14 @@ begin
 
     Result := Rule.Multiply(Result, A[J, J]);
     for I := J + 1 to N - 1 do
+    begin
       if A[I, J] <> 0 then
       begin
         Factor := Rule.Divide(A[I, J], A[J, J]);
         for K := J to N - 1 do
           A[I, K] := Rule.Subtract(A[I, K], Rule.Multiply(Factor, A[J, K]));
       end;
+    end;
   end;
 end;
 
@@ -21296,11 +21355,8 @@ begin
   try
     FillGalois2Power8Matrix(M, [255]);
     Result := M.Determinant = 255;
-    if not Result then
-    begin
-      MyWriteln('  Det([255]) = ' + IntToStr(M.Determinant) + ', expected 255');
-      Exit;
-    end;
+    if not Result then Exit;
+
     Result := not M.IsSingular;
   finally
     M.Free;
@@ -21364,11 +21420,7 @@ begin
     Adj := TCnGalois2Power8Matrix.Create(4, 4);
     CnMatrixAdjoint(M, Adj);
     Result := Adj.Value[1, 1] = 255;
-    if not Result then
-    begin
-      MyWriteln('  Adjoint[1,1] = ' + IntToStr(Adj.Value[1, 1]) + ', expected 255');
-      Exit;
-    end;
+    if not Result then Exit;
 
     Inv := TCnGalois2Power8Matrix.Create(4, 4);
     CnMatrixInverse(M, Inv);
@@ -21384,106 +21436,80 @@ begin
   end;
 end;
 
-// N=4/M=13 穷举全部 715 个擦除组合：真可逆的擦除子矩阵必须既不抛异常、又能精确恢复原始数据。
-// 修复前实测有 1 个真行列式 = 255 的组合（0,1,10,12）被误报奇异异常，
-// 另有 18 个组合因伴随矩阵中真值为 255 的子式被置 0 而静默恢复出错误数据
+// N=4/M=13 穷举全部 715 个擦除组合做 MDS 回归：任意 4 片存活都必须能精确恢复原始数据。
+// 当前生成矩阵用 Frobenius 平方指数序列（非标准 RS 构造），实测有 130 个组合真奇异，
+// 违反纠删码必须容忍任意丢失 M-N 片的性质
 function TestReedSolomonErasureCombinations: Boolean;
+begin
+  Result := CheckReedSolomonMDS(13, 4, 10) = 0;
+end;
+
+// 报告给出的其他参数组同样穷举验证 MDS 性质，实测奇异组合数为：
+// N=4/M=10 有 16/210，N=4/M=14 有 253/1001（其中 66 个含重复校验行），N=6/M=16 有 4456/8008
+function TestReedSolomonMDSProperty: Boolean;
 var
-  V, SubM: TCnGalois2Power8Matrix;
-  Data, Basis, Code, CodeB, B, Idxs, Rec: TBytes;
-  I, J, K, L, RIdx, CIdx, InvertibleCount, FailCount: Integer;
-  IdxArr: array[0..3] of Integer;
-  Det: Int64;
-  RecHex: string;
+  FailCount: Integer;
+begin
+  FailCount := 0;
+  Inc(FailCount, CheckReedSolomonMDS(10, 4, 5));
+  Inc(FailCount, CheckReedSolomonMDS(14, 4, 5));
+  Inc(FailCount, CheckReedSolomonMDS(16, 6, 5));
+  Result := FailCount = 0;
+end;
+
+// GF(2^8)* 的阶为 255，2 的幂指数按 mod 255 回绕（2^8 = 256 ≡ 1），M-N >= 10 时平方
+// 指数序列出现重复，同指数的两行校验行完全相同，任何同时选中这两行的擦除组合必然奇异。
+// 这里用基向量的纠错码取出生成矩阵全部 M 行（含校验行）的值，校验各行两两不同
+function TestReedSolomonVandermondeDistinctRows: Boolean;
+var
+  ParamM: array[0..1] of Integer;
+  ParamN: array[0..1] of Integer;
+  Basis, CodeB: TBytes;
+  RowVals: array[0..31, 0..7] of Int64;
+  P, M, N, I, J, K: Integer;
+  Same: Boolean;
 begin
   Result := False;
-  V := nil;
-  SubM := nil;
-  InvertibleCount := 0;
-  FailCount := 0;
 
-  SetLength(Data, 4);
-  Data[0] := $DE;
-  Data[1] := $AD;
-  Data[2] := $BE;
-  Data[3] := $EF;
-  Code := CnCalcReedSolomonCode(Data, 13);
-  if Length(Code) <> 13 then
-    Exit;
+  ParamM[0] := 14; ParamN[0] := 4;  // 实测第 5、13 行相同，含两行的 66 个组合直接奇异
+  ParamM[1] := 16; ParamN[1] := 6;  // 实测第 7、15 行相同
 
-  try
-    // 重建库内部的 13 行 4 列范德蒙生成矩阵，并用基向量的纠错码交叉校验重建结果
-    V := TCnGalois2Power8Matrix.Create(13, 4);
-    BuildReedSolomonVandermondeMatrix(V, 13, 4);
-    SetLength(Basis, 4);
-    for J := 0 to 3 do
+  for P := 0 to 1 do
+  begin
+    M := ParamM[P];
+    N := ParamN[P];
+
+    SetLength(Basis, N);
+    for J := 0 to N - 1 do
     begin
       FillChar(Basis[0], Length(Basis), 0);
       Basis[J] := 1;
-      CodeB := CnCalcReedSolomonCode(Basis, 13);
-      if Length(CodeB) <> 13 then
-        Exit;
-      for I := 0 to 12 do
-        if V.Value[I, J] <> CodeB[I] then
-        begin
-          MyWriteln('  Rebuilt Vandermonde Matrix mismatch at [' + IntToStr(I) + ',' + IntToStr(J) + ']');
-          Exit;
-        end;
+      CodeB := CnCalcReedSolomonCode(Basis, M);
+      if Length(CodeB) <> M then Exit;
+
+      for I := 0 to M - 1 do
+        RowVals[I, J] := CodeB[I];
     end;
 
-    SubM := TCnGalois2Power8Matrix.Create(4, 4);
-    for I := 0 to 12 do
-      for J := I + 1 to 12 do
-        for K := J + 1 to 12 do
-          for L := K + 1 to 12 do
+    for I := 0 to M - 1 do
+    begin
+      for J := I + 1 to M - 1 do
+      begin
+        Same := True;
+        for K := 0 to N - 1 do
+        begin
+          if RowVals[I, K] <> RowVals[J, K] then
           begin
-            IdxArr[0] := I;
-            IdxArr[1] := J;
-            IdxArr[2] := K;
-            IdxArr[3] := L;
-
-            for RIdx := 0 to 3 do
-              for CIdx := 0 to 3 do
-                SubM.Value[RIdx, CIdx] := V.Value[IdxArr[RIdx], CIdx];
-
-            // 该生成矩阵对部分擦除组合真奇异，属另一问题，此处只考察真可逆的组合
-            Det := Galois2Power8DeterminantRef(SubM);
-            if Det = 0 then
-              Continue;
-
-            Inc(InvertibleCount);
-
-            SetLength(B, 4);
-            SetLength(Idxs, 4);
-            for RIdx := 0 to 3 do
-            begin
-              B[RIdx] := Code[IdxArr[RIdx]];
-              Idxs[RIdx] := IdxArr[RIdx];
-            end;
-
-            try
-              Rec := CnVerifyReedSolomonCode(B, 13, Idxs);
-              if (Length(Rec) <> 4) or (not CompareBytes(Rec, Data, 4)) then
-              begin
-                Inc(FailCount);
-                RecHex := '';
-                if Length(Rec) > 0 then
-                  RecHex := DataToHex(@Rec[0], Length(Rec));
-                MyWriteln('  Wrong Data for Invertible Erasures (' + IntToStr(I) + ',' +
-                  IntToStr(J) + ',' + IntToStr(K) + ',' + IntToStr(L) + '): ' + RecHex);
-              end;
-            except
-              Inc(FailCount);
-              MyWriteln('  Exception for Invertible Erasures (' + IntToStr(I) + ',' +
-                IntToStr(J) + ',' + IntToStr(K) + ',' + IntToStr(L) + ')');
-            end;
+            Same := False;
+            Break;
           end;
-
-    Result := (FailCount = 0) and (InvertibleCount > 0);
-  finally
-    SubM.Free;
-    V.Free;
+        end;
+        if Same then Exit;
+      end;
+    end;
   end;
+
+  Result := True;
 end;
 
 // ================================ DSA ========================================
