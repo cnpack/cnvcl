@@ -951,17 +951,7 @@ begin
     begin
       SetLength(SA, Size - 3);
       Move(Bytes[3], SA[1], Size - 3);
-{$IFDEF MSWINDOWS}
-      Len := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, nil, 0);
-      SetLength(S, Len);
-      MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, PWideChar(S), Len);
-{$ELSE}
-  {$IFDEF FPC}
       S := CnUtf8DecodeToWideString(SA);
-  {$ELSE}
-      S := UTF8ToWideString(SA);
-  {$ENDIF}
-{$ENDIF}
       SetTextStr(S);
       FLoadFormat := wlfUtf8;
       FHasBOM := True;
@@ -1017,17 +1007,7 @@ begin
       begin
         SetLength(SA, Size);
         Move(Bytes[0], SA[1], Size);
-{$IFDEF MSWINDOWS}
-        Len := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, nil, 0);
-        SetLength(S, Len);
-        MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, PWideChar(S), Len);
-{$ELSE}
-    {$IFDEF FPC}
         S := CnUtf8DecodeToWideString(SA);
-    {$ELSE}
-        S := UTF8ToWideString(SA);
-    {$ENDIF}
-{$ENDIF}
         SetTextStr(S);
         FHasBOM := False;
         if Encoding = cfeUtf8 then
@@ -1336,11 +1316,10 @@ begin
   Result := Cnt + 1;
 end;
 
-function InternalUtf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal;
-  Source: PAnsiChar; SourceBytes: Cardinal): Cardinal;
+function InternalUtf8ToUnicode(Dest: PWideChar; MaxDestChars: Integer;
+  Source: PAnsiChar; SourceBytes: Integer): Integer;
 var
-  K: Integer;
-  I, Cnt: Cardinal;
+  K, I, Cnt: Integer;
   C: Byte;
   WC: Cardinal;
 begin
@@ -1350,7 +1329,7 @@ begin
     Exit;
   end;
 
-  Result := Cardinal(-1);
+  Result := -1;
   Cnt := 0;
   I := 0;
   if Dest <> nil then
@@ -1405,7 +1384,9 @@ begin
         Dest[Cnt] := WideChar(WC);
       Inc(Cnt);
     end;
-    if Cnt >= MaxDestChars then Cnt := MaxDestChars - 1;
+
+    if Cnt >= MaxDestChars then
+      Cnt := MaxDestChars - 1;
     Dest[Cnt] := #0;
   end
   else
