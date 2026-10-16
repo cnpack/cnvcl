@@ -569,7 +569,10 @@ end;
 // 计算 TBytes 的 CRC8 值
 function BytesCRC8(OrgCRC8: Byte; const Data: TBytes): Byte;
 begin
-  Result := CRC8Calc(OrgCRC8, PAnsiChar(Data[0])^, Length(Data));
+  if Length(Data) <= 0 then
+    Result := OrgCRC8
+  else
+    Result := CRC8Calc(OrgCRC8, PAnsiChar(@Data[0])^, Length(Data));
 end;
 
 {$IFNDEF MSWINDOWS}
@@ -747,7 +750,10 @@ end;
 // 计算 TBytes 的 CRC16 值
 function BytesCRC16(OrgCRC16: Word; const Data: TBytes): Word;
 begin
-  Result := CRC16Calc(OrgCRC16, PAnsiChar(Data[0])^, Length(Data));
+  if Length(Data) <= 0 then
+    Result := OrgCRC16
+  else
+    Result := CRC16Calc(OrgCRC16, PAnsiChar(@Data[0])^, Length(Data));
 end;
 
 {$IFNDEF MSWINDOWS}
@@ -924,7 +930,10 @@ end;
 // 计算 TBytes 的 CRC32 值
 function BytesCRC32(OrgCRC32: Cardinal; const Data: TBytes): Cardinal;
 begin
-  Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
+  if Length(Data) <= 0 then
+    Result := OrgCRC32
+  else
+    Result := CRC32Calc(OrgCRC32, PAnsiChar(@Data[0])^, Length(Data));
 end;
 
 {$IFNDEF MSWINDOWS}
@@ -1115,7 +1124,10 @@ end;
 // 计算 TBytes 的 CRC64 值
 function BytesCRC64(OrgCRC64: Int64; const Data: TBytes): Int64;
 begin
-  Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
+  if Length(Data) <= 0 then
+    Result := OrgCRC64
+  else
+    Result := CRC64Calc(OrgCRC64, PAnsiChar(@Data[0])^, Length(Data));
 end;
 
 {$IFNDEF MSWINDOWS}

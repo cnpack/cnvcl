@@ -285,6 +285,8 @@ function TestCARejectInvalidCert: Boolean;
 function TestCAUTCTimeGeneralizedTime: Boolean;
 function TestCAValidityCheckNoFile: Boolean;
 function TestCASignTypeConsistency: Boolean;
+function TestCASerialNumberDEREncoding: Boolean;
+function TestCASerialNumberInvalidInput: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -2133,6 +2135,8 @@ begin
   MyAssert(TestCAUTCTimeGeneralizedTime, 'TestCAUTCTimeGeneralizedTime');
   MyAssert(TestCAValidityCheckNoFile, 'TestCAValidityCheckNoFile');
   MyAssert(TestCASignTypeConsistency, 'TestCASignTypeConsistency');
+  MyAssert(TestCASerialNumberDEREncoding, 'TestCASerialNumberDEREncoding');
+  MyAssert(TestCASerialNumberInvalidInput, 'TestCASerialNumberInvalidInput');
 
 // =============================== Int128 ======================================
 
@@ -10046,6 +10050,201 @@ begin
     EPub.Free;
     EPriv.Free;
     Ecc.Free;
+    CAPub.Free;
+    CAPriv.Free;
+  end;
+end;
+
+function TestCASerialNumberDEREncoding: Boolean;
+{* 证书序列号 DER 编码回归：最高字节 >= 0x80 时必须补前导 0x00 字节，
+   否则 INTEGER 会被解析为负数，违反 RFC 5280 要求的正整数序列号。
+   覆盖 v1/v2 的 RSA/ECC 流式自签证书生成路径 }
+const
+  Serials: array[0..6] of string = ('1', '127', '128', '255', '32768',
+    '16777215', '4294967295');
+  SerialHexes: array[0..6] of string = ('01', '7F', '0080', '00FF', '008000',
+    '00FFFFFF', '00FFFFFFFF');
+var
+  CAPriv: TCnRSAPrivateKey;
+  CAPub: TCnRSAPublicKey;
+  Ecc: TCnEcc;
+  EPriv: TCnEccPrivateKey;
+  EPub: TCnEccPublicKey;
+  Std: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  CRT: TCnCertificate;
+  St: TMemoryStream;
+  R: TCnBerReader;
+  TBSC, SerialNode: TCnBerReadNode;
+  Got, Exp: TBytes;
+  I: Integer;
+
+  function CheckSerialNode: Boolean;
+  begin
+    Result := False;
+    R := TCnBerReader.Create(PByte(St.Memory), St.Size, True);
+    try
+      R.ParseToTree;
+      TBSC := R.Items[1];
+      // 与加载逻辑一致：存在版本节点 [0] 时序列号是其后的 INTEGER
+      if (TBSC.Items[0].BerTag = 0) and (TBSC.Items[0].Count = 1) then
+        SerialNode := TBSC.Items[1]
+      else
+        SerialNode := TBSC.Items[0];
+      if SerialNode.BerTag <> CN_BER_TAG_INTEGER then
+        Exit;
+      if SerialNode.BerDataLength <> Length(Exp) then
+        Exit;
+      SetLength(Got, SerialNode.BerDataLength);
+      SerialNode.CopyDataTo(@Got[0]);
+      Result := CompareMem(@Got[0], @Exp[0], Length(Exp));
+    finally
+      R.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  Ecc := TCnEcc.Create(ctSM2);
+  EPriv := TCnEccPrivateKey.Create;
+  EPub := TCnEccPublicKey.Create;
+  Std := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  CRT := TCnCertificate.Create;
+  St := TMemoryStream.Create;
+  try
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+
+    // v2 RSA：序列号必须带前导 0 且能原样读回
+    for I := 0 to High(Serials) do
+    begin
+      St.Clear;
+      if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, St, 'CN',
+        'State', 'City', 'Org', 'Unit', 'TestCA', 'a@b.com', Serials[I],
+        Now - 1, Now + 365, Std, PrivExt, ctSha256RSA) then
+        Exit;
+
+      St.Position := 0;
+      if not CnCAVerifySelfSignedCertificateStream(St) then
+        Exit;
+
+      Exp := HexToBytes(SerialHexes[I]);
+      if not CheckSerialNode then
+        Exit;
+
+      St.Position := 0;
+      if not CnCALoadCertificateFromStream(St, CRT) then
+        Exit;
+      if CRT.BasicCertificate.SerialNumber <> Serials[I] then
+        Exit;
+    end;
+
+    // v2 ECC
+    Ecc.GenerateKeys(EPriv, EPub);
+    St.Clear;
+    if not CnCANewSelfSignedCertificate2Stream(EPriv, EPub, ctSM2, St, 'CN',
+      'State', 'City', 'Org', 'Unit', 'TestECC2', 'a@b.com', '128',
+      Now - 1, Now + 365, Std, PrivExt, ctSha256Ecc) then
+      Exit;
+
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    Exp := HexToBytes('0080');
+    if not CheckSerialNode then
+      Exit;
+
+    // v1 RSA
+    St.Clear;
+    if not CnCANewSelfSignedCertificateStream(CAPriv, CAPub, St, 'CN',
+      'State', 'City', 'Org', 'Unit', 'TestRSA1', 'a@b.com', '128',
+      Now - 1, Now + 365) then
+      Exit;
+
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    Exp := HexToBytes('0080');
+    if not CheckSerialNode then
+      Exit;
+
+    // v1 ECC
+    St.Clear;
+    if not CnCANewSelfSignedCertificateStream(EPriv, EPub, ctSM2, St, 'CN',
+      'State', 'City', 'Org', 'Unit', 'TestECC1', 'a@b.com', '128',
+      Now - 1, Now + 365) then
+      Exit;
+
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then
+      Exit;
+
+    Exp := HexToBytes('0080');
+    if not CheckSerialNode then
+      Exit;
+
+    Result := True;
+  finally
+    St.Free;
+    CRT.Free;
+    PrivExt.Free;
+    Std.Free;
+    EPub.Free;
+    EPriv.Free;
+    Ecc.Free;
+    CAPub.Free;
+    CAPriv.Free;
+  end;
+end;
+
+function TestCASerialNumberInvalidInput: Boolean;
+{* 非法序列号输入回归：序列号必须为大于 0 的十进制整数，非整数、含杂质、
+   带符号、零等输入必须使证书生成函数返回 False }
+const
+  BadSerials: array[0..11] of string = ('', '-1', 'abc', '0', '00', '-0',
+    '1.5', '+1', ' 1', '1 ', '0x10', '12x');
+var
+  CAPriv: TCnRSAPrivateKey;
+  CAPub: TCnRSAPublicKey;
+  Std: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  St: TMemoryStream;
+  I: Integer;
+begin
+  Result := False;
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  Std := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  St := TMemoryStream.Create;
+  try
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+
+    // 合法对照：正整数可用
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, St, 'CN',
+      'State', 'City', 'Org', 'Unit', 'TestCA', 'a@b.com', '1',
+      Now - 1, Now + 365, Std, PrivExt, ctSha256RSA) then
+      Exit;
+
+    // 非法输入必须全部被拒绝
+    for I := 0 to High(BadSerials) do
+    begin
+      St.Clear;
+      if CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, St, 'CN',
+        'State', 'City', 'Org', 'Unit', 'TestCA', 'a@b.com', BadSerials[I],
+        Now - 1, Now + 365, Std, PrivExt, ctSha256RSA) then
+        Exit;
+    end;
+
+    Result := True;
+  finally
+    St.Free;
+    PrivExt.Free;
+    Std.Free;
     CAPub.Free;
     CAPriv.Free;
   end;

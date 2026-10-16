@@ -479,7 +479,7 @@ begin
       for J := 0 to KL - 1 do
         XK[J] := Key[J] xor I;
 
-      RC4Encrypt(@XK[0], KL, @Dig[0], @Dig[0], SizeOf(TCnPDFPaddingKey));
+      RC4Encrypt(@XK[0], KL, @Dig[0], @Dig[0], SizeOf(TCnMD5Digest));
     end;
 
     SetLength(Result, SizeOf(TCnPDFPaddingKey));

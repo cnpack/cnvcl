@@ -2071,7 +2071,7 @@ function CnEccSavePublicKeyToPem(PemStream: TStream;
 // =============================================================================
 
 function CnEccSignFile(const InFileName: string; const OutSignFileName: string; Ecc: TCnEcc;
-  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用私钥签名指定文件，Ecc 中需要预先指定曲线。
    使用指定数字摘要算法对文件进行计算得到杂凑值，再将原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐，再用私钥加密。
 
@@ -2086,7 +2086,7 @@ function CnEccSignFile(const InFileName: string; const OutSignFileName: string; 
 }
 
 function CnEccSignFile(const InFileName: string; const OutSignFileName: string; CurveType: TCnEccCurveType;
-  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用私钥签名指定文件，使用预定义曲线。
    使用指定数字摘要算法对文件进行计算得到杂凑值，再将原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐，再用私钥加密。
 
@@ -2101,7 +2101,7 @@ function CnEccSignFile(const InFileName: string; const OutSignFileName: string; 
 }
 
 function CnEccVerifyFile(const InFileName: string; const InSignFileName: string; Ecc: TCnEcc;
-  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过。
@@ -2118,7 +2118,7 @@ function CnEccVerifyFile(const InFileName: string; const InSignFileName: string;
 }
 
 function CnEccVerifyFile(const InFileName: string; const InSignFileName: string; CurveType: TCnEccCurveType;
-  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过
@@ -2135,7 +2135,7 @@ function CnEccVerifyFile(const InFileName: string; const InSignFileName: string;
 
 function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFileName: string;
   Ecc: TCnEcc; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。Ecc 中需要预先指定曲线。
 
    参数：
@@ -2151,7 +2151,7 @@ function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFil
 
 function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFileName: string;
   CurveType: TCnEccCurveType; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用预定义曲线从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。
 
    参数：
@@ -2167,7 +2167,7 @@ function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFil
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用私钥签名指定内存流，Ecc 中需要预先指定曲线，签名格式是 ASN1/BER 包装的 R S。
 
    参数：
@@ -2182,7 +2182,7 @@ function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用预定义曲线与私钥签名指定内存流，签名格式是 ASN1/BER 包装的 R S。
 
    参数：
@@ -2197,7 +2197,7 @@ function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用公钥与签名值验证指定内存流，签名格式是 ASN1/BER 包装的 R S，Ecc 中需要预先指定曲线。
 
    参数：
@@ -2212,7 +2212,7 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PublicKey: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定内存流。
 
    参数：
@@ -2227,7 +2227,7 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 
 function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个。
    Ecc 中需要预先指定曲线。
 
@@ -2244,7 +2244,7 @@ function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: 
 
 function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+  SignType: TCnEccSignDigestType = esdtSHA256): Boolean; overload;
 {* 用预定义曲线从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个。
    Ecc 中需要预先指定曲线。
 
@@ -6314,7 +6314,7 @@ begin
 end;
 
 function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
-  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType): Boolean;
 var
   Stream: TMemoryStream;
   E: TCnBigNumber;
@@ -6357,7 +6357,7 @@ begin
 end;
 
 function CnEccSignFile(const InFileName, OutSignFileName: string; CurveType: TCnEccCurveType;
-  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType): Boolean;
 var
   Ecc: TCnEcc;
 begin
@@ -6631,7 +6631,7 @@ end;
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  SignType: TCnEccSignDigestType): Boolean;
 var
   Ecc: TCnEcc;
 begin
@@ -6697,7 +6697,7 @@ end;
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PublicKey: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  SignType: TCnEccSignDigestType): Boolean;
 var
   Ecc: TCnEcc;
 begin

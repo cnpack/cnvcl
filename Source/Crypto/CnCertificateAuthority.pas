@@ -55,7 +55,12 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.12 V1.8
+* 修改记录：2026.10.16 V1.9
+*               修正生成的证书序列号 DER 编码，最高字节不小于 $80 时补前导 0
+*               字节，避免被解析为负数；证书序列号必须为大于 0 的十进制整数，
+*               非法时相应函数返回 False（RFC 5280 的 4.1.2.2 要求证书序列号
+*               为正整数）
+*           2026.01.12 V1.8
 *               增加签 v2 证书的函数，允许指定标准扩展与私有互联网扩展
 *           2025.11.03 V1.7
 *               增加两个从字节数组中读证书及证书请求的封装函数
@@ -704,7 +709,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
      const OrganizationalUnitName: string - 组织单位名
      const CommonName: string             - 域名
      const EmailAddress: string           - 电子邮件地址
-     const IntSerialNum: string           - 序列号
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
@@ -732,7 +737,7 @@ function CnCANewSelfSignedCertificateStream(PrivateKey: TCnRSAPrivateKey; Public
      const OrganizationalUnitName: string - 组织单位名
      const CommonName: string             - 域名
      const EmailAddress: string           - 电子邮件地址
-     const IntSerialNum: string           - 序列号
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
@@ -761,7 +766,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
      const OrganizationalUnitName: string - 组织单位名
      const CommonName: string             - 域名
      const EmailAddress: string           - 电子邮件地址
-     const IntSerialNum: string           - 序列号
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
@@ -790,7 +795,7 @@ function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; Public
      const OrganizationalUnitName: string - 组织单位名
      const CommonName: string             - 域名
      const EmailAddress: string           - 电子邮件地址
-     const IntSerialNum: string           - 序列号
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
@@ -820,7 +825,7 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnRSAPrivateKey; PublicKey:
      const OrganizationalUnitName: string                                 - 组织单位名
      const CommonName: string                                             - 域名
      const EmailAddress: string                                           - 电子邮件地址
-     const IntSerialNum: string                                           - 序列号
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
@@ -852,7 +857,7 @@ function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnRSAPrivateKey; Publi
      const OrganizationalUnitName: string                                 - 组织单位名
      const CommonName: string                                             - 域名
      const EmailAddress: string                                           - 电子邮件地址
-     const IntSerialNum: string                                           - 序列号
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
@@ -885,7 +890,7 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
      const OrganizationalUnitName: string                                 - 组织单位名
      const CommonName: string                                             - 域名
      const EmailAddress: string                                           - 电子邮件地址
-     const IntSerialNum: string                                           - 序列号
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
@@ -918,7 +923,7 @@ function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnEccPrivateKey; Publi
      const OrganizationalUnitName: string                                 - 组织单位名
      const CommonName: string                                             - 域名
      const EmailAddress: string                                           - 电子邮件地址
-     const IntSerialNum: string                                           - 序列号
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
@@ -1174,7 +1179,7 @@ function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string
      const CRTFile: string                - 用于签发的上级证书
      const CSRFile: string                - 待签发的证书请求文件
      const OutCRTFile: string             - 输出的签发证书
-     const IntSerialNum: string           - 序列号
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
@@ -1195,7 +1200,7 @@ function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType:
      const CRTFile: string                - 用于签发的上级证书
      const CSRFile: string                - 待签发的证书请求文件
      const OutCRTFile: string             - 输出的签发证书
-     const IntSerialNum: string           - 序列号
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
@@ -1217,7 +1222,7 @@ function CnCASignCertificate2(PrivateKey: TCnRSAPrivateKey; const CRTFile:
      const CRTFile: string                                                - 用于签发的上级证书
      const CSRFile: string                                                - 待签发的证书请求文件
      const OutCRTFile: string                                             - 输出的签发证书
-     const IntSerialNum: string                                           - 序列号
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
@@ -1242,7 +1247,7 @@ function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType:
      const CRTFile: string                                                - 用于签发的上级证书
      const CSRFile: string                                                - 待签发的证书请求文件
      const OutCRTFile: string                                             - 输出的签发证书
-     const IntSerialNum: string                                           - 序列号
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
      NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
@@ -2220,6 +2225,40 @@ begin
   end;
 end;
 
+function AddSerialNumberToWriter(Writer: TCnBerWriter; const IntSerialNum: string;
+  Parent: TCnBerWriteNode): Boolean;
+{* 将一个十进制字符串序列号写入 Ber 整型节点。序列号必须为大于 0 的十进制整数，
+   最高字节不小于 $80 时按 DER 规则补前导 0 字节，避免被解析为负数
+   （RFC 5280 的 4.1.2.2 要求证书序列号为正整数）。
+   参数：
+     Writer: TCnBerWriter                 - BER 写入的工具类实例
+     IntSerialNum: string                 - 序列号十进制字符串，必须大于 0
+     Parent: TCnBerWriteNode              - 待新增的节点的父节点
+
+   返回值：Boolean                       - 序列号合法且写入成功返回 True
+}
+var
+  SerialNum: TCnBigNumber;
+begin
+  Result := False;
+  if (Writer = nil) or (Parent = nil) then
+    Exit;
+
+  SerialNum := nil;
+  try
+    SerialNum := TCnBigNumber.Create;
+    if not SerialNum.SetDec(AnsiString(IntSerialNum)) then
+      Exit;
+    if SerialNum.IsNegative or SerialNum.IsZero then
+      Exit;
+
+    Result := AddBigNumberToWriter(Writer, SerialNum, Parent,
+      CN_BER_TAG_INTEGER, 0) <> nil;
+  finally
+    SerialNum.Free;
+  end;
+end;
+
 function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; OutCRTStream: TStream; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const
@@ -2232,9 +2271,7 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
   Crit: TCnCertificateExtensionCriticals;
@@ -2252,7 +2289,6 @@ begin
     Exit;
 
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
 
   try
@@ -2264,11 +2300,8 @@ begin
     VerNode.BerTypeMask := $80;
     B := 2;
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
@@ -2337,7 +2370,6 @@ begin
     Result := True;
   finally
     Writer.Free;
-    SerialNum.Free;
     UTCTime.Free;
   end;
 end;
@@ -2403,9 +2435,7 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
   Crit: TCnCertificateExtensionCriticals;
@@ -2425,7 +2455,6 @@ begin
     Exit;
 
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
 
   try
@@ -2437,11 +2466,8 @@ begin
     VerNode.BerTypeMask := $80;
     B := 2;
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
@@ -2512,7 +2538,6 @@ begin
     Result := True;
   finally
     Writer.Free;
-    SerialNum.Free;
     UTCTime.Free;
   end;
 end;
@@ -2526,10 +2551,8 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
-  Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
   CSR: TCnCertificateRequest;
@@ -2549,7 +2572,6 @@ begin
   CSR := nil;
   CRT := nil;
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
   Stream := nil;
 
@@ -2573,11 +2595,8 @@ begin
     B := 2;
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
@@ -2652,7 +2671,6 @@ begin
   finally
     Writer.Free;
     Stream.Free;
-    SerialNum.Free;
     UTCTime.Free;
     CSR.Free;
     CRT.Free;
@@ -2668,10 +2686,8 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
-  Buf: TBytes;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
   VerNode: TCnBerWriteNode;
@@ -2691,7 +2707,6 @@ begin
   CSR := nil;
   CRT := nil;
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
   Stream := nil;
 
@@ -2715,11 +2730,8 @@ begin
     B := 2;
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
@@ -2795,7 +2807,6 @@ begin
   finally
     Writer.Free;
     Stream.Free;
-    SerialNum.Free;
     UTCTime.Free;
     CSR.Free;
     CRT.Free;
@@ -4721,9 +4732,7 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
 begin
@@ -4740,7 +4749,6 @@ begin
     Exit;
 
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
 
   try
@@ -4755,11 +4763,8 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     // 写算法
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
@@ -4822,7 +4827,6 @@ begin
     Result := True;
   finally
     Writer.Free;
-    SerialNum.Free;
     UTCTime.Free;
   end;
 end;
@@ -4874,9 +4878,7 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
 begin
@@ -4895,7 +4897,6 @@ begin
     Exit;
 
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
 
   try
@@ -4910,11 +4911,8 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     // 写算法
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
@@ -4979,7 +4977,6 @@ begin
     Result := True;
   finally
     Writer.Free;
-    SerialNum.Free;
     UTCTime.Free;
   end;
 end;
@@ -4994,10 +4991,8 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
-  Buf: TBytes;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
   VerNode: TCnBerWriteNode;
@@ -5016,7 +5011,6 @@ begin
   CSR := nil;
   CRT := nil;
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
   Stream := nil;
 
@@ -5041,11 +5035,8 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     // 写算法。这个值或许取决于 CRT 对应的 Key 类型而无需单独参数传入？
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
@@ -5114,7 +5105,6 @@ begin
   finally
     Writer.Free;
     Stream.Free;
-    SerialNum.Free;
     UTCTime.Free;
     CSR.Free;
     CRT.Free;
@@ -5132,10 +5122,8 @@ var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
-  Buf: TBytes;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
   VerNode: TCnBerWriteNode;
@@ -5154,7 +5142,6 @@ begin
   CSR := nil;
   CRT := nil;
   Writer := nil;
-  SerialNum := nil;
   UTCTime := nil;
   Stream := nil;
 
@@ -5179,11 +5166,8 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
-    SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(AnsiString(IntSerialNum));
-    SetLength(Buf, SerialNum.GetBytesCount);
-    SerialNum.ToBinary(@Buf[0]);
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+    if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
+      Exit;
 
     // 写算法。这个值或许取决于 CRT 对应的 Key 类型而无需单独参数传入？
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
@@ -5253,7 +5237,6 @@ begin
   finally
     Writer.Free;
     Stream.Free;
-    SerialNum.Free;
     UTCTime.Free;
     CSR.Free;
     CRT.Free;
