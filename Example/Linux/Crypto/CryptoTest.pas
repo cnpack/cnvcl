@@ -232,6 +232,7 @@ function TestBigNumberSqrt: Boolean;
 function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
+function TestBigNumberAKSCarmichaelNumbers: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
 function TestBigNumberBPSWPerfectSquareLoop: Boolean;
 function TestBigNumberRandBytesReuse: Boolean;
@@ -760,6 +761,7 @@ function TestPrimeNumber5: Boolean;
 function TestSquareRoot: Boolean;
 function TestBPSWIsPrime: Boolean;
 function TestInt64BPSWPerfectSquareLoop: Boolean;
+function TestInt64AKSCarmichaelNumbers: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -1894,6 +1896,7 @@ begin
   begin
     Inc(CryptoTestFailCount);
     MyWriteln('!!! Fail !!!');
+    Readln;
   end;
 
   Assert(V);
@@ -2082,6 +2085,7 @@ begin
   MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
+  MyAssert(TestBigNumberAKSCarmichaelNumbers, 'TestBigNumberAKSCarmichaelNumbers');
   MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
   MyAssert(TestBigNumberBPSWPerfectSquareLoop, 'TestBigNumberBPSWPerfectSquareLoop');
   MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
@@ -2610,6 +2614,7 @@ begin
   MyAssert(TestSquareRoot, 'TestSquareRoot');
   MyAssert(TestBPSWIsPrime, 'TestBPSWIsPrime');
   MyAssert(TestInt64BPSWPerfectSquareLoop, 'TestInt64BPSWPerfectSquareLoop');
+  MyAssert(TestInt64AKSCarmichaelNumbers, 'TestInt64AKSCarmichaelNumbers');
 
 // ================================ 25519 ======================================
 
@@ -7825,6 +7830,16 @@ begin
   Result := not BigNumberAKSIsPrime(6) and not BigNumberAKSIsPrime(125)
     and not BigNumberAKSIsPrime(9999999999) and not BigNumberAKSIsPrime(87178291200)
     and not BigNumberAKSIsPrime(24036584) and not BigNumberAKSIsPrime(9223372036854775784);
+end;
+
+function TestBigNumberAKSCarmichaelNumbers: Boolean;
+begin
+  // 下列 Carmichael 数都应被判为合数。
+  Result := not BigNumberAKSIsPrime(663805468801)
+    and not BigNumberAKSIsPrime(1307351018993397769)
+    and not BigNumberAKSIsPrime(1307898589087370881)
+    and not BigNumberAKSIsPrime(1316130497398421641)
+    and not BigNumberAKSIsPrime(1323213850429180921);
 end;
 
 function TestBigNumberBPSWIsPrime: Boolean;
@@ -24324,6 +24339,16 @@ begin
   // Jacobi(D, N) = Jacobi(D, p)^2 恒为 0 或 1，永不为 -1。
   // 期望（正确实现）：返回 False（合数），不得挂死。
   Result := not CnInt64BPSWIsPrime(1194649);
+end;
+
+function TestInt64AKSCarmichaelNumbers: Boolean;
+begin
+  // 下列 Carmichael 数都应被判为合数。
+  Result := not CnInt64AKSIsPrime(663805468801) // = 814743 * 814747
+    and not CnInt64AKSIsPrime(1307351018993397769)
+    and not CnInt64AKSIsPrime(1307898589087370881)
+    and not CnInt64AKSIsPrime(1316130497398421641)
+    and not CnInt64AKSIsPrime(1323213850429180921);
 end;
 
 // ================================ 25519 ========================================

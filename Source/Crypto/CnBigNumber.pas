@@ -802,6 +802,9 @@ type
   end;
   PCnBigNumber = ^TCnBigNumber;
 
+  TCnBigNumbers = array of TCnBigNumber;
+  {* 大数对象动态数组}
+
   TCnBigNumberList = class(TCnObjectList)
   {* 容纳大数的对象列表，同时拥有大数对象们}
   private
@@ -10273,11 +10276,381 @@ begin
 end;
 
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
+const
+  // 实用约减界，背景说明与 CnPrime.pas 中 CnInt64AKSIsPrime 的修复相同：
+  // 完整 AKS 理论界（乘法阶需超过 (Log2(N))^2、基数取到 Trunc(Sqrt(Euler(R))
+  // * Log2(N))）在 64 位输入下需要 R 达上千、基数上千个，无法实用。这里将
+  // 阶目标封顶为 32、R 上限取 64、基数固定为 a = 1..8，并用真正的多项式环
+  // 同余检查替代原实现中退化的费马检查（原实现会把 Carmichael 数误判为素数）。
+  // 素数对任意 R 都必然通过同余检查，约减界不会造成把素数误判为合数。
+  // 因 CnPrime 的实现依赖本单元，本单元不能反向引用 CnPrime，故以下 Int64
+  // 辅助函数与 CnPrime.pas 中的同名逻辑有意地各自重复实现一份。
+  AKS_ORDER_TARGET_MAX = 32; // 乘法阶目标的封顶值
+  AKS_R_MAX = 64;            // R 的搜索上限
+  AKS_BASE_COUNT = 8;        // 多项式同余检查使用的基数个数（a = 1..8）
+
 var
-  R, T, C, Q: TCnBigNumber;
+  R: Integer;
+  T, G: TCnBigNumber;
   LG22: Int64;
   LG2: Extended;
-  BK: TCnBigNumber;
+  I: Integer;
+
+  function AKSGcd64(A: Int64; B: Int64): Int64;
+  // 欧几里得算法求最大公约数，要求 A、B 非负。
+  var
+    T: Int64;
+  begin
+    while B <> 0 do
+    begin
+      T := A mod B;
+      A := B;
+      B := T;
+    end;
+    Result := A;
+  end;
+
+  function AKSAddMod64(A: Int64; B: Int64; M: Int64): Int64;
+  // 计算 (A + B) mod M，要求 0 <= A < M、0 <= B < M 且 M <= MaxInt64。
+  // A + B 可能溢出为负，补码回绕下再减一次 M 即得正确余数。
+  var
+    S: Int64;
+  begin
+    S := A + B;
+    if (S >= M) or (S < 0) then
+      S := S - M;
+    Result := S;
+  end;
+
+  function AKSMulMod64(A: Int64; B: Int64; M: Int64): Int64;
+  // 倍加移位法计算 (A * B) mod M，要求 0 <= A < M、0 <= B < M，避免乘法溢出。
+  var
+    R, X, Y: Int64;
+  begin
+    R := 0;
+    X := A;
+    Y := B;
+    while Y > 0 do
+    begin
+      if (Y and 1) <> 0 then
+        R := AKSAddMod64(R, X, M);
+      X := AKSAddMod64(X, X, M);
+      Y := Y shr 1;
+    end;
+    Result := R;
+  end;
+
+  procedure AKSPolyMul64(var C: array of Int64;
+    const A: array of Int64; const B: array of Int64;
+    R: Integer; M: Int64);
+  // 计算 C := A * B mod (X^R - 1)，系数对 M 取模（循环卷积），
+  // 内部使用临时缓冲，允许 C 与 A 或 B 别名。要求数组长度不小于 R，
+  // 且 R <= AKS_R_MAX。
+  var
+    T: array[0..63] of Int64;
+    I, J: Integer;
+  begin
+    for I := 0 to R - 1 do
+      T[I] := 0;
+    for I := 0 to R - 1 do
+    begin
+      if A[I] <> 0 then
+      begin
+        for J := 0 to R - 1 do
+        begin
+          if B[J] <> 0 then
+            T[(I + J) mod R] := AKSAddMod64(T[(I + J) mod R],
+              AKSMulMod64(A[I], B[J], M), M);
+        end;
+      end;
+    end;
+    for I := 0 to R - 1 do
+      C[I] := T[I];
+  end;
+
+  function AKSOrderMod64(V: Int64; R: Integer): Integer;
+  // 计算 V mod R 的乘法阶（最小的 L 使 V 的 L 次方 mod R 为 1），
+  // 要求 R >= 2 且 V 与 R 互素。R <= AKS_R_MAX 时中间乘积不超过 4096，
+  // 直接用 Int64 乘法即可，无溢出风险。
+  var
+    I: Integer;
+    Cur, Step: Int64;
+  begin
+    Step := V mod Int64(R);
+    Cur := 1;
+    Result := 0;
+    for I := 1 to R do
+    begin
+      Cur := (Cur * Step) mod Int64(R);
+      if Cur = 1 then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+  end;
+
+  function AKSFindR64(V: Int64; MinOrder: Int64): Integer;
+  // 在 2..AKS_R_MAX 中寻找与 V 互素且使 V mod R 的乘法阶大于 MinOrder
+  // 的最小 R。若找不到则退化为取阶最大的互素 R（不会误杀素数）。
+  var
+    R, BestR, BestOrder, CurOrder: Integer;
+  begin
+    BestR := 0;
+    BestOrder := 0;
+    for R := 2 to AKS_R_MAX do
+    begin
+      if AKSGcd64(Int64(R), V) = 1 then
+      begin
+        CurOrder := AKSOrderMod64(V, R);
+        if Int64(CurOrder) > MinOrder then
+        begin
+          Result := R;
+          Exit;
+        end;
+        if CurOrder > BestOrder then
+        begin
+          BestOrder := CurOrder;
+          BestR := R;
+        end;
+      end;
+    end;
+    if BestR > 0 then
+    begin
+      Result := BestR;
+      Exit;
+    end;
+    Result := AKS_R_MAX;
+  end;
+
+  function AKSPolyCongruence64(V: Int64; A: Int64; R: Integer): Boolean;
+  // 检查 (X + A)^V = X^V + A (mod X^R - 1, V) 是否成立，Int64 快速路径版本。
+  // 左侧用二进制取幂在 Z_V[X]/(X^R-1) 环中计算，右侧直接构造目标多项式。
+  var
+    Base, Res, Tgt: array[0..63] of Int64;
+    I: Integer;
+    E, AM: Int64;
+  begin
+    AM := A mod V;
+    for I := 0 to R - 1 do
+    begin
+      Base[I] := 0;
+      Res[I] := 0;
+    end;
+    Base[1] := 1;   // X
+    Base[0] := AM;  // + A
+    Res[0] := 1;    // 结果初值为常数多项式 1
+
+    E := V;
+    while E > 0 do
+    begin
+      if (E and 1) <> 0 then
+        AKSPolyMul64(Res, Res, Base, R, V);
+      E := E shr 1;
+      if E > 0 then
+        AKSPolyMul64(Base, Base, Base, R, V);
+    end;
+
+    // 目标多项式 X^V + A mod (X^R - 1)：X^V 化为 X^(V mod R)，常数项加 A
+    for I := 0 to R - 1 do
+      Tgt[I] := 0;
+    I := Integer(V mod Int64(R));
+    Tgt[I] := 1;
+    Tgt[0] := AKSAddMod64(Tgt[0], AM, V);
+
+    for I := 0 to R - 1 do
+    begin
+      if Res[I] <> Tgt[I] then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+    Result := True;
+  end;
+
+  function AKSIsPrime64Core(V: Int64; MinOrder: Int64): Boolean;
+  // 输入可放入 Int64 时的快速路径：约减界求 R + gcd 检查 + 多项式环同余。
+  var
+    R: Integer;
+    T, G: Int64;
+    I: Integer;
+  begin
+    Result := False;
+    R := AKSFindR64(V, MinOrder);
+
+    // 得到 R，如果某些比 R 小的 T 和 V 不互素，则是合数
+    T := Int64(R);
+    while T > 1 do
+    begin
+      G := AKSGcd64(T, V);
+      if (G > 1) and (G < V) then
+        Exit;
+      Dec(T);
+    end;
+
+    // V 不超过 R 时，上面的 gcd 检查已排除了所有不超过 R 的因子，必为素数
+    if V <= Int64(R) then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    for I := 1 to AKS_BASE_COUNT do
+    begin
+      if not AKSPolyCongruence64(V, Int64(I), R) then
+        Exit;
+    end;
+    Result := True;
+  end;
+
+  function AKSFindRBN(MinOrder: Int64): Integer;
+  // 大数路径的 R 搜索：gcd(N, R) 由 N mod R 与 R 的 gcd 得出，
+  // 乘法阶在 mod R 的小整数域内直接迭代计算。N 为外层参数。
+  var
+    R, BestR, BestOrder, CurOrder: Integer;
+    M: TCnBigNumberElement;
+  begin
+    BestR := 0;
+    BestOrder := 0;
+    for R := 2 to AKS_R_MAX do
+    begin
+      M := N.ModWord(TCnBigNumberElement(R));
+      if AKSGcd64(Int64(M), Int64(R)) = 1 then
+      begin
+        CurOrder := AKSOrderMod64(Int64(M), R);
+        if Int64(CurOrder) > MinOrder then
+        begin
+          Result := R;
+          Exit;
+        end;
+        if CurOrder > BestOrder then
+        begin
+          BestOrder := CurOrder;
+          BestR := R;
+        end;
+      end;
+    end;
+    if BestR > 0 then
+    begin
+      Result := BestR;
+      Exit;
+    end;
+    Result := AKS_R_MAX;
+  end;
+
+  procedure AKSPolyMulBN(C: TCnBigNumbers; const A, B: TCnBigNumbers;
+    R: Integer; T1, T2: TCnBigNumber);
+  // 计算 C := A * B mod (X^R - 1)，系数对外层 N 取模（循环卷积）。
+  // C 不得与 A、B 别名；T1、T2 为调用方提供的临时大数。
+  var
+    I, J, K: Integer;
+  begin
+    for I := 0 to R - 1 do
+      C[I].SetZero;
+    for I := 0 to R - 1 do
+    begin
+      if not A[I].IsZero then
+      begin
+        for J := 0 to R - 1 do
+        begin
+          if not B[J].IsZero then
+          begin
+            BigNumberMul(T1, A[I], B[J]);
+            BigNumberMod(T2, T1, N);
+            K := (I + J) mod R;
+            BigNumberAdd(T1, C[K], T2);
+            BigNumberMod(C[K], T1, N);
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  function AKSPolyCongruenceBN(A: Int64; R: Integer): Boolean;
+  // 检查 (X + A)^N = X^N + A (mod X^R - 1, N)，大数路径版本。
+  // 左侧按外层 N 的比特扫描做二进制取幂，右侧直接构造目标多项式。
+  var
+    Base, Res, Tmp, Tgt: TCnBigNumbers;
+    T1, T2, W: TCnBigNumber;
+    I, K, Bits, NR: Integer;
+  begin
+    Result := False;
+    SetLength(Base, R);
+    SetLength(Res, R);
+    SetLength(Tmp, R);
+    SetLength(Tgt, R);
+    for K := 0 to R - 1 do
+    begin
+      Base[K] := FLocalBigNumberPool.Obtain;
+      Res[K] := FLocalBigNumberPool.Obtain;
+      Tmp[K] := FLocalBigNumberPool.Obtain;
+      Tgt[K] := FLocalBigNumberPool.Obtain;
+    end;
+    T1 := FLocalBigNumberPool.Obtain;
+    T2 := FLocalBigNumberPool.Obtain;
+    W := FLocalBigNumberPool.Obtain;
+    try
+      for K := 0 to R - 1 do
+      begin
+        Base[K].SetZero;
+        Res[K].SetZero;
+      end;
+      Base[1].SetOne;      // X
+      Base[0].SetInt64(A); // + A（大数路径下 N 远大于基数，无需再取模）
+      Res[0].SetOne;       // 结果初值为常数多项式 1
+
+      Bits := N.GetBitsCount;
+      for I := 0 to Bits - 1 do
+      begin
+        if N.IsBitSet(I) then
+        begin
+          AKSPolyMulBN(Tmp, Res, Base, R, T1, T2);
+          for K := 0 to R - 1 do
+            BigNumberCopy(Res[K], Tmp[K]);
+        end;
+        if I < Bits - 1 then
+        begin
+          AKSPolyMulBN(Tmp, Base, Base, R, T1, T2);
+          for K := 0 to R - 1 do
+            BigNumberCopy(Base[K], Tmp[K]);
+        end;
+      end;
+
+      // 目标多项式 X^N + A mod (X^R - 1)：X^N 化为 X^(N mod R)，常数项加 A
+      NR := Integer(N.ModWord(TCnBigNumberElement(R)));
+      for K := 0 to R - 1 do
+        Tgt[K].SetZero;
+      Tgt[NR].SetOne;
+      W.SetInt64(A);
+      BigNumberAdd(T1, Tgt[0], W);
+      BigNumberMod(Tgt[0], T1, N);
+
+      for K := 0 to R - 1 do
+      begin
+        if BigNumberCompare(Res[K], Tgt[K]) <> 0 then
+          Exit;
+      end;
+      Result := True;
+    finally
+      for K := 0 to R - 1 do
+      begin
+        FLocalBigNumberPool.Recycle(Base[K]);
+        FLocalBigNumberPool.Recycle(Res[K]);
+        FLocalBigNumberPool.Recycle(Tmp[K]);
+        FLocalBigNumberPool.Recycle(Tgt[K]);
+      end;
+      SetLength(Base, 0);
+      SetLength(Res, 0);
+      SetLength(Tmp, 0);
+      SetLength(Tgt, 0);
+
+      FLocalBigNumberPool.Recycle(T1);
+      FLocalBigNumberPool.Recycle(T2);
+      FLocalBigNumberPool.Recycle(W);
+    end;
+  end;
+
 begin
   Result := False;
   if N.IsNegative or N.IsZero or N.IsOne then
@@ -10285,93 +10658,55 @@ begin
   if BigNumberIsPerfectPower(N) then // 如果是完全幂则是合数
     Exit;
 
-  R := nil;
-  T := nil;
-  C := nil;
-  Q := nil;
-  BK := nil;
+  // 原实现按完整理论界无上限地搜索 R，且最后一步只做 Y^N - Y mod N = 0 的
+  // 费马检查，相当于把多项式环同余错误地退化成了费马小定理测试，会把
+  // Carmichael 数误判为素数。现改为约减界求 R + gcd 检查 + 真正的多项式环
+  // 同余检查（约减界的设计说明见上方常量注释与 CnPrime.pas 中的同名修复）。
+  LG2 := BigNumberLog2(N);      // 整数会有误差，需要用到浮点，一般不会超出浮点范围
+  LG22 := Trunc(LG2 * LG2);
+  if LG22 > AKS_ORDER_TARGET_MAX then
+    LG22 := AKS_ORDER_TARGET_MAX;
+  if LG22 < 1 then
+    LG22 := 1;
 
+  // 输入可放入 Int64 时走快速路径，避免大数对象逐系数运算
+  if N.IsInt64 then
+  begin
+    Result := AKSIsPrime64Core(N.GetInt64, LG22);
+    Exit;
+  end;
+
+  // 大数路径：R 的搜索与 gcd 检查借助 N mod R 的小整数结果完成
+  R := AKSFindRBN(LG22);
+
+  T := FLocalBigNumberPool.Obtain;
+  G := FLocalBigNumberPool.Obtain;
   try
-    // 找出最小的 R 满足 N mod R 的乘法阶 > (Log二底(N))^2
-    // N mod R 的乘法阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
-    R := FLocalBigNumberPool.Obtain;
-    R.SetOne;
-    LG2 := BigNumberLog2(N);      // 整数会有误差，需要用到浮点，一般不会超出浮点范围
-    LG22 := Trunc(LG2 * LG2);
-
-    T := FLocalBigNumberPool.Obtain;
-    BK := FLocalBigNumberPool.Obtain;
-
-    // 找出最小的 R。这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
-    // 现改为从 R 的欧拉函数值的所有因数中搜索，速度有明显提高，前提是取随机数时使用非重复初始化版本
-    while True do
-    begin
-      R.AddWord(1);
-      BigNumberMultiplicativeOrder(BK, N, R);
-      if BigNumberCompareInteger(BK, LG22) > 0 then
-        Break;
-    end;
-
-    // 得到 R，从 R 往低了找，如果某些比 R 小的 T 和 N 不互素，则是合数
-    BigNumberCopy(T, R);
-    C := FLocalBigNumberPool.Obtain;
-
+    // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
+    T.SetInt64(Int64(R));
     while BigNumberCompare(T, CnBigNumberOne) > 0 do
     begin
-      BigNumberGcd(C, T, N);
-      if (BigNumberCompare(C, CnBigNumberOne) > 0) and (BigNumberCompare(C, N) < 0) then
+      BigNumberGcd(G, T, N);
+      if (BigNumberCompare(G, CnBigNumberOne) > 0) and
+        (BigNumberCompare(G, N) < 0) then
         Exit;
-
       T.SubWord(1);
     end;
 
-    if BigNumberCompare(N, R) <= 0 then
+    // 大数路径下 N 已超出 Int64 范围，必然大于 R，无需短路判定
+
+    // 多项式环同余：对 a = 1..AKS_BASE_COUNT 逐个检查
+    // (X + a)^N = X^N + a (mod X^R - 1, N)。
+    for I := 1 to AKS_BASE_COUNT do
     begin
-      Result := True;
-      Exit;
-    end;
-
-    Q := FLocalBigNumberPool.Obtain;
-    BigNumberEuler(Q, R);
-    BigNumberSqrt(Q, Q);
-    BigNumberMulFloat(C, Q, LG2);
-    // 此处应该用小数计算，因为整数会产生较大误差
-    // C := Trunc(Sqrt(Q) * LG2);
-
-    // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N - (X^N + Y)，
-    // 也就是 (X+Y)^N - (X^N + Y) 展开后针对 X^R-1 求余，且系数都针对 N 取模
-    // 根据二项式定理 (X+Y)^N 展开后各项系数 mod N 后，就变成了 X^N+Y^N，其余项余数均为 0
-    // 再 mod X^R - 1 后根据加法求模规则得到的是 X^(N-R) + Y^N
-    // X^N + Y 对 X^R-1 取模则是 X^(N-R) + Y
-    // 一减，得到的结果其实是 Y^N - Y
-
-    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分，逐个作为 Y，计算 Y^N - Y mod N 是否是 0
-
-    T.SetOne;
-    while BigNumberCompare(T, C) <= 0 do
-    begin
-      if not BigNumberPowerMod(R, T, N, N) then // 复用 R
+      if not AKSPolyCongruenceBN(Int64(I), R) then
         Exit;
-
-      if not BigNumberSub(R, R, T) then
-        Exit;
-
-      if not BigNumberMod(R, R, N) then
-        Exit;
-
-      if not R.IsZero then
-        Exit;
-
-      T.AddWord(1);
     end;
 
     Result := True;
   finally
-    FLocalBigNumberPool.Recycle(R);
     FLocalBigNumberPool.Recycle(T);
-    FLocalBigNumberPool.Recycle(C);
-    FLocalBigNumberPool.Recycle(Q);
-    FLocalBigNumberPool.Recycle(BK);
+    FLocalBigNumberPool.Recycle(G);
   end;
 end;
 

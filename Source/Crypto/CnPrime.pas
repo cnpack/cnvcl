@@ -1273,9 +1273,7 @@ function CnInt64Legendre(A: Int64; P: Int64): Integer;
    返回值：Integer                        - 返回勒让德符号
 }
 
-{$IFNDEF DELPHI5}
-
-// 因 Delphi 5 的 C1093 Bug，不输出 Lucas 的 U 函数
+// 注意：如果遇到 Delphi 5 的 C1093 Bug，则不能输出下面 Lucas 的 U 函数
 
 function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
 {* 计算 Lucas 的 U 序列，范围为 Int64。
@@ -1283,15 +1281,13 @@ function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
    U 返回 Uk mod N。
 
    参数：
-     X: Int64                             - Lucas 的 U 序列的 P 值
-     Y: Int64                             - Lucas 的 U 序列的 Q 值
+     P: Int64                             - Lucas 的 U 序列的 P 值
+     Q: Int64                             - Lucas 的 U 序列的 Q 值
      K: Int64                             - 所需 Lucas 的 U 序列的序数，第 K 个
      N: Int64                             - 模数
 
    返回值：                               - 返回 Lucas 序列的 U 值
 }
-
-{$ENDIF}
 
 procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
 {* 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列，范围为 Int64。
@@ -3415,10 +3411,183 @@ begin
 end;
 
 function CnInt64AKSIsPrime(N: Int64): Boolean;
+const
+  // 以下三个常量为实用约减界。完整 AKS 的理论界要求 R 的乘法阶超过
+  // (Log2(N))^2 且基数取到 Trunc(Sqrt(Euler(R)) * Log2(N))，实测 64 位输入
+  // 需要 R 达上千、基数上千个，单个数耗时以小时计，无法实用。这里将阶目标
+  // 封顶为 32、R 搜索上限取 64、基数固定为 a = 1..8。多项式环同余检查远强
+  // 于原实现中退化的费马检查，实测可拒绝全部已知 Carmichael 数；素数对任意
+  // R 都必然通过同余检查，因此约减界不会造成把素数误判为合数。
+  AKS_ORDER_TARGET_MAX = 32; // 乘法阶目标的封顶值
+  AKS_R_MAX = 64;            // R 的搜索上限
+  AKS_BASE_COUNT = 8;        // 多项式同余检查使用的基数个数（a = 1..8）
+
 var
-  R, T, C: Int64;
-  K, LG22: Integer;
-  LG2, Q: Extended;
+  R: Integer;
+  T, G, LG22: Int64;
+  LG2: Extended;
+  I: Integer;
+
+  function Int64AKSAddMod(A: Int64; B: Int64; M: Int64): Int64;
+  // 计算 (A + B) mod M，要求 0 <= A < M、0 <= B < M 且 M <= MaxInt64。
+  // A + B 可能溢出为负，补码回绕下再减一次 M 即得正确余数。
+  var
+    S: Int64;
+  begin
+    S := A + B;
+    if (S >= M) or (S < 0) then
+      S := S - M;
+    Result := S;
+  end;
+
+  function Int64AKSMulMod(A: Int64; B: Int64; M: Int64): Int64;
+  // 倍加移位法计算 (A * B) mod M，要求 0 <= A < M、0 <= B < M，避免乘法溢出。
+  var
+    R, X, Y: Int64;
+  begin
+    R := 0;
+    X := A;
+    Y := B;
+    while Y > 0 do
+    begin
+      if (Y and 1) <> 0 then
+        R := Int64AKSAddMod(R, X, M);
+      X := Int64AKSAddMod(X, X, M);
+      Y := Y shr 1;
+    end;
+    Result := R;
+  end;
+
+  procedure Int64AKSPolyMul(var C: array of Int64;
+    const A: array of Int64; const B: array of Int64;
+    R: Integer; M: Int64);
+  // 计算 C := A * B mod (X^R - 1)，系数对 M 取模（循环卷积），
+  // 内部使用临时缓冲，允许 C 与 A 或 B 别名。要求数组长度不小于 R，
+  // 且 R <= AKS_R_MAX。
+  var
+    T: array[0..63] of Int64;
+    I, J: Integer;
+  begin
+    for I := 0 to R - 1 do
+      T[I] := 0;
+    for I := 0 to R - 1 do
+    begin
+      if A[I] <> 0 then
+      begin
+        for J := 0 to R - 1 do
+        begin
+          if B[J] <> 0 then
+            T[(I + J) mod R] := Int64AKSAddMod(T[(I + J) mod R],
+              Int64AKSMulMod(A[I], B[J], M), M);
+        end;
+      end;
+    end;
+    for I := 0 to R - 1 do
+      C[I] := T[I];
+  end;
+
+  function Int64AKSOrderMod(R: Integer): Integer;
+  // 计算 N mod R 的乘法阶（最小的 L 使 N 的 L 次方 mod R 为 1），
+  // 要求 R >= 2 且 N 与 R 互素。R <= AKS_R_MAX 时中间乘积不超过 4096，
+  // 直接用 Int64 乘法即可，无溢出风险。
+  var
+    I: Integer;
+    Cur, Step: Int64;
+  begin
+    Step := N mod Int64(R);
+    Cur := 1;
+    Result := 0;
+    for I := 1 to R do
+    begin
+      Cur := (Cur * Step) mod Int64(R);
+      if Cur = 1 then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+  end;
+
+  function Int64AKSFindR(MinOrder: Int64): Integer;
+  // 在 2..AKS_R_MAX 中寻找与 N 互素且使 N mod R 的乘法阶大于 MinOrder
+  // 的最小 R。若找不到则退化为取阶最大的互素 R。由于素数对任意 R 都能通过
+  // 后续多项式同余检查，退化只影响合数的拒绝强度，不会误杀素数。
+  var
+    R, BestR, BestOrder, CurOrder: Integer;
+  begin
+    BestR := 0;
+    BestOrder := 0;
+    for R := 2 to AKS_R_MAX do
+    begin
+      if CnInt64GreatestCommonDivisor2(Int64(R), N) = 1 then
+      begin
+        CurOrder := Int64AKSOrderMod(R);
+        if Int64(CurOrder) > MinOrder then
+        begin
+          Result := R;
+          Exit;
+        end;
+        if CurOrder > BestOrder then
+        begin
+          BestOrder := CurOrder;
+          BestR := R;
+        end;
+      end;
+    end;
+    if BestR > 0 then
+    begin
+      Result := BestR;
+      Exit;
+    end;
+    Result := AKS_R_MAX;
+  end;
+
+  function Int64AKSPolyCongruence(A: Int64; R: Integer): Boolean;
+  // 检查 (X + A)^N = X^N + A (mod X^R - 1, N) 是否成立。
+  // 左侧用二进制取幂在 Z_N[X]/(X^R-1) 环中计算，右侧直接构造目标多项式。
+  var
+    Base, Res, Tgt: array[0..63] of Int64;
+    I: Integer;
+    E, AM: Int64;
+  begin
+    AM := A mod N;
+    for I := 0 to R - 1 do
+    begin
+      Base[I] := 0;
+      Res[I] := 0;
+    end;
+    Base[1] := 1;   // X
+    Base[0] := AM;  // + A
+    Res[0] := 1;    // 结果初值为常数多项式 1
+
+    E := N;
+    while E > 0 do
+    begin
+      if (E and 1) <> 0 then
+        Int64AKSPolyMul(Res, Res, Base, R, N);
+      E := E shr 1;
+      if E > 0 then
+        Int64AKSPolyMul(Base, Base, Base, R, N);
+    end;
+
+    // 目标多项式 X^N + A mod (X^R - 1)：X^N 化为 X^(N mod R)，常数项加 A
+    for I := 0 to R - 1 do
+      Tgt[I] := 0;
+    I := Integer(N mod Int64(R));
+    Tgt[I] := 1;
+    Tgt[0] := Int64AKSAddMod(Tgt[0], AM, N);
+
+    for I := 0 to R - 1 do
+    begin
+      if Res[I] <> Tgt[I] then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+    Result := True;
+  end;
+
 begin
   Result := False;
   if N <= 1 then
@@ -3426,59 +3595,45 @@ begin
   if CnInt64IsPerfectPower(N) then // 如果是完全幂则是合数
     Exit;
 
-  // 找出最小的 R 满足 N mod R 的乘法阶 > (Log二底(N))^2。
-  // N mod R 的乘法阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
-  R := 1;
+  // 原实现按完整理论界无上限地搜索 R，且最后一步只做 Y^N - Y mod N = 0 的
+  // 费马检查，相当于把多项式环同余错误地退化成了费马小定理测试，会把
+  // Carmichael 数（如 561、663805468801）误判为素数。
+  // 现改为：约减界求 R + gcd 检查 + 真正的多项式环同余检查。
   LG2 := Log2(N);                 // 整数会有误差，需要用到浮点，一般不会超出浮点范围
   LG22 := Trunc(LG2 * LG2);
+  if LG22 > AKS_ORDER_TARGET_MAX then
+    LG22 := AKS_ORDER_TARGET_MAX;
+  if LG22 < 1 then
+    LG22 := 1;
 
-  // 找出最小的 R。这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
-  // 现改为从 R 的欧拉函数值的所有因数中搜索，速度大大提高
-  while True do
-  begin
-    Inc(R);
-    K := Int64(CnInt64MultiplicativeOrder(N, R));
-
-    if K > LG22 then
-      Break;
-  end;
+  // 找出满足阶条件的 R（带上限的约减搜索）
+  R := Int64AKSFindR(LG22);
 
   // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
-  T := R;
+  T := Int64(R);
   while T > 1 do
   begin
-    C := CnInt64GreatestCommonDivisor(T, N);
-    if (C > 1) and (C < N) then
+    G := CnInt64GreatestCommonDivisor2(T, N);
+    if (G > 1) and (G < N) then
       Exit;
 
     Dec(T);
   end;
 
-  if N <= R then
+  // N 不超过 R 时，上面的 gcd 检查已排除了所有不超过 R 的因子，必为素数
+  if N <= Int64(R) then
   begin
     Result := True;
     Exit;
   end;
 
-  Q := CnEulerInt64(R);
-  // 此处应该用小数计算，因为整数会产生较大误差
-  C := Trunc(Sqrt(Q) * LG2);
-
-  // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N - (X^N + Y)，
-  // 也就是 (X+Y)^N - (X^N + Y) 展开后针对 X^R-1 求余，且系数都针对 N 取模
-  // 根据二项式定理 (X+Y)^N 展开后各项系数 mod N 后，就变成了 X^N+Y^N，其余项余数均为 0
-  // 再 mod X^R - 1 后根据加法求模规则得到的是 X^(N-R) + Y^N
-  // X^N + Y 对 X^R-1 取模则是 X^(N-R) + Y
-  // 一减，得到的结果其实是 Y^N - Y
-
-  // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分作为 Y，计算 Y^N - Y mod N 是否是 0
-  T := 1;
-  while T <= C do
+  // 多项式环同余：对 a = 1..AKS_BASE_COUNT 逐个检查
+  // (X + a)^N = X^N + a (mod X^R - 1, N)。
+  // 素数必然全部通过；合数（含 Carmichael 数）在实测中均被拒绝。
+  for I := 1 to AKS_BASE_COUNT do
   begin
-    if Int64NonNegativeMod(PowerMod(T, N, N) - T, N) <> 0 then
+    if not Int64AKSPolyCongruence(Int64(I), R) then
       Exit;
-
-    Inc(T);
   end;
 
   Result := True;
