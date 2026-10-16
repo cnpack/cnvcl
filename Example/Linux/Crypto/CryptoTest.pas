@@ -594,9 +594,11 @@ function TestBase64: Boolean;
 function TestBase64URL: Boolean;
 function TestBase64StrictRejectInvalidChar: Boolean;
 function TestBase64StrictRejectInvalidPadding: Boolean;
+function TestBase64EmptyInput: Boolean;
 function TestBase32: Boolean;
 function TestBase32StrictRejectInvalidChar: Boolean;
 function TestBase32StrictRejectInvalidPadding: Boolean;
+function TestBase32EmptyInput: Boolean;
 
 // ================================ OTP ========================================
 
@@ -2440,9 +2442,11 @@ begin
   MyAssert(TestBase64URL, 'TestBase64URL');
   MyAssert(TestBase64StrictRejectInvalidChar, 'TestBase64StrictRejectInvalidChar');
   MyAssert(TestBase64StrictRejectInvalidPadding, 'TestBase64StrictRejectInvalidPadding');
+  MyAssert(TestBase64EmptyInput, 'TestBase64EmptyInput');
   MyAssert(TestBase32, 'TestBase32');
   MyAssert(TestBase32StrictRejectInvalidChar, 'TestBase32StrictRejectInvalidChar');
   MyAssert(TestBase32StrictRejectInvalidPadding, 'TestBase32StrictRejectInvalidPadding');
+  MyAssert(TestBase32EmptyInput, 'TestBase32EmptyInput');
 
 // ================================ OTP ========================================
 
@@ -19570,6 +19574,55 @@ begin
   Result := not Base64IsStrictText('A===');
 end;
 
+// RFC 4648 第 10 节：BASE64("") = ""。空输入编码必须成功返回空串，
+// 修复前四种编码重载均返回 ECN_BASE64_LENGTH(5377) 且不改写输出；空串解码则一直返回空
+function TestBase64EmptyInput: Boolean;
+var
+  Res: string;
+  Data: TBytes;
+  Stream: TMemoryStream;
+  Ret: Integer;
+begin
+  Result := False;
+
+  // AnsiString 重载
+  Res := 'UNCHANGED';
+  Ret := Base64Encode('', Res);
+  if (Ret <> ECN_BASE64_OK) or (Res <> '') then Exit;
+
+  // TBytes 重载
+  SetLength(Data, 0);
+  Res := 'UNCHANGED';
+  Ret := Base64Encode(Data, Res);
+  if (Ret <> ECN_BASE64_OK) or (Res <> '') then Exit;
+
+  // TStream 重载
+  Res := 'UNCHANGED';
+  Stream := TMemoryStream.Create;
+  try
+    Ret := Base64Encode(Stream, Res);
+  finally
+    Stream.Free;
+  end;
+  if (Ret <> ECN_BASE64_OK) or (Res <> '') then Exit;
+
+  // Pointer 重载：长度为 0 视为空输入
+  Res := 'UNCHANGED';
+  Ret := Base64Encode(nil, 0, Res);
+  if (Ret <> ECN_BASE64_OK) or (Res <> '') then Exit;
+
+  // URL 变体同样空进空出
+  Res := 'UNCHANGED';
+  Ret := Base64Encode('', Res, True);
+  if (Ret <> ECN_BASE64_OK) or (Res <> '') then Exit;
+
+  // 空串解码保持返回空字节数组
+  Ret := Base64Decode('', Data);
+  if (Ret <> ECN_BASE64_OK) or (Length(Data) <> 0) then Exit;
+
+  Result := True;
+end;
+
 function TestBase32: Boolean;
 var
   Res: string;
@@ -19600,6 +19653,50 @@ begin
   if not Result then Exit;
 
   Result := not Base32IsStrictText('MZXW6YTBOI=====');
+end;
+
+// Base32 同 Base64：RFC 4648 第 10 节要求 BASE32("") = ""，
+// 修复前各编码重载对空输入返回 ECN_BASE32_LENGTH(5377)
+function TestBase32EmptyInput: Boolean;
+var
+  Res: string;
+  Data: TBytes;
+  Stream: TMemoryStream;
+  Ret: Integer;
+begin
+  Result := False;
+
+  // AnsiString 重载
+  Res := 'UNCHANGED';
+  Ret := Base32Encode('', Res);
+  if (Ret <> ECN_BASE32_OK) or (Res <> '') then Exit;
+
+  // TBytes 重载
+  SetLength(Data, 0);
+  Res := 'UNCHANGED';
+  Ret := Base32Encode(Data, Res);
+  if (Ret <> ECN_BASE32_OK) or (Res <> '') then Exit;
+
+  // TStream 重载
+  Res := 'UNCHANGED';
+  Stream := TMemoryStream.Create;
+  try
+    Ret := Base32Encode(Stream, Res);
+  finally
+    Stream.Free;
+  end;
+  if (Ret <> ECN_BASE32_OK) or (Res <> '') then Exit;
+
+  // Pointer 重载：长度为 0 视为空输入
+  Res := 'UNCHANGED';
+  Ret := Base32Encode(nil, 0, Res);
+  if (Ret <> ECN_BASE32_OK) or (Res <> '') then Exit;
+
+  // 空串解码保持返回空字节数组
+  Ret := Base32Decode('', Data);
+  if (Ret <> ECN_BASE32_OK) or (Length(Data) <> 0) then Exit;
+
+  Result := True;
 end;
 
 // ================================ OTP ========================================

@@ -41,7 +41,10 @@ unit CnBase64;
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.05 V1.8
+* 修改记录：2026.10.16 V1.9
+*               修正空输入编码返回长度错误的问题：空输入编码按 RFC 4648 第 10 节
+*               约定成功返回空串（BASE64("") = ""、BASE32("") = ""）
+*           2026.10.05 V1.8
 *               将 FixZero 参数默认改为 False
 *           2026.05.11 V1.7
 *               加入 Base32 的编解码实现
@@ -361,7 +364,15 @@ var
   X1, X2, X3, X4: AnsiChar;
   XT: Byte;
 begin
-  if (InputData = nil) or (DataByteLen <= 0) then
+  // RFC 4648 第 10 节：BASE64("") = ""，空输入按成功处理并返回空串
+  if DataByteLen = 0 then
+  begin
+    OutputData := '';
+    Result := ECN_BASE64_OK;
+    Exit;
+  end;
+
+  if (InputData = nil) or (DataByteLen < 0) then
   begin
     Result := ECN_BASE64_LENGTH;
     Exit;
@@ -491,7 +502,10 @@ begin
   if InputData <> '' then
     Result := Base64Encode(@InputData[1], Length(InputData), OutputData, URL)
   else
-    Result := ECN_BASE64_LENGTH;
+  begin
+    OutputData := '';
+    Result := ECN_BASE64_OK;
+  end;
 end;
 
 function Base64Encode(const InputData: TBytes; var OutputData: string; URL: Boolean): Integer;
@@ -499,7 +513,10 @@ begin
   if Length(InputData) > 0 then
     Result := Base64Encode(@InputData[0], Length(InputData), OutputData, URL)
   else
-    Result := ECN_BASE64_LENGTH;
+  begin
+    OutputData := '';
+    Result := ECN_BASE64_OK;
+  end;
 end;
 
 function Base64Decode(const InputData: string; OutputData: TStream; FixZero: Boolean): Integer;
@@ -738,7 +755,15 @@ var
   B0, B1, B2, B3, B4: Byte;
   Chars: array[0..7] of Byte;
 begin
-  if (InputData = nil) or (DataByteLen <= 0) then
+  // RFC 4648 第 10 节：BASE32("") = ""，空输入按成功处理并返回空串
+  if DataByteLen = 0 then
+  begin
+    OutputData := '';
+    Result := ECN_BASE32_OK;
+    Exit;
+  end;
+
+  if (InputData = nil) or (DataByteLen < 0) then
   begin
     Result := ECN_BASE32_LENGTH;
     Exit;
@@ -831,7 +856,10 @@ begin
   if InputData <> '' then
     Result := Base32Encode(@InputData[1], Length(InputData), OutputData)
   else
-    Result := ECN_BASE32_LENGTH;
+  begin
+    OutputData := '';
+    Result := ECN_BASE32_OK;
+  end;
 end;
 
 function Base32Encode(const InputData: TBytes; var OutputData: string): Integer;
@@ -839,7 +867,10 @@ begin
   if Length(InputData) > 0 then
     Result := Base32Encode(@InputData[0], Length(InputData), OutputData)
   else
-    Result := ECN_BASE32_LENGTH;
+  begin
+    OutputData := '';
+    Result := ECN_BASE32_OK;
+  end;
 end;
 
 function Base32Decode(const InputData: string; out OutputData: TBytes): Integer;
