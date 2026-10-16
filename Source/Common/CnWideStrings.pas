@@ -128,12 +128,15 @@ type
     FLoadFormat: TCnWideListFormat;
     FWriteBOM: Boolean;
     FHasBOM: Boolean;
+    FNameValueSeparator: WideChar;
     function GetName(Index: Integer): WideString;
     function GetValue(const Name: WideString): WideString;
     procedure SetValue(const Name, Value: WideString);
-    procedure QuickSort(L, R: Integer; SCompare: TCnWideStringListSortCompare);
+    function GetNameValueSeparator: WideChar;
+    procedure SetNameValueSeparator(const Value: WideChar);
     function GetObject(Index: Integer): TObject;
     procedure PutObject(Index: Integer; const Value: TObject);
+    procedure QuickSort(L, R: Integer; SCompare: TCnWideStringListSortCompare);
   protected
     function Get(Index: Integer): WideString; virtual;
     function GetCount: Integer; virtual;
@@ -166,6 +169,8 @@ type
     property Strings[Index: Integer]: WideString read Get write Put; default;
     property Text: WideString read GetTextStr write SetTextStr;
 
+    property NameValueSeparator: WideChar read GetNameValueSeparator write SetNameValueSeparator;
+    {* Name 和 Value 之间的分隔符}
     property UseSingleLF: Boolean read FUseSingleLF write FUseSingleLF;
     {* 控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
     property LoadFormat: TCnWideListFormat read FLoadFormat;
@@ -675,17 +680,34 @@ resourcestring
   SCnErrorInvalidModeLength = 'More than UTF32 NOT Support.';
   SCnErrorInvalidUtf8Sequence = 'Invalid UTF-8 Sequence.';
 
-{ TCnWideStringList }
+function WidePosChar(const C: WideChar; const S: WideString): Integer;
+// 按字符在 WideString 中查找单字节字符，返回 1 起的字节下标，未找到返回 0。
+// 本函数直接按双字节字符比较，结果与编译器、运行期代码页均无关。
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 1 to Length(S) do
+  begin
+    if S[I] = C then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+end;
+
+{$IFDEF COMPILER5}
 
 function WideCompareText(const S1, S2: WideString): Integer;
 begin
-{$IFDEF MSWINDOWS}
   Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, PWideChar(S1),
     Length(S1), PWideChar(S2), Length(S2)) - 2;
-{$ELSE}
-  Result := WideCompareStr(S1, S2);
-{$ENDIF}
 end;
+
+{$ENDIF}
+
+{ TCnWideStringList }
 
 function TCnWideStringList.Add(const S: WideString): Integer;
 begin
@@ -714,6 +736,7 @@ begin
   begin
     Clear;
     AddStrings(TCnWideStringList(Source));
+    FNameValueSeparator := TCnWideStringList(Source).NameValueSeparator;
     FLoadFormat := TCnWideStringList(Source).LoadFormat;
     FUseSingleLF := TCnWideStringList(Source).UseSingleLF;
     FWriteBOM := TCnWideStringList(Source).WriteBOM;
@@ -739,6 +762,7 @@ constructor TCnWideStringList.Create;
 begin
   inherited;
   FList := TList.Create;
+  FNameValueSeparator := '=';
   FLoadFormat := wlfUnicode;
   FWriteBOM := True;
 end;
@@ -785,10 +809,15 @@ var
   P: Integer;
 begin
   Result := Get(Index);
-  P := Pos('=', Result);
+  P := WidePosChar(FNameValueSeparator, Result);
   if P <> 0 then
     SetLength(Result, P - 1) else
     SetLength(Result, 0);
+end;
+
+function TCnWideStringList.GetNameValueSeparator: WideChar;
+begin
+  Result := FNameValueSeparator;
 end;
 
 function TCnWideStringList.GetObject(Index: Integer): TObject;
@@ -859,7 +888,7 @@ begin
   for Result := 0 to GetCount - 1 do
   begin
     S := Get(Result);
-    P := Pos('=', S);
+    P := WidePosChar(FNameValueSeparator, S);
     if (P <> 0) and (WideCompareText(Copy(S, 1, P - 1), Name) = 0) then
       Exit;
   end;
@@ -1148,6 +1177,14 @@ begin
     end;
     Stream.WriteBuffer(Pointer(S)^, Length(S) * SizeOf(WideChar));
   end;
+end;
+
+procedure TCnWideStringList.SetNameValueSeparator(const Value: WideChar);
+begin
+  if FNameValueSeparator <> Value then
+  begin
+    FNameValueSeparator := Value;
+  end
 end;
 
 procedure TCnWideStringList.SetTextStr(const Value: WideString);
@@ -1529,7 +1566,7 @@ begin
     Result := 4
   else if B >= $E0 then   // 3 个 1，1 个 0
     Result := 3
-  else if B >= $B0 then   // 2 个 1，1 个 0
+  else if B >= $C0 then   // 2 个 1，1 个 0 本来是 B0，但 B0 到 BF 是非法的
     Result := 2
   else                    // 其他
     Result := 1;

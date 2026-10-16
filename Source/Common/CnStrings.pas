@@ -784,6 +784,26 @@ resourcestring
   SCnErrorAnsiStringHashSize = 'AnsiString Hash Size Must be Greater than Zero.';
   SCnErrorStringBuilderMode = 'TCnStringBuilder Append Mode NOT Match. Current Mode is %s.';
 
+function AnsiPosChar(const C: AnsiChar; const S: AnsiString): Integer;
+// 按字节在 AnsiString 中查找单字节字符，返回 1 起的字节下标，未找到返回 0。
+// 不能照写 AnsiPos：Unicode 版下 AnsiPos 会把 AnsiString 先转成 string（走运行期 ANSI 代码页），
+// 返回的是字符下标；若把它当字节下标用来切 AnsiString，DBCS 代码页下字节数与字符数不相等，
+// 名称会被错位截断；高位字节的分隔符经过代码页转换后也永远找不到。
+// 本函数直接按字节比较，结果与编译器、运行期代码页均无关。
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 1 to Length(S) do
+  begin
+    if S[I] = C then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+end;
+
 function NativeStringToUIString(const Str: string): string;
 begin
 {$IFDEF FPC}
@@ -1326,7 +1346,7 @@ var
   P: Integer;
 begin
   Result := S;
-  P := AnsiPos(string(NameValueSeparator), string(S));
+  P := AnsiPosChar(NameValueSeparator, S);
   if P <> 0 then
     SetLength(Result, P-1) else
     SetLength(Result, 0);
@@ -1472,7 +1492,7 @@ begin
   for Result := 0 to GetCount - 1 do
   begin
     S := Get(Result);
-    P := AnsiPos(string(NameValueSeparator), string(S));
+    P := AnsiPosChar(NameValueSeparator, S);
     if (P <> 0) and (CompareStrings(Copy(S, 1, P - 1), Name) = 0) then Exit;
   end;
   Result := -1;
@@ -1772,7 +1792,7 @@ begin
   begin
     Include(FDefined, sdNameValueSeparator);
     FNameValueSeparator := Value;
-  end
+  end;
 end;
 
 function TCnAnsiStrings.GetValueFromIndex(Index: Integer): AnsiString;
@@ -2253,7 +2273,7 @@ begin
   for I := 0 to Count - 1 do
   begin
     Key := Get(I);
-    P := AnsiPos(NameValueSeparator, string(Key));
+    P := AnsiPosChar(NameValueSeparator, Key);
     if P <> 0 then
     begin
       if not CaseSensitive then
