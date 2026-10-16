@@ -1230,7 +1230,7 @@ begin
       D := SM3(@D[0], SizeOf(TCnSM3Digest)); // 根据字节数，用私钥计算 256 - 每个字节的杂凑次数
 
     OutSignature[I] := D;
-    Sum := Sum + Dig[I];
+    Sum := Sum + (CN_WOTS_ROUND - 1 - Dig[I]);
   end;
 
   // 对两位校验和也同样计算
@@ -1275,7 +1275,7 @@ begin
     if not SM3Match(D, PublicKey[I]) then
       Exit;
 
-    Sum := Sum + Dig[I];
+    Sum := Sum + (CN_WOTS_ROUND - 1 - Dig[I]);
   end;
 
   // 对两位校验和也同样计算
@@ -1360,7 +1360,7 @@ begin
       D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算 256 - 每个字节的杂凑次数
 
     OutSignature[I] := D;
-    Sum := Sum + Dig[I];
+    Sum := Sum + (CN_WOTS_ROUND - 1 - Dig[I]);
   end;
 
   // 对两位校验和也同样计算
@@ -1404,7 +1404,7 @@ begin
     if not SHA256Match(D, PublicKey[I]) then
       Exit;
 
-    Sum := Sum + Dig[I];
+    Sum := Sum + (CN_WOTS_ROUND - 1 - Dig[I]);
   end;
 
   // 对两位校验和也同样计算
@@ -1565,7 +1565,7 @@ begin
   // 计算校验和部分的签名元素（3 个块）
   for I := 0 to 2 do
     OutSignature[64 + I] := WOTSPlusSM3Chain(PrivateKey[64 + I],
-      CN_WOTS_PLUS_W - 1 - C[I], Mask, 0);
+      C[I], Mask, 0);
 end;
 
 function CnWOTSPlusSM3VerifyData(Data: Pointer; DataByteLen: Integer;
@@ -1612,7 +1612,7 @@ begin
     // 校验和部分：从签名位置开始，计算剩余步数到达公钥位置
     for I := 0 to 2 do
       ComputedPublicKey[64 + I] := WOTSPlusSM3Chain(Signature[64 + I],
-        C[I], Mask, CN_WOTS_PLUS_W - 1 - C[I]);
+        CN_WOTS_PLUS_W - 1 - C[I], Mask, C[I]);
 
     // 比较计算出的公钥和提供的公钥
     Result := ConstTimeCompareMem(@ComputedPublicKey[0], @PublicKey[0],
@@ -1756,7 +1756,7 @@ begin
   // 计算校验和部分的签名元素（3 个块）
   for I := 0 to 2 do
     OutSignature[64 + I] := WOTSPlusSHA256Chain(PrivateKey[64 + I],
-      CN_WOTS_PLUS_W - 1 - C[I], Mask, 0);
+      C[I], Mask, 0);
 end;
 
 function CnWOTSPlusSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
@@ -1803,7 +1803,7 @@ begin
     // 校验和部分
     for I := 0 to 2 do
       ComputedPublicKey[64 + I] := WOTSPlusSHA256Chain(Signature[64 + I],
-        C[I], Mask, CN_WOTS_PLUS_W - 1 - C[I]);
+        CN_WOTS_PLUS_W - 1 - C[I], Mask, C[I]);
 
     // 比较计算出的公钥和提供的公钥
     Result := ConstTimeCompareMem(@ComputedPublicKey[0], @PublicKey[0],
