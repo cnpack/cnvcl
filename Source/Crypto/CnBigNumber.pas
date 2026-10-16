@@ -9876,9 +9876,9 @@ begin
       begin
         if not BigNumberDirectMulMod(Q1, Q0, Q, N) then Exit;
 
-        if not BigNumberDirectMulMod(T0, U1, V0, N) then Exit; // U_{2h+1} = U_{h+1} * V_h - Q^h * P
+        if not BigNumberDirectMulMod(T0, U1, V0, N) then Exit; // U_{2h+1} = U_{h+1} * V_h - Q^h
         if not BigNumberDirectMulMod(T1, Q0, P, N) then Exit;
-        if not BigNumberSubMod(U0, T0, T1, N) then Exit;
+        if not BigNumberSubMod(U0, T0, Q0, N) then Exit;
 
         if not BigNumberDirectMulMod(T0, V1, V0, N) then Exit; // V_{2h+1} = V_{h+1} * V_h - Q^h * P
         if not BigNumberSubMod(V0, T0, T1, N) then Exit;       // T1 = Q^h * P “—º∆À„

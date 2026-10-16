@@ -697,8 +697,8 @@ begin
 
   AppendByteMSBFirst(H3, Full);
   AppendByteMSBFirst(H2, Full or (H3 <> 0));
-  AppendByteMSBFirst(H1, Full or (H3 * H2 <> 0));
-  AppendByteMSBFirst(H0, Full or (H3 * H2 * H1 <> 0)); // 有高位存在的话，低位必须 Full
+  AppendByteMSBFirst(H1, Full or ((H3 or H2) <> 0));
+  AppendByteMSBFirst(H0, Full or ((H3 or H2 or H1) <> 0)); // 有高位存在的话，低位必须 Full
   Result := Self;
 end;
 
@@ -733,12 +733,12 @@ begin
 
   AppendByteMSBFirst(H7, Full);
   AppendByteMSBFirst(H6, Full or (H7 <> 0));
-  AppendByteMSBFirst(H5, Full or (H7 * H6 <> 0));
-  AppendByteMSBFirst(H4, Full or (H7 * H6 * H5 <> 0));
-  AppendByteMSBFirst(H3, Full or (H7 * H6 * H5 * H4 <> 0));
-  AppendByteMSBFirst(H2, Full or (H7 * H6 * H5 * H4 * H3 <> 0));
-  AppendByteMSBFirst(H1, Full or (H7 * H6 * H5 * H4 * H3 * H2 <> 0));
-  AppendByteMSBFirst(H0, Full or (H7 * H6 * H5 * H4 * H3 * H2 * H1 <> 0)); // 有高位存在的话，低位必须 Full
+  AppendByteMSBFirst(H5, Full or ((H7 or H6) <> 0));
+  AppendByteMSBFirst(H4, Full or ((H7 or H6 or H5) <> 0));
+  AppendByteMSBFirst(H3, Full or ((H7 or H6 or H5 or H4) <> 0));
+  AppendByteMSBFirst(H2, Full or ((H7 or H6 or H5 or H4 or H3) <> 0));
+  AppendByteMSBFirst(H1, Full or ((H7 or H6 or H5 or H4 or H3 or H2) <> 0));
+  AppendByteMSBFirst(H0, Full or ((H7 or H6 or H5 or H4 or H3 or H2 or H1) <> 0)); // 有高位存在的话，低位必须 Full
   Result := Self;
 end;
 

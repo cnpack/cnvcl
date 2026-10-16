@@ -37,8 +37,7 @@ unit CnPrime;
 *           另外本单元中的 Int64 系列均是 32 位编译器下靠 Int64 封装支持 UInt64，
 *           为的是照顾不支持 UInt64 的编译器。真正的 UInt64 系列函数均是 CPUX64 位下实现。
 *
-*           另外，因 Delphi 5 的 C1093 的 Bug，将 Lucas U 序列的计算函数隐藏，
-*           未来也不宜再在此单元中加输出函数。
+*           另外，因 Delphi 5 的 C1093 的 Bug，大概未来不宜再在此单元中加输出函数。
 *
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
@@ -2873,7 +2872,7 @@ begin
 
   // 并有用于快速计算的递推公式，二倍以及偶加一：
   // U2k = Uk * Vk                  V2k = Vk^2 - 2 * Q^k             Q2k = Qk^2
-  // U2k+1 = U{k+1} * Vk - Q^k * P  V2k+1 = V{k+1} * Vk - Q^k * P    Q2k+1 = Q2k * Q
+  // U2k+1 = U{k+1} * Vk - Q^k      V2k+1 = V{k+1} * Vk - Q^k * P    Q2k+1 = Q2k * Q
 
   if K = 0 then
   begin
@@ -2909,7 +2908,7 @@ begin
 
       // U0 从 Uh 变成 U2h+1（二倍加一）；U1 从 Uh+1 变成 U2h+2（二倍）
       // V0 从 Vh 变成 V2h+1（二倍加一）；V1 从 Vh+1 变成 V2h+2（二倍）
-      U0 := Int64Mod(Int64MultipleMod(U1, V0, N) - Int64MultipleMod(Q0, P, N), N);  // U_{2h+1} = U_{h+1} * V_h - Q^h * P
+      U0 := Int64Mod(Int64MultipleMod(U1, V0, N) - Q0, N);                          // U_{2h+1} = U_{h+1} * V_h - Q^h
       V0 := Int64Mod(Int64MultipleMod(V1, V0, N) - Int64MultipleMod(Q0, P, N), N);  // V_{2h+1} = V_{h+1} * V_h - Q^h * P
       U1 := Int64MultipleMod(U1, V1, N);                                            // U_{2h+2} = U_{h+1} * V_{h+1}
       V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);  // V_{2h+2} = V_{h+1}^2 - 2Q^{h+1}

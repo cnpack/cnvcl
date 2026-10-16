@@ -7634,7 +7634,7 @@ begin
       Int64PolynomialGaloisMul(F, T, T, P);
       Int64PolynomialGaloisMul(F, F, X, P);
 
-      Int64PolynomialGaloisMulWord(T, PrimeRoot, 2);
+      Int64PolynomialGaloisMulWord(T, 2, P);
       Int64PolynomialGaloisSub(T, T, F, P, Modulus);
 
       N := N + 1;
@@ -11828,14 +11828,14 @@ begin
     P := FLocalBigNumberPool.Obtain;
     while N <= Exponent do
     begin
-      // T := (p * T - X * T^2) in Ring(p^n, M)
+      // T := (2 * T - X * T^2) in Ring(p^n, M)
 
       BigNumberPower(P, PrimeRoot, Cardinal(N));
 
       BigNumberPolynomialGaloisMul(F, T, T, P);
       BigNumberPolynomialGaloisMul(F, F, X, P);
 
-      BigNumberPolynomialGaloisMulBigNumber(T, PrimeRoot, P);
+      BigNumberPolynomialGaloisMulWord(T, 2, P);
       BigNumberPolynomialGaloisSub(T, T, F, P, Modulus);
 
       N := N + 1;
