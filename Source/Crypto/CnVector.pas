@@ -1075,7 +1075,7 @@ end;
 
 function TCnInt64PolynomialVector.ToString: string;
 begin
-  Int64PolynomialVectorToString(Self);
+  Result := Int64PolynomialVectorToString(Self);
 end;
 
 { TCnInt64PolynomialVectorPool }

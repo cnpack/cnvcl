@@ -2003,7 +2003,15 @@ begin
     if RealPart <> '' then
       Complex.FR.SetDec(AnsiString(RealPart));
     if ImagPart <> '' then
-      Complex.FI.SetDec(AnsiString(ImagPart))
+    begin
+      if ImagPart = '-' then // -i µÄÐé²¿ÊÇ -1
+      begin
+        Complex.FI.SetOne;
+        Complex.FI.SetNegative(True);
+      end
+      else
+        Complex.FI.SetDec(AnsiString(ImagPart));
+    end
     else
       Complex.FI.SetOne;
   end

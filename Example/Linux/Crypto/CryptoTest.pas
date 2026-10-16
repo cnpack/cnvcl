@@ -5963,6 +5963,16 @@ begin
     Result := C1.R.IsZero and (C1.I.ToDec = '-1');
     if not Result then Exit;
 
+    // ²âÊÔ¸´Êý£º1+i
+    BigComplexSetString(C1, '1+i');
+    Result := (C1.R.ToDec = '1') and (C1.I.ToDec = '1');
+    if not Result then Exit;
+
+    // ²âÊÔ¸´Êý£º2-i
+    BigComplexSetString(C1, '2-i');
+    Result := (C1.R.ToDec = '2') and (C1.I.ToDec = '-1');
+    if not Result then Exit;
+
     // ²âÊÔ¸´Êý£º12+34i
     BigComplexSetString(C1, '12+34i');
     Result := (C1.R.ToDec = '12') and (C1.I.ToDec = '34');
