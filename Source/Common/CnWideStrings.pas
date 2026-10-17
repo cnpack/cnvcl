@@ -442,7 +442,7 @@ function CalcAnsiDisplayLengthFromWideStringOffset(Text: PWideChar; WideOffset: 
    返回值：Integer                                        - 返回该宽字符串从 1 到 WideOffset 子串的 Ansi 显示长度
 }
 
-function CalcWideStringByteLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
+function CalcWideStringCharLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
   AllowExceedEnd: Boolean = False): Integer;
 {* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串的字符长度，AnsiOffset 从 1 开始。
    等于内容转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
@@ -2019,7 +2019,7 @@ begin
   end;
 end;
 
-function CalcWideStringByteLengthFromAnsiOffset(Text: PWideChar;
+function CalcWideStringCharLengthFromAnsiOffset(Text: PWideChar;
   AnsiOffset: Integer; AllowExceedEnd: Boolean): Integer;
 var
   Idx: Integer;

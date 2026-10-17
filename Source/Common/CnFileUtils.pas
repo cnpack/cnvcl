@@ -29,7 +29,11 @@ unit CnFileUtils;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：PWin7 + Delphi 5 ~ XE 等及 FPC 3
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.08.10 V1.0
+* 修改记录：2026.10.17 V1.1
+*               修复 CnFindFile 在 Windows 下符号链接过滤恒为假的问题：faSymLink=$40 仅
+*               Unix 侧置位，Windows 下符号链接/ junction 以 $400
+*               （FILE_ATTRIBUTE_REPARSE_POINT）呈现，环状链接可致无限递归爆栈
+*           2025.08.10 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -101,6 +105,13 @@ const
 
 {$ENDIF}
 
+const
+{$IFDEF MSWINDOWS}
+  CN_SYMLINK_ATTR_MASK = $00000440; // faSymLink | FILE_ATTRIBUTE_REPARSE_POINT
+{$ELSE}
+  CN_SYMLINK_ATTR_MASK = $00000040; // faSymLink
+{$ENDIF}
+
 function CnFindFile(const Path: string; const FileNamePattern: string;
   FileProc: TCnFindFileCallBack; DirProc: TCnFindDirCallBack;
   IncludeSubDir: Boolean): Boolean;
@@ -136,7 +147,7 @@ var
       begin
         if (Info.Name <> '.') and (Info.Name <> '..') then
         begin
-          if (Info.Attr and faSymLink) <> 0 then
+          if (Info.Attr and CN_SYMLINK_ATTR_MASK) <> 0 then
           begin
             Succ := FindNext(Info);
             Continue; // 跳过符号链接
@@ -172,7 +183,7 @@ var
           if (Info.Name <> '.') and (Info.Name <> '..') and
             (Info.Attr and faDirectory = faDirectory) then
           begin
-            if (Info.Attr and faSymLink) <> 0 then
+            if (Info.Attr and CN_SYMLINK_ATTR_MASK) <> 0 then
             begin
               Succ := FindNext(Info);
               Continue; // 跳过符号链接
