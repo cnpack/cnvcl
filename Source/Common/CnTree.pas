@@ -40,6 +40,7 @@ unit CnTree;
 *               InsertChild 补齐树归属断言与 ValidateComingLeaf 校验；
 *               ValidateComingLeaf 基类默认实现环检测并抛 ECnTreeException；
 *               Exchange 补祖先-后代互斥守卫；ExchangeWithChild 拒绝无父孤儿节点。
+*               GetSubTreeHeight 修正子节点全为叶时高度多 1 的约定混用（叶为 0、其父为 1）。
 *           2019.09.10 V2.0 by LiuXiao
 *               将单根无序树之外的其他类抽取至 CnTreeClasses。
 *           2019.07.14 V1.9 by LiuXiao
@@ -777,14 +778,11 @@ begin
   if not HasChildren then
     Exit;
 
-  MaxChildHeight := 0;
+  MaxChildHeight := -1;  // 子节点全为 nil 时按叶处理，高度为 0
   for I := 0 to FList.Count - 1 do
   begin
     if FList[I] <> nil then
     begin
-      if MaxChildHeight = 0 then // 有不为 nil 的子节点，深度至少 1
-        MaxChildHeight := 1;
-
       if TCnLeaf(FList[I]).SubTreeHeight > MaxChildHeight then
         MaxChildHeight := TCnLeaf(FList[I]).SubTreeHeight;
     end;

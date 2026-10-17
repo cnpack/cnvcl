@@ -152,6 +152,7 @@ function TestTreeAddChildReparent: Boolean;
 function TestTreeRingGuard: Boolean;
 function TestTreeExchangeAncestorDescendant: Boolean;
 function TestTreeExchangeWithChildOrphan: Boolean;
+function TestTreeSubTreeHeight: Boolean;
 
 // ============================== Calendar =====================================
 
@@ -2034,6 +2035,7 @@ begin
   MyAssert(TestTreeRingGuard, 'TestTreeRingGuard');
   MyAssert(TestTreeExchangeAncestorDescendant, 'TestTreeExchangeAncestorDescendant');
   MyAssert(TestTreeExchangeWithChildOrphan, 'TestTreeExchangeWithChildOrphan');
+  MyAssert(TestTreeSubTreeHeight, 'TestTreeSubTreeHeight');
 
 // ============================== Calendar =====================================
 
@@ -5352,6 +5354,49 @@ begin
       Result := False;
       Exit;
     end;
+  end;
+end;
+
+function TestTreeSubTreeHeight: Boolean;
+var
+  Tree: TCnTree;
+  A, B, C, D: TCnLeaf;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    // 空树：仅 Root。叶高度按约定为 0，树高为最长路径节点数 1
+    if Tree.Root.SubTreeHeight <> 0 then Exit;
+    if Tree.Height <> 1 then Exit;
+
+    // 构建 Root{A{B,C}, D}：B/C/D 为叶
+    A := Tree.AddChild(Tree.Root);
+    D := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+
+    if B.SubTreeHeight <> 0 then Exit;
+    if C.SubTreeHeight <> 0 then Exit;
+    if D.SubTreeHeight <> 0 then Exit;
+    if A.SubTreeHeight <> 1 then Exit;
+    if Tree.Root.SubTreeHeight <> 2 then Exit;
+    if Tree.Height <> 3 then Exit;
+
+    // D 下挂一子：D=1，Root 仍取 A 支路的 2
+    Tree.AddChild(D);
+    if D.SubTreeHeight <> 1 then Exit;
+    if Tree.Root.SubTreeHeight <> 2 then Exit;
+    if Tree.Height <> 3 then Exit;
+
+    // B 下挂一子：B=1、A=2、Root=3、Height=4
+    Tree.AddChild(B);
+    if B.SubTreeHeight <> 1 then Exit;
+    if A.SubTreeHeight <> 2 then Exit;
+    if Tree.Root.SubTreeHeight <> 3 then Exit;
+    if Tree.Height <> 4 then Exit;
+    Result := True;
+  finally
+    Tree.Free;
   end;
 end;
 
