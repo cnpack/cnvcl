@@ -84,7 +84,10 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.03.04 V3.1
+* 修改记录：2026.10.17 V3.2
+*               修正支持范围上界 2800 年最后一个农历月（十一、十二月）不可达的问题：
+*               内部解码年份上界扩展到 2801 并补充累计闰月数表对应末项
+*           2026.03.04 V3.1
 *               干支与生肖计算之前默认以立春为分界线，现在加入以大年初一为分界线的选项
 *           2025.12.03 V3.0
 *               涉及节气判断的场合全面改用精确节气算法，精确节气计算范围扩展至公元前
@@ -1580,10 +1583,12 @@ const
 
   // 内置农历表支持的外部年份为 -849..-1 和 1..2800。
   // 对应的内部连续年份分别为 -848..0 和 1..2800。
+  // 内部上界额外延伸到 2801，使 2800 农历年的十一、十二月（其公历日期落在
+  // 2801 年初）仍可被解码，否则支持范围上界最后一个农历月不可达。
   CN_LUNAR_MIN_YEAR = -849;
   CN_LUNAR_MAX_YEAR = 2800;
   CN_LUNAR_INTERNAL_MIN_YEAR = -848;
-  CN_LUNAR_INTERNAL_MAX_YEAR = 2800;
+  CN_LUNAR_INTERNAL_MAX_YEAR = 2801;
 
   SCnTaiXuanPeiShuArray: array[0..5] of Integer =
     (9, 8, 7, 6, 5, 4);
@@ -1605,7 +1610,7 @@ const
     (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12)
   );
 
-  SCnLeapNumber: array[0..3648] of Integer = (
+  SCnLeapNumber: array[0..3649] of Integer = (
     0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 8, 8, 8,
     9, 9, 9, 10, 10, 10, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 15, 15,
     15, 16, 16, 16, 17, 17, 17, 18, 18, 19, 19, 19, 20, 20, 20, 21, 21,
@@ -1887,11 +1892,11 @@ const
     1328, 1328, 1328, 1329, 1329, 1329, 1330, 1330, 1331, 1331, 1331,
     1332, 1332, 1332, 1333, 1333, 1334, 1334, 1334, 1335, 1335, 1335,
     1336, 1336, 1336, 1337, 1337, 1338, 1338, 1338, 1339, 1339, 1339,
-    1340, 1340, 1341, 1341, 1341, 1342, 1342 {左边是公元 2799 年}
+    1340, 1340, 1341, 1341, 1341, 1342, 1342, 1342 {次末项是公元 2799 年，末项为公元 2801 年}
   );
   { * 自公元前 850 年开始的农历闰月数，-849~2100 移植自中国日历类，2100 后罗建仁计算补充
-    0~3648 共 3649 项，包括公元前 850 年到公元前一年的 850 项及公元元年到公元 2799 年的 2799 项，
-    无不存在的公元 0 年}
+    0~3649 共 3650 项，包括公元前 850 年到公元前一年的 850 项及公元元年到公元 2800 年的 2800 项，
+    无不存在的公元 0 年。末项对应内部年份 2801，用于解码支持范围上界 2800 农历年的年末月份}
 
   SCnLeapMonth =
     '0c0080050010a0070030c0080050010a0070030c0080050020a0070030c0080050020a' +
@@ -7097,6 +7102,8 @@ function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean): Integer;
 var
   Day1, Day2: Integer;
+  J, TempMonth, TempDay: Integer;
+  TempLeap: Boolean;
   AYear, AMonth, ADay: Integer;
   ALeap: Boolean;
 begin
@@ -7143,7 +7150,23 @@ begin
   end;
 
   if not GetDayFromLunar(ALunarYear, ALunarMonth, 1, ALeap, AYear, AMonth, ADay) then
+  begin
+    // 下一个月可能超出支持的农历年（如 2800 年十二月的下个月是 2801 年正月），
+    // 改用逐日扫描公历日期，找到下一个农历月初（农历日为 1 的第一天）。
+    J := Day1 + 1;
+    while J <= Day1 + 31 do
+    begin
+      GetDayFromJulianDate(J, AYear, AMonth, ADay);
+      if GetLunarMonthDayFromDay(AYear, AMonth, ADay, TempMonth, TempDay, TempLeap) and
+        (TempDay = 1) then
+      begin
+        Result := J - Day1;
+        Exit;
+      end;
+      Inc(J);
+    end;
     Exit;
+  end;
 
   Day2 := Trunc(GetJulianDate(AYear, AMonth, ADay));
   Result := Day2 - Day1;
@@ -9666,7 +9689,7 @@ begin
 end;
 
 // 返回内部连续年份之前的累计闰月数。内置历表支持的第一个外部年份为 -849，
-// 在内部表示为 -848，并映射到数组索引 0；内部年份 2800 映射到索引 3648。
+// 在内部表示为 -848，并映射到数组索引 0；内部年份 2800 映射到索引 3648，2801 映射到索引 3649。
 function GetLeapNum(AYear: Integer): Integer;
 begin
   Result := CN_CALENDAR_INVALID_NUM;

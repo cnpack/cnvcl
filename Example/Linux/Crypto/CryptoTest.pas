@@ -180,6 +180,7 @@ function TestCalendarReviewJulianFraction: Boolean;
 function TestCalendarReviewJieQiBoundary: Boolean;
 function TestCalendarReviewBCLunarRoundTrip: Boolean;
 function TestCalendarReviewLunarRange: Boolean;
+function TestCalendarReviewLunarUpperBound: Boolean;
 function TestCalendarReviewGanZhiInvalidInput: Boolean;
 function TestCalendarReviewStrictDateValidation: Boolean;
 function TestCalendarReviewSunRiseSet: Boolean;
@@ -2060,6 +2061,7 @@ begin
   MyAssert(TestCalendarReviewJieQiBoundary, 'TestCalendarReviewJieQiBoundary');
   MyAssert(TestCalendarReviewBCLunarRoundTrip, 'TestCalendarReviewBCLunarRoundTrip');
   MyAssert(TestCalendarReviewLunarRange, 'TestCalendarReviewLunarRange');
+  MyAssert(TestCalendarReviewLunarUpperBound, 'TestCalendarReviewLunarUpperBound');
   MyAssert(TestCalendarReviewGanZhiInvalidInput, 'TestCalendarReviewGanZhiInvalidInput');
   MyAssert(TestCalendarReviewStrictDateValidation, 'TestCalendarReviewStrictDateValidation');
   MyAssert(TestCalendarReviewSunRiseSet, 'TestCalendarReviewSunRiseSet');
@@ -6326,11 +6328,15 @@ var
   LunarYear, LunarMonth, LunarDay: Integer;
   IsLeapMonth: Boolean;
 begin
-  // 2800 年在支持范围内；内置历表之外的相邻年份不在支持范围内。
+  // 2800 年在支持范围内；解码内部年份虽已延伸到 2801 以覆盖 2800 农历年的
+  // 年末月份，但属于农历 2801 年的公历日期与历表之外的相邻年份仍应被拒绝。
   Result := GetLunarFromDay(2800, 1, 1, LunarYear, LunarMonth,
     LunarDay, IsLeapMonth);
   if not Result then Exit;
-  Result := not GetLunarFromDay(2801, 1, 1, LunarYear, LunarMonth,
+  Result := GetLunarFromDay(2801, 1, 1, LunarYear, LunarMonth,
+    LunarDay, IsLeapMonth) and (LunarYear = 2800);
+  if not Result then Exit;
+  Result := not GetLunarFromDay(2801, 6, 1, LunarYear, LunarMonth,
     LunarDay, IsLeapMonth);
   if not Result then Exit;
   Result := not GetLunarFromDay(-850, 1, 1, LunarYear, LunarMonth,
@@ -6338,6 +6344,55 @@ begin
   if not Result then Exit;
   Result := not GetLunarDateIsValid(2801, 1, 1) and
     not GetLunarDateIsValid(-850, 1, 1);
+end;
+
+function TestCalendarReviewLunarUpperBound: Boolean;
+var
+  I, MonthDays, Y, M, D, LY, LM, LD: Integer;
+  Leap: Boolean;
+  Caught: Boolean;
+begin
+  // 支持范围上界 2800 年的最后一个农历十二月必须可达。
+  // 其公历日期落在 2801 年初，内部解码年份上界已相应延伸。
+  MonthDays := GetLunarMonthDays(2800, 12, False);
+  Result := (MonthDays = 29) or (MonthDays = 30);
+  if not Result then Exit;
+
+  // 三十日的合法性必须与实际月长一致，不再因哨兵值 -1 一律判非法。
+  Result := GetLunarDateIsValid(2800, 12, 29, False) and
+    (GetLunarDateIsValid(2800, 12, 30, False) = (MonthDays = 30)) and
+    not GetLunarDateIsValid(2800, 12, 31, False);
+  if not Result then Exit;
+
+  Caught := False;
+  try
+    ValidLunarDate(2800, 12, 1, False);
+  except
+    Caught := True;
+  end;
+  Result := not Caught;
+  if not Result then Exit;
+
+  // 最后一个农历月逐日往返一致。
+  for I := 1 to MonthDays do
+  begin
+    Result := GetDayFromLunar(2800, 12, I, False, Y, M, D);
+    if not Result then Exit;
+    Result := GetLunarFromDay(Y, M, D, LY, LM, LD, Leap) and
+      (LY = 2800) and (LM = 12) and (LD = I) and not Leap;
+    if not Result then Exit;
+  end;
+
+  // 上一个月的常规路径与年界回归不受影响。
+  MonthDays := GetLunarMonthDays(2800, 11, False);
+  Result := (MonthDays = 29) or (MonthDays = 30);
+  if not Result then Exit;
+  MonthDays := GetLunarMonthDays(2799, 12, False);
+  Result := (MonthDays = 29) or (MonthDays = 30);
+
+  // 农历 2801 年仍超出支持范围，正向转换应失败。
+  if not Result then Exit;
+  Result := not GetDayFromLunar(2801, 1, 1, False, Y, M, D);
 end;
 
 function TestCalendarReviewStrictDateValidation: Boolean;
