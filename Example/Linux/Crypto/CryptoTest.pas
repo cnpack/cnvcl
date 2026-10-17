@@ -814,6 +814,13 @@ function Test25519CalcKey: Boolean;
 function Test25519Sign: Boolean;
 function Test25519InvalidPublicKeyHandling: Boolean;
 function Test25519RejectSmallOrderForgery: Boolean;
+function Test25519CurveMul2: Boolean;
+function Test25519IterateOnce: Boolean;
+function Test25519SignEmpty: Boolean;
+function Test25519SignTwoBytes: Boolean;
+function Test25519SignShaAbc: Boolean;
+function Test25519Sign1024: Boolean;
+function Test25519Iterate1000: Boolean;
 function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
 function Test448KeyExchange: Boolean;
@@ -2708,6 +2715,13 @@ begin
   MyAssert(Test25519Sign, 'Test25519Sign');
   MyAssert(Test25519InvalidPublicKeyHandling, 'Test25519InvalidPublicKeyHandling');
   MyAssert(Test25519RejectSmallOrderForgery, 'Test25519RejectSmallOrderForgery');
+  MyAssert(Test25519CurveMul2, 'Test25519CurveMul2');
+  MyAssert(Test25519IterateOnce, 'Test25519IterateOnce');
+  MyAssert(Test25519SignEmpty, 'Test25519SignEmpty');
+  MyAssert(Test25519SignTwoBytes, 'Test25519SignTwoBytes');
+  MyAssert(Test25519SignShaAbc, 'Test25519SignShaAbc');
+  MyAssert(Test25519Sign1024, 'Test25519Sign1024');
+  MyAssert(Test25519Iterate1000, 'Test25519Iterate1000');
   MyAssert(Test448CurveMul, 'Test448CurveMul');
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
   MyAssert(Test448KeyExchange, 'Test448KeyExchange');
@@ -26389,6 +26403,12 @@ begin
     Result := CnEccPointsEqual(Key1O, Key2O);
 
     // RFC 中的 Secret K 是 Key1O 的 X 坐标倒过来
+    // 校验 Bob 的公钥 X25519(b, 9) 与 RFC 7748 第 6.1 节一致
+    CnCurve25519PointToData(Key2, D);
+    if DataToHex(@D[0], SizeOf(TCnCurve25519Data)) <>
+      'DE9EDB7D7B7DC1B4D35B61C2ECE435373F8343C85B78674DADFC7E146F882B4F' then
+      Result := False;
+
     if Result then
     begin
       CnCurve25519PointToData(Key1O, D);
@@ -26554,6 +26574,309 @@ begin
     Sig.Free;
     PubKey.Free;
     Ed.Free;
+  end;
+end;
+
+function Test25519CurveMul2: Boolean;
+var
+  Curve: TCnCurve25519;
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve25519Data;
+begin
+  // 测试数据来源于 RFC 7748 第 5.2 节 Test Vectors 第二组单轮向量
+  // 4b66e9d4d1b4673c5ad22691957d6af5c11b6421e0ea01d42ca4169e7918ba0d * e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493
+  // 要求 = 95cbde9476e8907d7aade45cb4b873f88b595a68799fa152e6f8f7647aac7957 二者均为 u
+
+  HexToData('4B66E9D4D1B4673C5AD22691957D6AF5C11B6421E0EA01D42CA4169E7918BA0D', @D[0]);
+  K := TCnBigNumber.Create;
+  CnCurve25519DataToBigNumber(D, K);
+  CnProcess25519ScalarNumber(K);
+
+  P := TCnEccPoint.Create;
+  HexToData('E5210F12786811D3F4B7959D0538AE2C31DBE7106FC03C3EFC4CD549C715A493', @D[0]);
+  CnCurve25519DataToBigNumber(D, P.X);
+
+  Curve := TCnCurve25519.Create;
+  Curve.MultiplePoint(K, P);
+
+  CnCurve25519BigNumberToData(P.X, D);
+  Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = '95CBDE9476E8907D7AADE45CB4B873F88B595A68799FA152E6F8F7647AAC7957';
+
+  Curve.Free;
+  P.Free;
+  K.Free;
+end;
+
+function Test25519IterateOnce: Boolean;
+var
+  Curve: TCnCurve25519;
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve25519Data;
+begin
+  // 测试数据来源于 RFC 7748 第 5.2 节迭代型向量的第一次迭代
+  // 初始 k = u = 0900...00，X25519(k, u) 要求 = 422c8e7a6227d7bca1350b3e2bb7279f7897b87bb6854b783c60e80311ae3079
+
+  HexToData('0900000000000000000000000000000000000000000000000000000000000000', @D[0]);
+  K := TCnBigNumber.Create;
+  CnCurve25519DataToBigNumber(D, K);
+  CnProcess25519ScalarNumber(K);
+
+  P := TCnEccPoint.Create;
+  CnCurve25519DataToBigNumber(D, P.X);
+
+  Curve := TCnCurve25519.Create;
+  Curve.MultiplePoint(K, P);
+
+  CnCurve25519BigNumberToData(P.X, D);
+  Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = '422C8E7A6227D7BCA1350B3E2BB7279F7897B87BB6854B783C60E80311AE3079';
+
+  Curve.Free;
+  P.Free;
+  K.Free;
+end;
+
+function Test25519SignEmpty: Boolean;
+var
+  PrivKey: TCnEd25519PrivateKey;
+  PubKey: TCnEd25519PublicKey;
+  SigData: TCnEd25519SignatureData;
+  Sig: TCnEd25519Signature;
+begin
+  // RFC 8032 第 7.1 节 TEST 1：空消息签名与验签
+  PrivKey := TCnEd25519PrivateKey.Create;
+  PubKey := TCnEd25519PublicKey.Create;
+  Sig := TCnEd25519Signature.Create;
+
+  try
+    PrivKey.LoadFromHex('9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60');
+    PubKey.LoadFromHex('D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A');
+
+    Result := CnEd25519SignData(nil, 0, PrivKey, PubKey, Sig);
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = 'E5564300C360AC729086E2CC806E828A84877F1EB8E5D974D873E065224901555FB8821590A33BACC61E39701CF9B46BD25BF5F0595BBE24655141438E7A100B';
+    if not Result then Exit;
+
+    Result := CnEd25519VerifyData(nil, 0, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+  end;
+end;
+
+function Test25519SignTwoBytes: Boolean;
+var
+  PrivKey: TCnEd25519PrivateKey;
+  PubKey: TCnEd25519PublicKey;
+  SigData: TCnEd25519SignatureData;
+  Sig: TCnEd25519Signature;
+  Msg: array[0..1] of Byte;
+begin
+  // RFC 8032 第 7.1 节 TEST 3：2 字节消息 af82 的签名与验签
+  PrivKey := TCnEd25519PrivateKey.Create;
+  PubKey := TCnEd25519PublicKey.Create;
+  Sig := TCnEd25519Signature.Create;
+
+  try
+    PrivKey.LoadFromHex('C5AA8DF43F9F837BEDB7442F31DCB7B166D38535076F094B85CE3A2E0B4458F7');
+    PubKey.LoadFromHex('FC51CD8E6218A1A38DA47ED00230F0580816ED13BA3303AC5DEB911548908025');
+
+    Msg[0] := $AF;
+    Msg[1] := $82;
+    Result := CnEd25519SignData(@Msg[0], 2, PrivKey, PubKey, Sig);
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = '6291D657DEEC24024827E69C3ABE01A30CE548A284743A445E3680D7DB5AC3AC18FF9B538D16F290AE67F760984DC6594A7C15E9716ED28DC027BECEEA1EC40A';
+    if not Result then Exit;
+
+    Result := CnEd25519VerifyData(@Msg[0], 2, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+  end;
+end;
+
+function Test25519SignShaAbc: Boolean;
+const
+  MsgHex =
+    'DDAF35A193617ABACC417349AE204131' +
+    '12E6FA4E89A97EA20A9EEEE64B55D39A' +
+    '2192992A274FC1A836BA3C23A3FEEBBD' +
+    '454D4423643CE80E2A9AC94FA54CA49F';
+var
+  PrivKey: TCnEd25519PrivateKey;
+  PubKey: TCnEd25519PublicKey;
+  SigData: TCnEd25519SignatureData;
+  Sig: TCnEd25519Signature;
+  Msg: array[0..63] of Byte;
+begin
+  // RFC 8032 第 7.1 节 TEST SHA(abc)：64 字节消息（SHA-512("abc") 的摘要值）
+  PrivKey := TCnEd25519PrivateKey.Create;
+  PubKey := TCnEd25519PublicKey.Create;
+  Sig := TCnEd25519Signature.Create;
+
+  try
+    PrivKey.LoadFromHex('833FE62409237B9D62EC77587520911E9A759CEC1D19755B7DA901B96DCA3D42');
+    PubKey.LoadFromHex('EC172B93AD5E563BF4932C70E1245034C35467EF2EFD4D64EBF819683467E2BF');
+
+    HexToData(MsgHex, @Msg[0]);
+    Result := CnEd25519SignData(@Msg[0], 64, PrivKey, PubKey, Sig);
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = 'DC2A4459E7369633A52B1BF277839A00201009A3EFBF3ECB69BEA2186C26B58909351FC9AC90B3ECFDFBC7C66431E0303DCA179C138AC17AD9BEF1177331A704';
+    if not Result then Exit;
+
+    Result := CnEd25519VerifyData(@Msg[0], 64, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+  end;
+end;
+
+function Test25519Sign1024: Boolean;
+const
+  MsgHex =
+    '08B8B2B733424243760FE426A4B54908' +
+    '632110A66C2F6591EABD3345E3E4EB98' +
+    'FA6E264BF09EFE12EE50F8F54E9F77B1' +
+    'E355F6C50544E23FB1433DDF73BE84D8' +
+    '79DE7C0046DC4996D9E773F4BC9EFE57' +
+    '38829ADB26C81B37C93A1B270B20329D' +
+    '658675FC6EA534E0810A4432826BF58C' +
+    '941EFB65D57A338BBD2E26640F89FFBC' +
+    '1A858EFCB8550EE3A5E1998BD177E93A' +
+    '7363C344FE6B199EE5D02E82D522C4FE' +
+    'BA15452F80288A821A579116EC6DAD2B' +
+    '3B310DA903401AA62100AB5D1A36553E' +
+    '06203B33890CC9B832F79EF80560CCB9' +
+    'A39CE767967ED628C6AD573CB116DBEF' +
+    'EFD75499DA96BD68A8A97B928A8BBC10' +
+    '3B6621FCDE2BECA1231D206BE6CD9EC7' +
+    'AFF6F6C94FCD7204ED3455C68C83F4A4' +
+    '1DA4AF2B74EF5C53F1D8AC70BDCB7ED1' +
+    '85CE81BD84359D44254D95629E9855A9' +
+    '4A7C1958D1F8ADA5D0532ED8A5AA3FB2' +
+    'D17BA70EB6248E594E1A2297ACBBB39D' +
+    '502F1A8C6EB6F1CE22B3DE1A1F40CC24' +
+    '554119A831A9AAD6079CAD88425DE6BD' +
+    'E1A9187EBB6092CF67BF2B13FD65F270' +
+    '88D78B7E883C8759D2C4F5C65ADB7553' +
+    '878AD575F9FAD878E80A0C9BA63BCBCC' +
+    '2732E69485BBC9C90BFBD62481D9089B' +
+    'ECCF80CFE2DF16A2CF65BD92DD597B07' +
+    '07E0917AF48BBB75FED413D238F5555A' +
+    '7A569D80C3414A8D0859DC65A46128BA' +
+    'B27AF87A71314F318C782B23EBFE808B' +
+    '82B0CE26401D2E22F04D83D1255DC51A' +
+    'DDD3B75A2B1AE0784504DF543AF8969B' +
+    'E3EA7082FF7FC9888C144DA2AF58429E' +
+    'C96031DBCAD3DAD9AF0DCBAAAF268CB8' +
+    'FCFFEAD94F3C7CA495E056A9B47ACDB7' +
+    '51FB73E666C6C655ADE8297297D07AD1' +
+    'BA5E43F1BCA32301651339E22904CC8C' +
+    '42F58C30C04AAFDB038DDA0847DD988D' +
+    'CDA6F3BFD15C4B4C4525004AA06EEFF8' +
+    'CA61783AACEC57FB3D1F92B0FE2FD1A8' +
+    '5F6724517B65E614AD6808D6F6EE34DF' +
+    'F7310FDC82AEBFD904B01E1DC54B2927' +
+    '094B2DB68D6F903B68401ADEBF5A7E08' +
+    'D78FF4EF5D63653A65040CF9BFD4ACA7' +
+    '984A74D37145986780FC0B16AC451649' +
+    'DE6188A7DBDF191F64B5FC5E2AB47B57' +
+    'F7F7276CD419C17A3CA8E1B939AE49E4' +
+    '88ACBA6B965610B5480109C8B17B80E1' +
+    'B7B750DFC7598D5D5011FD2DCC5600A3' +
+    '2EF5B52A1ECC820E308AA342721AAC09' +
+    '43BF6686B64B2579376504CCC493D97E' +
+    '6AED3FB0F9CD71A43DD497F01F17C0E2' +
+    'CB3797AA2A2F256656168E6C496AFC5F' +
+    'B93246F6B1116398A346F1A641F3B041' +
+    'E989F7914F90CC2C7FFF357876E506B5' +
+    '0D334BA77C225BC307BA537152F3F161' +
+    '0E4EAFE595F6D9D90D11FAA933A15EF1' +
+    '369546868A7F3A45A96768D40FD9D034' +
+    '12C091C6315CF4FDE7CB68606937380D' +
+    'B2EAAA707B4C4185C32EDDCDD306705E' +
+    '4DC1FFC872EEEE475A64DFAC86ABA41C' +
+    '0618983F8741C5EF68D3A101E8A3B8CA' +
+    'C60C905C15FC910840B94C00A0B9D0';
+var
+  PrivKey: TCnEd25519PrivateKey;
+  PubKey: TCnEd25519PublicKey;
+  SigData: TCnEd25519SignatureData;
+  Sig: TCnEd25519Signature;
+  Msg: array[0..1022] of Byte;
+begin
+  // RFC 8032 第 7.1 节 TEST 1024：1023 字节长消息的签名与验签
+  PrivKey := TCnEd25519PrivateKey.Create;
+  PubKey := TCnEd25519PublicKey.Create;
+  Sig := TCnEd25519Signature.Create;
+
+  try
+    PrivKey.LoadFromHex('F5E5767CF153319517630F226876B86C8160CC583BC013744C6BF255F5CC0EE5');
+    PubKey.LoadFromHex('278117FC144C72340F67D0F2316E8386CEFFBF2B2428C9C51FEF7C597F1D426E');
+
+    HexToData(MsgHex, @Msg[0]);
+    Result := CnEd25519SignData(@Msg[0], 1023, PrivKey, PubKey, Sig);
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = '0AAB4C900501B3E24D7CDF4663326A3A87DF5E4843B2CBDB67CBF6E460FEC350AA5371B1508F9F4528ECEA23C436D94B5E8FCD4F681E30A6AC00A9704A188A03';
+    if not Result then Exit;
+
+    Result := CnEd25519VerifyData(@Msg[0], 1023, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+  end;
+end;
+
+function Test25519Iterate1000: Boolean;
+var
+  Curve: TCnCurve25519;
+  K, OldK: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve25519Data;
+  I: Integer;
+begin
+  // 测试数据来源于 RFC 7748 第 5.2 节迭代型向量：
+  // 初始 k = u = 0900...00，每轮 k = X25519(k, u)，u = 旧 k，
+  // 迭代 1000 次后 k 应为 684cf59ba83309552800ef566f2f4d3c1c3887c49360e3875f2eb94d99532c51
+
+  HexToData('0900000000000000000000000000000000000000000000000000000000000000', @D[0]);
+  K := TCnBigNumber.Create;
+  OldK := TCnBigNumber.Create;
+  CnCurve25519DataToBigNumber(D, K);
+
+  P := TCnEccPoint.Create;
+  CnCurve25519DataToBigNumber(D, P.X);
+
+  Curve := TCnCurve25519.Create;
+  try
+    for I := 1 to 1000 do
+    begin
+      BigNumberCopy(OldK, K);
+      CnProcess25519ScalarNumber(K);
+      Curve.MultiplePoint(K, P);
+      BigNumberCopy(K, P.X);
+      BigNumberCopy(P.X, OldK);
+    end;
+    CnCurve25519BigNumberToData(K, D);
+    Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = '684CF59BA83309552800EF566F2F4D3C1C3887C49360E3875F2EB94D99532C51';
+  finally
+    Curve.Free;
+    P.Free;
+    OldK.Free;
+    K.Free;
   end;
 end;
 

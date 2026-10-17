@@ -46,6 +46,8 @@ unit CnZip;
 *                与非加密路径一致，不再产出 zlib-wrapped 违反 ZIP 规范的
 *                加密归档（CM26）；CRC 计算循环判据 Longint 强转改 Int64，
 *                修复 >=2GB 条目循环不执行、CRC 按 0 字节写入的问题（CM24）
+*                解压时流式累计并校验 CRC32 与数据长度，不匹配时抛异常并删除
+*                残留文件，修复损坏、篡改或长度不符的数据被静默写出的问题
 *           2025.08.12 V1.6
 *                支持 MacOS 及 FPC，文件时间统一使用 Windows 格式
 *           2024.02.17 V1.5
@@ -457,6 +459,7 @@ resourcestring
   SCnZipNotImplemented = 'Feature NOT Implemented';
   SCnZipUtf8NotSupport = 'UTF8 NOT Support';
   SCnZipInvalidFileName = 'Invalid File Name in Zip Archive';
+  SCnZipCRCMismatch = 'CRC32 Check Failed: %s';
 
 var
   FZipCompressionHandlers: TClassList = nil;
@@ -1056,6 +1059,10 @@ var
   CompressionStream, OutStream: TStream;
   LocalHeader: TCnZipHeader;
   Dir, AFileName: string;
+  Buffer: TBytes;
+  CRC: Cardinal;
+  Remaining: Int64;
+  C: Integer;
 begin
   CompressionStream := PrepareStream(Index, @LocalHeader);
   if CompressionStream = nil then
@@ -1087,11 +1094,36 @@ begin
 
     OutStream := TFileStream.Create(AFileName, fmCreate);
     try
-      // 注意：Delphi 的 TStream.CopyFrom 在 Count <= 0 时会先把源流位置重置为 0
-      // 并复制整条流，因此 UncompressedSize 为 0 的空文件（如 Java 等工具生成的
-      // 带 Data Descriptor 标志的流式 Zip 中的空条目）必须跳过复制，不能调用 CopyFrom。
-      if FileInfo[Index].UncompressedSize > 0 then
-        OutStream.CopyFrom(CompressionStream, FileInfo[Index].UncompressedSize);
+      // 解压时按块读出并流式累计 CRC32，结束后与中央目录的声明值比对：
+      // raw deflate 数据没有内嵌校验和，CRC32 是 ZIP 唯一的完整性防线，
+      // 不校验则数据损坏、被篡改或长度不符（静默截断）都无法被发现
+      SetLength(Buffer, $4000);
+      CRC := 0;
+      Remaining := FileInfo[Index].UncompressedSize;
+      while Remaining > 0 do
+      begin
+        if Remaining > Length(Buffer) then
+          C := Length(Buffer)
+        else
+          C := Remaining;
+        C := CompressionStream.Read(Buffer[0], C);
+        if C <= 0 then
+          // 实际数据少于声明长度：中断解压（旧版由 CopyFrom 内部抛 EReadError）
+          raise ECnZipException.CreateRes(@SCnZipErrorRead);
+        OutStream.WriteBuffer(Buffer[0], C);
+        CRC := CRC32Calc(CRC, Buffer[0], C);
+        Dec(Remaining, C);
+      end;
+
+      // 空文件也校验（零字节的 CRC 期望为 0）；UncompressedSize 为 0 时不能
+      // 调用 CopyFrom——Count <= 0 会重置源流位置并复制整条流
+      if CRC <> FileInfo[Index].CRC32 then
+      begin
+        // 校验失败：先关闭流再删除残留文件，避免调用者把损坏文件当作完整结果
+        FreeAndNil(OutStream);
+        SysUtils.DeleteFile(AFileName);
+        raise ECnZipException.CreateResFmt(@SCnZipCRCMismatch, [AFileName]);
+      end;
     finally
       OutStream.Free;
     end;

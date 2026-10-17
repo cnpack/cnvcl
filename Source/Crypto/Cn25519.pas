@@ -53,7 +53,12 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.10.22 V1.7
+* 修改记录：2026.10.17 V1.8
+*               TCnCurve25519.MultiplePoint 按 RFC 7748 第 5 节对 u 坐标掩掉最高位（bit 255），
+*               修复对端公钥最高位为 1 时 X25519 结果与标准实现不一致的问题
+*               Cn25519BigNumberToField64 改用 ToBinary 大端字节串拼装 64 位字，
+*               去掉对依赖平台字节序的 BigNumberRawDump 的依赖
+*           2025.10.22 V1.7
 *               加入验证公私钥是否配套的方法
 *           2023.08.12 V1.6
 *               加入 448 蒙哥马利曲线与非扭曲爱德华曲线的完整实现以及 Ed448 的签名验签功能
@@ -4078,6 +4083,11 @@ procedure TCnCurve25519.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   M: TCn25519Field64EccPoint;
 begin
+  // RFC 7748 section 5: X25519 decodeUCoord must mask the high bit of
+  // the u-coordinate, otherwise a peer public key with bit 255 set is
+  // computed as u + 2^255 = u + 19 (mod p) and yields a wrong result
+  P.X.ClearBit(255);
+
   PointToField64XAffinePoint(M, P);
   MontgomeryLadderField64MultiplePoint(K, M);
   Field64XAffinePointToPoint(P, M);
@@ -5438,6 +5448,8 @@ end;
 
 procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; Num: TCnBigNumber);
 var
+  B: array[0..31] of AnsiChar;
+  I: Integer;
   D: TCn25519Field64;
 begin
   if Num.IsNegative or (BigNumberUnsignedCompare(Num, FPrime25519) > 0) then
@@ -5445,12 +5457,17 @@ begin
 
   // 如果 Num 是 SetHex 8888888877777777666666665555555544444444333333332222222211111111
   // 那么其真实值确实是 8888888877777777666666665555555544444444333333332222222211111111
-  // 内存中低到高是 11111111 22222222 33333333 44444444 55555555 66666666 77777777 88888888
-  // 共八组四字节，每组四字节内部按大小端不同有区别，但这里无需处理
-  // 拆成 64 位的值则 D0=2222222211111111 D1=4444444433333333 D3=6666666655555555 D4=8888888877777777
+  // 经 ToBinary 转为 32 字节大端串，前为高字节后为低字节，与平台字节序
+  // 以及 BigNumber 内部元素宽度无关，再拼成 64 位值：
+  // D0=2222222211111111 D1=4444444433333333 D2=6666666655555555 D3=8888888877777777
+
+  FillChar(B[0], SizeOf(B), 0);
+  BigNumberToBinary(Num, @B[0], 32);
 
   FillChar(D[0], SizeOf(TCn25519Field64), 0);
-  BigNumberRawDump(Num, @D[0]);
+  for I := 0 to 31 do
+    D[(31 - I) shr 3] := D[(31 - I) shr 3] or
+      (TUInt64(Byte(B[I])) shl (((31 - I) and 7) * 8));
 
   Field[0] := D[0] and $7FFFFFFFFFFFF;  // D0 保留低 51 位（0 到 50，与1）
   Field[1] := (D[0] shr 51) or ((D[1] and $3FFFFFFFFF) shl 13); // D0 的高 13 位（64 减 51）与 D1 的低 38 位（与1）拼起来
