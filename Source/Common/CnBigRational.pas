@@ -33,6 +33,7 @@ unit CnBigRational;
 * 修改记录：2026.10.17 V1.4
 *               修复 SetValue 两个重载未归一 0/-1 形态，及 EqualInt/IsNegative/ToString/ToDec 对零分子误判
 *               修复 SetFloat 对尾随零最短表示静默丢失 10^(E-L) 倍率的问题
+*               修复 BigRationalSub 临时改写输入参数 Num2 分子符号、与 Res 别名且中途异常时输入永久损坏的问题，改用池临时对象
 *           2026.10.14 V1.3
 *               修复 BigRationalAdd 与 BigRationalCompare 在分母为 -1 的未规约形式下符号处理错误的问题
 *           2026.01.26 V1.2
@@ -725,6 +726,8 @@ end;
 
 procedure BigRationalSub(Res: TCnBigRational;
   Num1, Num2: TCnBigRational);
+var
+  T: TCnBigRational;
 begin
   if Num1 = Num2 then
   begin
@@ -732,12 +735,16 @@ begin
     Exit;
   end;
 
-  Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
+  // 通过池临时对象求 Res = Num1 + (-Num2)，不再临时翻转输入参数 Num2 的
+  // 分子符号：原实现当 Res 与 Num2 别名且中途异常时输入被永久损坏，且翻转
+  // 窗口对外部持有者可见。
+  T := FLocalBigRationalPool.Obtain;
   try
-    BigRationalAdd(Res, Num1, Num2);
+    T.Assign(Num2);
+    T.Neg;
+    BigRationalAdd(Res, Num1, T);
   finally
-    if Res <> Num2 then
-      Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
+    FLocalBigRationalPool.Recycle(T);
   end;
 end;
 

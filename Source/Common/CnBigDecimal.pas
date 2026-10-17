@@ -1596,6 +1596,13 @@ begin
   Result := Scale1 + Scale2;
 end;
 
+function CheckScaleMulRange(Scale, Num: Integer): Integer;
+begin
+  if IsInt32MulOverflow(Scale, Num) then
+    raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
+  Result := Scale * Num;
+end;
+
 procedure RoundDecimalByMode(Quotient, Divisor, Remainder: TCnBigNumber; QWillBeNeg: Boolean;
   Mode: TCnBigRoundMode);
 var
@@ -4254,7 +4261,7 @@ begin
   end
   else if N > 0 then
   begin
-    Res.FScale := Res.FScale * N;
+    Res.FScale := CheckScaleMulRange(Res.FScale, N);
     Result := Res.FValue.PowerWord(N);
   end;
 end;

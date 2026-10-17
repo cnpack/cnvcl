@@ -30,7 +30,10 @@ unit CnMath;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.21 V1.1
+* 修改记录：2026.10.17 V1.2
+*               修复 BigDecimalSin/Cos 范围规约循环减法迭代次数与 |X| 成正比导致大参数挂死的问题，
+*               改为 BigDecimalReduceToTwoPi 二倍序列贪心相减，O(log(X/2π)) 精确归约
+*           2026.01.21 V1.1
 *               加入高精度正弦余弦等的计算
 *           2021.12.08 V1.0
 *               创建单元
@@ -1552,6 +1555,51 @@ begin
     Result := GetUInt32HighBits(Precision) + 1;
 end;
 
+procedure BigDecimalReduceToTwoPi(X, TwoPi: TCnBigDecimal);
+{
+  将非负参数 X 一次性规约到 [0, 2π) 范围，即 X := X mod 2π。
+  采用 2π 的二倍序列（2π·2^k）贪心相减：先倍增到超过 X，再从大到小
+  逐位尝试相减。迭代次数为 O(log(X/2π))，且每步 MulWord(2) 与
+  BigDecimalSub 均为精确运算，不引入额外舍入误差。
+  替代原先逐次减 2π 的循环减法（其迭代次数与 |X| 成正比，大参数时挂死）。
+}
+var
+  I: Integer;
+  Multiples: array of TCnBigDecimal;
+begin
+  if BigDecimalCompare(X, TwoPi) < 0 then
+    Exit;
+
+  try
+    SetLength(Multiples, 1);
+    Multiples[0] := FLocalBigDecimalPool.Obtain;
+    BigDecimalCopy(Multiples[0], TwoPi);
+
+    // 倍增：构造 2π·2^k 序列，直到超过 X
+    I := 0;
+    while BigDecimalCompare(Multiples[I], X) <= 0 do
+    begin
+      SetLength(Multiples, I + 2);
+      Multiples[I + 1] := FLocalBigDecimalPool.Obtain;
+      BigDecimalCopy(Multiples[I + 1], Multiples[I]);
+      Multiples[I + 1].MulWord(2);
+      Inc(I);
+    end;
+
+    // 贪心：从最大不超过 X 的倍数开始相减，得到 X mod 2π
+    while I > 0 do
+    begin
+      Dec(I);
+      if BigDecimalCompare(X, Multiples[I]) >= 0 then
+        BigDecimalSub(X, X, Multiples[I]);
+    end;
+  finally
+    for I := 0 to High(Multiples) do
+      if Multiples[I] <> nil then
+        FLocalBigDecimalPool.Recycle(Multiples[I]);
+  end;
+end;
+
 function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer): Boolean;
 {
@@ -1608,8 +1656,7 @@ begin
     end;
 
     // X := X mod 2π
-    while BigDecimalCompare(X, TwoPi) >= 0 do
-      BigDecimalSub(X, X, TwoPi);
+    BigDecimalReduceToTwoPi(X, TwoPi);
 
     // 进一步归约到 [0, π/2]，利用对称性
     if BigDecimalCompare(X, Pi) >= 0 then
@@ -1717,8 +1764,7 @@ begin
     if X.IsNegative then
       X.Negate;  // cos(-x) = cos(x)
 
-    while BigDecimalCompare(X, TwoPi) >= 0 do
-      BigDecimalSub(X, X, TwoPi);
+    BigDecimalReduceToTwoPi(X, TwoPi);
 
     Sign := 1;
     if BigDecimalCompare(X, Pi) >= 0 then
