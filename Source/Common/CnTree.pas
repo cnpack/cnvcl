@@ -34,7 +34,13 @@ unit CnTree;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6 + 10.3.1
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.09.10 V2.0 by LiuXiao
+* 修改记录：2026.10.17 V2.1 by LiuXiao
+*               修复 GetAbsoluteIndex 漏算前置兄弟子树、与前序 Items[] 不自洽的缺陷；
+*               AddChild/AddChildFirst/InsertChild 挂载前先从旧父节点摘除，消除双所有权；
+*               InsertChild 补齐树归属断言与 ValidateComingLeaf 校验；
+*               ValidateComingLeaf 基类默认实现环检测并抛 ECnTreeException；
+*               Exchange 补祖先-后代互斥守卫；ExchangeWithChild 拒绝无父孤儿节点。
+*           2019.09.10 V2.0 by LiuXiao
 *               将单根无序树之外的其他类抽取至 CnTreeClasses。
 *           2019.07.14 V1.9 by LiuXiao
 *               实现排序二叉树，修正保存到 TreeView 时指定根 Node 的问题。
@@ -414,6 +420,7 @@ implementation
 resourcestring
   SCnErrorRootCanNotDelete = 'Root Can NOT be Deleted.';
   SCnErrorTreeRingNotAllow = 'Tree Leaf Ring NOT Allowed.';
+  SCnErrorLeafParentNil = 'Tree Leaf Without Parent Can NOT be Exchanged.';
 
 {$IFDEF ENABLE_UIINTERACT}
 {$IFDEF SUPPORT_FMX}
@@ -475,6 +482,8 @@ begin
   Assert(ALeaf.Tree = Self.FTree);
   FTree.ValidateComingLeaf(Self, ALeaf);
   Result := ALeaf;
+  if ALeaf.FParent <> nil then
+    ALeaf.FParent.FList.Remove(ALeaf); // 先从旧父节点摘除，避免同一节点被两个父节点持有
   FList.Add(Result);
   Result.FParent := Self;
 end;
@@ -484,6 +493,8 @@ begin
   Assert(ALeaf.Tree = Self.FTree);
   FTree.ValidateComingLeaf(Self, ALeaf);
   Result := ALeaf;
+  if ALeaf.FParent <> nil then
+    ALeaf.FParent.FList.Remove(ALeaf); // 先从旧父节点摘除，避免同一节点被两个父节点持有
   FList.Insert(0, Result);
   Result.FParent := Self;
 end;
@@ -632,11 +643,28 @@ begin
 end;
 
 function TCnLeaf.GetAbsoluteIndex: Integer;
+var
+  I, ACount, AIndex: Integer;
+  AParent, ACur: TCnLeaf;
 begin
-  if FParent <> nil then
-    Result := Self.Index + FParent.AbsoluteIndex + 1
-  else
-    Result := 0;
+  // 与前序遍历的 GetAbsoluteItems 保持一致：自底向上逐层累加前置兄弟子树的节点数目
+  Result := 0;
+  ACur := Self;
+  while ACur.FParent <> nil do
+  begin
+    AParent := ACur.FParent;
+    AIndex := AParent.IndexOf(ACur);
+    ACount := 0;
+    for I := 0 to AIndex - 1 do
+    begin
+      if AParent.Items[I] <> nil then
+        Inc(ACount, AParent.Items[I].AllCount + 1)
+      else
+        Inc(ACount, 1); // nil 占位与 GetAbsoluteItems 的计数规则一致
+    end;
+    Inc(Result, ACount + 1);
+    ACur := AParent;
+  end;
 end;
 
 function TCnLeaf.GetAbsoluteItems(AAbsoluteIndex: Integer): TCnLeaf;
@@ -802,14 +830,17 @@ end;
 
 function TCnLeaf.InsertChild(ALeaf: TCnLeaf; AIndex: Integer): TCnLeaf;
 begin
+  Result := nil;
   if (ALeaf <> nil) and (AIndex >= 0) and (AIndex <= Count) then
   begin
+    Assert(ALeaf.Tree = Self.FTree);
+    FTree.ValidateComingLeaf(Self, ALeaf);
+    if ALeaf.FParent <> nil then
+      ALeaf.FParent.FList.Remove(ALeaf); // 先从旧父节点摘除，避免双所有权
     Result := ALeaf;
     FList.Insert(AIndex, ALeaf);
     ALeaf.FParent := Self;
-  end
-  else
-    Result := nil;
+  end;
 end;
 
 function TCnLeaf.GetNext: TCnLeaf;
@@ -1104,6 +1135,9 @@ begin
   begin
     if Leaf1.HasAsParent(Leaf2) or Leaf2.HasAsParent(Leaf1) then
       Exit; // 为父子关系的不允许交换
+    if (Leaf1.Parent = nil) or (Leaf2.Parent = nil) then
+      raise ECnTreeException.Create(SCnErrorLeafParentNil);
+
     Parent2 := Leaf2.Parent;
     Index2 := Leaf2.Index;
 
@@ -1121,6 +1155,8 @@ begin
   if (Leaf1 <> nil) and (Leaf2 <> nil) and (Leaf1 <> Leaf2)
     and (Leaf1.Tree = Self) and (Leaf2.Tree = Self) then
   begin
+    if Leaf1.HasAsParent(Leaf2) or Leaf2.HasAsParent(Leaf1) then
+      raise ECnTreeException.Create(SCnErrorTreeRingNotAllow);
     // 自身交换父节点和子节点列表，父节点交换两引用
     Parent2 := Leaf2.Parent;
     Index2 := Leaf2.Index;
@@ -1578,7 +1614,10 @@ end;
 
 procedure TCnTree.ValidateComingLeaf(AParent, AChild: TCnLeaf);
 begin
-
+  // 与 SetItems 的守卫方向一致：待挂载节点若是自身或 AParent 的祖先，将形成环
+  if (AParent <> nil) and (AChild <> nil) and
+    ((AChild = AParent) or AParent.HasAsParent(AChild)) then
+    raise ECnTreeException.Create(SCnErrorTreeRingNotAllow);
 end;
 
 procedure TCnTree.AssignLeafAndChildren(Source, DestLeaf: TCnLeaf; DestTree: TCnTree);

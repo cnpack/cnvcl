@@ -55,7 +55,7 @@ uses
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
   CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnMatrix, CnQRCode, CnRandom,
-  CnOTP, CnStrings, CnHashMap, CnFloat, CnSEA;
+  CnOTP, CnStrings, CnHashMap, CnFloat, CnSEA, CnTree;
 
 // 2009 ~ XE3 有 Local Const Too Many 的 Bug
 {$IFDEF VER200}
@@ -136,6 +136,22 @@ function TestLinkedQueueDestroyDeep: Boolean;
 function TestInt64ListMoveIgnoreDuplicated: Boolean;
 function TestUInt32ListMoveIgnoreDuplicated: Boolean;
 function TestUInt64ListMoveIgnoreDuplicated: Boolean;
+
+// ================================ Tree =======================================
+
+function TestTreeBasicStructure: Boolean;
+function TestTreeNavigation: Boolean;
+function TestTreeTravel: Boolean;
+function TestTreeInsertDeleteExtract: Boolean;
+function TestTreeAssign: Boolean;
+function TestTreeSetItemsRingGuard: Boolean;
+function TestTreeExchangeNormal: Boolean;
+function TestTreeExchangeWithChildNormal: Boolean;
+function TestTreeAbsoluteIndexConsistency: Boolean;
+function TestTreeAddChildReparent: Boolean;
+function TestTreeRingGuard: Boolean;
+function TestTreeExchangeAncestorDescendant: Boolean;
+function TestTreeExchangeWithChildOrphan: Boolean;
 
 // ============================== Calendar =====================================
 
@@ -2000,6 +2016,22 @@ begin
   MyAssert(TestInt64ListMoveIgnoreDuplicated, 'TestInt64ListMoveIgnoreDuplicated');
   MyAssert(TestUInt32ListMoveIgnoreDuplicated, 'TestUInt32ListMoveIgnoreDuplicated');
   MyAssert(TestUInt64ListMoveIgnoreDuplicated, 'TestUInt64ListMoveIgnoreDuplicated');
+
+// ================================ Tree =======================================
+
+  MyAssert(TestTreeBasicStructure, 'TestTreeBasicStructure');
+  MyAssert(TestTreeNavigation, 'TestTreeNavigation');
+  MyAssert(TestTreeTravel, 'TestTreeTravel');
+  MyAssert(TestTreeInsertDeleteExtract, 'TestTreeInsertDeleteExtract');
+  MyAssert(TestTreeAssign, 'TestTreeAssign');
+  MyAssert(TestTreeSetItemsRingGuard, 'TestTreeSetItemsRingGuard');
+  MyAssert(TestTreeExchangeNormal, 'TestTreeExchangeNormal');
+  MyAssert(TestTreeExchangeWithChildNormal, 'TestTreeExchangeWithChildNormal');
+  MyAssert(TestTreeAbsoluteIndexConsistency, 'TestTreeAbsoluteIndexConsistency');
+  MyAssert(TestTreeAddChildReparent, 'TestTreeAddChildReparent');
+  MyAssert(TestTreeRingGuard, 'TestTreeRingGuard');
+  MyAssert(TestTreeExchangeAncestorDescendant, 'TestTreeExchangeAncestorDescendant');
+  MyAssert(TestTreeExchangeWithChildOrphan, 'TestTreeExchangeWithChildOrphan');
 
 // ============================== Calendar =====================================
 
@@ -5283,6 +5315,723 @@ begin
   N[4] := 15;
   N[5] := 16;
   Result := CnTestUInt64MoveSweep(N, CN_TEST_MOVE_SIZE, True);
+end;
+
+// ================================ Tree =======================================
+
+type
+  TTreeTravelCollector = class
+  {* 深度/广度遍历事件收集器，记录被访问节点的 Text}
+  public
+    Names: TStringList;
+    procedure OnLeaf(Sender: TObject);
+  end;
+
+procedure TTreeTravelCollector.OnLeaf(Sender: TObject);
+begin
+  if Sender is TCnLeaf then
+    Names.Add(TCnLeaf(Sender).Text);
+end;
+
+function TreeTravelOrderOK(List: TStringList;
+  const Expect: array of string): Boolean;
+var
+  I: Integer;
+begin
+  Result := List.Count = Length(Expect);
+  if not Result then
+    Exit;
+  for I := 0 to List.Count - 1 do
+  begin
+    if List[I] <> Expect[I] then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+function TestTreeBasicStructure: Boolean;
+var
+  Tree: TCnTree;
+  A, B, C, D, E, F: TCnLeaf;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    // 空树：仅 Root
+    if Tree.Count <> 1 then Exit;
+    if Tree.RegisteredCount <> 1 then Exit;
+    if Tree.Root.Parent <> nil then Exit;
+    if Tree.Root.Level <> 0 then Exit;
+    if Tree.Root.Index <> -1 then Exit;
+    if Tree.Root.Count <> 0 then Exit;
+    if Tree.MaxLevel <> 0 then Exit;
+
+    // 构建 Root{A{B,C}, D{E}}
+    A := Tree.AddChild(Tree.Root);
+    D := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+    E := Tree.AddChild(D);
+
+    if Tree.Root.Count <> 2 then Exit;
+    if A.Count <> 2 then Exit;
+    if D.Count <> 1 then Exit;
+    if B.Count <> 0 then Exit;
+    if Tree.Count <> 6 then Exit;
+    if Tree.RegisteredCount <> 6 then Exit;
+    if Tree.MaxLevel <> 2 then Exit;
+
+    if A.Level <> 1 then Exit;
+    if B.Level <> 2 then Exit;
+    if E.Level <> 2 then Exit;
+    if A.Index <> 0 then Exit;
+    if D.Index <> 1 then Exit;
+    if B.Index <> 0 then Exit;
+    if C.Index <> 1 then Exit;
+    if E.Index <> 0 then Exit;
+
+    if B.Parent <> A then Exit;
+    if E.Parent <> D then Exit;
+    if D.Parent <> Tree.Root then Exit;
+    if A.Tree <> Tree then Exit;
+
+    if not A.HasChildren then Exit;
+    if B.HasChildren then Exit;
+    if A.GetFirstChild <> B then Exit;
+    if A.GetLastChild <> C then Exit;
+    if D.GetFirstChild <> E then Exit;
+    if B.GetFirstChild <> nil then Exit;
+    if B.GetLastChild <> nil then Exit;
+
+    if A.IndexOf(B) <> 0 then Exit;
+    if A.IndexOf(C) <> 1 then Exit;
+    if A.IndexOf(E) <> -1 then Exit;
+
+    // Items[] 前序编号：0 为 Root
+    if Tree.Items[0] <> Tree.Root then Exit;
+    if Tree.Items[1] <> A then Exit;
+    if Tree.Items[2] <> B then Exit;
+    if Tree.Items[3] <> C then Exit;
+    if Tree.Items[4] <> D then Exit;
+    if Tree.Items[5] <> E then Exit;
+    if Tree.Items[6] <> nil then Exit;
+    if Tree.Items[-1] <> nil then Exit;
+
+    // Data/Text 属性读写
+    A.Text := 'A';
+    A.Data := 100;
+    if (A.Text <> 'A') or (A.Data <> 100) then Exit;
+
+    // AddFirst：在 A 之前插入兄弟
+    F := Tree.AddFirst(A);
+    if Tree.Root.Count <> 3 then Exit;
+    if Tree.Root.Items[0] <> F then Exit;
+    if A.Index <> 1 then Exit;
+    F.Delete;
+    if Tree.Root.Count <> 2 then Exit;
+    if Tree.RegisteredCount <> 6 then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeNavigation: Boolean;
+var
+  Tree: TCnTree;
+  A, B, C, D, E: TCnLeaf;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    // 构建 Root{A{B,C}, D{E}}
+    A := Tree.AddChild(Tree.Root);
+    D := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+    E := Tree.AddChild(D);
+
+    if B.GetNextSibling <> C then Exit;
+    if C.GetNextSibling <> nil then Exit;
+    if C.GetPrevSibling <> B then Exit;
+    if B.GetPrevSibling <> nil then Exit;
+    if A.GetNextSibling <> D then Exit;
+    if D.GetPrevSibling <> A then Exit;
+
+    if Tree.Root.GetNext <> A then Exit;
+    if A.GetNext <> B then Exit;
+    if B.GetNext <> C then Exit;
+    if C.GetNext <> nil then Exit;
+    if D.GetNext <> E then Exit;
+    if E.GetNext <> nil then Exit;
+
+    if B.GetPrev <> A then Exit;
+    if C.GetPrev <> B then Exit;
+    if A.GetPrev <> Tree.Root then Exit;
+    if D.GetPrev <> A then Exit;
+    if E.GetPrev <> D then Exit;
+    if Tree.Root.GetPrev <> nil then Exit;
+
+    if A.GetNextChild(B) <> C then Exit;
+    if A.GetNextChild(C) <> nil then Exit;
+    if A.GetPrevChild(C) <> B then Exit;
+    if A.GetPrevChild(B) <> nil then Exit;
+    if D.GetNextChild(E) <> nil then Exit;
+
+    if not B.HasAsParent(A) then Exit;
+    if not B.HasAsParent(Tree.Root) then Exit;
+    if B.HasAsParent(D) then Exit;
+    if B.HasAsParent(nil) then Exit;
+    if Tree.Root.HasAsParent(B) then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeTravel: Boolean;
+var
+  Tree: TCnTree;
+  Collector: TTreeTravelCollector;
+  A, B, C, D: TCnLeaf;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  Collector := TTreeTravelCollector.Create;
+  Collector.Names := TStringList.Create;
+  try
+    // 构建 Root{A{B,C}, D}
+    Tree.Root.Text := 'R';
+    A := Tree.AddChild(Tree.Root);
+    D := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+    A.Text := 'A';
+    B.Text := 'B';
+    C.Text := 'C';
+    D.Text := 'D';
+
+    Tree.OnDepthFirstTravelLeaf := Collector.OnLeaf;
+    Tree.OnWidthFirstTravelLeaf := Collector.OnLeaf;
+
+    // 前序深度遍历
+    Collector.Names.Clear;
+    Tree.DepthFirstTravel(True, False);
+    if not TreeTravelOrderOK(Collector.Names,
+      ['R', 'A', 'B', 'C', 'D']) then Exit;
+
+    // 后序深度遍历
+    Collector.Names.Clear;
+    Tree.DepthFirstTravel(False, False);
+    if not TreeTravelOrderOK(Collector.Names,
+      ['B', 'C', 'A', 'D', 'R']) then Exit;
+
+    // 前序 + 兄弟逆序
+    Collector.Names.Clear;
+    Tree.DepthFirstTravel(True, True);
+    if not TreeTravelOrderOK(Collector.Names,
+      ['R', 'D', 'A', 'C', 'B']) then Exit;
+
+    // 后序 + 兄弟逆序
+    Collector.Names.Clear;
+    Tree.DepthFirstTravel(False, True);
+    if not TreeTravelOrderOK(Collector.Names,
+      ['D', 'C', 'B', 'A', 'R']) then Exit;
+
+    // 广度遍历
+    Collector.Names.Clear;
+    Tree.WidthFirstTravel(False);
+    if not TreeTravelOrderOK(Collector.Names,
+      ['R', 'A', 'D', 'B', 'C']) then Exit;
+
+    // 广度遍历 + 兄弟逆序
+    Collector.Names.Clear;
+    Tree.WidthFirstTravel(True);
+    if not TreeTravelOrderOK(Collector.Names,
+      ['R', 'D', 'A', 'C', 'B']) then Exit;
+    Result := True;
+  finally
+    Collector.Names.Free;
+    Collector.Free;
+    Tree.Free;
+  end;
+end;
+
+function TestTreeInsertDeleteExtract: Boolean;
+var
+  Tree: TCnTree;
+  A, B, C, I, X, Orphan: TCnLeaf;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    A := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+    I := Tree.InsertChild(A, 1);   // A{B,I,C}
+    if A.Count <> 3 then Exit;
+    if A.Items[0] <> B then Exit;
+    if A.Items[1] <> I then Exit;
+    if A.Items[2] <> C then Exit;
+    if I.Parent <> A then Exit;
+
+    // 越界插入返回 nil 且不改变结构
+    if Tree.InsertChild(A, 99) <> nil then Exit;
+    if Tree.InsertChild(A, -1) <> nil then Exit;
+    if A.Count <> 3 then Exit;
+
+    X := Tree.AddChild(C);         // C{X}
+    Orphan := A.ExtractChild(0);   // 摘出 B，不释放
+    if Orphan <> B then Exit;
+    if B.Parent <> nil then Exit;
+    if A.Count <> 2 then Exit;
+    if A.Items[0] <> I then Exit;
+    if Tree.RegisteredCount <> 6 then Exit;  // 孤儿仍在注册表中
+
+    // 孤儿节点 Delete 释放自身
+    B.Delete;
+    if Tree.RegisteredCount <> 5 then Exit;
+
+    // 按叶子引用 ExtractChild
+    Orphan := A.ExtractChild(C);
+    if Orphan <> C then Exit;
+    if C.Parent <> nil then Exit;
+    if A.Count <> 1 then Exit;
+
+    // 重新挂到 Root 下再 Delete（递归释放子树）
+    Tree.Root.AddChild(C);
+    if C.Parent <> Tree.Root then Exit;
+    C.Delete;
+    if Tree.RegisteredCount <> 3 then Exit;  // Root,A,I
+
+    A.Clear;
+    if A.Count <> 0 then Exit;
+    if Tree.RegisteredCount <> 2 then Exit;  // Root,A
+
+    Tree.Clear;
+    if Tree.Count <> 1 then Exit;
+    if Tree.RegisteredCount <> 1 then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeAssign: Boolean;
+var
+  Src, Dst: TCnTree;
+  A, B, C: TCnLeaf;
+  I: Integer;
+begin
+  Result := False;
+  Src := TCnTree.Create;
+  Dst := TCnTree.Create;
+  try
+    // 源树 Root{A{B}, C}
+    Src.Root.Text := 'R';
+    A := Src.AddChild(Src.Root);
+    C := Src.AddChild(Src.Root);
+    B := Src.AddChild(A);
+    A.Text := 'A';
+    A.Data := 7;
+    B.Text := 'B';
+    B.Data := 8;
+    C.Text := 'C';
+
+    Dst.Assign(Src);
+    if Dst.Count <> 4 then Exit;
+    if Dst.Root.Text <> 'R' then Exit;
+    if Dst.Items[1].Text <> 'A' then Exit;
+    if Dst.Items[1].Data <> 7 then Exit;
+    if Dst.Items[2].Text <> 'B' then Exit;
+    if Dst.Items[2].Data <> 8 then Exit;
+    if Dst.Items[3].Text <> 'C' then Exit;
+    if Dst.Root.Count <> 2 then Exit;
+    if Dst.Items[1].GetFirstChild <> Dst.Items[2] then Exit;
+    if Dst.Items[2].Parent <> Dst.Items[1] then Exit;
+    // 深拷贝：节点对象不得与源树共享
+    for I := 0 to 3 do
+      if Dst.Items[I] = Src.Items[I] then Exit;
+    Result := True;
+  finally
+    Dst.Free;
+    Src.Free;
+  end;
+end;
+
+function TestTreeSetItemsRingGuard: Boolean;
+var
+  Tree: TCnTree;
+  A, B, C, Orphan: TCnLeaf;
+  Raised: Boolean;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    A := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+
+    // 自环守卫：Items[0] := A 应抛 ECnTreeException
+    Raised := False;
+    try
+      A.Items[0] := A;
+    except
+      on E: ECnTreeException do Raised := True;
+    end;
+    if not Raised then Exit;
+
+    // 祖先守卫：Items[0] := Root 应抛 ECnTreeException
+    Raised := False;
+    try
+      A.Items[0] := Tree.Root;
+    except
+      on E: ECnTreeException do Raised := True;
+    end;
+    if not Raised then Exit;
+
+    // 正常替换：摘除 B 后放回 0 号槽位
+    Orphan := A.ExtractChild(B);
+    if Orphan <> B then Exit;
+    if A.Count <> 1 then Exit;
+    A.Items[0] := B;
+    if B.Parent <> A then Exit;
+    if A.Items[0] <> B then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeExchangeNormal: Boolean;
+var
+  Tree: TCnTree;
+  A, B, X, Y, Z: TCnLeaf;
+begin
+  Result := False;
+  // 兄弟子树整体互换：Root{A{X,Y}, B{Z}} -> Root{B{X,Y}, A{Z}}
+  Tree := TCnTree.Create;
+  try
+    A := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(Tree.Root);
+    X := Tree.AddChild(A);
+    Y := Tree.AddChild(A);
+    Z := Tree.AddChild(B);
+    Tree.Exchange(A, B);
+    if Tree.Items[0] <> Tree.Root then Exit;
+    if Tree.Root.Items[0] <> B then Exit;
+    if Tree.Root.Items[1] <> A then Exit;
+    if A.Count <> 1 then Exit;
+    if A.Items[0] <> Z then Exit;
+    if B.Count <> 2 then Exit;
+    if B.Items[0] <> X then Exit;
+    if B.Items[1] <> Y then Exit;
+    if Z.Parent <> A then Exit;
+    if X.Parent <> B then Exit;
+    if Y.Parent <> B then Exit;
+    if A.Parent <> Tree.Root then Exit;
+    if B.Parent <> Tree.Root then Exit;
+    if Tree.Count <> 6 then Exit;
+  finally
+    Tree.Free;
+  end;
+
+  // 绝对索引重载：Root{A{X}, B{Y}} 中 Exchange(2, 3) 互换 X 与 B
+  Tree := TCnTree.Create;
+  try
+    A := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(Tree.Root);
+    X := Tree.AddChild(A);
+    Y := Tree.AddChild(B);
+    Tree.Exchange(2, 3);
+    if Tree.Root.Items[1] <> X then Exit;
+    if A.Items[0] <> B then Exit;
+    if X.Items[0] <> Y then Exit;
+    if Y.Parent <> X then Exit;
+    if B.Parent <> A then Exit;
+    if X.Parent <> Tree.Root then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeExchangeWithChildNormal: Boolean;
+var
+  Tree: TCnTree;
+  A, B, X, Y: TCnLeaf;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    // 构建 Root{A{X}, B{Y}}：兄弟互换位置，子节点跟随原节点
+    A := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(Tree.Root);
+    X := Tree.AddChild(A);
+    Y := Tree.AddChild(B);
+    Tree.ExchangeWithChild(A, B);
+    if Tree.Root.Items[0] <> B then Exit;
+    if Tree.Root.Items[1] <> A then Exit;
+    if A.Items[0] <> X then Exit;
+    if B.Items[0] <> Y then Exit;
+    if X.Parent <> A then Exit;
+    if Y.Parent <> B then Exit;
+    if A.Parent <> Tree.Root then Exit;
+    if B.Parent <> Tree.Root then Exit;
+
+    // 父子关系静默拒绝，结构不变
+    Tree.ExchangeWithChild(Tree.Root, X);
+    if Tree.Root.Items[0] <> B then Exit;
+    if Tree.Root.Items[1] <> A then Exit;
+    if X.Parent <> A then Exit;
+
+    // nil 与相同节点参数安全
+    Tree.ExchangeWithChild(TCnLeaf(nil), A);
+    Tree.ExchangeWithChild(A, TCnLeaf(nil));
+    Tree.ExchangeWithChild(A, A);
+    if Tree.Root.Items[0] <> B then Exit;
+    if A.Items[0] <> X then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeAbsoluteIndexConsistency: Boolean;
+var
+  Tree: TCnTree;
+  A, B, C, D, E, X, Y: TCnLeaf;
+
+  function NodeOK(Leaf: TCnLeaf; AExpectIndex: Integer): Boolean;
+  var
+    AI: Integer;
+  begin
+    AI := Leaf.AbsoluteIndex;
+    Result := (AI = AExpectIndex) and (Tree.Items[AI] = Leaf) and
+      (Leaf.GetAbsoluteIndexFromParent(Tree.Root) + 1 = AI);
+  end;
+
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    // 构建 Root{A{B{X,Y},C}, D{E}}，前序编号：
+    // R=0 A=1 B=2 X=3 Y=4 C=5 D=6 E=7
+    A := Tree.AddChild(Tree.Root);
+    D := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    C := Tree.AddChild(A);
+    E := Tree.AddChild(D);
+    X := Tree.AddChild(B);
+    Y := Tree.AddChild(B);
+
+    // CH6：AbsoluteIndex 漏算前置兄弟子树，以下多点应失败
+    if not NodeOK(A, 1) then Exit;
+    if not NodeOK(B, 2) then Exit;
+    if not NodeOK(X, 3) then Exit;
+    if not NodeOK(Y, 4) then Exit;
+    if not NodeOK(C, 5) then Exit;
+    if not NodeOK(D, 6) then Exit;
+    if not NodeOK(E, 7) then Exit;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
+end;
+
+function TestTreeAddChildReparent: Boolean;
+var
+  Tree: TCnTree;
+  P1, P2, L1, L2, L3: TCnLeaf;
+  Rejected: Boolean;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    P1 := Tree.AddChild(Tree.Root);
+    P2 := Tree.AddChild(Tree.Root);
+    L1 := Tree.AddChild(P1);
+    L2 := Tree.AddChild(P1);
+    L3 := Tree.AddChild(P1);
+
+    // CH7：已有父节点的叶子再挂到 P2，应拒绝（异常）或先从旧父摘除
+    Rejected := False;
+    try
+      P2.AddChild(L1);
+    except
+      on E: ECnTreeException do Rejected := True;
+    end;
+    if Rejected then
+    begin
+      if P1.IndexOf(L1) <> 0 then Exit;
+      if P2.Count <> 0 then Exit;
+    end
+    else
+    begin
+      // 不允许双所有权：L1 不得同时出现在两个父节点列表中
+      if (P1.IndexOf(L1) >= 0) and (P2.IndexOf(L1) >= 0) then Exit;
+      if L1.Parent <> P2 then Exit;
+    end;
+
+    // AddChildFirst 同样不得造成双所有权
+    Rejected := False;
+    try
+      P2.AddChildFirst(L2);
+    except
+      on E: ECnTreeException do Rejected := True;
+    end;
+    if not Rejected then
+      if (P1.IndexOf(L2) >= 0) and (P2.IndexOf(L2) >= 0) then Exit;
+
+    // InsertChild 同样不得造成双所有权
+    Rejected := False;
+    try
+      P2.InsertChild(L3, 0);
+    except
+      on E: ECnTreeException do Rejected := True;
+    end;
+    if not Rejected then
+      if (P1.IndexOf(L3) >= 0) and (P2.IndexOf(L3) >= 0) then Exit;
+    Result := True;
+  finally
+    // 整树释放安全：FLeaves 对每个叶子仅注册一次
+    Tree.Free;
+  end;
+end;
+
+function TestTreeRingGuard: Boolean;
+var
+  AMode: Integer;
+
+  function CheckRing: Boolean;
+  var
+    T: TCnTree;
+    RT, N: TCnLeaf;
+    Rej: Boolean;
+  begin
+    Result := False;
+    T := TCnTree.Create;
+    try
+      RT := T.Root;
+      N := T.AddChild(RT);
+      Rej := False;
+      try
+        case AMode of
+          0: N.AddChild(N);        // 自环
+          1: N.AddChildFirst(N);   // 自环（首插）
+          2: N.InsertChild(N, 0);  // 自环（InsertChild 无任何校验）
+          3: N.AddChild(RT);       // 父节点变子节点
+        end;
+      except
+        on E: ECnTreeException do Rej := True;
+      end;
+      if not Rej then
+      begin
+        // 未被拒绝时，节点不得包含自身或父节点
+        if N.IndexOf(N) >= 0 then Exit;
+        if (AMode = 3) and (N.IndexOf(RT) >= 0) then Exit;
+      end;
+      Result := True;
+    finally
+      // 整树释放安全：析构在 BatchUpdating 下不递归子列表
+      T.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  for AMode := 0 to 3 do
+  begin
+    if not CheckRing then
+      Exit;
+  end;
+  Result := True;
+end;
+
+function TestTreeExchangeAncestorDescendant: Boolean;
+var
+  AExchangeRootFirst: Boolean;
+
+  function CheckExchange: Boolean;
+  var
+    T: TCnTree;
+    RT, N: TCnLeaf;
+    Rej: Boolean;
+  begin
+    Result := False;
+    T := TCnTree.Create;
+    try
+      // 构建 Root{N{C}}
+      RT := T.Root;
+      N := T.AddChild(RT);
+      T.AddChild(N);
+      Rej := False;
+      try
+        if AExchangeRootFirst then
+          T.Exchange(RT, N)
+        else
+          T.Exchange(N, RT);
+      except
+        on E: ECnTreeException do Rej := True;
+      end;
+      if not Rej then
+      begin
+        // CH9：祖先-后代交换不得产生自环
+        if N.IndexOf(N) >= 0 then Exit;
+        if RT.IndexOf(RT) >= 0 then Exit;
+      end;
+      Result := True;
+    finally
+      T.Free;
+    end;
+  end;
+
+begin
+  AExchangeRootFirst := True;
+  Result := CheckExchange;   // Exchange(Root, B)
+  if not Result then
+    Exit;
+  AExchangeRootFirst := False;
+  Result := CheckExchange;   // Exchange(B, Root)
+end;
+
+function TestTreeExchangeWithChildOrphan: Boolean;
+var
+  Tree: TCnTree;
+  A, B, Orphan: TCnLeaf;
+  Rejected: Boolean;
+begin
+  Result := False;
+  Tree := TCnTree.Create;
+  try
+    A := Tree.AddChild(Tree.Root);
+    B := Tree.AddChild(A);
+    Orphan := A.ExtractChild(B);
+    if Orphan <> B then Exit;
+    if B.Parent <> nil then Exit;
+
+    // CH10：孤儿节点参与 ExchangeWithChild，应抛 ECnTreeException 拒绝，
+    // 不得因 nil 解引用抛 EAccessViolation
+    Rejected := False;
+    try
+      Tree.ExchangeWithChild(Orphan, A);
+    except
+      on E: ECnTreeException do Rejected := True;
+      else Exit; // EAccessViolation 等 -> 缺陷
+    end;
+    if Rejected then
+    begin
+      // 拒绝后结构应保持不变
+      if Tree.Root.Items[0] <> A then Exit;
+      if A.Count <> 0 then Exit;
+      if B.Parent <> nil then Exit;
+    end;
+    Result := True;
+  finally
+    Tree.Free;
+  end;
 end;
 
 // ================================ Calendar ======================================
