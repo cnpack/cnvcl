@@ -31,6 +31,9 @@ unit CnBigRational;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.17 V1.4
+*               修复 SetString 对非法字符串静默保留旧值或产生半更新对象的问题：
+*               统一抛出 ECnBigRationalException，分数分支改用池临时对象先解析后写回
+*               修复 SetValue 字符串重载忽略 SetDec 返回值导致半更新对象的问题，同样统一抛异常并原子写回
 *               修复 SetValue 两个重载未归一 0/-1 形态，及 EqualInt/IsNegative/ToString/ToDec 对零分子误判
 *               修复 SetFloat 对尾随零最短表示静默丢失 10^(E-L) 倍率的问题
 *               修复 BigRationalSub 临时改写输入参数 Num2 分子符号、与 Res 别名且中途异常时输入永久损坏的问题，改用池临时对象
@@ -286,16 +289,19 @@ type
 
     procedure SetValue(const ANumerator: string; const ADenominator: string); overload;
     {* 值设为一个分数，数字用字符串的方式输入。
+       字符串非法（含分母为零）时抛出 ECnBigRationalException，且对象的值保持不变。
 
        参数：
          const ANumerator: string         - 分子字符串
          const ADenominator: string       - 分母字符串
+
 
        返回值：（无）
     }
 
     procedure SetString(const Value: string);
     {* 值设为一个字符串，可以是纯数字，或带 / 的分数，或小数。
+       字符串非法（含分母为零）时抛出 ECnBigRationalException，且对象的值保持不变。
 
        参数：
          const Value: string              - 待设置的字符串
@@ -609,6 +615,7 @@ resourcestring
   SCnErrorBigRationalDenominatorZero = 'Denominator Cannot be Zero.';
   SCnErrorBigRationalDivideByZero = 'Divide by Zero.';
   SCnErrorBigRationalMemSize = 'Memory Size Error.';
+  SCnErrorBigRationalStringIsInvalid = 'Invalid Rational String.';
 
 var
   FLocalBigRationalPool: TCnBigRationalPool = nil;
@@ -1165,29 +1172,43 @@ procedure TCnBigRational.SetString(const Value: string);
 var
   P: Integer;
   N, D: string;
+  Num, Den: TCnBigNumber;
 begin
   P := Pos('/', Value);
   if P > 1 then
   begin
+    // 先解析到池临时对象，两者都成功后才写回自身，避免分母非法时
+    // 分子已被覆盖而对象处于半更新状态。
     N := Copy(Value, 1, P - 1);
     D := Copy(Value, P + 1, MaxInt);
-    if not FNumerator.SetDec(AnsiString(N)) then
-      Exit;
-    if not FDenominator.SetDec(AnsiString(D)) then
-      Exit;
-    if FDenominator.IsZero then
-      raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
-    Reduce;
+    Num := FLocalBigNumberPool.Obtain;
+    Den := FLocalBigNumberPool.Obtain;
+    try
+      if not Num.SetDec(AnsiString(N)) then
+        raise ECnBigRationalException.Create(SCnErrorBigRationalStringIsInvalid);
+      if not Den.SetDec(AnsiString(D)) then
+        raise ECnBigRationalException.Create(SCnErrorBigRationalStringIsInvalid);
+      if Den.IsZero then
+        raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
+      BigNumberCopy(FNumerator, Num);
+      BigNumberCopy(FDenominator, Den);
+      Reduce;
+    finally
+      FLocalBigNumberPool.Recycle(Den);
+      FLocalBigNumberPool.Recycle(Num);
+    end;
   end
   else
   begin
     P := Pos('.', Value);
     if P > 1 then
     begin
-      // 处理小数点
+      // 处理小数点。SetDec 失败时大数对象保持原值不变，先抛异常
+      // 再动分母，保证非法输入不产生半更新对象。
       N := Copy(Value, 1, P - 1);
       D := Copy(Value, P + 1, MaxInt);
-      FNumerator.SetDec(AnsiString(N + D));
+      if not FNumerator.SetDec(AnsiString(N + D)) then
+        raise ECnBigRationalException.Create(SCnErrorBigRationalStringIsInvalid);
       FDenominator.SetOne;
       for P := 1 to Length(D) do
         FDenominator.MulWord(10);
@@ -1195,7 +1216,8 @@ begin
     end
     else
     begin
-      FNumerator.SetDec(AnsiString(Value));
+      if not FNumerator.SetDec(AnsiString(Value)) then
+        raise ECnBigRationalException.Create(SCnErrorBigRationalStringIsInvalid);
       FDenominator.SetOne;
     end;
   end;
@@ -1213,14 +1235,29 @@ begin
 end;
 
 procedure TCnBigRational.SetValue(const ANumerator, ADenominator: string);
+var
+  Num, Den: TCnBigNumber;
 begin
-  FNumerator.SetDec(AnsiString(ANumerator));
-  FDenominator.SetDec(AnsiString(ADenominator));
-  if FDenominator.IsZero then
-    raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
-  // 归一 0/-1 形态，保持分母符号恒为正
-  if FNumerator.IsZero then
-    FDenominator.SetOne;
+  // 先解析到池临时对象，分子分母均解析成功且分母非零后才写回，
+  // 保证字符串非法时对象的值保持不变、不出现半更新。
+  Num := FLocalBigNumberPool.Obtain;
+  Den := FLocalBigNumberPool.Obtain;
+  try
+    if not Num.SetDec(AnsiString(ANumerator)) then
+      raise ECnBigRationalException.Create(SCnErrorBigRationalStringIsInvalid);
+    if not Den.SetDec(AnsiString(ADenominator)) then
+      raise ECnBigRationalException.Create(SCnErrorBigRationalStringIsInvalid);
+    if Den.IsZero then
+      raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
+    BigNumberCopy(FNumerator, Num);
+    BigNumberCopy(FDenominator, Den);
+    // 归一 0/-1 形态：分子为零时分母置正一
+    if FNumerator.IsZero then
+      FDenominator.SetOne;
+  finally
+    FLocalBigNumberPool.Recycle(Den);
+    FLocalBigNumberPool.Recycle(Num);
+  end;
 end;
 
 procedure TCnBigRational.SetZero;

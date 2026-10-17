@@ -31,6 +31,7 @@ unit CnMath;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.17 V1.2
+*               修复 FloatSqrt/FloatLogN 输入 +Inf/NaN 时的死循环问题，非有限值按 IEEE 754 语义返回
 *               修复 BigDecimalSin/Cos 范围规约循环减法迭代次数与 |X| 成正比导致大参数挂死的问题，
 *               改为 BigDecimalReduceToTwoPi 二倍序列贪心相减，O(log(X/2π)) 精确归约
 *           2026.01.21 V1.1
@@ -157,6 +158,7 @@ function Int64Sqrt(N: Int64): Extended;
 
 function FloatSqrt(F: Extended): Extended;
 {* 计算扩展精度浮点数的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2
+   正无穷大得正无穷大，NaN 、负数（含负无穷大）抛异常。
 
    参数：
      F: Extended                          - 待计算平方根的浮点数
@@ -175,6 +177,7 @@ function Int64LogN(N: Int64): Extended;
 
 function FloatLogN(F: Extended): Extended;
 {* 计算扩展精度浮点数的自然对数，使用反双曲函数展开。
+   正无穷大得正无穷大，NaN、0 及负数（含负无穷大）抛异常。
 
    参数：
      F: Extended                          - 待计算自然对数的浮点数
@@ -646,7 +649,7 @@ var
   X0: Extended;
 begin
   if N < 0 then
-    raise ECnMathException.Create(SCnErrorMathSqrtRange);
+    raise ERangeError.Create(SCnErrorMathSqrtRange);
 
   Result := 0;
   if (N = 0) or (N = 1) then
@@ -671,8 +674,16 @@ var
   X0, G, E: Extended;
   J: Integer;
 begin
-  if F < 0 then
-    raise ECnMathException.Create(SCnErrorMathSqrtRange);
+  if ExtendedIsNan(F) or (F < 0) then
+    raise ERangeError.Create(SCnErrorMathSqrtRange);
+
+  // 非有限值按 IEEE 754 语义直接返回：sqrt(+Inf) = +Inf。
+  // 必须在归一化与牛顿迭代之前拦截，否则 +Inf 使 while G >= 4 永不结束，
+  if ExtendedIsInfinite(F) or ExtendedIsNan(F) then
+  begin
+    Result := F;
+    Exit;
+  end;
 
   Result := 0;
   if (F = 0) or (F = 1) then
@@ -784,8 +795,16 @@ var
   I, K, Den: Integer;
   Z, D, G: Extended;
 begin
-  if F <= 0 then
+  if ExtendedIsNan(F) or (F <= 0) then
     raise ERangeError.Create(SCnErrorMathLogRange);
+
+  // 非有限值按 IEEE 754 语义直接返回：ln(+Inf) = +Inf、ln(NaN) = NaN。
+  // 必须在归一化循环之前拦截，否则 +Inf 使 while G >= 2 永不结束，
+  if ExtendedIsInfinite(F) then
+  begin
+    Result := F;
+    Exit;
+  end;
 
   Result := 0;
   if F = 1 then

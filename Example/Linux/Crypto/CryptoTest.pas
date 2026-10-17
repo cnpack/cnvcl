@@ -277,6 +277,7 @@ function TestBigRationalCompareNegDenominator: Boolean;
 function TestBigRationalAddCompareNegOneDenominator: Boolean;
 function TestBigRationalSetFloatTrailingZeros: Boolean;
 function TestBigRationalZeroNegDenominator: Boolean;
+function TestBigRationalSetStringMalformed: Boolean;
 
 // ============================== Matrix =======================================
 
@@ -2152,6 +2153,7 @@ begin
   MyAssert(TestBigRationalReduce, 'TestBigRationalReduce');
   MyAssert(TestBigRationalNegReciprocal, 'TestBigRationalNegReciprocal');
   MyAssert(TestBigRationalSetString, 'TestBigRationalSetString');
+  MyAssert(TestBigRationalSetStringMalformed, 'TestBigRationalSetStringMalformed');
   MyAssert(TestBigRationalLoadSaveMem, 'TestBigRationalLoadSaveMem');
   MyAssert(TestBigRationalListLoadSaveMem, 'TestBigRationalListLoadSaveMem');
   MyAssert(TestBigRationalCompareNegDenominator, 'TestBigRationalCompareNegDenominator');
@@ -3251,7 +3253,7 @@ begin
   if ExtendedToUInt64(-0.0) <> 0 then Exit;
 
   // 而 -0.5 这类尾数非 0 的负数一律抛 ERangeError，
-  // 不会像 RTL 的 Trunc 那样朝 0 截断成 0 —— 这是 UTrunc 刻意的契约，
+  // 不会像 RTL 的 Trunc 那样朝 0 截断成 0 —— 这是 UTrunc 刻意的约定，
   // 因为它的设计目的是把浮点当无符号整数用，负数一律视为越界。
   try
     U := ExtendedToUInt64(-0.5);
@@ -3562,7 +3564,7 @@ begin
     end;
 end;
 
-// 直接从双精度原始位模式按统一契约独立分解，校验 ExtractFloatDouble 的输出。
+// 直接从双精度原始位模式按统一约定独立分解，校验 ExtractFloatDouble 的输出。
 // 神谕不调用任何 CnFloat 转换函数，纯粹按 IEEE754 位域计算
 function FloatTestCheckExtractDouble(const V: Double): Boolean;
 var
@@ -3778,7 +3780,7 @@ begin
   S := 1E-40;
   SBits[9] := PCardinal(@S)^;          // 字面量解析出的次正态数
 
-  // ---------- 一、Extract 输出必须满足统一契约（独立位模式神谕） ----------
+  // ---------- 一、Extract 输出必须满足统一约定（独立位模式神谕） ----------
   for I := 0 to 14 do
   begin
     Move(DBits[I], V, SizeOf(V));
@@ -4172,7 +4174,7 @@ function TestStringBuilderAnsiModeToString: Boolean;
   ToWideString    无视 AnsiMode，总能取回宽字节内容。
 
   原始实现中，ToAnsiString 在 非Unicode+非Ansi、ToWideString 在 Unicode+Ansi 两处
-  因退化为 Result := ToString 而返回空串，违反其“无视模式”的契约。
+  因退化为 Result := ToString 而返回空串，违反其“无视模式”的约定。
   Full 参数用于覆盖 FCharLength = CharCapacity 的快速路径。 }
 
   function CheckRow(const Mode: string; AnsiMode, Full: Boolean;
@@ -4204,7 +4206,7 @@ begin
   Result := False;
 
 {$IFDEF UNICODE}
-  // Unicode 版：Ansi 模式与编译器不一致，ToString 按契约返回空串
+  // Unicode 版：Ansi 模式与编译器不一致，ToString 按约定返回空串
   Result := CheckRow('Unicode.AnsiMode', True, False, '', 'Content', 'Content');
   if not Result then Exit;
 
@@ -4226,7 +4228,7 @@ begin
     'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC', 'CCCCCCCCCCCCCCCC');
   if not Result then Exit;
 
-  // 非 Unicode 版：非 Ansi 模式与编译器不一致，ToString 按契约返回空串
+  // 非 Unicode 版：非 Ansi 模式与编译器不一致，ToString 按约定返回空串
   Result := CheckRow('Ansi.WideMode', False, False, '', 'Content', 'Content');
   if not Result then Exit;
 
@@ -9773,6 +9775,81 @@ begin
   end;
 end;
 
+function TestBigRationalSetStringMalformed: Boolean;
+
+  function RaisesInvalid(R: TCnBigRational; const S: string): Boolean;
+  var
+    Before: string;
+    Caught: Boolean;
+  begin
+    Before := R.ToString;
+    Caught := False;
+    try
+      R.SetString(S);
+    except
+      on ECnBigRationalException do
+        Caught := True;
+    end;
+    Result := Caught and (R.ToString = Before);
+  end;
+
+  function RaisesInvalidPair(R: TCnBigRational; const N, D: string): Boolean;
+  var
+    Before: string;
+    Caught: Boolean;
+  begin
+    Before := R.ToString;
+    Caught := False;
+    try
+      R.SetValue(N, D);
+    except
+      on ECnBigRationalException do
+        Caught := True;
+    end;
+    Result := Caught and (R.ToString = Before);
+  end;
+
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    R.SetString('5/7');
+    // CM5：非法字符串必须统一抛出异常，且对象值保持不变、不出现半更新。
+    if not RaisesInvalid(R, '1.2.3') then Exit;   // 小数分支曾忽略 SetDec 返回值
+    if not RaisesInvalid(R, 'abc') then Exit;
+    if not RaisesInvalid(R, '') then Exit;
+    if not RaisesInvalid(R, '.5') then Exit;
+    if not RaisesInvalid(R, '1/2/3') then Exit;   // 分子解析成功后分母非法，须整体不写回
+    if not RaisesInvalid(R, '3/x') then Exit;
+    if not RaisesInvalid(R, '1/') then Exit;
+    if not RaisesInvalid(R, '2/0') then Exit;     // 零分母抛专用异常且值不变
+
+    // SetValue 字符串重载：非法输入须抛异常且值不变（原实现忽略 SetDec 返回值）。
+    if not RaisesInvalidPair(R, '12', '3.5') then Exit; // 分母非法，原实现分子已被先写入
+    if not RaisesInvalidPair(R, 'abc', '5') then Exit;
+    if not RaisesInvalidPair(R, '7', '0') then Exit;    // 零分母
+
+    // 合法形态回归。
+    R.SetString('1.25');
+    if R.ToString <> '5 / 4' then Exit;
+    R.SetString('-3/4');
+    if R.ToString <> '-3 / 4' then Exit;
+    R.SetString('0/9');
+    if R.ToString <> '0' then Exit;
+    R.SetValue('7', '5');
+    if R.ToString <> '7 / 5' then Exit;
+    R.SetValue('-3', '4');
+    if R.ToString <> '-3 / 4' then Exit;
+    R.SetValue('0', '-9');
+    if R.ToString <> '0' then Exit;
+    Result := True;
+  finally
+    R.Free;
+  end;
+end;
+
 function TestBigRationalLoadSaveMem: Boolean;
 var
   R, Restored: TCnBigRational;
@@ -11707,6 +11784,46 @@ begin
 
   R := FloatSqrt(0.25);
   Result := FloatEqual(R, 0.5);
+  if not Result then Exit;
+
+  // -------- 非有限值：必须立即返回 --------
+  R := FloatSqrt(ExtendedInfinity);
+  Result := ExtendedIsInfinite(R) and (R > 0);
+  if not Result then Exit;
+
+  // Nan 抛异常
+  Result := False;
+  try
+    R := FloatSqrt(ExtendedNan);
+  except
+    on E: ERangeError do
+      Result := True;
+  end;
+  if not Result then Exit;
+
+  // -------- 负数、负无穷仍按原约定抛 ECnMathException --------
+  try
+    R := FloatSqrt(-1.0);
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  try
+    R := FloatSqrt(ExtendedInfinity(True));
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
 end;
 
 function TestFloatSqrtSmall: Boolean;
@@ -11887,6 +12004,57 @@ begin
 
   R := FloatLogN(10.0);
   Result := FloatAlmostZero(R - 2.302585);
+  if not Result then Exit;
+
+  // -------- 非有限值：必须立即返回 --------
+  R := FloatLogN(ExtendedInfinity);
+  Result := ExtendedIsInfinite(R) and (R > 0);
+  if not Result then Exit;
+
+  Result := False;
+  try
+    R := FloatLogN(ExtendedNan);
+  except
+    on ERangeError do
+      Result := True;
+  end;
+  if not Result then Exit;
+
+  // -------- 0、负数、负无穷仍按原约定抛 ERangeError --------
+  try
+    R := FloatLogN(0.0);
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  try
+    R := FloatLogN(-1.0);
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
+  if not Result then Exit;
+
+  try
+    R := FloatLogN(ExtendedInfinity(True));
+    Result := False;
+    Exit;
+  except
+    on ERangeError do
+      Result := True;
+    else
+      Result := False;
+  end;
 end;
 
 function TestInt64Log10: Boolean;
@@ -11915,6 +12083,20 @@ begin
 
   R := FloatLog10(10.0);
   Result := FloatAlmostZero(R - 1.0);
+  if not Result then Exit;
+
+  // -------- 非有限值沿 FloatLogN 传播：+Inf 得 +Inf  --------
+  R := FloatLog10(ExtendedInfinity);
+  Result := ExtendedIsInfinite(R);
+  if not Result then Exit;
+
+  Result := False;
+  try
+    R := FloatLog10(ExtendedNan);
+  except
+    on E: ERangeError do
+      Result := True;
+  end;
 end;
 
 function TestInt64Log2: Boolean;
@@ -11947,6 +12129,20 @@ begin
 
   R := FloatLog2(2.0);
   Result := FloatAlmostZero(R - 1.0);
+  if not Result then Exit;
+
+  // -------- 非有限值沿 FloatLogN 传播：+Inf 得 +Inf --------
+  R := FloatLog2(ExtendedInfinity);
+  Result := ExtendedIsInfinite(R) and (R > 0);
+  if not Result then Exit;
+
+  Result := False;
+  try
+    R := FloatLog2(ExtendedNan);
+  except
+    on E: ERangeError do
+      Result := True;
+  end;
 end;
 
 function TestLogNAccuracy: Boolean;
@@ -13334,7 +13530,7 @@ begin
       返回 True。同一个文件里两个姊妹函数对同一情形给出相反约定。
 
       下面断言的是「无论如何 Res 都必须拿到值」，不关心具体应该返回 True 还是
-      False —— 但 Res 没被写这一条是明确的调用契约问题。 }
+      False —— 但 Res 没被写这一条是明确的调用约定问题。 }
 
     // -------- DS = 0：请求位数恰好等于现有位数 --------
     A.SetDec('1.5');
