@@ -37,6 +37,11 @@ unit CnZip;
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2026.10.17 V1.7
+*                修复 PrepareStream 校验中央目录声明的本地头
+*                偏移落在数据区内并预留完整固定头，本地头各字段与
+*                文件名/额外字段读取改用 VerifyRead 校验实际字节数，
+*                零长文件名不再访问首元素；截断或伪造归档抛出无效
+*                本地头/读取异常，不再以垃圾字段构造解压流。
 *                加密 Deflate 路径的 FPC 分支补 raw 开关（第二布尔参 True），
 *                与非加密路径一致，不再产出 zlib-wrapped 违反 ZIP 规范的
 *                加密归档（CM26）；CRC 计算循环判据 Longint 强转改 Int64，
@@ -960,6 +965,7 @@ function TCnZipReader.PrepareStream(Index: Integer;
   LocalHeader: PCnZipHeader): TStream;
 var
   Sig: Cardinal;
+  LocalPos: Int64;
 begin
   if (Index < 0) or (Index >= FileCount) then
     raise ECnZipException.CreateRes(@SCnFileNotFound);
@@ -972,27 +978,34 @@ begin
   LocalHeader^.ExternalAttributes := 0;
   LocalHeader^.LocalHeaderOffset  := 0;
 
-  FInStream.Position := FileInfo[Index].LocalHeaderOffset + FStartFileData;
-  FInStream.Read(Sig, Sizeof(Sig));
+  // 校验中央目录声明的本地头偏移：必须落在数据区内并留得下完整
+  // 固定头（4 字节签名 + 26 字节字段），防止伪造偏移指向中央目录
+  // 或文件尾之外后，以垃圾字段继续构造解压流
+  LocalPos := Int64(FileInfo[Index].LocalHeaderOffset) + FStartFileData;
+  if LocalPos + 4 + CN_LOCAL_HEADERSIZE > FEndFileData then
+    raise ECnZipException.CreateRes(@SCnZipInvalidLocalHeader);
+  FInStream.Position := LocalPos;
+  VerifyRead(FInStream, Sig, Sizeof(Sig));
   if Sig <> CN_SIGNATURE_LOCALHEADER then
     raise ECnZipException.CreateRes(@SCnZipInvalidLocalHeader);
 
-  FInStream.Read(LocalHeader^.RequiredVersion,    Sizeof(Word));
-  FInStream.Read(LocalHeader^.Flag,               Sizeof(Word));
-  FInStream.Read(LocalHeader^.CompressionMethod,  Sizeof(Word));
-  FInStream.Read(LocalHeader^.ModifiedDateTime,   Sizeof(Cardinal));
-  FInStream.Read(LocalHeader^.CRC32,              Sizeof(Cardinal));
-  FInStream.Read(LocalHeader^.CompressedSize,     Sizeof(Cardinal));
-  FInStream.Read(LocalHeader^.UncompressedSize,   Sizeof(Cardinal));
-  FInStream.Read(LocalHeader^.FileNameLength,     Sizeof(Word));
-  FInStream.Read(LocalHeader^.ExtraFieldLength,   Sizeof(Word));
+  VerifyRead(FInStream, LocalHeader^.RequiredVersion,    Sizeof(Word));
+  VerifyRead(FInStream, LocalHeader^.Flag,               Sizeof(Word));
+  VerifyRead(FInStream, LocalHeader^.CompressionMethod,  Sizeof(Word));
+  VerifyRead(FInStream, LocalHeader^.ModifiedDateTime,   Sizeof(Cardinal));
+  VerifyRead(FInStream, LocalHeader^.CRC32,              Sizeof(Cardinal));
+  VerifyRead(FInStream, LocalHeader^.CompressedSize,     Sizeof(Cardinal));
+  VerifyRead(FInStream, LocalHeader^.UncompressedSize,   Sizeof(Cardinal));
+  VerifyRead(FInStream, LocalHeader^.FileNameLength,     Sizeof(Word));
+  VerifyRead(FInStream, LocalHeader^.ExtraFieldLength,   Sizeof(Word));
 
   SetLength(LocalHeader^.FileName, LocalHeader^.FileNameLength);
-  FInStream.Read(LocalHeader^.FileName[1], LocalHeader^.FileNameLength);
+  if LocalHeader^.FileNameLength > 0 then
+    VerifyRead(FInStream, LocalHeader^.FileName[1], LocalHeader^.FileNameLength);
   if LocalHeader^.ExtraFieldLength > 0 then
   begin
     SetLength(LocalHeader^.ExtraField, LocalHeader^.ExtraFieldLength);
-    FInStream.Read(LocalHeader^.ExtraField[1], LocalHeader^.ExtraFieldLength);
+    VerifyRead(FInStream, LocalHeader^.ExtraField[1], LocalHeader^.ExtraFieldLength);
   end;
 
 {$IFDEF DEBUGZIP}
