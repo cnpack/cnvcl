@@ -563,7 +563,11 @@ end;
 function TCnBaseHashMap.HasHashCode(AKey: Variant): Integer;
 begin
   if UseCustomHash then
-    Result := OnCustomHashCode(AKey, Length(FList), Size)
+  begin
+    Result := OnCustomHashCode(AKey, Length(FList), Size);
+    if Result < 0 then
+      Result := -Result;
+  end
   else
     Result := IntHashCode(VariantHashCode(AKey));
 end;

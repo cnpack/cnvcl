@@ -1265,7 +1265,8 @@ end;
 
 procedure TCnAnsiStrings.BeginUpdate;
 begin
-  if FUpdateCount = 0 then SetUpdateState(True);
+  if FUpdateCount = 0 then
+    SetUpdateState(True);
   Inc(FUpdateCount);
 end;
 
@@ -1279,7 +1280,8 @@ procedure TCnAnsiStrings.DefineProperties(Filer: TFiler);
       if Filer.Ancestor is TCnAnsiStrings then
         Result := not Equals(TCnAnsiStrings(Filer.Ancestor))
     end
-    else Result := Count > 0;
+    else
+      Result := Count > 0;
   end;
 
 begin
@@ -1289,7 +1291,8 @@ end;
 procedure TCnAnsiStrings.EndUpdate;
 begin
   Dec(FUpdateCount);
-  if FUpdateCount = 0 then SetUpdateState(False);
+  if FUpdateCount = 0 then
+    SetUpdateState(False);
 end;
 
 function TCnAnsiStrings.Equals(Strings: TCnAnsiStrings): Boolean;
@@ -1298,25 +1301,19 @@ var
 begin
   Result := False;
   Count := GetCount;
-  if Count <> Strings.GetCount then Exit;
-  for I := 0 to Count - 1 do if Get(I) <> Strings.Get(I) then Exit;
+  if Count <> Strings.GetCount then
+    Exit;
+
+  for I := 0 to Count - 1 do
+    if Get(I) <> Strings.Get(I) then
+      Exit;
+
   Result := True;
 end;
 
 procedure TCnAnsiStrings.Error(const Msg: AnsiString; Data: Integer);
-
-{$IFDEF MSWINDOWS}
-  function ReturnAddr: Pointer;
-  asm
-          MOV     EAX,[EBP+4]
-  end;
-{$ENDIF}
 begin
-{$IFDEF MSWINDOWS}
-  raise EStringListError.CreateFmt(string(Msg), [Data]) at ReturnAddr;
-{$ELSE}
   raise EStringListError.CreateFmt(string(Msg), [Data]);
-{$ENDIF}
 end;
 
 procedure TCnAnsiStrings.Error(Msg: PResStringRec; Data: Integer);
@@ -1349,12 +1346,13 @@ begin
   Result := S;
   P := AnsiPosChar(NameValueSeparator, S);
   if P <> 0 then
-    SetLength(Result, P-1) else
+    SetLength(Result, P - 1)
+  else
     SetLength(Result, 0);
 end;
 
 function TCnAnsiStrings.GetCapacity: Integer;
-begin  // descendents may optionally override/replace this default implementation
+begin
   Result := Count;
 end;
 
@@ -1369,6 +1367,7 @@ begin
   LOldQuoteChar := FQuoteChar;
   Delimiter := ',';
   QuoteChar := '"';
+
   try
     Result := GetDelimitedText;
   finally
@@ -1459,6 +1458,7 @@ begin
       System.Move(Pointer(S)^, P^, L);
       Inc(P, L);
     end;
+
     L := Length(LB);
     if L <> 0 then
     begin

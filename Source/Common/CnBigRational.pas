@@ -31,6 +31,7 @@ unit CnBigRational;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.17 V1.4
+*               修复 SetValue 两个重载未归一 0/-1 形态，及 EqualInt/IsNegative/ToString/ToDec 对零分子误判
 *               修复 SetFloat 对尾随零最短表示静默丢失 10^(E-L) 倍率的问题
 *           2026.10.14 V1.3
 *               修复 BigRationalAdd 与 BigRationalCompare 在分母为 -1 的未规约形式下符号处理错误的问题
@@ -973,8 +974,13 @@ begin
   if FDenominator.IsOne then
     Result := BigNumberCompare(Value, FNumerator) = 0
   else if FDenominator.IsNegOne then
-    Result := (BigNumberUnsignedCompare(Value, FNumerator) = 0)
-      and (FNumerator.IsNegative <> Value.IsNegative)
+  begin
+    if FNumerator.IsZero then
+      Result := Value.IsZero
+    else
+      Result := (BigNumberUnsignedCompare(Value, FNumerator) = 0)
+        and (FNumerator.IsNegative <> Value.IsNegative)
+  end
   else
     Result := False;
 end;
@@ -984,7 +990,12 @@ begin
   if FDenominator.IsOne then
     Result := FNumerator.IsWord(Value)
   else if FDenominator.IsNegOne then
-    Result := BigNumberAbsIsWord(FNumerator, Value) and FNumerator.IsNegative
+  begin
+    if FNumerator.IsZero then
+      Result := (Value = 0)
+    else
+      Result := BigNumberAbsIsWord(FNumerator, Value) and FNumerator.IsNegative
+  end
   else
     Result := False;
 end;
@@ -996,7 +1007,7 @@ end;
 
 function TCnBigRational.IsNegative: Boolean;
 begin
-  Result := FNumerator.IsNegative <> FDenominator.IsNegative;
+  Result := not FNumerator.IsZero and (FNumerator.IsNegative <> FDenominator.IsNegative);
 end;
 
 function TCnBigRational.IsOne: Boolean;
@@ -1189,6 +1200,9 @@ begin
     raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
   BigNumberCopy(FNumerator, ANumerator);
   BigNumberCopy(FDenominator, ADenominator);
+  // 归一 0/-1 形态，保持分母符号恒为正
+  if FNumerator.IsZero then
+    FDenominator.SetOne;
 end;
 
 procedure TCnBigRational.SetValue(const ANumerator, ADenominator: string);
@@ -1197,6 +1211,9 @@ begin
   FDenominator.SetDec(AnsiString(ADenominator));
   if FDenominator.IsZero then
     raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
+  // 归一 0/-1 形态，保持分母符号恒为正
+  if FNumerator.IsZero then
+    FDenominator.SetOne;
 end;
 
 procedure TCnBigRational.SetZero;
@@ -1250,7 +1267,7 @@ begin
     Result := FNumerator.ToDec;
     if Length(Result) > 0 then
     begin
-      if FDenominator.IsNegOne then // 分母如是负一，则值要改符号
+      if FDenominator.IsNegOne and not FNumerator.IsZero then // 分母是负一且分子非零时值要反符号
       begin
         if Result[1] <> '-' then
           Result := '-' + Result
@@ -1309,6 +1326,12 @@ end;
 
 function TCnBigRational.ToString: string;
 begin
+  if FNumerator.IsZero then
+  begin
+    Result := '0';
+    Exit;
+  end;
+
   if FDenominator.IsOne then
     Result := FNumerator.ToDec
   else if FDenominator.IsNegOne then

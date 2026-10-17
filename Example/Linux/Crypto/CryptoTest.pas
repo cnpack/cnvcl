@@ -123,6 +123,7 @@ function TestStringBuilderAppendModeMismatch: Boolean;
 function TestFastPositionBadCharRule: Boolean;
 function TestWideStringListSaveUtf8: Boolean;
 function TestGetCharLengthUtf8Truncated: Boolean;
+function TestUtf8DecodeMalformed: Boolean;
 
 // ============================== Containers ==================================
 
@@ -258,6 +259,7 @@ function TestBigRationalListLoadSaveMem: Boolean;
 function TestBigRationalCompareNegDenominator: Boolean;
 function TestBigRationalAddCompareNegOneDenominator: Boolean;
 function TestBigRationalSetFloatTrailingZeros: Boolean;
+function TestBigRationalZeroNegDenominator: Boolean;
 
 // ============================== Matrix =======================================
 
@@ -353,6 +355,7 @@ function TestBigDecimalListLoadSaveMem: Boolean;
 function TestBigDecimalRoundToDigitsNoop: Boolean;
 function TestBigBinaryRoundToDigitsNoop: Boolean;
 function TestBigDecimalToFloatRounding: Boolean;
+function TestCompareExtendedInfinity: Boolean;
 function TestBigComplexDecimalEulerExp: Boolean;
 function TestBigComplexDecimalLn: Boolean;
 function TestBigComplexDecimalSin: Boolean;
@@ -1984,6 +1987,7 @@ begin
   MyAssert(TestFastPositionBadCharRule, 'TestFastPositionBadCharRule');
   MyAssert(TestWideStringListSaveUtf8, 'TestWideStringListSaveUtf8');
   MyAssert(TestGetCharLengthUtf8Truncated, 'TestGetCharLengthUtf8Truncated');
+  MyAssert(TestUtf8DecodeMalformed, 'TestUtf8DecodeMalformed');
 
 // ============================== Containers ==================================
 
@@ -2119,6 +2123,7 @@ begin
   MyAssert(TestBigRationalCompareNegDenominator, 'TestBigRationalCompareNegDenominator');
   MyAssert(TestBigRationalAddCompareNegOneDenominator, 'TestBigRationalAddCompareNegOneDenominator');
   MyAssert(TestBigRationalSetFloatTrailingZeros, 'TestBigRationalSetFloatTrailingZeros');
+  MyAssert(TestBigRationalZeroNegDenominator, 'TestBigRationalZeroNegDenominator');
 
 // ============================== Matrix =======================================
 
@@ -2214,6 +2219,7 @@ begin
   MyAssert(TestBigDecimalRoundToDigitsNoop, 'TestBigDecimalRoundToDigitsNoop');
   MyAssert(TestBigBinaryRoundToDigitsNoop, 'TestBigBinaryRoundToDigitsNoop');
   MyAssert(TestBigDecimalToFloatRounding, 'TestBigDecimalToFloatRounding');
+  MyAssert(TestCompareExtendedInfinity, 'TestCompareExtendedInfinity');
   MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
   MyAssert(TestBigComplexDecimalLn, 'TestBigComplexDecimalLn');
   MyAssert(TestBigComplexDecimalSin, 'TestBigComplexDecimalSin');
@@ -4609,6 +4615,63 @@ begin
   if not Result then Exit;
   S := #$E4#$B8#0'B';
   Result := GetByteWidthFromUtf8(PAnsiChar(S)) = 2;
+end;
+
+function TestUtf8DecodeMalformed: Boolean;
+{ CnWideStrings.InternalUtf8ToUnicode（经 CnUtf8DecodeToWideString）原对单个
+  畸形/截断 UTF-8 序列即整串返回空，丢失全部有效前文；修复后按序列输出
+  U+FFFD 替换字符并继续解码 }
+var
+  W: TCnWideString;
+begin
+  Result := False;
+
+  { 合法路径回归：ASCII + 3 字节"中" + ASCII }
+  W := CnUtf8DecodeToWideString('A'#$E4#$B8#$AD'B');
+  if (Length(W) <> 3) or (W[1] <> 'A') or (W[2] <> WideChar($4E2D)) or
+    (W[3] <> 'B') then Exit;
+
+  { 合法 4 字节：应得一对代理 }
+  W := CnUtf8DecodeToWideString('A'#$F0#$9F#$92#$A9'B');
+  if (Length(W) <> 4) or (W[1] <> 'A') or (W[4] <> 'B') then Exit;
+  if (Ord(W[2]) and $FC00) <> $D800 then Exit;
+  if (Ord(W[3]) and $FC00) <> $DC00 then Exit;
+
+  { 截断于末尾：裸首字节，有效前文保留并追加一个替换字符 }
+  W := CnUtf8DecodeToWideString('AB'#$E4);
+  if (Length(W) <> 3) or (W[1] <> 'A') or (W[2] <> 'B') or
+    (W[3] <> WideChar($FFFD)) then Exit;
+
+  { 截断于末尾：3 字节仅 1 个续接 }
+  W := CnUtf8DecodeToWideString('AB'#$E4#$B8);
+  if (Length(W) <> 3) or (W[1] <> 'A') or (W[2] <> 'B') or
+    (W[3] <> WideChar($FFFD)) then Exit;
+
+  { 截断于末尾：4 字节仅 2 个续接，整个截断序列仅计一个替换字符 }
+  W := CnUtf8DecodeToWideString('A'#$F0#$9F#$92);
+  if (Length(W) <> 2) or (W[1] <> 'A') or (W[2] <> WideChar($FFFD)) then Exit;
+
+  { 非法续接字节：$E4 后跟 ASCII，该字节按普通字符重新处理 }
+  W := CnUtf8DecodeToWideString('A'#$E4#$41#$42);
+  if (Length(W) <> 4) or (W[1] <> 'A') or (W[2] <> WideChar($FFFD)) or
+    (W[3] <> 'A') or (W[4] <> 'B') then Exit;
+
+  { 游离续接字节：$B8 不能作首字节 }
+  W := CnUtf8DecodeToWideString('A'#$B8'B');
+  if (Length(W) <> 3) or (W[1] <> 'A') or (W[2] <> WideChar($FFFD)) or
+    (W[3] <> 'B') then Exit;
+
+  { 非法首字节 $FF }
+  W := CnUtf8DecodeToWideString('A'#$FF'B');
+  if (Length(W) <> 3) or (W[1] <> 'A') or (W[2] <> WideChar($FFFD)) or
+    (W[3] <> 'B') then Exit;
+
+  { 畸形在中间，其后的合法内容同样保留 }
+  W := CnUtf8DecodeToWideString(#$E4#$B8'X'#$E4#$B8#$AD);
+  if (Length(W) <> 3) or (W[1] <> WideChar($FFFD)) or (W[2] <> 'X') or
+    (W[3] <> WideChar($4E2D)) then Exit;
+
+  Result := True;
 end;
 
 function TestRingBufferBackOverwrite: Boolean;
@@ -9243,6 +9306,59 @@ begin
   end;
 end;
 
+function TestBigRationalZeroNegDenominator: Boolean;
+var
+  R: TCnBigRational;
+  N, D: TCnBigNumber;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  N := TCnBigNumber.Create;
+  D := TCnBigNumber.Create;
+  try
+    // SetValue(string) 应把 0/-1 归一为 0/1
+    R.SetValue('0', '-1');
+    if R.ToString <> '0' then Exit;
+    if R.ToDec <> '0' then Exit;
+    if not R.EqualInt(0) then Exit;
+    if R.IsNegative then Exit;
+
+    // SetValue(TCnBigNumber) 同样归一
+    N.SetDec(AnsiString('0'));
+    D.SetDec(AnsiString('-1'));
+    R.SetValue(N, D);
+    if R.ToString <> '0' then Exit;
+    if not R.EqualInt(0) then Exit;
+    if not R.EqualInt(N) then Exit;
+
+    // 遗留 0/-1 形态（直接改写分母符号）的消费点防御
+    R.SetZero;
+    R.Denominator.SetNegative(True);
+    if R.ToString <> '0' then Exit;
+    if R.ToDec <> '0' then Exit;
+    if not R.EqualInt(0) then Exit;
+    if not R.EqualInt(N) then Exit;
+    if R.IsNegative then Exit;
+
+    // 回归：非零零分子的负一分母形态语义不变
+    R.SetValue('5', '-1');
+    if R.ToString <> '-5' then Exit;
+    if not R.IsNegative then Exit;
+    if R.EqualInt(5) then Exit;
+    D.SetDec(AnsiString('-5'));
+    if not R.EqualInt(D) then Exit;
+    R.SetValue('-5', '-1');
+    if R.ToString <> '5' then Exit;
+    if R.IsNegative then Exit;
+    if not R.EqualInt(5) then Exit;
+  finally
+    D.Free;
+    N.Free;
+    R.Free;
+  end;
+  Result := True;
+end;
+
 // ============================== Matrix =======================================
 
 function TestRationalNumberNegOneDenominator: Boolean;
@@ -12557,6 +12673,51 @@ begin
     R.Free;
     A.Free;
   end;
+end;
+
+function TestCompareExtendedInfinity: Boolean;
+var
+  B: TCnBigDecimal;
+  C: TCnBigBinary;
+  PosInf, NegInf: Extended;
+begin
+  Result := False;
+  B := TCnBigDecimal.Create;
+  C := TCnBigBinary.Create;
+  try
+    PosInf := ExtendedInfinity;
+    NegInf := ExtendedInfinity(True);
+
+    // +Inf 大于任何有限值，-Inf 小于任何有限值
+    B.SetInt64(1234567890123456789);
+    if BigDecimalCompare(B, PosInf) <> -1 then Exit;
+    if BigDecimalCompare(B, NegInf) <> 1 then Exit;
+    B.SetInt64(-987654321098765432);
+    if BigDecimalCompare(B, PosInf) <> -1 then Exit;
+    if BigDecimalCompare(B, NegInf) <> 1 then Exit;
+    B.SetZero;
+    if BigDecimalCompare(B, PosInf) <> -1 then Exit;
+    if BigDecimalCompare(B, NegInf) <> 1 then Exit;
+
+    // 回归：有限 Extended 仍走原转换路径
+    if BigDecimalCompare(B, 0.0) <> 0 then Exit;
+    B.SetInt64(2);
+    if BigDecimalCompare(B, 1.0) <> 1 then Exit;
+    if BigDecimalCompare(B, 3.0) <> -1 then Exit;
+
+    // BigBinary 比较同理
+    C.SetInt64(100);
+    if BigBinaryCompare(C, PosInf) <> -1 then Exit;
+    if BigBinaryCompare(C, NegInf) <> 1 then Exit;
+    if BigBinaryCompare(C, 100.0) <> 0 then Exit;
+    C.SetInt64(-5);
+    if BigBinaryCompare(C, NegInf) <> 1 then Exit;
+    if BigBinaryCompare(C, 1.0) <> -1 then Exit;
+  finally
+    C.Free;
+    B.Free;
+  end;
+  Result := True;
 end;
 
 // ============================== BigBinary ====================================

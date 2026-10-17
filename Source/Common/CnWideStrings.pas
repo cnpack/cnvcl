@@ -41,6 +41,7 @@ unit CnWideStrings;
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2026.10.17 V1.5
+*               InternalUtf8ToUnicode 畸形/截断序列改为输出 U+FFFD 替换字符并继续解码，不再整串失败返回空
 *               GetByteWidthFromUtf8 校验续接字节，截断/非法序列不再越过 #0 越界扫描
 *           2026.06.11 V1.4
 *               加载时优化对无 BOM 文件内容的编码检测
@@ -1343,13 +1344,38 @@ begin
 
       if (WC and $80) <> 0 then
       begin
-        if I >= SourceBytes then                // 不完整
-          Exit;
+        if ((WC and $C0) = $80) or ((WC and $F8) = $F8) then
+        begin
+          // 游离续接字节或非法首字节：输出替换字符并跳过该字节
+          Dest[Cnt] := WideChar($FFFD);
+          Inc(Cnt);
+          Continue;
+        end;
+
+        if I >= SourceBytes then
+        begin
+          // 截断于末尾：输出替换字符后结束
+          Dest[Cnt] := WideChar($FFFD);
+          Inc(Cnt);
+          Continue;
+        end;
 
         if (WC and $F0) = $F0 then              // 四字节（未限定第四位必须是 0），单独处理，再步进三个字符，拼成字符值，再算成四字节的 UTF-16 编码
         begin
-          if SourceBytes - I < 3 then           // 不够四字节则出错退出
-            Exit;
+          if SourceBytes - I < 3 then
+          begin
+            // 4 字节序列截断：跳过可用的合法续接字节，输出一个替换字符
+            while I < SourceBytes do
+            begin
+              if (Byte(Source[I]) and $C0) = $80 then
+                Inc(I)
+              else
+                Break;
+            end;
+            Dest[Cnt] := WideChar($FFFD);
+            Inc(Cnt);
+            Continue;
+          end;
 
           // WC 是第一个字节，取低三位（未限定第四位必须是 0），后面仨字节各取低六位，得到码点
           WC := ((WC and $7) shl 18) + ((Cardinal(Source[I]) and $3F) shl 12)
@@ -1368,16 +1394,32 @@ begin
           begin
             C := Byte(Source[I]);
             Inc(I);
-            if (C and $C0) <> $80 then           // malformed trail byte or out of range char
-              Exit;
-            if I >= SourceBytes then             // incomplete multibyte char
-              Exit;
+            if (C and $C0) <> $80 then
+            begin
+              Dec(I);
+              Dest[Cnt] := WideChar($FFFD);
+              Inc(Cnt);
+              Continue;
+            end;
+            if I >= SourceBytes then
+            begin
+              // 截断：首字节与已消耗的合法续接字节输出一个替换字符
+              Dest[Cnt] := WideChar($FFFD);
+              Inc(Cnt);
+              Continue;
+            end;
             WC := (WC shl 6) or (C and $3F);
           end;
           C := Byte(Source[I]);
           Inc(I);
-          if (C and $C0) <> $80 then             // malformed trail byte
-            Exit;
+          if (C and $C0) <> $80 then
+          begin
+            // 非法续接：仅消耗首字节，当前字节留待重新处理
+            Dec(I);
+            Dest[Cnt] := WideChar($FFFD);
+            Inc(Cnt);
+            Continue;
+          end;
 
           Dest[Cnt] := WideChar((WC shl 6) or (C and $3F));
         end;
@@ -1400,36 +1442,76 @@ begin
 
       if (C and $80) <> 0 then                  // 最高位为 1，至少二字节
       begin
-        if I >= SourceBytes then                // incomplete multibyte char
-          Exit;
+        if ((C and $C0) = $80) or ((C and $F8) = $F8) then
+        begin
+          // 游离续接字节或非法首字节：计一个替换字符并跳过该字节
+          Inc(Cnt);
+          Continue;
+        end;
+
+        if I >= SourceBytes then
+        begin
+          // 截断于末尾：计一个替换字符后结束
+          Inc(Cnt);
+          Continue;
+        end;
 
         C := C and $3F;                         // 留下第一个字节的低六位，前两位已经当成 11 了
         if (C and $20) <> 0 then                // 如果是 1110，则表示至少有仨字节
         begin
           if (C and $10) <> 0 then              // 如果是 11110，则表示共有四字节
           begin
+            if SourceBytes - I < 3 then
+            begin
+              // 4 字节序列截断：跳过可用的合法续接字节，计一个替换字符
+              while I < SourceBytes do
+              begin
+                if (Byte(Source[I]) and $C0) = $80 then
+                  Inc(I)
+                else
+                  Break;
+              end;
+              Inc(Cnt);
+              Continue;
+            end;
             C := Byte(Source[I]);               // 读第四个中的第二个字节
             Inc(I);
-            if (C and $C0) <> $80 then          // 该字节最高两位得是 10
-              Exit;                             // malformed trail byte or out of range char
-            if I >= SourceBytes then
-              Exit;                             // incomplete multibyte char
+
+            if (C and $C0) <> $80 then
+            begin
+              Dec(I);
+              Inc(Cnt);
+              Continue;
+            end;
 
             Inc(Cnt);                           // 四字节的 UTF8，应对应 UTF-16 中的两个 WideChar，这里额外加一
           end;
 
           C := Byte(Source[I]);                 // 读四个中的第三个字节，或三个中的第二个字节
           Inc(I);
-          if (C and $C0) <> $80 then            // 该字节最高两位得是 10，否则退出
-            Exit;
+          if (C and $C0) <> $80 then
+          begin
+            Dec(I);
+            Inc(Cnt);
+            Continue;
+          end;
           if I >= SourceBytes then
-            Exit;                               // incomplete multibyte char
+          begin
+            // 截断：首字节与已消耗的合法续接字节计为一个替换字符
+            Inc(Cnt);
+            Continue;
+          end;
         end;
 
         C := Byte(Source[I]);                   // 读四个中的第四个字节，或三个中的第三个字节，或二个中的第二个字节
         Inc(I);
-        if (C and $C0) <> $80 then              // 该字节最高两位得是 10，否则退出
-          Exit;                                 // malformed trail byte
+        if (C and $C0) <> $80 then
+        begin
+          // 非法续接：仅消耗首字节，当前字节留待重新处理
+          Dec(I);
+          Inc(Cnt);
+          Continue;
+        end;
       end;
 
       Inc(Cnt);

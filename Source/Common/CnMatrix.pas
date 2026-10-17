@@ -32,6 +32,7 @@ unit CnMatrix;
 * 兼容测试：暂未进行。另外 Hadamard 相关乘法，积矩阵可否是原矩阵待考察
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.17 V1.5
+*               CnMatrixMinor/Adjoint/Inverse 九个重载补结果与输入同矩阵的守卫，仿 CnMatrixMul，避免原地操作静默错值
 *               CnMatrixAdjoint 三个重载补 1x1 特判，修复 1x1 矩阵伴随/求逆恒抛异常
 *           2026.01.25 V1.4
 *               调整有理数相关函数的参数顺序，注意和旧版不兼容
@@ -1009,7 +1010,7 @@ procedure CnMatrixTranspose(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overl
 
 procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row: Integer; Col: Integer;
   MinorResult: TCnIntMatrix); overload;
-{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。MinorResult 不能是 Matrix。
 
    参数：
      Matrix: TCnIntMatrix                 - 待求余子式的原矩阵
@@ -1021,7 +1022,7 @@ procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row: Integer; Col: Integer;
 }
 
 procedure CnMatrixAdjoint(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
-{* 求方阵的伴随阵。
+{* 求方阵的伴随阵。Matrix2 不能是 Matrix1。
 
    参数：
      Matrix1: TCnIntMatrix                - 待求伴随阵的原矩阵
@@ -1032,7 +1033,7 @@ procedure CnMatrixAdjoint(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overloa
 
 procedure CnMatrixInverse(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式，注意 TCnIntMatrix 不直接支持逆矩阵，
-   因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵。
+   因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵。Matrix2 不能是 Matrix1。
 
    参数：
      Matrix1: TCnIntMatrix                - 待求逆矩阵的原矩阵
@@ -1104,7 +1105,7 @@ procedure CnMatrixTranspose(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); o
 
 procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row: Integer; Col: Integer;
   MinorResult: TCnFloatMatrix); overload;
-{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。MinorResult 不能是 Matrix。
 
    参数：
      Matrix: TCnFloatMatrix               - 待求余子式的原矩阵
@@ -1116,7 +1117,7 @@ procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row: Integer; Col: Integer;
 }
 
 procedure CnMatrixAdjoint(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
-{* 求方阵的伴随阵。
+{* 求方阵的伴随阵。Matrix2 不能是 Matrix1。
 
    参数：
      Matrix1: TCnFloatMatrix              - 待求伴随阵的原矩阵
@@ -1126,7 +1127,7 @@ procedure CnMatrixAdjoint(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); ove
 }
 
 procedure CnMatrixInverse(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
-{* 求方阵的逆矩阵，也就是伴随阵除以行列式。
+{* 求方阵的逆矩阵，也就是伴随阵除以行列式。Matrix2 不能是 Matrix1。
 
    参数：
      Matrix1: TCnFloatMatrix              - 待求逆矩阵的原矩阵
@@ -1209,7 +1210,7 @@ procedure CnMatrixTranspose(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatr
 
 procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row: Integer; Col: Integer;
   MinorResult: TCnRationalMatrix); overload;
-{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。MinorResult 不能是 Matrix。
 
    参数：
      Matrix: TCnRationalMatrix            - 待求余子式的原矩阵
@@ -1221,7 +1222,7 @@ procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row: Integer; Col: Integer;
 }
 
 procedure CnMatrixAdjoint(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
-{* 求方阵的伴随阵。
+{* 求方阵的伴随阵。Matrix2 不能是 Matrix1。
 
    参数：
      Matrix1: TCnRationalMatrix           - 待求伴随阵的原矩阵
@@ -1231,7 +1232,7 @@ procedure CnMatrixAdjoint(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix
 }
 
 procedure CnMatrixInverse(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
-{* 求方阵的逆矩阵，也就是伴随阵除以行列式，需要有理数矩阵来表示。
+{* 求方阵的逆矩阵，也就是伴随阵除以行列式，需要有理数矩阵来表示。Matrix2 不能是 Matrix1。
 
    参数：
      Matrix1: TCnRationalMatrix           - 待求逆矩阵的原矩阵
@@ -1951,6 +1952,9 @@ procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TC
 var
   SR, SC, DR, DC: Integer;
 begin
+  if MinorResult = Matrix then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if ((Row < 0) or (Row >= Matrix.RowCount)) or
     ((Col < 0) or (Col >= Matrix.ColCount)) then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColMinorFmt, [Row, Col]);
@@ -1995,6 +1999,9 @@ procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row, Col: Integer; MinorResult: 
 var
   SR, SC, DR, DC: Integer;
 begin
+  if MinorResult = Matrix then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if ((Row < 0) or (Row >= Matrix.RowCount)) or
     ((Col < 0) or (Col >= Matrix.ColCount)) then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColMinorFmt, [Row, Col]);
@@ -2039,6 +2046,9 @@ procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row, Col: Integer; MinorResul
 var
   SR, SC, DR, DC: Integer;
 begin
+  if MinorResult = Matrix then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if ((Row < 0) or (Row >= Matrix.RowCount)) or
     ((Col < 0) or (Col >= Matrix.ColCount)) then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColMinorFmt, [Row, Col]);
@@ -2084,6 +2094,9 @@ var
   I, J: Integer;
   Minor: TCnIntMatrix;
 begin
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if not Matrix1.IsSquare then
     raise ECnMatrixException.Create(SCnErrorAdjointSquare);
 
@@ -2120,6 +2133,9 @@ var
   I, J: Integer;
   Minor: TCnFloatMatrix;
 begin
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if not Matrix1.IsSquare then
     raise ECnMatrixException.Create(SCnErrorAdjointSquare);
 
@@ -2157,6 +2173,9 @@ var
   Minor: TCnRationalMatrix;
   T: TCnRationalNumber;
 begin
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if not Matrix1.IsSquare then
     raise ECnMatrixException.Create(SCnErrorAdjointSquare);
 
@@ -2196,6 +2215,9 @@ procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix);
 var
   D: Int64;
 begin
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   D := Matrix1.Determinant;
   if D = 0 then
     raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
@@ -2208,6 +2230,9 @@ procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix);
 var
   D, Scale: Extended;
 begin
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   D := Matrix1.Determinant;
   Scale := InternalFloatMatrixDeterminantScale(Matrix1);
   // 与 IsSingular 保持同一套相对阈值，避免绝对阈值拒绝可逆的小数值矩阵
@@ -2222,6 +2247,9 @@ procedure CnMatrixInverse(Matrix1, Matrix2: TCnRationalMatrix);
 var
   D: TCnRationalNumber;
 begin
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   D := TCnRationalNumber.Create;
   try
     Matrix1.Determinant(D);

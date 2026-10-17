@@ -33,7 +33,9 @@ unit CnBigDecimal;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.14 V1.4
+* 修改记录：2026.10.17 V1.5
+*               BigDecimalCompare/BigBinaryCompare 的 Extended 重载支持 Inf 比较，+Inf/-Inf 直接返回 -1/+1，不再抛 EInvalidOp
+*           2026.10.14 V1.4
 *               BigDecimal 与 BigBinary 转浮点数时支持非规格化数与溢出，尾数按 IEEE754
 *               规则做最近舍入（半到偶）；修正舍入进位归一化时把指数多加了 1 的问题
 *           2024.12.05 V1.3
@@ -2416,6 +2418,16 @@ function BigDecimalCompare(Num1: TCnBigDecimal; Num2: Extended): Integer;
 var
   T: TCnBigDecimal;
 begin
+  // Inf 可比：+Inf 大于任何有限值，-Inf 小于任何有限值，不经 SetExtended 转换
+  if ExtendedIsInfinite(Num2) then
+  begin
+    if Num2 > 0 then
+      Result := -1
+    else
+      Result := 1;
+    Exit;
+  end;
+
   T := FLocalBigDecimalPool.Obtain;
   try
     T.SetExtended(Num2);
@@ -3992,6 +4004,16 @@ function BigBinaryCompare(Num1: TCnBigBinary; Num2: Extended): Integer; overload
 var
   T: TCnBigBinary;
 begin
+  // Inf 可比：+Inf 大于任何有限值，-Inf 小于任何有限值，不经 SetExtended 转换
+  if ExtendedIsInfinite(Num2) then
+  begin
+    if Num2 > 0 then
+      Result := -1
+    else
+      Result := 1;
+    Exit;
+  end;
+
   T := FLocalBigBinaryPool.Obtain;
   try
     T.SetExtended(Num2);
