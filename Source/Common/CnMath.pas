@@ -1102,8 +1102,8 @@ begin
   end;
 
   if Result = '' then
-    Result := '0'
-  else if Neg then
+    Result := '0';
+  if Neg then
     Result := '-' + Result;
 
   if S <> '.' then

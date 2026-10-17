@@ -30,7 +30,9 @@ unit CnBigRational;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.14 V1.3
+* 修改记录：2026.10.17 V1.4
+*               修复 SetFloat 对尾随零最短表示静默丢失 10^(E-L) 倍率的问题
+*           2026.10.14 V1.3
 *               修复 BigRationalAdd 与 BigRationalCompare 在分母为 -1 的未规约形式下符号处理错误的问题
 *           2026.01.26 V1.2
 *               增加大有理数列表类的实现，更改部分函数名以与其他类一致
@@ -1101,17 +1103,31 @@ var
   F: TFloatRec;
   I, L: Integer;
 begin
+  if AFloat = 0 then
+  begin
+    // FloatToDecimal(0) 返回空 Digits 且 Exponent=0，按下方逻辑会得到错误的 1/1，直接短路为零
+    SetZero;
+    Exit;
+  end;
+
   // 分离出符号位、有效数字与指数
   FloatToDecimal(F, AFloat, fvExtended, 18, 9999);
 
   L := StrLen(PAnsiChar(@F.Digits[0]));
-  // 分母是 10 的 L - F.Exponent 次方，分子是纯的 Digits
+  // 分母是 10 的 L - F.Exponent 次方，分子读 Digits；当 Exponent > L 时，
+  // 说明 FloatToDecimal 返回的是剥离尾随零的最短表示（如 1000 -> "1"/E=4），
+  // 此时须给分子乘 10^(Exponent - L)，否则倍率被静默丢失
   FDenominator.SetOne;
-  for I := 1 to L - F.Exponent do
-    FDenominator.MulWord(10);
-
   FNumerator.SetDec(PAnsiChar(@F.Digits[0]));
   FNumerator.SetNegative(F.Negative);
+  if F.Exponent > L then
+  begin
+    for I := 1 to F.Exponent - L do
+      FNumerator.MulWord(10);
+  end
+  else
+    for I := 1 to L - F.Exponent do
+      FDenominator.MulWord(10);
   Reduce;
 end;
 

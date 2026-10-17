@@ -40,7 +40,9 @@ unit CnWideStrings;
 * 开发平台：WinXP SP3 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.06.11 V1.4
+* 修改记录：2026.10.17 V1.5
+*               GetByteWidthFromUtf8 校验续接字节，截断/非法序列不再越过 #0 越界扫描
+*           2026.06.11 V1.4
 *               加载时优化对无 BOM 文件内容的编码检测
 *           2025.08.06 V1.3
 *               Ansi 转换为 Utf8 支持 FPC
@@ -441,18 +443,18 @@ function CalcAnsiDisplayLengthFromWideStringOffset(Text: PWideChar; WideOffset: 
 
 function CalcWideStringByteLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
   AllowExceedEnd: Boolean = False): Integer;
-{* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串的字节长度，AnsiOffset 从 1 开始。
+{* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串的字符长度，AnsiOffset 从 1 开始。
    等于内容转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。
    AllowExceedEnd 为 False 时，计算到 #0 便会终止，不包括 #0。为 True 时，以补空格方式计算。
-   大于 $FF 的 UTF-16 字符当作 2 字节，否则为 1 字节。
+   大于 $FF 的 UTF-16 字符会在转换 Ansi 时当作 2 字节，否则为 1 字节。
 
    参数：
      Text: PWideChar                      - 待计算的宽字符串地址
      AnsiOffset: Integer                  - 以单字节字符为单位的偏移量
      AllowExceedEnd: Boolean              - 是否遇到 #0 时终止
 
-   返回值：Integer                        - 返回该宽字符串转换为 Ansi 后从 1 到 AnsiOffset 子串长度对应的 Unicode 字符串的字节长度
+   返回值：Integer                        - 返回该宽字符串转换为 Ansi 后从 1 到 AnsiOffset 子串长度对应的 Unicode 字符串的字符长度
 }
 
 function CalcWideStringDisplayLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
@@ -1196,7 +1198,7 @@ begin
   if Value <> '' then
   begin
     if I < 0 then I := Add('');
-    Put(I, Name + '=' + Value);
+    Put(I, Name + FNameValueSeparator + Value);
   end
   else
   begin
@@ -1537,6 +1539,7 @@ end;
 function GetByteWidthFromUtf8(Utf8Str: PAnsiChar): Integer;
 var
   B: Byte;
+  I: Integer;
 begin
   B := Byte(Utf8Str^);
   if B >= $FC then        // 6 个 1，1 个 0，先不考虑七或八 1 的情况
@@ -1551,6 +1554,21 @@ begin
     Result := 2
   else                    // 其他
     Result := 1;
+
+  if Result > 1 then
+  begin
+    // 校验名义续接字节：遇 #0 或非 $80..$BF 的非法续接时返回实际可用宽度，
+    // 防止截断/非法序列使调用方越过字符串终止符越界扫描
+    for I := 1 to Result - 1 do
+    begin
+      B := Byte((Utf8Str + I)^);
+      if (B = 0) or ((B and $C0) <> $80) then
+      begin
+        Result := I;
+        Break;
+      end;
+    end;
+  end;
 end;
 
 function GetByteWidthFromUtf16(Utf16Str: PWideChar): Integer;

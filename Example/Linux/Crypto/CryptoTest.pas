@@ -122,6 +122,7 @@ function TestStringBuilderAnsiModeToString: Boolean;
 function TestStringBuilderAppendModeMismatch: Boolean;
 function TestFastPositionBadCharRule: Boolean;
 function TestWideStringListSaveUtf8: Boolean;
+function TestGetCharLengthUtf8Truncated: Boolean;
 
 // ============================== Containers ==================================
 
@@ -256,11 +257,13 @@ function TestBigRationalLoadSaveMem: Boolean;
 function TestBigRationalListLoadSaveMem: Boolean;
 function TestBigRationalCompareNegDenominator: Boolean;
 function TestBigRationalAddCompareNegOneDenominator: Boolean;
+function TestBigRationalSetFloatTrailingZeros: Boolean;
 
 // ============================== Matrix =======================================
 
 function TestRationalNumberNegOneDenominator: Boolean;
 function TestMatrixZigZagRowCol: Boolean;
+function TestMatrixAdjointInverse1x1: Boolean;
 
 // ================================ Bits =======================================
 
@@ -1980,6 +1983,7 @@ begin
   MyAssert(TestAnsiStringsNameValueByteIndex, 'TestAnsiStringsNameValueByteIndex');
   MyAssert(TestFastPositionBadCharRule, 'TestFastPositionBadCharRule');
   MyAssert(TestWideStringListSaveUtf8, 'TestWideStringListSaveUtf8');
+  MyAssert(TestGetCharLengthUtf8Truncated, 'TestGetCharLengthUtf8Truncated');
 
 // ============================== Containers ==================================
 
@@ -2114,11 +2118,13 @@ begin
   MyAssert(TestBigRationalListLoadSaveMem, 'TestBigRationalListLoadSaveMem');
   MyAssert(TestBigRationalCompareNegDenominator, 'TestBigRationalCompareNegDenominator');
   MyAssert(TestBigRationalAddCompareNegOneDenominator, 'TestBigRationalAddCompareNegOneDenominator');
+  MyAssert(TestBigRationalSetFloatTrailingZeros, 'TestBigRationalSetFloatTrailingZeros');
 
 // ============================== Matrix =======================================
 
   MyAssert(TestRationalNumberNegOneDenominator, 'TestRationalNumberNegOneDenominator');
   MyAssert(TestMatrixZigZagRowCol, 'TestMatrixZigZagRowCol');
+  MyAssert(TestMatrixAdjointInverse1x1, 'TestMatrixAdjointInverse1x1');
 
 // ================================ Bits =======================================
 
@@ -4561,6 +4567,48 @@ begin
     M.Free;
     L.Free;
   end;
+end;
+
+function TestGetCharLengthUtf8Truncated: Boolean;
+{ CnWideStrings.GetCharLengthFromUtf8/GetByteWidthFromUtf8 遇截断/非法 UTF-8
+  序列须停在 #0 终止符处，不得越过终止符越界扫描 }
+var
+  S: AnsiString;
+begin
+  { 正常路径：ASCII + 完整 3 字节 UTF-8 }
+  S := 'A'#$E4#$B8#$AD#0;
+  Result := GetCharLengthFromUtf8(PAnsiChar(S)) = 2;
+  if not Result then Exit;
+
+  { 截断：首字节后紧跟 #0，须停在终止符（修复前会跳过 #0 把后面的字符也计入） }
+  S := 'A'#$E4#0'B'#$43#0;
+  Result := GetCharLengthFromUtf8(PAnsiChar(S)) = 2;
+  if not Result then Exit;
+
+  { 截断：第 2 个续接字节处遇 #0 }
+  S := 'X'#$E4#$B8#0'B';
+  Result := GetCharLengthFromUtf8(PAnsiChar(S)) = 2;
+  if not Result then Exit;
+
+  { 非法续接字节（非 $80..$BF）：首字节按 1 计，后续字节重新逐字节同步 }
+  S := 'A'#$E4#$41#$42#0;
+  Result := GetCharLengthFromUtf8(PAnsiChar(S)) = 4;
+  if not Result then Exit;
+
+  { GetByteWidthFromUtf8：合法 3 字节序列返回名义宽度 3 }
+  S := #$E4#$B8#$AD#0;
+  Result := GetByteWidthFromUtf8(PAnsiChar(S)) = 3;
+  if not Result then Exit;
+
+  { 截断的 2/3 字节序列返回实际可用宽度 }
+  S := #$C3#0'B';
+  Result := GetByteWidthFromUtf8(PAnsiChar(S)) = 1;
+  if not Result then Exit;
+  S := #$E4#0'B';
+  Result := GetByteWidthFromUtf8(PAnsiChar(S)) = 1;
+  if not Result then Exit;
+  S := #$E4#$B8#0'B';
+  Result := GetByteWidthFromUtf8(PAnsiChar(S)) = 2;
 end;
 
 function TestRingBufferBackOverwrite: Boolean;
@@ -9157,6 +9205,44 @@ begin
   end;
 end;
 
+function TestBigRationalSetFloatTrailingZeros: Boolean;
+{ CnBigRational TCnBigRational.SetFloat 依赖 FloatToDecimal 的最短数字串（尾随零
+  被剥离，如 1000 -> Digits="1"/Exponent=4），原代码仅在 L > E 时给分母乘 10^(L-E)，
+  E > L 时循环不执行，10^(E-L) 倍率被静默丢失。修复前 SetFloat(1000) 得 1。 }
+var
+  R: TCnBigRational;
+begin
+  Result := False;
+  R := TCnBigRational.Create;
+  try
+    { 缺陷路径：带尾随零的整数量级 }
+    R.SetFloat(1000);
+    if R.ToString <> '1000' then Exit;
+    R.SetFloat(1e20);
+    if R.ToString <> '100000000000000000000' then Exit;
+    R.SetFloat(-2500);
+    if R.ToString <> '-2500' then Exit;
+    R.SetFloat(120.5);                 // "1205"/E=3 -> 1205/10 -> 241/2
+    if R.ToString <> '241 / 2' then Exit;
+
+    { 对照：不经缺陷分支的既有正确路径 }
+    R.SetFloat(0.5);
+    if R.ToString <> '1 / 2' then Exit;
+    R.SetFloat(123456);                // 无尾随零，L=E，分母 1
+    if R.ToString <> '123456' then Exit;
+    R.SetFloat(-0.25);
+    if R.ToString <> '-1 / 4' then Exit;
+    R.SetFloat(0);
+    if R.ToString <> '0' then Exit;
+    R.SetFloat(100.25);                // "10025"/E=3 -> 10025/100 -> 401/4
+    if R.ToString <> '401 / 4' then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+  end;
+end;
+
 // ============================== Matrix =======================================
 
 function TestRationalNumberNegOneDenominator: Boolean;
@@ -9346,6 +9432,125 @@ begin
   ZigZagToRowCol(21, R, C, 5); if (R <> 2) or (C <> 4) then Exit;
 
   Result := True;
+end;
+
+function TestMatrixAdjointInverse1x1: Boolean;
+var
+  IntM, IntA, IntI: TCnIntMatrix;
+  FltM, FltA, FltI: TCnFloatMatrix;
+  RatM, RatA, RatI: TCnRationalMatrix;
+  T: TCnRationalNumber;
+  OK: Boolean;
+begin
+  Result := False;
+  IntM := TCnIntMatrix.Create(1, 1);
+  IntA := TCnIntMatrix.Create(1, 1);
+  IntI := TCnIntMatrix.Create(1, 1);
+  FltM := TCnFloatMatrix.Create(1, 1);
+  FltA := TCnFloatMatrix.Create(1, 1);
+  FltI := TCnFloatMatrix.Create(1, 1);
+  RatM := TCnRationalMatrix.Create(1, 1);
+  RatA := TCnRationalMatrix.Create(1, 1);
+  RatI := TCnRationalMatrix.Create(1, 1);
+  T := TCnRationalNumber.Create;
+  try
+    // ---- Int：1x1 伴随 = [[1]]（修复前恒抛 "Error Row or Col Count: 0"） ----
+    IntM[0, 0] := 5;
+    CnMatrixAdjoint(IntM, IntA);
+    if IntA[0, 0] <> 1 then Exit;
+
+    // Int 求逆的 Divide 是显式 stub（整除截断无意义，作者有意未实现），
+    // 修复后失败点从 Minor.Create(0,0) 移到 Divide，仍抛 ECnMatrixException
+    OK := False;
+    try
+      CnMatrixInverse(IntM, IntI);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('NOT Implemented', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    // 奇异 1x1：行列式为 0，在触及 Divide 前即抛 ZeroDeterminant 异常
+    IntM[0, 0] := 0;
+    OK := False;
+    try
+      CnMatrixInverse(IntM, IntI);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Deteminant', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    // 回归：Int 2x2 adjoint([[1,2],[3,4]]) = [[4,-2],[-3,1]]
+    IntM.RowCount := 2; IntM.ColCount := 2;
+    IntA.RowCount := 2; IntA.ColCount := 2;
+    IntM[0, 0] := 1; IntM[0, 1] := 2; IntM[1, 0] := 3; IntM[1, 1] := 4;
+    CnMatrixAdjoint(IntM, IntA);
+    if (IntA[0, 0] <> 4) or (IntA[0, 1] <> -2) or
+      (IntA[1, 0] <> -3) or (IntA[1, 1] <> 1) then Exit;
+
+    // ---- Float：1x1 伴随/求逆 ----
+    FltM[0, 0] := 4;
+    CnMatrixAdjoint(FltM, FltA);
+    if Abs(FltA[0, 0] - 1) > 1e-12 then Exit;
+    CnMatrixInverse(FltM, FltI);
+    if Abs(FltI[0, 0] - 0.25) > 1e-12 then Exit;
+
+    FltM[0, 0] := 0;
+    OK := False;
+    try
+      CnMatrixInverse(FltM, FltI);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Deteminant', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    // 回归：Float 2x2 [[2,1],[1,1]] inverse = [[1,-1],[-1,2]]
+    FltM.RowCount := 2; FltM.ColCount := 2;
+    FltI.RowCount := 2; FltI.ColCount := 2;
+    FltM[0, 0] := 2; FltM[0, 1] := 1; FltM[1, 0] := 1; FltM[1, 1] := 1;
+    CnMatrixInverse(FltM, FltI);
+    if (Abs(FltI[0, 0] - 1) > 1e-12) or (Abs(FltI[0, 1] + 1) > 1e-12) or
+      (Abs(FltI[1, 0] + 1) > 1e-12) or (Abs(FltI[1, 1] - 2) > 1e-12) then Exit;
+
+    // ---- Rational：1x1 伴随/求逆 ----
+    T.SetValue(5, 1);
+    RatM.Value[0, 0] := T;
+    CnMatrixAdjoint(RatM, RatA);
+    if (RatA.Value[0, 0].Numerator <> 1) or (RatA.Value[0, 0].Denominator <> 1) then Exit;
+    CnMatrixInverse(RatM, RatI);
+    if (RatI.Value[0, 0].Numerator <> 1) or (RatI.Value[0, 0].Denominator <> 5) then Exit;
+
+    T.SetValue(0, 1);
+    RatM.Value[0, 0] := T;
+    OK := False;
+    try
+      CnMatrixInverse(RatM, RatI);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Deteminant', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    // 回归：Rational 2x2 adjoint([[1,2],[3,4]]) = [[4,-2],[-3,1]]
+    RatM.RowCount := 2; RatM.ColCount := 2;
+    RatA.RowCount := 2; RatA.ColCount := 2;
+    T.SetValue(1, 1); RatM.Value[0, 0] := T;
+    T.SetValue(2, 1); RatM.Value[0, 1] := T;
+    T.SetValue(3, 1); RatM.Value[1, 0] := T;
+    T.SetValue(4, 1); RatM.Value[1, 1] := T;
+    CnMatrixAdjoint(RatM, RatA);
+    if (RatA.Value[0, 0].Numerator <> 4) or (RatA.Value[0, 1].Numerator <> -2) or
+      (RatA.Value[1, 0].Numerator <> -3) or (RatA.Value[1, 1].Numerator <> 1) then Exit;
+
+    Result := True;
+  finally
+    T.Free;
+    RatM.Free; RatA.Free; RatI.Free;
+    FltM.Free; FltA.Free; FltI.Free;
+    IntM.Free; IntA.Free; IntI.Free;
+  end;
 end;
 
 // ================================ Bits =======================================
@@ -11005,6 +11210,10 @@ begin
 
   S := FloatToHex(15.5);
   Result := Pos('F', S) > 0;
+  if not Result then Exit;
+
+  S := FloatToHex(-0.5);
+  Result := Pos('-', S) > 0;
 end;
 
 function TestHexToFloat: Boolean;

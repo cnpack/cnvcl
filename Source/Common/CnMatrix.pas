@@ -31,7 +31,9 @@ unit CnMatrix;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行。另外 Hadamard 相关乘法，积矩阵可否是原矩阵待考察
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.25 V1.4
+* 修改记录：2026.10.17 V1.5
+*               CnMatrixAdjoint 三个重载补 1x1 特判，修复 1x1 矩阵伴随/求逆恒抛异常
+*           2026.01.25 V1.4
 *               调整有理数相关函数的参数顺序，注意和旧版不兼容
 *           2022.07.01 V1.3
 *               加入矩阵斜角索引的计算
@@ -2088,6 +2090,13 @@ begin
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
 
+  if Matrix1.RowCount = 1 then
+  begin
+    // 1x1 矩阵的伴随矩阵为 [[1]]（余子式取空子阵行列式，约定为 1），
+    Matrix2.Value[0, 0] := 1;
+    Exit;
+  end;
+
   Minor := TCnIntMatrix(Matrix1.ClassType.NewInstance);
   Minor.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1); // 用子类实现
 
@@ -2116,6 +2125,13 @@ begin
 
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
+
+  if Matrix1.RowCount = 1 then
+  begin
+    // 1x1 矩阵的伴随矩阵为 [[1]]（余子式取空子阵行列式，约定为 1），
+    Matrix2.Value[0, 0] := 1;
+    Exit;
+  end;
 
   Minor := TCnFloatMatrix(Matrix1.ClassType.NewInstance);
   Minor.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1); // 用子类实现
@@ -2146,6 +2162,13 @@ begin
 
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
+
+  if Matrix1.RowCount = 1 then
+  begin
+    // 1x1 矩阵的伴随矩阵为 [[1]]（余子式取空子阵行列式，约定为 1），
+    Matrix2.Value[0, 0].SetValue(1, 1);
+    Exit;
+  end;
 
   Minor := TCnRationalMatrix(Matrix1.ClassType.NewInstance);
   Minor.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1); // 用子类实现
@@ -2392,6 +2415,9 @@ end;
 
 function TCnIntMatrix.GetValue(Row, Col: Integer): Int64;
 begin
+  if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   Result := FMatrix[Row, Col];
 end;
 
@@ -2566,6 +2592,9 @@ end;
 
 procedure TCnIntMatrix.SetValue(Row, Col: Integer; const AValue: Int64);
 begin
+  if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   FMatrix[Row, Col] := AValue;
 end;
 
@@ -2574,8 +2603,10 @@ var
   I, J: Integer;
 begin
   for I := 0 to FRowCount - 1 do
+  begin
     for J := 0 to FColCount - 1 do
       FMatrix[I, J] := 0;
+  end;
 end;
 
 procedure TCnIntMatrix.SetZigZagValue(Index: Integer; const Value: Int64);
@@ -2790,6 +2821,9 @@ end;
 
 function TCnFloatMatrix.GetValue(Row, Col: Integer): Extended;
 begin
+  if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   Result := FMatrix[Row, Col];
 end;
 
@@ -2972,6 +3006,9 @@ end;
 
 procedure TCnFloatMatrix.SetValue(Row, Col: Integer; const AValue: Extended);
 begin
+  if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   FMatrix[Row, Col] := AValue;
 end;
 
@@ -2980,8 +3017,10 @@ var
   I, J: Integer;
 begin
   for I := 0 to FRowCount - 1 do
+  begin
     for J := 0 to FColCount - 1 do
       FMatrix[I, J] := 0;
+  end;
 end;
 
 procedure TCnFloatMatrix.SetZigZagValue(Index: Integer;
@@ -3902,11 +3941,15 @@ begin
   RowCount := Size;
   ColCount := Size;
   for I := 0 to Size - 1 do
+  begin
     for J := 0 to Size - 1 do
+    begin
       if I = J then
         Value[I, J].SetOne
       else
         Value[I, J].SetZero;
+    end;
+  end;
 end;
 
 procedure TCnRationalMatrix.SetRowCount(const Value: Integer);
@@ -3927,8 +3970,10 @@ var
   I, J: Integer;
 begin
   for I := 0 to RowCount - 1 do
+  begin
     for J := 0 to ColCount - 1 do
       Value[I, J].SetZero;
+  end;
 end;
 
 procedure TCnRationalMatrix.SetZigZagValue(Index: Integer; const Value: TCnRationalNumber);

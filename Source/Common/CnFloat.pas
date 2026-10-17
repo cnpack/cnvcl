@@ -492,9 +492,9 @@ function SingleInfinity(Negative: Boolean = False): Single;
    符号位为 1 时得到负无穷。判定请用同单元的 SingleIsInfinite。
 
    参数：
-     Negative: Boolean                     - 是否取负无穷，False 为正无穷
+     Negative: Boolean                    - 是否取负无穷，False 为正无穷
 
-   返回值：Single                          - 返回构造出的正或负无穷大
+   返回值：Single                         - 返回构造出的正或负无穷大
 }
 
 function DoubleInfinity(Negative: Boolean = False): Double;
@@ -502,9 +502,9 @@ function DoubleInfinity(Negative: Boolean = False): Double;
    判定请用同单元的 DoubleIsInfinite。
 
    参数：
-     Negative: Boolean                     - 是否取负无穷，False 为正无穷
+     Negative: Boolean                    - 是否取负无穷，False 为正无穷
 
-   返回值：Double                          - 返回构造出的正或负无穷大
+   返回值：Double                         - 返回构造出的正或负无穷大
 }
 
 function ExtendedInfinity(Negative: Boolean = False): Extended;
@@ -514,9 +514,9 @@ function ExtendedInfinity(Negative: Boolean = False): Extended;
    8 字节 Double，按双精度构造。判定请用同单元的 ExtendedIsInfinite。
 
    参数：
-     Negative: Boolean                     - 是否取负无穷，False 为正无穷
+     Negative: Boolean                    - 是否取负无穷，False 为正无穷
 
-   返回值：Extended                        - 返回构造出的正或负无穷大
+   返回值：Extended                       - 返回构造出的正或负无穷大
 }
 
 function SingleNan: Single;
@@ -526,7 +526,7 @@ function SingleNan: Single;
 
    参数：（无）
 
-   返回值：Single                          - 返回构造出的静默 NaN
+   返回值：Single                         - 返回构造出的静默 NaN
 }
 
 function DoubleNan: Double;
@@ -535,7 +535,7 @@ function DoubleNan: Double;
 
    参数：（无）
 
-   返回值：Double                          - 返回构造出的静默 NaN
+   返回值：Double                         - 返回构造出的静默 NaN
 }
 
 function ExtendedNan: Extended;
@@ -545,7 +545,7 @@ function ExtendedNan: Extended;
 
    参数：（无）
 
-   返回值：Extended                        - 返回构造出的静默 NaN
+   返回值：Extended                       - 返回构造出的静默 NaN
 }
 
 function SingleIsInfinite(AValue: Single): Boolean;
@@ -620,9 +620,9 @@ function StrToExtended(const S: string): Extended;
    ECnFloatFormatError 异常。
 
    参数：
-     S: string                             - 待转换的不变格式浮点数字符串
+     S: string                            - 待转换的不变格式浮点数字符串
 
-   返回值：Extended                        - 返回转换结果
+   返回值：Extended                       - 返回转换结果
 }
 
 // FPC、Windows 64/Linux 64 等平台以及 Delphi 5、6 不支持以下三个函数

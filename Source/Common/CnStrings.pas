@@ -189,7 +189,6 @@ type
     procedure Grow;
     procedure QuickSort(L, R: Integer; SCompare: TCnAnsiStringListSortCompare);
     procedure SetSorted(Value: Boolean);
-    procedure SetCaseSensitive(const Value: Boolean);
   protected
     procedure Changed; virtual;
     procedure Changing; virtual;
@@ -203,6 +202,7 @@ type
     procedure SetUpdateState(Updating: Boolean); override;
     function CompareStrings(const S1, S2: AnsiString): Integer; override;
     procedure InsertItem(Index: Integer; const S: AnsiString; AObject: TObject); virtual;
+    procedure SetCaseSensitive(const Value: Boolean); virtual;
   public
     destructor Destroy; override;
     function Add(const S: AnsiString): Integer; override;
@@ -262,6 +262,7 @@ type
     procedure UpdateNameHash;
   protected
     procedure Changed; override;
+    procedure SetCaseSensitive(const Value: Boolean); override;
   public
     destructor Destroy; override;
     function IndexOf(const S: AnsiString): Integer; override;
@@ -2256,6 +2257,16 @@ begin
     Result := FNameHash.ValueOf(AnsiString(AnsiUpperCase(string(Name))))
   else
     Result := FNameHash.ValueOf(Name);
+end;
+
+procedure TCnHashedAnsiStringList.SetCaseSensitive(const Value: Boolean);
+begin
+  if Value <> CaseSensitive then
+  begin
+    FValueHashValid := False;
+    FNameHashValid := False;
+  end;
+  inherited;
 end;
 
 procedure TCnHashedAnsiStringList.UpdateNameHash;
