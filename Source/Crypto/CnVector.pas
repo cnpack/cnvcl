@@ -315,7 +315,7 @@ procedure BigNumberVectorModule(Res: TCnBigNumber; V: TCnBigNumberVector);
 }
 
 procedure BigNumberVectorModuleSquare(Res: TCnBigNumber; V: TCnBigNumberVector);
-{* 返回大整数向量长度（模长）的平方，也即各项平方的和。
+{* 返回大整数向量长度（模长）的平方，也即各项平方的和。Res 不能是 V 的元素。
 
    参数：
      Res: TCnBigNumber                    - 待计算的向量
@@ -420,7 +420,7 @@ function Int64PolynomialVectorToString(V: TCnInt64PolynomialVector): string;
 }
 
 procedure Int64PolynomialVectorModuleSquare(Res: TCnInt64Polynomial; V: TCnInt64PolynomialVector);
-{* 返回一元整系数多项式向量长度（模长）的平方，也即各项平方的和。
+{* 返回一元整系数多项式向量长度（模长）的平方，也即各项平方的和。Res 不能是 V 的元素。
 
    参数：
      Res: TCnInt64Polynomial              - 待计算的向量

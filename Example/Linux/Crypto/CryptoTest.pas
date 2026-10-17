@@ -326,7 +326,16 @@ function TestUInt128DivMod: Boolean;
 function TestUInt128ShiftMinInteger: Boolean;
 function TestInt128CompareNegative: Boolean;
 function TestInt128DivModNegExact: Boolean;
+function TestInt128AddNegWord: Boolean;
+function TestInt128SubNegWord: Boolean;
+function TestInt128DivModSmallRemainder: Boolean;
+function TestInt128MulAliasNegative: Boolean;
 function TestUInt128AddWordCarry: Boolean;
+function TestInt128DivModAliasRemainder: Boolean;
+function TestInt128EqualInt64Neg: Boolean;
+function TestInt128ToHexMin: Boolean;
+function TestInt128MulSzMin: Boolean;
+function TestInt128DivModSzMin: Boolean;
 
 // ===============================  Math =======================================
 
@@ -2210,6 +2219,15 @@ begin
   MyAssert(TestInt128CompareNegative, 'TestInt128CompareNegative');
   MyAssert(TestInt128DivModNegExact, 'TestInt128DivModNegExact');
   MyAssert(TestUInt128AddWordCarry, 'TestUInt128AddWordCarry');
+  MyAssert(TestInt128AddNegWord, 'TestInt128AddNegWord');
+  MyAssert(TestInt128SubNegWord, 'TestInt128SubNegWord');
+  MyAssert(TestInt128DivModSmallRemainder, 'TestInt128DivModSmallRemainder');
+  MyAssert(TestInt128MulAliasNegative, 'TestInt128MulAliasNegative');
+  MyAssert(TestInt128DivModAliasRemainder, 'TestInt128DivModAliasRemainder');
+  MyAssert(TestInt128EqualInt64Neg, 'TestInt128EqualInt64Neg');
+  MyAssert(TestInt128ToHexMin, 'TestInt128ToHexMin');
+  MyAssert(TestInt128MulSzMin, 'TestInt128MulSzMin');
+  MyAssert(TestInt128DivModSzMin, 'TestInt128DivModSzMin');
 
 // ===============================  Math =======================================
 
@@ -11705,6 +11723,285 @@ begin
   Result := True;
 end;
 
+function TestInt128AddNegWord: Boolean;
+var
+  A, R: TCnInt128;
+begin
+  // A1：Int128Add(R, A, V) 的 V<0 分支取借位 C 后高位误写 A.Hi64 + C（应为 - C），
+  // 仅当 A.Lo64 < |V| 产生借位时出错，误差恰为 2×2^64。
+  Result := False;
+  A := StrToInt128('18446744073709551616'); // 2^64
+  Int128Add(R, A, -1);
+  if Int128ToStr(R) <> '18446744073709551615' then Exit; // 2^64-1
+  A := StrToInt128('18446744073709551621'); // 2^64+5
+  Int128Add(R, A, -10);
+  if Int128ToStr(R) <> '18446744073709551611' then Exit; // 2^64-5
+  A := StrToInt128('0');
+  Int128Add(R, A, -1);
+  if Int128ToStr(R) <> '-1' then Exit;
+  // 对照：无借位与 V>=0 进位路径原本正确
+  A := StrToInt128('18446744073709551621');
+  Int128Add(R, A, -1);
+  if Int128ToStr(R) <> '18446744073709551620' then Exit;
+  A := StrToInt128('18446744073709551615'); // 2^64-1
+  Int128Add(R, A, 1);
+  if Int128ToStr(R) <> '18446744073709551616' then Exit;
+  Result := True;
+end;
+
+function TestInt128SubNegWord: Boolean;
+var
+  A, R: TCnInt128;
+begin
+  // A2：Int128Sub(R, A, V) 的 V<0 分支取进位 C 后高位误写 A.Hi64 - C（应为 + C），
+  // 仅当 A.Lo64 + |V| >= 2^64 产生进位时出错，误差恰为 2×2^64。
+  Result := False;
+  A := StrToInt128('18446744073709551615'); // 2^64-1
+  Int128Sub(R, A, -1);
+  if Int128ToStr(R) <> '18446744073709551616' then Exit; // 2^64
+  A := StrToInt128('-1');
+  Int128Sub(R, A, -1);
+  if Int128ToStr(R) <> '0' then Exit;
+  // 对照：无进位与 V>=0 借位路径原本正确
+  A := StrToInt128('18446744073709551614'); // 2^64-2
+  Int128Sub(R, A, -1);
+  if Int128ToStr(R) <> '18446744073709551615' then Exit;
+  A := StrToInt128('18446744073709551616'); // 2^64
+  Int128Sub(R, A, 1);
+  if Int128ToStr(R) <> '18446744073709551615' then Exit;
+  Result := True;
+end;
+
+function TestInt128DivModSmallRemainder: Boolean;
+var
+  A, B, R, M: TCnInt128;
+begin
+  // A3：Int128DivMod 早退路径（|A|<|B|，商 0 余 A）余数符号误按"商异号为负"
+  // 规则 NA <> NB 取反（余数符号应跟随被除数，即 NA；主路径 L919 即如此）。
+  // B<0 时两种规则结论相反：5 mod -7 得 -5（应 5）、-5 mod -7 得 5（应 -5）。
+  Result := False;
+  A := StrToInt128('5');
+  B := StrToInt128('-7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '0') or (Int128ToStr(M) <> '5') then Exit;
+  A := StrToInt128('-5');
+  B := StrToInt128('-7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '0') or (Int128ToStr(M) <> '-5') then Exit;
+  // 对照：B>0 时两种规则结论一致，原本正确
+  A := StrToInt128('5');
+  B := StrToInt128('7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '0') or (Int128ToStr(M) <> '5') then Exit;
+  A := StrToInt128('-5');
+  B := StrToInt128('7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '0') or (Int128ToStr(M) <> '-5') then Exit;
+  // 对照：主路径（|A|>=|B|）截断除法符号修正原本正确
+  A := StrToInt128('-5');
+  B := StrToInt128('-2');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '2') or (Int128ToStr(M) <> '-1') then Exit;
+  A := StrToInt128('5');
+  B := StrToInt128('-2');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '-2') or (Int128ToStr(M) <> '1') then Exit;
+  Result := True;
+end;
+
+function TestInt128MulAliasNegative: Boolean;
+var
+  A, B, R: TCnInt128;
+begin
+  // A4：Int128Mul 就地取反负操作数、乘积写 R、末尾再取反操作数"变回去"。
+  // 文档（接口 L172）声称 R、A、B 可以相同，但 R 与任一负操作数同址时，
+  // 末尾取反作用到乘积上：同负得 -15（应 15），一负一正得 15（应 -15）。
+  Result := False;
+  A := StrToInt128('-3');
+  B := StrToInt128('-5');
+  Int128Mul(A, A, B); // R=A
+  if Int128ToStr(A) <> '15' then Exit;
+  A := StrToInt128('-3');
+  B := StrToInt128('-5');
+  Int128Mul(B, A, B); // R=B
+  if Int128ToStr(B) <> '15' then Exit;
+  A := StrToInt128('-3');
+  B := StrToInt128('5');
+  Int128Mul(A, A, B); // R=A 且仅 A 为负
+  if Int128ToStr(A) <> '-15' then Exit;
+  // 对照：R 独立时结果与操作数恢复原本正确
+  A := StrToInt128('-3');
+  B := StrToInt128('-5');
+  Int128Mul(R, A, B);
+  if (Int128ToStr(R) <> '15') or (Int128ToStr(A) <> '-3') or (Int128ToStr(B) <> '-5') then Exit;
+  Result := True;
+end;
+
+function TestInt128DivModAliasRemainder: Boolean;
+var
+  A, B, R, M: TCnInt128;
+begin
+  // B4：Int128DivMod 主路径尾部余数符号修正误读可能已被覆盖的 A：R=A 且商与
+  // 被除数异号（除数为负）时读到商的符号、M=A 时读到 |A|，余数符号出错（商
+  // 本身正确）。修复为使用开头保存的 NA。
+  Result := False;
+  A := StrToInt128('-5');
+  B := StrToInt128('-2');
+  Int128DivMod(A, B, A, M); // R=A，商 2 为正、被除数为负
+  if (Int128ToStr(A) <> '2') or (Int128ToStr(M) <> '-1') then Exit;
+  A := StrToInt128('-5');
+  B := StrToInt128('2');
+  Int128DivMod(A, B, R, A); // M=A，A 先被 |A| 覆盖
+  if (Int128ToStr(R) <> '-2') or (Int128ToStr(A) <> '-1') then Exit;
+  A := StrToInt128('-10000000000000000000000');
+  B := StrToInt128('-7');
+  Int128DivMod(A, B, A, M); // 大数 R=A
+  if (Int128ToStr(A) <> '1428571428571428571428') or
+     (Int128ToStr(M) <> '-4') then Exit;
+  // 对照：非别名调用符号修正保持正确
+  A := StrToInt128('-5');
+  B := StrToInt128('2');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '-2') or (Int128ToStr(M) <> '-1') then Exit;
+  A := StrToInt128('-3');
+  B := StrToInt128('5');
+  Int128DivMod(A, B, R, A); // 早退路径 M=A（A3 已用 NA，此处回归）
+  if (Int128ToStr(R) <> '0') or (Int128ToStr(A) <> '-3') then Exit;
+  Result := True;
+end;
+
+function TestInt128EqualInt64Neg: Boolean;
+var
+  A: TCnInt128;
+begin
+  // B5：Int128Equal(A, B: Int64) 直接判 Hi64=0 且 Lo64=B，B<0 时高 64 位应为
+  // 全 1，导致对任何负数 B 恒返回 False。修复为符号扩展后比较两个字。
+  Result := False;
+  A := StrToInt128('-5');
+  if not Int128Equal(A, -5) then Exit;
+  if Int128Equal(A, 5) then Exit;
+  A := StrToInt128('7');
+  if not Int128Equal(A, 7) then Exit;
+  if Int128Equal(A, -7) then Exit;
+  A := StrToInt128('-9223372036854775808'); // = Low(Int64) 符号扩展
+  if not Int128Equal(A, Low(Int64)) then Exit;
+  // 对照：SZ_MIN 与 Low(Int64) 位型不同，不应相等
+  Int128Set(A, 0, Low(Int64));
+  if Int128Equal(A, Low(Int64)) then Exit;
+  Result := True;
+end;
+
+function TestInt128ToHexMin: Boolean;
+var
+  A: TCnInt128;
+begin
+  // B6a：Int128ToHex 缺 ToStr 那样的最小负值特判，对 SZ_MIN 取幅度时
+  // Int128Negate 抛"取反溢出"异常。
+  Result := False;
+  Int128Set(A, 0, Low(Int64));
+  if Int128ToHex(A) <> '-80000000000000000000000000000000' then Exit;
+  A := StrToInt128('-255');
+  if Int128ToHex(A) <> '-FF' then Exit;
+  A := StrToInt128('255');
+  if Int128ToHex(A) <> 'FF' then Exit;
+  Int128SetZero(A);
+  if Int128ToHex(A) <> '0' then Exit;
+  Result := True;
+end;
+
+function TestInt128MulSzMin: Boolean;
+var
+  A, B, R: TCnInt128;
+  OK: Boolean;
+begin
+  // B1：Int128Mul 取幅度走 Int128Negate，SZ_MIN 操作数误抛；且合法乘积
+  // -2^127 被"乘积位型为负"误判溢出。修复为补码位型取幅度 + 终局裁决。
+  Result := False;
+  Int128Set(A, 0, Low(Int64)); // SZ_MIN
+  B := StrToInt128('1');
+  Int128Mul(R, A, B);
+  if Int128ToStr(R) <> SCN_MIN_INT128 then Exit;
+  B := StrToInt128('0');
+  Int128Mul(R, A, B);
+  if Int128ToStr(R) <> '0' then Exit;
+  // (-2^126)*2 = SZ_MIN 合法
+  A := StrToInt128('-85070591730234615865843651857942052864');
+  B := StrToInt128('2');
+  Int128Mul(R, A, B);
+  if Int128ToStr(R) <> SCN_MIN_INT128 then Exit;
+  // 溢出场景仍须抛出：(-2^126)*(-2) = +2^127 不可表示
+  B := StrToInt128('-2');
+  OK := False;
+  try
+    Int128Mul(R, A, B);
+  except
+    OK := True;
+  end;
+  if not OK then Exit;
+  // SZ_MIN*(-1) = +2^127 不可表示
+  Int128Set(A, 0, Low(Int64));
+  B := StrToInt128('-1');
+  OK := False;
+  try
+    Int128Mul(R, A, B);
+  except
+    OK := True;
+  end;
+  if not OK then Exit;
+  // 对照：普通负数与 R=A 别名（A4）不受影响
+  A := StrToInt128('-3');
+  B := StrToInt128('-5');
+  Int128Mul(A, A, B);
+  if Int128ToStr(A) <> '15' then Exit;
+  Result := True;
+end;
+
+function TestInt128DivModSzMin: Boolean;
+var
+  A, B, R, M: TCnInt128;
+  OK: Boolean;
+begin
+  // B3：Int128DivMod 对 SZ_MIN 取幅度抛"取反溢出"，-2^127 完全不可参与
+  // 除法。修复为 |SZ_MIN|=MAX+1 折算分支与 SZ_MIN 除数分支（商 0 余 A）。
+  Result := False;
+  Int128Set(A, 0, Low(Int64));
+  B := StrToInt128('7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '-24305883351495604533098186245126300818') or
+     (Int128ToStr(M) <> '-2') then Exit;
+  B := StrToInt128('-7');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '24305883351495604533098186245126300818') or
+     (Int128ToStr(M) <> '-2') then Exit;
+  // SZ_MIN div 1 = SZ_MIN（商幅度恰 2^127，负值合法）；div -1 须抛
+  B := StrToInt128('1');
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> SCN_MIN_INT128) or (Int128ToStr(M) <> '0') then Exit;
+  B := StrToInt128('-1');
+  OK := False;
+  try
+    Int128DivMod(A, B, R, M);
+  except
+    OK := True;
+  end;
+  if not OK then Exit;
+  // SZ_MIN div SZ_MIN = 1 余 0
+  Int128Set(B, 0, Low(Int64));
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '1') or (Int128ToStr(M) <> '0') then Exit;
+  // SZ_MIN 作除数：商 0 余 A
+  A := StrToInt128('-5');
+  Int128Set(B, 0, Low(Int64));
+  Int128DivMod(A, B, R, M);
+  if (Int128ToStr(R) <> '0') or (Int128ToStr(M) <> '-5') then Exit;
+  // 别名：R=A 且 A=SZ_MIN
+  Int128Set(A, 0, Low(Int64));
+  B := StrToInt128('7');
+  Int128DivMod(A, B, A, M);
+  if (Int128ToStr(A) <> '-24305883351495604533098186245126300818') or
+     (Int128ToStr(M) <> '-2') then Exit;
+  Result := True;
+end;
 // ===============================  Math =======================================
 
 function TestCnAbs: Boolean;

@@ -30,6 +30,18 @@ unit CnInt128;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2026.10.17 V1.2
+*               Int128Mul 按补码位型取幅度并做终局裁决，修复 SZ_MIN×1/×0
+*               误抛与合法乘积 -2^127 被误判溢出；Int128DivMod 补 SZ_MIN
+*               折算分支（|SZ_MIN|=MAX+1）与 SZ_MIN 除数分支（商 0 余 A），
+*               修复 SZ_MIN 无法参与除法。
+*               修复 Int128DivMod 主路径余数符号误读可能已被覆盖的 A（别名
+*               R=A/M=A 时余数符号错误，改用开头保存的 NA）；修复
+*               Int128Equal(A, Int64) 对负数 B 恒为 False（改为符号扩展后
+*               比较）；Int128ToHex 补最小负值特判，消除 SZ_MIN 取负误抛。
+*               修复 Int128Add/Int128Sub(R,A,V) 的 V<0 分支借位/进位与高位
+*               加减用反（误差 2×2^64）；修复 Int128DivMod 早退路径余数符
+*               号误按商规则取反（应跟随被除数）；Int128Mul 改用本地副本，
+*               消除 R 与负操作数同址时乘积被恢复取反损坏的问题。
 *               修复 Int128Compare 在 Hi64 相等且为负时错误翻转比较
 *               结果；修复 Int128DivMod 余数归零提前退出跳过符号修
 *               正；修复 UInt128Add(R,A,V) 进位误用 R.Hi64 而非
@@ -54,6 +66,9 @@ const
 
   SCN_MIN_INT128 = '-170141183460469231731687303715884105728';
   {* 最小的有符号 Int128 值，等于 $80000000 00000000 00000000 00000000}
+
+  SCN_MIN_INT128_HEX = '-80000000000000000000000000000000';
+  {* 最小的有符号 Int128 值的带负号十六进制字符串形式，供 Int128ToHex 特判使用}
 
   SCN_MAX_UINT128 = '340282366920938463463374607431768211455';
   {* 最大的无符号 UInt128 值，等于 $FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF}
@@ -762,6 +777,7 @@ begin
 {$ELSE}
     UInt64Sub(R.Lo64, A.Lo64, V, C);
 {$ENDIF}
+    R.Hi64 := A.Hi64 - C; // 借位需从高位扣除
   end
   else // V >= 0，和 UInt64 同样处理
   begin
@@ -770,8 +786,8 @@ begin
 {$ELSE}
     UInt64Add(R.Lo64, A.Lo64, V, C);
 {$ENDIF}
+    R.Hi64 := A.Hi64 + C; // 进位需加入高位
   end;
-  R.Hi64 := A.Hi64 + C;
 end;
 
 procedure Int128Sub(var R, A, B: TCnInt128);
@@ -798,6 +814,7 @@ begin
 {$ELSE}
     UInt64Add(R.Lo64, A.Lo64, V, C);
 {$ENDIF}
+    R.Hi64 := A.Hi64 + C; // 进位需加入高位
   end
   else // V >= 0，和 UInt64 同样处理
   begin
@@ -806,40 +823,46 @@ begin
 {$ELSE}
     UInt64Sub(R.Lo64, A.Lo64, V, C);
 {$ENDIF}
+    R.Hi64 := A.Hi64 - C; // 借位需从高位扣除
   end;
-  R.Hi64 := A.Hi64 - C;
 end;
 
 procedure Int128Mul(var R, A, B: TCnInt128);
 var
+  AA, BB: TCnInt128;
   N1, N2: Boolean;
 begin
   N1 := Int128IsNegative(A);
   N2 := Int128IsNegative(B);
 
-  // 全变正
-  if N1 then
-    Int128Negate(A);
-  if N2 then
-    Int128Negate(B);
+  // 用本地副本转正，避免 R 与负操作数同址时末尾恢复取反损坏乘积
+  Int128Copy(AA, A);
+  Int128Copy(BB, B);
+  // 幅度按补码位型取反：SZ_MIN 的幅度 2^127 与其本身位型相同（mod 2^128），
+  // 跳过取反即得正确幅度，避免 Int128Negate 对 SZ_MIN 误抛溢出
+  if N1 and not ((AA.Hi64 = CN_MIN_INT64) and (AA.Lo64 = 0)) then
+    Int128Negate(AA);
+  if N2 and not ((BB.Hi64 = CN_MIN_INT64) and (BB.Lo64 = 0)) then
+    Int128Negate(BB);
 
-  UInt128Mul(TCnUInt128(R), TCnUInt128(A), TCnUInt128(B));
-  if Int128IsNegative(R) then // 乘积是负说明溢出了
+  UInt128Mul(TCnUInt128(R), TCnUInt128(AA), TCnUInt128(BB));
+  // 乘积位型为负说明幅度不小于 2^127：仅当结果应为负且幅度恰为 2^127 时合法
+  //（此时位型已是 SZ_MIN，无需再取反），否则为溢出
+  if Int128IsNegative(R) then
+  begin
+    if (N1 <> N2) and (R.Hi64 = CN_MIN_INT64) and (R.Lo64 = 0) then
+      Exit; // 乘积恰为 -2^127，即 SZ_MIN，合法
     raise EIntOverflow.Create(SCnErrorInt128MulOverflow);
+  end;
 
   if N1 <> N2 then // 只要有一个变过
     Int128Negate(R);
-
-  // 变回去
-  if N1 then
-    Int128Negate(A);
-  if N2 then
-    Int128Negate(B);
 end;
 
 procedure Int128DivMod(var A, B, R, M: TCnInt128);
 var
   Sft: Integer;
+  One: TCnInt128;
   AA, BB: TCnInt128;
   NA, NB: Boolean;
 begin
@@ -858,6 +881,50 @@ begin
   NA := Int128IsNegative(AA);
   NB := Int128IsNegative(BB);
 
+  // SZ_MIN 的幅度 2^127 无法作为正 TCnInt128 表示，单独折算：
+  // |SZ_MIN| = MAX + 1，先算 MAX div |B|，再把余数 +1 并按需进位
+  if NA and (AA.Lo64 = 0) and (AA.Hi64 = CN_MIN_INT64) then
+  begin
+    if NB and (BB.Lo64 = 0) and (BB.Hi64 = CN_MIN_INT64) then
+    begin
+      Int128Set(R, 1); // SZ_MIN div SZ_MIN = 1 余 0
+      Int128SetZero(M);
+      Exit;
+    end;
+    if NB then
+      Int128Negate(BB); // BB = |B|，此处 B 非 SZ_MIN，可安全取反
+    AA.Lo64 := not 0;
+    AA.Hi64 := not CN_MIN_INT64; // AA = MAX = |SZ_MIN| - 1
+    Int128DivMod(AA, BB, R, M);  // R = MAX div |B|，M = MAX mod |B|
+    Int128Set(One, 1);
+    Int128Add(M, M, One);        // |SZ_MIN| = |B| * R + (M + 1)
+    if Int128Compare(M, BB) >= 0 then
+    begin
+      Int128SetZero(M);          // M + 1 恰等于 |B|，商进位
+      Int128Add(R, R, One);
+    end;
+    // 商幅度可能恰为 2^127（如 SZ_MIN div ±1）：负商位型已是 SZ_MIN 免取反，
+    // 正商超出可表示范围则溢出
+    if NB then
+    begin
+      if (R.Hi64 = CN_MIN_INT64) and (R.Lo64 = 0) then
+        raise EIntOverflow.Create(SCnErrorInt128NegateOverflow);
+    end
+    else if not ((R.Hi64 = CN_MIN_INT64) and (R.Lo64 = 0)) then
+      Int128Negate(R);           // 被除数为负：除数为正则商为负
+    if not Int128IsZero(M) then
+      Int128Negate(M);           // 余数符号跟随被除数（负）
+    Exit;
+  end;
+
+  // 除数为 SZ_MIN：|B| = 2^127 大于除 SZ_MIN 外的任何 |A|，商 0 余 A
+  if NB and (BB.Lo64 = 0) and (BB.Hi64 = CN_MIN_INT64) then
+  begin
+    Int128Copy(M, AA); // 先取本地副本，避免 R 与 A 同址时 SetZero(R) 清零 A
+    Int128SetZero(R);
+    Exit;
+  end;
+
   if NA then
     Int128Negate(AA);
   if NB then
@@ -866,8 +933,8 @@ begin
   if Int128Compare(AA, BB) < 0 then
   begin
     Int128Copy(M, AA);
-    if NA <> NB then
-      Int128Negate(M); // 异号商为负
+    if NA then
+      Int128Negate(M); // 余数符号跟随被除数
     Int128SetZero(R);
     Exit;
   end;
@@ -916,7 +983,7 @@ begin
 
   if NA <> NB then
     Int128Negate(R);
-  if Int128IsNegative(A) then
+  if NA then // 别名 R/M 与 A 同址时 A 已被商或幅度覆盖，须用开头保存的被除数符号
     Int128Negate(M);
 end;
 
@@ -1039,8 +1106,11 @@ begin
 end;
 
 function Int128Equal(var A: TCnInt128; B: Int64): Boolean; overload;
+var
+  T: TCnInt128;
 begin
-  Result := (A.Hi64 = 0) and (A.Lo64 = B);
+  Int128Set(T, B); // 先对 B 做符号扩展，否则 B<0 时恒为 False
+  Result := Int128Equal(A, T);
 end;
 
 function Int128Compare(var A, B: TCnInt128): Integer;
@@ -1073,6 +1143,13 @@ begin
   if Int128IsZero(N) then
   begin
     Result := '0';
+    Exit;
+  end;
+
+  // 最小的负值下面求相反数会出错，直接给出十六进制形式（与 ToStr 对称）
+  if (N.Hi64 = CN_MIN_INT64) and (N.Lo64 = 0) then
+  begin
+    Result := SCN_MIN_INT128_HEX;
     Exit;
   end;
 
