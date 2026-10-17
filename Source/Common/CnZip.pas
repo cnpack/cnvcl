@@ -36,7 +36,12 @@ unit CnZip;
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.08.12 V1.6
+* 修改记录：2026.10.17 V1.7
+*                加密 Deflate 路径的 FPC 分支补 raw 开关（第二布尔参 True），
+*                与非加密路径一致，不再产出 zlib-wrapped 违反 ZIP 规范的
+*                加密归档（CM26）；CRC 计算循环判据 Longint 强转改 Int64，
+*                修复 >=2GB 条目循环不执行、CRC 按 0 字节写入的问题（CM24）
+*           2025.08.12 V1.6
 *                支持 MacOS 及 FPC，文件时间统一使用 Windows 格式
 *           2024.02.17 V1.5
 *                新增流压缩解压缩函数，注意需 SUPPORT_ZLIB_WINDOWBITS 才兼容标准 Deflate
@@ -1567,7 +1572,7 @@ begin
 
   // 计算原始的 CRC32 值
   SetLength(Buffer, $4000);
-  while Data.Position < Longint(LocalHeader^.UncompressedSize) do
+  while Data.Position < Int64(LocalHeader^.UncompressedSize) do
   begin
     C := Data.Read(Buffer[0], Length(Buffer));
     LocalHeader^.CRC32 := CRC32Calc(LocalHeader^.CRC32, Buffer[0], C);
@@ -1925,7 +1930,7 @@ begin
 {$IFDEF SUPPORT_ZLIB_WINDOWBITS}
   FZip := TCompressionStream.Create(FZipped, zcDefault, -15);
 {$ELSE}
-  FZip := TCompressionStream.Create(clDefault, FZipped);
+  FZip := TCompressionStream.Create(clDefault, FZipped {$IFDEF FPC}, True {$ENDIF});
 {$ENDIF}
 
   // 随机凑 12 个字节的头
@@ -2026,7 +2031,7 @@ begin
 {$IFDEF SUPPORT_ZLIB_WINDOWBITS}
   FUnzip := TDecompressionStream.Create(FDecrypted, -15);
 {$ELSE}
-  FUnzip := TDecompressionStream.Create(FDecrypted);
+  FUnzip := TDecompressionStream.Create(FDecrypted {$IFDEF FPC}, True {$ENDIF});
 {$ENDIF}
 end;
 

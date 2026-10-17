@@ -31,7 +31,15 @@ unit CnHashMap;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：v1.0   20241019
+* 修改记录：v1.1   2026.10.17
+*               TCnBaseHashMap 扩容判据由负载因子 1.0 改为 0.75（Size*4 >=
+*               Length*3 时扩容），缓解高负载下线性探测链退化
+*               删除时 VarClear 释放墓碑槽 Key/Value 引用并计数 FDeleted，
+*               占位达 0.75 或墓碑多于有效项时自动经 ReSizeList/Refresh
+*               压缩重建，不再依赖手动 Refresh；新增 DeletedCount 属性
+*               CreateList 入口增加 Length<=0 守卫并抛 ECnHashException，
+*               修复构造参数 AListLength 传 0/负数导致 mod 除零
+*           v1.0   20241019
 *               重构部分内容并更改注释为汉字
 *           v0.96   2021/1/2  by Liu Xiao
 *               Add new class TCnHashMap for Int64 and Integer/TObject
@@ -94,6 +102,7 @@ type
   private
     FIncr: Integer;
     FSize: Integer;
+    FDeleted: Integer;
     FCurPos: Integer;
     FLengthBit: Integer;
     FHashCodeMethod: TCnHashCodeType;
@@ -101,7 +110,7 @@ type
     FOnCustomHashCode: TCnCustomHashCodeMethod;
 
     procedure SetIncr(Value: Integer);
-    procedure CreateList(Length: Integer);
+    procedure CreateList(ALength: Integer);
 
     function VariantHashCode(AKey: Variant): Integer; virtual;
     {* 子类须额外实现杂凑计算}
@@ -152,6 +161,9 @@ type
     {* 满时扩容的一次扩容长度}
     property Size: Integer read FSize;
     {* 已存储的有效内容数量}
+
+    property DeletedCount: Integer read FDeleted;
+    {*已删除但尚未回收的槽位数量}
 
     property HashCodeMethod: TCnHashCodeType read FHashCodeMethod write SetHashCodeMethod;
     {* 整型杂凑的计算类型，默认求余方式}
@@ -389,8 +401,15 @@ var
   IndexPos, DeletedPos: Integer;
 begin
   // 尺寸满了则扩容
-  if Size >= Length(FList) then
-    ReSizeList(Size * Incr);
+  // 负载因子 0.75：有效项与墓碑合计占位达 3/4 时重建；
+  // 有效项本身达 3/4 则扩容，否则仅按原长度压缩墓碑
+  if Int64(Size + FDeleted) * 4 >= Int64(Length(FList)) * 3 then
+  begin
+    if Int64(Size) * 4 >= Int64(Length(FList)) * 3 then
+      ReSizeList(Size * Incr)
+    else
+      ReSizeList(Length(FList));
+  end;
 
   // 计算杂凑值
   I := HasHashCode(AKey);
@@ -435,6 +454,7 @@ begin
     FList[IndexPos].Value := AValue;
 
     Inc(FSize);
+    Dec(FDeleted); // 复用墓碑槽位，墓碑数减一
   end;
 end;
 
@@ -452,12 +472,17 @@ begin
   CreateList(AListLength);
 end;
 
-procedure TCnBaseHashMap.CreateList(Length: Integer);
+procedure TCnBaseHashMap.CreateList(ALength: Integer);
 var
   I, T: Integer;
 begin
+  // 下限守卫：空表会使 mod Length(FList) 触发 EDivByZero
+  if ALength <= 0 then
+    raise ECnHashException.Create(SCnHashInvalidListSize);
+
   FSize := 0;
-  SetLength(FList, Length);
+  FDeleted := 0;
+  SetLength(FList, ALength);
 
   for I := Low(FList) to High(FList) do
     FList[I].HashCode := CN_HASH_MAP_REC_EMPTY;
@@ -465,7 +490,7 @@ begin
   FLengthBit := 1;
   T := 2;
 
-  while T < Length do
+  while T < ALength do
   begin
     T := T * 2;
     Inc(FLengthBit);
@@ -489,8 +514,17 @@ begin
   begin
     FList[P].HashCode := CN_HASH_MAP_REC_DELETED;
     DeleteValue(FList[P].Value);
+    // 释放墓碑槽仍持有的 Key/Value 引用，避免已删数据滞留内存
+    VarClear(FList[P].Key);
+    VarClear(FList[P].Value);
 
     Dec(FSize);
+    Inc(FDeleted);
+
+    // 墓碑数超过有效项数时自动压缩重建，避免探测链退化与表不收缩
+    if FDeleted > Size then
+      Refresh;
+
     Result := True;
   end;
 end;
@@ -633,6 +667,7 @@ begin
     VarClear(FList[I].Value);
   end;
   FSize := 0;
+  FDeleted := 0;
   FCurPos := -1;
 end;
 
