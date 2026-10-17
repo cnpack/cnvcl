@@ -720,6 +720,7 @@ const
   SCnErrorInt128NegateOverflow = 'Int128 Negate Overflow';
   SCnErrorInt128MulOverflow = 'Int128 Mul Overflow';
   SCnErrorUint128MulOverflow = 'UInt128 Mul Overflow';
+  SCnErrorInt128ParseOverflow = 'Int128 Parse Overflow';
 
 procedure Int128Set(var R: TCnInt128; Lo, Hi: Int64);
 begin
@@ -1176,18 +1177,21 @@ end;
 function HexToInt128(const S: string): TCnInt128;
 var
   I, K: Integer;
-  St, T: TCnInt128;
+  Mag, St, T: TCnUInt128;
   Neg: Boolean;
 begin
-  Int128SetZero(Result);
-  Int128Set(St, 16);
+  // 无符号幅度累计 + 终局裁决：幅度允许达到 2^127，仅当为负且恰
+  // 为 2^127 时合法（补码位型即 SZ_MIN 本身），正号幅度须小于 2^127，
+  // 否则抛溢出，不再出现 SZ_MIN 误拒或越界字面量静默回绕。
+  UInt128SetZero(Mag);
+  UInt128Set(St, 16);
 
   Neg := False;
   for I := 1 to Length(S) do
   begin
     if S[I] in ['0'..'9', 'a'..'f', 'A'..'F'] then
     begin
-      Int128Mul(Result, Result, St);
+      UInt128Mul(Mag, Mag, St);
       K := 0;
       if (S[I] >= '0') and (S[I] <= '9') then
         K := Ord(S[I]) - Ord('0')
@@ -1196,8 +1200,8 @@ begin
       else if (S[I] >= 'a') and (S[I] <= 'f') then
         K := Ord(S[I]) - Ord('a') + 10;
 
-      Int128Set(T, K);
-      Int128Add(Result, Result, T);
+      UInt128Set(T, K);
+      UInt128Add(Mag, Mag, T);
     end
     else if (I = 1) and (S[I] = '-') then
       Neg := True
@@ -1205,6 +1209,13 @@ begin
       raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
   end;
 
+  Int128Copy(Result, TCnInt128(Mag));
+  if Result.Hi64 < 0 then
+  begin
+    if Neg and (Result.Hi64 = CN_MIN_INT64) and (Result.Lo64 = 0) then
+      Exit; // 幅度恰为 2^127 且为负：位型已是 SZ_MIN，免取反
+    raise EIntOverflow.Create(SCnErrorInt128ParseOverflow);
+  end;
   if Neg then
     Int128Negate(Result);
 end;
@@ -1248,25 +1259,34 @@ end;
 function StrToInt128(const S: string): TCnInt128;
 var
   I: Integer;
-  Ten, T: TCnInt128;
+  Mag, Ten, T: TCnUInt128;
   Neg: Boolean;
 begin
-  Int128SetZero(Result);
-  Int128Set(Ten, 10);
+  // 无符号幅度累计 + 终局裁决，同 HexToInt128
+  UInt128SetZero(Mag);
+  UInt128Set(Ten, 10);
 
   Neg := False;
   for I := 1 to Length(S) do
   begin
     if S[I] in ['0'..'9'] then
     begin
-      Int128Mul(Result, Result, Ten);
-      Int128Set(T, Ord(S[I]) - Ord('0'));
-      Int128Add(Result, Result, T);
+      UInt128Mul(Mag, Mag, Ten);
+      UInt128Set(T, Ord(S[I]) - Ord('0'));
+      UInt128Add(Mag, Mag, T);
     end
     else if (I = 1) and (S[I] = '-') then
       Neg := True
     else
       raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
+  end;
+
+  Int128Copy(Result, TCnInt128(Mag));
+  if Result.Hi64 < 0 then
+  begin
+    if Neg and (Result.Hi64 = CN_MIN_INT64) and (Result.Lo64 = 0) then
+      Exit; // 幅度恰为 2^127 且为负：位型已是 SZ_MIN，免取反
+    raise EIntOverflow.Create(SCnErrorInt128ParseOverflow);
   end;
   if Neg then
     Int128Negate(Result);

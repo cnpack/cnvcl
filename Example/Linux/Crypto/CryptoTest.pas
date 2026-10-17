@@ -336,6 +336,8 @@ function TestInt128EqualInt64Neg: Boolean;
 function TestInt128ToHexMin: Boolean;
 function TestInt128MulSzMin: Boolean;
 function TestInt128DivModSzMin: Boolean;
+function TestInt128ParseSzMin: Boolean;
+function TestInt128ParseOverflow: Boolean;
 
 // ===============================  Math =======================================
 
@@ -2228,6 +2230,8 @@ begin
   MyAssert(TestInt128ToHexMin, 'TestInt128ToHexMin');
   MyAssert(TestInt128MulSzMin, 'TestInt128MulSzMin');
   MyAssert(TestInt128DivModSzMin, 'TestInt128DivModSzMin');
+  MyAssert(TestInt128ParseSzMin, 'TestInt128ParseSzMin');
+  MyAssert(TestInt128ParseOverflow, 'TestInt128ParseOverflow');
 
 // ===============================  Math =======================================
 
@@ -12002,6 +12006,72 @@ begin
      (Int128ToStr(M) <> '-2') then Exit;
   Result := True;
 end;
+
+function TestInt128ParseSzMin: Boolean;
+var
+  A, B: TCnInt128;
+begin
+  // B6b/B6c：解析器必须接受 SZ_MIN 字面量（幅度 2^127，仅能以负数表示），
+  // 旧实现按有符号幅度累加再取负，会误报溢出。
+  Result := False;
+  Int128Set(B, 0, Low(Int64)); // SZ_MIN 位型
+  A := StrToInt128(SCN_MIN_INT128);
+  if not Int128Equal(A, B) then Exit;
+  if Int128ToStr(A) <> SCN_MIN_INT128 then Exit;
+  A := HexToInt128('-80000000000000000000000000000000');
+  if not Int128Equal(A, B) then Exit;
+  // 回归：MAX/-MAX 与正 hex 仍可正常解析
+  A := StrToInt128(SCN_MAX_INT128);
+  if Int128ToStr(A) <> SCN_MAX_INT128 then Exit;
+  A := StrToInt128('-9223372036854775808');
+  if Int128ToStr(A) <> '-9223372036854775808' then Exit;
+  A := HexToInt128('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+  if Int128ToStr(A) <> SCN_MAX_INT128 then Exit;
+  Result := True;
+end;
+
+function TestInt128ParseOverflow: Boolean;
+var
+  A: TCnInt128;
+  OK: Boolean;
+begin
+  // B6d/B6e：越界字面量必须抛 EIntOverflow，不得静默回绕。
+  Result := False;
+  OK := False;
+  try
+    A := StrToInt128('170141183460469231731687303715884105728'); // +2^127
+  except
+    on EIntOverflow do
+      OK := True;
+  end;
+  if not OK then Exit;
+  OK := False;
+  try
+    A := StrToInt128('-170141183460469231731687303715884105729'); // -(MAX+2)
+  except
+    on EIntOverflow do
+      OK := True;
+  end;
+  if not OK then Exit;
+  OK := False;
+  try
+    A := HexToInt128('80000000000000000000000000000000'); // +2^127 hex
+  except
+    on EIntOverflow do
+      OK := True;
+  end;
+  if not OK then Exit;
+  OK := False;
+  try
+    A := HexToInt128('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'); // 2^128-1
+  except
+    on EIntOverflow do
+      OK := True;
+  end;
+  if not OK then Exit;
+  Result := True;
+end;
+
 // ===============================  Math =======================================
 
 function TestCnAbs: Boolean;
