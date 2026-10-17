@@ -31,7 +31,9 @@ unit CnMath;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.17 V1.2
-*               修复 FloatSqrt/FloatLogN 输入 +Inf/NaN 时的死循环问题，非有限值按 IEEE 754 语义返回
+*               修复 FloatSqrt/FloatLogN 输入 +Inf/NaN 时的死循环与未处理 EInvalidOp 问题：
+*               +Inf 按 IEEE 754 语义返回 +Inf，NaN 抛范围异常；Int64Sqrt/FloatSqrt
+*               牛顿迭代补 CN_SQRT_MAX_ITERATIONS 上限
 *               修复 BigDecimalSin/Cos 范围规约循环减法迭代次数与 |X| 成正比导致大参数挂死的问题，
 *               改为 BigDecimalReduceToTwoPi 二倍序列贪心相减，O(log(X/2π)) 精确归约
 *           2026.01.21 V1.1
@@ -540,6 +542,10 @@ const
   CN_TAYLOR_MAX_ITERATIONS = 10000;
   {* 泰勒级数最大迭代次数，防止死循环}
 
+  CN_SQRT_MAX_ITERATIONS = 100;
+  {* 牛顿迭代求平方根的最大迭代次数，防止死循环。归约到 [1,4) 后每轮有效
+     位数翻倍，约 8 轮即达 Extended 满精度，100 为纯保险上限。 }
+
 resourcestring
   SCnErrorMathSqrtRange = 'Sqrt Range Error.';
   SCnErrorMathLogRange = 'Log Range Error.';
@@ -647,6 +653,7 @@ end;
 function Int64Sqrt(N: Int64): Extended;
 var
   X0: Extended;
+  J: Integer;
 begin
   if N < 0 then
     raise ERangeError.Create(SCnErrorMathSqrtRange);
@@ -659,7 +666,7 @@ begin
   end;
 
   X0 := N;
-  while True do
+  for J := 1 to CN_SQRT_MAX_ITERATIONS do
   begin
     Result := (X0 + N/X0) / 2;
 
@@ -677,9 +684,9 @@ begin
   if ExtendedIsNan(F) or (F < 0) then
     raise ERangeError.Create(SCnErrorMathSqrtRange);
 
-  // 非有限值按 IEEE 754 语义直接返回：sqrt(+Inf) = +Inf。
-  // 必须在归一化与牛顿迭代之前拦截，否则 +Inf 使 while G >= 4 永不结束，
-  if ExtendedIsInfinite(F) or ExtendedIsNan(F) then
+  // +Inf 按 IEEE 754 语义直接返回：sqrt(+Inf) = +Inf（NaN 已在入口抛异常）。
+  // 必须在归一化与牛顿迭代之前拦截，否则 +Inf 使归约循环永不终止。
+  if ExtendedIsInfinite(F) then
   begin
     Result := F;
     Exit;
@@ -716,7 +723,7 @@ begin
 
   // 牛顿迭代求 G 的平方根，收敛判据改为相对的
   X0 := G;
-  while True do
+  for J := 1 to CN_SQRT_MAX_ITERATIONS do
   begin
     Result := (X0 + G/X0) / 2;
 
@@ -798,8 +805,8 @@ begin
   if ExtendedIsNan(F) or (F <= 0) then
     raise ERangeError.Create(SCnErrorMathLogRange);
 
-  // 非有限值按 IEEE 754 语义直接返回：ln(+Inf) = +Inf、ln(NaN) = NaN。
-  // 必须在归一化循环之前拦截，否则 +Inf 使 while G >= 2 永不结束，
+  // +Inf 按 IEEE 754 语义直接返回：ln(+Inf) = +Inf（NaN 已在入口抛异常）。
+  // 必须在归约循环之前拦截，否则 +Inf 使归约循环永不终止。
   if ExtendedIsInfinite(F) then
   begin
     Result := F;
