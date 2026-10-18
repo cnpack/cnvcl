@@ -4,12 +4,9 @@ CALL CleanInplace.bat
 CD Package
 
 REM ============================================================
-REM Build CnVCL runtime packages for Delphi 5 to 13 Florence
-REM Design time packages are NOT built here, they require
-REM to be installed into the IDE.
-REM Delphi 12 Athens (120A) and Delphi 13 Florence (130F) also
-REM build the Win64 runtime packages with dcc64.
-REM dcc32/dcc64 paths refer to cnwizards/Make/want.xml
+REM Build CnVCL runtime packages for Delphi 5 to Latest.
+REM Delphi High Versions also build the Win64 runtime packages with dcc64.
+REM dcc32/dcc64 paths refer to cnwizards/Make/want.xml if not default.
 REM BPL/DCP outputs are placed in each package directory.
 REM ============================================================
 
@@ -17,7 +14,7 @@ SETLOCAL
 SET ROOTDIR=%~dp0
 ECHO ROOTDIR=%ROOTDIR%
 
-REM Command line compilers of each Delphi version
+REM Command Line Compilers of Each Delphi Version
 SET DCC5="C:\Program Files\Borland\Delphi5\Bin\dcc32.exe"
 SET DCC6="C:\Program Files\Borland\Delphi6\Bin\dcc32.exe"
 SET DCC7="C:\Program Files\Borland\Delphi7\Bin\dcc32.exe"
@@ -45,7 +42,7 @@ SET DCC120A_64="C:\Program Files\Embarcadero\Studio\23.0\Bin\dcc64.exe"
 SET DCC130F="C:\Program Files\Embarcadero\Studio\37.0\Bin\dcc32.exe"
 SET DCC130F_64="C:\Program Files\Embarcadero\Studio\37.0\Bin\dcc64.exe"
 
-REM Common compiler options: unit/include/obj/res search paths
+REM Common Compiler Options: unit/include/obj/res Search Paths
 SET SOURCES=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphic;..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\DbReport;..\..\Source\ObjRep;..\..\Source\Skin;..\..\Source\ThirdParty
 SET PATHOPTS=-U"%SOURCES%" -I"%SOURCES%" -O"%SOURCES%" -R"%SOURCES%"
 SET OUTOPTS=-LE"." -LN"."
@@ -75,10 +72,6 @@ SET OFFICE110A=-U"C:\Program Files\Embarcadero\Studio\22.0\Ocx\Servers"
 SET OFFICE120A=-U"C:\Program Files\Embarcadero\Studio\23.0\Ocx\Servers"
 SET OFFICE130F=-U"C:\Program Files\Embarcadero\Studio\37.0\Ocx\Servers"
 
-GOTO :DPK_START
-
-REM Delphi 5/6 Compiler Bug !
-
 ECHO =====================================
 ECHO *** Building Delphi 5 Packages
 CD Delphi5
@@ -96,8 +89,6 @@ CALL :CLEANTMP
 %DCC6% -B %ALIASFLAG% %PATHOPTS%  %OUTOPTS% "CnPack_D6.dpk"
 IF ERRORLEVEL 1 GOTO END
 CD ..
-
-:DPK_START
 
 ECHO =====================================
 ECHO *** Building Delphi 7 Packages
