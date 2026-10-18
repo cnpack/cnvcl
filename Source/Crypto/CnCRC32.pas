@@ -1303,7 +1303,7 @@ begin
   begin
     Sum := CRC64Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC64_OUTPUT_LENGTH_BYTE;
-    Sum := Int64(UInt64ToLittleEndian(TUInt64(Sum)));  // 摘要按固定小端字节序作为密钥，跨平台一致
+    Sum := Int64ToLittleEndian(Sum);  // 摘要按固定小端字节序作为密钥，跨平台一致
     Key := @Sum;
   end;
 
@@ -1334,4 +1334,3 @@ initialization
   Make_CRC64Table; // 初始化 CRC64 表
 
 end.
-
