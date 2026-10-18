@@ -4844,6 +4844,7 @@ var
   I: Integer;
   KeyStreamLen: Cardinal;
   KeyStream: PCardinal;
+  W: Cardinal;
   CK: TCnChaChaKey;
   CN: TCnChaChaNonce;
 begin
@@ -5014,9 +5015,13 @@ begin
             GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
             try
               ZUC(key, iv, KeyStream, KeyStreamLen);
+              // ZUC 密钥流字按大端序取字节（GB/T 33133 密钥流位序），保证跨平台密文一致
               for I := 0 to in_len - 1 do
+              begin
+                W := KeyStream^[I shr 2];
                 PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
-                  PByteArray(KeyStream)[I];
+                  Byte(W shr ((3 - (I and 3)) * 8));
+              end;
               Result := CN_OK;
             finally
               FreeMem(KeyStream);
@@ -5260,6 +5265,7 @@ var
   I: Integer;
   KeyStreamLen: Cardinal;
   KeyStream: PCardinal;
+  W: Cardinal;
   CK: TCnChaChaKey;
   CN: TCnChaChaNonce;
 begin
@@ -5425,9 +5431,13 @@ begin
             GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
             try
               ZUC(key, iv, KeyStream, KeyStreamLen);
+              // ZUC 密钥流字按大端序取字节（GB/T 33133 密钥流位序），保证跨平台密文一致
               for I := 0 to in_len - 1 do
+              begin
+                W := KeyStream^[I shr 2];
                 PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
-                  PByteArray(KeyStream)[I];
+                  Byte(W shr ((3 - (I and 3)) * 8));
+              end;
               Result := CN_OK;
             finally
               FreeMem(KeyStream);

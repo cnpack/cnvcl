@@ -33,7 +33,9 @@ unit CnCRC32;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.10.16 V1.8
+* 修改记录：2026.10.18
+*               跨 CPU 端序：HMAC 长密钥与内层摘要改按固定小端字节序参与运算
+*           2026.10.16 V1.8
 *               修复 CRC16 表法公式（应为 shl 8 xor Table[(shr 8) xor B]），
 *               并删除数据循环后多余的两轮补零，使增量与整体接口自洽
 *           2021.02.08 V1.7
@@ -1265,6 +1267,7 @@ begin
   begin
     Sum := CRC32Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC32_OUTPUT_LENGTH_BYTE;
+    Sum := UInt32ToLittleEndian(Sum);  // 摘要按固定小端字节序作为密钥，跨平台一致
     Key := @Sum;
   end;
 
@@ -1284,6 +1287,7 @@ begin
 
   Result := $FFFFFFFF;
   Result := DoCRC32Calc(Result, Opad[0], HMAC_CRC32_BLOCK_SIZE_BYTE);
+  Res := UInt32ToLittleEndian(Res);  // 内层摘要按固定小端字节序参与外层散列
   Result := DoCRC32Calc(Result, Res, HMAC_CRC32_OUTPUT_LENGTH_BYTE);
   Result := not Result;
 end;
@@ -1299,6 +1303,7 @@ begin
   begin
     Sum := CRC64Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC64_OUTPUT_LENGTH_BYTE;
+    Sum := Int64(UInt64ToLittleEndian(TUInt64(Sum)));  // 摘要按固定小端字节序作为密钥，跨平台一致
     Key := @Sum;
   end;
 
@@ -1318,6 +1323,7 @@ begin
 
   Result := $FFFFFFFF;
   Result := DoCRC64Calc(Result, Opad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
+  Res := Int64(UInt64ToLittleEndian(TUInt64(Res)));  // 内层摘要按固定小端字节序参与外层散列
   Result := DoCRC64Calc(Result, Res, HMAC_CRC64_OUTPUT_LENGTH_BYTE);
   Result := not Result;
 end;

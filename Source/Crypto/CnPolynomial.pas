@@ -38,7 +38,9 @@ unit CnPolynomial;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.05.11 V1.9
+* 修改记录：2026.10.18 V2.0
+*               跨 CPU 端序：SaveToMem/LoadFromMem 头部整数改为大端序读写
+*           2026.05.11 V1.9
 *               增加几个 SEA 算法相关的基础函数
 *           2026.01.25 V1.8
 *               调整有理数相关函数的参数顺序，注意和旧版不兼容
@@ -9114,7 +9116,7 @@ begin
   Result := SizeOf(Integer) + Ln + Ld;
 
   P4 := PInteger(Mem);
-  P4^ := Result;             // 4 字节总字节长度
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Result));             // 4 字节总字节长度
 
   Inc(P4);
   P1 := PByte(P4);
@@ -9138,12 +9140,13 @@ begin
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  Ln := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 头部总长度按大端序解出，跨平台一致
+  if (Size > 0) and (Ln > Size) then
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
-  if P4^ < SizeOf(Integer) then
+  if Ln < SizeOf(Integer) then
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
 
-  Result := P4^;             // 总字节长度
+  Result := Ln;             // 总字节长度
   Inc(P4);
   P1 := PByte(P4);
 
@@ -17523,7 +17526,7 @@ begin
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
 
   P4 := PInteger(Mem);
-  C := P4^;
+  C := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // Count 按大端序解出
   if C < 0 then
     raise ECnPolynomialException.Create(SCnErrorPolynomialMemSize);
   if C > (Size - SizeOf(Integer)) div MinItemSize then
@@ -17577,7 +17580,7 @@ begin
   end;
 
   P4 := PInteger(Mem);
-  P4^ := Count;               // 写个 Count
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Count));               // 写个 Count
 
   if Count > 0 then           // 再挨个写
   begin

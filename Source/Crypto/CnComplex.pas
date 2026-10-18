@@ -33,7 +33,9 @@ unit CnComplex;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.20 V1.2
+* 修改记录：2026.10.18
+*               跨 CPU 端序：SaveToMem/LoadFromMem 头部整数改为大端序读写
+*           2026.01.20 V1.2
 *               增加无限精度浮点数复数
 *           2023.06.26 V1.1
 *               增加辐角与绝对值等函数
@@ -2342,7 +2344,7 @@ begin
   Result := SizeOf(Integer) + Lr + Li;
 
   P4 := PInteger(Mem);
-  P4^ := Result;             // 4 字节总字节长度
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Result));             // 4 字节总字节长度
 
   Inc(P4);
   P1 := PByte(P4);
@@ -2365,12 +2367,13 @@ begin
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  Lr := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 头部总长度按大端序解出，跨平台一致
+  if (Size > 0) and (Lr > Size) then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
-  if P4^ < SizeOf(Integer) then
+  if Lr < SizeOf(Integer) then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
-  Result := P4^;             // 总字节长度
+  Result := Lr;             // 总字节长度
   Inc(P4);
   P1 := PByte(P4);
 
@@ -2534,7 +2537,7 @@ begin
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   P4 := PInteger(Mem);
-  C := P4^;
+  C := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // Count 按大端序解出
   if C < 0 then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
   if C > (Size - SizeOf(Integer)) div MinItemSize then
@@ -2587,7 +2590,7 @@ begin
   end;
 
   P4 := PInteger(Mem);
-  P4^ := Count;               // 写个 Count
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Count));               // 写个 Count
 
   if Count > 0 then           // 再挨个写
   begin
@@ -3194,7 +3197,7 @@ begin
   Result := SizeOf(Integer) + Lr + Li;
 
   P4 := PInteger(Mem);
-  P4^ := Result;             // 4 字节总字节长度
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Result));             // 4 字节总字节长度
 
   Inc(P4);
   P1 := PByte(P4);
@@ -3218,12 +3221,13 @@ begin
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  Lr := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 头部总长度按大端序解出，跨平台一致
+  if (Size > 0) and (Lr > Size) then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
-  if P4^ < SizeOf(Integer) then
+  if Lr < SizeOf(Integer) then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
-  Result := P4^;             // 总字节长度
+  Result := Lr;             // 总字节长度
   Inc(P4);
   P1 := PByte(P4);
 
@@ -3389,7 +3393,7 @@ begin
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
 
   P4 := PInteger(Mem);
-  C := P4^;
+  C := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // Count 按大端序解出
   if C < 0 then
     raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
   if C > (Size - SizeOf(Integer)) div MinItemSize then
@@ -3442,7 +3446,7 @@ begin
   end;
 
   P4 := PInteger(Mem);
-  P4^ := Count;               // 写个 Count
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Count));               // 写个 Count
 
   if Count > 0 then           // 再挨个写
   begin

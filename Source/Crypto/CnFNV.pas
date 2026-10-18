@@ -31,7 +31,10 @@ unit CnFNV;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.01.16 V1.0
+* 修改记录：2026.10.18
+*               跨 CPU 端序：摘要按 RFC 9923 2.3 节统一为规范小端字节序输出
+*               （原仅小端机反转、大端机漏翻，现无条件反转，两端序一致）
+*           2023.01.16 V1.0
 *               移植并创建单元
 ================================================================================
 |</PRE>}
@@ -487,8 +490,9 @@ begin
   try
     FNV1(cft32, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
   finally
     R.Free;
   end;
@@ -502,8 +506,9 @@ begin
   try
     FNV1(cft64, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
   finally
     R.Free;
   end;
@@ -517,8 +522,9 @@ begin
   try
     FNV1(cft128, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
   finally
     R.Free;
   end;
@@ -532,8 +538,9 @@ begin
   try
     FNV1(cft256, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
   finally
     R.Free;
   end;
@@ -547,8 +554,9 @@ begin
   try
     FNV1(cft512, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
   finally
     R.Free;
   end;
@@ -562,8 +570,9 @@ begin
   try
     FNV1(cft1024, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
   finally
     R.Free;
   end;
@@ -577,8 +586,9 @@ begin
   try
     FNV1a(cft32, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
   finally
     R.Free;
   end;
@@ -592,8 +602,9 @@ begin
   try
     FNV1a(cft64, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
   finally
     R.Free;
   end;
@@ -607,8 +618,9 @@ begin
   try
     FNV1a(cft128, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
   finally
     R.Free;
   end;
@@ -622,8 +634,9 @@ begin
   try
     FNV1a(cft256, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
   finally
     R.Free;
   end;
@@ -637,8 +650,9 @@ begin
   try
     FNV1a(cft512, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
   finally
     R.Free;
   end;
@@ -652,8 +666,9 @@ begin
   try
     FNV1a(cft1024, PByte(Data), DataByteLen, R);
     R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
+    // RFC 9923 2.3 节：FNV 摘要规范要求按小端字节序输出；ToBinary 恒为大端，
+    // 无条件反转一次即统一为小端，跨平台一致
+    ReverseMemory(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
   finally
     R.Free;
   end;

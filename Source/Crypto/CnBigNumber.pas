@@ -11555,13 +11555,14 @@ begin
     Exit;
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  L := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 头部总长度按大端序解出，跨平台一致
+  if (Size > 0) and (L > Size) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
-  if P4^ < SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) then
+  if L < SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
-  Result := P4^;
+  Result := L;
   Inc(P4);
   P1 := PByte(P4);
 
@@ -11573,7 +11574,7 @@ begin
 
   Inc(P1);
   P4 := PInteger(P1);
-  L := P4^;
+  L := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 数据长度按大端序解出
 
   // 检查加上 L 后是否超过 Size，超过就抛异常
   if SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) + L > Size then
@@ -11596,7 +11597,7 @@ begin
     Exit;
 
   P4 := PInteger(Mem);          // 写总长度
-  P4^ := Result;
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Result));
 
   Inc(P4);
   P1 := PByte(P4);
@@ -11614,7 +11615,7 @@ begin
 
   Inc(P1);
   P4 := PInteger(P1);           // 写 BytesCount
-  P4^ := BigNumberGetBytesCount(Self);
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(BigNumberGetBytesCount(Self)));  // 数据长度按大端序写出
   Inc(P4);
   BigNumberToBinary(Self, PAnsiChar(P4));  // 写具体内容
 end;
@@ -11827,7 +11828,7 @@ begin
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
   P4 := PInteger(Mem);
-  C := P4^;
+  C := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // Count 按大端序解出
   if C < 0 then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
   if C > (Size - SizeOf(Integer)) div MinItemSize then
@@ -11898,7 +11899,7 @@ begin
   end;
 
   P4 := PInteger(Mem);
-  P4^ := Count;               // 写个 Count
+  PCardinal(P4)^ := UInt32HostToNetwork(Cardinal(Count));               // 写个 Count
 
   if Count > 0 then           // 再挨个写大数
   begin

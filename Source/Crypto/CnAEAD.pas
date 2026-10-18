@@ -59,7 +59,10 @@ unit CnAEAD;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.05.09 V1.3
+* 修改记录：2026.10.18
+*               跨 CPU 端序：ChaCha20-Poly1305 派生 Poly1305 密钥改为逐字小端序列化
+*               GCM 非 12 字节 IV 分支的计数器改用 UInt32NetworkToHost 端序自适应
+*           2024.05.09 V1.3
 *               加入两组 AES/SM4 GCM 到十六进制的加解密函数
 *           2022.07.31 V1.2
 *               加入 ChaCha20-Poly1305 和 XChaCha20-Poly1305 算法
@@ -3057,6 +3060,7 @@ var
   ChaChaKey: TCnChaChaKey;
   Nonce: TCnChaChaNonce;
   OutKey: TCnChaChaState;
+  I: Integer;
   Poly1305Key: TCnPoly1305Key;
   Poly1305Context: TCnPoly1305Context;
   Lens: array[0..1] of TUInt64;
@@ -3096,7 +3100,14 @@ begin
     ChaCha20Block(ChaChaKey, Nonce, 0, OutKey); // 注意这里的计数器是 0
 
     // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
-    Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
+    // RFC 8439：Poly1305 密钥取 Block 前 32 字节的小端序列化，逐字写出保证跨平台一致
+    for I := 0 to 7 do
+    begin
+      Poly1305Key[I * 4] := Byte(OutKey[I]);
+      Poly1305Key[I * 4 + 1] := Byte(OutKey[I] shr 8);
+      Poly1305Key[I * 4 + 2] := Byte(OutKey[I] shr 16);
+      Poly1305Key[I * 4 + 3] := Byte(OutKey[I] shr 24);
+    end;
 
     ChaCha20EncryptData(ChaChaKey, Nonce, PlainData, PlainByteLength, OutEnData);
 
@@ -3161,6 +3172,7 @@ var
   ChaChaKey: TCnChaChaKey;
   Nonce: TCnChaChaNonce;
   OutKey: TCnChaChaState;
+  I: Integer;
   Poly1305Key: TCnPoly1305Key;
   Poly1305Context: TCnPoly1305Context;
   Tag: TCnPoly1305Digest;
@@ -3200,7 +3212,14 @@ begin
     MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
 
     ChaCha20Block(ChaChaKey, Nonce, 0, OutKey);
-    Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
+    // RFC 8439：Poly1305 密钥取 Block 前 32 字节的小端序列化，逐字写出保证跨平台一致
+    for I := 0 to 7 do
+    begin
+      Poly1305Key[I * 4] := Byte(OutKey[I]);
+      Poly1305Key[I * 4 + 1] := Byte(OutKey[I] shr 8);
+      Poly1305Key[I * 4 + 2] := Byte(OutKey[I] shr 16);
+      Poly1305Key[I * 4 + 3] := Byte(OutKey[I] shr 24);
+    end;
 
     if EnByteLength > 0 then
     begin
