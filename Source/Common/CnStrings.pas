@@ -733,7 +733,7 @@ function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
      const S: string                      - 被查找的源字符串
      CaseSensitive: Boolean               - 是否区分大小写
      WholeWords: Boolean                  - 是否全字匹配
-     StartCount: Integer = 1              - 查找第几次出现，默认为 1（即首次）
+     StartCount: Integer                  - 查找第几次出现，默认为 1（即首次）
 
    返回值：Integer                        - 子串在源串中的位置，未找到返回 0
 }

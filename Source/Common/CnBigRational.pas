@@ -295,7 +295,6 @@ type
          const ANumerator: string         - 分子字符串
          const ADenominator: string       - 分母字符串
 
-
        返回值：（无）
     }
 

@@ -1678,6 +1678,7 @@ function cn_get_version; external CnCryptoLib name 'cn_get_version';
 function cn_get_abi_version; external CnCryptoLib name 'cn_get_abi_version';
 function cn_lib_init; external CnCryptoLib name 'cn_lib_init';
 function cn_lib_finalize; external CnCryptoLib name 'cn_lib_finalize';
+function cn_get_last_error; external CnCryptoLib name 'cn_get_last_error';
 function cn_alloc; external CnCryptoLib name 'cn_alloc';
 function cn_free; external CnCryptoLib name 'cn_free';
 function cn_memzero; external CnCryptoLib name 'cn_memzero';

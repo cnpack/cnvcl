@@ -1150,7 +1150,7 @@ end;
 
 procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
-  TmpAesIv: TCnAESBuffer;
+  TmpAesIv: TCnAESIv;
   IvStr: AnsiString;
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 begin
@@ -1329,7 +1329,7 @@ end;
 
 procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
-  TmpAesIv: TCnAESBuffer;
+  TmpAesIv: TCnAESIv;
   IvStr: AnsiString;
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 begin

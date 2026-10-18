@@ -4828,7 +4828,7 @@ function cn_cipher_encrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; iv:
   TCnSize; var out_len: TCnSize): TCnResult; cdecl;
 var
   Src, Dst: TMemoryStream;
-  IVBuf: TCnAESBuffer;
+  IVBuf: TCnAESIv;
   K128: TCnAESKey128;
   K192: TCnAESKey192;
   K256: TCnAESKey256;
@@ -4844,6 +4844,7 @@ var
   I: Integer;
   KeyStreamLen: Cardinal;
   KeyStream: PCardinal;
+  KeyArr: PCnUInt32Array;
   W: Cardinal;
   CK: TCnChaChaKey;
   CN: TCnChaChaNonce;
@@ -5016,9 +5017,10 @@ begin
             try
               ZUC(key, iv, KeyStream, KeyStreamLen);
               // ZUC 密钥流字按大端序取字节（GB/T 33133 密钥流位序），保证跨平台密文一致
+              KeyArr := PCnUInt32Array(KeyStream);
               for I := 0 to in_len - 1 do
               begin
-                W := KeyStream^[I shr 2];
+                W := KeyArr^[I shr 2];
                 PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
                   Byte(W shr ((3 - (I and 3)) * 8));
               end;
@@ -5249,7 +5251,7 @@ function cn_cipher_decrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; iv:
   TCnSize; var out_len: TCnSize): TCnResult; cdecl;
 var
   Src, Dst: TMemoryStream;
-  IVBuf: TCnAESBuffer;
+  IVBuf: TCnAESIv;
   K128: TCnAESKey128;
   K192: TCnAESKey192;
   K256: TCnAESKey256;
@@ -5265,6 +5267,7 @@ var
   I: Integer;
   KeyStreamLen: Cardinal;
   KeyStream: PCardinal;
+  KeyArr: PCnUInt32Array;
   W: Cardinal;
   CK: TCnChaChaKey;
   CN: TCnChaChaNonce;
@@ -5432,9 +5435,10 @@ begin
             try
               ZUC(key, iv, KeyStream, KeyStreamLen);
               // ZUC 密钥流字按大端序取字节（GB/T 33133 密钥流位序），保证跨平台密文一致
+              KeyArr := PCnUInt32Array(KeyStream);
               for I := 0 to in_len - 1 do
               begin
-                W := KeyStream^[I shr 2];
+                W := KeyArr^[I shr 2];
                 PByteArray(Dst.Memory)[I] := PByteArray(Src.Memory)[I] xor
                   Byte(W shr ((3 - (I and 3)) * 8));
               end;

@@ -33,7 +33,7 @@ unit CnCRC32;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.10.18
+* 修改记录：2026.10.18 V1.9
 *               跨 CPU 端序：HMAC 长密钥与内层摘要改按固定小端字节序参与运算
 *           2026.10.16 V1.8
 *               修复 CRC16 表法公式（应为 shl 8 xor Table[(shr 8) xor B]），
@@ -1323,7 +1323,7 @@ begin
 
   Result := $FFFFFFFF;
   Result := DoCRC64Calc(Result, Opad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
-  Res := Int64(UInt64ToLittleEndian(TUInt64(Res)));  // 内层摘要按固定小端字节序参与外层散列
+  Res := Int64ToLittleEndian(Res); // 内层摘要按固定小端字节序参与外层散列
   Result := DoCRC64Calc(Result, Res, HMAC_CRC64_OUTPUT_LENGTH_BYTE);
   Result := not Result;
 end;
@@ -1334,3 +1334,4 @@ initialization
   Make_CRC64Table; // 初始化 CRC64 表
 
 end.
+

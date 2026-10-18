@@ -306,7 +306,6 @@ function CnShamirReconstruct(Prime: TCnBigNumber; InOrders: TCnBigNumberList;
    注意：InOrders 中每个 x 坐标必须在 [1, Prime) 范围内且两两互异，
    否则返回 False 并设置错误码 ECN_SECRET_INVALID_INPUT。
 
-
    参数：
      Prime: TCnBigNumber                  - 拆分时使用的素数
      InOrders: TCnBigNumberList           - 分片序号列表
