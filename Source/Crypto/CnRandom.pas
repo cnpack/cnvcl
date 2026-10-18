@@ -253,19 +253,6 @@ end;
 const
   DEV_FILE = '/dev/urandom';
 
-{$IFDEF LINUX}
-
-const
-  libc = 'libc.so.6';
-  EINTR = 4;
-
-// Linux kernel 3.17/glibc 2.25 才加入 getrandom 函数，较老的版本如 UBuntu 16 等无法链接成功。
-function getrandom(Buf: Pointer; BufLen: NativeUInt; Flags: Cardinal): Integer; cdecl; external libc name 'getrandom';
-
-function __errno_location: PInteger; cdecl; external libc name '__errno_location';
-
-{$ENDIF}
-
 {$IFDEF MACOS}
 
 function CCRandomGenerateBytes(Bytes: Pointer; Count: NativeUInt): Integer; cdecl; external '/usr/lib/system/libcommonCrypto.dylib' name 'CCRandomGenerateBytes';
@@ -283,9 +270,6 @@ var
 {$ELSE}
   F: TFileStream;
   BytesRead: Integer;
-{$IFDEF LINUX}
-  R: Integer;
-{$ENDIF}
 {$ENDIF}
 begin
   Result := False;
@@ -338,30 +322,8 @@ begin
   if Result then
     Exit;
 {$ENDIF}
-{$IFDEF LINUX}
-  try
-    while BufByteLen > 0 do
-    begin
-      R := getrandom(Buf, TCnNativeUInt(BufByteLen), 0);
-      if R > 0 then
-      begin
-        Dec(BufByteLen, R);
-        Inc(Buf, R);
-      end
-      else if (R < 0) and (__errno_location^ = EINTR) then
-        Continue
-      else
-        Break;
-    end;
-    Result := BufByteLen = 0;
-    if Result then
-      Exit;
-  except
-    // ignore missing symbol or error
-  end;
-{$ENDIF}
 
-  // MacOS/Linux 下降级的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
+  // MacOS 下降级的及 Linux 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
   F := nil;
   try
     F := TFileStream.Create(DEV_FILE, fmOpenRead);
@@ -388,9 +350,6 @@ function CnRandomFillBytes2(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
 var
   F: TFileStream;
   BytesRead: Integer;
-{$IFDEF LINUX}
-  R: Integer;
-{$ENDIF}
 {$ENDIF}
 begin
   Result := False;
@@ -419,30 +378,8 @@ begin
   if Result then
     Exit;
 {$ENDIF}
-{$IFDEF LINUX}
-  try
-    while BufByteLen > 0 do
-    begin
-      R := getrandom(Buf, TCnNativeUInt(BufByteLen), 0);
-      if R > 0 then
-      begin
-        Dec(BufByteLen, R);
-        Inc(Buf, R);
-      end
-      else if (R < 0) and (__errno_location^ = EINTR) then
-        Continue
-      else
-        Break;
-    end;
-    Result := BufByteLen = 0;
-    if Result then
-      Exit;
-  except
-    // ignore missing symbol or error
-  end;
-{$ENDIF}
 
-  // MacOS/Linux 下降级的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
+  // MacOS 下降级的及 Linux 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
   F := nil;
   try
     F := TFileStream.Create(DEV_FILE, fmOpenRead);
