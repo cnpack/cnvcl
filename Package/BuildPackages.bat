@@ -3,12 +3,12 @@ CD ..
 CALL CleanInplace.bat
 CD Package
 
-REM ============================================================
-REM Build CnVCL runtime packages for Delphi 5 to Latest.
+REM ======================================================================
+REM Build CnVCL runtime and design-time packages for Delphi 5 to Latest.
 REM Delphi High Versions also build the Win64 runtime packages with dcc64.
 REM dcc32/dcc64 paths refer to cnwizards/Make/want.xml if not default.
 REM BPL/DCP outputs are placed in each package directory.
-REM ============================================================
+REM ======================================================================
 
 SETLOCAL
 SET ROOTDIR=%~dp0
@@ -78,9 +78,9 @@ SET OFFICE130F=-U"C:\Program Files\Embarcadero\Studio\37.0\Ocx\Servers"
 
 GOTO :PACKAGE_START
 
-ECHO =====================================
-ECHO === Building C++Builder 5 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building C++Builder 5 Packages
+ECHO ===================================================
 CD BCB5
 ECHO *** Building Runtime Package CnPack_CB5.bpk
 CALL :CLEANTMP
@@ -91,9 +91,9 @@ IF ERRORLEVEL 1 GOTO END
 DEL CnPack_CB5.mak 2> NUL
 CD ..
 
-ECHO =====================================
-ECHO === Building C++Builder 6 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building C++Builder 6 Packages
+ECHO ===================================================
 CD BCB6
 ECHO *** Building Runtime Package CnPack_CB6.bpk
 CALL :CLEANTMP
@@ -108,251 +108,329 @@ CD ..
 
 :PACKAGE_START
 
-ECHO =====================================
-ECHO === Building Delphi 5 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 5 Packages
+ECHO ===================================================
 CD Delphi5
 ECHO *** Building Runtime Package CnPack_D5.dpk
 CALL :CLEANTMP
 %DCC5% -B %ALIASFLAG% %PATHOPTS%  %OUTOPTS% "CnPack_D5.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D5.dpk
+%DCC5% %ALIASFLAG% %PATHOPTS% -U"."  %OUTOPTS% "dclCnPack_D5.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 6 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 6 Packages
+ECHO ===================================================
 CD Delphi6
 ECHO *** Building Runtime Package CnPack_D6.dpk
 CALL :CLEANTMP
 %DCC6% -B %ALIASFLAG% %PATHOPTS%  %OUTOPTS% "CnPack_D6.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D6.dpk
+%DCC6% %ALIASFLAG% %PATHOPTS% -U"."  %OUTOPTS% "dclCnPack_D6.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 7 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 7 Packages
+ECHO ===================================================
 CD Delphi7
 ECHO *** Building Runtime Package CnPack_D7.dpk
 CALL :CLEANTMP
 %DCC7% -B %ALIASFLAG% %PATHOPTS% %OFFICE7%  %OUTOPTS% "CnPack_D7.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D7.dpk
+%DCC7% %ALIASFLAG% %PATHOPTS% -U"." %OFFICE7%  %OUTOPTS% "dclCnPack_D7.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 2005 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 2005 Packages
+ECHO ===================================================
 CD Delphi2005
 ECHO *** Building Runtime Package CnPack_D2005.dpk
 CALL :CLEANTMP
 %DCC2005% -B %ALIASFLAG% %PATHOPTS% %OFFICE2005%  %OUTOPTS% "CnPack_D2005.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D2005.dpk
+%DCC2005% %ALIASFLAG% %PATHOPTS% -U"." %OFFICE2005%  %OUTOPTS% "dclCnPack_D2005.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 2006 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 2006 Packages
+ECHO ===================================================
 CD Delphi2006
 ECHO *** Building Runtime Package CnPack_D2006.dpk
 CALL :CLEANTMP
 %DCC2006% -B %ALIASFLAG% %PATHOPTS% %OFFICE2006%  %OUTOPTS% "CnPack_D2006.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D2006.dpk
+%DCC2006% %ALIASFLAG% %PATHOPTS% -U"." %OFFICE2006%  %OUTOPTS% "dclCnPack_D2006.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 2007 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 2007 Packages
+ECHO ===================================================
 CD Delphi2007
 ECHO *** Building Runtime Package CnPack_D2007.dpk
 CALL :CLEANTMP
 %DCC2007% -B %ALIASFLAG% %PATHOPTS% %OFFICE2007%  %OUTOPTS% "CnPack_D2007.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D2007.dpk
+%DCC2007% %ALIASFLAG% %PATHOPTS% -U"." %OFFICE2007%  %OUTOPTS% "dclCnPack_D2007.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 2009 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 2009 Packages
+ECHO ===================================================
 CD Delphi2009
 ECHO *** Building Runtime Package CnPack_D2009.dpk
 CALL :CLEANTMP
 %DCC2009% -B %ALIASFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE2009% "CnPack_D2009.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D2009.dpk
+%DCC2009% %ALIASFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE2009% "dclCnPack_D2009.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 2010 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 2010 Packages
+ECHO ===================================================
 CD Delphi2010
 ECHO *** Building Runtime Package CnPack_D2010.dpk
 CALL :CLEANTMP
 %DCC2010% -B %ALIASFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE2010% "CnPack_D2010.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D2010.dpk
+%DCC2010% %ALIASFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE2010% "dclCnPack_D2010.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE Packages
+ECHO ===================================================
 CD DelphiXE
 ECHO *** Building Runtime Package CnPack_DXE.dpk
 CALL :CLEANTMP
 %DCCXE% -B %ALIASFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE% "CnPack_DXE.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE.dpk
+%DCCXE% %ALIASFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE% "dclCnPack_DXE.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE2 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE2 Packages
+ECHO ===================================================
 CD DelphiXE2
 ECHO *** Building Runtime Package CnPack_DXE2.dpk
 CALL :CLEANTMP
 %DCCXE2% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE2% "CnPack_DXE2.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE2.dpk
+%DCCXE2% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE2% "dclCnPack_DXE2.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE3 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE3 Packages
+ECHO ===================================================
 CD DelphiXE3
 ECHO *** Building Runtime Package CnPack_DXE3.dpk
 CALL :CLEANTMP
 %DCCXE3% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE3% "CnPack_DXE3.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE3.dpk
+%DCCXE3% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE3% "dclCnPack_DXE3.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE4 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE4 Packages
+ECHO ===================================================
 CD DelphiXE4
 ECHO *** Building Runtime Package CnPack_DXE4.dpk
 CALL :CLEANTMP
 %DCCXE4% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE4% "CnPack_DXE4.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE4.dpk
+%DCCXE4% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE4% "dclCnPack_DXE4.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE5 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE5 Packages
+ECHO ===================================================
 CD DelphiXE5
 ECHO *** Building Runtime Package CnPack_DXE5.dpk
 CALL :CLEANTMP
 %DCCXE5% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE5% "CnPack_DXE5.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE5.dpk
+%DCCXE5% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE5% "dclCnPack_DXE5.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE6 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE6 Packages
+ECHO ===================================================
 CD DelphiXE6
 ECHO *** Building Runtime Package CnPack_DXE6.dpk
 CALL :CLEANTMP
 %DCCXE6% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE6% "CnPack_DXE6.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE6.dpk
+%DCCXE6% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE6% "dclCnPack_DXE6.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE7 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE7 Packages
+ECHO ===================================================
 CD DelphiXE7
 ECHO *** Building Runtime Package CnPack_DXE7.dpk
 CALL :CLEANTMP
 %DCCXE7% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE7% "CnPack_DXE7.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE7.dpk
+%DCCXE7% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE7% "dclCnPack_DXE7.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi XE8 Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi XE8 Packages
+ECHO ===================================================
 CD DelphiXE8
 ECHO *** Building Runtime Package CnPack_DXE8.dpk
 CALL :CLEANTMP
 %DCCXE8% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICEXE8% "CnPack_DXE8.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_DXE8.dpk
+%DCCXE8% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICEXE8% "dclCnPack_DXE8.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 10 Seattle Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 10 Seattle Packages
+ECHO ===================================================
 CD Delphi10S
 ECHO *** Building Runtime Package CnPack_D10S.dpk
 CALL :CLEANTMP
 %DCC10S% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE10S% "CnPack_D10S.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D10S.dpk
+%DCC10S% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE10S% "dclCnPack_D10S.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 10.1 Berlin Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 10.1 Berlin Packages
+ECHO ===================================================
 CD Delphi101B
 ECHO *** Building Runtime Package CnPack_D101B.dpk
 CALL :CLEANTMP
 %DCC101B% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE101B% "CnPack_D101B.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D101B.dpk
+%DCC101B% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE101B% "dclCnPack_D101B.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 10.2 Tokyo Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 10.2 Tokyo Packages
+ECHO ===================================================
 CD Delphi102T
 ECHO *** Building Runtime Package CnPack_D102T.dpk
 CALL :CLEANTMP
 %DCC102T% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE102T% "CnPack_D102T.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D102T.dpk
+%DCC102T% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE102T% "dclCnPack_D102T.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 10.3 Rio Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 10.3 Rio Packages
+ECHO ===================================================
 CD Delphi103R
 ECHO *** Building Runtime Package CnPack_D103R.dpk
 CALL :CLEANTMP
 %DCC103R% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE103R% "CnPack_D103R.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D103R.dpk
+%DCC103R% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE103R% "dclCnPack_D103R.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 10.4 Sydney Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 10.4 Sydney Packages
+ECHO ===================================================
 CD Delphi104S
 ECHO *** Building Runtime Package CnPack_D104S.dpk
 CALL :CLEANTMP
 %DCC104S% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE104S% "CnPack_D104S.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D104S.dpk
+%DCC104S% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE104S% "dclCnPack_D104S.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 11 Alexandria Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 11 Alexandria Packages
+ECHO ===================================================
 CD Delphi110A
 ECHO *** Building Runtime Package CnPack_D110A.dpk
 CALL :CLEANTMP
 %DCC110A% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE110A% "CnPack_D110A.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D110A.dpk
+%DCC110A% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE110A% "dclCnPack_D110A.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 12 Athens Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 12 Athens Packages
+ECHO ===================================================
 CD Delphi120A
 ECHO *** Building Runtime Package CnPack_D120A.dpk
 CALL :CLEANTMP
 %DCC120A% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE120A% "CnPack_D120A.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D120A.dpk
+%DCC120A% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE120A% "dclCnPack_D120A.dpk"
+IF ERRORLEVEL 1 GOTO END
 ECHO *** Building 64bit Runtime Package CnPack_D120A64.dpk
 CALL :CLEANTMP
 %DCC120A_64% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE120A% "CnPack_D120A64.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building 64bit Design Package dclCnPack_D120A64.dpk
+%DCC120A_64% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE120A% "dclCnPack_D120A64.dpk"
+IF ERRORLEVEL 1 GOTO END
 CD ..
 
-ECHO =====================================
-ECHO === Building Delphi 13 Florence Packages
-ECHO =====================================
+ECHO ===================================================
+ECHO ======= Building Delphi 13 Florence Packages
+ECHO ===================================================
 CD Delphi130F
 ECHO *** Building Runtime Package CnPack_D130F.dpk
 CALL :CLEANTMP
 %DCC130F% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE130F% "CnPack_D130F.dpk"
 IF ERRORLEVEL 1 GOTO END
+ECHO *** Building Design Package dclCnPack_D130F.dpk
+%DCC130F% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE130F% "dclCnPack_D130F.dpk"
+IF ERRORLEVEL 1 GOTO END
 ECHO *** Building 64bit Runtime Package CnPack_D130F64.dpk
 CALL :CLEANTMP
 %DCC130F_64% -B %ALIASFLAG% %NSFLAG% %PATHOPTS%  %OUTOPTS%  %OFFICE130F% "CnPack_D130F64.dpk"
+IF ERRORLEVEL 1 GOTO END
+ECHO *** Building 64bit Design Package dclCnPack_D130F64.dpk
+%DCC130F_64% %ALIASFLAG% %NSFLAG% %PATHOPTS% -U"."  %OUTOPTS%  %OFFICE130F% "dclCnPack_D130F64.dpk"
 IF ERRORLEVEL 1 GOTO END
 CD ..
 
