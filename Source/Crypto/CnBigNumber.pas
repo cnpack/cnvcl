@@ -3560,9 +3560,14 @@ begin
 {$IFDEF BN_DATA_USE_64}
     Result := BN_MASK3S;
 {$ELSE}
+  {$IFDEF SUPPORT_UINT64}
     Result := Int64(TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
       or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32));
-    if Result < 0 then        // UInt64 最高位有值，说明已经超出了 Int64 的范围，返回 Max Int64
+  {$ELSE}
+    Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
+      or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
+  {$ENDIF}
+    if Result < 0 then         // UInt64 最高位有值，说明已经超出了 Int64 的范围，返回 Max Int64
       Result := BN_MASK3S
     else if Num.FNeg <> 0 then // 负则求反加一
       Result := (not Result) + 1;
