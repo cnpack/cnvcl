@@ -42,6 +42,10 @@ SET DCC120A_64="C:\Program Files\Embarcadero\Studio\23.0\Bin\dcc64.exe"
 SET DCC130F="C:\Program Files\Embarcadero\Studio\37.0\Bin\dcc32.exe"
 SET DCC130F_64="C:\Program Files\Embarcadero\Studio\37.0\Bin\dcc64.exe"
 
+REM C++Builder 5/6 build tools (bpr2mak converts the XML .bpk to a makefile)
+SET BCB5BIN=C:\Program Files\Borland\CBuilder5\Bin
+SET BCB6BIN=C:\Program Files\Borland\CBuilder6\Bin
+
 REM Common Compiler Options: unit/include/obj/res Search Paths
 SET SOURCES=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphic;..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\DbReport;..\..\Source\ObjRep;..\..\Source\Skin;..\..\Source\ThirdParty
 SET PATHOPTS=-U"%SOURCES%" -I"%SOURCES%" -O"%SOURCES%" -R"%SOURCES%"
@@ -72,8 +76,41 @@ SET OFFICE110A=-U"C:\Program Files\Embarcadero\Studio\22.0\Ocx\Servers"
 SET OFFICE120A=-U"C:\Program Files\Embarcadero\Studio\23.0\Ocx\Servers"
 SET OFFICE130F=-U"C:\Program Files\Embarcadero\Studio\37.0\Ocx\Servers"
 
+GOTO :PACKAGE_START
+
 ECHO =====================================
-ECHO *** Building Delphi 5 Packages
+ECHO === Building C++Builder 5 Packages
+ECHO =====================================
+CD BCB5
+ECHO *** Building Runtime Package CnPack_CB5.bpk
+CALL :CLEANTMP
+"%BCB5BIN%\bpr2mak.exe" -t"%BCB5BIN%\DEFAULT.BMK" CnPack_CB5.bpk -q
+IF ERRORLEVEL 1 GOTO END
+"%BCB5BIN%\make.exe" -fCnPack_CB5.mak
+IF ERRORLEVEL 1 GOTO END
+DEL CnPack_CB5.mak 2> NUL
+CD ..
+
+ECHO =====================================
+ECHO === Building C++Builder 6 Packages
+ECHO =====================================
+CD BCB6
+ECHO *** Building Runtime Package CnPack_CB6.bpk
+CALL :CLEANTMP
+COPY /Y "..\..\Source\Common\CnPack.inc" . > NUL
+"%BCB6BIN%\bpr2mak.exe" -t"%BCB6BIN%\DEFAULT.BMK" CnPack_CB6.bpk -q
+IF ERRORLEVEL 1 GOTO END
+"%BCB6BIN%\make.exe" -fCnPack_CB6.mak
+IF ERRORLEVEL 1 GOTO END
+DEL CnPack_CB6.mak 2> NUL
+DEL CnPack.inc 2> NUL
+CD ..
+
+:PACKAGE_START
+
+ECHO =====================================
+ECHO === Building Delphi 5 Packages
+ECHO =====================================
 CD Delphi5
 ECHO *** Building Runtime Package CnPack_D5.dpk
 CALL :CLEANTMP
@@ -82,7 +119,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 6 Packages
+ECHO === Building Delphi 6 Packages
+ECHO =====================================
 CD Delphi6
 ECHO *** Building Runtime Package CnPack_D6.dpk
 CALL :CLEANTMP
@@ -91,7 +129,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 7 Packages
+ECHO === Building Delphi 7 Packages
+ECHO =====================================
 CD Delphi7
 ECHO *** Building Runtime Package CnPack_D7.dpk
 CALL :CLEANTMP
@@ -100,7 +139,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 2005 Packages
+ECHO === Building Delphi 2005 Packages
+ECHO =====================================
 CD Delphi2005
 ECHO *** Building Runtime Package CnPack_D2005.dpk
 CALL :CLEANTMP
@@ -109,7 +149,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 2006 Packages
+ECHO === Building Delphi 2006 Packages
+ECHO =====================================
 CD Delphi2006
 ECHO *** Building Runtime Package CnPack_D2006.dpk
 CALL :CLEANTMP
@@ -118,7 +159,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 2007 Packages
+ECHO === Building Delphi 2007 Packages
+ECHO =====================================
 CD Delphi2007
 ECHO *** Building Runtime Package CnPack_D2007.dpk
 CALL :CLEANTMP
@@ -127,7 +169,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 2009 Packages
+ECHO === Building Delphi 2009 Packages
+ECHO =====================================
 CD Delphi2009
 ECHO *** Building Runtime Package CnPack_D2009.dpk
 CALL :CLEANTMP
@@ -136,7 +179,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 2010 Packages
+ECHO === Building Delphi 2010 Packages
+ECHO =====================================
 CD Delphi2010
 ECHO *** Building Runtime Package CnPack_D2010.dpk
 CALL :CLEANTMP
@@ -145,7 +189,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE Packages
+ECHO === Building Delphi XE Packages
+ECHO =====================================
 CD DelphiXE
 ECHO *** Building Runtime Package CnPack_DXE.dpk
 CALL :CLEANTMP
@@ -154,7 +199,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE2 Packages
+ECHO === Building Delphi XE2 Packages
+ECHO =====================================
 CD DelphiXE2
 ECHO *** Building Runtime Package CnPack_DXE2.dpk
 CALL :CLEANTMP
@@ -163,7 +209,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE3 Packages
+ECHO === Building Delphi XE3 Packages
+ECHO =====================================
 CD DelphiXE3
 ECHO *** Building Runtime Package CnPack_DXE3.dpk
 CALL :CLEANTMP
@@ -172,7 +219,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE4 Packages
+ECHO === Building Delphi XE4 Packages
+ECHO =====================================
 CD DelphiXE4
 ECHO *** Building Runtime Package CnPack_DXE4.dpk
 CALL :CLEANTMP
@@ -181,7 +229,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE5 Packages
+ECHO === Building Delphi XE5 Packages
+ECHO =====================================
 CD DelphiXE5
 ECHO *** Building Runtime Package CnPack_DXE5.dpk
 CALL :CLEANTMP
@@ -190,7 +239,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE6 Packages
+ECHO === Building Delphi XE6 Packages
+ECHO =====================================
 CD DelphiXE6
 ECHO *** Building Runtime Package CnPack_DXE6.dpk
 CALL :CLEANTMP
@@ -199,7 +249,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE7 Packages
+ECHO === Building Delphi XE7 Packages
+ECHO =====================================
 CD DelphiXE7
 ECHO *** Building Runtime Package CnPack_DXE7.dpk
 CALL :CLEANTMP
@@ -208,7 +259,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi XE8 Packages
+ECHO === Building Delphi XE8 Packages
+ECHO =====================================
 CD DelphiXE8
 ECHO *** Building Runtime Package CnPack_DXE8.dpk
 CALL :CLEANTMP
@@ -217,7 +269,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 10 Seattle Packages
+ECHO === Building Delphi 10 Seattle Packages
+ECHO =====================================
 CD Delphi10S
 ECHO *** Building Runtime Package CnPack_D10S.dpk
 CALL :CLEANTMP
@@ -226,7 +279,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 10.1 Berlin Packages
+ECHO === Building Delphi 10.1 Berlin Packages
+ECHO =====================================
 CD Delphi101B
 ECHO *** Building Runtime Package CnPack_D101B.dpk
 CALL :CLEANTMP
@@ -235,7 +289,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 10.2 Tokyo Packages
+ECHO === Building Delphi 10.2 Tokyo Packages
+ECHO =====================================
 CD Delphi102T
 ECHO *** Building Runtime Package CnPack_D102T.dpk
 CALL :CLEANTMP
@@ -244,7 +299,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 10.3 Rio Packages
+ECHO === Building Delphi 10.3 Rio Packages
+ECHO =====================================
 CD Delphi103R
 ECHO *** Building Runtime Package CnPack_D103R.dpk
 CALL :CLEANTMP
@@ -253,7 +309,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 10.4 Sydney Packages
+ECHO === Building Delphi 10.4 Sydney Packages
+ECHO =====================================
 CD Delphi104S
 ECHO *** Building Runtime Package CnPack_D104S.dpk
 CALL :CLEANTMP
@@ -262,7 +319,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 11 Alexandria Packages
+ECHO === Building Delphi 11 Alexandria Packages
+ECHO =====================================
 CD Delphi110A
 ECHO *** Building Runtime Package CnPack_D110A.dpk
 CALL :CLEANTMP
@@ -271,7 +329,8 @@ IF ERRORLEVEL 1 GOTO END
 CD ..
 
 ECHO =====================================
-ECHO *** Building Delphi 12 Athens Packages
+ECHO === Building Delphi 12 Athens Packages
+ECHO =====================================
 CD Delphi120A
 ECHO *** Building Runtime Package CnPack_D120A.dpk
 CALL :CLEANTMP
@@ -283,10 +342,9 @@ CALL :CLEANTMP
 IF ERRORLEVEL 1 GOTO END
 CD ..
 
-:DPK_START
-
 ECHO =====================================
-ECHO *** Building Delphi 13 Florence Packages
+ECHO === Building Delphi 13 Florence Packages
+ECHO =====================================
 CD Delphi130F
 ECHO *** Building Runtime Package CnPack_D130F.dpk
 CALL :CLEANTMP
@@ -307,6 +365,7 @@ PAUSE
 REM Clean temp dcu files
 :CLEANTMP
   DEL *.dcu 2> NUL
+  DEL *.obj 2> NUL
   DEL ..\..\Source\Common\*.dcu 2> NUL
   DEL ..\..\Source\Crypto\*.dcu 2> NUL
   DEL ..\..\Source\Graphic\*.dcu 2> NUL
@@ -317,4 +376,14 @@ REM Clean temp dcu files
   DEL ..\..\Source\ObjRep\*.dcu 2> NUL
   DEL ..\..\Source\Skin\*.dcu 2> NUL
   DEL ..\..\Source\ThirdParty\*.dcu 2> NUL
+  DEL ..\..\Source\Common\*.obj 2> NUL
+  DEL ..\..\Source\Crypto\*.obj 2> NUL
+  DEL ..\..\Source\Graphic\*.obj 2> NUL
+  DEL ..\..\Source\NonVisual\*.obj 2> NUL
+  DEL ..\..\Source\NetComm\*.obj 2> NUL
+  DEL ..\..\Source\MultiLang\*.obj 2> NUL
+  DEL ..\..\Source\DbReport\*.obj 2> NUL
+  DEL ..\..\Source\ObjRep\*.obj 2> NUL
+  DEL ..\..\Source\Skin\*.obj 2> NUL
+  DEL ..\..\Source\ThirdParty\*.obj 2> NUL
 GOTO :EOF

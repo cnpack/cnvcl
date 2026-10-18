@@ -279,7 +279,7 @@
     <PACKAGES value="rtl.bpi vcl.bpi vclx.bpi dbrtl.bpi vcldb.bpi vclsmp.bpi adortl.bpi dsnap.bpi 
       bcbsmp.bpi bcbie.bpi"/>
     <PATHCPP value=".;"/>
-    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphic;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
+    <PATHPAS value=".;..\..\Source\ObjRep;..\..\Source\Skin;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphic;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
@@ -288,7 +288,7 @@
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
     <MAINSOURCE value="CnPack_CB6.cpp"/>
-    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl"/>
+    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\ObjRep;..\..\Source\Skin;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl"/>
     <LIBPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib\psdk;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
     <OTHERFILES value=""/>
