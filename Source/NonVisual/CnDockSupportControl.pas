@@ -2712,7 +2712,11 @@ begin
     begin
       GetCursorPos(P);
       P := Control.ScreenToClient(P);
+{$IFDEF WIN64}
+      Control.Perform(WM_LBUTTONUP, 0, LPARAM(LongInt(PointToSmallPoint(P))));
+{$ELSE}
       Control.Perform(WM_LBUTTONUP, 0, LPARAM(PointToSmallPoint(P)));
+{$ENDIF}
     end;
     { 当 Threshold < 0 的时候，使用默认的值 Mouse.DragThreshold }
     if Threshold < 0 then
