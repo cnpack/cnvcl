@@ -3560,7 +3560,8 @@ begin
 {$IFDEF BN_DATA_USE_64}
     Result := BN_MASK3S;
 {$ELSE}
-    Result := PInt64Array(Num.FD)^[0];
+    Result := Int64(TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
+      or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32));
     if Result < 0 then        // UInt64 最高位有值，说明已经超出了 Int64 的范围，返回 Max Int64
       Result := BN_MASK3S
     else if Num.FNeg <> 0 then // 负则求反加一
@@ -3590,7 +3591,8 @@ begin
   if W >= 0 then
   begin
     Num.FNeg := 0;
-    PInt64Array(Num.FD)^[0] := W;
+    PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
+    PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(TUInt64(W) shr 32);
     if W = 0 then
       Num.FTop := 0
     else
@@ -3609,7 +3611,8 @@ begin
   begin
     Num.FNeg := 1;
     W := (not W) + 1;
-    PInt64Array(Num.FD)^[0] := W;
+    PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
+    PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(TUInt64(W) shr 32);
 
 {$IFDEF BN_DATA_USE_64}
     Num.FTop := 1;
@@ -3632,11 +3635,8 @@ begin
 {$IFDEF BN_DATA_USE_64}
     Result := TUInt64(BN_MASK3U);
 {$ELSE}
-  {$IFDEF SUPPORT_UINT64}
-    Result := TUInt64(PInt64Array(Num.FD)^[0]);
-  {$ELSE}
-    Result := PInt64Array(Num.FD)^[0]; // 在 D5/6 下 Int64转 Int64 出现 C3517 错误！！！
-  {$ENDIF}
+    Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
+      or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
 {$ENDIF}
   end
   else if Num.FTop = 1 then
@@ -3652,7 +3652,8 @@ begin
     Exit;
 
   Num.FNeg := 0;
-  PInt64Array(Num.FD)^[0] := Int64(W);
+  PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
+  PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(W shr 32);
   if W = 0 then
     Num.FTop := 0
   else
@@ -3681,7 +3682,8 @@ begin
 {$IFDEF BN_DATA_USE_64}
     Result := UInt64(BN_MASK3U);
 {$ELSE}
-    Result := PUInt64Array(Num.FD)^[0];
+    Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
+      or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
 {$ENDIF}
   end
   else if Num.FTop = 1 then // 无论 32 还是 64 都能这样转换
@@ -3697,7 +3699,8 @@ begin
     Exit;
 
   Num.FNeg := 0;
-  PUInt64Array(Num.FD)^[0] := W;
+  PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
+  PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(W shr 32);
 
   if W = 0 then
     Num.FTop := 0
@@ -4288,7 +4291,7 @@ end;
 // 产生固定字节长度的随机大数
 function BigNumberRandBytes(Num: TCnBigNumber; BytesCount: Integer): Boolean;
 var
-  Words: Integer;
+  Words, I: Integer;
 begin
   Result := False;
   if (Num = nil) or (BytesCount < 0) then
@@ -4310,6 +4313,16 @@ begin
       Result := CnRandomFillBytes2(PAnsiChar(Num.FD), BytesCount);
       if Result then
       begin
+{$IFDEF BN_DATA_USE_64}
+        // 大端机上填充字节落在 limb 高位端，逐 limb 反转以符合小端语义
+        for I := 0 to Words - 1 do
+          PCnBigNumberElementArray(Num.FD)^[I] :=
+            UInt64ToLittleEndian(PCnBigNumberElementArray(Num.FD)^[I]);
+{$ELSE}
+        for I := 0 to Words - 1 do
+          PCnBigNumberElementArray(Num.FD)^[I] :=
+            UInt32ToLittleEndian(PCnBigNumberElementArray(Num.FD)^[I]);
+{$ENDIF}
         Num.FTop := Words;
         BigNumberCorrectTop(Num);
       end
@@ -6408,6 +6421,22 @@ var
   E, B, K: Integer;
   M, T: TUInt64;
   DB: Double;
+
+  // 按小端语义读取 FD 中第 K 个 64 位窗口，越出 FTop 的 limb 记 0（大端适配与越界防护）
+  function ReadWindow64(K: Integer): TUInt64;
+  begin
+    Result := 0;
+{$IFDEF BN_DATA_USE_64}
+    if K < Num.FTop then
+      Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[K]);
+{$ELSE}
+    if 2 * K < Num.FTop then
+      Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[2 * K]);
+    if 2 * K + 1 < Num.FTop then
+      Result := Result or (TUInt64(PCnBigNumberElementArray(Num.FD)^[2 * K + 1]) shl 32);
+{$ENDIF}
+  end;
+
 begin
   Result := 0;
   if not Num.IsZero then
@@ -6424,14 +6453,7 @@ begin
 
       if B <= 64 then
       begin
-{$IFDEF BN_DATA_USE_64}
-        M := PUInt64Array(Num.FD)^[0];
-{$ELSE}
-        if B >= 32 then
-          M := PInt64Array(Num.FD)^[0]
-        else
-          M := PCnLongWord32Array(Num.FD)^[0];
-{$ENDIF}
+        M := ReadWindow64(0);
 
         if B < 64 then   // 10 字节扩展精度有 64 位有效数字，要求最高位为 1
           M := M shl (64 - B);
@@ -6440,11 +6462,7 @@ begin
       begin
         // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
         K := (B - 1) div 64;
-{$IFDEF SUPPORT_UINT64}
-        T := TUInt64(PInt64Array(Num.FD)^[K]);
-{$ELSE}
-        T := PInt64Array(Num.FD)^[K];
-{$ENDIF}
+        T := ReadWindow64(K);
         // T 拿到最高的 64 位 Element
         K := B mod 64;
         if K > 0 then // 但 T 里只有高 K 位
@@ -6455,11 +6473,7 @@ begin
         if K > 0 then // 要补充一批 M 的低位
         begin
           K := ((B - 1) div 64) - 1;
-{$IFDEF SUPPORT_UINT64}
-          T := TUInt64(PInt64Array(Num.FD)^[K]);
-{$ELSE}
-          T := PInt64Array(Num.FD)^[K];
-{$ENDIF}
+          T := ReadWindow64(K);
           // T 拿到次高的 64 位 Element
           K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
 
@@ -6477,14 +6491,7 @@ begin
 
       if B <= 64 then
       begin
-{$IFDEF BN_DATA_USE_64}
-        M := PUInt64Array(Num.FD)^[0];
-{$ELSE}
-        if B >= 32 then
-          M := PInt64Array(Num.FD)^[0]
-        else
-          M := PCnLongWord32Array(Num.FD)^[0];
-{$ENDIF}
+        M := ReadWindow64(0);
 
         if B < 53 then
           M := M shl (53 - B)  // 双精度浮点有 53 位有效数字，最高位内部会被隐含舍去
@@ -6496,11 +6503,7 @@ begin
       begin
         // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
         K := (B - 1) div 64;
-{$IFDEF SUPPORT_UINT64}
-        T := TUInt64(PInt64Array(Num.FD)^[K]);
-{$ELSE}
-        T := PInt64Array(Num.FD)^[K];
-{$ENDIF}
+        T := ReadWindow64(K);
         // T 拿到最高的 64 位 Element
         K := B mod 64;
         if K > 0 then // T 里只有高 K 位有效
@@ -6511,11 +6514,7 @@ begin
         if K > 0 then // 要补充一批 M 的低位
         begin
           K := ((B - 1) div 64) - 1;
-{$IFDEF SUPPORT_UINT64}
-          T := TUInt64(PInt64Array(Num.FD)^[K]);
-{$ELSE}
-          T := PInt64Array(Num.FD)^[K];
-{$ENDIF}
+          T := ReadWindow64(K);
           // T 拿到次高的 64 位 Element
           K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
 

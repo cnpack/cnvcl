@@ -1324,8 +1324,8 @@ begin
   CopyDataTo(@IntValue);
 
   // 按实际编码长度交换字节，不能按目标宽度交换，否则长度不足时结果整体错位。
-  // 1 字节无需交换，2..4 字节统一 32 位交换后右移对齐（移位位数 = 字节差 * 8）
-  if FBerDataLength > 1 then
+  // 1..4 字节统一 32 位交换后右移对齐（移位位数 = 字节差 * 8）
+  if FBerDataLength > 0 then
     IntValue := Integer(UInt32NetworkToHost(Cardinal(IntValue)) shr
       ((SizeOf(Cardinal) - FBerDataLength) * 8));
 
@@ -1349,8 +1349,8 @@ begin
   Result := 0;
   CopyDataTo(@Result);
 
-  // 按实际编码长度交换字节；1 字节无需交换，2..8 字节统一 64 位交换后右移对齐
-  if FBerDataLength > 1 then
+  // 按实际编码长度交换字节；1..8 字节统一 64 位交换后右移对齐
+  if FBerDataLength > 0 then
     Result := Int64(UInt64NetworkToHost(TUInt64(Result)) shr
       ((SizeOf(Int64) - FBerDataLength) * 8));
 

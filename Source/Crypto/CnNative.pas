@@ -1193,7 +1193,7 @@ procedure ReverseMemory(Mem: Pointer; MemByteLen: Integer);
    返回值：（无）
 }
 
-function ReverseBitsInInt8(V: Byte): Byte;
+function ReverseBitsInInt8(V: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 倒置一字节内部的位的内容。
 
    参数：
@@ -1202,7 +1202,7 @@ function ReverseBitsInInt8(V: Byte): Byte;
    返回值：Byte                           - 返回倒置值
 }
 
-function ReverseBitsInInt16(V: Word): Word;
+function ReverseBitsInInt16(V: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 倒置二字节及其内部位的内容。
 
    参数：
@@ -1211,7 +1211,7 @@ function ReverseBitsInInt16(V: Word): Word;
    返回值：Word                           - 返回倒置值
 }
 
-function ReverseBitsInInt32(V: Cardinal): Cardinal;
+function ReverseBitsInInt32(V: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 倒置四字节及其内部位的内容。
 
    参数：

@@ -689,10 +689,15 @@ begin
 end;
 
 procedure TCnPDFDataCryptor.MakeKey(ID, Gen: Cardinal);
+var
+  T: Cardinal;
 begin
   // 低三位和低两位
-  Move(ID, FKey[FLength], 3);
-  Move(Gen, FKey[FLength + 3], 2);
+  // PDF 标准要求取 ID 低 3 字节、Gen 低 2 字节的小端序列
+  T := UInt32ToLittleEndian(ID);
+  Move(T, FKey[FLength], 3);
+  T := UInt32ToLittleEndian(Gen);
+  Move(T, FKey[FLength + 3], 2);
 end;
 
 end.

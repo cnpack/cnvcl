@@ -1749,7 +1749,7 @@ begin
     begin
       GHash128(H, Iv, IvByteLength, nil, 0, TCnGHash128Tag(Y));
       Move(Y[CN_GCM_NONCE_LENGTH], Cnt, SizeOf(Cardinal));
-      ReverseMemory(@Cnt, SizeOf(Cardinal));
+      Cnt := UInt32NetworkToHost(Cnt);  // 计数器按 BE 序解出，端序自适应
     end;
 
     // 先把最开始的 Y 值的加密结果计算出来
@@ -1894,7 +1894,7 @@ begin
     begin
       GHash128(H, Iv, IvByteLength, nil, 0, TCnGHash128Tag(Y));
       Move(Y[CN_GCM_NONCE_LENGTH], Cnt, SizeOf(Cardinal));
-      ReverseMemory(@Cnt, SizeOf(Cardinal));
+      Cnt := UInt32NetworkToHost(Cnt);  // 计数器按 BE 序解出，端序自适应
     end;
 
     // 先把最开始的 Y 值的加密结果计算出来

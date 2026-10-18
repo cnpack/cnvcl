@@ -31,7 +31,9 @@ unit CnSHA1;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.04.26 V1.5
+* 修改记录：2026.10.18
+*               大端 CPU 适配：消息字加载、长度字段写入与摘要输出改为显式字节组装，删除不再使用的 RB
+*           2022.04.26 V1.5
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2019.12.12 V1.4
 *               支持 TBytes
@@ -290,20 +292,18 @@ begin
   Result := (X and Y) or (Z and (X or Y));
 end;
 
-function RB(A: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-begin
-  Result := (A shr 24) or ((A shr 8) and $FF00) or ((A shl 8) and $FF0000) or (A shl 24);
-end;
-
 procedure SHA1Compress(var Data: TCnSHA1Context);
 var
   A, B, C, D, E, T: Cardinal;
   W: array[0..79] of Cardinal;
   I: Integer;
 begin
-  Move(Data.Buffer, W, Sizeof(Data.Buffer));
+  // FIPS 180 规定消息字按大端解释，显式组装以保证大端平台正确
   for I := 0 to 15 do
-    W[I] := RB(W[I]);
+    W[I] := (Cardinal(Data.Buffer[I * 4]) shl 24)
+      or (Cardinal(Data.Buffer[I * 4 + 1]) shl 16)
+      or (Cardinal(Data.Buffer[I * 4 + 2]) shl 8)
+      or Cardinal(Data.Buffer[I * 4 + 3]);
   for I := 16 to 79 do
     W[I] := LRot32(W[I - 3] xor W[I - 8] xor W[I - 14] xor W[I - 16], 1);
   A := Data.Hash[0];
@@ -435,21 +435,25 @@ begin
 end;
 
 procedure SHA1Final(var Context: TCnSHA1Context; var Digest: TCnSHA1Digest);
-type
-  PDWord = ^Cardinal;
+var
+  I: Integer;
 begin
   Context.Buffer[Context.Index] := $80;
   if Context.Index >= 56 then
     SHA1Compress(Context);
-  PDWord(@Context.Buffer[56])^ := RB(Context.Hi);
-  PDWord(@Context.Buffer[60])^ := RB(Context.Lo);
+  // 长度字段按 FIPS 180 以大端写入
+  Context.Buffer[56] := Byte(Context.Hi shr 24);
+  Context.Buffer[57] := Byte(Context.Hi shr 16);
+  Context.Buffer[58] := Byte(Context.Hi shr 8);
+  Context.Buffer[59] := Byte(Context.Hi);
+  Context.Buffer[60] := Byte(Context.Lo shr 24);
+  Context.Buffer[61] := Byte(Context.Lo shr 16);
+  Context.Buffer[62] := Byte(Context.Lo shr 8);
+  Context.Buffer[63] := Byte(Context.Lo);
   SHA1Compress(Context);
-  Context.Hash[0] := RB(Context.Hash[0]);
-  Context.Hash[1] := RB(Context.Hash[1]);
-  Context.Hash[2] := RB(Context.Hash[2]);
-  Context.Hash[3] := RB(Context.Hash[3]);
-  Context.Hash[4] := RB(Context.Hash[4]);
-  Move(Context.Hash, Digest, Sizeof(Digest));
+  // 摘要按 FIPS 180 大端逐字节输出
+  for I := 0 to 19 do
+    Digest[I] := Byte(Context.Hash[I shr 2] shr (24 - (I and 3) * 8));
   MemorySafeZero(@Context, SizeOf(Context));
 end;
 

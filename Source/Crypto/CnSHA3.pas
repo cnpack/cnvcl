@@ -1310,22 +1310,24 @@ end;
 
 // 一轮 SHA3 计算，输入是 Block 内容，输出是 State 内容
 procedure SHA3_Transform(var Context: TCnSHA3Context);
-type
-  PUInt64Array = ^TUInt64Array;
-  TUInt64Array = array[0..4095] of TUInt64;
 var
   I, J, R, L: Integer;
-  P: PUInt64Array;
   T: TUInt64;
   BC: array[0..4] of TUInt64;
 begin
-  P := PUInt64Array(@(Context.Block[0]));
+  // FIPS 202 规定消息按小端组装为 lane，显式拼装以保证大端平台正确
   I := 0;
+  J := 0;
   L := Integer(Context.BlockLen div 8);
   while I < L do
   begin
-    Context.State[I] := Context.State[I] xor P^[I];
+    Context.State[I] := Context.State[I] xor
+      (TUInt64(Context.Block[J]) or (TUInt64(Context.Block[J + 1]) shl 8)
+      or (TUInt64(Context.Block[J + 2]) shl 16) or (TUInt64(Context.Block[J + 3]) shl 24)
+      or (TUInt64(Context.Block[J + 4]) shl 32) or (TUInt64(Context.Block[J + 5]) shl 40)
+      or (TUInt64(Context.Block[J + 6]) shl 48) or (TUInt64(Context.Block[J + 7]) shl 56));
     Inc(I);
+    Inc(J, 8);
   end;
 
   for R := 0 to Context.Round - 1 do
@@ -1471,6 +1473,23 @@ begin
 end;
 
 // SHA3_224/256/384/512 专用
+// 按 FIPS 202 规定的小端字节序，从 Keccak 状态的 StartOffset 字节处取 Count 字节到 Dest
+procedure SHA3StateToBytes(const Context: TCnSHA3Context; StartOffset, Count: Cardinal;
+  Dest: Pointer);
+var
+  I: Integer;
+  B: Cardinal;
+  V: TUInt64;
+begin
+  B := StartOffset;
+  for I := 0 to Integer(Count) - 1 do
+  begin
+    V := Context.State[B shr 3];
+    PByteArray(Dest)^[I] := Byte(V shr ((B and 7) * 8));
+    Inc(B);
+  end;
+end;
+
 procedure SHA3Final(var Context: TCnSHA3Context; var Digest: TCnSHA3GeneralDigest); overload;
 begin
   if Context.BlockLen = 0 then        // 避免 Final 后再次 Final 时 BlockLen - 1 下标越界
@@ -1482,7 +1501,7 @@ begin
   Context.Block[Context.Index] := 6;
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
-  Move(Context.State[0], Digest[0], Context.DigestLen);
+  SHA3StateToBytes(Context, 0, Context.DigestLen, @Digest[0]);
   MemorySafeZero(@Context, SizeOf(Context));
 end;
 
@@ -1499,7 +1518,7 @@ begin
 
   SetLength(Digest, Context.DigestLen);
   if Context.DigestLen <= Context.BlockLen then
-    Move(Context.State[0], Digest[0], Context.DigestLen)
+    SHA3StateToBytes(Context, 0, Context.DigestLen, @Digest[0])
   else
   begin
     DL := Context.DigestLen;
@@ -1507,7 +1526,7 @@ begin
 
     while DL >= Context.BlockLen do
     begin
-      Move(Context.State[0], Digest[Idx], Context.BlockLen);
+      SHA3StateToBytes(Context, 0, Context.BlockLen, @Digest[Idx]);
       Inc(Idx, Context.BlockLen);
       Dec(DL, Context.BlockLen);
 
@@ -1519,7 +1538,7 @@ begin
     end;
 
     if DL > 0 then
-      Move(Context.State[0], Digest[Idx], DL);
+      SHA3StateToBytes(Context, 0, DL, @Digest[Idx]);
   end;
   MemorySafeZero(@Context, SizeOf(Context));
 end;
@@ -1575,7 +1594,7 @@ begin
       BytesToCopy := DL;
 
     // 从状态中提取数据
-    Move(PByteArray(@Context.State[0])[Context.SqueezeCount], Result[Idx], BytesToCopy);
+    SHA3StateToBytes(Context, Context.SqueezeCount, BytesToCopy, @Result[Idx]);
 
     // 更新计数器和指针
     Inc(Context.SqueezeCount, BytesToCopy);

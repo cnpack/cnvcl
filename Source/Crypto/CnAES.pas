@@ -2796,10 +2796,10 @@ var
   T: Cardinal;
   W0, W1, W2, W3: Cardinal;
 begin
-  ExpandedKey[0] := PCardinal(@Key[0])^;
-  ExpandedKey[1] := PCardinal(@Key[4])^;
-  ExpandedKey[2] := PCardinal(@Key[8])^;
-  ExpandedKey[3] := PCardinal(@Key[12])^;
+  ExpandedKey[0] := UInt32ToLittleEndian(PCardinal(@Key[0])^);
+  ExpandedKey[1] := UInt32ToLittleEndian(PCardinal(@Key[4])^);
+  ExpandedKey[2] := UInt32ToLittleEndian(PCardinal(@Key[8])^);
+  ExpandedKey[3] := UInt32ToLittleEndian(PCardinal(@Key[12])^);
   I := 0; J := 1;
   repeat
     T := (ExpandedKey[I + 3] shl 24) or (ExpandedKey[I + 3] shr 8);
@@ -2823,12 +2823,12 @@ var
   T: Cardinal;
   W0, W1, W2, W3: Cardinal;
 begin
-  ExpandedKey[0] := PCardinal(@Key[0])^;
-  ExpandedKey[1] := PCardinal(@Key[4])^;
-  ExpandedKey[2] := PCardinal(@Key[8])^;
-  ExpandedKey[3] := PCardinal(@Key[12])^;
-  ExpandedKey[4] := PCardinal(@Key[16])^;
-  ExpandedKey[5] := PCardinal(@Key[20])^;
+  ExpandedKey[0] := UInt32ToLittleEndian(PCardinal(@Key[0])^);
+  ExpandedKey[1] := UInt32ToLittleEndian(PCardinal(@Key[4])^);
+  ExpandedKey[2] := UInt32ToLittleEndian(PCardinal(@Key[8])^);
+  ExpandedKey[3] := UInt32ToLittleEndian(PCardinal(@Key[12])^);
+  ExpandedKey[4] := UInt32ToLittleEndian(PCardinal(@Key[16])^);
+  ExpandedKey[5] := UInt32ToLittleEndian(PCardinal(@Key[20])^);
   I := 0; J := 1;
   repeat
     T := (ExpandedKey[I + 5] shl 24) or (ExpandedKey[I + 5] shr 8);
@@ -2854,14 +2854,14 @@ var
   T: Cardinal;
   W0, W1, W2, W3: Cardinal;
 begin
-  ExpandedKey[0] := PCardinal(@Key[0])^;
-  ExpandedKey[1] := PCardinal(@Key[4])^;
-  ExpandedKey[2] := PCardinal(@Key[8])^;
-  ExpandedKey[3] := PCardinal(@Key[12])^;
-  ExpandedKey[4] := PCardinal(@Key[16])^;
-  ExpandedKey[5] := PCardinal(@Key[20])^;
-  ExpandedKey[6] := PCardinal(@Key[24])^;
-  ExpandedKey[7] := PCardinal(@Key[28])^;
+  ExpandedKey[0] := UInt32ToLittleEndian(PCardinal(@Key[0])^);
+  ExpandedKey[1] := UInt32ToLittleEndian(PCardinal(@Key[4])^);
+  ExpandedKey[2] := UInt32ToLittleEndian(PCardinal(@Key[8])^);
+  ExpandedKey[3] := UInt32ToLittleEndian(PCardinal(@Key[12])^);
+  ExpandedKey[4] := UInt32ToLittleEndian(PCardinal(@Key[16])^);
+  ExpandedKey[5] := UInt32ToLittleEndian(PCardinal(@Key[20])^);
+  ExpandedKey[6] := UInt32ToLittleEndian(PCardinal(@Key[24])^);
+  ExpandedKey[7] := UInt32ToLittleEndian(PCardinal(@Key[28])^);
   I := 0; J := 1;
   repeat
     T := (ExpandedKey[I + 7] shl 24) or (ExpandedKey[I + 7] shr 8);
@@ -2918,10 +2918,10 @@ var
   W0, W1, W2, W3: Cardinal;
 begin
   // initializing
-  T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
-  T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
-  T0[2] := PCardinal(@InBuf[8])^ xor Key[2];
-  T0[3] := PCardinal(@InBuf[12])^ xor Key[3];
+  T0[0] := UInt32ToLittleEndian(PCardinal(@InBuf[0])^) xor Key[0];
+  T0[1] := UInt32ToLittleEndian(PCardinal(@InBuf[4])^) xor Key[1];
+  T0[2] := UInt32ToLittleEndian(PCardinal(@InBuf[8])^) xor Key[2];
+  T0[3] := UInt32ToLittleEndian(PCardinal(@InBuf[12])^) xor Key[3];
 
   // performing transformation 9 times
   // round 1
@@ -3096,10 +3096,10 @@ begin
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[43];
 
   // finalizing
-  PCardinal(@OutBuf[0])^ := T0[0];
-  PCardinal(@OutBuf[4])^ := T0[1];
-  PCardinal(@OutBuf[8])^ := T0[2];
-  PCardinal(@OutBuf[12])^ := T0[3];
+  PCardinal(@OutBuf[0])^ := UInt32ToLittleEndian(T0[0]);
+  PCardinal(@OutBuf[4])^ := UInt32ToLittleEndian(T0[1]);
+  PCardinal(@OutBuf[8])^ := UInt32ToLittleEndian(T0[2]);
+  PCardinal(@OutBuf[12])^ := UInt32ToLittleEndian(T0[3]);
 end;
 
 procedure EncryptAES192(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey192;
@@ -3109,10 +3109,10 @@ var
   W0, W1, W2, W3: Cardinal;
 begin
   // initializing
-  T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
-  T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
-  T0[2] := PCardinal(@InBuf[8])^ xor Key[2];
-  T0[3] := PCardinal(@InBuf[12])^ xor Key[3];
+  T0[0] := UInt32ToLittleEndian(PCardinal(@InBuf[0])^) xor Key[0];
+  T0[1] := UInt32ToLittleEndian(PCardinal(@InBuf[4])^) xor Key[1];
+  T0[2] := UInt32ToLittleEndian(PCardinal(@InBuf[8])^) xor Key[2];
+  T0[3] := UInt32ToLittleEndian(PCardinal(@InBuf[12])^) xor Key[3];
 
   // performing transformation 11 times
   // round 1
@@ -3321,10 +3321,10 @@ begin
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[51];
 
   // finalizing
-  PCardinal(@OutBuf[0])^ := T0[0];
-  PCardinal(@OutBuf[4])^ := T0[1];
-  PCardinal(@OutBuf[8])^ := T0[2];
-  PCardinal(@OutBuf[12])^ := T0[3];
+  PCardinal(@OutBuf[0])^ := UInt32ToLittleEndian(T0[0]);
+  PCardinal(@OutBuf[4])^ := UInt32ToLittleEndian(T0[1]);
+  PCardinal(@OutBuf[8])^ := UInt32ToLittleEndian(T0[2]);
+  PCardinal(@OutBuf[12])^ := UInt32ToLittleEndian(T0[3]);
 end;
 
 procedure EncryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey256;
@@ -3334,10 +3334,10 @@ var
   W0, W1, W2, W3: Cardinal;
 begin
   // initializing
-  T0[0] := PCardinal(@InBuf[0])^ xor Key[0];
-  T0[1] := PCardinal(@InBuf[4])^ xor Key[1];
-  T0[2] := PCardinal(@InBuf[8])^ xor Key[2];
-  T0[3] := PCardinal(@InBuf[12])^ xor Key[3];
+  T0[0] := UInt32ToLittleEndian(PCardinal(@InBuf[0])^) xor Key[0];
+  T0[1] := UInt32ToLittleEndian(PCardinal(@InBuf[4])^) xor Key[1];
+  T0[2] := UInt32ToLittleEndian(PCardinal(@InBuf[8])^) xor Key[2];
+  T0[3] := UInt32ToLittleEndian(PCardinal(@InBuf[12])^) xor Key[3];
 
   // performing transformation 13 times
   // round 1
@@ -3580,10 +3580,10 @@ begin
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[59];
 
   // finalizing
-  PCardinal(@OutBuf[0])^ := T0[0];
-  PCardinal(@OutBuf[4])^ := T0[1];
-  PCardinal(@OutBuf[8])^ := T0[2];
-  PCardinal(@OutBuf[12])^ := T0[3];
+  PCardinal(@OutBuf[0])^ := UInt32ToLittleEndian(T0[0]);
+  PCardinal(@OutBuf[4])^ := UInt32ToLittleEndian(T0[1]);
+  PCardinal(@OutBuf[8])^ := UInt32ToLittleEndian(T0[2]);
+  PCardinal(@OutBuf[12])^ := UInt32ToLittleEndian(T0[3]);
 end;
 
 {$IFNDEF BCB5OR6}
@@ -3837,10 +3837,10 @@ var
   W0, W1, W2, W3: Cardinal;
 begin
   // initializing
-  T0[0] := PCardinal(@InBuf[0])^ xor Key[40];
-  T0[1] := PCardinal(@InBuf[4])^ xor Key[41];
-  T0[2] := PCardinal(@InBuf[8])^ xor Key[42];
-  T0[3] := PCardinal(@InBuf[12])^ xor Key[43];
+  T0[0] := UInt32ToLittleEndian(PCardinal(@InBuf[0])^) xor Key[40];
+  T0[1] := UInt32ToLittleEndian(PCardinal(@InBuf[4])^) xor Key[41];
+  T0[2] := UInt32ToLittleEndian(PCardinal(@InBuf[8])^) xor Key[42];
+  T0[3] := UInt32ToLittleEndian(PCardinal(@InBuf[12])^) xor Key[43];
 
   // performing transformations 9 times
   // round 1
@@ -4015,10 +4015,10 @@ begin
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
 
   // finalizing
-  PCardinal(@OutBuf[0])^ := T0[0];
-  PCardinal(@OutBuf[4])^ := T0[1];
-  PCardinal(@OutBuf[8])^ := T0[2];
-  PCardinal(@OutBuf[12])^ := T0[3];
+  PCardinal(@OutBuf[0])^ := UInt32ToLittleEndian(T0[0]);
+  PCardinal(@OutBuf[4])^ := UInt32ToLittleEndian(T0[1]);
+  PCardinal(@OutBuf[8])^ := UInt32ToLittleEndian(T0[2]);
+  PCardinal(@OutBuf[12])^ := UInt32ToLittleEndian(T0[3]);
 end;
 
 procedure DecryptAES192(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey192;
@@ -4028,10 +4028,10 @@ var
   W0, W1, W2, W3: Cardinal;
 begin
   // initializing
-  T0[0] := PCardinal(@InBuf[0])^ xor Key[48];
-  T0[1] := PCardinal(@InBuf[4])^ xor Key[49];
-  T0[2] := PCardinal(@InBuf[8])^ xor Key[50];
-  T0[3] := PCardinal(@InBuf[12])^ xor Key[51];
+  T0[0] := UInt32ToLittleEndian(PCardinal(@InBuf[0])^) xor Key[48];
+  T0[1] := UInt32ToLittleEndian(PCardinal(@InBuf[4])^) xor Key[49];
+  T0[2] := UInt32ToLittleEndian(PCardinal(@InBuf[8])^) xor Key[50];
+  T0[3] := UInt32ToLittleEndian(PCardinal(@InBuf[12])^) xor Key[51];
 
   // performing transformations 11 times
   // round 1
@@ -4240,10 +4240,10 @@ begin
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
 
   // finalizing
-  PCardinal(@OutBuf[0])^ := T0[0];
-  PCardinal(@OutBuf[4])^ := T0[1];
-  PCardinal(@OutBuf[8])^ := T0[2];
-  PCardinal(@OutBuf[12])^ := T0[3];
+  PCardinal(@OutBuf[0])^ := UInt32ToLittleEndian(T0[0]);
+  PCardinal(@OutBuf[4])^ := UInt32ToLittleEndian(T0[1]);
+  PCardinal(@OutBuf[8])^ := UInt32ToLittleEndian(T0[2]);
+  PCardinal(@OutBuf[12])^ := UInt32ToLittleEndian(T0[3]);
 end;
 
 procedure DecryptAES256(const InBuf: TCnAESBuffer; const Key: TCnAESExpandedKey256;
@@ -4253,10 +4253,10 @@ var
   W0, W1, W2, W3: Cardinal;
 begin
   // initializing
-  T0[0] := PCardinal(@InBuf[0])^ xor Key[56];
-  T0[1] := PCardinal(@InBuf[4])^ xor Key[57];
-  T0[2] := PCardinal(@InBuf[8])^ xor Key[58];
-  T0[3] := PCardinal(@InBuf[12])^ xor Key[59];
+  T0[0] := UInt32ToLittleEndian(PCardinal(@InBuf[0])^) xor Key[56];
+  T0[1] := UInt32ToLittleEndian(PCardinal(@InBuf[4])^) xor Key[57];
+  T0[2] := UInt32ToLittleEndian(PCardinal(@InBuf[8])^) xor Key[58];
+  T0[3] := UInt32ToLittleEndian(PCardinal(@InBuf[12])^) xor Key[59];
 
   // performing transformations 13 times
   // round 1
@@ -4499,10 +4499,10 @@ begin
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
 
   // finalizing
-  PCardinal(@OutBuf[0])^ := T0[0];
-  PCardinal(@OutBuf[4])^ := T0[1];
-  PCardinal(@OutBuf[8])^ := T0[2];
-  PCardinal(@OutBuf[12])^ := T0[3];
+  PCardinal(@OutBuf[0])^ := UInt32ToLittleEndian(T0[0]);
+  PCardinal(@OutBuf[4])^ := UInt32ToLittleEndian(T0[1]);
+  PCardinal(@OutBuf[8])^ := UInt32ToLittleEndian(T0[2]);
+  PCardinal(@OutBuf[12])^ := UInt32ToLittleEndian(T0[3]);
 end;
 
 // Stream Encryption Routines (ECB mode)
