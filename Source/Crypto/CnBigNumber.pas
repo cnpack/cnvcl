@@ -3552,39 +3552,77 @@ begin
 end;
 
 function BigNumberGetInt64(Num: TCnBigNumber): Int64;
+{$IFDEF SUPPORT_UINT64}
+var
+  M: TUInt64;
+{$ENDIF}
 begin
-  if Num.FTop > 2 then
-    Result := BN_MASK3S
-  else if Num.FTop = 2 then
+{$IFDEF SUPPORT_UINT64}
+  // 先按无符号取幅值，再按符号还原；幅值超出 Int64 范围时按符号饱和
+  if Num.FTop > 1 then
   begin
 {$IFDEF BN_DATA_USE_64}
-    Result := BN_MASK3S;
+    // 64 位元素模式下两个及以上元素表示幅值 >= 2^64，必然超出 Int64 范围
+    M := TUInt64(BN_MASK3U);
 {$ELSE}
-  {$IFDEF SUPPORT_UINT64}
-    Result := Int64(TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
-      or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32));
-  {$ELSE}
-    Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
-      or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
-  {$ENDIF}
-    if Result < 0 then         // UInt64 最高位有值，说明已经超出了 Int64 的范围，返回 Max Int64
-      Result := BN_MASK3S
-    else if Num.FNeg <> 0 then // 负则求反加一
-      Result := (not Result) + 1;
+    if Num.FTop = 2 then
+      M := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
+        or (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32)
+    else
+      M := TUInt64(BN_MASK3U); // 超过两个元素，幅值 >= 2^64
 {$ENDIF}
   end
   else if Num.FTop = 1 then
+    M := TUInt64(PCnBigNumberElementArray(Num.FD)^[0])
+  else
+    M := 0;
+
+  if M > TUInt64(BN_MASK3S) then // 幅值超出 Int64 正数范围
   begin
-{$IFDEF BN_DATA_USE_64}
-    Result := Int64(PCnBigNumberElementArray(Num.FD)^[0]); // UInt64 转为 Int64 如果是负的，表示超界了
-    if Result < 0 then
-      Result := BN_MASK3S;
+    if Num.FNeg <> 0 then
+      Result := -BN_MASK3S - 1   // Low(Int64)
+    else
+      Result := BN_MASK3S;       // High(Int64)
+  end
+  else
+  begin
+    Result := Int64(M);
+    if Num.FNeg <> 0 then
+      Result := -Result;
+  end;
 {$ELSE}
+  // 无 UInt64 支持的老编译器（Delphi 5/6）只使用 32 位元素模式：
+  // 用 Int64 组合，组合结果为负表示幅值 >= 2^63，按符号饱和
+  if Num.FTop > 1 then
+  begin
+    if Num.FTop = 2 then
+    begin
+      Result := Int64(PCnBigNumberElementArray(Num.FD)^[0])
+        or (Int64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
+      if Result < 0 then
+      begin
+        if Num.FNeg <> 0 then
+          Result := -BN_MASK3S - 1 // Low(Int64)
+        else
+          Result := BN_MASK3S;     // High(Int64)
+      end
+      else if Num.FNeg <> 0 then
+        Result := (not Result) + 1;
+    end
+    else if Num.FNeg <> 0 then
+      Result := -BN_MASK3S - 1
+    else
+      Result := BN_MASK3S;
+  end
+  else if Num.FTop = 1 then
+  begin
     Result := Int64(PCnBigNumberElementArray(Num.FD)^[0]);
-{$ENDIF}
+    if Num.FNeg <> 0 then
+      Result := -Result;
   end
   else
     Result := 0;
+{$ENDIF}
 end;
 
 function BigNumberSetInt64(Num: TCnBigNumber; W: Int64): Boolean;
@@ -3594,40 +3632,31 @@ begin
     Exit;
 
   if W >= 0 then
-  begin
-    Num.FNeg := 0;
-    PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
-    PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(TUInt64(W) shr 32);
-    if W = 0 then
-      Num.FTop := 0
-    else
-    begin
-{$IFDEF BN_DATA_USE_64}
-      Num.FTop := 1;
-{$ELSE}
-      if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
-        Num.FTop := 1
-      else
-        Num.FTop := 2;
-{$ENDIF}
-    end;
-  end
-  else // W < 0
+    Num.FNeg := 0
+  else // W < 0 时先取绝对值。注意 Low(Int64) 取负后位模式不变，按无符号读即为正确幅值
   begin
     Num.FNeg := 1;
     W := (not W) + 1;
-    PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
-    PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(TUInt64(W) shr 32);
+  end;
 
 {$IFDEF BN_DATA_USE_64}
+  // 64 位元素模式：整个幅值放在单个元素中
+  PCnBigNumberElementArray(Num.FD)^[0] := TCnBigNumberElement(TUInt64(W));
+  if W = 0 then
+    Num.FTop := 0
+  else
     Num.FTop := 1;
 {$ELSE}
-    if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
-      Num.FTop := 1
-    else
-      Num.FTop := 2;
+  // 32 位元素模式：拆成高低两个元素存放
+  PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
+  PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(TUInt64(W) shr 32);
+  if W = 0 then
+    Num.FTop := 0
+  else if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
+    Num.FTop := 1
+  else
+    Num.FTop := 2;
 {$ENDIF}
-  end;
   Result := True;
 end;
 
@@ -3657,21 +3686,24 @@ begin
     Exit;
 
   Num.FNeg := 0;
+{$IFDEF BN_DATA_USE_64}
+  // 64 位元素模式：整个幅值放在单个元素中
+  PCnBigNumberElementArray(Num.FD)^[0] := TCnBigNumberElement(W);
+  if W = 0 then
+    Num.FTop := 0
+  else
+    Num.FTop := 1;
+{$ELSE}
+  // 32 位元素模式：拆成高低两个元素存放
   PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
   PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(W shr 32);
   if W = 0 then
     Num.FTop := 0
+  else if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 UInt64 高 32 位是 0
+    Num.FTop := 1
   else
-  begin
-{$IFDEF BN_DATA_USE_64}
-    Num.FTop := 1;
-{$ELSE}
-    if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
-      Num.FTop := 1
-    else
-      Num.FTop := 2;
+    Num.FTop := 2;
 {$ENDIF}
-  end;
 
   Result := True;
 end;
@@ -3704,22 +3736,24 @@ begin
     Exit;
 
   Num.FNeg := 0;
-  PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
-  PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(W shr 32);
-
+{$IFDEF BN_DATA_USE_64}
+  // 64 位元素模式：整个幅值放在单个元素中
+  PCnBigNumberElementArray(Num.FD)^[0] := TCnBigNumberElement(W);
   if W = 0 then
     Num.FTop := 0
   else
-  begin
-{$IFDEF BN_DATA_USE_64}
     Num.FTop := 1;
 {$ELSE}
-    if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 UInt64 高 32 位是 0
-      Num.FTop := 1
-    else
-      Num.FTop := 2;
+  // 32 位元素模式：拆成高低两个元素存放
+  PCnBigNumberElementArray(Num.FD)^[0] := Cardinal(W);
+  PCnBigNumberElementArray(Num.FD)^[1] := Cardinal(W shr 32);
+  if W = 0 then
+    Num.FTop := 0
+  else if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 UInt64 高 32 位是 0
+    Num.FTop := 1
+  else
+    Num.FTop := 2;
 {$ENDIF}
-  end;  
 
   Result := True;
 end;
@@ -9241,11 +9275,10 @@ end;
 // 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解
 function BigNumberLucas(Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
 var
-  G, X, Z, U, V, T: TCnBigNumber;
+  X, Z, U, V, T: TCnBigNumber;
 begin
   Result := False;
 
-  G := nil;
   X := nil;
   Z := nil;
   U := nil;
@@ -9253,7 +9286,6 @@ begin
   T := nil;
 
   try
-    G := FLocalBigNumberPool.Obtain;
     X := FLocalBigNumberPool.Obtain;
     Z := FLocalBigNumberPool.Obtain;
     U := FLocalBigNumberPool.Obtain;
@@ -9303,7 +9335,6 @@ begin
       end;
     end;
   finally
-    FLocalBigNumberPool.Recycle(G);
     FLocalBigNumberPool.Recycle(X);
     FLocalBigNumberPool.Recycle(Z);
     FLocalBigNumberPool.Recycle(U);
@@ -9631,7 +9662,7 @@ end;
 // 找出大数的素数因子列表
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 var
-  P, R, S, D, T: TCnBigNumber;
+  P, R, S, T: TCnBigNumber;
 begin
   if Num.IsZero or Num.IsNegative or Num.IsOne then
     Exit;
@@ -9645,14 +9676,12 @@ begin
   P := nil;
   R := nil;
   S := nil;
-  D := nil;
   T := nil;
 
   try
     P := FLocalBigNumberPool.Obtain;
     R := FLocalBigNumberPool.Obtain;
     S := FLocalBigNumberPool.Obtain;
-    D := FLocalBigNumberPool.Obtain;
     T := FLocalBigNumberPool.Obtain;
 
     BigNumberCopy(P, Num);
@@ -9671,7 +9700,6 @@ begin
     BigNumberFindFactors(T, Factors);
   finally
     FLocalBigNumberPool.Recycle(T);
-    FLocalBigNumberPool.Recycle(D);
     FLocalBigNumberPool.Recycle(S);
     FLocalBigNumberPool.Recycle(R);
     FLocalBigNumberPool.Recycle(P);
@@ -10084,7 +10112,8 @@ begin
 
       // G 此刻是最小公倍数，因为 Factors 互素
       // 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1
-      BigNumberModularInverse(N, G, Factors[I]);
+      if not BigNumberModularInverse(N, G, Factors[I]) then
+        Exit;
 
       if not BigNumberMul(G, N, G) then // 得到乘数
         Exit;
@@ -11092,6 +11121,7 @@ begin
       Result := True;
       Exit;
     end;
+    Exit;
   end
   else if (B = nil) and (A <> nil) then
   begin
@@ -11100,6 +11130,7 @@ begin
       Result := True;
       Exit;
     end;
+    Exit;
   end;
 
   if A.Count <> B.Count then
@@ -11118,7 +11149,7 @@ var
   I: Integer;
   Pair: TCnExponentBigNumberPair;
 begin
-  if (Dest <> Source) and (Dest <> nil) then
+  if (Dest <> Source) and (Dest <> nil) and (Source <> nil) then
   begin
     Dest.Clear;
     for I := 0 to Source.Count - 1 do
