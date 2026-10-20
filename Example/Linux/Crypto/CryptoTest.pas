@@ -269,6 +269,15 @@ function TestBigNumberGetIntegerRange: Boolean;
 function TestBigNumberSetInt64: Boolean;
 function TestBigNumberSetUInt64: Boolean;
 function TestBigNumberGetInt64Range: Boolean;
+function TestBigNumberLegendreMultiple: Boolean;
+function TestBigNumberGetLowBits: Boolean;
+function TestBigNumberNegativeZero: Boolean;
+function TestBigNumberSetHexValidate: Boolean;
+function TestBigNumberCopyLowNormalize: Boolean;
+function TestBigNumberBSGS: Boolean;
+function TestBigNumberGeneratePrimeBits: Boolean;
+function TestBigNumberLoadFromMemSize: Boolean;
+function TestBigNumberCompareNil: Boolean;
 
 // ============================== BigRational ==================================
 
@@ -2175,6 +2184,15 @@ begin
   MyAssert(TestBigNumberSetInt64, 'TestBigNumberSetInt64');
   MyAssert(TestBigNumberSetUInt64, 'TestBigNumberSetUInt64');
   MyAssert(TestBigNumberGetInt64Range, 'TestBigNumberGetInt64Range');
+  MyAssert(TestBigNumberLegendreMultiple, 'TestBigNumberLegendreMultiple');
+  MyAssert(TestBigNumberGetLowBits, 'TestBigNumberGetLowBits');
+  MyAssert(TestBigNumberNegativeZero, 'TestBigNumberNegativeZero');
+  MyAssert(TestBigNumberSetHexValidate, 'TestBigNumberSetHexValidate');
+  MyAssert(TestBigNumberCopyLowNormalize, 'TestBigNumberCopyLowNormalize');
+  MyAssert(TestBigNumberBSGS, 'TestBigNumberBSGS');
+  MyAssert(TestBigNumberGeneratePrimeBits, 'TestBigNumberGeneratePrimeBits');
+  MyAssert(TestBigNumberLoadFromMemSize, 'TestBigNumberLoadFromMemSize');
+  MyAssert(TestBigNumberCompareNil, 'TestBigNumberCompareNil');
 
 // ============================== BigRational ==================================
 
@@ -9837,6 +9855,450 @@ begin
     Result := True;
   finally
     T.Free;
+  end;
+end;
+
+function TestBigNumberLegendreMultiple: Boolean;
+{* 覆盖 B4：A 为 P 的倍数时勒让德符号应为 0，不能递归到 0 值抛异常。 }
+var
+  A, P, Q: TCnBigNumber;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  try
+    if not P.SetInteger(101) then Exit;
+
+    // A = P：原实现在这里抛 ECnBigNumberException
+    if not A.SetInteger(101) then Exit;
+    if BigNumberLegendre(A, P) <> 0 then Exit;
+
+    // A = 2P：偶数分支先剥离因子 2，仍应得 0
+    if not A.SetInteger(202) then Exit;
+    if BigNumberLegendre(A, P) <> 0 then Exit;
+
+    // A = 3P：奇数分支归约后为 0
+    if not A.SetInteger(303) then Exit;
+    if BigNumberLegendre(A, P) <> 0 then Exit;
+
+    // 常规值不能回归
+    if not A.SetInteger(1) then Exit;
+    if BigNumberLegendre(A, P) <> 1 then Exit;
+    if not A.SetInteger(2) then Exit;
+    if BigNumberLegendre(A, P) <> -1 then Exit;
+    if not A.SetInteger(100) then Exit;
+    if BigNumberLegendre(A, P) <> 1 then Exit;
+    if not A.SetInteger(102) then Exit; // 102 mod 101 = 1
+    if BigNumberLegendre(A, P) <> 1 then Exit;
+
+    // 大素数场景：A = P * P
+    if not P.SetDec('170141183460469231731687303715884105727') then Exit;
+    if not BigNumberMul(Q, P, P) then Exit;
+    if BigNumberLegendre(Q, P) <> 0 then Exit;
+
+    Result := True;
+  finally
+    Q.Free;
+    P.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigNumberGetLowBits: Boolean;
+{* 覆盖 B10：GetLow32/GetLow64 按有效字数 FTop 取低位，不能读到容量里的残留元素。 }
+var
+  A, B: TCnBigNumber;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  try
+    // 先写 2^32+1 把高位元素弄脏，再用 SetWord 只覆盖低 32 位
+    if not A.SetInt64(Int64($100000001)) then Exit;
+    if not A.SetWord(1) then Exit;
+    if BigNumberGetLow64(A) <> 1 then Exit;
+    if BigNumberGetLow32(A) <> 1 then Exit;
+
+    // 取模结果为 0 时，D[1] 可能还是脏值
+    if not A.SetInt64(Int64($FFFFFFFFFFFF)) then Exit;
+    if not B.SetInt64(Int64($100000001)) then Exit;
+    if not BigNumberMod(A, B, B) then Exit;
+    if not A.IsZero then Exit;
+    if BigNumberGetLow64(A) <> 0 then Exit;
+    if BigNumberGetLow32(A) <> 0 then Exit;
+
+    if not A.SetInt64(Int64($FFFFFFFFFFFF)) then Exit;
+    if not A.SetZero then Exit;
+    if BigNumberGetLow64(A) <> 0 then Exit;
+
+    // 跨越 64 位边界时只取低 64 位
+    if not A.SetOne then Exit;
+    A.ShiftLeft(64);
+    if not A.AddWord(5) then Exit;
+    if BigNumberGetLow64(A) <> 5 then Exit;
+    if BigNumberGetLow32(A) <> 5 then Exit;
+
+    if not A.SetInt64(Int64($100000005)) then Exit;
+    if BigNumberGetLow64(A) <> 4294967301 then Exit;
+
+    Result := True;
+  finally
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigNumberNegativeZero: Boolean;
+{* 覆盖 B8：字符串解析产生的负零必须归一化为 +0，保证“零”只有一种表示。 }
+var
+  A, B: TCnBigNumber;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  try
+    if not B.SetInteger(0) then Exit;
+
+    // 只有符号没有数字：SetHex 与 SetDec 都应拒绝
+    if A.SetHex('-') then Exit;
+    if A.SetDec('-') then Exit;
+
+    // 带 0 的负号串：解析成功但归一化为 +0
+    if not A.SetHex('-0') then Exit;
+    if not A.IsZero then Exit;
+    if A.IsNegative then Exit;
+    if A.ToDec <> '0' then Exit;
+    if BigNumberCompare(A, B) <> 0 then Exit;
+
+    if not A.SetDec('-0') then Exit;
+    if not A.IsZero then Exit;
+    if A.IsNegative then Exit;
+    if BigNumberCompare(A, B) <> 0 then Exit;
+
+    if not A.SetDec('-000') then Exit;
+    if A.IsNegative then Exit;
+
+    // 正常负值解析不能回归
+    if not A.SetDec('-123') then Exit;
+    if not A.IsNegative then Exit;
+    if A.GetInt64 <> -123 then Exit;
+    if BigNumberCompare(A, B) >= 0 then Exit;
+
+    if not A.SetHex('-FF') then Exit;
+    if not A.IsNegative then Exit;
+    if A.GetInt64 <> -255 then Exit;
+
+    // 归一化后符号位不能粘连到后续赋值
+    if not A.SetDec('-0') then Exit;
+    if not A.SetInteger(-5) then Exit;
+    if A.GetInteger <> -5 then Exit;
+
+    Result := True;
+  finally
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigNumberSetHexValidate: Boolean;
+{* 覆盖：SetHex 拒绝空数字串与尾部非法字符，且失败时不改变原有值。 }
+var
+  A: TCnBigNumber;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  try
+    if not A.SetInteger(7) then Exit;
+
+    // 空串、只有符号、尾部非法字符、0x 前缀、前后空白都必须拒绝
+    if A.SetHex('') then Exit;
+    if A.SetHex('-') then Exit;
+    if A.SetHex('12ZZ') then Exit;
+    if A.SetHex('0x12') then Exit;
+    if A.SetHex('12 ') then Exit;
+    if A.SetHex(' 12') then Exit;
+    if A.SetHex('12 34') then Exit;
+
+    // 失败时不能破坏原有值
+    if A.GetInteger <> 7 then Exit;
+
+    // 合法输入：奇数长度、正负号、前导零
+    if not A.SetHex('F') then Exit;
+    if A.GetInt64 <> 15 then Exit;
+    if not A.SetHex('-FF') then Exit;
+    if A.GetInt64 <> -255 then Exit;
+    if not A.SetHex('0') then Exit;
+    if not A.IsZero then Exit;
+    if not A.SetHex('00ff') then Exit;
+    if A.GetInt64 <> 255 then Exit;
+
+    Result := True;
+  finally
+    A.Free;
+  end;
+end;
+
+function TestBigNumberCopyLowNormalize: Boolean;
+{* 覆盖：CopyLow 截断后若有效位全为 0，必须规范化为零且不留下负号。 }
+var
+  A, R: TCnBigNumber;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+  try
+    // 2^64 截低 1 个元素：两种元素模式下都是 0
+    if not A.SetOne then Exit;
+    A.ShiftLeft(64);
+    if BigNumberCopyLow(R, A, 1) <> R then Exit;
+    if not R.IsZero then Exit;
+    if R.IsNegative then Exit;
+    if R.ToDec <> '0' then Exit;
+
+    // 负数的低位恰好全为 0：不能产生负零
+    if not A.SetOne then Exit;
+    A.ShiftLeft(64);
+    A.Negate;
+    BigNumberCopyLow(R, A, 1);
+    if not R.IsZero then Exit;
+    if R.IsNegative then Exit;
+
+    // 非零截断仍要保留符号与幅值
+    if not A.SetInt64(-305419896) then Exit;
+    BigNumberCopyLow(R, A, 1);
+    if R.IsZero then Exit;
+    if not R.IsNegative then Exit;
+    if R.GetInt64 <> -305419896 then Exit;
+
+    // 截断长度超过有效字数时按实际字数处理
+    if not A.SetZero then Exit;
+    BigNumberCopyLow(R, A, 4);
+    if not R.IsZero then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigNumberBSGS: Boolean;
+{* 覆盖：大步小步必须能求出 0..T^2 内的解，且返回的 Res 满足 A^Res mod M = B。
+   T = floor(sqrt(M)) + 1，旧实现的覆盖区间只有 1..T^2-T-1：
+   - M = 113 时 T = 11，旧实现只能覆盖 1..109，漏掉 x = 0 和 110..111；
+   - 新实现婴儿表从 k = 0 开始、巨步扩到 k = T，覆盖 0..T^2。
+   本用例分五组：
+   1) 穷举 (A=3, M=113)：113 是素数、3 是原根，x 取 0..111 全部检查；
+   2) 穷举合数模 (A=3, M=100)：3 的阶为 20，x 取 0..19；
+   3) 边界指数：x = 0、1、110、111；
+   4) 无解输入：A=4（阶 14，指数都是 8 的倍数），B=3 不在其生成子群内；
+   5) VCL 示例参数 (8723, 3623, 65537)。 }
+var
+  A, B, M, R, T, E: TCnBigNumber;
+
+  // 校验当前 A/B/M 下 BSGS 返回的解确实满足 A^Res mod M = B，且 Res 非负
+  function CheckCurrent: Boolean;
+  begin
+    Result := False;
+    if not BigNumberBigStepGiantStep(R, A, B, M) then Exit;
+    if R.IsNegative then Exit;
+    if not BigNumberPowerMod(T, A, R, M) then Exit;
+    Result := BigNumberCompare(T, B) = 0;
+  end;
+
+  // 指定 A/B/M 后校验一次
+  function Check(AVal, BVal, MVal: Integer): Boolean;
+  begin
+    Result := False;
+    if not A.SetInteger(AVal) then Exit;
+    if not B.SetInteger(BVal) then Exit;
+    if not M.SetInteger(MVal) then Exit;
+    Result := CheckCurrent;
+  end;
+
+  // 穷举 B = A^X mod M（X = 0..Order-1），逐个求逆并回代
+  function CheckAll(Order: Integer): Boolean;
+  var
+    X: Integer;
+  begin
+    Result := False;
+    if not B.SetOne then Exit;
+    for X := 0 to Order - 1 do
+    begin
+      if not CheckCurrent then Exit;
+      // B 依次推进到 A^(X+1)
+      if not BigNumberMul(T, B, A) then Exit;
+      if not BigNumberMod(B, T, M) then Exit;
+    end;
+    Result := True;
+  end;
+
+  // 用 A^Exp mod M 作为 B，再校验一次
+  function CheckExponent(AVal, MVal, Exp: Integer): Boolean;
+  begin
+    Result := False;
+    if not A.SetInteger(AVal) then Exit;
+    if not M.SetInteger(MVal) then Exit;
+    if not E.SetInteger(Exp) then Exit;
+    if not BigNumberPowerMod(B, A, E, M) then Exit;
+    Result := CheckCurrent;
+  end;
+
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  M := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+  T := TCnBigNumber.Create;
+  E := TCnBigNumber.Create;
+  try
+    // 1) 穷举素数模：M = 113，3 是原根，阶 112
+    if not A.SetInteger(3) then Exit;
+    if not M.SetInteger(113) then Exit;
+    if not CheckAll(112) then Exit;
+
+    // 2) 穷举合数模：M = 100，3 的阶为 20
+    if not A.SetInteger(3) then Exit;
+    if not M.SetInteger(100) then Exit;
+    if not CheckAll(20) then Exit;
+
+    // 3) 边界指数：0 是旧实现漏掉的解；110/111 在旧实现覆盖上界之外
+    if not CheckExponent(3, 113, 0) then Exit;
+    if not CheckExponent(3, 113, 1) then Exit;
+    if not CheckExponent(3, 113, 110) then Exit;
+    if not CheckExponent(3, 113, 111) then Exit;
+
+    // 4) 无解：4 = 3^24，阶为 14，生成子群的指数都是 8 的倍数，B = 3 不在其中
+    if not A.SetInteger(4) then Exit;
+    if not M.SetInteger(113) then Exit;
+    if not B.SetInteger(3) then Exit;
+    if BigNumberBigStepGiantStep(R, A, B, M) then Exit;
+
+    // 5) VCL 示例用过的参数
+    if not Check(8723, 3623, 65537) then Exit;
+
+    Result := True;
+  finally
+    E.Free;
+    T.Free;
+    R.Free;
+    M.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigNumberGeneratePrimeBits: Boolean;
+{* 覆盖：位数过小应返回 False，成功时结果位数必须恰好等于请求值。 }
+var
+  T: TCnBigNumber;
+  I: Integer;
+begin
+  Result := False;
+  T := TCnBigNumber.Create;
+  try
+    if BigNumberGeneratePrimeByBitsCount(T, 0) then Exit;
+    if BigNumberGeneratePrimeByBitsCount(T, 1) then Exit;
+
+    for I := 2 to 8 do
+    begin
+      if not BigNumberGeneratePrimeByBitsCount(T, I) then Exit;
+      if T.GetBitsCount <> I then Exit;
+      if not T.IsOdd then Exit;
+      if not BigNumberIsProbablyPrime(T, 16) then Exit;
+    end;
+
+    if not BigNumberGeneratePrimeByBitsCount(T, 32) then Exit;
+    if T.GetBitsCount <> 32 then Exit;
+    if not T.IsOdd then Exit;
+    if not BigNumberIsProbablyPrime(T, 16) then Exit;
+
+    Result := True;
+  finally
+    T.Free;
+  end;
+end;
+
+function TestBigNumberLoadFromMemSize: Boolean;
+{* 覆盖 C5：Size 不足以容纳头部时应拒绝，不能越界读；Size=0 保持既有契约。 }
+var
+  A, B: TCnBigNumber;
+  Buf: PAnsiChar;
+  Size, Got: Integer;
+  Raised: Boolean;
+begin
+  Result := False;
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Buf := nil;
+  try
+    if not A.SetDec('-123456789012345678901234567890') then Exit;
+    Size := A.SaveToMem(nil);
+    if Size <= 0 then Exit;
+
+    GetMem(Buf, Size);
+    if A.SaveToMem(Buf) <> Size then Exit;
+
+    if B.LoadFromMem(Buf, Size) <> Size then Exit;
+    if BigNumberCompare(A, B) <> 0 then Exit;
+
+    // Size = 1..3 不足以容纳 4 字节总长度，必须拒绝而不是越界读
+    Raised := False;
+    Got := 0;
+    try
+      Got := B.LoadFromMem(Buf, 2);
+    except
+      on E: Exception do
+        Raised := True;
+    end;
+    if not Raised and (Got <> 0) then Exit;
+
+    // Size = 0 仍按接口约定读取
+    if B.LoadFromMem(Buf, 0) <> Size then Exit;
+    if BigNumberCompare(A, B) <> 0 then Exit;
+
+    Result := True;
+  finally
+    if Buf <> nil then
+      FreeMem(Buf);
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestBigNumberCompareNil: Boolean;
+{* 覆盖 E1：列表排序用的比较器与 BigNumberCompare 对 nil 的约定必须一致。 }
+var
+  L: TCnBigNumberList;
+  A: TCnBigNumber;
+begin
+  Result := False;
+  L := TCnBigNumberList.Create; // 列表拥有对象
+  try
+    A := TCnBigNumber.Create;
+    if not A.SetInteger(1) then
+    begin
+      A.Free;
+      Exit;
+    end;
+    L.Add(A);                    // 所有权移交给列表
+    L.Add(TCnBigNumber(nil));
+
+    // BigNumberCompare 把 nil 视为最大
+    if BigNumberCompare(nil, A) <> 1 then Exit;
+    if BigNumberCompare(A, nil) <> -1 then Exit;
+    if BigNumberCompare(nil, nil) <> 0 then Exit;
+
+    L.BigNumberSort;
+    if L.Count <> 2 then Exit;
+    if L[0] <> A then Exit;      // 非 nil 在前
+    if L[1] <> nil then Exit;    // nil 在后，与 BigNumberCompare 一致
+
+    Result := True;
+  finally
+    L.Free;
   end;
 end;
 

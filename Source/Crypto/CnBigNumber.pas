@@ -3112,20 +3112,9 @@ var
 {$ENDIF}
 
 function DefBigNumberCompare(Item1, Item2: Pointer): Integer;
-var
-  A, B: TCnBigNumber;
 begin
-  A := TCnBigNumber(Item1);
-  B := TCnBigNumber(Item2);
-
-  if (A = nil) and (B = nil) then
-    Result := 0
-  else if A = nil then
-    Result := -1
-  else if B = nil then
-    Result := 1
-  else
-    Result := BigNumberCompare(A, B);
+  // 直接复用 BigNumberCompare，保证两个比较器对 nil 的约定一致（nil 视为最大）
+  Result := BigNumberCompare(TCnBigNumber(Item1), TCnBigNumber(Item2));
 end;
 
 function CnBigNumberIs64Mode: Boolean;
@@ -4559,6 +4548,11 @@ begin
 
     Dest.FTop := WordCount;
     Dest.FNeg := Source.FNeg;
+
+    // 截断后高位可能全为 0，需重新规范化，否则会得到“非零的零”甚至负零
+    BigNumberCorrectTop(Dest);
+    if Dest.FTop = 0 then
+      Dest.FNeg := 0;
   end;
 end;
 
@@ -4602,7 +4596,8 @@ end;
 function BigNumberGetLow32(Num: TCnBigNumber): Cardinal;
 begin
   Result := 0;
-  if Num.FDMax > 0 then
+  // 用有效字数 FTop 判断，FDMax 只是已分配的容量，元素里可能还是上次运算的残留值
+  if Num.FTop > 0 then
     Result := Cardinal(Num.FD^);
 end;
 
@@ -4610,12 +4605,14 @@ function BigNumberGetLow64(Num: TCnBigNumber): TUInt64;
 begin
   Result := 0;
 {$IFDEF BN_DATA_USE_64}
-  if Num.FDMax > 0 then
+  // 64 位元素模式下 FTop >= 1 时 D[0] 已包含全部低 64 位
+  if Num.FTop > 0 then
     Result := TUInt64(Num.FD^);
 {$ELSE}
-  if Num.FDMax = 1 then
+  // 32 位元素模式下必须按 FTop 判断，FTop = 1 时 D[1] 可能还是上次运算的残留值
+  if Num.FTop = 1 then
     Result := TUInt64(Num.FD^)
-  else if Num.FDMax >= 2 then
+  else if Num.FTop >= 2 then
     Result := TUInt64(PCnBigNumberElementArray(Num.FD)^[0]) + (TUInt64(PCnBigNumberElementArray(Num.FD)^[1]) shl 32);
 {$ENDIF}
 end;
@@ -6214,6 +6211,13 @@ begin
   while PAnsiChar(TCnIntAddress(P) + I)^ in ['0'..'9', 'A'..'F', 'a'..'f'] do
     Inc(I);
 
+  // 必须有数字，且不允许中间或尾部出现非法字符（如 "12ZZ"、"0x12"、"12 "）
+  if (I = 0) or (I <> Length(Buf) - Neg) then
+    Exit;
+  // 防止下面的 (I + 2) * 4 溢出，与 SetDec 的检查保持一致
+  if I > (MaxInt - 8) div 4 then
+    Exit;
+
   BigNumberSetZero(Res);
 
   if BigNumberExpandBits(Res, (I + 2) * 4) = nil then // 多分配一点
@@ -6260,6 +6264,8 @@ begin
   Res.FTop := H;
   BigNumberCorrectTop(Res);
   Res.FNeg := Neg;
+  if Res.FTop = 0 then // 归一化负零，保证 0 只有一种表示
+    Res.FNeg := 0;
   Result := True;
 end;
 
@@ -6424,6 +6430,8 @@ begin
 
   BigNumberCorrectTop(Res);
   Res.FNeg := Neg;
+  if Res.FTop = 0 then // 归一化负零，保证 0 只有一种表示
+    Res.FNeg := 0;
   Result := True;
 end;
 
@@ -7360,12 +7368,15 @@ begin
     FLocalBigNumberPool.Recycle(Tmp);
     FLocalBigNumberPool.Recycle(SNum);
     FLocalBigNumberPool.Recycle(SDiv);
-    // 恢复 WNum 内容并扔回池子里
-    WNum.FNeg := BackupNeg;
-    WNum.FD := BackupD;
-    WNum.FTop := BackupTop;
-    WNum.FDMax := BackupDMax;
-    FLocalBigNumberPool.Recycle(WNum);
+    // 恢复 WNum 内容并扔回池子里；早退路径上 WNum 可能尚未创建
+    if WNum <> nil then
+    begin
+      WNum.FNeg := BackupNeg;
+      WNum.FD := BackupD;
+      WNum.FTop := BackupTop;
+      WNum.FDMax := BackupDMax;
+      FLocalBigNumberPool.Recycle(WNum);
+    end;
   end;
 end;
 
@@ -8710,6 +8721,9 @@ function BigNumberGeneratePrimeByBitsCount(Num: TCnBigNumber; BitsCount: Integer
   TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 begin
   Result := False;
+  // 1 位数只有 1，构不成素数
+  if BitsCount < 2 then
+    Exit;
   if not BigNumberRandBits(Num, BitsCount) then
     Exit;
 
@@ -9117,6 +9131,11 @@ begin
     begin
       // 奇数
       BigNumberMod(AA, P, A);
+      if AA.IsZero then // P 整除 A，符号为 0，不能再递归（入口会拒绝 0 值）
+      begin
+        Result := 0;
+        Exit;
+      end;
       Result := BigNumberLegendre(AA, A);
 
       // 计算 (A-1)*(P-1)/4 个 -1 相乘
@@ -10976,13 +10995,25 @@ begin
     BigNumberSqrt(T, M);
     T.AddWord(1);
 
+    Q := FLocalBigNumberPool.Obtain;
+    // 先处理 x = 0 的平凡解：A^0 mod M = 1，要求 B 与 1 同余
+    BigNumberMod(Q, B, M);
+    if Q.IsOne then
+    begin
+      Res.SetZero;
+      Result := True;
+      Exit;
+    end;
+
+    // 婴儿表从 k = 0 开始，首项即 (A^0 * B, 0)
     C := FLocalBigNumberPool.Obtain;
-    BigNumberDirectMulMod(C, A, B, M);
+    BigNumberCopy(C, B);
 
     Map := TCnBigNumberHashMap.Create(True, True);
     K := FLocalBigNumberPool.Obtain;
-    K.SetOne;
+    K.SetZero;
 
+    // 婴儿表存 (B * A^k mod M, k)，k = 0..T-1
     while BigNumberCompare(K, T) < 0 do
     begin
       Map.Add(BigNumberDuplicate(C), BigNumberDuplicate(K));
@@ -10990,13 +11021,13 @@ begin
       K.AddWord(1);
     end;
 
-    Q := FLocalBigNumberPool.Obtain;
-    BigNumberPowerMod(Q, A, T, M);
+    BigNumberPowerMod(Q, A, T, M); // Q = A^T mod M
     N := FLocalBigNumberPool.Obtain;
     BigNumberCopy(N, Q);
 
+    // 巨步 k = 1..T，与婴儿表配合覆盖 1..T^2，已大于 M-1
     K.SetOne;
-    while BigNumberCompare(K, T) < 0 do
+    while BigNumberCompare(K, T) <= 0 do
     begin
       if Map.HasKey(N) then
       begin
@@ -11596,6 +11627,10 @@ begin
   if Mem = nil then
     Exit;
 
+  // Size 已知时必须先能容纳 4 字节总长度，否则读头就会越界
+  if (Size > 0) and (Size < SizeOf(Integer)) then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
+
   P4 := PInteger(Mem);
   L := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 头部总长度按大端序解出，跨平台一致
   if (Size > 0) and (L > Size) then
@@ -11618,12 +11653,21 @@ begin
   P4 := PInteger(P1);
   L := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 数据长度按大端序解出
 
-  // 检查加上 L 后是否超过 Size，超过就抛异常
-  if SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) + L > Size then
+  // 检查加上 L 后是否超过 Size，超过就抛异常；Size = 0 表示长度未知，按接口约定不做边界检查
+  if (Size > 0) and (SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) + L > Size) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
   Inc(P4);
-  BigNumberSetBinary(PAnsiChar(P4), L, Self); // 会归正
+  if L > 0 then
+  begin
+    if not BigNumberSetBinary(PAnsiChar(P4), L, Self) then // 会归正
+    begin
+      Result := 0;
+      Exit;
+    end;
+  end
+  else // 注意 SetBinary 对 0 长度（零值）返回 False，这里直接清零
+    BigNumberSetZero(Self);
   SetNegative(N);                  // 重新写符号
 end;
 
