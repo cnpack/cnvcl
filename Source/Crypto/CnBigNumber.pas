@@ -8718,29 +8718,48 @@ end;
 
 // 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
 function BigNumberGeneratePrimeByBitsCount(Num: TCnBigNumber; BitsCount: Integer;
-  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer): Boolean;
+const
+  MAX_COUNT = 100;
+var
+  C: Integer;
 begin
   Result := False;
   // 1 位数只有 1，构不成素数
   if BitsCount < 2 then
     Exit;
-  if not BigNumberRandBits(Num, BitsCount) then
-    Exit;
 
-  if not BigNumberSetBit(Num, BitsCount - 1) then
-    Exit;
+  C := 0;
+  while C < MAX_COUNT do
+  begin
+    Inc(C);
 
-  if not Num.IsOdd then
-    Num.AddWord(1);
+    if not BigNumberRandBits(Num, BitsCount) then
+      Exit;
 
-  while not BigNumberIsProbablyPrime(Num, TestCount) do
-    Num.AddWord(2);
+    if not BigNumberSetBit(Num, BitsCount - 1) then
+      Exit;
 
-  Result := True;
+    if not Num.IsOdd then
+      if not Num.AddWord(1) then
+        Exit;
+
+    while not BigNumberIsProbablyPrime(Num, TestCount) do
+    begin
+      if not Num.AddWord(2) then
+        Exit;
+
+      // 递增越过 2^BitsCount 后结果会多一位，直接重新随机再来，最多尝试一百次
+      if Num.GetBitsCount > BitsCount then
+        Break;
+    end;
+  end;
+
+  Result := (C < MAX_COUNT) and (Num.GetBitsCount = BitsCount);
 end;
 
 function BigNumberNextPrime(Res, Num: TCnBigNumber;
-  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer): Boolean;
 begin
   Result := True;
   if Num.IsNegative or Num.IsZero or Num.IsOne or (Num.GetWord = 2) then
