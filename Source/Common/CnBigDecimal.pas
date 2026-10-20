@@ -2425,6 +2425,9 @@ function BigDecimalCompare(Num1: TCnBigDecimal; Num2: Extended): Integer;
 var
   T: TCnBigDecimal;
 begin
+  if ExtendedIsNan(Num2) then
+    raise ECnBigDecimalException.Create(SInvalidOp);
+
   // Inf 可比：+Inf 大于任何有限值，-Inf 小于任何有限值，不经 SetExtended 转换
   if ExtendedIsInfinite(Num2) then
   begin
@@ -4011,6 +4014,9 @@ function BigBinaryCompare(Num1: TCnBigBinary; Num2: Extended): Integer; overload
 var
   T: TCnBigBinary;
 begin
+  if ExtendedIsNan(Num2) then
+    raise ECnBigDecimalException.Create(SInvalidOp);
+
   // Inf 可比：+Inf 大于任何有限值，-Inf 小于任何有限值，不经 SetExtended 转换
   if ExtendedIsInfinite(Num2) then
   begin

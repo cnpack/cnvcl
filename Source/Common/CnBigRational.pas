@@ -610,6 +610,9 @@ var
 
 implementation
 
+uses
+  CnFloat;
+
 resourcestring
   SCnErrorBigRationalDenominatorZero = 'Denominator Cannot be Zero.';
   SCnErrorBigRationalDivideByZero = 'Divide by Zero.';
@@ -1127,6 +1130,11 @@ var
   F: TFloatRec;
   I, L: Integer;
 begin
+  // Inf/NaN 不能用有理数表示：若不拦截，FloatToDecimal 会返回空 Digits 且
+  // Exponent=9999，下面的循环将构造约 10^9999 的巨量中间值，白白消耗 CPU/内存。
+  if ExtendedIsInfinite(AFloat) or ExtendedIsNan(AFloat) then
+    raise ECnBigRationalException.Create(SInvalidOp);
+
   if AFloat = 0 then
   begin
     // FloatToDecimal(0) 返回空 Digits 且 Exponent=0，按下方逻辑会得到错误的 1/1，直接短路为零
