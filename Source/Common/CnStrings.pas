@@ -830,7 +830,12 @@ var
   I,X: Integer;
   Len, LenSubStr: Integer;
 begin
-  if Offset = 1 then
+  if (Offset = 0) or (Offset > Cardinal(Length(S))) then
+  begin
+    Result := 0;
+    Exit;
+  end
+  else if Offset = 1 then
     Result := Pos(SubStr, S)
   else if SubStr = '' then
   begin
@@ -1116,11 +1121,11 @@ end;
 
 function MatchedIndexesCompare(Item1, Item2: Pointer): Integer;
 var
-  R1, R2: Integer;
+  R1, R2: TCnNativeInt;
 begin
-  R1 := Integer(Item1);
-  R2 := Integer(Item2);
-  Result := R1 - R2;
+  R1 := TCnNativeInt(Item1);
+  R2 := TCnNativeInt(Item2);
+  Result := R1 - R2;  // 不考虑 64 位下溢出或回绕的情况，因地址空间不会出现
 end;
 
 function AnyWhereSepMatchStr(const Pattern: string; const Str: string; SepContainer: TStringList;
@@ -2046,6 +2051,9 @@ begin
     Error(@SListCapacityError, NewCapacity);
   if NewCapacity > MaxInt div SizeOf(TCnAnsiStringItem) then
     Error(@SListCapacityError, NewCapacity);
+  if NewCapacity < FCount then
+    Error(@SListCapacityError, NewCapacity);
+
   if NewCapacity = FCapacity then
     Exit;
 
@@ -3110,9 +3118,12 @@ begin
   SetLength(S, 1);
   Move(Value, S[1], SizeOf(AnsiChar));
 {$IFDEF UNICODE}
-  Result := AppendAnsi(S);
+  if FAnsiMode then
+    Result := AppendAnsi(S) // Unicode 下 S 转为 AnsiString 可能会变问号
+  else
+    Result := Append(string(S));
 {$ELSE}
-  Result := Append(S); // Unicode 下 S 转为 string 可能会变问号
+  Result := Append(S);
 {$ENDIF}
 end;
 
@@ -3125,7 +3136,10 @@ begin
 {$IFDEF UNICODE}
   Result := Append(S);
 {$ELSE}
-  Result := AppendWide(S);
+  if FAnsiMode then
+    Result := Append(AnsiString(S))
+  else
+    Result := AppendWide(S);
 {$ENDIF}
 end;
 

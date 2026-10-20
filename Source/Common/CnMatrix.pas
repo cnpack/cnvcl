@@ -3502,6 +3502,9 @@ var
   D: Int64;
 begin
   D := Int64Gcd(X, Y);
+  if D < 0 then // TODO: 如果返回 Low(Int64)
+    D := -D;
+
   if D > 1 then
   begin
     X := X div D;
@@ -3666,8 +3669,15 @@ begin
     TCnRationalMatrix(Dest).ColCount := ColCount;
 
     for I := 0 to RowCount - 1 do
+    begin
       for J := 0 to ColCount - 1 do
-        TCnRationalMatrix(Dest).Value[I, J] := TCnRationalNumber(FMatrix[I, J]);
+      begin
+        if FMatrix[I, J] = nil then // 可能还未创建
+          TCnRationalMatrix(Dest).Value[I, J].SetZero
+        else
+          TCnRationalMatrix(Dest).Value[I, J] := TCnRationalNumber(FMatrix[I, J]);
+      end;
+    end;
   end
   else
     inherited;

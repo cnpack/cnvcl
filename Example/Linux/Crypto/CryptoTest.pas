@@ -300,6 +300,7 @@ function TestBigRationalSetStringMalformed: Boolean;
 function TestRationalNumberNegOneDenominator: Boolean;
 function TestMatrixZigZagRowCol: Boolean;
 function TestMatrixAdjointInverse1x1: Boolean;
+function TestMatrixRationalAssignNilCell: Boolean;
 
 // ================================ Bits =======================================
 
@@ -2217,6 +2218,7 @@ begin
   MyAssert(TestRationalNumberNegOneDenominator, 'TestRationalNumberNegOneDenominator');
   MyAssert(TestMatrixZigZagRowCol, 'TestMatrixZigZagRowCol');
   MyAssert(TestMatrixAdjointInverse1x1, 'TestMatrixAdjointInverse1x1');
+  MyAssert(TestMatrixRationalAssignNilCell, 'TestMatrixRationalAssignNilCell');
 
 // ================================ Bits =======================================
 
@@ -11515,6 +11517,75 @@ begin
     RatM.Free; RatA.Free; RatI.Free;
     FltM.Free; FltA.Free; FltI.Free;
     IntM.Free; IntA.Free; IntI.Free;
+  end;
+end;
+
+function TestMatrixRationalAssignNilCell: Boolean;
+{
+  回归用例：TCnRationalMatrix 的单元格是惰性创建的，只有写过或读过的格子
+  才有对象，未赋值的格子仍是 nil。而 AssignTo 直接把 FMatrix[I, J] 交给
+  SetValue，遇到 nil 会在完全合法的输入上抛 EConvertError。
+
+  受影响的公开路径有三条，本用例各测一次，且每条都用独立的矩阵，避免
+  GetValue 的惰性创建把 nil 填掉而掩盖问题：
+    1. Dest.Assign(Source)
+    2. CnMatrixPower（K >= 2 时内部先 T.Assign(Matrix)）
+    3. CnMatrixTranspose 原地转置（内部先 Tmp.Assign(Matrix1)）
+
+  修复前：第一条 N.Assign(M) 即抛 EConvertError，用例失败；
+  修复后：nil 单元格按 0 处理，三条路径均应正常返回。
+}
+var
+  M, N, P, Q: TCnRationalMatrix;
+  T: TCnRationalNumber;
+begin
+  Result := False;
+  M := TCnRationalMatrix.Create(2, 2);
+  N := TCnRationalMatrix.Create(2, 2);
+  P := TCnRationalMatrix.Create(2, 2);
+  Q := TCnRationalMatrix.Create(2, 2);
+  T := TCnRationalNumber.Create;
+  try
+    // M = [[1/2, 5/6], [nil, 3/4]]，只留 [1, 0] 未赋值
+    T.SetValue(1, 2);
+    M.Value[0, 0] := T;
+    T.SetValue(5, 6);
+    M.Value[0, 1] := T;
+    T.SetValue(3, 4);
+    M.Value[1, 1] := T;
+
+    // 1. Assign 应把 nil 单元格当 0 复制过去，不应抛异常
+    N.Assign(M);
+    if (N.Value[0, 0].Numerator <> 1) or (N.Value[0, 0].Denominator <> 2) then Exit;
+    if (N.Value[0, 1].Numerator <> 5) or (N.Value[0, 1].Denominator <> 6) then Exit;
+    if N.Value[1, 0].Numerator <> 0 then Exit;
+    if (N.Value[1, 1].Numerator <> 3) or (N.Value[1, 1].Denominator <> 4) then Exit;
+
+    // 2. 原地转置：[[1/2, 5/6], [0, 3/4]] 转置后为 [[1/2, 0], [5/6, 3/4]]
+    CnMatrixTranspose(M, M);
+    if (M.Value[0, 0].Numerator <> 1) or (M.Value[0, 0].Denominator <> 2) then Exit;
+    if M.Value[0, 1].Numerator <> 0 then Exit;
+    if (M.Value[1, 0].Numerator <> 5) or (M.Value[1, 0].Denominator <> 6) then Exit;
+    if (M.Value[1, 1].Numerator <> 3) or (M.Value[1, 1].Denominator <> 4) then Exit;
+
+    // 3. 乘方：diag(1/2, 3/4)^2 = diag(1/4, 9/16)，两个非对角格子仍是 nil
+    T.SetValue(1, 2);
+    Q.Value[0, 0] := T;
+    T.SetValue(3, 4);
+    Q.Value[1, 1] := T;
+    CnMatrixPower(Q, 2, P);
+    if (P.Value[0, 0].Numerator <> 1) or (P.Value[0, 0].Denominator <> 4) then Exit;
+    if P.Value[0, 1].Numerator <> 0 then Exit;
+    if P.Value[1, 0].Numerator <> 0 then Exit;
+    if (P.Value[1, 1].Numerator <> 9) or (P.Value[1, 1].Denominator <> 16) then Exit;
+
+    Result := True;
+  finally
+    T.Free;
+    Q.Free;
+    P.Free;
+    N.Free;
+    M.Free;
   end;
 end;
 

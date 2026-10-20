@@ -730,12 +730,12 @@ var
   I: Integer;
 begin
   for I := 0 to Strings.Count - 1 do
-    Add(Strings[I]);
+    AddObject(Strings[I], Objects[I]);
 end;
 
 procedure TCnWideStringList.Assign(Source: TPersistent);
 begin
-  if Source is TCnWideStringList then
+  if (Source <> Self) and (Source is TCnWideStringList) then
   begin
     Clear;
     AddStrings(TCnWideStringList(Source));
@@ -743,6 +743,7 @@ begin
     FLoadFormat := TCnWideStringList(Source).LoadFormat;
     FUseSingleLF := TCnWideStringList(Source).UseSingleLF;
     FWriteBOM := TCnWideStringList(Source).WriteBOM;
+    FHasBOM := TCnWideStringList(Source).HasBOM;
     Exit;
   end;
   inherited Assign(Source);

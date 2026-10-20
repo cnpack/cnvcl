@@ -1761,8 +1761,8 @@ end;
 
 procedure TCnInt64List.InsertBatch(Index, ACount: Integer);
 begin
-  if ACount <= 0 then
-    Exit;
+  if (ACount <= 0) or (ACount > MaxListSize - FCount) then
+    Error(SCnInt64ListError, ACount);
 
   if (Index < 0) or (Index > FCount) then
     Error(SCnInt64ListError, Index);
@@ -2555,8 +2555,8 @@ end;
 
 procedure TCnExtendedList.InsertBatch(Index, ACount: Integer);
 begin
-  if ACount <= 0 then
-    Exit;
+  if (ACount <= 0) or (ACount > MaxListSize - FCount) then
+    Error(SCnExtendedListError, ACount);
 
   if (Index < 0) or (Index > FCount) then
     Error(SCnExtendedListError, Index);
@@ -2779,8 +2779,8 @@ end;
 
 procedure TCnRefObjectList.InsertBatch(Index, ACount: Integer);
 begin
-  if ACount <= 0 then
-    Exit;
+  if (ACount <= 0) or (ACount > MaxListSize - FCount) then
+    Error(SCnRefObjectListError, ACount);
 
   if (Index < 0) or (Index > FCount) then
     Error(SCnRefObjectListError, Index);
@@ -2909,6 +2909,8 @@ var
   I: Integer;
 begin
   Result := -1;
+  if AClass = nil then Exit;
+
   for I := AStartAt to Count - 1 do
   begin
     if (AExact and
