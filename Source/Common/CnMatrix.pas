@@ -1371,7 +1371,7 @@ resourcestring
   SCnErrorZigZagIndexFmt = 'Error ZigZag Index: %d';
   SCnErrorZigZagRowColCount = 'ZigZag Row Col Count must Equal';
   SCnErrorMatrixDenominatorZero = 'Denominator can NOT be Zero.';
-  SCnErrorResultFactors = 'Matrix Result can not Be Factors';
+  SCnErrorResultFactors = 'Matrix Result can NOT Be Factors or Params';
   SCnErrorMulRowCount = 'Matrix 1 Col Count must Equal to Matrix 2 Row Count';
   SCnErrorPowerSquare = 'Matrix Power Must Be Square';
   SCnErrorDivNotImplInt = 'Operation Div NOT Implemented in Int Matrix';
@@ -1671,6 +1671,9 @@ var
   I: Integer;
   T: TCnIntMatrix;
 begin
+  if PowerResult = Matrix then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if not Matrix.IsSquare then
     raise ECnMatrixException.Create(SCnErrorPowerSquare);
 
@@ -1706,6 +1709,9 @@ var
   I: Integer;
   T: TCnFloatMatrix;
 begin
+  if PowerResult = Matrix then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if not Matrix.IsSquare then
     raise ECnMatrixException.Create(SCnErrorPowerSquare);
 
@@ -1741,6 +1747,9 @@ var
   I: Integer;
   T: TCnRationalMatrix;
 begin
+  if PowerResult = Matrix then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
   if not Matrix.IsSquare then
     raise ECnMatrixException.Create(SCnErrorPowerSquare);
 
