@@ -207,8 +207,16 @@ type
   {* 如果系统没有定义 PInt64Array 则定义上 64 位有符号数组指针}
 {$ENDIF}
 
-  TUInt64Array = array of TUInt64;
-  {* 统一定义 64 位无符号整数动态数组，注意这个动态数组声明似乎容易和静态数组声明有冲突}
+{$IFDEF SUPPORT_UINT64}
+  TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
+  {* UInt64 数组类型}
+  PUInt64Array = ^TUInt64Array;
+  {* UInt64 数组指针类型}
+{$ENDIF}
+
+  TUInt64s = array of TUInt64;
+  {* 统一定义 64 位无符号整数动态数组}
+
   ExtendedArray = array[0..65537] of Extended;
   {* 扩展精度浮点数数组}
   PExtendedArray = ^ExtendedArray;

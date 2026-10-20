@@ -264,6 +264,11 @@ function TestBigNumberMontgomeryPowerMod: Boolean;
 function TestBigNumberLoadSaveMem: Boolean;
 function TestBigNumberListLoadSaveMem: Boolean;
 function TestBigNumberNonNegativeModAlias: Boolean;
+function TestBigNumberSetInteger: Boolean;
+function TestBigNumberGetIntegerRange: Boolean;
+function TestBigNumberSetInt64: Boolean;
+function TestBigNumberSetUInt64: Boolean;
+function TestBigNumberGetInt64Range: Boolean;
 
 // ============================== BigRational ==================================
 
@@ -2165,6 +2170,11 @@ begin
   MyAssert(TestBigNumberShiftMinInteger, 'TestBigNumberShiftMinInteger');
   MyAssert(TestBigNumberListLoadSaveMem, 'TestBigNumberListLoadSaveMem');
   MyAssert(TestBigNumberNonNegativeModAlias, 'TestBigNumberNonNegativeModAlias');
+  MyAssert(TestBigNumberSetInteger, 'TestBigNumberSetInteger');
+  MyAssert(TestBigNumberGetIntegerRange, 'TestBigNumberGetIntegerRange');
+  MyAssert(TestBigNumberSetInt64, 'TestBigNumberSetInt64');
+  MyAssert(TestBigNumberSetUInt64, 'TestBigNumberSetUInt64');
+  MyAssert(TestBigNumberGetInt64Range, 'TestBigNumberGetInt64Range');
 
 // ============================== BigRational ==================================
 
@@ -8826,14 +8836,33 @@ begin
   Result := BigNumberIsMersennePrime(2) and BigNumberIsMersennePrime(3) and
     BigNumberIsMersennePrime(5) and BigNumberIsMersennePrime(7) and
     BigNumberIsMersennePrime(13) and BigNumberIsMersennePrime(17) and
-    BigNumberIsMersennePrime(19);
+    BigNumberIsMersennePrime(19) and BigNumberIsMersennePrime(31) and
+    BigNumberIsMersennePrime(61) and BigNumberIsMersennePrime(89) and
+    BigNumberIsMersennePrime(107) and BigNumberIsMersennePrime(127);
 
   if not Result then Exit;
 
   // 这些梅森不是素数
   Result := not BigNumberIsMersennePrime(4) and not BigNumberIsMersennePrime(8)
     and not BigNumberIsMersennePrime(11) and not BigNumberIsMersennePrime(15)
-    and not BigNumberIsMersennePrime(18) and not BigNumberIsMersennePrime(21);;
+    and not BigNumberIsMersennePrime(18) and not BigNumberIsMersennePrime(21)
+    and not BigNumberIsMersennePrime(23) and not BigNumberIsMersennePrime(29)
+    and not BigNumberIsMersennePrime(37) and not BigNumberIsMersennePrime(101);
+
+  if not Result then Exit;
+
+  // 每轮归约后内存占用只与指数成正比，所以指数可以取到几千量级。
+  // 归约前 K 的位长每轮翻倍，E=31 时中间值就已有几百 MB，这些用例根本跑不出来
+  Result := BigNumberIsMersennePrime(521) and BigNumberIsMersennePrime(607)
+    and BigNumberIsMersennePrime(1279) and BigNumberIsMersennePrime(2203)
+    and BigNumberIsMersennePrime(2281) and BigNumberIsMersennePrime(3217);
+
+  if not Result then Exit;
+
+  // 指数为合数时 2^E-1 必定是合数，用作较大规模下的反向用例
+  Result := not BigNumberIsMersennePrime(522)
+    and not BigNumberIsMersennePrime(1280)
+    and not BigNumberIsMersennePrime(2048);
 end;
 
 function TestBigNumberAKSIsPrime: Boolean;
@@ -9480,6 +9509,334 @@ begin
     Num.Free;
     D.Free;
     E.Free;
+  end;
+end;
+
+function TestBigNumberSetInteger: Boolean;
+{* 覆盖：SetInteger 在 32/64 位元素模式下都必须完整写入幅值与符号，
+   并验证十进制串、GetInt64 与 GetInteger 三者一致。 }
+var
+  T: TCnBigNumber;
+
+  function CheckValue(W: Integer): Boolean;
+  var
+    R: TCnBigNumber;
+  begin
+    Result := False;
+    R := BigNumberFromDec(IntToStr(W));
+    try
+      if not T.SetInteger(W) then Exit;
+      if BigNumberCompare(T, R) <> 0 then Exit;
+      if T.GetInt64 <> W then Exit;
+      if T.GetInteger <> W then Exit;
+      Result := True;
+    finally
+      R.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  T := TCnBigNumber.Create;
+  try
+    if not CheckValue(0) then Exit;
+    if not CheckValue(1) then Exit;
+    if not CheckValue(-1) then Exit;
+    if not CheckValue(5) then Exit;
+    if not CheckValue(-5) then Exit;
+    if not CheckValue(2147483646) then Exit;
+    if not CheckValue(-2147483646) then Exit;
+    if not CheckValue(High(Integer)) then Exit;
+    if not CheckValue(-High(Integer)) then Exit;
+    if not CheckValue(Low(Integer)) then Exit;   // 幅值恰为 2^31
+
+    // 缓冲区复用：先写大值再写小值，FTop/FNeg 必须同步更新
+    if not T.SetInteger(Low(Integer)) then Exit;
+    if not T.SetInteger(-5) then Exit;
+    if T.GetInteger <> -5 then Exit;
+    if T.GetInt64 <> -5 then Exit;
+    if not T.SetInteger(0) then Exit;
+    if not T.IsZero then Exit;
+    if T.GetInteger <> 0 then Exit;
+    Result := True;
+  finally
+    T.Free;
+  end;
+end;
+
+function TestBigNumberGetIntegerRange: Boolean;
+{* 覆盖：GetInteger 必须先按无符号取幅值再按符号还原，超出范围时按符号饱和。
+   用例覆盖 2^31、2^31+1、2^32、2^63 等边界的正负两侧以及负零。 }
+var
+  T: TCnBigNumber;
+
+  function CheckDec(const Dec: AnsiString; PosExp, NegExp: Integer): Boolean;
+  var
+    R: TCnBigNumber;
+  begin
+    Result := False;
+    R := BigNumberFromDec(Dec);
+    try
+      if R.GetInteger <> PosExp then Exit;
+      R.Negate;
+      if R.GetInteger <> NegExp then Exit;
+      Result := True;
+    finally
+      R.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  T := TCnBigNumber.Create;
+  try
+    // 32 位有符号边界：正负两侧都可精确表示
+    if not CheckDec('2147483647', High(Integer), -High(Integer)) then Exit;
+    // 2^31 与 2^31+1：正值饱和为 High，负值饱和为 Low
+    if not CheckDec('2147483648', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('2147483649', High(Integer), Low(Integer)) then Exit;
+    // 2^32-1、2^32、2^32+1
+    if not CheckDec('4294967295', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('4294967296', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('4294967297', High(Integer), Low(Integer)) then Exit;
+    // 2^63、2^63+1
+    if not CheckDec('9223372036854775807', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('9223372036854775808', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('9223372036854775809', High(Integer), Low(Integer)) then Exit;
+    // 2^64-1、2^64 及更大的数
+    if not CheckDec('18446744073709551615', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('18446744073709551616', High(Integer), Low(Integer)) then Exit;
+    if not CheckDec('340282366920938463463374607431768211455',
+      High(Integer), Low(Integer)) then Exit;
+    // 零
+    if not CheckDec('0', 0, 0) then Exit;
+
+    // FTop = 1 的负数（原实现会丢符号，或先饱和再取反）
+    if not T.SetInt64(-1) then Exit;
+    if T.GetInteger <> -1 then Exit;
+    if not T.SetInt64(-5) then Exit;
+    if T.GetInteger <> -5 then Exit;
+    if not T.SetInt64(-2147483647) then Exit;  // 幅值 2^31-1
+    if T.GetInteger <> -2147483647 then Exit;
+    if not T.SetInt64(-2147483647 - 1) then Exit;  // 幅值 2^31
+    if T.GetInteger <> Low(Integer) then Exit;
+    if not T.SetInt64(Int64(-2147483647) - 2) then Exit;  // 幅值 2^31+1
+    if T.GetInteger <> Low(Integer) then Exit;
+    if not T.SetInt64(-4294967296) then Exit;  // 幅值 2^32
+    if T.GetInteger <> Low(Integer) then Exit;
+    if not T.SetInt64(Low(Int64)) then Exit;   // 幅值 2^63
+    if T.GetInteger <> Low(Integer) then Exit;
+
+    // 负零：FTop = 0 时不论符号位如何都返回 0
+    if not T.SetInt64(0) then Exit;
+    T.SetNegative(True);
+    if not T.IsZero then Exit;
+    if T.GetInteger <> 0 then Exit;
+    Result := True;
+  finally
+    T.Free;
+  end;
+end;
+
+function TestBigNumberSetInt64: Boolean;
+{* 覆盖 A1：SetInt64 在 32/64 位元素模式下都必须完整写入 64 位幅值。
+   用例包含 2^31、2^32、2^32+1 及 64 位边界，验证幅值、符号和十进制交叉比较。 }
+var
+  T: TCnBigNumber;
+
+  function CheckValue(W: Int64): Boolean;
+  var
+    R: TCnBigNumber;
+{$IFDEF SUPPORT_UINT64}
+    Mag: TUInt64;
+{$ENDIF}
+  begin
+    Result := False;
+    R := BigNumberFromDec(IntToStr(W));
+    try
+      if not T.SetInt64(W) then Exit;
+      if BigNumberCompare(T, R) <> 0 then Exit;
+{$IFDEF SUPPORT_UINT64}
+      // GetUInt64UsingInt64 忽略符号，返回幅值；用无符号取负避免 Low(Int64) 溢出
+      if W < 0 then
+        Mag := TUInt64(not W) + 1
+      else
+        Mag := TUInt64(W);
+      if BigNumberGetUInt64UsingInt64(T) <> Mag then Exit;
+{$ENDIF}
+      if T.GetInt64 <> W then Exit;
+      Result := True;
+    finally
+      R.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  T := TCnBigNumber.Create;
+  try
+    if not CheckValue(0) then Exit;
+    if not CheckValue(1) then Exit;
+    if not CheckValue(-1) then Exit;
+    if not CheckValue(5) then Exit;
+    if not CheckValue(-5) then Exit;
+    if not CheckValue(2147483647) then Exit;
+    if not CheckValue(-2147483647) then Exit;
+    if not CheckValue(2147483648) then Exit;   // 2^31：32 位元素模式的高位进位
+    if not CheckValue(-2147483647 - 1) then Exit;
+    if not CheckValue(4294967296) then Exit;   // 2^32：64 位元素模式的单元素边界
+    if not CheckValue(-4294967296) then Exit;
+    if not CheckValue(320255973506844) then Exit;
+    if not CheckValue(-320255973506844) then Exit;
+    if not CheckValue(1234567890123) then Exit;
+    if not CheckValue(-1234567890123) then Exit;
+    if not CheckValue(High(Int64)) then Exit;
+    if not CheckValue(Low(Int64)) then Exit;   // 幅值恰为 2^63
+
+    // 缓冲区复用：先写大值再写小数，FTop/FNeg 必须同步更新
+    if not T.SetInt64(High(Int64)) then Exit;
+    if not T.SetInt64(-5) then Exit;
+    if T.GetInt64 <> -5 then Exit;
+    if BigNumberGetUInt64UsingInt64(T) <> 5 then Exit;
+    if not T.SetInt64(0) then Exit;
+    if not T.IsZero then Exit;
+    if T.GetInt64 <> 0 then Exit;
+    Result := True;
+  finally
+    T.Free;
+  end;
+end;
+
+function TestBigNumberSetUInt64: Boolean;
+{* 覆盖 A1：SetUInt64 / SetUInt64UsingInt64 在 32/64 位元素模式下都必须完整
+   写入 64 位无符号幅值，重点覆盖高 32 位非零和 2^63 以上取值。 }
+var
+  T: TCnBigNumber;
+
+  function CheckValue(W: TUInt64; const Hex: AnsiString): Boolean;
+  var
+    R: TCnBigNumber;
+  begin
+    Result := False;
+    R := BigNumberFromHex(Hex);
+    try
+      if not BigNumberSetUInt64UsingInt64(T, W) then Exit;
+      if BigNumberGetUInt64UsingInt64(T) <> W then Exit;
+      if BigNumberCompare(T, R) <> 0 then Exit;
+{$IFDEF SUPPORT_UINT64}
+      if not T.SetUInt64(W) then Exit;
+      if T.GetUInt64 <> W then Exit;
+      if BigNumberCompare(T, R) <> 0 then Exit;
+{$ENDIF}
+      Result := True;
+    finally
+      R.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  T := TCnBigNumber.Create;
+  try
+    if not CheckValue(0, '0') then Exit;
+    if not CheckValue(1, '1') then Exit;
+    if not CheckValue(4294967295, 'FFFFFFFF') then Exit;
+    if not CheckValue(4294967296, '100000000') then Exit;
+    if not CheckValue(4294967297, '100000001') then Exit;
+    if not CheckValue(TUInt64($123456789ABCDEF), '123456789ABCDEF') then Exit;
+{$IFDEF SUPPORT_UINT64}
+    if not CheckValue(TUInt64($FFFFFFFF00000000), 'FFFFFFFF00000000') then Exit;
+    if not CheckValue(TUInt64($8000000000000000), '8000000000000000') then Exit;
+    if not CheckValue(TUInt64($8000000000000001), '8000000000000001') then Exit;
+    if not CheckValue(TUInt64($FFFFFFFFFFFFFFFF), 'FFFFFFFFFFFFFFFF') then Exit;
+
+    // 缓冲区复用：先写 2^64-1 再写 0，FTop/FNeg 必须同步更新
+    if not BigNumberSetUInt64UsingInt64(T, TUInt64($FFFFFFFFFFFFFFFF)) then Exit;
+    if not BigNumberSetUInt64UsingInt64(T, 0) then Exit;
+    if not T.IsZero then Exit;
+    if BigNumberGetUInt64UsingInt64(T) <> 0 then Exit;
+{$ENDIF}
+    Result := True;
+  finally
+    T.Free;
+  end;
+end;
+
+function TestBigNumberGetInt64Range: Boolean;
+{* 覆盖 A2：GetInt64 的符号还原与超范围饱和；同时回归 GetUInt64 的饱和语义。 }
+var
+  T: TCnBigNumber;
+
+  function CheckDec(const Dec: AnsiString; PosExp, NegExp: Int64): Boolean;
+  var
+    R: TCnBigNumber;
+  begin
+    Result := False;
+    R := BigNumberFromDec(Dec);
+    try
+      if R.GetInt64 <> PosExp then Exit;
+      R.Negate;
+      if R.GetInt64 <> NegExp then Exit;
+      Result := True;
+    finally
+      R.Free;
+    end;
+  end;
+
+  function CheckUInt64Sat(const Dec: AnsiString): Boolean;
+{$IFDEF SUPPORT_UINT64}
+  var
+    R: TCnBigNumber;
+{$ENDIF}
+  begin
+    Result := False;
+{$IFDEF SUPPORT_UINT64}
+    R := BigNumberFromDec(Dec);
+    try
+      Result := R.GetUInt64 = TUInt64($FFFFFFFFFFFFFFFF);
+    finally
+      R.Free;
+    end;
+{$ELSE}
+    Result := True;
+{$ENDIF}
+  end;
+
+begin
+  Result := False;
+  T := TCnBigNumber.Create;
+  try
+    // Int64 正数边界
+    if not CheckDec('9223372036854775807', High(Int64), -High(Int64)) then Exit;
+    // 2^63、2^63+1：正值饱和为 High，负值分别精确 / 饱和为 Low
+    if not CheckDec('9223372036854775808', High(Int64), Low(Int64)) then Exit;
+    if not CheckDec('9223372036854775809', High(Int64), Low(Int64)) then Exit;
+    // 2^64-1：32 位元素模式 FTop=2，64 位元素模式 FTop=1
+    if not CheckDec('18446744073709551615', High(Int64), Low(Int64)) then Exit;
+    // 2^64：32 位元素模式 FTop=3，64 位元素模式 FTop=2
+    if not CheckDec('18446744073709551616', High(Int64), Low(Int64)) then Exit;
+    if not CheckDec('340282366920938463463374607431768211455',
+      High(Int64), Low(Int64)) then Exit;
+    // 负零
+    if not CheckDec('0', 0, 0) then Exit;
+
+    // FTop=1 的负数（原实现会丢符号）
+    if not T.SetInt64(-1) then Exit;
+    if T.GetInt64 <> -1 then Exit;
+    if not T.SetInt64(-5) then Exit;
+    if T.GetInt64 <> -5 then Exit;
+    if not T.SetInt64(-2147483647 - 1) then Exit;  // 幅值 2^31
+    if T.GetInt64 <> -2147483647 - 1 then Exit;
+
+{$IFDEF SUPPORT_UINT64}
+    // GetUInt64 超范围饱和为 $FFFFFFFFFFFFFFFF
+    if not CheckUInt64Sat('18446744073709551615') then Exit;
+    if not CheckUInt64Sat('18446744073709551616') then Exit;
+    if not CheckUInt64Sat('340282366920938463463374607431768211455') then Exit;
+{$ENDIF}
+    Result := True;
+  finally
+    T.Free;
   end;
 end;
 

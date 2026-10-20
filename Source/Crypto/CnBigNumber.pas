@@ -32,7 +32,7 @@ unit CnBigNumber;
 *           Words 系列操作函数指大整数中间的运算过程。
 *
 *           大整数实现类 TCnBigNumber 内部用一个 UInt32/UInt64 数组表示大数，
-*           编译条件 BN_DATA_USE_64 控制数组元素是 UInt32 还是 UInt64，默认前者。
+*           编译条件 BN_DATA_USE_64 控制数组元素是 UInt32 还是 UInt64，默认按平台来。
 *           数组越往后越代表大整数的高位，数组元素内部的值依赖于 CPU 的大小端序。
 *           因而在小端 CPU 上，大整数对象的值严格等于该数组按字节倒序所表达的数。
 *
@@ -102,9 +102,9 @@ interface
 
 {$UNDEF BN_DATA_USE_64}
 {$IFDEF CPU64BITS}
-  // {$DEFINE BN_DATA_USE_64}
-  // BN_DATA_USE_64 表示在 64 位下，内部使用 64 位元素进行存储计算以提高效率，待测试
-  // 如不定义，默认使用 32 位元素，较稳定
+  {$DEFINE BN_DATA_USE_64}
+  // BN_DATA_USE_64 表示内部使用 64 位元素进行存储计算以提高效率
+  // 目前在 64 位下定义它。如改成不定义，则使用 32 位元素，较稳定
 {$ENDIF}
 
 // 核心模幂运算面临一个选择难题：固定时间的蒙哥马利阶梯实现，效率较通用的滑动窗口
@@ -124,13 +124,6 @@ const
   {* Miller-Rabin 算法的默认测试次数}
 
 type
-{$IFDEF SUPPORT_UINT64}
-  TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
-  {* UInt64 数组类型}
-  PUInt64Array = ^TUInt64Array;
-  {* UInt64 数组指针类型}
-{$ENDIF}
-
 {$IFDEF BN_DATA_USE_64}
   // 大数内部元素，使用 64 位
   TCnBigNumberElement = UInt64;
@@ -1270,7 +1263,7 @@ function BigNumberSetWord(Num: TCnBigNumber; W: Cardinal): Boolean;
 }
 
 function BigNumberGetInteger(Num: TCnBigNumber): Integer;
-{* 取一个大数对象的首值，也就是低 32 位有符号数。注意如果大数太大则返回 $7FFFFFFF。
+{* 取一个大数对象的首值，也就是低 32 位有符号数。注意如果大数太大则返回 $7FFFFFFF，如果太小则返回 $80000000。
 
    参数：
      Num: TCnBigNumber                    - 待计算的大数对象
@@ -1953,7 +1946,7 @@ function BigNumberRandRange(Num: TCnBigNumber; Range: TCnBigNumber): Boolean;
 }
 
 function BigNumberAnd(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象按位与，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
+{* 两个大数对象忽略符号按位与，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -1964,7 +1957,7 @@ function BigNumberAnd(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber)
 }
 
 function BigNumberOr(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象按位或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
+{* 两个大数对象忽略符号按位或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -1975,7 +1968,7 @@ function BigNumberOr(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber):
 }
 
 function BigNumberXor(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象按位异或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
+{* 两个大数对象忽略符号按位异或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -2921,7 +2914,7 @@ function BigNumberBPSWIsPrime(N: Int64): Boolean; overload;
 }
 
 function BigNumberIsMersennePrime(E: Integer): Boolean;
-{* 用 Lucas-Lehmer 定理检查 2 的 E 次方减一是否是梅森素数，E 达到 20 多时跑起来就开始慢了。
+{* 用 Lucas-Lehmer 定理检查 2 的 E 次方减一是否是梅森素数，每轮都归约，内存占用只与 E 成正比，但耗时仍随 E 增大而快速增长。
 
    参数：
      E: Integer                           - 待检查的 2 的指数
@@ -3508,35 +3501,45 @@ end;
 
 function BigNumberGetInteger(Num: TCnBigNumber): Integer;
 {$IFDEF BN_DATA_USE_64}
-const
-  MAX_INT_32 = $7FFFFFFF;
 var
-  T: TCnBigNumberElement;
+  M: TUInt64;
+{$ELSE}
+var
+  M: Cardinal;
 {$ENDIF}
 begin
+  // 先按无符号取幅值，再按符号还原；幅值超出 Integer 范围时按符号饱和
   if Num.FTop > 1 then
-    Result := BN_MASK2S
-  else if Num.FTop = 1 then
   begin
 {$IFDEF BN_DATA_USE_64}
-    T := PCnBigNumberElementArray(Num.FD)^[0];
-    if T > MAX_INT_32 then        // UInt64 超出了 Integer 的范围，返回 Max Integer
-      Result := MAX_INT_32
-    else
-      Result := Integer(T);
-
-    if Num.FNeg <> 0 then // 负则求反加一
-      Result := (not Result) + 1;
+    // 64 位元素模式下两个及以上元素表示幅值 >= 2^64，必然超出 Integer 范围
+    M := TUInt64(BN_MASK3U);
 {$ELSE}
-    Result := Integer(PCnBigNumberElementArray(Num.FD)^[0]);
-    if Result < 0 then        // UInt32 最高位有值，说明已经超出了 Integer 的范围，返回 Max Integer
-      Result := BN_MASK2S
-    else if Num.FNeg <> 0 then // 负则求反加一
-      Result := (not Result) + 1;
+    M := BN_MASK2; // 超过一个元素，幅值 >= 2^32，必然超出 Integer 范围
 {$ENDIF}
   end
+  else if Num.FTop = 1 then
+    M := PCnBigNumberElementArray(Num.FD)^[0]
   else
-    Result := 0;
+    M := 0;
+
+{$IFDEF BN_DATA_USE_64}
+  if M > TUInt64(BN_MASK2S) then // 幅值超出 Integer 正数范围
+{$ELSE}
+  if M > Cardinal(BN_MASK2S) then
+{$ENDIF}
+  begin
+    if Num.FNeg <> 0 then
+      Result := -BN_MASK2S - 1   // Low(Integer)，负向饱和
+    else
+      Result := BN_MASK2S;       // High(Integer)，正向饱和
+  end
+  else
+  begin
+    Result := Integer(M);
+    if Num.FNeg <> 0 then
+      Result := -Result;
+  end;
 end;
 
 function BigNumberSetInteger(Num: TCnBigNumber; W: Integer): Boolean;
@@ -5240,6 +5243,7 @@ begin
   Inc(RP, Min);
   BigNumberAndWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), nil, Dif);
 
+  Res.FNeg := 0;
   BigNumberCorrectTop(Res);
   Result := True;
 end;
@@ -5281,6 +5285,7 @@ begin
   Inc(RP, Min);
   BigNumberOrWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), nil, Dif);
 
+  Res.FNeg := 0;
   BigNumberCorrectTop(Res);
   Result := True;
 end;
@@ -5322,6 +5327,7 @@ begin
   Inc(RP, Min);
   BigNumberXorWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), nil, Dif);
 
+  Res.FNeg := 0;
   BigNumberCorrectTop(Res);
   Result := True;
 end;
@@ -10865,24 +10871,24 @@ begin
 
   try
     K := FLocalBigNumberPool.Obtain;
-
-    // 计算 Lucas-Lehmer 序列
-    K.SetWord(4);
-    for I := 1 to E - 2 do
-    begin
-      // 每一轮平方减 2
-      BigNumberSqr(K, K); // 注意 E 太大时这里特耗时耗内存
-      K.SubWord(2);
-    end;
-
-    // 并计算梅森数
     M := FLocalBigNumberPool.Obtain;
+
+    // 先算出梅森数 2 的 E 次方减一，供后面每轮归约使用
     M.SetOne;
     M.ShiftLeft(E);
     M.SubWord(1);
 
-    // 判断是否整除
-    BigNumberMod(K, K, M);
+    // 计算 Lucas-Lehmer 序列，每一轮平方减 2 后立刻归约到 E 位以内，
+    // 否则 K 的位长每轮翻倍，E 稍大便会耗尽内存
+    K.SetWord(4);
+    for I := 1 to E - 2 do
+    begin
+      BigNumberSqr(K, K);
+      K.SubWord(2);
+      BigNumberNonNegativeMod(K, K, M);
+    end;
+
+    // 末项模梅森数为 0 则说明是梅森素数
     Result := K.IsZero;
   finally
     FLocalBigNumberPool.Recycle(M);
