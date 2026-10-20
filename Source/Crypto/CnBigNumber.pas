@@ -8726,14 +8726,13 @@ var
 begin
   Result := False;
   // 1 位数只有 1，构不成素数
-  if BitsCount < 2 then
+  if (Num = nil) or (BitsCount < 2) or (TestCount < 2) then
     Exit;
 
   C := 0;
   while C < MAX_COUNT do
   begin
     Inc(C);
-
     if not BigNumberRandBits(Num, BitsCount) then
       Exit;
 
@@ -8753,9 +8752,14 @@ begin
       if Num.GetBitsCount > BitsCount then
         Break;
     end;
-  end;
 
-  Result := (C < MAX_COUNT) and (Num.GetBitsCount = BitsCount);
+    // 内层正常结束（不是 Break）说明已找到该位数的素数
+    if Num.GetBitsCount = BitsCount then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
 end;
 
 function BigNumberNextPrime(Res, Num: TCnBigNumber;
