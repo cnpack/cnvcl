@@ -1440,9 +1440,9 @@ begin
     raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  if (Size > 0) and (Cardinal(P4^) > Cardinal(Size)) then
     raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
-  if P4^ < SizeOf(Integer) then
+  if Cardinal(P4^) < Cardinal(SizeOf(Integer)) then
     raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
 
   Result := P4^;             // 总字节长度

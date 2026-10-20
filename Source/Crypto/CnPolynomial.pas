@@ -9347,6 +9347,9 @@ begin
 
     P[E].SetDec(AnsiString(Num));
   end;
+
+  P.CorrectTop;
+  Result := True;
 end;
 
 {$WARNINGS ON}
@@ -9520,7 +9523,7 @@ begin
 
   for I := 0 to P.MaxDegree do
   begin
-    BigNumberModWord(P[I], N);
+    P[I].SetWord(BigNumberModWord(P[I], N));
     if P[I].IsNegative then
       BigNumberAddWord(P[I], N);
   end;

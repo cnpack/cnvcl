@@ -1393,7 +1393,7 @@ function BigNumberMulWord(Num: TCnBigNumber; W: TCnBigNumberElement): Boolean;
 }
 
 function BigNumberModWord(Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumberElement;
-{* 大数对一个 UInt32/UInt64 元素求余，返回余数。
+{* 大数对一个 UInt32/UInt64 元素求余，返回余数。注意 Num 不变，与其他类似的 Word 函数不同。
    注意在内部 64 位的实现中，W 不能大于 UInt32。32 位内部实现则无限制。
 
    参数：

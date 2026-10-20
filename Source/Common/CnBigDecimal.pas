@@ -3174,9 +3174,9 @@ begin
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  if (Size > 0) and (Cardinal(P4^) > Cardinal(Size)) then
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
-  if P4^ < SizeOf(Integer) + SizeOf(Integer) then
+  if Cardinal(P4^) < Cardinal(SizeOf(Integer) + SizeOf(Integer)) then
     raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   Result := P4^;             // 总字节长度
@@ -4630,9 +4630,9 @@ begin
     raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
 
   P4 := PInteger(Mem);
-  if (Size > 0) and (P4^ > Size) then
+  if (Size > 0) and (Cardinal(P4^) > Cardinal(Size)) then
     raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
-  if P4^ < SizeOf(Integer) + SizeOf(Integer) then
+  if Cardinal(P4^) < Cardinal(SizeOf(Integer) + SizeOf(Integer)) then
     raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
 
   Result := P4^;             // 总字节长度
