@@ -64,9 +64,6 @@ type
   ECnMathException = class(Exception);
   {* 数学计算相关异常}
 
-  TInt64s = array of Int64;
-  {* Int64 动态数组}
-
 function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算浮点数的绝对值。
 
@@ -76,7 +73,7 @@ function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
    返回值：Extended                       - 返回的绝对值
 }
 
-function CnFloor(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function CnFloor(F: Extended): Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 浮点数向数轴负方向取整。
 
    参数：
@@ -85,7 +82,7 @@ function CnFloor(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
    返回值：Integer                        - 返回的取整值
 }
 
-function CnCeil(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function CnCeil(F: Extended): Int64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 浮点数向数轴正方向取整。
 
    参数：
@@ -567,14 +564,14 @@ begin
     Result := F;
 end;
 
-function CnFloor(F: Extended): Integer;
+function CnFloor(F: Extended): Int64;
 begin
   Result := Trunc(F);
   if Frac(F) < 0 then
     Dec(Result);
 end;
 
-function CnCeil(F: Extended): Integer;
+function CnCeil(F: Extended): Int64;
 begin
   Result := Trunc(F);
   if Frac(F) > 0 then

@@ -214,9 +214,6 @@ type
   {* UInt64 数组指针类型}
 {$ENDIF}
 
-  TUInt64s = array of TUInt64;
-  {* 统一定义 64 位无符号整数动态数组}
-
   ExtendedArray = array[0..65537] of Extended;
   {* 扩展精度浮点数数组}
   PExtendedArray = ^ExtendedArray;
@@ -267,6 +264,12 @@ type
 
   TCardinals = array of Cardinal;
   {* 无符号四字节动态数组}
+
+  TInt64s = array of Int64;
+  {* 有符号 64 位整数动态数组}
+
+  TUInt64s = array of TUInt64;
+  {* 无符号 64 位整数动态数组}
 
   TBooleans = array of Boolean;
   {* 布尔动态数组}

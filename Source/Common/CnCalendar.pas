@@ -84,7 +84,10 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.10.17 V3.2
+* 修改记录：2026.10.20 V3.3
+*               修正公元前 255 年以前农历反查公历时可能返回错误日期的问题：
+*               原有反查结果不能正向还原时，改用正向转换逐日匹配。
+*           2026.10.17 V3.2
 *               修正支持范围上界 2800 年最后一个农历月（十一、十二月）不可达的问题：
 *               内部解码年份上界扩展到 2801 并补充累计闰月数表对应末项
 *           2026.03.04 V3.1
@@ -1580,6 +1583,8 @@ resourcestring
 
 const
   RADS = 0.0174532925;
+
+  CN_LUNAR_BC_SCAN_MAX_YEAR = -255;
 
   // 内置农历表支持的外部年份为 -849..-1 和 1..2800。
   // 对应的内部连续年份分别为 -848..0 和 1..2800。
@@ -10207,10 +10212,68 @@ begin
   end;
 end;
 
+// 公元前反查兜底：在可能的三年公历范围内逐日正向转换匹配。
+function GetDayFromLunarByScan(ALunarYear, ALunarMonth, ALunarDay: Integer;
+  IsLeapMonth: Boolean; out AYear, AMonth, ADay: Integer): Boolean;
+var
+  TY, TM, TD: Integer;
+  LY, LM, LD: Integer;
+  Lp: Boolean;
+  StartYear, EndYear: Integer;
+  Ended: Boolean;
+  JD: Extended;
+
+  procedure AddDays(N: Integer);
+  begin
+    JD := Trunc(GetJulianDate(TY, TM, TD)) + N;
+    GetDayFromJulianDate(JD, TY, TM, TD);
+  end;
+
+begin
+  Result := False;
+  AYear := CN_CALENDAR_INVALID_NUM;
+  AMonth := CN_CALENDAR_INVALID_NUM;
+  ADay := CN_CALENDAR_INVALID_NUM;
+
+  StartYear := ALunarYear - 1;
+  if StartYear = 0 then
+    Dec(StartYear);
+  if StartYear < CN_LUNAR_MIN_YEAR then
+    StartYear := CN_LUNAR_MIN_YEAR;
+  EndYear := ALunarYear + 1;
+  if EndYear = 0 then
+    Inc(EndYear);
+  if EndYear > CN_LUNAR_MAX_YEAR then
+    EndYear := CN_LUNAR_MAX_YEAR;
+
+  TY := StartYear;
+  TM := 1;
+  TD := 1;
+  Ended := False;
+  while not Ended do
+  begin
+    if GetLunarFromDay(TY, TM, TD, LY, LM, LD, Lp) and
+      (LY = ALunarYear) and (LM = ALunarMonth) and (LD = ALunarDay) and
+      (Lp = IsLeapMonth) then
+    begin
+      AYear := TY;
+      AMonth := TM;
+      ADay := TD;
+      Result := True;
+      Exit;
+    end;
+    AddDays(1);
+    Ended := (TY > EndYear) or ((TY = EndYear) and (TM = 12) and (TD = 31));
+  end;
+end;
+
+function GetDayFromLunarInternal(ALunarYear, ALunarMonth, ALunarDay: Integer;
+  IsLeapMonth, AllowBCScan: Boolean; out AYear, AMonth, ADay: Integer): Boolean; forward;
+
 // 获得某农历年月日（加是否闰月）的公历年月日
 // 该函数采用反向二分法查找
-function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth:
-  Boolean; out AYear, AMonth, ADay: Integer): Boolean;
+function GetDayFromLunarInternal(ALunarYear, ALunarMonth, ALunarDay: Integer;
+  IsLeapMonth, AllowBCScan: Boolean; out AYear, AMonth, ADay: Integer): Boolean;
 type
   TLunarSearchDirection = (lsdInvalid, lsdUp, lsdDown);
 var
@@ -10221,7 +10284,8 @@ var
   TempLunarYear, TempLunarMonth, TempLunarDay, OldTempLunarMonth: Integer;
   TempIsLeap, Only2: Boolean;
   Lsd: TLunarSearchDirection;
-  Count: Integer;
+  Count, LY, LM, LD: Integer;
+  Lp: Boolean;
 begin
   Result := False;
   AYear := CN_CALENDAR_INVALID_NUM;
@@ -10229,6 +10293,23 @@ begin
   ADay := CN_CALENDAR_INVALID_NUM;
   if not GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay, IsLeapMonth) then
     Exit;
+
+  if AllowBCScan and (ALunarYear <= CN_LUNAR_BC_SCAN_MAX_YEAR) then
+  begin
+    // 先沿用原有反查结果；只有它不能正向还原时才逐日匹配。
+    Result := GetDayFromLunarInternal(ALunarYear, ALunarMonth, ALunarDay,
+      IsLeapMonth, False, AYear, AMonth, ADay);
+    if Result then
+    begin
+      if GetLunarFromDay(AYear, AMonth, ADay, LY, LM, LD, Lp) and
+        (LY = ALunarYear) and (LM = ALunarMonth) and (LD = ALunarDay) and
+        (Lp = IsLeapMonth) then
+        Exit;
+    end;
+    Result := GetDayFromLunarByScan(ALunarYear, ALunarMonth, ALunarDay,
+      IsLeapMonth, AYear, AMonth, ADay);
+    Exit;
+  end;
 
   if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
     and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
@@ -10355,6 +10436,13 @@ begin
     end;
     OldTempLunarMonth := TempLunarMonth;
   end;
+end;
+
+function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth:
+  Boolean; out AYear, AMonth, ADay: Integer): Boolean;
+begin
+  Result := GetDayFromLunarInternal(ALunarYear, ALunarMonth, ALunarDay,
+    IsLeapMonth, True, AYear, AMonth, ADay);
 end;
 
 end.

@@ -6436,7 +6436,7 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise EDivByZero.Create(SDivByZero);;
+    raise EDivByZero.Create(SDivByZero);
 
   if N <> 1 then
   begin
@@ -9519,7 +9519,7 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise EDivByZero.Create(SDivByZero);;
+    raise EDivByZero.Create(SDivByZero);
 
   for I := 0 to P.MaxDegree do
   begin

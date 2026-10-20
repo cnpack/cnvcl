@@ -180,6 +180,7 @@ function TestCalendarReviewValidation: Boolean;
 function TestCalendarReviewJulianFraction: Boolean;
 function TestCalendarReviewJieQiBoundary: Boolean;
 function TestCalendarReviewBCLunarRoundTrip: Boolean;
+function TestCalendarReviewBCLunarRoundTripExt: Boolean;
 function TestCalendarReviewLunarRange: Boolean;
 function TestCalendarReviewLunarUpperBound: Boolean;
 function TestCalendarReviewGanZhiInvalidInput: Boolean;
@@ -2095,6 +2096,7 @@ begin
   MyAssert(TestCalendarReviewJulianFraction, 'TestCalendarReviewJulianFraction');
   MyAssert(TestCalendarReviewJieQiBoundary, 'TestCalendarReviewJieQiBoundary');
   MyAssert(TestCalendarReviewBCLunarRoundTrip, 'TestCalendarReviewBCLunarRoundTrip');
+  MyAssert(TestCalendarReviewBCLunarRoundTripExt, 'TestCalendarReviewBCLunarRoundTripExt');
   MyAssert(TestCalendarReviewLunarRange, 'TestCalendarReviewLunarRange');
   MyAssert(TestCalendarReviewLunarUpperBound, 'TestCalendarReviewLunarUpperBound');
   MyAssert(TestCalendarReviewGanZhiInvalidInput, 'TestCalendarReviewGanZhiInvalidInput');
@@ -6432,6 +6434,58 @@ begin
     IsLeapMonth) and
     GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth,
       Year, Month, Day) and (Year = -849) and (Month = 1) and (Day = 1);
+end;
+
+function TestCalendarReviewBCLunarRoundTripExt: Boolean;
+var
+  LunarYear, LunarMonth, LunarDay: Integer;
+  IsLeapMonth: Boolean;
+  Year, Month, Day: Integer;
+
+  function CheckSolarRoundTrip(AYear, AMonth, ADay: Integer): Boolean;
+  begin
+    Result := GetLunarFromDay(AYear, AMonth, ADay, LunarYear, LunarMonth,
+      LunarDay, IsLeapMonth) and
+      GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth,
+        Year, Month, Day) and
+      (Year = AYear) and (Month = AMonth) and (Day = ADay);
+  end;
+
+begin
+  // 以下日期在公元前反查兜底修正前会返回错误公历日，修正后必须精确还原。
+  Result := CheckSolarRoundTrip(-848, 12, 19);
+  if not Result then Exit;
+  Result := CheckSolarRoundTrip(-847, 1, 1);
+  if not Result then Exit;
+  Result := CheckSolarRoundTrip(-846, 2, 5);
+  if not Result then Exit;
+
+  // 原本可以往返的日期必须保持不变。
+  Result := CheckSolarRoundTrip(-848, 1, 1);
+  if not Result then Exit;
+  Result := CheckSolarRoundTrip(-700, 1, 1);
+  if not Result then Exit;
+  Result := CheckSolarRoundTrip(-500, 12, 1);
+  if not Result then Exit;
+  Result := CheckSolarRoundTrip(-300, 12, 1);
+  if not Result then Exit;
+
+  // 正向转换结果必须保持原样，避免反查修正引入正向副作用。
+  Result := GetLunarFromDay(-1, 1, 1, LunarYear, LunarMonth, LunarDay,
+    IsLeapMonth) and (LunarYear = -2) and (LunarMonth = 12) and
+    (LunarDay = 7) and not IsLeapMonth;
+  if not Result then Exit;
+  Result := GetLunarFromDay(-500, 1, 1, LunarYear, LunarMonth, LunarDay,
+    IsLeapMonth) and (LunarYear = -500) and (LunarMonth = 2) and
+    (LunarDay = 11) and not IsLeapMonth;
+  if not Result then Exit;
+  Result := GetLunarFromDay(-848, 1, 1, LunarYear, LunarMonth, LunarDay,
+    IsLeapMonth) and (LunarYear = -848) and (LunarMonth = 2) and
+    (LunarDay = 4) and not IsLeapMonth;
+  if not Result then Exit;
+  Result := GetLunarFromDay(-847, 2, 1, LunarYear, LunarMonth, LunarDay,
+    IsLeapMonth) and (LunarYear = -847) and (LunarMonth = 2) and
+    (LunarDay = 16) and not IsLeapMonth;
 end;
 
 function TestCalendarReviewLunarRange: Boolean;
