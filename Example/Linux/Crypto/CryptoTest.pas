@@ -10201,6 +10201,14 @@ begin
   try
     if BigNumberGeneratePrimeByBitsCount(T, 0) then Exit;
     if BigNumberGeneratePrimeByBitsCount(T, 1) then Exit;
+    if BigNumberGeneratePrimeByBitsCount(T, -1) then Exit;
+
+    // TestCount < 2 时 IsProbablyPrime 恒为 False，必须立即失败而不是自旋
+    if BigNumberGeneratePrimeByBitsCount(T, 32, 1) then Exit;
+    if BigNumberGeneratePrimeByBitsCount(T, 32, 0) then Exit;
+
+    // Num 为 nil 不能崩溃
+    if BigNumberGeneratePrimeByBitsCount(nil, 32) then Exit;
 
     for I := 2 to 8 do
     begin
@@ -10214,6 +10222,10 @@ begin
     if T.GetBitsCount <> 32 then Exit;
     if not T.IsOdd then Exit;
     if not BigNumberIsProbablyPrime(T, 16) then Exit;
+
+    // 连续生成不能因为对象里残留的高位而出错
+    if not BigNumberGeneratePrimeByBitsCount(T, 8) then Exit;
+    if T.GetBitsCount <> 8 then Exit;
 
     Result := True;
   finally
