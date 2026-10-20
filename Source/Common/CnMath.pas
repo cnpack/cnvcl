@@ -30,7 +30,13 @@ unit CnMath;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.17 V1.2
+* 修改记录：2026.10.20 V1.3
+*               NormalizeAngle 减掉 2π·k 时 k 由 CnFloor 的 Int64 结果提供，
+*               但 2π 与乘积的舍入误差仍约为 |Angle| 的一个 ulp，角度一大便会
+*               淹没余数。现按机器精度推算出浮点快速路径的角度上限，超过后自动
+*               改用 BigDecimalReduceToTwoPi 高精度取模，使结果精确到 Extended
+*               满精度；角度绝对值超过 CN_NORMALIZE_ANGLE_MAX 时抛异常
+*           2026.10.17 V1.2
 *               修复 FloatSqrt/FloatLogN 输入 +Inf/NaN 时的死循环与未处理 EInvalidOp 问题：
 *               +Inf 按 IEEE 754 语义返回 +Inf，NaN 抛范围异常；Int64Sqrt/FloatSqrt
 *               牛顿迭代补 CN_SQRT_MAX_ITERATIONS 上限
@@ -59,6 +65,14 @@ const
 
   CN_FLOAT_DEFAULT_DIGIT = 10;
   {* 默认的浮点运算位数}
+
+  CN_NORMALIZE_ANGLE_GAP = 0.000000001;
+  {* NormalizeAngle 归一化结果可容忍的绝对误差，单位弧度。角度绝对值大到使浮点
+     直接相减的抵消误差超过该值时，自动改用 BigDecimal 高精度规约}
+
+  CN_NORMALIZE_ANGLE_MAX = 1E300;
+  {* NormalizeAngle 可处理的角度绝对值上限，超过则抛异常，避免为天文数字构造
+     超大位数的 π 与超大规约序列}
 
 type
   ECnMathException = class(Exception);
@@ -280,6 +294,10 @@ function FloatEqual(A: Extended; B: Extended; AbsGap: Extended = 0.0): Boolean; 
 
 function NormalizeAngle(Angle: Extended): Extended;
 {* 将角度变至 [0, 2π) 范围内，也即归一化。
+   注意：角度绝对值不超过内部推算的浮点上限（80 位 Extended 下约 4.6E9，Extended
+   等同 Double 的平台下约 2.3E6）时走快速的浮点相减，超过后浮点相减的抵消误差
+   会大于 CN_NORMALIZE_ANGLE_GAP，自动改用 BigDecimal 高精度取模，使结果仍然
+   精确到 Extended 的满精度。角度绝对值超过 CN_NORMALIZE_ANGLE_MAX 时抛异常。
 
    参数：
      Angle: Extended                      - 待归一化的角度值
@@ -543,6 +561,9 @@ const
   {* 牛顿迭代求平方根的最大迭代次数，防止死循环。归约到 [1,4) 后每轮有效
      位数翻倍，约 8 轮即达 Extended 满精度，100 为纯保险上限。 }
 
+  CN_NORMALIZE_ANGLE_EXTRA_DIGITS = 30;
+  {* 高精度规约时 π 在角度整数位数之外额外保留的位数，保证余数不至于失真 }
+
 resourcestring
   SCnErrorMathSqrtRange = 'Sqrt Range Error.';
   SCnErrorMathLogRange = 'Log Range Error.';
@@ -552,9 +573,13 @@ resourcestring
   SCnErrorLnInvalidInput = 'Ln: Invalid Input';
   SCnErrorSinTaylorSeriesDidNotConverge = 'Sin: Taylor Series did Not Converge';
   SCnErrorCosTaylorSeriesDidNotConverge = 'Cos: Taylor Series did Not Converge';
+  SCnErrorNormalizeAngleRange = 'Normalize Angle Range Error.';
 
 var
   FLocalBigDecimalPool: TCnBigDecimalPool = nil;
+
+  FNormalizeAngleFloatLimit: Extended = 0.0;
+  {* NormalizeAngle 浮点快速路径的角度绝对值上限，由机器精度推出，0 表示尚未计算 }
 
 function CnAbs(F: Extended): Extended;
 begin
@@ -592,11 +617,11 @@ begin
       X := X * X
     end;
     Dec(Y);
-    Result := Result * X
+    Result := Result * X;
   end;
 
   if I < 0 then
-    Result := 1.0 / Result
+    Result := 1.0 / Result;
 end;
 
 function CnPower(Base, Exponent: Extended): Extended;
@@ -1077,9 +1102,54 @@ begin
   Result := FloatAlmostZero(A - B, AbsGap);
 end;
 
+function InternalNormalizeAngleBigDecimal(Angle: Extended; var Res: Extended): Boolean; forward;
+{* 用 BigDecimal 把大角度精确规约到 [0, 2π)，成功返回 True，Res 为规约结果 }
+
+function GetFloatMachineEpsilon: Extended;
+{* 求浮点机器精度，也即 1.0 处一个 ulp 的相对大小。80 位 Extended 为 2^-63，
+   Extended 等同 Double 的平台为 2^-52，用来估计浮点运算的误差量级。 }
+var
+  E: Extended;
+begin
+  E := 1.0;
+  while 1.0 + E > 1.0 do
+    E := E * 0.5;
+
+  // 退出循环时 1.0 + E 已舍入成 1.0，故 E 是半个 ulp，两倍才是机器精度
+  Result := E * 2.0;
+end;
+
+function GetNormalizeAngleFloatLimit: Extended;
+{* NormalizeAngle 浮点快速路径的角度绝对值上限。快速路径的结果误差来自 2π 与
+   乘积的舍入，约为 2·|Angle|·Eps，令其不超过 CN_NORMALIZE_ANGLE_GAP 即得此上限。
+   80 位 Extended 下约为 4.6E9，Extended 等同 Double 的平台下约为 2.3E6。 }
+begin
+  if FNormalizeAngleFloatLimit = 0.0 then
+    FNormalizeAngleFloatLimit := CN_NORMALIZE_ANGLE_GAP /
+      (2.0 * GetFloatMachineEpsilon);
+
+  Result := FNormalizeAngleFloatLimit;
+end;
+
 function NormalizeAngle(Angle: Extended): Extended;
+var
+  R: Extended;
 begin
   Result := Angle;
+  if CnAbs(Result) > CN_NORMALIZE_ANGLE_MAX then
+    raise ECnMathException.Create(SCnErrorNormalizeAngleRange);
+
+  if CnAbs(Result) > GetNormalizeAngleFloatLimit then
+  begin
+    // 浮点相减的抵消误差已超出容差，改用 BigDecimal 精确取模
+    if InternalNormalizeAngleBigDecimal(Result, R) then
+    begin
+      Result := R;
+      Exit;
+    end;
+    // 高精度路径万一失败，退回浮点路径，保证总有结果返回
+  end;
+
   Result := Result - 2 * CN_PI * CnFloor(Result / (2 * CN_PI));
   if Result < 0 then
     Result := Result + 2 * CN_PI;
@@ -1620,6 +1690,59 @@ begin
     for I := 0 to High(Multiples) do
       if Multiples[I] <> nil then
         FLocalBigDecimalPool.Recycle(Multiples[I]);
+  end;
+end;
+
+function InternalNormalizeAngleBigDecimal(Angle: Extended; var Res: Extended): Boolean;
+{
+  用 BigDecimal 把大角度精确规约到 [0, 2π)。
+  浮点路径里被减掉的 2π·k 量级与 Angle 相当，其舍入误差约为 |Angle| 的一个 ulp，
+  角度一大就会淹没余数。这里改为把 Angle 的精确值（Extended 总能精确表示为
+  尾数乘 2 的幂）取绝对值后用 BigDecimalReduceToTwoPi 精确取模，从而把误差压到
+  结果本身的 Extended 精度上。
+
+  π 的位数须覆盖 2π·k 的整数位数，否则减出来的余数仍然失真，故按角度的十进制
+  位数加 CN_NORMALIZE_ANGLE_EXTRA_DIGITS 来定 GaussLegendre 的迭代轮数。
+}
+var
+  D: Integer;
+  Neg: Boolean;
+  A: Extended;
+  X, Y, TwoPi: TCnBigDecimal;
+begin
+  Result := False;
+  A := CnAbs(Angle);
+
+  X := FLocalBigDecimalPool.Obtain;
+  Y := FLocalBigDecimalPool.Obtain;
+  TwoPi := FLocalBigDecimalPool.Obtain;
+  try
+    Neg := Angle < 0.0;
+    X.SetExtended(A);
+
+    D := Trunc(FloatLog10(A)) + 1 + CN_NORMALIZE_ANGLE_EXTRA_DIGITS;
+    if D < CN_BIG_DECIMAL_DEFAULT_PRECISION then
+      D := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+    if not GaussLegendrePi(TwoPi, GaussLegendrePrecistionToRoundCount(D)) then
+      Exit;
+
+    TwoPi.MulWord(2);
+
+    // X := X mod 2π，结果落在 [0, 2π)
+    BigDecimalReduceToTwoPi(X, TwoPi);
+
+    if Neg and not X.IsZero then
+      BigDecimalSub(Y, TwoPi, X)  // 负角取 2π 减去正余数
+    else
+      BigDecimalCopy(Y, X);
+
+    Res := BigDecimalToExtended(Y);
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(Y);
+    FLocalBigDecimalPool.Recycle(TwoPi);
   end;
 end;
 

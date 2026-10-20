@@ -379,6 +379,7 @@ function TestFastInverseSqrt: Boolean;
 function TestFloatAlmostZero: Boolean;
 function TestFloatEqual: Boolean;
 function TestNormalizeAngle: Boolean;
+function TestNormalizeAngleBig: Boolean;
 function TestFloatToHex: Boolean;
 function TestHexToFloat: Boolean;
 function TestInt64ContinuedFraction: Boolean;
@@ -2295,6 +2296,7 @@ begin
   MyAssert(TestFloatAlmostZero, 'TestFloatAlmostZero');
   MyAssert(TestFloatEqual, 'TestFloatEqual');
   MyAssert(TestNormalizeAngle, 'TestNormalizeAngle');
+  MyAssert(TestNormalizeAngleBig, 'TestNormalizeAngleBig');
   MyAssert(TestFloatToHex, 'TestFloatToHex');
   MyAssert(TestHexToFloat, 'TestHexToFloat');
   MyAssert(TestInt64ContinuedFraction, 'TestInt64ContinuedFraction');
@@ -13625,6 +13627,38 @@ begin
 
   R := NormalizeAngle(-CN_PI);
   Result := FloatAlmostZero(R - CN_PI);
+end;
+
+function TestNormalizeAngleBig: Boolean;
+var
+  R: Extended;
+begin
+  // 大角度走 BigDecimal 高精度路径，结果精确到浮点满精度。
+  // 1E15 与 1E18 在 Double 中也能精确表示，故以下参考值与平台无关
+  R := NormalizeAngle(1E15);
+  Result := FloatEqual(R, 2.1096981170701125979, 0.000000000000001);
+  if not Result then Exit;
+
+  R := NormalizeAngle(-1E15);
+  Result := FloatEqual(R, 4.173487190109473879, 0.000000000000001);
+  if not Result then Exit;
+
+  R := NormalizeAngle(1E18);
+  Result := FloatEqual(R, 4.8310391649511281334, 0.000000000000001);
+  if not Result then Exit;
+
+  R := NormalizeAngle(-1E18);
+  Result := FloatEqual(R, 1.4521461422284583435, 0.000000000000001);
+  if not Result then Exit;
+
+  // 超出可处理范围要抛异常
+  try
+    R := NormalizeAngle(CnIntPower(10, 400));
+    Result := False;
+  except
+    on E: ECnMathException do
+      Result := True;
+  end;
 end;
 
 function TestFloatToHex: Boolean;
