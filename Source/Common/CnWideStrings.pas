@@ -40,7 +40,10 @@ unit CnWideStrings;
 * 开发平台：WinXP SP3 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.10.17 V1.5
+* 修改记录：2026.10.21 V1.6
+*               CalcUtf8Length* 系列改为按码点计算，UTF-16 代理对（U+10000 以上）算 4
+*               字节而非 6，与 InternalUnicodeToUtf8/CnUtf8EncodeWideString 保持一致
+*           2026.10.17 V1.5
 *               InternalUtf8ToUnicode 畸形/截断序列改为输出 U+FFFD 替换字符并继续解码，不再整串失败返回空
 *               GetByteWidthFromUtf8 校验续接字节，截断/非法序列不再越过 #0 越界扫描
 *           2026.06.11 V1.4
@@ -730,7 +733,7 @@ var
   I: Integer;
 begin
   for I := 0 to Strings.Count - 1 do
-    AddObject(Strings[I], Objects[I]);
+    AddObject(Strings[I], Strings.Objects[I]);
 end;
 
 procedure TCnWideStringList.Assign(Source: TPersistent);
@@ -1775,6 +1778,26 @@ begin
   end;
 end;
 
+// 计算 Text 处当前码点的 UTF-8 字节长度，并步进 Text。
+// 遇完整 UTF-16 代理对（高低代理成对）时按一个 4 字节字符处理并步进两个 WideChar，
+// 与 InternalUnicodeToUtf8 的编码规则保持一致；孤立代理仍按单个 3 字节字符处理。
+// Budget 是调用方还允许消耗的 WideChar 数：Budget = 1 而此处是完整代理对时，只按
+// 第一个孤立代理计算，以保持"先按 WideChar 截断再编码"的语义。
+function InternalNextUtf8LengthFromWideChar(var Text: PWideChar;
+  Budget: Integer): Integer;
+begin
+  if (Text^ <> #0) and (GetByteWidthFromUtf16(Text) = 4) and (Budget >= 2) then
+  begin
+    Result := 4;
+    Inc(Text, 2);
+  end
+  else
+  begin
+    Result := CalcUtf8LengthFromWideChar(Text^);
+    Inc(Text);
+  end;
+end;
+
 // 计算宽字符串的 UTF-8 长度，等于 Utf8Encode 后取 Length，但不实际转换
 function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
 begin
@@ -1783,13 +1806,13 @@ begin
     Exit;
 
   while Text^ <> #0 do
-  begin
-    Inc(Result, CalcUtf8LengthFromWideChar(Text^));
-    Inc(Text);
-  end;
+    Inc(Result, InternalNextUtf8LengthFromWideChar(Text, MaxInt));
 end;
 
-// 计算一个 WideChar 转换成 UTF-8 后的字符长度
+// 计算一个 WideChar 转换成 UTF-8 后的字符长度。
+// 注意：UTF-16 代理对的一半（$D800..$DFFF）单独出现时没有合法的 UTF-8 表示，这里
+// 按 InternalUnicodeToUtf8 的逐单元编码返回 3；代理对整体是 4 字节，由字符串级的
+// CalcUtf8LengthFromWideString 等函数合并计算，不要用本函数逐字符累加求字符串长度。
 function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer;
 var
   V: Cardinal;
@@ -1810,18 +1833,17 @@ end;
 // 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度，WideOffset 从 1 开始
 function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 var
-  Idx: Integer;
+  Start: PWideChar;
 begin
   Result := 0;
   if (Text <> nil) and (WideOffset > 0) then
   begin
-    Idx := 0;
-    while (Text^ <> #0) and (Idx < WideOffset) do // Idx 0 开始，WideOffset 1 开始，所以用 <
-    begin
-      Inc(Result, CalcUtf8LengthFromWideChar(Text^));
-      Inc(Text);
-      Inc(Idx);
-    end;
+    Start := Text;
+    // WideOffset 以 WideChar 计，故用已消耗的 WideChar 数来判断是否到达边界，
+    // 代理对一次消耗两个，不能简单用循环次数累加
+    while (Text^ <> #0) and ((Text - Start) < WideOffset) do
+      Inc(Result, InternalNextUtf8LengthFromWideChar(Text,
+        WideOffset - (Text - Start)));
   end;
 end;
 
@@ -1836,12 +1858,22 @@ begin
     Idx := 0;
     while (Text^ <> #0) and (Idx < AnsiOffset) do // Idx 0 开始，AnsiOffset 1 开始，所以用 <
     begin
-      Inc(Result, CalcUtf8LengthFromWideChar(Text^));
-      if Ord(Text^) > $FF then // 大于 $FF 的转成 Ansi 必然占两字节
-        Inc(Idx, 2)
+      if GetByteWidthFromUtf16(Text) = 4 then
+      begin
+        // 代理对是同一个字符，转 Ansi 后仍只占一个字符位（两字节）
+        Inc(Result, 4);
+        Inc(Text, 2);
+        Inc(Idx, 2);
+      end
       else
-        Inc(Idx);
-      Inc(Text);
+      begin
+        Inc(Result, CalcUtf8LengthFromWideChar(Text^));
+        if Ord(Text^) > $FF then // 大于 $FF 的转成 Ansi 必然占两字节
+          Inc(Idx, 2)
+        else
+          Inc(Idx);
+        Inc(Text);
+      end;
     end;
   end;
 end;
@@ -2076,6 +2108,7 @@ function CalcUtf8LengthFromWideStringAnsiDisplayOffset(Text: PWideChar;
   AnsiDisplayOffset: Integer; Calculator: TCnWideCharDisplayWideLengthCalculator): Integer;
 var
   Idx: Integer;
+  IsWide: Boolean;
 begin
   Result := 0;
   if (Text <> nil) and (AnsiDisplayOffset > 0) then
@@ -2086,12 +2119,24 @@ begin
 
     while (Text^ <> #0) and (Idx < AnsiDisplayOffset) do // Idx 0 开始，AnsiDisplayOffset 1 开始，所以用 <
     begin
-      Inc(Result, CalcUtf8LengthFromWideChar(Text^));
-      if Calculator(Text^) then
+      // 先取判定结果再步进，代理对以首单元判定，与逐单元处理时的第一个一致
+      IsWide := Calculator(Text^);
+      if GetByteWidthFromUtf16(Text) = 4 then
+      begin
+        // 代理对是同一个 4 字节字符
+        Inc(Result, 4);
+        Inc(Text, 2);
+      end
+      else
+      begin
+        Inc(Result, CalcUtf8LengthFromWideChar(Text^));
+        Inc(Text);
+      end;
+
+      if IsWide then
         Inc(Idx, SizeOf(WideChar))
       else
         Inc(Idx, SizeOf(AnsiChar));
-      Inc(Text);
     end;
   end;
 end;

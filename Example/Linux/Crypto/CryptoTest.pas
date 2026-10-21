@@ -124,6 +124,8 @@ function TestFastPositionBadCharRule: Boolean;
 function TestWideStringListSaveUtf8: Boolean;
 function TestGetCharLengthUtf8Truncated: Boolean;
 function TestUtf8DecodeMalformed: Boolean;
+function TestWideUtf8LengthSurrogatePair: Boolean;
+function TestWideUtf8LengthFuzzy: Boolean;
 
 // ============================== Containers ==================================
 
@@ -2042,6 +2044,8 @@ begin
   MyAssert(TestWideStringListSaveUtf8, 'TestWideStringListSaveUtf8');
   MyAssert(TestGetCharLengthUtf8Truncated, 'TestGetCharLengthUtf8Truncated');
   MyAssert(TestUtf8DecodeMalformed, 'TestUtf8DecodeMalformed');
+  MyAssert(TestWideUtf8LengthSurrogatePair, 'TestWideUtf8LengthSurrogatePair');
+  MyAssert(TestWideUtf8LengthFuzzy, 'TestWideUtf8LengthFuzzy');
 
 // ============================== Containers ==================================
 
@@ -4778,6 +4782,140 @@ begin
   W := CnUtf8DecodeToWideString(#$E4#$B8'X'#$E4#$B8#$AD);
   if (Length(W) <> 3) or (W[1] <> WideChar($FFFD)) or (W[2] <> 'X') or
     (W[3] <> WideChar($4E2D)) then Exit;
+
+  Result := True;
+end;
+
+function TestWideUtf8LengthSurrogatePair: Boolean;
+{ 回归用例：CalcUtf8LengthFromWideChar 对 UTF-16 代理对的半个字符
+  （$D800..$DFFF）一律落入 "<= $FFFF → 3 字节" 分支，使 CalcUtf8Length* 系列
+  把一个 U+10000 以上的字符算成 6 字节，而正确值是 4（$10FFFF 分支对 WideChar
+  入参永远不可达）。这些函数的注释都写着"等于 Utf8Encode 后取 Length"，故本用例
+  直接以 Length(CnUtf8EncodeWideString(S)) 为基准比对，并覆盖
+  CalcUtf8LengthFromWideString / FromWideStringOffset /
+  FromWideStringAnsiDisplayOffset 三个变体。
+
+  修复前：代理对算得 6 而基准为 4，用例失败；修复后应通过。 }
+var
+  S: TCnWideString;
+  Base: Integer;
+begin
+  Result := False;
+
+  { 对照组：ASCII 与 BMP 字符目前是一致的，先确认基准可靠 }
+  S := 'A';
+  if CalcUtf8LengthFromWideString(PWideChar(S)) <> 1 then Exit;
+  S := WideChar($4E2D);                                   // 中
+  if CalcUtf8LengthFromWideString(PWideChar(S)) <> 3 then Exit;
+
+  { 单个代理对 U+1F600：UTF-16 两个 WideChar，UTF-8 应为 4 字节 }
+  S := WideChar($D83D) + WideChar($DE00);
+  Base := Length(CnUtf8EncodeWideString(S));
+  if Base <> 4 then Exit;                                 // 基准自身先校验
+  if CalcUtf8LengthFromWideString(PWideChar(S)) <> Base then Exit;
+  if CalcUtf8LengthFromWideStringOffset(PWideChar(S), Length(S)) <> Base then Exit;
+  if CalcUtf8LengthFromWideStringAnsiDisplayOffset(PWideChar(S),
+    2 * Length(S), nil) <> Base then Exit;
+
+  { 混排：ASCII + 代理对，应为 1 + 4 }
+  S := 'A' + WideChar($D83D) + WideChar($DE00);
+  Base := Length(CnUtf8EncodeWideString(S));
+  if Base <> 5 then Exit;
+  if CalcUtf8LengthFromWideString(PWideChar(S)) <> Base then Exit;
+  if CalcUtf8LengthFromWideStringOffset(PWideChar(S), Length(S)) <> Base then Exit;
+
+  { 两个代理对相连：应为 8 }
+  S := WideChar($D83D) + WideChar($DE00) + WideChar($D83D) + WideChar($DE00);
+  Base := Length(CnUtf8EncodeWideString(S));
+  if Base <> 8 then Exit;
+  if CalcUtf8LengthFromWideString(PWideChar(S)) <> Base then Exit;
+
+  { 偏移落在代理对中间：Copy(1, 2) 只切出高代理，应按孤立代理的 3 字节算，
+    而不是把整个代理对算成 4。基准取 Copy 后实际编码的长度 }
+  S := 'A' + WideChar($D83D) + WideChar($DE00);
+  if CalcUtf8LengthFromWideStringOffset(PWideChar(S), 1) <>
+    Length(CnUtf8EncodeWideString(Copy(S, 1, 1))) then Exit;
+  if CalcUtf8LengthFromWideStringOffset(PWideChar(S), 2) <>
+    Length(CnUtf8EncodeWideString(Copy(S, 1, 2))) then Exit;
+  if CalcUtf8LengthFromWideStringOffset(PWideChar(S), 3) <>
+    Length(CnUtf8EncodeWideString(Copy(S, 1, 3))) then Exit;
+
+  { 孤立高代理本身：InternalUnicodeToUtf8 按逐单元编码输出 3 字节，
+    故 CalcUtf8LengthFromWideChar 保持 3 不变，本条同时锁住该行为 }
+  S := WideChar($D83D);
+  if CalcUtf8LengthFromWideChar(S[1]) <> 3 then Exit;
+  if Length(CnUtf8EncodeWideString(S)) <> 3 then Exit;
+  if CalcUtf8LengthFromWideString(PWideChar(S)) <>
+    Length(CnUtf8EncodeWideString(S)) then Exit;
+
+  Result := True;
+end;
+
+function TestWideUtf8LengthFuzzy: Boolean;
+{ 模糊对照：随机生成含 ASCII、BMP 高低端、代理对、孤立高低代理的 WideString，
+  把 CalcUtf8Length* 系列与"实际编码"逐项比对。这些函数的注释都承诺"等于
+  Utf8Encode 后取 Length"，因此以 Length(CnUtf8EncodeWideString(...)) 为唯一基准；
+  Offset 变体的基准是 Copy(1, N) 后的子串，可顺带验证偏移落在代理对中间时按
+  孤立代理计算的语义。固定随机种子，保证失败可复现。 }
+const
+  CN_WIDE_POOL_SIZE = 16;
+  CN_WIDE_FUZZ_ROUNDS = 300;
+var
+  I, J, N, Len: Integer;
+  S: TCnWideString;
+  Pool: array[0..CN_WIDE_POOL_SIZE - 1] of WideChar;
+
+  function PickChar: WideChar;
+  begin
+    Result := Pool[Random(CN_WIDE_POOL_SIZE)];
+  end;
+
+begin
+  Result := False;
+  RandSeed := 20261021;   // 固定种子，失败可复现
+
+  // 字符池：ASCII、一/两字节边界、CJK、替换字符、高低代理对半、孤立高低代理
+  Pool[0] := 'A';
+  Pool[1] := 'z';
+  Pool[2] := '0';
+  Pool[3] := ' ';
+  Pool[4] := WideChar($00FF);
+  Pool[5] := WideChar($07FF);
+  Pool[6] := WideChar($00E9);
+  Pool[7] := WideChar($0800);
+  Pool[8] := WideChar($4E2D);
+  Pool[9] := WideChar($FFFD);
+  Pool[10] := WideChar($D83D);
+  Pool[11] := WideChar($DE00);
+  Pool[12] := WideChar($D800);
+  Pool[13] := WideChar($DBFF);
+  Pool[14] := WideChar($DC00);
+  Pool[15] := WideChar($DFFF);
+
+  for I := 1 to CN_WIDE_FUZZ_ROUNDS do
+  begin
+    Len := Random(24);
+    S := '';
+    for J := 1 to Len do
+      S := S + PickChar;
+
+    if S = '' then
+      Continue;
+
+    // 1. 整体长度必须与实际编码一致
+    if CalcUtf8LengthFromWideString(PWideChar(S)) <>
+      Length(CnUtf8EncodeWideString(S)) then Exit;
+
+    // 2. 逐偏移比对，基准是 Copy(1, N) 后实际编码的长度。
+    //    代理对被 Copy 切开时基准自然按孤立代理算，正好覆盖"预算不足"分支
+    for N := 1 to Length(S) do
+      if CalcUtf8LengthFromWideStringOffset(PWideChar(S), N) <>
+        Length(CnUtf8EncodeWideString(Copy(S, 1, N))) then Exit;
+
+    // 3. DisplayOffset 变体取"整串耗尽"的场景，与 Ansi 转换细节无关，可跨平台比对
+    if CalcUtf8LengthFromWideStringAnsiDisplayOffset(PWideChar(S),
+      2 * Length(S), nil) <> Length(CnUtf8EncodeWideString(S)) then Exit;
+  end;
 
   Result := True;
 end;

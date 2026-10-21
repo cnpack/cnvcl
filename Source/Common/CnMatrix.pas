@@ -3511,8 +3511,10 @@ var
   D: Int64;
 begin
   D := Int64Gcd(X, Y);
-  if D < 0 then // TODO: Èç¹û·µ»Ø Low(Int64)
+  if D < 0 then
     D := -D;
+  if D = Low(Int64) then
+    raise EIntOverflow.Create(SCnErrorInt64Overflow);
 
   if D > 1 then
   begin

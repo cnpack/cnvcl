@@ -2913,9 +2913,9 @@ begin
 
   for I := AStartAt to Count - 1 do
   begin
-    if (AExact and
+    if (AExact and (Items[I] <> nil) and
       (Items[I].ClassType = AClass)) or
-      (not AExact and
+      (not AExact and (Items[I] <> nil) and
       Items[I].InheritsFrom(AClass)) then
     begin
       Result := I;
