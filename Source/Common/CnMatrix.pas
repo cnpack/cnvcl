@@ -2350,7 +2350,9 @@ begin
         FMatrix[I, J] := T[I, J];
 
     SetLength(T, 0);
-  end;
+  end
+  else
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [0, Col]);
 end;
 
 procedure TCnIntMatrix.DeleteRow(Row: Integer);
@@ -2372,7 +2374,9 @@ begin
     end;
     Dec(FRowCount);
     SetLength(FMatrix, FRowCount, FColCount);
-  end;
+  end
+  else
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, 0]);
 end;
 
 destructor TCnIntMatrix.Destroy;
@@ -2752,7 +2756,9 @@ begin
         FMatrix[I, J] := T[I, J];
 
     SetLength(T, 0);
-  end;
+  end
+  else
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [0, Col]);
 end;
 
 procedure TCnFloatMatrix.DeleteRow(Row: Integer);
@@ -2774,7 +2780,9 @@ begin
     end;
     Dec(FRowCount);
     SetLength(FMatrix, FRowCount, FColCount);
-  end;
+  end
+  else
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, 0]);
 end;
 
 destructor TCnFloatMatrix.Destroy;
@@ -3573,6 +3581,9 @@ procedure TCn2DObjectList.DeleteCol(Col: Integer);
 var
   I: Integer;
 begin
+  if (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [0, Col]);
+
   for I := 0 to FRowCount - 1 do
     TObjectList(FRows[I]).Delete(Col);
   Dec(FColCount);
@@ -3580,6 +3591,9 @@ end;
 
 procedure TCn2DObjectList.DeleteRow(Row: Integer);
 begin
+  if (Row < 0) or (Row >= FRowCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, 0]);
+
   FRows.Delete(Row);
   Dec(FRowCount);
 end;
@@ -3602,6 +3616,9 @@ end;
 
 function TCn2DObjectList.GetValueObject(Row, Col: Integer): TObject;
 begin
+  if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   Result := TObjectList(FRows[Row])[Col];
 end;
 
@@ -3647,6 +3664,9 @@ end;
 
 procedure TCn2DObjectList.SetValueObject(Row, Col: Integer; const Value: TObject);
 begin
+  if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   TObjectList(FRows[Row])[Col] := Value;
 end;
 
@@ -4009,6 +4029,9 @@ end;
 procedure TCnRationalMatrix.SetValue(Row, Col: Integer;
   const Value: TCnRationalNumber);
 begin
+  if (Row < 0) or (Row >= RowCount) or (Col < 0) or (Col >= ColCount) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
+
   if FMatrix[Row, Col] = nil then
     FMatrix[Row, Col] := TCnRationalNumber.Create;
   TCnRationalNumber(FMatrix[Row, Col]).Assign(Value);
