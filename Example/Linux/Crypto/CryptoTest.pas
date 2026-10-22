@@ -4819,7 +4819,11 @@ begin
   if CalcUtf8LengthFromWideString(PWideChar(S)) <> 3 then Exit;
 
   { 单个代理对 U+1F600：UTF-16 两个 WideChar，UTF-8 应为 4 字节 }
+{$IFDEF UNICODE}
   S := WideChar($D83D) + WideChar($DE00);
+{$ELSE}
+  S := WideString(#$D83D) + WideString(#$DE00);
+{$ENDIF}
   Base := Length(CnUtf8EncodeWideString(S));
   if Base <> 4 then Exit;                                 // 基准自身先校验
   if CalcUtf8LengthFromWideString(PWideChar(S)) <> Base then Exit;
@@ -4828,21 +4832,33 @@ begin
     2 * Length(S), nil) <> Base then Exit;
 
   { 混排：ASCII + 代理对，应为 1 + 4 }
+{$IFDEF UNICODE}
   S := 'A' + WideChar($D83D) + WideChar($DE00);
+{$ELSE}
+  S := 'A' + WideString(#$D83D) + WideString(#$DE00);
+{$ENDIF}
   Base := Length(CnUtf8EncodeWideString(S));
   if Base <> 5 then Exit;
   if CalcUtf8LengthFromWideString(PWideChar(S)) <> Base then Exit;
   if CalcUtf8LengthFromWideStringOffset(PWideChar(S), Length(S)) <> Base then Exit;
 
   { 两个代理对相连：应为 8 }
+{$IFDEF UNICODE}
   S := WideChar($D83D) + WideChar($DE00) + WideChar($D83D) + WideChar($DE00);
+{$ELSE}
+  S := WideString(#$D83D) + WideString(#$DE00) + WideString(#$D83D) + WideString(#$DE00);
+{$ENDIF}
   Base := Length(CnUtf8EncodeWideString(S));
   if Base <> 8 then Exit;
   if CalcUtf8LengthFromWideString(PWideChar(S)) <> Base then Exit;
 
   { 偏移落在代理对中间：Copy(1, 2) 只切出高代理，应按孤立代理的 3 字节算，
     而不是把整个代理对算成 4。基准取 Copy 后实际编码的长度 }
+{$IFDEF UNICODE}
   S := 'A' + WideChar($D83D) + WideChar($DE00);
+{$ELSE}
+  S := 'A' + WideString(#$D83D) + WideString(#$DE00);
+{$ENDIF}
   if CalcUtf8LengthFromWideStringOffset(PWideChar(S), 1) <>
     Length(CnUtf8EncodeWideString(Copy(S, 1, 1))) then Exit;
   if CalcUtf8LengthFromWideStringOffset(PWideChar(S), 2) <>
