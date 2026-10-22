@@ -4822,7 +4822,8 @@ begin
 {$IFDEF UNICODE}
   S := WideChar($D83D) + WideChar($DE00);
 {$ELSE}
-  S := WideString(#$D83D) + WideString(#$DE00);
+  S := WideString(#$D83D);
+  S := S + WideString(#$DE00);
 {$ENDIF}
   Base := Length(CnUtf8EncodeWideString(S));
   if Base <> 4 then Exit;                                 // 基准自身先校验
@@ -4835,7 +4836,9 @@ begin
 {$IFDEF UNICODE}
   S := 'A' + WideChar($D83D) + WideChar($DE00);
 {$ELSE}
-  S := 'A' + WideString(#$D83D) + WideString(#$DE00);
+  S := 'A';
+  S := S + WideString(#$D83D);
+  S := S + WideString(#$DE00);
 {$ENDIF}
   Base := Length(CnUtf8EncodeWideString(S));
   if Base <> 5 then Exit;
@@ -4846,7 +4849,10 @@ begin
 {$IFDEF UNICODE}
   S := WideChar($D83D) + WideChar($DE00) + WideChar($D83D) + WideChar($DE00);
 {$ELSE}
-  S := WideString(#$D83D) + WideString(#$DE00) + WideString(#$D83D) + WideString(#$DE00);
+  S := WideString(#$D83D);
+  S := S + WideString(#$DE00);
+  S := S + WideString(#$D83D);
+  S := S + WideString(#$DE00);
 {$ENDIF}
   Base := Length(CnUtf8EncodeWideString(S));
   if Base <> 8 then Exit;
@@ -4857,7 +4863,9 @@ begin
 {$IFDEF UNICODE}
   S := 'A' + WideChar($D83D) + WideChar($DE00);
 {$ELSE}
-  S := 'A' + WideString(#$D83D) + WideString(#$DE00);
+  S := 'A';
+  S := S + WideString(#$D83D);
+  S := S + WideString(#$DE00);
 {$ENDIF}
   if CalcUtf8LengthFromWideStringOffset(PWideChar(S), 1) <>
     Length(CnUtf8EncodeWideString(Copy(S, 1, 1))) then Exit;
