@@ -330,6 +330,7 @@ function TestCAValidityCheckNoFile: Boolean;
 function TestCASignTypeConsistency: Boolean;
 function TestCASerialNumberDEREncoding: Boolean;
 function TestCASerialNumberInvalidInput: Boolean;
+function TestCASignParentRestriction: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -2253,6 +2254,7 @@ begin
   MyAssert(TestCASignTypeConsistency, 'TestCASignTypeConsistency');
   MyAssert(TestCASerialNumberDEREncoding, 'TestCASerialNumberDEREncoding');
   MyAssert(TestCASerialNumberInvalidInput, 'TestCASerialNumberInvalidInput');
+  MyAssert(TestCASignParentRestriction, 'TestCASignParentRestriction');
 
 // =============================== Int128 ======================================
 
@@ -12666,6 +12668,218 @@ begin
     St.Free;
     PrivExt.Free;
     Std.Free;
+    CAPub.Free;
+    CAPriv.Free;
+  end;
+end;
+
+function TestCASignParentRestriction: Boolean;
+{* 上级证书签发权限校验回归：上级证书明确 cA=FALSE（含 KeyUsage 为空、
+   导致 KeyUsage 扩展被跳过的场景），或声明了 Key Usage 但不含 keyCertSign
+   时，四种签发函数都必须拒绝签发；上级证书 cA=TRUE 且含 keyCertSign 时应
+   正常签发。用例全部通过内存流完成，不产生临时文件。 }
+var
+  CAPriv: TCnRSAPrivateKey;
+  CAPub: TCnRSAPublicKey;
+  Ecc: TCnEcc;
+  EPriv: TCnEccPrivateKey;
+  EPub: TCnEccPublicKey;
+  CliPriv: TCnRSAPrivateKey;
+  CliPub: TCnRSAPublicKey;
+  RootStd, ChildStd: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  CRT: TCnCertificate;
+  RootRestricted, RootNoKU, RootAllowed, RootEmptyKU, RootEcc: TMemoryStream;
+  CSRStream, OutStream: TMemoryStream;
+
+  procedure ResetOutput;
+  begin
+    OutStream.Size := 0;
+    OutStream.Position := 0;
+  end;
+
+begin
+  Result := False;
+
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  Ecc := TCnEcc.Create(ctSM2);
+  EPriv := TCnEccPrivateKey.Create;
+  EPub := TCnEccPublicKey.Create;
+  CliPriv := TCnRSAPrivateKey.Create;
+  CliPub := TCnRSAPublicKey.Create;
+  RootStd := TCnCertificateStandardExtensions.Create;
+  ChildStd := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  CRT := TCnCertificate.Create;
+  RootRestricted := TMemoryStream.Create;
+  RootNoKU := TMemoryStream.Create;
+  RootAllowed := TMemoryStream.Create;
+  RootEmptyKU := TMemoryStream.Create;
+  RootEcc := TMemoryStream.Create;
+  CSRStream := TMemoryStream.Create;
+  OutStream := TMemoryStream.Create;
+  try
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+
+    // 上级证书 1：cA=FALSE，明确不能签发下级证书
+    RootStd.BasicConstraintsCA := False;
+    RootStd.KeyUsage := [kuDigitalSignature];
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, RootRestricted,
+      'CN', 'State', 'City', 'Org', 'Unit', 'RestrictedCA', 'ca@b.com', '1',
+      Now - 1, Now + 365, RootStd, PrivExt, ctSha256RSA) then
+      Exit;
+
+    // 上级证书 2：cA=TRUE 但 Key Usage 不含 keyCertSign
+    RootStd.BasicConstraintsCA := True;
+    RootStd.KeyUsage := [kuDigitalSignature];
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, RootNoKU,
+      'CN', 'State', 'City', 'Org', 'Unit', 'NoKeyCertSignCA', 'ca@b.com', '2',
+      Now - 1, Now + 365, RootStd, PrivExt, ctSha256RSA) then
+      Exit;
+
+    // 上级证书 3：cA=TRUE 且含 keyCertSign，是正常的 CA 证书
+    RootStd.KeyUsage := [kuDigitalSignature, kuKeyCertSign, kuCRLSign];
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, RootAllowed,
+      'CN', 'State', 'City', 'Org', 'Unit', 'AllowedCA', 'ca@b.com', '3',
+      Now - 1, Now + 365, RootStd, PrivExt, ctSha256RSA) then
+      Exit;
+
+    // Key Usage 解析必须按 RFC 5280 的位序还原 keyCertSign/CRLSign
+    RootAllowed.Position := 0;
+    if not CnCALoadCertificateFromStream(RootAllowed, CRT) then
+      Exit;
+    if not (CRT.BasicCertificate.StandardExtension.BasicConstraintsPresent and
+      CRT.BasicCertificate.StandardExtension.BasicConstraintsCA) then
+      Exit;
+    if not (kuKeyCertSign in CRT.BasicCertificate.StandardExtension.KeyUsage) then
+      Exit;
+    if not (kuCRLSign in CRT.BasicCertificate.StandardExtension.KeyUsage) then
+      Exit;
+
+    // 上级证书 4：cA=FALSE 且 KeyUsage 为空。即使 KeyUsage 有效位为 0，也必须
+    // 继续写入 BasicConstraints，不能因此丢失 cA=FALSE 的限制
+    RootStd.BasicConstraintsCA := False;
+    RootStd.KeyUsage := [];
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, RootEmptyKU,
+      'CN', 'State', 'City', 'Org', 'Unit', 'EmptyKUCA', 'ca@b.com', '4',
+      Now - 1, Now + 365, RootStd, PrivExt, ctSha256RSA) then
+      Exit;
+
+    // 复用 TCnCertificate 对象时扩展标志不会自动清零，这里换用新对象解析
+    CRT.Free;
+    CRT := TCnCertificate.Create;
+    RootEmptyKU.Position := 0;
+    if not CnCALoadCertificateFromStream(RootEmptyKU, CRT) then
+      Exit;
+    if not CRT.BasicCertificate.StandardExtension.BasicConstraintsPresent then
+      Exit;
+    if CRT.BasicCertificate.StandardExtension.BasicConstraintsCA then
+      Exit;
+    if CRT.BasicCertificate.StandardExtension.KeyUsagePresent then
+      Exit;
+
+    // 客户端证书请求
+    CnRSAGenerateKeys(1024, CliPriv, CliPub);
+    if not CnCANewCertificateSignRequestStream(CliPriv, CliPub, CSRStream,
+      'CN', 'State', 'City', 'Org', 'Client', 'client', 'client@b.com',
+      ctSha256RSA) then
+      Exit;
+
+    // 待签发的是终端证书
+    ChildStd.BasicConstraintsCA := False;
+    ChildStd.KeyUsage := [kuDigitalSignature];
+
+    // RSA v2：cA=FALSE 的上级证书必须拒绝签发
+    ResetOutput;
+    if CnCASignCertificate2Stream(CAPriv, RootRestricted, CSRStream, OutStream,
+      '101', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
+      Exit;
+    if OutStream.Size <> 0 then
+      Exit;
+
+    // RSA v2：Key Usage 缺 keyCertSign 的上级证书必须拒绝签发
+    ResetOutput;
+    if CnCASignCertificate2Stream(CAPriv, RootNoKU, CSRStream, OutStream,
+      '102', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
+      Exit;
+    if OutStream.Size <> 0 then
+      Exit;
+
+    // RSA v2：cA=FALSE 且 KeyUsage 为空的上级证书也必须拒绝签发
+    ResetOutput;
+    if CnCASignCertificate2Stream(CAPriv, RootEmptyKU, CSRStream, OutStream,
+      '103', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
+      Exit;
+    if OutStream.Size <> 0 then
+      Exit;
+
+    // RSA v1
+    ResetOutput;
+    if CnCASignCertificateStream(CAPriv, RootRestricted, CSRStream, OutStream,
+      '104', Now - 1, Now + 365, ctSha256RSA) then
+      Exit;
+    if OutStream.Size <> 0 then
+      Exit;
+
+    // ECC 上级证书：cA=FALSE
+    Ecc.GenerateKeys(EPriv, EPub);
+    RootStd.BasicConstraintsCA := False;
+    RootStd.KeyUsage := [kuDigitalSignature];
+    if not CnCANewSelfSignedCertificate2Stream(EPriv, EPub, ctSM2, RootEcc,
+      'CN', 'State', 'City', 'Org', 'Unit', 'EccRestrictedCA', 'ca@b.com', '5',
+      Now - 1, Now + 365, RootStd, PrivExt, ctSha256Ecc) then
+      Exit;
+
+    // ECC v2
+    ResetOutput;
+    if CnCASignCertificate2Stream(EPriv, ctSM2, RootEcc, CSRStream, OutStream,
+      '105', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256Ecc) then
+      Exit;
+    if OutStream.Size <> 0 then
+      Exit;
+
+    // ECC v1
+    ResetOutput;
+    if CnCASignCertificateStream(EPriv, ctSM2, RootEcc, CSRStream, OutStream,
+      '106', Now - 1, Now + 365, ctSha256Ecc) then
+      Exit;
+    if OutStream.Size <> 0 then
+      Exit;
+
+    // 正常的 CA 上级证书应能成功签发
+    ResetOutput;
+    if not CnCASignCertificate2Stream(CAPriv, RootAllowed, CSRStream, OutStream,
+      '107', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
+      Exit;
+    if OutStream.Size = 0 then
+      Exit;
+
+    // 签发结果必须是可解析的证书
+    OutStream.Position := 0;
+    if not CnCALoadCertificateFromStream(OutStream, CRT) then
+      Exit;
+    if not CRT.BasicCertificate.StandardExtension.BasicConstraintsPresent then
+      Exit;
+
+    Result := True;
+  finally
+    OutStream.Free;
+    CSRStream.Free;
+    RootEcc.Free;
+    RootEmptyKU.Free;
+    RootAllowed.Free;
+    RootNoKU.Free;
+    RootRestricted.Free;
+    CRT.Free;
+    PrivExt.Free;
+    ChildStd.Free;
+    RootStd.Free;
+    CliPub.Free;
+    CliPriv.Free;
+    EPub.Free;
+    EPriv.Free;
+    Ecc.Free;
     CAPub.Free;
     CAPriv.Free;
   end;

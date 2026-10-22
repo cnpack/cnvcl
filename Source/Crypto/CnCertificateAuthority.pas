@@ -55,7 +55,12 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.16 V1.9
+* 修改记录：2026.10.22 V1.10
+*               签发证书前校验上级证书的 Basic Constraints 与 Key Usage，上级
+*               证书明确为非 CA 或 Key Usage 不含 keyCertSign 时拒绝签发；
+*               修正 Key Usage 扩展解析时取错字节及位序映射错误的问题；
+*               修正 KeyUsage 为空时提前退出导致 BasicConstraints 无法写入证书的问题
+*           2026.10.16 V1.9
 *               修正生成的证书序列号 DER 编码，最高字节不小于 $80 时补前导 0
 *               字节，避免被解析为负数；证书序列号必须为大于 0 的十进制整数，
 *               非法时相应函数返回 False（RFC 5280 的 4.1.2.2 要求证书序列号
@@ -365,6 +370,8 @@ type
     FExtendedKeyUsage: TCnExtendedKeyUsages;
     FBasicConstraintsCA: Boolean;
     FBasicConstraintsPathLen: Integer;
+    FKeyUsagePresent: Boolean;
+    FBasicConstraintsPresent: Boolean;
   public
     constructor Create; virtual;
     {* 构造函数}
@@ -381,12 +388,16 @@ type
 
     property KeyUsage: TCnCerKeyUsages read FKeyUsage write FKeyUsage;
     {* 限定的可执行操作}
+    property KeyUsagePresent: Boolean read FKeyUsagePresent;
+    {* 证书中是否存在 Key Usage 扩展}
     property ExtendedKeyUsage: TCnExtendedKeyUsages read FExtendedKeyUsage write
       FExtendedKeyUsage;
     {* 扩展的限定可执行操作}
     property BasicConstraintsCA: Boolean read FBasicConstraintsCA write
       FBasicConstraintsCA;
     {* 能否用于签发其他证书}
+    property BasicConstraintsPresent: Boolean read FBasicConstraintsPresent;
+    {* 证书中是否存在 Basic Constraints 扩展}
     property BasicConstraintsPathLen: Integer read FBasicConstraintsPathLen
       write FBasicConstraintsPathLen;
     {* 能用于签发其他证书时限制下级证书的路径长度}
@@ -1257,6 +1268,96 @@ function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType:
    返回值：Boolean                                                        - 返回生成是否成功
 }
 
+function CnCASignCertificateStream(PrivateKey: TCnRSAPrivateKey; CRTStream:
+  TStream; CSRStream: TStream; OutCRTStream: TStream; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
+  ctSha256RSA): Boolean; overload;
+{* 用 RSA CRT 证书流内容与对应私钥签署证书请求流，生成被签发证书流，使用 v1 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 用于签发证书的上级 RSA 私钥
+     CRTStream: TStream                   - 用于签发的上级证书流
+     CSRStream: TStream                   - 待签发的证书请求流
+     OutCRTStream: TStream                - 输出的签发证书流
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
+
+function CnCASignCertificateStream(PrivateKey: TCnEccPrivateKey; CurveType:
+  TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
+  const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
+  CASignType: TCnCASignType = ctSha256Ecc): Boolean; overload;
+{* 用 ECC CRT 证书流内容与对应私钥签署证书请求流，生成被签发证书流，使用 v1 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey         - 用于签发证书的上级 ECC 私钥
+     CurveType: TCnEccCurveType           - 用于签发证书的上级椭圆曲线类型
+     CRTStream: TStream                   - 用于签发的上级证书流
+     CSRStream: TStream                   - 待签发的证书请求流
+     OutCRTStream: TStream                - 输出的签发证书流
+     const IntSerialNum: string           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
+
+function CnCASignCertificate2Stream(PrivateKey: TCnRSAPrivateKey; CRTStream:
+  TStream; CSRStream: TStream; OutCRTStream: TStream; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
+  ctSha256RSA): Boolean; overload;
+{* 用 RSA CRT 证书流内容与对应私钥签署证书请求流，生成被签发证书流，使用 v2 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey                                         - 用于签发证书的上级 RSA 私钥
+     CRTStream: TStream                                                   - 用于签发的上级证书流
+     CSRStream: TStream                                                   - 待签发的证书请求流
+     OutCRTStream: TStream                                                - 输出的签发证书流
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
+function CnCASignCertificate2Stream(PrivateKey: TCnEccPrivateKey; CurveType:
+  TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
+  const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
+  StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
+  ctSha256Ecc): Boolean; overload;
+{* 用 ECC CRT 证书流内容与对应私钥签署证书请求流，生成被签发证书流，使用 v2 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey                                         - 用于签发证书的上级 ECC 私钥
+     CurveType: TCnEccCurveType                                           - 用于签发证书的上级椭圆曲线类型
+     CRTStream: TStream                                                   - 用于签发的上级证书流
+     CSRStream: TStream                                                   - 待签发的证书请求流
+     OutCRTStream: TStream                                                - 输出的签发证书流
+     const IntSerialNum: string                                           - 序列号，须为大于 0 的十进制整数，非法时函数返回 False
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
 // ========================== 其他证书相关辅助函数 =============================
 
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType:
@@ -1501,6 +1602,28 @@ begin
     Result := InternalCurrentUTCDateTime
   else
     Result := 0;
+end;
+
+// 校验上级证书是否允许签发下级证书。RFC 5280 规定 CA 证书的 Basic Constraints
+// 必须置位 cA，且 Key Usage 中若声明了用途则必须包含 keyCertSign。
+// 未携带 Basic Constraints 扩展的旧版 v1/v2 证书为兼容历史用法不作此限制。
+function InternalCertificateCanSign(ParentCertificate: TCnCertificate): Boolean;
+var
+  Ext: TCnCertificateStandardExtensions;
+begin
+  Result := False;
+  if ParentCertificate = nil then
+    Exit;
+  Ext := ParentCertificate.BasicCertificate.StandardExtension;
+  if Ext = nil then
+    Exit;
+  // 上级证书明确声明不是 CA，不能签发下级证书
+  if Ext.BasicConstraintsPresent and not Ext.BasicConstraintsCA then
+    Exit;
+  // 上级证书包含 Key Usage 扩展时，必须包含 keyCertSign 才能签发下级证书
+  if Ext.KeyUsagePresent and not (kuKeyCertSign in Ext.KeyUsage) then
+    Exit;
+  Result := True;
 end;
 
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType:
@@ -2013,29 +2136,32 @@ begin
       if kuEncipherOnly in StandardExt.KeyUsage then
         KUByte := KUByte or $01; // bit7
 
-      if KUByte = 0 then
-        Exit;
-      UnusedBits := CalcUnusedBitsInLastByte(KUByte);
-
-      // 写 BIT STRING TLV: Tag(0x03), Len(2), Content: [UnusedBits][KUByte]
-      B := nil;
-      SetLength(B, 4);
-      B[0] := $03;
-      B[1] := 2;
-      B[2] := UnusedBits;
-      B[3] := KUByte;
-      Mem.Write(B[0], 4);
-
-      // 扩展项写入
-      ExtItem := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, ExtSeq);
-      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_KEYUSAGE[0],
-        SizeOf(OID_EXT_KEYUSAGE), ExtItem);
-      if Criticals.KeyUsage then
+      // 有效位为 0 时不写 KeyUsage 扩展，但不能中断后续扩展（尤其
+      // BasicConstraints）的写入
+      if KUByte <> 0 then
       begin
-        KUByte := $FF;
-        Writer.AddBasicNode(CN_BER_TAG_BOOLEAN, @KUByte, 1, ExtItem);
+        UnusedBits := CalcUnusedBitsInLastByte(KUByte);
+
+        // 写 BIT STRING TLV: Tag(0x03), Len(2), Content: [UnusedBits][KUByte]
+        B := nil;
+        SetLength(B, 4);
+        B[0] := $03;
+        B[1] := 2;
+        B[2] := UnusedBits;
+        B[3] := KUByte;
+        Mem.Write(B[0], 4);
+
+        // 扩展项写入
+        ExtItem := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, ExtSeq);
+        Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_KEYUSAGE[0],
+          SizeOf(OID_EXT_KEYUSAGE), ExtItem);
+        if Criticals.KeyUsage then
+        begin
+          KUByte := $FF;
+          Writer.AddBasicNode(CN_BER_TAG_BOOLEAN, @KUByte, 1, ExtItem);
+        end;
+        Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Mem, ExtItem);
       end;
-      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Mem, ExtItem);
     finally
       Mem.Free;
     end;
@@ -2548,6 +2674,49 @@ function CnCASignCertificate2(PrivateKey: TCnRSAPrivateKey; const CRTFile:
   TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
 var
+  CRTStream, CSRStream, OutCRTStream: TMemoryStream;
+begin
+  Result := False;
+  if (OutCRTFile = '') or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  CRTStream := TMemoryStream.Create;
+  CSRStream := TMemoryStream.Create;
+  OutCRTStream := TMemoryStream.Create;
+  try
+    try
+      CRTStream.LoadFromFile(CRTFile);
+      CSRStream.LoadFromFile(CSRFile);
+    except
+      Exit;
+    end;
+
+    if not CnCASignCertificate2Stream(PrivateKey, CRTStream, CSRStream,
+      OutCRTStream, IntSerialNum, NotBefore, NotAfter, StandardExt,
+      PrivateInternetExt, CASignType) then
+      Exit;
+
+    OutCRTStream.Position := 0;
+    try
+      OutCRTStream.SaveToFile(OutCRTFile);
+    except
+      Exit;
+    end;
+
+    Result := True;
+  finally
+    OutCRTStream.Free;
+    CSRStream.Free;
+    CRTStream.Free;
+  end;
+end;
+
+function CnCASignCertificate2Stream(PrivateKey: TCnRSAPrivateKey; CRTStream:
+  TStream; CSRStream: TStream; OutCRTStream: TStream; const IntSerialNum: string;
+  NotBefore, NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
@@ -2560,7 +2729,8 @@ var
   Crit: TCnCertificateExtensionCriticals;
 begin
   Result := False;
-  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+  if (PrivateKey = nil) or (CRTStream = nil) or (CSRStream = nil) or
+    (OutCRTStream = nil) then
     Exit;
 
   if not (CASignType in RSA_CA_TYPES) then
@@ -2577,12 +2747,19 @@ begin
 
   try
     CSR := TCnCertificateRequest.Create;
-    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
-      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+    CSRStream.Position := 0;
+    if not CnCAVerifyCertificateSignRequestStream(CSRStream) then
+      Exit;
+    CSRStream.Position := 0;
+    if not CnCALoadCertificateSignRequestFromStream(CSRStream, CSR) then
       Exit;
 
     CRT := TCnCertificate.Create;
-    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+    CRTStream.Position := 0;
+    if not CnCALoadCertificateFromStream(CRTStream, CRT) then
+      Exit;
+
+    if not InternalCertificateCanSign(CRT) then
       Exit;
 
     Writer := TCnBerWriter.Create;
@@ -2666,7 +2843,7 @@ begin
 
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+    Result := SaveMemoryToPemStream(OutCRTStream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
   finally
     Writer.Free;
@@ -2683,6 +2860,49 @@ function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType:
   StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
 var
+  CRTStream, CSRStream, OutCRTStream: TMemoryStream;
+begin
+  Result := False;
+  if (OutCRTFile = '') or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  CRTStream := TMemoryStream.Create;
+  CSRStream := TMemoryStream.Create;
+  OutCRTStream := TMemoryStream.Create;
+  try
+    try
+      CRTStream.LoadFromFile(CRTFile);
+      CSRStream.LoadFromFile(CSRFile);
+    except
+      Exit;
+    end;
+
+    if not CnCASignCertificate2Stream(PrivateKey, CurveType, CRTStream,
+      CSRStream, OutCRTStream, IntSerialNum, NotBefore, NotAfter, StandardExt,
+      PrivateInternetExt, CASignType) then
+      Exit;
+
+    OutCRTStream.Position := 0;
+    try
+      OutCRTStream.SaveToFile(OutCRTFile);
+    except
+      Exit;
+    end;
+
+    Result := True;
+  finally
+    OutCRTStream.Free;
+    CSRStream.Free;
+    CRTStream.Free;
+  end;
+end;
+
+function CnCASignCertificate2Stream(PrivateKey: TCnEccPrivateKey; CurveType:
+  TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
+  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
@@ -2695,7 +2915,8 @@ var
   Crit: TCnCertificateExtensionCriticals;
 begin
   Result := False;
-  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+  if (PrivateKey = nil) or (CRTStream = nil) or (CSRStream = nil) or
+    (OutCRTStream = nil) then
     Exit;
 
   if not (CASignType in ECC_CA_TYPES) then
@@ -2712,12 +2933,19 @@ begin
 
   try
     CSR := TCnCertificateRequest.Create;
-    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
-      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+    CSRStream.Position := 0;
+    if not CnCAVerifyCertificateSignRequestStream(CSRStream) then
+      Exit;
+    CSRStream.Position := 0;
+    if not CnCALoadCertificateSignRequestFromStream(CSRStream, CSR) then
       Exit;
 
     CRT := TCnCertificate.Create;
-    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+    CRTStream.Position := 0;
+    if not CnCALoadCertificateFromStream(CRTStream, CRT) then
+      Exit;
+
+    if not InternalCertificateCanSign(CRT) then
       Exit;
 
     Writer := TCnBerWriter.Create;
@@ -2802,7 +3030,7 @@ begin
 
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+    Result := SaveMemoryToPemStream(OutCRTStream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
   finally
     Writer.Free;
@@ -3197,7 +3425,7 @@ function ExtractExtensions(Root: TCnBerReadNode; StandardExt:
   TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions): Boolean;
 var
-  I, J: Integer;
+  I, J, K: Integer;
   ExtNode, OidNode, ValueNode: TCnBerReadNode;
   Buf: TBytes;
   KU: TCnCerKeyUsages;
@@ -3235,15 +3463,19 @@ begin
       else if CompareObjectIdentifier(OidNode, @OID_EXT_KEYUSAGE, SizeOf(OID_EXT_KEYUSAGE))
         then
       begin
+        StandardExt.FKeyUsagePresent := True;
         if ValueNode.BerTag = CN_BER_TAG_BIT_STRING then
         begin
           SetLength(Buf, ValueNode.BerDataLength);
           if Length(Buf) >= 2 then
           begin
             ValueNode.CopyDataTo(@Buf[0]);
-            // Buf[1] 要 shr Buf[0] 位
-            Buf[1] := Buf[1] shr Buf[0];
-            Move(Buf[0], KU, 1);
+            // Buf[0] 为末字节未使用位数，Buf[1] 才是 Key Usage 的位数据；
+            // BIT STRING 按 RFC 5280 从高位到低位表示 bit 0..7，需映射到集合位序
+            KU := [];
+            for K := 0 to 7 do
+              if (Buf[1] and ($80 shr K)) <> 0 then
+                KU := KU + [TCnCerKeyUsage(K)];
             StandardExt.KeyUsage := KU;
           end;
         end;
@@ -3265,6 +3497,7 @@ begin
       else if CompareObjectIdentifier(OidNode, @OID_EXT_BASICCONSTRAINTS, SizeOf
         (OID_EXT_BASICCONSTRAINTS)) then
       begin
+        StandardExt.FBasicConstraintsPresent := True;
         for J := 0 to ValueNode.Count - 1 do
         begin
           if ValueNode[J].BerTag = CN_BER_TAG_BOOLEAN then
@@ -4988,6 +5221,46 @@ function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
 var
+  CRTStream, CSRStream, OutCRTStream: TMemoryStream;
+begin
+  Result := False;
+  if (OutCRTFile = '') or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  CRTStream := TMemoryStream.Create;
+  CSRStream := TMemoryStream.Create;
+  OutCRTStream := TMemoryStream.Create;
+  try
+    try
+      CRTStream.LoadFromFile(CRTFile);
+      CSRStream.LoadFromFile(CSRFile);
+    except
+      Exit;
+    end;
+
+    if not CnCASignCertificateStream(PrivateKey, CRTStream, CSRStream,
+      OutCRTStream, IntSerialNum, NotBefore, NotAfter, CASignType) then
+      Exit;
+
+    OutCRTStream.Position := 0;
+    try
+      OutCRTStream.SaveToFile(OutCRTFile);
+    except
+      Exit;
+    end;
+
+    Result := True;
+  finally
+    OutCRTStream.Free;
+    CSRStream.Free;
+    CRTStream.Free;
+  end;
+end;
+
+function CnCASignCertificateStream(PrivateKey: TCnRSAPrivateKey; CRTStream:
+  TStream; CSRStream: TStream; OutCRTStream: TStream; const IntSerialNum: string;
+  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
@@ -4999,7 +5272,8 @@ var
   B: Byte;
 begin
   Result := False;
-  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+  if (PrivateKey = nil) or (CRTStream = nil) or (CSRStream = nil) or
+    (OutCRTStream = nil) then
     Exit;
 
   if not (CASignType in RSA_CA_TYPES) then
@@ -5016,12 +5290,19 @@ begin
 
   try
     CSR := TCnCertificateRequest.Create;
-    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
-      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+    CSRStream.Position := 0;
+    if not CnCAVerifyCertificateSignRequestStream(CSRStream) then
+      Exit;
+    CSRStream.Position := 0;
+    if not CnCALoadCertificateSignRequestFromStream(CSRStream, CSR) then
       Exit;
 
     CRT := TCnCertificate.Create;
-    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+    CRTStream.Position := 0;
+    if not CnCALoadCertificateFromStream(CRTStream, CRT) then
+      Exit;
+
+    if not InternalCertificateCanSign(CRT) then
       Exit;
 
     Writer := TCnBerWriter.Create;
@@ -5100,7 +5381,7 @@ begin
     // 保存
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+    Result := SaveMemoryToPemStream(OutCRTStream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
   finally
     Writer.Free;
@@ -5119,6 +5400,47 @@ function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType:
   OutCRTFile: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
   CASignType: TCnCASignType): Boolean;
 var
+  CRTStream, CSRStream, OutCRTStream: TMemoryStream;
+begin
+  Result := False;
+  if (OutCRTFile = '') or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  CRTStream := TMemoryStream.Create;
+  CSRStream := TMemoryStream.Create;
+  OutCRTStream := TMemoryStream.Create;
+  try
+    try
+      CRTStream.LoadFromFile(CRTFile);
+      CSRStream.LoadFromFile(CSRFile);
+    except
+      Exit;
+    end;
+
+    if not CnCASignCertificateStream(PrivateKey, CurveType, CRTStream,
+      CSRStream, OutCRTStream, IntSerialNum, NotBefore, NotAfter, CASignType) then
+      Exit;
+
+    OutCRTStream.Position := 0;
+    try
+      OutCRTStream.SaveToFile(OutCRTFile);
+    except
+      Exit;
+    end;
+
+    Result := True;
+  finally
+    OutCRTStream.Free;
+    CSRStream.Free;
+    CRTStream.Free;
+  end;
+end;
+
+function CnCASignCertificateStream(PrivateKey: TCnEccPrivateKey; CurveType:
+  TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
+  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType:
+  TCnCASignType): Boolean;
+var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
@@ -5130,7 +5452,8 @@ var
   B: Byte;
 begin
   Result := False;
-  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+  if (PrivateKey = nil) or (CRTStream = nil) or (CSRStream = nil) or
+    (OutCRTStream = nil) then
     Exit;
 
   if not (CASignType in ECC_CA_TYPES) then
@@ -5147,12 +5470,19 @@ begin
 
   try
     CSR := TCnCertificateRequest.Create;
-    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
-      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+    CSRStream.Position := 0;
+    if not CnCAVerifyCertificateSignRequestStream(CSRStream) then
+      Exit;
+    CSRStream.Position := 0;
+    if not CnCALoadCertificateSignRequestFromStream(CSRStream, CSR) then
       Exit;
 
     CRT := TCnCertificate.Create;
-    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+    CRTStream.Position := 0;
+    if not CnCALoadCertificateFromStream(CRTStream, CRT) then
+      Exit;
+
+    if not InternalCertificateCanSign(CRT) then
       Exit;
 
     Writer := TCnBerWriter.Create;
@@ -5232,7 +5562,7 @@ begin
     // 保存
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
-    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+    Result := SaveMemoryToPemStream(OutCRTStream, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
   finally
     Writer.Free;
