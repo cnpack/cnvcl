@@ -2463,6 +2463,15 @@ begin
       Exit;
     end;
 
+    // 对端静态公钥同样要校验。否则 A 可送来不在曲线上的点，使 V = APublicKey + X1 * RA
+    // 落在无效曲线上，进而用低阶点从小子群里套出 B 的私钥；同 X 不同 Y 时还会让下面的
+    // PointAddPoint 直接抛异常，造成远端拒绝服务。
+    if not CheckEccPublicKey(SM2, TCnEccPublicKey(APublicKey)) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     R := TCnBigNumber.Create;
     if not BigNumberRandRange(R, SM2.Order) then
     begin
@@ -2551,6 +2560,13 @@ begin
       SM2 := TCnSM2.Create;
 
     if not CheckEccPublicKey(SM2, TCnEccPublicKey(InRB)) then // 验证传过来的 RB 是否满足方程
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    // 对端静态公钥同样要校验，理由同 BStep1
+    if not CheckEccPublicKey(SM2, TCnEccPublicKey(BPublicKey)) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;

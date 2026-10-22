@@ -763,6 +763,7 @@ function TestSM21: Boolean;
 function TestSM22: Boolean;
 function TestSM23: Boolean;
 function TestSM2KeyExchangeExample256: Boolean;
+function TestSM2KeyExchangeInvalidPeerKey: Boolean;
 function TestSM2Collaborative3KeyGen: Boolean;
 function TestSM2Collaborative3Sign: Boolean;
 function TestSM2VerifyCorruptedSignature: Boolean;
@@ -860,6 +861,7 @@ function TestSecretSharingShamir: Boolean;
 function TestSecretSharingInt64Shamir: Boolean;
 function TestSecretSharingFeldmanVss: Boolean;
 function TestSecretSharingShamirEvenShares: Boolean;
+function TestSecretSharingShamirInvalidShares: Boolean;
 
 // ================================ OTS ========================================
 
@@ -884,6 +886,7 @@ function TestECCVerifyWrongPublicKey: Boolean;
 function TestECCPrivPubPkcs1: Boolean;
 function TestECCPrivPubPkcs8: Boolean;
 function TestECCPub: Boolean;
+function TestECCPubInvalidBer: Boolean;
 function TestECCJInvariant: Boolean;
 function TestECCSchoof: Boolean;
 function TestECCSchoof2: Boolean;
@@ -2683,6 +2686,7 @@ begin
   MyAssert(TestSM22, 'TestSM22');
   MyAssert(TestSM23, 'TestSM23');
   MyAssert(TestSM2KeyExchangeExample256, 'TestSM2KeyExchangeExample256');
+  MyAssert(TestSM2KeyExchangeInvalidPeerKey, 'TestSM2KeyExchangeInvalidPeerKey');
   MyAssert(TestSM2Collaborative3KeyGen, 'TestSM2Collaborative3KeyGen');
   MyAssert(TestSM2Collaborative3Sign, 'TestSM2Collaborative3Sign');
   MyAssert(TestSM2VerifyCorruptedSignature, 'TestSM2VerifyCorruptedSignature');
@@ -2780,6 +2784,7 @@ begin
   MyAssert(TestSecretSharingInt64Shamir, 'TestSecretSharingInt64Shamir');
   MyAssert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
   MyAssert(TestSecretSharingShamirEvenShares, 'TestSecretSharingShamirEvenShares');
+  MyAssert(TestSecretSharingShamirInvalidShares, 'TestSecretSharingShamirInvalidShares');
 
 // ================================ OTS ========================================
 
@@ -2804,6 +2809,7 @@ begin
   MyAssert(TestECCPrivPubPkcs1, 'TestECCPrivPubPkcs1');
   MyAssert(TestECCPrivPubPkcs8, 'TestECCPrivPubPkcs8');
   MyAssert(TestECCPub, 'TestECCPub');
+  MyAssert(TestECCPubInvalidBer, 'TestECCPubInvalidBer');
   MyAssert(TestECCJInvariant, 'TestECCJInvariant');
   MyAssert(TestECCSchoof, 'TestECCSchoof');
   MyAssert(TestECCSchoof2, 'TestECCSchoof2');
@@ -25357,6 +25363,96 @@ begin
   end;
 end;
 
+function TestSM2KeyExchangeInvalidPeerKey: Boolean;
+const
+  KEY_LENGTH = 16;
+  AID = 'ALICE123@YAHOO.COM';
+  BID = 'BILL456@YAHOO.COM';
+  APX = '3099093BF3C137D8FCBBCDF4A2AE50F3B0F216C3122D79425FE03A45DBFE1655';
+  APY = '3DF79E8DAC1CF0ECBAA2F2B49D51A4B387F2EFAF482339086A27A8E05BAED98B';
+  BPX = '245493D446C38D8CC0F118374690E7DF633A8A4BFB3329B5ECE604B2B4F37F43';
+  BPY = '53C0869F4B9E17773DE68FEC45E14904E0DEA45BF6CECF9918C85EA047C60A4C';
+var
+  SM2: TCnSM2;
+  APrivateKey, BPrivateKey: TCnSM2PrivateKey;
+  APublicKey, BPublicKey: TCnSM2PublicKey;
+  RandA, X1: TCnBigNumber;
+  OutRA, OutRB, V: TCnEccPoint;
+  KA, KB: TBytes;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
+  I, W: Integer;
+begin
+  SM2 := TCnSM2.Create(ctSM2Example256);
+  APrivateKey := TCnSM2PrivateKey.Create;
+  APublicKey := TCnSM2PublicKey.Create;
+  BPrivateKey := TCnSM2PrivateKey.Create;
+  BPublicKey := TCnSM2PublicKey.Create;
+  RandA := TCnBigNumber.Create;
+  X1 := TCnBigNumber.Create;
+  OutRA := TCnEccPoint.Create;
+  OutRB := TCnEccPoint.Create;
+  V := TCnEccPoint.Create;
+
+  try
+    APrivateKey.SetHex('6FCBA2EF9AE0AB902BC3BDE3FF915D44BA4CC78F88E2F8E7F8996D3B8CCEEDEE');
+    APublicKey.X.SetHex(APX);
+    APublicKey.Y.SetHex(APY);
+    BPrivateKey.SetHex('5E35D7D3F3C54DBAC72E61819E730B019A84208CA3A35E4C2E353DFCCB2A3B53');
+    BPublicKey.X.SetHex(BPX);
+    BPublicKey.Y.SetHex(BPY);
+
+    Result := CnSM2KeyExchangeAStep1(AID, BID, KEY_LENGTH, APrivateKey, APublicKey, BPublicKey, RandA, OutRA, SM2);
+    if not Result then Exit;
+
+    Result := CnSM2KeyExchangeBStep1(AID, BID, KEY_LENGTH, BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2);
+    if not Result then Exit;
+
+    // 篡改 A 的静态公钥使其不在曲线上，B 侧必须拒绝而不是照常协商
+    BigNumberAddWord(APublicKey.Y, 1);
+    Result := not CnSM2KeyExchangeBStep1(AID, BID, KEY_LENGTH, BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2);
+    if not Result then Exit;
+    APublicKey.X.SetHex(APX);
+    APublicKey.Y.SetHex(APY);
+
+    // 再造一个与中间点 V = X1 * RA 同 X 不同 Y 的 A 静态公钥，
+    // B 侧必须拒绝，不能让 PointAddPoint 抛异常出来
+    BigNumberCopy(X1, OutRA.X);
+    W := (SM2.Order.GetBitsCount + 1) div 2 - 1;
+    BigNumberSetBit(X1, W);
+    for I := W + 1 to X1.GetBitsCount - 1 do
+      BigNumberClearBit(X1, I);
+
+    V.Assign(OutRA);
+    SM2.MultiplePoint(X1, V);
+    BigNumberCopy(APublicKey.X, V.X);
+    BigNumberCopy(APublicKey.Y, V.Y);
+    BigNumberAddWord(APublicKey.Y, 1);
+
+    Result := not CnSM2KeyExchangeBStep1(AID, BID, KEY_LENGTH, BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2);
+    if not Result then Exit;
+    APublicKey.X.SetHex(APX);
+    APublicKey.Y.SetHex(APY);
+
+    Result := CnSM2KeyExchangeBStep1(AID, BID, KEY_LENGTH, BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2);
+    if not Result then Exit;
+
+    // 篡改 B 的静态公钥，A 侧同样必须拒绝
+    BigNumberAddWord(BPublicKey.Y, 1);
+    Result := not CnSM2KeyExchangeAStep2(AID, BID, KEY_LENGTH, APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, SM2);
+  finally
+    V.Free;
+    OutRB.Free;
+    OutRA.Free;
+    X1.Free;
+    RandA.Free;
+    BPublicKey.Free;
+    BPrivateKey.Free;
+    APublicKey.Free;
+    APrivateKey.Free;
+    SM2.Free;
+  end;
+end;
+
 function TestSM2Collaborative3KeyGen: Boolean;
 var
   PrivA, PrivB, PrivC: TCnSM2CollaborativePrivateKey;
@@ -28865,6 +28961,100 @@ begin
   end;
 end;
 
+function TestSecretSharingShamirInvalidShares: Boolean;
+var
+  S, P, R: TCnBigNumber;
+  Orders, Shares, X, Y: TCnBigNumberList;
+  S64, P64, R64: Int64;
+  Shares64, X64, Y64: TCnInt64List;
+  I: Integer;
+begin
+  Result := False;
+
+  S := TCnBigNumber.FromDec('12345678901234567890');
+  P := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  Orders := TCnBigNumberList.Create;
+  Shares := TCnBigNumberList.Create;
+  X := TCnBigNumberList.Create;
+  Y := TCnBigNumberList.Create;
+  try
+    // 正常拆分重构，且拆分给的模数必须是素数
+    if not CnShamirSplit(S, 5, 3, Orders, Shares, P) then Exit;
+    if not BigNumberBPSWIsPrime(P) then Exit;
+    if not CnShamirReconstruct(P, Orders, Shares, R) then Exit;
+    if R.ToDec <> S.ToDec then Exit;
+
+    // 份额被篡改成未约化的 y + Prime，必须拒绝
+    X.Clear;
+    Y.Clear;
+    for I := 0 to 2 do
+    begin
+      BigNumberCopy(X.Add, Orders[I]);
+      BigNumberCopy(Y.Add, Shares[I]);
+    end;
+    BigNumberAdd(Y[0], Y[0], P);
+    if CnShamirReconstruct(P, X, Y, R) then Exit;
+
+    // 合数模数下 (Xi - Xj) 与模数不互素，模逆不存在，必须拒绝而非返回错误的秘密。
+    // 份额本身均已约化合法，故被拒绝只可能是模数的原因。
+    BigNumberMulWord(P, 2); // 乘 2 后成为含因子 2 的合数
+    X.Clear;
+    Y.Clear;
+    for I := 0 to 2 do
+    begin
+      BigNumberCopy(X.Add, Orders[I]);
+      BigNumberCopy(Y.Add, Shares[I]);
+    end;
+    if CnShamirReconstruct(P, X, Y, R) then Exit;
+
+    // 拆分时传入合数模数，应被替换成真正的素数
+    if not CnShamirSplit(S, 5, 3, Orders, Shares, P) then Exit;
+    if not BigNumberBPSWIsPrime(P) then Exit;
+    if not CnShamirReconstruct(P, Orders, Shares, R) then Exit;
+    if R.ToDec <> S.ToDec then Exit;
+  finally
+    Y.Free;
+    X.Free;
+    Shares.Free;
+    Orders.Free;
+    R.Free;
+    P.Free;
+    S.Free;
+  end;
+
+  Shares64 := TCnInt64List.Create;
+  X64 := TCnInt64List.Create;
+  Y64 := TCnInt64List.Create;
+  try
+    S64 := 100;
+    P64 := 65537;
+    if not CnInt64ShamirSplit(S64, 5, 3, Shares64, P64) then Exit;
+
+    X64.Clear;
+    Y64.Clear;
+    for I := 0 to 2 do
+    begin
+      X64.Add(I + 1);
+      Y64.Add(Shares64[I]);
+    end;
+
+    if not CnInt64ShamirReconstruct(P64, X64, Y64, R64) then Exit;
+    if R64 <> S64 then Exit;
+
+    // Int64 版本同样要拒绝未约化的份额
+    Y64[0] := Y64[0] + P64;
+    if CnInt64ShamirReconstruct(P64, X64, Y64, R64) then Exit;
+
+    Result := True;
+  finally
+    Y64.Free;
+    X64.Free;
+    Shares64.Free;
+  end;
+end;
+
 function TestSecretSharingFeldmanVss: Boolean;
 var
   I: Integer;
@@ -29358,6 +29548,105 @@ begin
   Sl.Free;
   Pub.Free;
   Stream.Free;
+end;
+
+// 尝试以公钥 PEM 载入，返回是否载入成功
+function EccTryLoadPublicKeyPem(const Pem: string): Boolean;
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  Stream := TMemoryStream.Create;
+  Pub := TCnEccPublicKey.Create;
+  try
+    S := AnsiString(Pem);
+    Stream.Write(S[1], Length(S));
+    Stream.Position := 0;
+    Result := CnEccLoadPublicKeyFromPem(Stream, Pub, CurveType);
+  finally
+    Pub.Free;
+    Stream.Free;
+  end;
+end;
+
+function TestECCPubInvalidBer: Boolean;
+const
+  PEM_VALID =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEbr8v5r1XGP8R1hLozBbymC0VWmYoU/N8' + SCRLF +
+    'LaouJVaFHfvBNyqaOiaDZ5/mhIE7Y9kK1omjOY1Z9km9goNlVrc29A==' + SCRLF +
+    '-----END PUBLIC KEY-----';
+
+  // BIT STRING 内容仅 00 04，X、Y 均为 0，是无穷远点
+  PEM_INFINITY =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MBYwEAYHKoZIzj0CAQYFK4EEAAoDAgAE' + SCRLF +
+    '-----END PUBLIC KEY-----';
+
+  // BIT STRING 内容为 00 04 11 22，X=17 Y=34，不在曲线上
+  PEM_NOT_ON_CURVE =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MBgwEAYHKoZIzj0CAQYFK4EEAAoDBAAEESI=' + SCRLF +
+    '-----END PUBLIC KEY-----';
+
+  // BIT STRING 内容为 00 04 11 22 33，X、Y 长度不等
+  PEM_ODD =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MBkwEAYHKoZIzj0CAQYFK4EEAAoDBQAEESIz' + SCRLF +
+    '-----END PUBLIC KEY-----';
+
+  // BIT STRING 内容仅一个 00，读压缩模式字节会越界
+  PEM_ONE_BYTE =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MBUwEAYHKoZIzj0CAQYFK4EEAAoDAQA=' + SCRLF +
+    '-----END PUBLIC KEY-----';
+
+  // BIT STRING 内容为 00 04 加 64 个 00，长度合规但仍是无穷远点
+  PEM_ZERO_XY =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' + SCRLF +
+    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==' + SCRLF +
+    '-----END PUBLIC KEY-----';
+
+  // BIT STRING 内容为空
+  PEM_EMPTY =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MBQwEAYHKoZIzj0CAQYFK4EEAAoDAA==' + SCRLF +
+    '-----END PUBLIC KEY-----';
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  Result := False;
+  Stream := TMemoryStream.Create;
+  Pub := TCnEccPublicKey.Create;
+  try
+    // 正常的 secp256k1 公钥仍要能载入
+    S := AnsiString(PEM_VALID);
+    Stream.Write(S[1], Length(S));
+    Stream.Position := 0;
+
+    if not CnEccLoadPublicKeyFromPem(Stream, Pub, CurveType) then Exit;
+    if CurveType <> ctSecp256k1 then Exit;
+    if Pub.IsZero then Exit;
+
+    // 以上几种畸形公钥都必须被拒绝，不能被当作合法公钥返回
+    if EccTryLoadPublicKeyPem(PEM_INFINITY) then Exit;
+    if EccTryLoadPublicKeyPem(PEM_NOT_ON_CURVE) then Exit;
+    if EccTryLoadPublicKeyPem(PEM_ODD) then Exit;
+    if EccTryLoadPublicKeyPem(PEM_ONE_BYTE) then Exit;
+    if EccTryLoadPublicKeyPem(PEM_ZERO_XY) then Exit;
+    if EccTryLoadPublicKeyPem(PEM_EMPTY) then Exit;
+
+    Result := True;
+  finally
+    Pub.Free;
+    Stream.Free;
+  end;
 end;
 
 function TestECCJInvariant: Boolean;

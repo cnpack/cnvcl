@@ -548,6 +548,14 @@ begin
       _CnSetLastError(ECN_SECRET_INVALID_INPUT);
       Exit;
     end;
+
+    // 份额值也必须已约化到 [0, Prime) 内，未约化时底层乘法有溢出风险
+    if (InShares[I] < 0) or (InShares[I] >= Prime) then
+    begin
+      _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+      Exit;
+    end;
+
     for J := I + 1 to InOrders.Count - 1 do
     begin
       if InOrders[J] = InOrders[I] then
@@ -612,7 +620,10 @@ begin
     Exit;
   end;
 
-  if Prime.IsZero or Prime.IsNegative or (BigNumberCompare(Prime, Secret) <= 0) then // 如果素数过小，则重新生成
+  // 如果传进来的素数为空、比 Secret 小或根本不是素数，则重新生成。
+  // 合数模下不同份额的 x 坐标之差的模逆可能不存在，会让重构静默返回错误的秘密，故须校验素性。
+  if Prime.IsZero or Prime.IsNegative or (BigNumberCompare(Prime, Secret) <= 0) or
+    not BigNumberBPSWIsPrime(Prime) then
   begin
     // 寻找一个比 Secret 大的素数，以 Bits 为媒介
     Bits := Secret.GetBitsCount + 1;
@@ -694,6 +705,15 @@ begin
       _CnSetLastError(ECN_SECRET_INVALID_INPUT);
       Exit;
     end;
+
+    // 份额值本身也必须已约化到 [0, Prime) 内。未约化的份额虽然在当前算法下多数仍能算出
+    // 正确结果，但它破坏了份额的取值契约，且会让非法输入静默通过，故一并拦截。
+    if InShares[I].IsNegative or (BigNumberCompare(InShares[I], Prime) >= 0) then
+    begin
+      _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+      Exit;
+    end;
+
     for J := I + 1 to InOrders.Count - 1 do
     begin
       if BigNumberCompare(InOrders[I], InOrders[J]) = 0 then
@@ -751,8 +771,13 @@ begin
         end;
       end;
 
-      if not BigNumberModularInverse(T, D, Prime) then
+      // 分母 D 必须真正可逆。传入 True 以校验 gcd，合数模或非法输入下 D 与 Prime 不互素时
+      // 这里会失败并返回 False，不再像默认那样静默给出一个错误的逆值。
+      if not BigNumberModularInverse(T, D, Prime, True) then
+      begin
+        _CnSetLastError(ECN_SECRET_INVALID_INPUT);
         Exit;
+      end;
 
       if not BigNumberDirectMulMod(N, T, N, Prime) then
         Exit;

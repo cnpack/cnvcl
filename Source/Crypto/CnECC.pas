@@ -689,6 +689,7 @@ type
     F2Inverse: TCnBigNumber;
     function GetBitsCount: Integer;
     function GetBytesCount: Integer;
+    function IsPointInSubGroup(P: TCnEccPoint): Boolean; // 余因子 > 1 时验证 n * P 是否为无穷远点
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
   public
@@ -4107,6 +4108,10 @@ begin
 
   P := TCnEccPoint.Create;
   try
+    // 对于余因子 > 1 的曲线，DataPoint2 要验证 n * P = 0，防止小子群攻击泄漏私钥
+    if not IsPointInSubGroup(DataPoint2) then
+      raise ECnEccException.Create(SCnErrorEccInvalidPrivateKeyOrData);
+
     P.Assign(DataPoint2);
     MultiplePoint(PrivateKey, P);
     PointSubPoint(DataPoint1, P, OutPlainPoint);
@@ -4582,11 +4587,30 @@ begin
   end;
 end;
 
+function TCnEcc.IsPointInSubGroup(P: TCnEccPoint): Boolean;
+var
+  T: TCnEccPoint;
+begin
+  Result := True;
+  // 余因子为 1 时曲线群本身就是 n 阶循环群，在曲线上即在子群内，无需再验证
+  if (P = nil) or (FCoFactor <= 1) then
+    Exit;
+
+  Result := False;
+  T := TCnEccPoint.Create;
+  try
+    T.Assign(P);
+    NormalMultiplePoint(FOrder, T); // 必须调确定版，不能调其他随机化 Order 的版本
+    Result := T.IsZero;
+  finally
+    T.Free;
+  end;
+end;
+
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 var
   X, Y, Z, U, R, T, X3: TCnBigNumber;
-  P: TCnEccPoint;
 begin
   Result := False;
   if Plain.IsNegative then
@@ -4621,7 +4645,7 @@ begin
     begin
       BigNumberCopy(OutPoint.X, Plain);
       OutPoint.Y.SetZero;
-      Result := True;
+      Result := IsPointInSubGroup(OutPoint); // Y 为 0 的是 2 阶点，同样要过子群检查
       Exit;
     end;
 
@@ -4704,18 +4728,8 @@ begin
 
     // 对于余因子 > 1 的曲线，要验证 n * P = 0，防止小子群攻击
     // 如果 n * P <> 0，说明会有 FCoFactor 的因数 * P = 0，这小子群就太明显了，2/4/8
-    if Result and (FCoFactor > 1) then
-    begin
-      P := TCnEccPoint.Create;
-      try
-        P.Assign(OutPoint);
-        MultiplePoint(FOrder, P);
-        if not P.IsZero then
-          Result := False;
-      finally
-        P.Free;
-      end;
-    end;
+    if Result then
+      Result := IsPointInSubGroup(OutPoint);
 
   finally
     FEccBigNumberPool.Recycle(X);
@@ -5591,18 +5605,32 @@ begin
     Exit;
 
   // PubNode 的 Data 是 BITSTRING，00 04 开头
-  // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，这里是 0，跳过
+  // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，必须是 0
+  // 其后至少还要有压缩模式字节与一个坐标字节，因此总长度至少为 3，否则读模式字节会越界
+  if (BitStringNode.BerDataAddress = nil) or (BitStringNode.BerDataLength < 3) then
+    Exit;
+
+  if PByte(BitStringNode.BerDataAddress)^ <> 0 then
+    Exit;
+
   B := BitStringNode.BerDataAddress;
   Inc(B); // 跳过 00，指向压缩模式字节
 
   if B^ = EC_PUBLICKEY_UNCOMPRESSED then
   begin
-    // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
+    // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y，要求两半等长且非空
     Inc(B);
     Len := (BitStringNode.BerDataLength - 2) div 2;
+    if (Len <= 0) or (Len * 2 <> BitStringNode.BerDataLength - 2) then
+      Exit;
+
     PublicKey.X.SetBinary(PAnsiChar(B), Len);
     Inc(B, Len);
     PublicKey.Y.SetBinary(PAnsiChar(B), Len);
+
+    // X、Y 均为 0 代表无穷远点，不能当作合法公钥
+    if PublicKey.X.IsZero and PublicKey.Y.IsZero then
+      Exit;
 
     Result := True;
   end
@@ -5610,7 +5638,11 @@ begin
   begin
     Inc(B);
     // 压缩格式，全是公钥 X
-    PublicKey.X.SetBinary(PAnsiChar(B), BitStringNode.BerDataLength - 2);
+    Len := BitStringNode.BerDataLength - 2;
+    if Len <= 0 then
+      Exit;
+
+    PublicKey.X.SetBinary(PAnsiChar(B), Len);
     PublicKey.Y.SetZero; // Y 先 0，外部再去求解
 
     Result := True;
@@ -5652,6 +5684,27 @@ begin
   end;
   Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, OP, Cnt + 1, ParentNode);
   FreeMemory(OP);
+end;
+
+{* 按曲线类型校验读入的公钥是否合法，避免无穷远点或不在曲线上的点被当作合法公钥返回。
+   压缩公钥的 Y 尚未解出，此处无从校验，由外部解出 Y 后另行校验。}
+
+function ValidateEccPublicKeyByCurveType(CurveType: TCnEccCurveType;
+  PublicKey: TCnEccPublicKey): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  Result := True;
+  if (PublicKey = nil) or (CurveType = ctCustomized) or PublicKey.Y.IsZero then
+    Exit;
+
+  Result := False;
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CheckEccPublicKey(Ecc, PublicKey);
+  finally
+    Ecc.Free;
+  end;
 end;
 
 (*
@@ -5715,8 +5768,9 @@ begin
         Node := Reader.Items[3];
         CurveType := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
 
-        // 读 4 里的公钥
-        Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey);
+        // 读 4 里的公钥，并按曲线校验其合法性
+        Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey) and
+          ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
       end;
     end;
   finally
@@ -5834,9 +5888,10 @@ begin
 
             CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
 
-            // 读 6 里的公钥
+            // 读 6 里的公钥，并按曲线校验其合法性
             if PublicKey <> nil then
-              Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey);
+              Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey) and
+                ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
           end;
         end;
       end;
@@ -5877,7 +5932,8 @@ begin
                 begin
                   if Reader.Items[I].BerTag = CN_BER_TAG_BIT_STRING then
                   begin
-                    Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[I], PublicKey);
+                    Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[I], PublicKey) and
+                      ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
                     if Result then
                       Break;
                   end;
