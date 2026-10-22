@@ -56,6 +56,10 @@ unit CnCertificateAuthority;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.22 V1.10
+*               增加 IsSelfIssued 属性，仅比较签发者与被签发者的全部 DN 字段
+*               是否相同；IsSelfSigned 改为加载证书时用其自身公钥验签的结果，
+*               验签失败不影响证书结构解析；自签名验证复用加载结果，并增加外层
+*               与内层签名算法一致、签名算法与公钥类型一致的校验
 *               签发证书前校验上级证书的 Basic Constraints 与 Key Usage，上级
 *               证书明确为非 CA 或 Key Usage 不含 keyCertSign 时拒绝签发；
 *               修正 Key Usage 扩展解析时取错字节及位序映射错误的问题；
@@ -559,8 +563,9 @@ type
     FRSADigestType: TCnRSASignDigestType;
     FBasicCertificate: TCnBasicCertificate;
     FIsRSA: Boolean;
+    FIsSelfSigned: Boolean;
     FEccDigestType: TCnEccSignDigestType;
-    function GetIsSelfSigned: Boolean;
+    function GetIsSelfIssued: Boolean;
   public
     constructor Create; virtual;
     {* 构造函数}
@@ -575,8 +580,10 @@ type
        返回值：string                     - 返回证书字符串
     }
 
-    property IsSelfSigned: Boolean read GetIsSelfSigned;
-    {* 是否自签名证书。该属性使用签发者与被签发者信息是否相同来判断，并不验签名}
+    property IsSelfIssued: Boolean read GetIsSelfIssued;
+    {* 是否自颁发证书，即签发者与被签发者 DN 是否相同。该属性只比较名字，不验签名}
+    property IsSelfSigned: Boolean read FIsSelfSigned;
+    {* 是否自签名证书，即加载证书时用其自身公钥验证签名是否通过，未加载或验签失败均为 False}
     property IsRSA: Boolean read FIsRSA write FIsRSA;
     {* 是否是 RSA 证书，否则是 ECC 证书。这个字段指签发者的证书类型}
 
@@ -3926,24 +3933,88 @@ begin
     AValidationTimeUTC, True);
 end;
 
+function InternalVerifySelfSignedSignature(Certificate: TCnCertificate;
+  TBSNode: TCnBerReadNode): Boolean;
+var
+  HashStream, SignStream, InfoStream: TMemoryStream;
+  P: Pointer;
+begin
+  Result := False;
+  if (Certificate = nil) or (TBSNode = nil) then
+    Exit;
+
+  // 外层 signatureAlgorithm 不受签名保护，必须与 TBS 内层签名算法一致，防止算法替换
+  if Certificate.OuterSignType <> Certificate.CASignType then
+    Exit;
+
+  // 签名算法族必须与被签发者公钥类型一致，防止用错公钥验证
+  if Certificate.IsRSA <> Certificate.BasicCertificate.SubjectIsRSA then
+    Exit;
+
+  if (Certificate.SignValue = nil) or (Certificate.SignLength <= 0) then
+    Exit;
+
+  HashStream := nil;
+  SignStream := nil;
+  InfoStream := nil;
+  try
+    HashStream := TMemoryStream.Create;
+    P := TBSNode.BerAddress;
+    if not CalcDigestData(P^, TBSNode.BerLength, Certificate.CASignType,
+      HashStream) then
+      Exit;
+
+    if Certificate.IsRSA then
+    begin
+      // RSA 自签名证书的杂凑值可从签名中解出，对比计算值即可
+      if (Certificate.DigestValue = nil) or (Certificate.RSADigestType <>
+        GetRSASignTypeFromCASignType(Certificate.CASignType)) then
+        Exit;
+
+      if HashStream.Size = Certificate.DigestLength then
+        Result := ConstTimeCompareMem(HashStream.Memory, Certificate.DigestValue,
+          HashStream.Size)
+      else
+        Result := False;
+    end
+    else
+    begin
+      // ECC 签名中没有杂凑值，需按 ECC 方式验证签名
+      if Certificate.BasicCertificate.SubjectEccCurveType = ctCustomized then
+        Exit;
+
+      SignStream := TMemoryStream.Create;
+      SignStream.Write(Certificate.SignValue^, Certificate.SignLength);
+      InfoStream := TMemoryStream.Create;
+      InfoStream.Write(P^, TBSNode.BerLength);
+      SignStream.Position := 0;
+      InfoStream.Position := 0;
+
+      try
+        Result := CnEccVerifyStream(InfoStream, SignStream,
+          Certificate.BasicCertificate.SubjectEccCurveType,
+          Certificate.BasicCertificate.SubjectEccPublicKey,
+          GetEccSignTypeFromCASignType(Certificate.CASignType));
+      except
+        on E: ECnEccException do
+          Result := False;
+      end;
+    end;
+  finally
+    HashStream.Free;
+    SignStream.Free;
+    InfoStream.Free;
+  end;
+end;
+
 function InternalCAVerifySelfSignedCertificateStream(Stream: TStream;
   AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean;
 var
   CRT: TCnCertificate;
-  Reader: TCnBerReader;
-  MemStream, SignStream, InfoStream: TMemoryStream;
-  InfoRoot: TCnBerReadNode;
-  P: Pointer;
 begin
   Result := False;
-  CRT := nil;
-  Reader := nil;
-  MemStream := nil;
-  SignStream := nil;
-  InfoStream := nil;
-
+  CRT := TCnCertificate.Create;
   try
-    CRT := TCnCertificate.Create;
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
 
@@ -3952,59 +4023,13 @@ begin
       AValidationTimeUTC) then
       Exit;
 
-    if not CRT.IsSelfSigned then
+    if not CRT.IsSelfIssued then
       raise ECnCAException.Create(SCnErrorNotSelfSignCanNotVerify);
 
-    MemStream := TMemoryStream.Create;
-    Stream.Position := 0;
-    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
-      PEM_CERTIFICATE_TAIL, MemStream) then
-    begin
-      // 非 PEM 输入按二进制 ASN.1(CER) 处理，由后面加载
-      Stream.Position := 0;
-      MemStream.LoadFromStream(Stream);
-    end;
-
-    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-    try
-      Reader.ParseToTree;
-    except
-      on E: ECnBerException do
-        Exit;
-    end;
-
-    if Reader.TotalCount > 2 then
-    begin
-      InfoRoot := Reader.Items[1];
-
-      // 计算其杂凑值
-      SignStream := TMemoryStream.Create;
-
-      if CRT.IsRSA then // RSA 自签名证书的杂凑值是能从证书里解密出来的，对比计算值即可
-      begin
-        P := InfoRoot.BerAddress;
-        CalcDigestData(P^, InfoRoot.BerLength, CRT.CASignType, SignStream);
-        if SignStream.Size = CRT.DigestLength then
-          Result := ConstTimeCompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
-      end
-      else // ECC 自签名证书里没有杂凑值，字段里的杂凑值是我们计算出来的没有对比意义，需要按 ECC 的方式验证签名值
-      begin
-        SignStream.Write(CRT.SignValue^, CRT.SignLength);
-        InfoStream := TMemoryStream.Create;
-        InfoStream.Write(InfoRoot.BerAddress^, InfoRoot.BerLength);
-        InfoStream.Position := 0;
-        SignStream.Position := 0;
-
-        Result := CnEccVerifyStream(InfoStream, SignStream, CRT.BasicCertificate.SubjectEccCurveType,
-          CRT.BasicCertificate.SubjectEccPublicKey, GetEccSignTypeFromCASignType(CRT.CASignType));
-      end;
-    end;
+    // 加载证书时已用其自身公钥验签，直接返回记录的结果
+    Result := CRT.IsSelfSigned;
   finally
     CRT.Free;
-    Reader.Free;
-    MemStream.Free;
-    SignStream.Free;
-    InfoStream.Free;
   end;
 end;
 
@@ -4507,8 +4532,12 @@ var
   IsPem: Boolean;
   Peek5: array[0..4] of AnsiChar;
   SignTypeTmp: TCnCASignType;
+  ExtractOK: Boolean;
 begin
   Result := False;
+
+  // 每次加载都先复位自签名结论，避免复用对象时残留上一次的结果
+  Certificate.FIsSelfSigned := False;
 
   Mem := nil;
   HashStream := nil;
@@ -4712,33 +4741,41 @@ begin
         Exit;
     end;
 
-    // RSA 自签名证书可以解开杂凑值，ECC 的没有
-    if Certificate.IsSelfSigned then
+    // 先按名字判断是否自颁发，以决定能否用被签发者公钥解出签名；
+    // 最终是否自签名由验签结果决定，签名解析或验签失败不影响证书结构解析
+    if Certificate.IsSelfIssued then
     begin
-      Result := ExtractSignaturesByPublicKey(IsRSA, Certificate.BasicCertificate.SubjectRSAPublicKey,
+      ExtractOK := ExtractSignaturesByPublicKey(IsRSA, Certificate.BasicCertificate.SubjectRSAPublicKey,
         Certificate.BasicCertificate.SubjectEccPublicKey, SignAlgNode, SignValueNode,
         SignTypeTmp, Certificate.FRSADigestType, Certificate.FSignValue,
         Certificate.FDigestValue, Certificate.FSignLength, Certificate.FDigestLength);
-      if Result then
+      if ExtractOK then
+      begin
         Certificate.OuterSignType := SignTypeTmp; // 外层不受签名保护的算法单独记录，不回写 CASignType
 
-      if Result and not IsRSA then
-      begin
-        // ECC 得自行计算其杂凑值
-        HashStream := TMemoryStream.Create;
-        P := Reader.Items[1].BerAddress;
-        if not CalcDigestData(P^, Reader.Items[1].BerLength, Certificate.CASignType,
-          HashStream) then
-          Exit;
+        if not IsRSA then
+        begin
+          // ECC 得自行计算其杂凑值
+          HashStream := TMemoryStream.Create;
+          P := Reader.Items[1].BerAddress;
+          if CalcDigestData(P^, Reader.Items[1].BerLength, Certificate.CASignType,
+            HashStream) then
+          begin
+            FreeMemory(Certificate.DigestValue);
+            Certificate.DigestValue := GetMemory(HashStream.Size);
+            Certificate.DigestLength := HashStream.Size;
+            Move(HashStream.Memory^, Certificate.DigestValue^, HashStream.Size);
 
-        FreeMemory(Certificate.DigestValue);
-        Certificate.DigestValue := GetMemory(HashStream.Size);
-        Certificate.DigestLength := HashStream.Size;
-        Move(HashStream.Memory^, Certificate.DigestValue^, HashStream.Size);
+            Certificate.EccDigestType := GetEccSignTypeFromCASignType(Certificate.CASignType);
+          end;
+        end;
 
-        Certificate.EccDigestType := GetEccSignTypeFromCASignType(Certificate.CASignType);
-        Result := True;
+        // 用证书自身公钥验签，失败仅表示不是自签名证书
+        Certificate.FIsSelfSigned := InternalVerifySelfSignedSignature(Certificate,
+          Reader.Items[1]);
       end;
+
+      Result := True;
     end
     else
     begin
@@ -4782,6 +4819,7 @@ end;
 constructor TCnCertificate.Create;
 begin
   FBasicCertificate := TCnBasicCertificate.Create;
+  FIsSelfSigned := False;
 end;
 
 destructor TCnCertificate.Destroy;
@@ -4790,17 +4828,38 @@ begin
   inherited;
 end;
 
-function TCnCertificate.GetIsSelfSigned: Boolean;
+function InternalDNValueEqual(const AValue, BValue: string): Boolean;
 begin
-  Result := (FBasicCertificate.Subject.CountryName = FBasicCertificate.Issuer.CountryName)
-    and (FBasicCertificate.Subject.OrganizationName = FBasicCertificate.Issuer.OrganizationName)
-    and (FBasicCertificate.Subject.CommonName = FBasicCertificate.Issuer.CommonName);
+  // DN 比较去空白且忽略大小写，宁可放宽也不能漏判合法的自签名证书
+  Result := SameText(Trim(AValue), Trim(BValue));
+end;
+
+function TCnCertificate.GetIsSelfIssued: Boolean;
+begin
+  Result := InternalDNValueEqual(FBasicCertificate.Subject.CountryName,
+    FBasicCertificate.Issuer.CountryName)
+    and InternalDNValueEqual(FBasicCertificate.Subject.StateOrProvinceName,
+      FBasicCertificate.Issuer.StateOrProvinceName)
+    and InternalDNValueEqual(FBasicCertificate.Subject.LocalityName,
+      FBasicCertificate.Issuer.LocalityName)
+    and InternalDNValueEqual(FBasicCertificate.Subject.OrganizationName,
+      FBasicCertificate.Issuer.OrganizationName)
+    and InternalDNValueEqual(FBasicCertificate.Subject.OrganizationalUnitName,
+      FBasicCertificate.Issuer.OrganizationalUnitName)
+    and InternalDNValueEqual(FBasicCertificate.Subject.CommonName,
+      FBasicCertificate.Issuer.CommonName)
+    and InternalDNValueEqual(FBasicCertificate.Subject.EmailAddress,
+      FBasicCertificate.Issuer.EmailAddress);
 end;
 
 function TCnCertificate.ToString: string;
 begin
-  if IsSelfSigned then
-    Result := 'Self-Signature ';
+  if FIsSelfSigned then
+    Result := 'Self-Signature '
+  else if IsSelfIssued then
+    Result := 'Self-Issued (Not Verified) '
+  else
+    Result := '';
   Result := Result + FBasicCertificate.ToString;
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
   Result := Result + SCRLF + 'Signature: ' + DataToHex(FSignValue, FSignLength);

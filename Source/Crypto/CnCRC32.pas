@@ -1334,3 +1334,4 @@ initialization
   Make_CRC64Table; // ≥ı ºªØ CRC64 ±Ì
 
 end.
+

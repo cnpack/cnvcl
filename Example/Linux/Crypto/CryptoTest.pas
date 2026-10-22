@@ -331,6 +331,7 @@ function TestCASignTypeConsistency: Boolean;
 function TestCASerialNumberDEREncoding: Boolean;
 function TestCASerialNumberInvalidInput: Boolean;
 function TestCASignParentRestriction: Boolean;
+function TestCASelfSignedStatus: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -2255,6 +2256,7 @@ begin
   MyAssert(TestCASerialNumberDEREncoding, 'TestCASerialNumberDEREncoding');
   MyAssert(TestCASerialNumberInvalidInput, 'TestCASerialNumberInvalidInput');
   MyAssert(TestCASignParentRestriction, 'TestCASignParentRestriction');
+  MyAssert(TestCASelfSignedStatus, 'TestCASelfSignedStatus');
 
 // =============================== Int128 ======================================
 
@@ -12880,6 +12882,159 @@ begin
     EPub.Free;
     EPriv.Free;
     Ecc.Free;
+    CAPub.Free;
+    CAPriv.Free;
+  end;
+end;
+
+function TestCASelfSignedStatus: Boolean;
+{* 自签名状态回归：IsSelfIssued 只比较签发者与被签发者的全部 DN 字段，
+   IsSelfSigned 由加载证书时用其自身公钥验签的结果填充。
+   覆盖自签 RSA/ECC 证书、签名被篡改、同 DN 不同密钥（自颁发但非自签名）、
+   仅 OU 不同（旧实现只比较 C/O/CN 会误判）等场景，全程内存流操作 }
+var
+  CAPriv, CliPriv: TCnRSAPrivateKey;
+  CAPub, CliPub: TCnRSAPublicKey;
+  Ecc: TCnEcc;
+  EPriv: TCnEccPrivateKey;
+  EPub: TCnEccPublicKey;
+  RootStd, ChildStd: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  RootSt, RootGoodSt, CSRSt, ChildSt, EccSt: TMemoryStream;
+  CRT: TCnCertificate;
+  P: PByte;
+  PA: PByteArray;
+begin
+  Result := False;
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  CliPriv := TCnRSAPrivateKey.Create;
+  CliPub := TCnRSAPublicKey.Create;
+  Ecc := TCnEcc.Create(ctSM2);
+  EPriv := TCnEccPrivateKey.Create;
+  EPub := TCnEccPublicKey.Create;
+  RootStd := TCnCertificateStandardExtensions.Create;
+  ChildStd := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  RootSt := TMemoryStream.Create;
+  RootGoodSt := TMemoryStream.Create;
+  CSRSt := TMemoryStream.Create;
+  ChildSt := TMemoryStream.Create;
+  EccSt := TMemoryStream.Create;
+  CRT := TCnCertificate.Create;
+  try
+    // ---- RSA 自签名根证书 ----
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+    RootStd.BasicConstraintsCA := True;
+    RootStd.KeyUsage := [kuDigitalSignature, kuKeyCertSign, kuCRLSign];
+
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, RootSt,
+      'CN', 'State', 'City', 'Org', 'Unit', 'RootCN', 'ca@b.com', '1',
+      Now - 1, Now + 365, RootStd, PrivExt, ctSha256RSA) then
+      Exit;
+
+    RootSt.Position := 0;
+    if not CnCALoadCertificateFromStream(RootSt, CRT) then Exit;
+    if not CRT.IsSelfIssued then Exit;
+    if not CRT.IsSelfSigned then Exit;
+
+    RootSt.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(RootSt) then Exit;
+
+    // 备份未篡改的根证书供后续签发使用
+    RootSt.Position := 0;
+    RootGoodSt.CopyFrom(RootSt, 0);
+
+    // ---- 签名被篡改：结构可解析、IsSelfIssued 仍为 True，但 IsSelfSigned 为 False ----
+    RootSt.Position := 0;
+    P := RootSt.Memory;
+    PA := PByteArray(P);
+    PA^[Integer(RootSt.Size) - 1] := PA^[Integer(RootSt.Size) - 1] xor $01;
+    RootSt.Position := 0;
+    if not CnCALoadCertificateFromStream(RootSt, CRT) then Exit;
+    if not CRT.IsSelfIssued then Exit;
+    if CRT.IsSelfSigned then Exit;
+
+    RootSt.Position := 0;
+    if CnCAVerifySelfSignedCertificateStream(RootSt) then Exit;
+
+    // ---- 自颁发但非自签名：用 CA 私钥签发 Subject 与 Issuer 完全相同的子证书 ----
+    CnRSAGenerateKeys(1024, CliPriv, CliPub);
+    CSRSt.Clear;
+    if not CnCANewCertificateSignRequestStream(CliPriv, CliPub, CSRSt,
+      'CN', 'State', 'City', 'Org', 'Unit', 'RootCN', 'ca@b.com',
+      ctSha256RSA) then Exit;
+
+    ChildStd.BasicConstraintsCA := False;
+    ChildStd.KeyUsage := [kuDigitalSignature];
+
+    ChildSt.Clear;
+    RootGoodSt.Position := 0;
+    if not CnCASignCertificate2Stream(CAPriv, RootGoodSt, CSRSt, ChildSt,
+      '2', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then Exit;
+
+    ChildSt.Position := 0;
+    if not CnCALoadCertificateFromStream(ChildSt, CRT) then Exit;
+    if not CRT.IsSelfIssued then Exit;
+    if CRT.IsSelfSigned then Exit;
+
+    // 自颁发但验签不过，CnCAVerifySelfSignedCertificateStream 也必须返回 False
+    ChildSt.Position := 0;
+    if CnCAVerifySelfSignedCertificateStream(ChildSt) then Exit;
+
+    // ---- 仅 OU 不同：名字不完全相同，IsSelfIssued 必须为 False ----
+    CSRSt.Clear;
+    if not CnCANewCertificateSignRequestStream(CliPriv, CliPub, CSRSt,
+      'CN', 'State', 'City', 'Org', 'OtherUnit', 'RootCN', 'ca@b.com',
+      ctSha256RSA) then Exit;
+
+    ChildSt.Clear;
+    RootGoodSt.Position := 0;
+    if not CnCASignCertificate2Stream(CAPriv, RootGoodSt, CSRSt, ChildSt,
+      '3', Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then Exit;
+
+    ChildSt.Position := 0;
+    if not CnCALoadCertificateFromStream(ChildSt, CRT) then Exit;
+    if CRT.IsSelfIssued then Exit;
+    if CRT.IsSelfSigned then Exit;
+
+    // ---- ECC 自签名证书 ----
+    Ecc.GenerateKeys(EPriv, EPub);
+    if not CnCANewSelfSignedCertificateStream(EPriv, EPub, ctSM2, EccSt,
+      'CN', 'State', 'City', 'Org', 'Unit', 'EccCN', 'a@b.com', '4',
+      Now - 1, Now + 365, ctSha256Ecc) then Exit;
+
+    EccSt.Position := 0;
+    if not CnCALoadCertificateFromStream(EccSt, CRT) then Exit;
+    if not CRT.IsSelfIssued then Exit;
+    if not CRT.IsSelfSigned then Exit;
+
+    // ECC 签名被篡改后仍可解析，但不再认定为自签名
+    EccSt.Position := 0;
+    P := EccSt.Memory;
+    PA := PByteArray(P);
+    PA^[Integer(EccSt.Size) - 1] := PA^[Integer(EccSt.Size) - 1] xor $01;
+    EccSt.Position := 0;
+    if not CnCALoadCertificateFromStream(EccSt, CRT) then Exit;
+    if not CRT.IsSelfIssued then Exit;
+    if CRT.IsSelfSigned then Exit;
+
+    Result := True;
+  finally
+    EccSt.Free;
+    ChildSt.Free;
+    CSRSt.Free;
+    RootGoodSt.Free;
+    RootSt.Free;
+    CRT.Free;
+    PrivExt.Free;
+    ChildStd.Free;
+    RootStd.Free;
+    EPub.Free;
+    EPriv.Free;
+    Ecc.Free;
+    CliPub.Free;
+    CliPriv.Free;
     CAPub.Free;
     CAPriv.Free;
   end;
