@@ -14080,9 +14080,12 @@ begin
   Result := FloatEqual(R, 1.4521461422284583435, 0.000000000000001);
   if not Result then Exit;
 
-  // 超出可处理范围要抛异常
+  // 超出可处理范围要抛异常。这里用有限的字面值 1E301（大于 CN_NORMALIZE_ANGLE_MAX），
+  // 不能用 CnIntPower(10, 400)：Win64 下 Extended 等同 Double，10^400 会先溢出为 Inf，
+  // 部分 Delphi 版本因此抛 EOverflow，异常在进入 NormalizeAngle 之前就发生，
+  // 下面的 ECnMathException 分支捕获不到，测试会误报失败。
   try
-    R := NormalizeAngle(CnIntPower(10, 400));
+    R := NormalizeAngle(1E301);
     Result := False;
   except
     on E: ECnMathException do
