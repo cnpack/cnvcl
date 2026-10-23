@@ -565,12 +565,12 @@ var
   end;
 
 begin
+  OutPutData := nil;
   if InputData = '' then
   begin
     Result := ECN_BASE64_OK;
     Exit;
   end;
-  OutPutData := nil;
 
   // 在 D5 下不知道怎么的不能用 AnsiString(InputData)，可能会出内存错误，于是区分开来
   if FilterDecodeInput then
@@ -595,7 +595,6 @@ begin
   // （SrcLen=0 时访问 Data[0]），将触发空指针访问崩溃，且可被外部构造的输入远程触发。
   if Data = '' then
   begin
-    SetLength(OutputData, 0);
     Result := ECN_BASE64_OK;
     Exit;
   end;

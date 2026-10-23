@@ -2522,7 +2522,6 @@ var
   SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
-  Buf: TBytes;
   VerNode: TCnBerWriteNode;
   B: Byte;
   Crit: TCnCertificateExtensionCriticals;

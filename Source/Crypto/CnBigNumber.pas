@@ -45,7 +45,10 @@ unit CnBigNumber;
 *           注：D5/D6/CB5/CB6 下曾经遇上编译器 Bug 无法修复，
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时，现在暂时绕过了。
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.06.12 V3.1
+* 修改记录：2026.10.23 V3.2
+*               Delphi 5/C++Buider 5 下改用 HeapAlloc/HeapFree 取代
+*               有 Bug 的内存管理机制以避免批量跑时出莫名其妙的内存异常
+*           2026.06.12 V3.1
 *               将一些公共域隐藏以增强安全性
 *           2025.04.24 V3.0
 *               加入 Lucas U V 序列的计算及 BPSW 素数判定算法
@@ -3111,6 +3114,10 @@ var
   FCnBigNumberIs64: Boolean = False;
 {$ENDIF}
 
+{$IFDEF COMPILER5}
+  FHeap: THandle = INVALID_HANDLE_VALUE;
+{$ENDIF}
+
 function DefBigNumberCompare(Item1, Item2: Pointer): Integer;
 begin
   // 直接复用 BigNumberCompare，保证两个比较器对 nil 的约定一致（nil 视为最大）
@@ -3339,7 +3346,13 @@ begin
   if (Words <= 0) or (Words > (MaxInt div (4 * BN_BITS2))) then
     Exit;
 
+{$IFDEF COMPILER5}
+  if FHeap = INVALID_HANDLE_VALUE then
+    FHeap := GetProcessHeap;
+  A := PCnBigNumberElement(HeapAlloc(FHeap, 0, SizeOf(TCnBigNumberElement) * Words));
+{$ELSE}
   A := PCnBigNumberElement(GetMemory(SizeOf(TCnBigNumberElement) * Words));
+{$ENDIF}
   if A = nil then
     Exit;
 
@@ -3411,7 +3424,15 @@ begin
       Exit;
 
     if Num.FD <> nil then
+    begin
+{$IFDEF COMPILER5}
+      if FHeap = INVALID_HANDLE_VALUE then
+        FHeap := GetProcessHeap;
+      HeapFree(FHeap, 0, Num.FD);
+{$ELSE}
       FreeMemory(Num.FD);
+{$ENDIF}
+    end;
     Num.FD := P;
     Num.FDMax := Words;
 
@@ -11399,7 +11420,15 @@ destructor TCnBigNumber.Destroy;
 begin
   BigNumberClear(Self);
   if FD <> nil then
+  begin
+{$IFDEF COMPILER5}
+  if FHeap = INVALID_HANDLE_VALUE then
+    FHeap := GetProcessHeap;
+  HeapFree(FHeap, 0, FD);
+{$ELSE}
     FreeMemory(FD);
+{$ENDIF}
+  end;
 
   FD := nil;
   inherited;
