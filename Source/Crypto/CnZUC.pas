@@ -341,7 +341,11 @@ begin
     Exit;
 
   LB := L * 32 - BitLen;                       // 最后一块四字节的有效位数
+{$IFDEF COMPILER5}
+  Z := PCardinal(CnGetMemory(Result));
+{$ELSE}
   Z := PCardinal(GetMemory(Result));
+{$ENDIF}
 
   try
     Iv[0] := (Count shr 24) and $FF;
@@ -378,7 +382,11 @@ begin
       PC^[L - 1] := PC^[L - 1] and K;
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMemory(Z);
+{$ELSE}
     FreeMemory(Z);
+{$ENDIF}
   end;
 end;
 
@@ -440,7 +448,12 @@ begin
 
   N := BitLen + 64;
   L := (N + 31) div 32;
+
+{$IFDEF COMPILER5}
+  Z := PCardinal(CnGetMemory(L * SizeOf(Cardinal)));
+{$ELSE}
   Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
+{$ENDIF}
 
   try
     ZUC(IK, @Iv[0], Z, L);
@@ -454,7 +467,11 @@ begin
 
     Mac := T xor PCardinal(TCnIntAddress(Z) + SizeOf(Cardinal) * (L - 1))^;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMemory(Z);
+{$ELSE}
     FreeMemory(Z);
+{$ENDIF}
   end;
 end;
 

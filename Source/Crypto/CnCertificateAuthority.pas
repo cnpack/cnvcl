@@ -55,7 +55,11 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.22 V1.10
+* 修改记录：2026.10.24 V1.11
+*               修正签发证书时签发者字段的取值：被签发证书的 issuer 应取上级证书
+*               的 subject（签发者名字），原实现误取上级证书自身的 issuer，在多层
+*               CA 链中会造成签发者名字链断裂
+*           2026.10.22 V1.10
 *               增加 IsSelfIssued 属性，仅比较签发者与被签发者的全部 DN 字段
 *               是否相同；IsSelfSigned 改为加载证书时用其自身公钥验签的结果，
 *               验签失败不影响证书结构解析；自签名验证复用加载结果，并增加外层
@@ -2791,19 +2795,19 @@ begin
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
 
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
@@ -2977,19 +2981,19 @@ begin
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
 
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
@@ -3376,9 +3380,16 @@ begin
   end;
 
   // 解析出原始签名内容，跳过 BIT String 的前导对齐 0
-  FreeMemory(SignValue);
   SignLength := SignNode.BerDataLength - 1;
+
+{$IFDEF COMPILER5}
+  CnFreeMemory(SignValue);
+  SignValue := CnGetMemory(SignLength);
+{$ELSE}
+  FreeMemory(SignValue);
   SignValue := GetMemory(SignLength);
+{$ENDIF}
+
   P := PByte(SignNode.BerDataAddress);
   Inc(P);
   Move(P^, SignValue^, SignLength);
@@ -3411,9 +3422,15 @@ begin
 
         // 获取 Ber 解出的杂凑值
         Node := Reader.Items[4];
-        FreeMemory(DigestValue);
         DigestLength := Node.BerDataLength;
+
+{$IFDEF COMPILER5}
+        CnFreeMemory(DigestValue);
+        DigestValue := CnGetMemory(DigestLength);
+{$ELSE}
+        FreeMemory(DigestValue);
         DigestValue := GetMemory(DigestLength);
+{$ENDIF}
         Move(Node.BerDataAddress^, DigestValue^, DigestLength);
 
         Result := True;
@@ -3776,8 +3793,13 @@ begin
           HashStream) then
           Exit;
 
+{$IFDEF COMPILER5}
+        CnFreeMemory(CertificateRequest.DigestValue);
+        CertificateRequest.DigestValue := CnGetMemory(HashStream.Size);
+{$ELSE}
         FreeMemory(CertificateRequest.DigestValue);
         CertificateRequest.DigestValue := GetMemory(HashStream.Size);
+{$ENDIF}
         CertificateRequest.DigestLength := HashStream.Size;
         Move(HashStream.Memory^, CertificateRequest.DigestValue^, HashStream.Size);
 
@@ -4348,8 +4370,13 @@ begin
   FCertificateRequestInfo.Free;
   FEccPublicKey.Free;
   FRSAPublicKey.Free;
+{$IFDEF COMPILER5}
+  CnFreeMemory(FSignValue);
+  CnFreeMemory(FDigestValue);
+{$ELSE}
   FreeMemory(FSignValue);
   FreeMemory(FDigestValue);
+{$ENDIF}
   inherited;
 end;
 
@@ -4760,8 +4787,14 @@ begin
           if CalcDigestData(P^, Reader.Items[1].BerLength, Certificate.CASignType,
             HashStream) then
           begin
+{$IFDEF COMPILER5}
+            CnFreeMemory(Certificate.DigestValue);
+            Certificate.DigestValue := CnGetMemory(HashStream.Size);
+{$ELSE}
             FreeMemory(Certificate.DigestValue);
             Certificate.DigestValue := GetMemory(HashStream.Size);
+{$ENDIF}
+
             Certificate.DigestLength := HashStream.Size;
             Move(HashStream.Memory^, Certificate.DigestValue^, HashStream.Size);
 

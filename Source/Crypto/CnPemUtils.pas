@@ -630,13 +630,22 @@ begin
       Exit;
 
     Len := Stream.Size - L;
+{$IFDEF COMPILER5}
+    Mem := CnGetMemory(Len);
+{$ELSE}
     Mem := GetMemory(Len);
+{$ENDIF}
+
     if Mem <> nil then
     begin
       Move(Stream.Memory^, Mem^, Len);
       Stream.Clear;
       Stream.Write(Mem^, Len);
+{$IFDEF COMPILER5}
+      CnFreeMemory(Mem);
+{$ELSE}
       FreeMemory(Mem);
+{$ENDIF}
       Result := True;
     end;
   end;

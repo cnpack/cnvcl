@@ -3114,10 +3114,6 @@ var
   FCnBigNumberIs64: Boolean = False;
 {$ENDIF}
 
-{$IFDEF COMPILER5}
-  FHeap: THandle = INVALID_HANDLE_VALUE;
-{$ENDIF}
-
 function DefBigNumberCompare(Item1, Item2: Pointer): Integer;
 begin
   // 直接复用 BigNumberCompare，保证两个比较器对 nil 的约定一致（nil 视为最大）
@@ -3347,9 +3343,7 @@ begin
     Exit;
 
 {$IFDEF COMPILER5}
-  if FHeap = INVALID_HANDLE_VALUE then
-    FHeap := GetProcessHeap;
-  A := PCnBigNumberElement(HeapAlloc(FHeap, 0, SizeOf(TCnBigNumberElement) * Words));
+  A := PCnBigNumberElement(CnGetMemory(SizeOf(TCnBigNumberElement) * Words));
 {$ELSE}
   A := PCnBigNumberElement(GetMemory(SizeOf(TCnBigNumberElement) * Words));
 {$ENDIF}
@@ -3426,9 +3420,7 @@ begin
     if Num.FD <> nil then
     begin
 {$IFDEF COMPILER5}
-      if FHeap = INVALID_HANDLE_VALUE then
-        FHeap := GetProcessHeap;
-      HeapFree(FHeap, 0, Num.FD);
+      CnFreeMemory(Num.FD);
 {$ELSE}
       FreeMemory(Num.FD);
 {$ENDIF}
@@ -6329,7 +6321,11 @@ begin
   BnData := nil;
   T := nil;
   try
+{$IFDEF COMPILER5}
+    BnData := PCnBigNumberElement(CnGetMemory(((N div 9) + 1) * SizeOf(TCnBigNumberElement)));
+{$ELSE}
     BnData := PCnBigNumberElement(GetMemory(((N div 9) + 1) * SizeOf(TCnBigNumberElement)));
+{$ENDIF}
     if BnData = nil then
       Exit;
 
@@ -6387,7 +6383,13 @@ begin
     end;
   finally
     if BnData <> nil then
+    begin
+{$IFDEF COMPILER5}
+      CnFreeMemory(BnData);
+{$ELSE}
       FreeMemory(BnData);
+{$ENDIF}
+    end;
 
     FLocalBigNumberPool.Recycle(T);
   end;
@@ -11439,9 +11441,7 @@ begin
   if FD <> nil then
   begin
 {$IFDEF COMPILER5}
-  if FHeap = INVALID_HANDLE_VALUE then
-    FHeap := GetProcessHeap;
-  HeapFree(FHeap, 0, FD);
+    CnFreeMemory(FD);
 {$ELSE}
     FreeMemory(FD);
 {$ENDIF}

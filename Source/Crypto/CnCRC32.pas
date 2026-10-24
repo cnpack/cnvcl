@@ -651,6 +651,7 @@ var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
   ReadCount: Integer;
+  ReadGot: Cardinal;
   Size: Int64;
   Count: Int64;
   Buff: TBuff;
@@ -685,9 +686,13 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, Cardinal(ReadCount), nil);
-      CRC := DoCrc8Calc(CRC, Buff, ReadCount);
-      Dec(Count, ReadCount);
+      // 实际读出字节数须用独立变量接收：与请求值共用变量时 ReadFile 失败
+      // 返回 0 会使 Count 永不递减而死循环；读失败或读空则终止按已读部分计算
+      ReadGot := 0;
+      if not ReadFile(Handle, Buff, ReadCount, ReadGot, nil) or (ReadGot = 0) then
+        Break;
+      CRC := DoCrc8Calc(CRC, Buff, ReadGot);
+      Dec(Count, ReadGot);
     end;
     CRC := not CRC;
   finally
@@ -829,6 +834,7 @@ var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
   ReadCount: Integer;
+  ReadGot: Cardinal;
   Size: Int64;
   Count: Int64;
   Buff: TBuff;
@@ -863,9 +869,13 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, Cardinal(ReadCount), nil);
-      CRC := DoCrc16Calc(CRC, Buff, ReadCount);
-      Dec(Count, ReadCount);
+      // 实际读出字节数须用独立变量接收：与请求值共用变量时 ReadFile 失败
+      // 返回 0 会使 Count 永不递减而死循环；读失败或读空则终止按已读部分计算
+      ReadGot := 0;
+      if not ReadFile(Handle, Buff, ReadCount, ReadGot, nil) or (ReadGot = 0) then
+        Break;
+      CRC := DoCrc16Calc(CRC, Buff, ReadGot);
+      Dec(Count, ReadGot);
     end;
     CRC := not CRC;
   finally
@@ -1009,6 +1019,7 @@ var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
   ReadCount: Integer;
+  ReadGot: Cardinal;
   Size: Int64;
   Count: Int64;
   Buff: TBuff;
@@ -1043,9 +1054,13 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, Cardinal(ReadCount), nil);
-      CRC := DoCrc32Calc(CRC, Buff, ReadCount);
-      Dec(Count, ReadCount);
+      // 实际读出字节数须用独立变量接收：与请求值共用变量时 ReadFile 失败
+      // 返回 0 会使 Count 永不递减而死循环；读失败或读空则终止按已读部分计算
+      ReadGot := 0;
+      if not ReadFile(Handle, Buff, ReadCount, ReadGot, nil) or (ReadGot = 0) then
+        Break;
+      CRC := DoCrc32Calc(CRC, Buff, ReadGot);
+      Dec(Count, ReadGot);
     end;
     CRC := not CRC;
   finally
@@ -1203,6 +1218,7 @@ var
 {$IFDEF MSWINDOWS}
   Handle: THandle;
   ReadCount: Integer;
+  ReadGot: Cardinal;
   Size: Int64;
   Count: Int64;
   Buff: TBuff;
@@ -1237,9 +1253,13 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, Cardinal(ReadCount), nil);
-      CRC := DoCrc64Calc(CRC, Buff, ReadCount);
-      Dec(Count, ReadCount);
+      // 实际读出字节数须用独立变量接收：与请求值共用变量时 ReadFile 失败
+      // 返回 0 会使 Count 永不递减而死循环；读失败或读空则终止按已读部分计算
+      ReadGot := 0;
+      if not ReadFile(Handle, Buff, ReadCount, ReadGot, nil) or (ReadGot = 0) then
+        Break;
+      CRC := DoCrc64Calc(CRC, Buff, ReadGot);
+      Dec(Count, ReadGot);
     end;
     CRC := not CRC;
   finally

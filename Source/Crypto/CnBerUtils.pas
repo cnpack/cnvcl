@@ -947,14 +947,22 @@ begin
   if C <= 0 then
     Exit;
 
+{$IFDEF COMPILER5}
+  P := CnGetMemory(C);
+{$ELSE}
   P := GetMemory(C);
-  D := C - Num.GetBytesCount;
+{$ENDIF}
 
+  D := C - Num.GetBytesCount;
   FillChar(P^, D, 0);
   Num.ToBinary(PAnsiChar(TCnIntAddress(P) + D));
-
   Result := Writer.AddBasicNode(Tag, P, C, Parent);
+
+{$IFDEF COMPILER5}
+  CnFreeMemory(P);
+{$ELSE}
   FreeMemory(P);
+{$ENDIF}
 end;
 
 procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
@@ -964,10 +972,20 @@ begin
   if (Node = nil) or (Node.BerDataLength <= 0) then
     Exit;
 
+{$IFDEF COMPILER5}
+  P := CnGetMemory(Node.BerDataLength);
+{$ELSE}
   P := GetMemory(Node.BerDataLength);
+{$ENDIF}
+
   Node.CopyDataTo(P);
   BigNumber.SetBinary(P, Node.BerDataLength);
+
+{$IFDEF COMPILER5}
+  CnFreeMemory(P);
+{$ELSE}
   FreeMemory(P);
+{$ENDIF}
 end;
 
 { TCnBerReader }

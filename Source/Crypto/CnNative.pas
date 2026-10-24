@@ -2314,6 +2314,24 @@ function RotateRight64(A: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE}
 
 {$IFDEF COMPILER5}
 
+function CnGetMemory(Size: Integer): Pointer;
+{* 封装的内存分配函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。
+
+   参数：
+     Size: Integer                        - 待分配的内存字节大小
+
+   返回值：Pointer                        - 返回分配的内存指针
+}
+
+procedure CnFreeMemory(P: Pointer);
+{* 封装的内存释放函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。
+
+   参数：
+     P: Pointer                           - 待分配的内存字节大小
+
+   返回值：（无）
+}
+
 function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
 {* 布尔变量转换为字符串。Delphi 5 下没有该 BoolToStr 函数，补上。
 
@@ -2332,9 +2350,13 @@ resourcestring
   SCnErrorNotAHexPChar = 'Error: NOT a Hex Char: #%d';
   SCnErrorLengthNotHex = 'Error Length %d: NOT a Hex String';
   SCnErrorLengthNotHexAnsi = 'Error Length %d: NOT a Hex AnsiString';
+  SCnErrorNoHeap = 'Error No Heap.';
 
 var
   FByteOrderIsBigEndian: Boolean = False;
+{$IFDEF COMPILER5}
+  FHeap: THandle = INVALID_HANDLE_VALUE;
+{$ENDIF}
 
 function CurrentByteOrderIsBigEndian: Boolean;
 type
@@ -5956,6 +5978,23 @@ end;
 
 {$IFDEF COMPILER5}
 
+function CnGetMemory(Size: Integer): Pointer;
+begin
+  if (FHeap = 0) or (FHeap = INVALID_HANDLE_VALUE) then
+    raise ECnNativeException.Create(SCnErrorNoHeap);
+
+  Result := HeapAlloc(FHeap, 0, Size);
+end;
+
+procedure CnFreeMemory(P: Pointer);
+begin
+  if (FHeap = 0) or (FHeap = INVALID_HANDLE_VALUE) then
+    raise ECnNativeException.Create(SCnErrorNoHeap);
+
+  if P <> nil then
+    HeapFree(FHeap, 0, P);
+end;
+
 function BoolToStr(Value: Boolean; UseBoolStrs: Boolean): string;
 begin
   if UseBoolStrs then
@@ -6009,5 +6048,8 @@ end;
 
 initialization
   FByteOrderIsBigEndian := CurrentByteOrderIsBigEndian;
+{$IFDEF COMPILER5}
+  FHeap := GetProcessHeap;
+{$ENDIF}
 
 end.

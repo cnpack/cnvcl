@@ -5703,7 +5703,12 @@ begin
   else
     Cnt := Half;
 
+{$IFDEF COMPILER5}
+  OP := CnGetMemory(Cnt + 1);
+{$ELSE}
   OP := GetMemory(Cnt + 1);
+{$ENDIF}
+
   P := OP;
   P^ := B;
 
@@ -5715,7 +5720,12 @@ begin
     PublicKey.Y.ToBinary(PAnsiChar(P), Half);
   end;
   Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, OP, Cnt + 1, ParentNode);
+
+{$IFDEF COMPILER5}
+  CnFreeMemory(OP);
+{$ELSE}
   FreeMemory(OP);
+{$ENDIF}
 end;
 
 function GetCurveFieldBytes(CurveType: TCnEccCurveType): Integer;

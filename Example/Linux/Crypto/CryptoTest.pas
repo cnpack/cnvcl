@@ -332,6 +332,7 @@ function TestCASerialNumberDEREncoding: Boolean;
 function TestCASerialNumberInvalidInput: Boolean;
 function TestCASignParentRestriction: Boolean;
 function TestCASelfSignedStatus: Boolean;
+function TestCAIssuerUseParentSubject: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -2257,6 +2258,7 @@ begin
   MyAssert(TestCASerialNumberInvalidInput, 'TestCASerialNumberInvalidInput');
   MyAssert(TestCASignParentRestriction, 'TestCASignParentRestriction');
   MyAssert(TestCASelfSignedStatus, 'TestCASelfSignedStatus');
+  MyAssert(TestCAIssuerUseParentSubject, 'TestCAIssuerUseParentSubject');
 
 // =============================== Int128 ======================================
 
@@ -13061,6 +13063,124 @@ begin
     CliPriv.Free;
     CAPub.Free;
     CAPriv.Free;
+  end;
+end;
+
+function TestCAIssuerUseParentSubject: Boolean;
+{* 签发者字段回归：被签发证书的 issuer 必须是上级证书的 subject（签发者的名字），
+   原实现误取上级证书自身的 issuer，在 根CA -> 子CA -> 叶子证书 的多层链中会造成
+   签发者名字链断裂。此用例构造三层链，逐级校验 issuer 与 subject 的归属关系。 }
+var
+  RootPriv, SubPriv, LeafPriv: TCnRSAPrivateKey;
+  RootPub, SubPub, LeafPub: TCnRSAPublicKey;
+  CaStd, LeafStd: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  RootSt, SubSt, LeafSt, CSRSt: TMemoryStream;
+  RootCRT, SubCRT, LeafCRT: TCnCertificate;
+
+  function SameDN(A, B: TCnCertificateNameInfo): Boolean;
+  begin
+    Result := (A.CountryName = B.CountryName)
+      and (A.StateOrProvinceName = B.StateOrProvinceName)
+      and (A.LocalityName = B.LocalityName)
+      and (A.OrganizationName = B.OrganizationName)
+      and (A.OrganizationalUnitName = B.OrganizationalUnitName)
+      and (A.CommonName = B.CommonName)
+      and (A.EmailAddress = B.EmailAddress);
+  end;
+
+begin
+  Result := False;
+  RootPriv := TCnRSAPrivateKey.Create;
+  RootPub := TCnRSAPublicKey.Create;
+  SubPriv := TCnRSAPrivateKey.Create;
+  SubPub := TCnRSAPublicKey.Create;
+  LeafPriv := TCnRSAPrivateKey.Create;
+  LeafPub := TCnRSAPublicKey.Create;
+  CaStd := TCnCertificateStandardExtensions.Create;
+  LeafStd := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  RootSt := TMemoryStream.Create;
+  SubSt := TMemoryStream.Create;
+  LeafSt := TMemoryStream.Create;
+  CSRSt := TMemoryStream.Create;
+  RootCRT := TCnCertificate.Create;
+  SubCRT := TCnCertificate.Create;
+  LeafCRT := TCnCertificate.Create;
+  try
+    CaStd.BasicConstraintsCA := True;
+    CaStd.KeyUsage := [kuDigitalSignature, kuKeyCertSign, kuCRLSign];
+    LeafStd.BasicConstraintsCA := False;
+    LeafStd.KeyUsage := [kuDigitalSignature, kuKeyEncipherment];
+
+    // ---- 自签根 CA ----
+    CnRSAGenerateKeys(1024, RootPriv, RootPub);
+    if not CnCANewSelfSignedCertificate2Stream(RootPriv, RootPub, RootSt,
+      'CN', 'State', 'City', 'Org', 'Unit', 'RootCN', 'ca@b.com', '1',
+      Now - 1, Now + 365, CaStd, PrivExt, ctSha256RSA) then Exit;
+
+    RootSt.Position := 0;
+    if not CnCALoadCertificateFromStream(RootSt, RootCRT) then Exit;
+    if RootCRT.BasicCertificate.Issuer.CommonName <> 'RootCN' then Exit;
+    if RootCRT.BasicCertificate.Subject.CommonName <> 'RootCN' then Exit;
+
+    // ---- 根 CA 签发子 CA ----
+    CnRSAGenerateKeys(1024, SubPriv, SubPub);
+    CSRSt.Clear;
+    if not CnCANewCertificateSignRequestStream(SubPriv, SubPub, CSRSt,
+      'CN', 'State', 'City', 'Org', 'Unit', 'SubCN', 'sub@b.com',
+      ctSha256RSA) then Exit;
+    if not CnCASignCertificate2Stream(RootPriv, RootSt, CSRSt, SubSt,
+      '2', Now - 1, Now + 365, CaStd, PrivExt, ctSha256RSA) then Exit;
+
+    SubSt.Position := 0;
+    if not CnCALoadCertificateFromStream(SubSt, SubCRT) then Exit;
+    // 子 CA 的签发者必须是根 CA 的 subject
+    if not SameDN(SubCRT.BasicCertificate.Issuer,
+      RootCRT.BasicCertificate.Subject) then Exit;
+    if SubCRT.BasicCertificate.Subject.CommonName <> 'SubCN' then Exit;
+
+    // ---- 子 CA 签发叶子证书 ----
+    CnRSAGenerateKeys(1024, LeafPriv, LeafPub);
+    CSRSt.Clear;
+    if not CnCANewCertificateSignRequestStream(LeafPriv, LeafPub, CSRSt,
+      'CN', 'State', 'City', 'Org', 'Unit', 'LeafCN', 'leaf@b.com',
+      ctSha256RSA) then Exit;
+    if not CnCASignCertificate2Stream(SubPriv, SubSt, CSRSt, LeafSt,
+      '3', Now - 1, Now + 365, LeafStd, PrivExt, ctSha256RSA) then Exit;
+
+    LeafSt.Position := 0;
+    if not CnCALoadCertificateFromStream(LeafSt, LeafCRT) then Exit;
+    // 叶子的签发者必须是子 CA 的 subject，而不是子 CA 自身的 issuer(RootCN)
+    if not SameDN(LeafCRT.BasicCertificate.Issuer,
+      SubCRT.BasicCertificate.Subject) then Exit;
+    if LeafCRT.BasicCertificate.Issuer.CommonName <> 'SubCN' then Exit;
+    if LeafCRT.BasicCertificate.Subject.CommonName <> 'LeafCN' then Exit;
+
+    // 叶子由子 CA 的私钥签发，只能用子 CA 的公钥验通
+    LeafSt.Position := 0;
+    if not CnCAVerifyCertificateStream(LeafSt, SubPub, True) then Exit;
+    LeafSt.Position := 0;
+    if CnCAVerifyCertificateStream(LeafSt, RootPub, True) then Exit;
+
+    Result := True;
+  finally
+    LeafCRT.Free;
+    SubCRT.Free;
+    RootCRT.Free;
+    CSRSt.Free;
+    LeafSt.Free;
+    SubSt.Free;
+    RootSt.Free;
+    PrivExt.Free;
+    LeafStd.Free;
+    CaStd.Free;
+    LeafPub.Free;
+    LeafPriv.Free;
+    SubPub.Free;
+    SubPriv.Free;
+    RootPub.Free;
+    RootPriv.Free;
   end;
 end;
 

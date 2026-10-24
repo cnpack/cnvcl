@@ -2435,7 +2435,7 @@ end;
 
 procedure CnCurve448PointToEd448Point(DestPoint, SourcePoint: TCnEccPoint);
 var
-  T1, T2, T3, Prime, TX: TCnBigNumber;
+  T1, T2, T3, Prime, TX, TI: TCnBigNumber;
 begin
   // x = 4*v*(u^2 - 1)/(u^4 - 2*u^2 + 4*v^2 + 1)
   // y = -(u^5 - 2*u^3 - 4*u*v^2 + u)/(u^5 - 2*u^2*v^2 - 2*u^3 - 2*v^2 + u)
@@ -2445,11 +2445,13 @@ begin
   T3 := nil;
   Prime := nil;
   TX := nil;
+  TI := nil;
 
   try
     T1 := FBigNumberPool.Obtain;
     T2 := FBigNumberPool.Obtain;
     T3 := FBigNumberPool.Obtain;
+    TI := FBigNumberPool.Obtain;
 
     Prime := FBigNumberPool.Obtain;
     Prime.SetHex(SCN_448_PRIME);
@@ -2465,7 +2467,8 @@ begin
     BigNumberAddMod(T1, T1, T2, Prime);
     BigNumberAddWord(T1, 1);
     BigNumberMod(T1, T1, Prime);                              // T1 得到分母
-    BigNumberModularInverse(T1, T1, Prime);                   // T1 得到分母倒数等待乘分子并仅占用 T1
+    // 逆元须写入独立临时量：Res 与 X 同对象会触发重复引用检查抛异常
+    BigNumberModularInverse(TI, T1, Prime);                   // TI 得到分母倒数等待乘分子并仅占用 TI
 
     // 再算 x 的分子
     BigNumberDirectMulMod(T2, SourcePoint.X, SourcePoint.X, Prime);
@@ -2475,7 +2478,7 @@ begin
     BigNumberAddMod(T2, T2, T2, Prime);                       // 加两次 T2 得到 4*v*(u^2 - 1)
 
     TX := FBigNumberPool.Obtain;
-    BigNumberDirectMulMod(TX, T2, T1, Prime);                 // 得到 X 暂存并释放 T1 和 T2
+    BigNumberDirectMulMod(TX, T2, TI, Prime);                 // 得到 X 暂存并释放 T1 和 T2
 
     // 开始算 y 的分母
     BigNumberPowerWordMod(T1, SourcePoint.X, 5, Prime);       // T1 得到 u^5
@@ -2494,7 +2497,7 @@ begin
 
     BigNumberSubMod(T1, T1, T2, Prime);                       // T1 得到 u^5 - 2*u^2*v^2 - 2*u^3 - 2v^2 并释放 T2
     BigNumberAddMod(T1, T1, SourcePoint.X, Prime);            // 减完 u 后 T1 得到分母
-    BigNumberModularInverse(T1, T1, Prime);                   // T1 得到分母倒数等待乘分子并仅占用 T1
+    BigNumberModularInverse(TI, T1, Prime);                   // TI 得到分母倒数等待乘分子并仅占用 TI
 
     // 再算 y 的分子 -(u^5 - 2*u^3 - 4*u*v^2 + u)
     BigNumberPowerWordMod(T2, SourcePoint.X, 5, Prime);       // T2 得到 u^5
@@ -2510,10 +2513,11 @@ begin
     BigNumberAddMod(T2, T2, SourcePoint.X, Prime);            // T2 得到 u^5 - 2*u^3 - 4*u*v^2 + u
 
     BigNumberSubMod(T2, CnBigNumberZero, T2, Prime);          // 求负后 T2 得到完整分子
-    BigNumberDirectMulMod(DestPoint.Y, T2, T1, Prime);        // 与 T1 这个分母倒数相乘得到 Y
+    BigNumberDirectMulMod(DestPoint.Y, T2, TI, Prime);        // 与 TI 这个分母倒数相乘得到 Y
 
     BigNumberCopy(DestPoint.X, TX);                           // 再设置 X
   finally
+    FBigNumberPool.Recycle(TI);
     FBigNumberPool.Recycle(TX);
     FBigNumberPool.Recycle(Prime);
     FBigNumberPool.Recycle(T3);
@@ -2524,7 +2528,7 @@ end;
 
 procedure CnEd448PointToCurve448Point(DestPoint, SourcePoint: TCnEccPoint);
 var
-  T1, T2, Prime, TX: TCnBigNumber;
+  T1, T2, Prime, TX, TI: TCnBigNumber;
 begin
   // u = y^2/x^2
   // v = (2 - x^2 - y^2)*y/x^3
@@ -2533,19 +2537,22 @@ begin
   T2 := nil;
   TX := nil;
   Prime := nil;
+  TI := nil;
 
   try
     T1 := FBigNumberPool.Obtain;
     T2 := FBigNumberPool.Obtain;
     Prime := FBigNumberPool.Obtain;
     Prime.SetHex(SCN_448_PRIME);
+    TI := FBigNumberPool.Obtain;
 
     BigNumberDirectMulMod(T1, SourcePoint.X, SourcePoint.X, Prime);
-    BigNumberPrimeModularInverse(T1, T1, Prime);            // T1 得到 1 / x^2
+    // 逆元须写入独立临时量：Res 与 X 同对象会触发重复引用检查抛异常
+    BigNumberPrimeModularInverse(TI, T1, Prime);            // TI 得到 1 / x^2
     BigNumberDirectMulMod(T2, SourcePoint.Y, SourcePoint.Y, Prime);
 
     TX := FBigNumberPool.Obtain;
-    BigNumberDirectMulMod(TX, T1, T2, Prime);               // U 得到 y^2 / x^2 先暂存避免两点是同一个受影响
+    BigNumberDirectMulMod(TX, TI, T2, Prime);               // U 得到 y^2 / x^2 先暂存避免两点是同一个受影响
 
     BigNumberDirectMulMod(T1, SourcePoint.X, SourcePoint.X, Prime);
     BigNumberDirectMulMod(T2, SourcePoint.Y, SourcePoint.Y, Prime);
@@ -2556,11 +2563,12 @@ begin
 
     BigNumberDirectMulMod(T1, SourcePoint.X, SourcePoint.X, Prime);
     BigNumberDirectMulMod(T1, T1, SourcePoint.X, Prime);
-    BigNumberPrimeModularInverse(T1, T1, Prime);             // T1 得到 1 / x^3
+    BigNumberPrimeModularInverse(TI, T1, Prime);             // TI 得到 1 / x^3
 
-    BigNumberDirectMulMod(DestPoint.Y, T1, T2, Prime);       // V 得到 (2 - x^2 - y^2)*y/x^3
+    BigNumberDirectMulMod(DestPoint.Y, TI, T2, Prime);       // V 得到 (2 - x^2 - y^2)*y/x^3
     BigNumberCopy(DestPoint.X, TX);                          // 设置 U
   finally
+    FBigNumberPool.Recycle(TI);
     FBigNumberPool.Recycle(Prime);
     FBigNumberPool.Recycle(TX);
     FBigNumberPool.Recycle(T2);
@@ -2751,6 +2759,10 @@ begin
     or (PrivateKey = nil) or (PublicKey = nil)
     or (OutSignature = nil) then
     Exit;
+  // RFC 8032 dom4 的 OLEN(C) 为单字节，上下文须在 0..255 内，超长必须拒绝，
+  // 否则静默按 mod 256 截断后签名自洽但与其他实现不互操作
+  if Length(UserContext) > 255 then
+    Exit;
 
   R := nil;
   S := nil;
@@ -2846,6 +2858,8 @@ begin
     Result := True;
   finally
     Stream.Free;
+    // Dig 是 r 乘数，泄露后配合公开 (R, S) 可还原私钥 s，用后必须清零
+    MemorySafeZero(@Dig[0], SizeOf(TCnSHAKE256Digest));
     FBigNumberPool.Recycle(HP);
     FBigNumberPool.Recycle(K);
     FBigNumberPool.Recycle(S);
@@ -2870,6 +2884,9 @@ begin
   Result := False;
   if (DataByteLen < 0) or ((DataByteLen > 0) and (PlainData = nil))
     or (PublicKey = nil) or (InSignature = nil) then
+    Exit;
+  // 同签名侧：RFC 8032 dom4 的 OLEN(C) 为单字节，上下文超 255 字节必须拒绝
+  if Length(UserContext) > 255 then
     Exit;
 
   L := nil;
@@ -3506,13 +3523,14 @@ end;
 
 function TCnMontgomeryCurve.IsPointOnCurve(P: TCnEccPoint): Boolean;
 var
-  X, Y, T: TCnBigNumber;
+  X, Y, T, T2: TCnBigNumber;
 begin
   // 判断 B*y^2 是否等于 x^3 + A*x^2 + x mod P
 
   X := nil;
   Y := nil;
   T := nil;
+  T2 := nil;
 
   try
     X := FBigNumberPool.Obtain;
@@ -3529,11 +3547,14 @@ begin
 
     T.AddWord(1); // T := A*X + 1
     BigNumberDirectMulMod(T, X, T, FFiniteFieldSize);       // T := X * (A*X + 1) = AX^2 + X
-    BigNumberPowerWordMod(X, X, 3, FFiniteFieldSize);  // X^3
-    BigNumberAddMod(X, X, T, FFiniteFieldSize); // X := x^3 + Ax^2 + x mod P
+    // X^3 须写入独立临时量：Res 与 X 为同一对象会触发重复引用检查抛异常
+    T2 := FBigNumberPool.Obtain;
+    BigNumberPowerWordMod(T2, X, 3, FFiniteFieldSize);  // T2 := X^3
+    BigNumberAddMod(X, T2, T, FFiniteFieldSize); // X := x^3 + Ax^2 + x mod P
 
     Result := BigNumberEqual(X, Y);
   finally
+    FBigNumberPool.Recycle(T2);
     FBigNumberPool.Recycle(Y);
     FBigNumberPool.Recycle(X);
     FBigNumberPool.Recycle(T);
@@ -4648,7 +4669,7 @@ end;
 
 procedure TCnEd25519.ExtendedPointInverse(P: TCnEcc4Point);
 var
-  T: TCnBigNumber;
+  T, T2: TCnBigNumber;
 begin
   T := FBigNumberPool.Obtain;
   try
@@ -4658,9 +4679,15 @@ begin
 
     // T := X * Y / Z^3
     BigNumberPowerWordMod(T, P.Z, 3, FFiniteFieldSize);
-    BigNumberModularInverse(T, T, FFiniteFieldSize); // T 是 Z^3 的逆元
-    BigNumberDirectMulMod(P.T, P.X, P.Y, FFiniteFieldSize);
-    BigNumberDirectMulMod(P.T, P.T, T, FFiniteFieldSize);
+    // 逆元须写入独立临时量：Res 与 X 同对象会触发重复引用检查抛异常
+    T2 := FBigNumberPool.Obtain;
+    try
+      BigNumberModularInverse(T2, T, FFiniteFieldSize); // T2 是 Z^3 的逆元
+      BigNumberDirectMulMod(P.T, P.X, P.Y, FFiniteFieldSize);
+      BigNumberDirectMulMod(P.T, P.T, T2, FFiniteFieldSize);
+    finally
+      FBigNumberPool.Recycle(T2);
+    end;
   finally
     FBigNumberPool.Recycle(T);
   end;

@@ -490,7 +490,7 @@ var
 begin
   Mem := TMemoryStream.Create;
   try
-    Mem.CopyFrom(InputData, InputData.Size);
+    Mem.CopyFrom(InputData, InputData.Size - InputData.Position);
     Result := Base64Encode(Mem.Memory, Mem.Size, OutputData, URL);
   finally
     Mem.Free;
@@ -843,7 +843,7 @@ var
 begin
   Mem := TMemoryStream.Create;
   try
-    Mem.CopyFrom(InputData, InputData.Size);
+    Mem.CopyFrom(InputData, InputData.Size - InputData.Position);
     Result := Base32Encode(Mem.Memory, Mem.Size, OutputData);
   finally
     Mem.Free;

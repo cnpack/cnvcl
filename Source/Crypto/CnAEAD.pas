@@ -1876,7 +1876,11 @@ begin
     // 解密结果只进入临时缓冲区，认证成功后才提交给调用方。
     if EnByteLength > 0 then
     begin
+{$IFDEF COMPILER5}
+      TempBuf := CnGetMemory(EnByteLength);
+{$ELSE}
       TempBuf := GetMemory(EnByteLength);
+{$ENDIF}
       if TempBuf = nil then
         Exit;
     end;
@@ -1969,7 +1973,13 @@ begin
     if (TempBuf <> nil) and (OrigEnByteLength > 0) then
       MemorySafeZero(TempBuf, OrigEnByteLength);
     if TempBuf <> nil then
+    begin
+{$IFDEF COMPILER5}
+      CnFreeMemory(TempBuf);
+{$ELSE}
       FreeMemory(TempBuf);
+{$ENDIF}
+    end;
     MemorySafeZero(@H[0], SizeOf(H));
     MemorySafeZero(@Y[0], SizeOf(Y));
     MemorySafeZero(@Y0[0], SizeOf(Y0));
@@ -2714,7 +2724,11 @@ begin
   try
     if EnByteLength > 0 then
     begin
+{$IFDEF COMPILER5}
+      TempBuf := CnGetMemory(EnByteLength);
+{$ELSE}
       TempBuf := GetMemory(EnByteLength);
+{$ENDIF}
       if TempBuf = nil then
         Exit;
       TempPlain := TempBuf;
@@ -2886,7 +2900,13 @@ begin
     if (TempBuf <> nil) and (OrigEnByteLength > 0) then
       MemorySafeZero(TempBuf, OrigEnByteLength);
     if TempBuf <> nil then
+    begin
+{$IFDEF COMPILER5}
+      CnFreeMemory(TempBuf);
+{$ELSE}
       FreeMemory(TempBuf);
+{$ENDIF}
+    end;
     MemorySafeZero(@CMacCtx, SizeOf(CMacCtx));
     MemorySafeZero(@CtrCtx, SizeOf(CtrCtx));
     MemorySafeZero(@B0[0], SizeOf(B0));
@@ -3228,7 +3248,11 @@ begin
 
     if EnByteLength > 0 then
     begin
+{$IFDEF COMPILER5}
+      TempBuf := CnGetMemory(EnByteLength);
+{$ELSE}
       TempBuf := GetMemory(EnByteLength);
+{$ENDIF}
       if TempBuf = nil then
         Exit;
     end;
@@ -3278,7 +3302,13 @@ begin
     if (TempBuf <> nil) and (OrigEnByteLength > 0) then
       MemorySafeZero(TempBuf, OrigEnByteLength);
     if TempBuf <> nil then
+    begin
+{$IFDEF COMPILER5}
+      CnFreeMemory(TempBuf);
+{$ELSE}
       FreeMemory(TempBuf);
+{$ENDIF}
+    end;
     MemorySafeZero(@ChaChaKey[0], SizeOf(ChaChaKey));
     MemorySafeZero(@Nonce[0], SizeOf(Nonce));
     MemorySafeZero(@OutKey[0], SizeOf(OutKey));

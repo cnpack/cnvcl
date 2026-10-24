@@ -54,7 +54,12 @@ unit CnPDFCrypt;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.03.02 V1.2
+* 修改记录：2026.10.24 V1.3
+*               修正计算加密密钥不按 /Length 截断的问题：原实现 R3+ 恒取
+*               16 字节、R2 恒取 5 字节，导致 V2/R3+40 与 V2/R2+128 等
+*               规范合法组合的文件密钥错误（ISO 32000 Algorithm 2）；
+*               V2/R3+ 的加密方法选择按 /Length 区分 40RC4 与 128RC4
+*           2024.03.02 V1.2
 *               实现 128AES 的加解密
 *           2024.03.02 V1.1
 *               实现 128RC4 的加解密
@@ -261,8 +266,17 @@ begin
       if Revision = 2 then
         Result := cpem40RC4;
     2:
-      if Revision in [2, 3] then
-        Result := cpem128RC4;
+      if Revision = 2 then
+        Result := cpem128RC4
+      else if Revision in [3, 4] then
+      begin
+        // V2/R3+ 按 /Length 区分：40 位用 40RC4，否则 128RC4，
+        // 原实现一律按 128RC4 处理导致 40 位历史文件密钥长度错误
+        if KeyBitLength <= 40 then
+          Result := cpem40RC4
+        else
+          Result := cpem128RC4;
+      end;
     4:
       if Revision = 4 then
       begin
@@ -354,11 +368,15 @@ begin
   begin
     for I := 1 to 50 do
       Dig := MD5(@Dig[0], KL);
+  end;
 
-    SetLength(Result, 16);
-  end
+  // ISO 32000 Algorithm 2：R2 且 V=1 时密钥恒为 5 字节；其余按 KeyBitLength
+  // 截断到 KL 字节。原实现对 R3+ 固定取 16、R2 固定取 5，
+  // 导致 V2/R3+40 位与 V2/R2+128 位等合法组合的文件密钥全错
+  if (Revision <= 2) and (Version <= 1) then
+    SetLength(Result, 5)
   else
-    SetLength(Result, 5);
+    SetLength(Result, KL);
 
   Move(Dig[0], Result[0], Length(Result));
 end;

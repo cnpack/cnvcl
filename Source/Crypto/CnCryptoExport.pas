@@ -3763,7 +3763,10 @@ begin
       Exit;
     end;
     S := DataToHex(in_ptr, in_len, True);
-    L := Length(S);
+
+    // 输出按编译字符宽度：ANSI 为 ASCII，Unicode 为 UTF-16，长度按字节计
+    // （与 cn_base64_encode 一致），否则 Unicode 构建下输出截断一半
+    L := Length(S) * SizeOf(Char);
     out_len := L;
     if cap < L then
     begin
@@ -4254,7 +4257,8 @@ begin
       Gen.SetCounter(counter);
       Gen.Digits := digits;
       S := Gen.OneTimePassword;
-      out_len := Length(S);
+      // 输出按编译字符宽度计字节（Unicode 构建下为 UTF-16），否则输出截断一半
+      out_len := Length(S) * SizeOf(Char);
       if cap < out_len then
       begin
         Result := CN_E_BUFFER_TOO_SMALL;

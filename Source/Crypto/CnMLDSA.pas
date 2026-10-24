@@ -31,7 +31,9 @@ unit CnMLDSA;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.11.16 V1.0
+* 修改记录：2026.10.24 V1.1
+*               允许空消息：FIPS 204 的 M 为任意字节串，不再抛异常拒绝
+*           2025.11.16 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -1497,7 +1499,8 @@ begin
         Result[1] := Length(Ctx);
         if Length(Ctx) > 0 then
           Move(Ctx[1], Result[2], Length(Ctx));
-        Move(Msg[0], Result[2 + Length(Ctx)], Length(Msg));
+        if Length(Msg) > 0 then
+          Move(Msg[0], Result[2 + Length(Ctx)], Length(Msg));
       end;
     cmhtSHA224:
       begin
@@ -2185,9 +2188,7 @@ var
   Seed: TCnMLDSASeed;
   R, Data: TBytes;
 begin
-  if Length(Msg) <= 0 then
-    raise ECnMLDSAException.Create(SCnErrorMLDSAInvalidMsgLength);
-
+  // FIPS 204 允许空消息（M 为任意字节串），不再拒绝
   if (Length(RandHex) > 0) and (Length(RandHex) <> 64) then
     raise ECnMLDSAException.Create(SCnErrorMLDSAInvalidHexLength);
 
@@ -2215,9 +2216,7 @@ var
   Data: TBytes;
 begin
   Result := False;
-  if Length(Msg) <= 0 then
-    raise ECnMLDSAException.Create(SCnErrorMLDSAInvalidMsgLength);
-
+  // FIPS 204 允许空消息（M 为任意字节串），不再拒绝
   if Length(Ctx) > 255 then
     raise ECnMLDSAException.Create(SCnErrorMLDSAInvalidCtxLength);
 
