@@ -56,6 +56,9 @@ unit CnCertificateAuthority;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.24 V1.11
+*               修正加载畸形证书时的单文件 DoS：证书的签名值节点必须是内容长度
+*               足够的 BIT STRING，否则拒绝；避免 BerDataLength - 1 得到负长度
+*               导致 GetMemory(负数) 抛异常逸出到调用方
 *               修正签发证书时签发者字段的取值：被签发证书的 issuer 应取上级证书
 *               的 subject（签发者名字），原实现误取上级证书自身的 issuer，在多层
 *               CA 链中会造成签发者名字链断裂
@@ -3360,6 +3363,13 @@ var
 begin
   Result := False;
 
+  // 签名值节点必须是 BIT STRING，且除对齐字节外至少要有一个签名字节，否则
+  // 拒绝畸形证书。避免 BerDataLength - 1 得到负长度导致 GetMemory(负数) 抛异常
+  // 逸出到调用方，也避免空签名导致的空指针写入。
+  if (SignNode = nil) or (SignNode.BerTag <> CN_BER_TAG_BIT_STRING)
+    or (SignNode.BerDataLength <= 1) then
+    Exit;
+
   // 找到签名算法：外层 OID 必须可识别，否则整体拒绝。
   if (HashNode.Count < 1) or not ExtractCASignType(HashNode.Items[0], CASignType) then
       Exit;
@@ -3478,13 +3488,12 @@ begin
         Continue;
 
       ValueNode := ValueNode.Items[0]; // 指向 OctetString 的子节点，Value 所在
-      if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTKEYIDENTIFIER, SizeOf(OID_EXT_SUBJECTKEYIDENTIFIER))
-        then
+      if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTKEYIDENTIFIER,
+        SizeOf(OID_EXT_SUBJECTKEYIDENTIFIER)) then
       begin
         StandardExt.SubjectKeyIdentifier := ValueNode.AsAnsiString;
       end
-      else if CompareObjectIdentifier(OidNode, @OID_EXT_KEYUSAGE, SizeOf(OID_EXT_KEYUSAGE))
-        then
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_KEYUSAGE, SizeOf(OID_EXT_KEYUSAGE)) then
       begin
         StandardExt.FKeyUsagePresent := True;
         if ValueNode.BerTag = CN_BER_TAG_BIT_STRING then
@@ -3503,15 +3512,13 @@ begin
           end;
         end;
       end
-      else if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTALTNAME, SizeOf(OID_EXT_SUBJECTALTNAME))
-        then
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTALTNAME, SizeOf(OID_EXT_SUBJECTALTNAME)) then
       begin
         StandardExt.SubjectAltName.Clear;
         for J := 0 to ValueNode.Count - 1 do
           StandardExt.SubjectAltName.Add(ValueNode[J].AsRawString);
       end
-      else if CompareObjectIdentifier(OidNode, @OID_EXT_ISSUERTALTNAME, SizeOf(OID_EXT_ISSUERTALTNAME))
-        then
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_ISSUERTALTNAME, SizeOf(OID_EXT_ISSUERTALTNAME)) then
       begin
         StandardExt.IssuerAltName.Clear;
         for J := 0 to ValueNode.Count - 1 do
@@ -3552,8 +3559,7 @@ begin
         if ValueNode.Count = 1 then
           StandardExt.AuthorityKeyIdentifier := ValueNode[0].AsAnsiString;
       end
-      else if CompareObjectIdentifier(OidNode, @OID_EXT_EXTKEYUSAGE, SizeOf(OID_EXT_EXTKEYUSAGE))
-        then
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_EXTKEYUSAGE, SizeOf(OID_EXT_EXTKEYUSAGE)) then
       begin
         StandardExt.ExtendedKeyUsage := [];
         for J := 0 to ValueNode.Count - 1 do
@@ -5422,19 +5428,19 @@ begin
 
     // 写签发者
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
 
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
@@ -5602,19 +5608,19 @@ begin
 
     // 写签发者
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
 
     // 写有效时间
     UTCTime := TCnUTCTime.Create;

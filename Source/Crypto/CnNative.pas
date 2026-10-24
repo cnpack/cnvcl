@@ -2350,7 +2350,9 @@ resourcestring
   SCnErrorNotAHexPChar = 'Error: NOT a Hex Char: #%d';
   SCnErrorLengthNotHex = 'Error Length %d: NOT a Hex String';
   SCnErrorLengthNotHexAnsi = 'Error Length %d: NOT a Hex AnsiString';
+{$IFDEF COMPILER5}
   SCnErrorNoHeap = 'Error No Heap.';
+{$ENDIF}
 
 var
   FByteOrderIsBigEndian: Boolean = False;
