@@ -38,7 +38,11 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.06.12 V3.6
+* 修改记录：2026.10.24 V3.7
+*               修正 OAEP 解密对空明文密文恒失败的缺陷（MStart 边界应含等号）；
+*               OAEP 解码入口补 k >= 2*hLen+2 长度检查防越界读；
+*               LoadKeysFromPem 补指数 e 合法性校验，拒绝 e=1 等非法密钥对
+*           2026.06.12 V3.6
 *               OAEP 增加 SHA2 杂凑的支持。
 *           2026.01.29 V3.5
 *               隐藏 PKCS1 的 Padding 错误以防范 Bleichenbacher 攻击。
@@ -2048,7 +2052,26 @@ begin
     end;
 
     if Result then
-      _CnSetLastError(ECN_RSA_OK)
+    begin
+      // 加载成功后校验指数 e 合法性（奇数且 >= 3），与公钥加载分支的校验一致，
+      // 防止不可信密钥对文件携带 e = 1 等非法指数导致加密输出恒等
+      if (PublicKey <> nil) and ((not PublicKey.PubKeyExponent.IsOdd) or
+        PublicKey.PubKeyExponent.IsZero or PublicKey.PubKeyExponent.IsOne or
+        PublicKey.PubKeyExponent.IsNegative) then
+      begin
+        Result := False;
+        _CnSetLastError(ECN_RSA_INVALID_INPUT);
+      end
+      else if (PrivateKey <> nil) and ((not PrivateKey.PrivKeyExponent.IsOdd) or
+        PrivateKey.PrivKeyExponent.IsZero or PrivateKey.PrivKeyExponent.IsOne or
+        PrivateKey.PrivKeyExponent.IsNegative) then
+      begin
+        Result := False;
+        _CnSetLastError(ECN_RSA_INVALID_INPUT);
+      end
+      else
+        _CnSetLastError(ECN_RSA_OK);
+    end
     else
       _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
   finally
@@ -5622,7 +5645,9 @@ begin
 
   MdLen := SizeOf(TCnSHA1Digest);
   DBLen := DataByteLen - MdLen - 1;
-  if DBLen <= 0 then
+  // RFC 8017 要求 k >= 2*hLen + 2（即 DB 至少容纳 lHash 与 0x01 分隔字节），
+  // 否则后面按 MdLen 长度比较 lHash 会越界读 DB
+  if DBLen <= MdLen then
   begin
     _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
@@ -5686,7 +5711,8 @@ begin
     end;
 
     // Verify: found separator, no bad bytes, and first byte was 0
-    if (not BadFormat) and (not Looking) and (MStart > 0) and (MStart < DBLen)
+    // MStart = DBLen 对应空消息（RFC 8017 允许 mL = 0），须放行
+    if (not BadFormat) and (not Looking) and (MStart > 0) and (MStart <= DBLen)
       and ValidByte0 then
     begin
 //      没法判断目标区域是否够不够容纳，因为 OutLen 没传进 ToBuf 的实际长度来
@@ -5696,7 +5722,8 @@ begin
 //        Exit;
 //      end;
 
-      Move(DB[MStart], ToBuf^, DBLen - MStart);
+      if DBLen - MStart > 0 then
+        Move(DB[MStart], ToBuf^, DBLen - MStart);
       OutByteLen := DBLen - MStart; // 返回明文数据长度
       Result := True;
     end;
@@ -5746,7 +5773,9 @@ begin
   end;
 
   DBLen := DataByteLen - MdLen - 1;
-  if DBLen <= 0 then
+  // RFC 8017 要求 k >= 2*hLen + 2（即 DB 至少容纳 lHash 与 0x01 分隔字节），
+  // 否则后面按 MdLen 长度比较 lHash 会越界读 DB（如 1024 位密钥配 SHA512）
+  if DBLen <= MdLen then
   begin
     _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
@@ -5816,10 +5845,12 @@ begin
     end;
 
     // Verify: found separator, no bad bytes, and first byte was 0
-    if (not BadFormat) and (not Looking) and (MStart > 0) and (MStart < DBLen)
+    // MStart = DBLen 对应空消息（RFC 8017 允许 mL = 0），须放行
+    if (not BadFormat) and (not Looking) and (MStart > 0) and (MStart <= DBLen)
       and ValidByte0 then
     begin
-      Move(DB[MStart], ToBuf^, DBLen - MStart);
+      if DBLen - MStart > 0 then
+        Move(DB[MStart], ToBuf^, DBLen - MStart);
       OutByteLen := DBLen - MStart; // 返回明文数据长度
       Result := True;
     end;

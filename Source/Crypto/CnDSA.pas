@@ -30,7 +30,11 @@ unit CnDSA;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.10.11 V1.0
+* 修改记录：2026.10.24 V1.1
+*               修正杂凑截断用 GetBitsCount 计算移位导致的截断不足：
+*               摘要首位 bit 为 0 时 z 取错（违反 FIPS 186-4 的最左位规则），
+*               改为按杂凑固定位长截断，与 OpenSSL 等标准实现互操作
+*           2024.10.11 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -301,8 +305,10 @@ var
   SHA224Dig: TCnSHA224Digest;
   SHA256Dig: TCnSHA256Digest;
   SM3Dig: TCnSM3Digest;
+  HashBits: Integer;
 begin
   Result := False;
+  HashBits := 0;
   case HashType of
     dhtAuto:
       begin
@@ -313,16 +319,19 @@ begin
               begin
                 SHA1Dig := SHA1(PAnsiChar(Data), DataByteLen);
                 OutDigest.SetBinary(@SHA1Dig[0], SizeOf(TCnSHA1Digest));
+                HashBits := SizeOf(TCnSHA1Digest) * 8;
               end;
             224:
               begin
                 SHA224Dig := SHA224(PAnsiChar(Data), DataByteLen);
                 OutDigest.SetBinary(@SHA224Dig[0], SizeOf(TCnSHA224Digest));
+                HashBits := SizeOf(TCnSHA224Digest) * 8;
               end;
             256:
               begin
                 SHA256Dig := SHA256(PAnsiChar(Data), DataByteLen);
                 OutDigest.SetBinary(@SHA256Dig[0], SizeOf(TCnSHA256Digest));
+                HashBits := SizeOf(TCnSHA256Digest) * 8;
               end;
           else
             Exit;
@@ -335,35 +344,40 @@ begin
       begin
         MD5Dig := MD5(PAnsiChar(Data), DataByteLen);
         OutDigest.SetBinary(@MD5Dig[0], SizeOf(TCnMD5Digest));
+        HashBits := SizeOf(TCnMD5Digest) * 8;
       end;
     dhtSHA1:
       begin
         SHA1Dig := SHA1(PAnsiChar(Data), DataByteLen);
         OutDigest.SetBinary(@SHA1Dig[0], SizeOf(TCnSHA1Digest));
+        HashBits := SizeOf(TCnSHA1Digest) * 8;
       end;
     dhtSHA224:
       begin
         SHA224Dig := SHA224(PAnsiChar(Data), DataByteLen);
         OutDigest.SetBinary(@SHA224Dig[0], SizeOf(TCnSHA224Digest));
+        HashBits := SizeOf(TCnSHA224Digest) * 8;
       end;
     dhtSHA256:
       begin
         SHA256Dig := SHA256(PAnsiChar(Data), DataByteLen);
         OutDigest.SetBinary(@SHA256Dig[0], SizeOf(TCnSHA256Digest));
+        HashBits := SizeOf(TCnSHA256Digest) * 8;
       end;
     dhtSM3:
       begin
         SM3Dig := SM3(PAnsiChar(Data), DataByteLen);
         OutDigest.SetBinary(@SM3Dig[0], SizeOf(TCnSM3Digest));
+        HashBits := SizeOf(TCnSM3Digest) * 8;
       end;
   else
     Exit;
   end;
 
-  // FIPS 186-4 4.2: 摘要位数超过 Q 位数时，取最左 min(N, outlen) 位
-  // 即截断到 Q 位长（丢弃低位多余的 bit），保证与 OpenSSL 等主流实现互操作
-  if (Parameter <> nil) and (OutDigest.GetBitsCount > Parameter.Q.GetBitsCount) then
-    OutDigest.ShiftRight(OutDigest.GetBitsCount - Parameter.Q.GetBitsCount);
+  // FIPS 186-4 4.2: z = 最左 min(N, outlen) 位。位移必须按杂凑的固定位长计算，
+  // 不能用 GetBitsCount（其剥除前导零，摘要首 bit 为 0 时会截断不足、z 值错误）
+  if (Parameter <> nil) and (HashBits > Parameter.Q.GetBitsCount) then
+    OutDigest.ShiftRight(HashBits - Parameter.Q.GetBitsCount);
 
   Result := True;
 end;

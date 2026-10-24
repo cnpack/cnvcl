@@ -38,7 +38,10 @@ unit CnSecretSharing;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.05.28 V1.1
+* 修改记录：2026.10.24 V1.2
+*               Feldman VSS 拆分入口增加秘密小于 Q=(P-1)/2 的校验，
+*               防止 Secret 在 [Q,P) 时重构结果静默截断为 Secret mod Q
+*           2022.05.28 V1.1
 *               在 Shamir 的基础上实现 Feldman's VSS 方案
 *           2022.05.24 V1.0
 *               创建单元
@@ -847,6 +850,13 @@ begin
   end;
   Q := (Prime - 1) shr 1;
 
+  // 拆分域为 Q，秘密必须小于 Q = (P-1)/2，否则重构结果静默截断为 Secret mod Q
+  if Secret >= Q then
+  begin
+    _CnSetLastError(ECN_SECRET_INVALID_INPUT);
+    Exit;
+  end;
+
   // 开始照搬 Shamir 门限方案拆分，但拆分用 Q，算 Commits 用 Prime
   Poly := nil;
   try
@@ -963,6 +973,14 @@ begin
       Exit;
     Q.SubWord(1);
     Q.ShiftRightOne;
+
+    // 多项式定义在 GF(Q) 上，秘密必须小于 Q = (P-1)/2，
+    // 否则拆分与验证全部自洽，但重构返回的是 Secret mod Q，静默截断
+    if BigNumberCompare(Q, Secret) <= 0 then
+    begin
+      _CnSetLastError(ECN_SECRET_PRIME_ERROR);
+      Exit;
+    end;
 
     Poly := TCnBigNumberPolynomial.Create;
     Poly.MaxDegree := Threshold - 1;

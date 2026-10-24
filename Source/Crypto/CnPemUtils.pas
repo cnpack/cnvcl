@@ -31,7 +31,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.16 V1.9
+* 修改记录：2026.10.24 V1.10
+*               修正加载加密 PEM 段时未清空输出流导致解密结果与旧内容拼接的问题
+*           2026.10.16 V1.9
 *               默认摘要算法改为 SHA256；读取路径自动探测 MD5/SHA256 摘要；
 *               ckeDES 保留兼容使用，文档标注其弱密钥风险
 *           2026.04.05 V1.8
@@ -1209,6 +1211,9 @@ begin
           if not Base64IsStrictText(S) then
             Exit;
 
+          // 输出流先清空再解密写入，否则复用同一 MemoryStream 连续加载多段时
+          // 解密结果会拼接在旧内容之后（与下方未加密分支的 Clear 行为保持一致）
+          MemoryStream.Clear;
           Result := DecryptPemString(S, M1, M2, M3, Password, MemoryStream, KeyHashMethod);
         end
         else // 未加密的，拼凑成 Base64 后解密

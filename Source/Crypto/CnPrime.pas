@@ -42,7 +42,13 @@ unit CnPrime;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.06.12 V1.9
+* 修改记录：2026.10.24 V2.0
+*               修正模素数平方根在 p≡5(mod 8) 分支的三因子连乘溢出
+*               修正 CnUInt64Shor 的搜索上限移位失效与乘幂溢出
+*               修正负模逆元在不互素时返回模数本身的问题
+*               修正 CnPickRandomSmallPrime 永远选不到素数 2 的问题
+*               蒙哥马利约减/模乘增加 N 的安全范围守卫并修正文档
+*           2026.06.12 V1.9
 *               彻底弃用 Random 库函数，全改用安全随机数
 *           2025.04.24 V1.8
 *               增加 Lucas U 序列的计算，和原来 V 序列的独立，并增加 BPSW 素性检测
@@ -1235,6 +1241,7 @@ function CnInt64MontgomeryReduction(T: TUInt64; RExp: TUInt64; N: TUInt64; NNegI
 {* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂。
    参数 RExp 为指数，比如 R 为 2^31 时，RExp 值传 31，
    NNegInv 是预先计算好的 N 对 R 的负模逆元（不是针对指数的），T 不能为负且小于 N * R。
+   注意单字实现限制要求 N <= 2^(63-RExp)（约 N < 2^31），否则内部计算回绕，将抛出参数异常。
 
    参数：
      T: TUInt64                           - 待计算的 T 值
@@ -1247,7 +1254,8 @@ function CnInt64MontgomeryReduction(T: TUInt64; RExp: TUInt64; N: TUInt64; NNegI
 
 function CnInt64MontgomeryMulMod(A: TUInt64; B: TUInt64; RExp: TUInt64; R2ModN: TUInt64;
   N: TUInt64; NNegInv: TUInt64): TUInt64;
-{* 蒙哥马利法快速计算 A * B mod N，范围是 UInt64，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数。
+{* 蒙哥马利法快速计算 A * B mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数。
+   单字 REDC 实现限制要求 N <= 2^(63-RExp)（约 N < 2^31），超出会抛出参数异常。
    R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元。
    比起 MultipleMod 实现，有一定提速作用。
 
@@ -1468,7 +1476,7 @@ begin
     raise Exception.Create(SCnErrorCryptoRandomFailed);
 
   D := PCardinal(@Buf[0])^;
-  D := (D mod High(CN_PRIME_NUMBERS_SQRT_UINT32)) + 1;
+  D := D mod Cardinal(High(CN_PRIME_NUMBERS_SQRT_UINT32) + 1); // 含下标 0，否则素数 2 永远选不到
   Result := CN_PRIME_NUMBERS_SQRT_UINT32[D];
 end;
 
@@ -2689,14 +2697,26 @@ end;
 
 // 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、M 必须互素
 function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+var
+  Inv: TUInt64;
 begin
-  Result := Modulus - CnInt64ModularInverse(X, Modulus);
+  Inv := CnInt64ModularInverse(X, Modulus);
+  if Inv = 0 then // 不互素时模逆为 0，负模逆同样不存在，不能返回 Modulus 本身
+    Result := 0
+  else
+    Result := Modulus - Inv;
 end;
 
 // 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互素}
 function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
+var
+  Inv: Int64;
 begin
-  Result := Modulus - CnInt64ModularInverse2(X, Modulus);
+  Inv := CnInt64ModularInverse2(X, Modulus);
+  if Inv = 0 then // 不互素时模逆为 0，负模逆同样不存在，不能返回 Modulus 本身
+    Result := 0
+  else
+    Result := Modulus - Inv;
 end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
@@ -2802,6 +2822,11 @@ var
   M: TUInt64;
   R: TUInt64;
 begin
+  // 单字 REDC 实现要求 N <= 2^(63-RExp)，否则中间量 M*N+T 会超出 UInt64 回绕，
+  // 静默得到错误结果，这里直接拦截非法参数
+  if (RExp <= 0) or (RExp >= 64) or (N > (TUInt64(1) shl 63) shr RExp) then
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+
   // 先计算 M := T * N' mod R 因为 R 是 2 次幂，所以可以快速保留低位，得到的 M < R
   M := UInt64Mul(T, NNegInv);
 
@@ -3085,8 +3110,9 @@ begin
         if Z = 1 then
         begin
           // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
-          Result := (Int64MultipleMod(X, 2, P) * PowerMod(4, U, P) *
-            PowerMod(X, U, P)) mod P;
+          // 逐因子链式取模，避免三因子直接相乘在 P 接近 2^63 时 Int64 溢出
+          Result := Int64MultipleMod(Int64MultipleMod(Int64MultipleMod(X, 2, P),
+            PowerMod(4, U, P), P), PowerMod(X, U, P), P);
         end;
       end;
     end;
@@ -3713,7 +3739,7 @@ begin
   if T <= 0 then
     Exit;
 
-  RH := 1 shl T;    // N 的位数全为 1 再加一作为搜索上限
+  RH := TUInt64(1) shl T;    // N 的位数全为 1 再加一作为搜索上限，须按 UInt64 移位，T>=32 时 32 位 shl 会失效
   A := Base;        // 比 N 小且和 N 互素的
 
   R := 2;
@@ -3731,7 +3757,7 @@ begin
         Exit;
 
       R := R shr 1;
-      X1 := UInt64NonNegativPower(A, R);
+      X1 := PowerMod(A, R, N); // A^(R/2) mod N 与 A^(R/2) 对 gcd 等价，且不会像直接乘幂一样溢出回绕
 
       X2 := X1 + 1;
       X1 := X1 - 1;

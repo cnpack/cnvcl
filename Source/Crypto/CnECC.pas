@@ -5507,36 +5507,38 @@ begin
   Inc(P);
 
   L := P^;
-  if L > EC_CURVE_TYPE_OID_MAX_LENGTH then
+  // 长度须合法且不得超出数据边界（否则 CompareMem 越界读）；
+  // 且 OID 必须与目标等长才精确匹配，防止前缀相同的其它 OID 被误判为某条曲线
+  if (L > EC_CURVE_TYPE_OID_MAX_LENGTH) or (Cardinal(L) + 2 > DataByteLen) then
     Exit;
 
   Inc(P);
-  if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP224R1[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224R1))) then
+  if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224R1)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP224R1[0], L) then
     Result := ctSecp224r1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP224K1[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224K1))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224K1)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP224K1[0], L) then
     Result := ctSecp224k1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP256K1))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SECP256K1)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0], L) then
     Result := ctSecp256k1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP384R1[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP384R1))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SECP384R1)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP384R1[0], L) then
     Result := ctSecp384r1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP521R1[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP521R1))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SECP521R1)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP521R1[0], L) then
     Result := ctSecp521r1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM2[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SM2))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SM2)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM2[0], L) then
     Result := ctSM2
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_WAPI[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_WAPI))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_WAPI)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_WAPI[0], L) then
     Result := ctWapiPrime192v1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM9[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SM9))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_SM9)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM9[0], L) then
     Result := ctSM9Bn256v1
-  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_PRIME256V1[0],
-    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_PRIME256V1))) then
+  else if (L = SizeOf(OID_ECPARAM_CURVE_TYPE_PRIME256V1)) and
+    CompareMem(P, @OID_ECPARAM_CURVE_TYPE_PRIME256V1[0], L) then
     Result := ctPrime256v1
 end;
 
@@ -5768,9 +5770,10 @@ begin
         Node := Reader.Items[3];
         CurveType := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
 
-        // 读 4 里的公钥，并按曲线校验其合法性
-        Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey) and
-          ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
+        // 读 4 里的公钥，并按曲线校验其合法性。此处 4 须是 BIT STRING，防止结构异常的节点被误读
+        if Reader.Items[4].BerTag = CN_BER_TAG_BIT_STRING then
+          Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey) and
+            ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
       end;
     end;
   finally
@@ -5993,20 +5996,18 @@ begin
     if KeyType = cktPKCS1 then // PKCS1 格式，分两段
     begin
       Mem := TMemoryStream.Create;
-      if (KeyEncryptMethod = ckeNone) or (Password = '') then
-      begin
-        // 不加密，分两段，第一段手工写
-        B := CN_BER_TAG_OBJECT_IDENTIFIER;
-        Mem.Write(B, 1);
-        B := OIDLen;
-        Mem.Write(B, 1);
+      // 第一段手工写。EC PARAMETERS 段只是曲线 OID 并不敏感，加密时也要写出，
+      // 否则加载侧靠该段识别 PKCS1 格式，加密保存的私钥会无法读回
+      B := CN_BER_TAG_OBJECT_IDENTIFIER;
+      Mem.Write(B, 1);
+      B := OIDLen;
+      Mem.Write(B, 1);
 
-        Mem.Write(OIDPtr^, OIDLen);
-        if not SaveMemoryToPemStream(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL, Mem) then
-          Exit;
+      Mem.Write(OIDPtr^, OIDLen);
+      if not SaveMemoryToPemStream(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL, Mem) then
+        Exit;
 
-        Mem.Clear;
-      end;
+      Mem.Clear;
 
       Writer := TCnBerWriter.Create;
 

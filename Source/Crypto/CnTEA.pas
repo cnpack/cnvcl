@@ -30,7 +30,10 @@ unit CnTEA;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.04.26 V1.2
+* 修改记录：2026.10.24 V1.3
+*               修正 XXTEA 在单字（n=1）输入时循环上溢导致的越界读写崩溃，
+*               加解密统一按 Wheeler-Needham 参考实现要求 n>=2，否则抛异常
+*           2022.04.26 V1.2
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS32
@@ -263,7 +266,9 @@ var
   Z, Y, X, Sum, E, P: Cardinal;
   Q: Integer;
 begin
-  if (DataLongWordLength <= 0) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
+  // Wheeler-Needham 参考实现要求 n > 1；n = 1 时内层循环上界 n-2 为 -1，
+  // 转 Cardinal 后变 $FFFFFFFF，将造成大规模越界读写直至崩溃，必须拒绝
+  if (DataLongWordLength < 2) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
     raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;
@@ -296,7 +301,8 @@ var
   Z, Y, X, Sum, E, P: Cardinal;
   Q: Integer;
 begin
-  if (DataLongWordLength <= 0) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
+  // 与加密方向一致要求 n > 1：n = 1 时 XXTEA 未定义且结果无意义，拒绝处理
+  if (DataLongWordLength < 2) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
     raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;

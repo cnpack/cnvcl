@@ -41,7 +41,9 @@ unit CnNative;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.08.14 V2.4
+* 修改记录：2026.10.24 V2.5
+*               修正 GetUInt64LowBits 缺 64 位转型导致高位返回错值的问题
+*           2023.08.14 V2.4
 *               补上几个时间固定的函数并改名
 *           2022.11.11 V2.3
 *               补上几个无符号整数的字节顺序调换函数
@@ -917,7 +919,7 @@ function Int64NonNegativeRoot(N: Int64; Exp: Integer): Int64;
    返回值：Int64                          - 返回开方的整数部分结果
 }
 
-function UInt64NonNegativPower(N: TUInt64; Exp: Integer): TUInt64;
+function UInt64NonNegativePower(N: TUInt64; Exp: Integer): TUInt64;
 {* 求 64 位无符号整数的非负整数指数幂，不考虑溢出的情况。
 
    参数：
@@ -5290,7 +5292,7 @@ begin
 
   for I := 0 to 63 do
   begin
-    if (B and (1 shl I)) <> 0 then
+    if (B and (TUInt64(1) shl I)) <> 0 then // 须按 64 位构造掩码，32 位 shl 在 I>=32 时溢出失效
     begin
       Result := I;
       Break;
@@ -5774,7 +5776,7 @@ begin
   end;
 end;
 
-function UInt64NonNegativPower(N: TUInt64; Exp: Integer): TUInt64;
+function UInt64NonNegativePower(N: TUInt64; Exp: Integer): TUInt64;
 var
   T, RL, RH: TUInt64;
 begin

@@ -33,7 +33,10 @@ unit CnSM3;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.12.12 V1.2
+* 修改记录：2026.10.24 V1.3
+*               循环移位量显式归一到 0..31：原实现在 x86 族因移位掩蔽恰好
+*               正确，但 AArch32 等平台移位超宽会得到 0，属未定义行为
+*           2019.12.12 V1.2
 *               支持 TBytes
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
@@ -325,13 +328,15 @@ end;
 
 function SM3Shl(X: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (X and $FFFFFFFF) shl N;
+  // N 归一到 0..31：x86 族移位按 mod 32 掩蔽恰好正确，但 AArch32 下超过 32 位
+  // 的移位结果为 0，且 Pascal 层面超出位宽属于未定义行为，显式归一保证跨平台一致
+  Result := X shl (N and 31);
 end;
 
 // 循环左移。注意 N 为 0 或 32 时返回值仍为 X，N 为 33 时返回值等于 N 为 1 时的返回值
 function ROTL(X: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := SM3Shl(X, N) or (X shr (32 - N));
+  Result := SM3Shl(X, N) or (X shr ((32 - (N and 31)) and 31));
 end;
 
 function P0(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}

@@ -4456,6 +4456,9 @@ begin
         Exit;
       end;
     end;
+
+    // 拒绝采样重试耗尽失败时清掉残留的越界随机值
+    BigNumberSetZero(Num);
   end;
 end;
 
@@ -5743,6 +5746,8 @@ begin
   end;
 
   Res.FTop := J;
+  if J = 0 then
+    Res.FNeg := 0; // 右移结果为 0 时不保留负号，避免产生负零
   Result := True;
 end;
 
@@ -7287,6 +7292,7 @@ begin
 
     WNump := PCnBigNumberElement(TCnIntAddress(SNum.FD) + (NumN - 1) * SizeOf(TCnBigNumberElement));
 
+    Neg := Num.FNeg; // Res 可能与 Num 为同一对象，先存被除数符号，防商符号覆盖后余数符号取错
     if Num.FNeg <> Divisor.FNeg then
       SRes.FNeg := 1
     else
@@ -7375,7 +7381,6 @@ begin
     end;
 
     BigNumberCorrectTop(SNum);
-    Neg := Num.FNeg;
 
     if Remain <> nil then // 需要余数时
     begin
@@ -8726,6 +8731,9 @@ function BigNumberGeneratePrime(Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer): Boolean;
 begin
   Result := False;
+  // TestCount 小于 2 时 IsProbablyPrime 恒为 False，无守卫将死循环
+  if (Num = nil) or (BytesCount <= 0) or (TestCount < 2) then
+    Exit;
   if not InternalGenerateProbablePrime(Num, BytesCount * 8) then
     Exit;
 
@@ -8786,6 +8794,13 @@ end;
 function BigNumberNextPrime(Res, Num: TCnBigNumber;
   TestCount: Integer): Boolean;
 begin
+  // TestCount 小于 2 时 IsProbablyPrime 恒为 False，无守卫将死循环
+  if TestCount < 2 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   Result := True;
   if Num.IsNegative or Num.IsZero or Num.IsOne or (Num.GetWord = 2) then
   begin
@@ -9931,11 +9946,13 @@ begin
   if K.IsZero then
   begin
     U.SetZero;
+    Result := True; // U_0 = 0，须返回成功
     Exit;
   end
   else if K.IsOne then
   begin
     U.SetOne;
+    Result := True; // U_1 = 1，须返回成功
     Exit;
   end;
 

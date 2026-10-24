@@ -32,7 +32,10 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.11.30 V1.7
+* 修改记录：2026.10.24 V1.8
+*               Str 系包装器的结果缓冲在 SetLength 后先清零，
+*               消除非整块/空输入时未覆盖尾部返回堆残留字节的泄露面
+*           2024.11.30 V1.7
 *               删除命名不规范的 DESEncryptStrToHex 和 DESDecryptStrToHex，
 *               删除命名不规范的 TripleDESEncryptStrToHex 和 TripleDESDecryptStrToHex，
 *               改用 ECB 版本替代。
@@ -987,6 +990,10 @@ begin
   else
     Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Res, Len);
+  // AnsiString 的 SetLength 不清零，非整块输入时尾部不会被加密循环覆盖，
+  // 直接拼进返回值会泄露堆残留字节，这里先清零兜底
+  if Len > 0 then
+    FillChar(Res[1], Len, 0);
 end;
 
 function DESEncryptEcbStrToHex(const Str, Key: AnsiString): AnsiString;

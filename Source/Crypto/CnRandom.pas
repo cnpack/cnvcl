@@ -67,7 +67,7 @@ function RandomUInt64: TUInt64;
 }
 
 function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
-{* 返回大于等于 0 且小于指定 UInt64 值的随机数。
+{* 返回大于等于 0 且小于指定 UInt64 值的随机数，调用者需自行保证 HighValue 大于 0，如传 0 则返回 0。
 
    参数：
      HighValue: TUInt64                   - 指定 UInt64 的随机数上限
@@ -85,7 +85,7 @@ function RandomInt64: Int64;
 }
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
-{* 返回大于等于 0 且小于指定 Int64 值的随机数，调用者需自行保证 HighValue 大于 0。
+{* 返回大于等于 0 且小于指定 Int64 值的随机数，调用者需自行保证 HighValue 大于 0，如传 0 则返回 0。
 
    参数：
      HighValue: Int64                     - 指定 Int64 的随机数上限
@@ -103,7 +103,7 @@ function RandomUInt32: Cardinal;
 }
 
 function RandomUInt32LessThan(HighValue: Cardinal): Cardinal;
-{* 返回大于等于 0 且小于指定 UInt32 值的随机数。
+{* 返回大于等于 0 且小于指定 UInt32 值的随机数，调用者需自行保证 HighValue 大于 0，如传 0 则返回 0。
 
    参数：
      HighValue: Cardinal                  - 指定 UInt32 的随机数上限
@@ -121,7 +121,7 @@ function RandomInt32: Integer;
 }
 
 function RandomInt32LessThan(HighValue: Integer): Integer;
-{* 返回大于等于 0 且小于指定 Int32 的随机数，调用者需自行保证 HighValue 大于 0。
+{* 返回大于等于 0 且小于指定 Int32 的随机数，调用者需自行保证 HighValue 大于 0，如传 0 则返回 0。
 
    参数：
      HighValue: Integer                   - 指定 Int32 的随机数上限

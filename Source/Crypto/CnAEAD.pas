@@ -59,7 +59,10 @@ unit CnAEAD;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2026.10.18
+* 修改记录：2026.10.24
+*               修正 CCM 的 AAD 长度 2 字节编码阈值（$1000-$100 → $10000-$100），
+*               与 RFC 3610 规定的 65280 上界一致，避免对端拒收
+*           2026.10.18
 *               跨 CPU 端序：ChaCha20-Poly1305 派生 Poly1305 密钥改为逐字小端序列化
 *               GCM 非 12 字节 IV 分支的计数器改用 UInt32NetworkToHost 端序自适应
 *           2024.05.09 V1.3
@@ -2434,7 +2437,8 @@ begin
     begin
       FillChar(A0[0], CN_AEAD_BLOCK, 0);
 
-      if AADByteLength < $1000 - $100 then
+      // RFC 3610：AAD 长度 < 65280（$10000-$100）用 2 字节编码，达到后才用 0xFFFE 转义
+      if AADByteLength < $10000 - $100 then
       begin
         PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
 
@@ -2758,7 +2762,8 @@ begin
     begin
       FillChar(A0[0], CN_AEAD_BLOCK, 0);
 
-      if AADByteLength < $1000 - $100 then
+      // RFC 3610：AAD 长度 < 65280（$10000-$100）用 2 字节编码，达到后才用 0xFFFE 转义
+      if AADByteLength < $10000 - $100 then
       begin
         PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
 
