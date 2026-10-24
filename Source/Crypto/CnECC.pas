@@ -39,7 +39,15 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装可无需指定固定长度
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.05.11 V2.7
+* 修改记录：2026.10.24 V2.8
+*               修正 BER 写出 ECC 公钥时 X/Y 按变长序列化的问题：坐标首字节
+*               为 0 时（约 2/256 概率）两半不等长，读侧等分错位或拒绝加载，
+*               现按曲线域字节数定长写出（WriteEccPublicKeyToBitStringNode
+*               增加 FieldBytes 参数），并新增 GetCurveFieldBytes 辅助函数
+*               修正加密保存的 PKCS1 私钥 PEM 无法读回的问题（EC PARAMETERS 段
+*               现在加密时也写出）；OID 匹配改为等长精确比较并增加边界校验；
+*               公钥加载处增加 BIT STRING 标签校验
+*           2026.05.11 V2.7
 *               可计算 j 不变量
 *           2024.04.14 V2.6
 *               加入一根 384 及一根 512 曲线
@@ -2336,15 +2344,27 @@ function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode;
 }
 
 function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
-  ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey): Boolean;
+  ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey;
+  FieldBytes: Integer = 0): Boolean;
 {* 将 ECC 公钥写入 BER 中的 BITSTRING 节点。
 
    参数：
      Writer: TCnBerWriter                 - BER 写入对象实例
      ParentNode: TCnBerWriteNode          - 待写入的 BER 父节点
      PublicKey: TCnEccPublicKey           - 待写入的椭圆曲线公钥
+     FieldBytes: Integer                  - 坐标定长字节数，传 0 则自动取 X、Y 的最大字节数，
+                                            但标准曲线建议传曲线域的字节数以符合 04||X||Y 定长惯例
 
    返回值：Boolean                        - 返回写入是否成功
+}
+
+function GetCurveFieldBytes(CurveType: TCnEccCurveType): Integer;
+{* 获取标准曲线有限域的字节数。ctCustomized 或无法识别时返回 0。
+
+   参数：
+     CurveType: TCnEccCurveType           - 标准曲线类型
+
+   返回值：Integer                        - 返回标准曲线有限域的字节数
 }
 
 function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): string;
@@ -5652,9 +5672,10 @@ begin
 end;
 
 function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
-  ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey): Boolean;
+  ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey;
+  FieldBytes: Integer): Boolean;
 var
-  Cnt: Integer;
+  Cnt, Half: Integer;
   B: Byte;
   OP, P: PByte;
 begin
@@ -5662,30 +5683,55 @@ begin
   if (ParentNode = nil) or (PublicKey = nil) then
     Exit;
 
-  Cnt := PublicKey.X.GetBytesCount;
+  // 坐标须按定长写出：变长 ToBinary 会丢弃前导零字节，X 或 Y 首字节为 0 时
+  // （概率约 2/256）写出的 X||Y 两半不等长，读侧按等分切分会错位甚至拒绝
+  Half := PublicKey.X.GetBytesCount;
+  if PublicKey.Y.GetBytesCount > Half then
+    Half := PublicKey.Y.GetBytesCount;
+  if FieldBytes > Half then
+    Half := FieldBytes;
+
   if not PublicKey.Y.IsZero then
-  begin
-    Cnt := Cnt + PublicKey.Y.GetBytesCount;
-    B := EC_PUBLICKEY_UNCOMPRESSED;
-  end
+    B := EC_PUBLICKEY_UNCOMPRESSED
   else if PublicKey.Y.IsOdd then
     B := EC_PUBLICKEY_COMPRESSED_ODD
   else
     B := EC_PUBLICKEY_COMPRESSED_EVEN;
+
+  if B = EC_PUBLICKEY_UNCOMPRESSED then
+    Cnt := Half * 2
+  else
+    Cnt := Half;
 
   OP := GetMemory(Cnt + 1);
   P := OP;
   P^ := B;
 
   Inc(P);
-  PublicKey.X.ToBinary(PAnsiChar(P));
+  PublicKey.X.ToBinary(PAnsiChar(P), Half);
   if B = EC_PUBLICKEY_UNCOMPRESSED then
   begin
-    Inc(P, PublicKey.X.GetBytesCount);
-    PublicKey.Y.ToBinary(PAnsiChar(P));
+    Inc(P, Half);
+    PublicKey.Y.ToBinary(PAnsiChar(P), Half);
   end;
   Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, OP, Cnt + 1, ParentNode);
   FreeMemory(OP);
+end;
+
+function GetCurveFieldBytes(CurveType: TCnEccCurveType): Integer;
+var
+  Ecc: TCnEcc;
+begin
+  Result := 0;
+  if CurveType = ctCustomized then
+    Exit;
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := Ecc.GetBytesCount;
+  finally
+    Ecc.Free;
+  end;
 end;
 
 {* 按曲线类型校验读入的公钥是否合法，避免无穷远点或不在曲线上的点被当作合法公钥返回。
@@ -6024,7 +6070,7 @@ begin
       Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Root); // 居然要用 BOOLEAN 才行
       Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
 
-      WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
+      WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey, GetCurveFieldBytes(CurveType));
       Writer.SaveToStream(Mem);
       Result := SaveMemoryToPemStream(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL, Mem,
         KeyEncryptMethod, KeyHashMethod, Password, True);
@@ -6050,7 +6096,7 @@ begin
 
       Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Node);
       Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
-      WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);                 // 写公钥
+      WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey, GetCurveFieldBytes(CurveType));                 // 写公钥
 
       Mem := TMemoryStream.Create;
       Writer.SaveToStream(Mem);
@@ -6112,7 +6158,7 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0],
       SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, Node);
-    WriteEccPublicKeyToBitStringNode(Writer, Root, PublicKey);
+    WriteEccPublicKeyToBitStringNode(Writer, Root, PublicKey, GetCurveFieldBytes(CurveType));
 
     Mem := TMemoryStream.Create;
     Writer.SaveToStream(Mem);

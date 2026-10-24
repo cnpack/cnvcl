@@ -1797,7 +1797,7 @@ begin
     Exit;
 
   AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, CurvePtr, CurveLen, Node);
-  WriteEccPublicKeyToBitStringNode(AWriter, PubNode, PublicKey);
+  WriteEccPublicKeyToBitStringNode(AWriter, PubNode, PublicKey, GetCurveFieldBytes(CurveType));
   Result := True;
 end;
 
