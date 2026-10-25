@@ -1686,7 +1686,7 @@ begin
     when the height of the control is the same as the height of the tab (or the
     width of the control for tpBottom). This hack will return the last value
     successfully returned if an exception is encountered. This allows the
-    control to function but the AV is till generated and and reported by the
+    control to function but the AV is still generated and and reported by the
     debugger. }
   try
     inherited;

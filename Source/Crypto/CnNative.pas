@@ -773,7 +773,7 @@ procedure UInt64Add(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
 }
 
 procedure UInt64Sub(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
-{* 两个 64 位无符号整数相减，A - B => R，，R 可以是 A 或 B。
+{* 两个 64 位无符号整数相减，A - B => R，R 可以是 A 或 B。
    如果不够减有借位，则借的 1 置借位标记里，否则借位标记清零。
 
    参数：

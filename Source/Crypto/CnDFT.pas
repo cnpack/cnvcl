@@ -121,7 +121,7 @@ function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
 
    参数：
      Data: PInt64Array                    - 指向待进行快速数论变换的 Int64 数组
-     Len: Integer                         - 数组里的 Int64 个数，，必须是 2 的整数次幂
+     Len: Integer                         - 数组里的 Int64 个数，必须是 2 的整数次幂
 
    返回值：Boolean                        - 返回变换是否成功
 }
@@ -132,7 +132,7 @@ function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
 
    参数：
      Data: PInt64Array                    - 指向待进行快速数论逆变换的 Int64 数组
-     Len: Integer                         - 数组里的 Int64 个数，，必须是 2 的整数次幂
+     Len: Integer                         - 数组里的 Int64 个数，必须是 2 的整数次幂
 
    返回值：Boolean                        - 返回逆变换是否成功
 }
