@@ -4,7 +4,7 @@ interface
 
 uses
   {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  CnMath, CnBigDecimal, FMX.StdCtrls, FMX.Edit, FMX.Memo, FMX.Types,
+  CnNative, CnMath, CnBigDecimal, FMX.StdCtrls, FMX.Edit, FMX.Memo, FMX.Types,
   FMX.ScrollBox, FMX.Controls.Presentation;
 
 type
@@ -31,9 +31,9 @@ type
     procedure btnGaussLegendrePiClick(Sender: TObject);
     procedure btnXGEulerClick(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
 var

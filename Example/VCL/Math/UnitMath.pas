@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnMath, CnBigDecimal, StdCtrls, ComCtrls;
+  CnNative, CnMath, CnBigDecimal, StdCtrls, ComCtrls;
 
 type
   TFormMath = class(TForm)
@@ -36,9 +36,9 @@ type
     procedure btnFloatToHexClick(Sender: TObject);
     procedure btnTestContFracClick(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
 var

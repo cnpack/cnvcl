@@ -7631,7 +7631,7 @@ begin
     while N <= Exponent do
     begin
       // T := (2 * T - X * T^2) in Ring(p^n, M)
-      P := Int64NonNegativPower(PrimeRoot, N);
+      P := Int64NonNegativePower(PrimeRoot, N);
 
       Int64PolynomialGaloisMul(F, T, T, P);
       Int64PolynomialGaloisMul(F, F, X, P);
@@ -7643,7 +7643,7 @@ begin
     end;
 
     // Result := T in Ring(p^e, M)
-    P := Int64NonNegativPower(PrimeRoot, Exponent);
+    P := Int64NonNegativePower(PrimeRoot, Exponent);
     Result := Int64PolynomialGaloisMod(Res, T, Modulus, P);
   finally
     FLocalInt64PolynomialPool.Recycle(T);

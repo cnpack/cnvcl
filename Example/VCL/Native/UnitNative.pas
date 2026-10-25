@@ -285,8 +285,8 @@ end;
 
 procedure TFormNative.btnPowerClick(Sender: TObject);
 begin
-  mmoRes.Lines.Text := IntToStr(Int64NonNegativPower(StrToInt64(edtPower.Text),
-    StrToInt(edtExponent.Text))) + ' ' + UInt64ToStr(UInt64NonNegativPower(StrToUInt64(edtPower.Text),
+  mmoRes.Lines.Text := IntToStr(Int64NonNegativePower(StrToInt64(edtPower.Text),
+    StrToInt(edtExponent.Text))) + ' ' + UInt64ToStr(UInt64NonNegativePower(StrToUInt64(edtPower.Text),
     StrToInt(edtExponent.Text)));
 end;
 
@@ -295,7 +295,7 @@ var
   M: Int64;
 begin
   M := Int64NonNegativeRoot(StrToInt64(edtPower.Text), StrToInt(edtExponent.Text));
-  mmoRes.Lines.Text := IntToStr(M) + ' ' + IntToStr(Int64NonNegativPower(M, StrToInt(edtExponent.Text)));
+  mmoRes.Lines.Text := IntToStr(M) + ' ' + IntToStr(Int64NonNegativePower(M, StrToInt(edtExponent.Text)));
 end;
 
 procedure TFormNative.btnURootClick(Sender: TObject);

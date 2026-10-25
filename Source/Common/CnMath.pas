@@ -1344,7 +1344,7 @@ begin
     // 求 N 的 I 次方根的整数部分
     A := Trunc(CnPower(N, 1.0 / I));
     // 整数部分再求幂
-    M := Int64NonNegativPower(A, I);
+    M := Int64NonNegativePower(A, I);
 
     // 判断是否相等
     if M = N then
@@ -1355,7 +1355,7 @@ begin
     else // 如果整数部分偏小，譬如 9682651996416 的 1/8 次方，Power 函数可能返回 41.999 这种，Trunc 会判断错误，再加一再幂一下
     begin
       Inc(A);
-      M := Int64NonNegativPower(A, I);
+      M := Int64NonNegativePower(A, I);
       if M = N then
       begin
         Result := True;

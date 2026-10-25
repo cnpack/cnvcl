@@ -764,7 +764,7 @@ begin
   FPrime := NTRU_PRE_DEFINED_PARAMS[Predefined].P;
   FQExponent := NTRU_PRE_DEFINED_PARAMS[Predefined].QExp;
 
-  FQ := Int64NonNegativPower(2, FQExponent);
+  FQ := Int64NonNegativePower(2, FQExponent);
 
   FRing.SetZero;
   FRing.MaxDegree := N;

@@ -899,7 +899,7 @@ function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
    返回值：Int64                          - 返回非负求余的结果
 }
 
-function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
+function Int64NonNegativePower(N: Int64; Exp: Integer): Int64;
 {* 求 64 位有符号整数的非负整数指数幂，不考虑溢出的情况。
 
    参数：
@@ -5731,7 +5731,7 @@ begin
 end;
 
 // Int64 的非负整数指数幂
-function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
+function Int64NonNegativePower(N: Int64; Exp: Integer): Int64;
 var
   T: Int64;
 begin
