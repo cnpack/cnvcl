@@ -255,7 +255,7 @@ end;
 
 procedure TFormNative.btnPowerClick(Sender: TObject);
 begin
-  mmoRes.Lines.Text := IntToStr(Int64NonNegativPower(StrToInt64(edtPower.Text),
+  mmoRes.Lines.Text := IntToStr(Int64NonNegativePower(StrToInt64(edtPower.Text),
     StrToInt(edtExponent.Text))) + ' ' + UInt64ToStr(UInt64NonNegativePower(StrToUInt64(edtPower.Text),
     StrToInt(edtExponent.Text)));
 end;
