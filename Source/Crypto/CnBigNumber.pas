@@ -707,7 +707,7 @@ type
     {* 根据一串十进制字符串给自身赋值。
 
        参数：
-         const Buf: AnsiString            - 待赋值的十六进制字符串
+         const Buf: AnsiString            - 待赋值的十进制字符串
 
        返回值：Boolean                    - 返回是否赋值成功
     }
@@ -1110,7 +1110,7 @@ function BigNumberNew: TCnBigNumber;
 }
 
 procedure BigNumberFree(Num: TCnBigNumber);
-{* 按需要释放一个由 BigNumerNew 函数创建的大数对象，并按需要释放其 D 对象，
+{* 按需要释放一个由 BigNumberNew 函数创建的大数对象，并按需要释放其 D 对象，
    等同于直接调用 Free。
 
    参数：

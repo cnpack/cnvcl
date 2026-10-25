@@ -996,7 +996,7 @@ begin
     try
       with DockClient do
       begin
-        // 调用ComputeVIDDockingRect函数知道停靠的类型
+        // 调用 ComputeVIDDockingRect 函数得到停靠的类型
         DockType := ComputeVIDDockingRect(DockClient.ParentForm, Source.Control, ARect, Point(X, Y));
 
         if (ParentForm.HostDockSite is TCnDockPanel) then

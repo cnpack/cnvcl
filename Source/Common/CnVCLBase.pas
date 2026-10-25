@@ -102,7 +102,7 @@ type
     procedure SetTransparent(const Value: Boolean); virtual;
     {* 设置控件透明属性，可重载，重载时请调用 inherited}
     property Face: TCnBitmap read FFace;
-    {* 控件表面画布镜象，TCnBitmap 类型，在内存中保存了控件当前图像
+    {* 控件表面画布镜像，TCnBitmap 类型，在内存中保存了控件当前图像
      |<BR> 当需要在屏幕上绘制控件时，直接将该位图复制到屏幕上以获得快速的显示
      |<BR> 该属性类似于其它控件的 Canvas 属性，用户可直接在 Face 上绘图，如果需要
            在屏幕上输出，请调用控件的Refresh或Repaint方法}

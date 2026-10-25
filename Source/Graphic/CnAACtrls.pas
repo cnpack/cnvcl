@@ -1045,7 +1045,7 @@ begin
   inherited;
 end;
 
-// 鼠标称出开始淡出
+// 鼠标移出开始淡出
 procedure TCnAALinkLabel.CMMouseLeave(var Message: TMessage);
 begin
   if Enabled then

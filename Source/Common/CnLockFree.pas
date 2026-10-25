@@ -84,9 +84,9 @@ type
     FGuardTail: PCnLockFreeLinkedNode; // 固定的尾节点指针
     FHiddenHead, FHiddenTail: TCnLockFreeLinkedNode;
     FOnTravelNode: TCnLockFreeNodeTravelEvent;
-    function GetLastNode: PCnLockFreeLinkedNode; // 获得链表中 FGuadTail 之前的最后一个活指针
+    function GetLastNode: PCnLockFreeLinkedNode; // 获得链表中 FGuardTail 之前的最后一个活指针
     function GetLast2Nodes(out P1, P2: PCnLockFreeLinkedNode): Boolean;
-    // 获得链表中 FGuadTail 之前的最后两个指针，P1.Next 指向 P2，P2.Next 指向 FTail
+    // 获得链表中 FGuardTail 之前的最后两个指针，P1.Next 指向 P2，P2.Next 指向 FTail
 
     function CompareKey(Key1, Key2: TObject): Integer;
     function IsNodePointerMarked(Node: PCnLockFreeLinkedNode): Boolean;  // 节点指针用最低位存储一 Mark 标记
@@ -182,7 +182,7 @@ function CnAtomicDecrement32(var Addend: Integer): Integer;
 {* 原子操作令一 32 位值减 1，返回减少后的值}
 
 function CnAtomicExchange32(var Target: Integer; Value: Integer): Integer;
-{* 原子操作令俩 32 位值交换，返回 Targe 的原始值}
+{* 原子操作令俩 32 位值交换，返回 Target 的原始值}
 
 function CnAtomicExchangeAdd32(var Addend: LongInt; Value: LongInt): Longint;
 {* 原子操作令 32 位值 Addend := Addend + Value，返回 Addend 原始值}
@@ -197,22 +197,22 @@ function CnAtomicDecrement64(var Addend: Int64): Int64;
 {* 原子操作令一 64 位值减 1，返回减少后的值}
 
 function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
-{* 原子操作令俩 64 位值交换，返回 Targe 的原始值}
+{* 原子操作令俩 64 位值交换，返回 Target 的原始值}
 
 function CnAtomicExchangeAdd64(var Addend: Int64; Value: Int64): Int64;
 {* 原子操作令 64 位值 Addend := Addend + Value，返回 Addend 原始值}
 
 // 以上 4 个 64 位函数有部分情况不支持
 
-function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Pointer;
-{* 原子操作比较 Target 与 Comperand 俩值，相等时则将 NewValue 赋值给 Target，返回旧的 Target 值
+function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comparand: Pointer): Pointer;
+{* 原子操作比较 Target 与 Comparand 俩值，相等时则将 NewValue 赋值给 Target，返回旧的 Target 值
   32 位下支持 32 位值，64 位下支持 64 位值}
 
-function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Boolean;
-{* 原子操作执行以下代码，比较 Target 与 Comperand 俩值，相等时则将 NewValue 赋值给 Target，
+function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer; Comparand: Pointer): Boolean;
+{* 原子操作执行以下代码，比较 Target 与 Comparand 俩值，相等时则将 NewValue 赋值给 Target，
   32 位下支持 32 位值，64 位下支持 64 位值，未发生赋值操作时返回 False，赋值时返回 True
   注意 NewValue 不要等于 Target，否则无法区分是否执行了赋值操作，因为无论是否赋值都一样
-  if Comperand = Target then
+  if Comparand = Target then
   begin
     Target := NewValue;
     Result := True;
@@ -380,31 +380,31 @@ begin
   until Result = Tmp;
 end;
 
-function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Pointer;
+function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comparand: Pointer): Pointer;
 begin
 {$IFDEF SUPPORT_ATOMIC}
-  Result := AtomicCmpExchange(Target, NewValue, Comperand);
+  Result := AtomicCmpExchange(Target, NewValue, Comparand);
 {$ELSE}
   {$IFDEF BDS}
     // XE2 下 Win64 时会出错，必须改用 64 位版本，XE3 后的版本声明调整一致了
     {$IFDEF DELPHIXE2}
       {$IFDEF WIN64}
-       Result := Pointer(InterlockedCompareExchange64(Int64(Target), Int64(NewValue), Int64(Comperand)));
+       Result := Pointer(InterlockedCompareExchange64(Int64(Target), Int64(NewValue), Int64(Comparand)));
       {$ELSE}
-       Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
+       Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comparand)));
       {$ENDIF}
     {$ELSE}
-       Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
+       Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comparand)));
     {$ENDIF}
   {$ELSE}
     {$IFDEF FPC}
       {$IFDEF CPU64BITS}
-      Result := Pointer(InterlockedCompareExchange64(QWord(Target), QWord(NewValue), QWord(Comperand)));
+      Result := Pointer(InterlockedCompareExchange64(QWord(Target), QWord(NewValue), QWord(Comparand)));
       {$ELSE}
-      Result := Pointer(InterlockedCompareExchange(LongInt(Target), LongInt(NewValue), LongInt(Comperand)));
+      Result := Pointer(InterlockedCompareExchange(LongInt(Target), LongInt(NewValue), LongInt(Comparand)));
       {$ENDIF}
     {$ELSE}// D567 下的 InterlockedCompareExchange 被声明为 Pointer
-      Result := InterlockedCompareExchange(Target, NewValue, Comperand);
+      Result := InterlockedCompareExchange(Target, NewValue, Comparand);
     {$ENDIF}
   {$ENDIF}
 {$ENDIF}
@@ -413,9 +413,9 @@ end;
 {$IFDEF SUPPORT_ATOMIC} // 高版本 Delphi 的实现，不同平台自动区分
 
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
-  Comperand: Pointer): Boolean;
+  Comparand: Pointer): Boolean;
 begin
-  AtomicCmpExchange(Target, NewValue, Comperand, Result);
+  AtomicCmpExchange(Target, NewValue, Comparand, Result);
 end;
 
 {$ELSE} // 较低版本 Delphi 以及 FPC 的分开实现
@@ -424,7 +424,7 @@ end;
 
 // XE2 的 Win64 下没有 Atomic 系列函数
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
-  Comperand: Pointer): Boolean; assembler;
+  Comparand: Pointer): Boolean; assembler;
 asm
   // API 里的 InterlockedCompareExchange 不会返回是否成功，不得不用汇编代替
   MOV  RAX,  R8
@@ -439,7 +439,7 @@ end;
 
 // XE2 或以下版本的 Win32 实现
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
-  Comperand: Pointer): Boolean; assembler;
+  Comparand: Pointer): Boolean; assembler;
 asm
   // API 里的 InterlockedCompareExchange 不会返回是否成功，不得不用汇编代替
   // 其中 @Target 是 EAX, NewValue 是 EDX，Comperand 是 ECX，
@@ -454,7 +454,7 @@ end;
 
 // TODO: ARM32/64 下面的实现，先以 FPC 为主
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
-  Comperand: Pointer): Boolean;
+  Comparand: Pointer): Boolean;
 begin
   raise Exception.Create(SCnNotImplemented);
 end;

@@ -1479,7 +1479,7 @@ begin
         FreeMem(Pplst, sizeof(PpropInfo) * classDataInfo.PropCount);
       end;
     end;
-    // ad to result
+    // add to result
     Result.Add(obj as clazz);
   end;
   DC.Close;

@@ -46,8 +46,8 @@ uses
 {$ENDIF}
   ;
 
-//VC++
-//说明了允许客户提取一行数据并直接送至类数据成员的接口。客户程序需要在其类中包含绑定条目，以指定 Recordset Field 对象和类数据成员之间的关联。
+// VC++
+// 说明了允许客户提取一行数据并直接送至类数据成员的接口。客户程序需要在其类中包含绑定条目，以指定 Recordset Field 对象和类数据成员之间的关联。
 const
 // enum ADOFieldStatusEnum  枚举ADO Status 属性
   adFldOK = 0;                  // 一个非NULL的值返回
@@ -55,15 +55,15 @@ const
   adFldCantConvertValue = 2;    // 指示字段可以在不丢失任何数据的情况下被提取和储存
   adFldNull = 3;                // 返回了一个NULL值
   adFldTruncated = 4;           // 指示从数据源读取数据时缩略的可变长值数据
-  adFldSignMismatch = 5;        //指示通过技术提供对象[provider]返回的数值带有正负号；但是ADO字段值的数值类型不带有正负号
+  adFldSignMismatch = 5;        // 指示通过技术提供对象[provider]返回的数值带有正负号；但是ADO字段值的数值类型不带有正负号
   adFldDataOverFlow = 6;        // 指示从技术提供对象[provider]返回的数值溢出字段的数值类型
-  adFldCantCreate = 7;      //由于技术提供对象[provider]超出限制要求，所以不能再添加字段
-  adFldUnavailable = 8;     //当从数据源读取数据时，技术提供对象[provider]不能决定其值
-  adFldPermissionDenied = 9; //指示字段不能被更改，因为其属性为只读
-  adFldIntegrityViolation = 10; //指示字段不能被更改，因为它食一个已被计算过或已被导出的实体
-  adFldSchemaViolation = 11; //指示值违反了数据源计划[data source schema]对字段的限制
-  adFldBadStatus = 12;  //指示一个从ADO发送到OLEDB提供者的有效状态值
-  adFldDefault = 13;  //设置默认使用的字段值 ................
+  adFldCantCreate = 7;      // 由于技术提供对象[provider]超出限制要求，所以不能再添加字段
+  adFldUnavailable = 8;     // 当从数据源读取数据时，技术提供对象[provider]不能决定其值
+  adFldPermissionDenied = 9; // 指示字段不能被更改，因为其属性为只读
+  adFldIntegrityViolation = 10; // 指示字段不能被更改，因为它是一个已被计算过或已被导出的实体
+  adFldSchemaViolation = 11; // 指示值违反了数据源计划[data source schema]对字段的限制
+  adFldBadStatus = 12;  // 指示一个从ADO发送到OLEDB提供者的有效状态值
+  adFldDefault = 13;  // 设置默认使用的字段值 ................
    //..........................
 type
   PADO_BINDING_ENTRY = ^ADO_BINDING_ENTRY;

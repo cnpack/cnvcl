@@ -122,7 +122,7 @@ const
   { CnEclipseDockStyle}
   gs_LikeEclipseStyle = 'Java Eclipse %s';
 
-  { CnDcokInfo }
+  { CnDockInfo }
   gs_CannotFindWindow = '!@# Can NOT Find Window #@!';
 
   { DockTree Version }

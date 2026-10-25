@@ -229,7 +229,7 @@ procedure BLAKE3Init(var Context: TCnBLAKE3Context; Key: PAnsiChar = nil; KeyLen
 {* 初始化一轮 BLAKE3 计算上下文，准备计算 BLAKE3 结果。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
 
    参数：
-     var Context: TCnBLAKE2SContext       - 待初始化的 BLAKE3 上下文
+     var Context: TCnBLAKE3Context        - 待初始化的 BLAKE3 上下文
      Key: PAnsiChar                       - BLAKE3 密钥，默认为空
      KeyLength: Integer                   - BLAKE3 密钥字节长度，默认为 0
 
@@ -240,7 +240,7 @@ procedure BLAKE3InitDeriveKey(var Context: TCnBLAKE3Context; ContextStr: PAnsiCh
 {* 使用派生密钥模式初始化一轮 BLAKE3 计算上下文，准备计算 BLAKE3 结果。
 
    参数：
-     var Context: TCnBLAKE2SContext       - 待初始化的 BLAKE3 上下文
+     var Context: TCnBLAKE3Context        - 待初始化的 BLAKE3 上下文
      ContextStr: PAnsiChar                - BLAKE3 派生密钥，默认为空
      KeyLength: Integer                   - BLAKE3 密钥字节长度，默认为 0
 
@@ -252,7 +252,7 @@ procedure BLAKE3Update(var Context: TCnBLAKE3Context; Input: PAnsiChar; ByteLeng
    可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
 
    参数：
-     var Context: TCnBLAKE2BContext       - BLAKE3 上下文
+     var Context: TCnBLAKE3Context        - BLAKE3 上下文
      Input: PAnsiChar                     - 待计算的数据块地址
      ByteLength: Cardinal                 - 待计算的数据块的字节长度
 
@@ -263,7 +263,7 @@ procedure BLAKE3Final(var Context: TCnBLAKE3Context; var Digest: TCnBLAKE3Digest
 {* 结束本轮计算，将 BLAKE3 结果返回至 Digest 中。
 
    参数：
-     var Context: TCnBLAKE2BContext       - BLAKE3 上下文
+     var Context: TCnBLAKE3Context        - BLAKE3 上下文
      var Digest: TCnBLAKE3Digest          - 返回的 BLAKE3 杂凑值
 
    返回值：（无）
@@ -273,7 +273,7 @@ procedure BLAKE3FinalXOF(var Context: TCnBLAKE3Context; OutBuf: PByte; OutLength
 {* 结束本轮计算，将 OutLength 字节的 XOF 输出写入 OutBuf。
 
    参数：
-     var Context: TCnBLAKE2BContext       - BLAKE3 上下文
+     var Context: TCnBLAKE3Context        - BLAKE3 上下文
      OutBuf: PByte                        - 供写入变长杂凑结果的数据区
      OutLength: Integer                   - 需写入变长杂凑结果的字节长度
 

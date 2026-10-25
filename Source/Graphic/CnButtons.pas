@@ -688,7 +688,7 @@ begin
 
   if ModernBtnStyle = bsModern then
   begin
-    // bsModer 风格，直接画渐变
+    // bsModern 风格，直接画渐变
     DrawColorFade(LightColor, clBackColor, 2, 2, Width - 2, Height div 4);
     DrawColorFade(clBackColor, LightColor, 2, Height div 4, Width - 2, Height - 2);
   end;
@@ -1234,7 +1234,7 @@ begin
   if (csLoading in ComponentState) or (Parent = nil) then
     Exit;
 
-  // 2009-06-29添加判断判断是否在设计期，否则在Visible为False时在设计期无法刷新控件
+  // 2009-06-29 添加判断，判断是否在设计期，否则在 Visible 为 False 时在设计期无法刷新控件
   if not Visible and not (csDesigning in ComponentState) then
     Exit;
 
@@ -1665,7 +1665,7 @@ begin
   if (csLoading in ComponentState) or (Parent = nil) then
     Exit;
 
-  // 2009-06-29添加判断判断是否在设计期，否则在Visible为FALSE时在设计期无法刷新控件
+  // 2009-06-29 添加判断，判断是否在设计期，否则在 Visible 为 False 时在设计期无法刷新控件
   if not Visible and not (csDesigning in ComponentState) then
     Exit;
 

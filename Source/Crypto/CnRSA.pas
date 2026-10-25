@@ -2109,7 +2109,7 @@ end;
 
 // 从 PEM 格式的文件中加载公钥数据
 // 注意 PKCS#8 的 PublicKey 的 PEM 在标准 ASN.1 上做了一层封装，
-// 把 Modulus 与 Exponent 封在了 BitString 中，需要 Paser 解析出来
+// 把 Modulus 与 Exponent 封在了 BitString 中，需要 Parser 解析出来
 (*
 PKCS#1:
   RSAPublicKey ::= SEQUENCE {

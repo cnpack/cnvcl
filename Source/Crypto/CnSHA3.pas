@@ -1028,7 +1028,7 @@ function SHAKE256Print(const Digest: TBytes): string;
 {* 以十六进制格式输出 SHAKE256 杂凑值。
 
    参数：
-     const Digest: TBytes                 - 指定的 SHAKE128 杂凑值
+     const Digest: TBytes                 - 指定的 SHAKE256 杂凑值
 
    返回值：string                         - 返回十六进制字符串
 }

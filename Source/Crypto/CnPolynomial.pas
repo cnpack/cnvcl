@@ -1753,7 +1753,7 @@ function Int64PolynomialDiv(Res: TCnInt64Polynomial; Remain: TCnInt64Polynomial;
 {* 两个一元整系数多项式对象相除，商放至 Res 中，余式放在 Remain 中，返回相除是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值。
    返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
      Res: TCnInt64Polynomial              - 用来容纳结果的一元整系数多项式
@@ -1950,7 +1950,7 @@ function Int64PolynomialGaloisDiv(Res: TCnInt64Polynomial; Remain: TCnInt64Polyn
 {* 两个一元整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式。
    返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
      Res: TCnInt64Polynomial              - 用来容纳结果的一元整系数多项式
@@ -2938,7 +2938,7 @@ function BigNumberPolynomialDiv(Res: TCnBigNumberPolynomial; Remain: TCnBigNumbe
 {* 两个一元大整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值。
    返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
      Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
@@ -3181,7 +3181,7 @@ function BigNumberPolynomialGaloisDiv(Res: TCnBigNumberPolynomial;
   Primitive: TCnBigNumberPolynomial = nil; ErrMulFactor: TCnBigNumber = nil): Boolean;
 {* 两个一元大整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
      Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
@@ -4583,7 +4583,7 @@ function Int64BiPolynomialDivX(Res: TCnInt64BiPolynomial; Remain: TCnInt64BiPoly
   P: TCnInt64BiPolynomial; Divisor: TCnInt64BiPolynomial): Boolean;
 {* 两个二元整系数多项式对象以 X 为主相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意 Divisor 必须是 X 的首一多项式，否则会返回 False，表示无法支持，调用者务必判断返回值。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
      Res: TCnInt64BiPolynomial            - 用来容纳结果的二元整系数多项式
@@ -4811,7 +4811,7 @@ function Int64BiPolynomialGaloisDivX(Res: TCnInt64BiPolynomial; Remain: TCnInt64
   Primitive: TCnInt64BiPolynomial = nil): Boolean;
 {* 两个二元整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Divisor 是 X 的首一多项式且 Prime 是素数且本原多项式 Primitive 为 X 的不可约多项式。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
    注意：和一元多项式不同，只是系数求模了。
 
    参数：
@@ -5461,7 +5461,7 @@ function BigNumberBiPolynomialDivX(Res: TCnBigNumberBiPolynomial; Remain: TCnBig
   P: TCnBigNumberBiPolynomial; Divisor: TCnBigNumberBiPolynomial): Boolean;
 {* 两个二元大整系数多项式对象以 X 为主相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意 Divisor 必须是 X 的首一多项式，否则会返回 False，表示无法支持，调用者务必判断返回值。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
      Res: TCnBigNumberBiPolynomial        - 用来容纳结果的二元大整系数多项式
@@ -5690,7 +5690,7 @@ function BigNumberBiPolynomialGaloisDivX(Res: TCnBigNumberBiPolynomial;
   Divisor: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
 {* 两个二元大整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Divisor 是 X 的首一多项式且 Prime 是素数且本原多项式 Primitive 为 X 的不可约多项式。
-   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
    注意：和一元多项式不同，只是系数求模了。
 
    参数：
@@ -7738,7 +7738,7 @@ end;
   F4 = 4y * (x^6 + 5Ax^4 + 20Bx^3 - 5A^2x^2 - 4ABx - 8B^2 - A^3)
   F5 = 5x^12 + 62Ax^10 + 380Bx^9 + 105A^2x^8 + 240BAx^7 + (-300A^3 - 240B^2)x^6
     - 696BA^2x^5 + (-125A^4 - 1920B^2A)x^4 + (-80BA^3 - 1600B^3)x^3 + (-50A^5 - 240B^2A^2)x^2
-    + (100BA^4 - 640B^3A)x + (A^6 - 32B^2A^3 - 256B4)
+    + (100BA^4 - 640B^3A)x + (A^6 - 32B^2A^3 - 256B^4)
   ......
 
   一般：
@@ -7754,7 +7754,7 @@ end;
   f4 = 4 * (x^6 + 5Ax^4 + 20Bx^3 - 5A^2x^2 - 4ABx - 8B^2 - A^3)
   f5 = 5x^12 + 62Ax^10 + 380Bx^9 + 105A^2x^8 + 240BAx^7 + (-300A^3 - 240B^2)x^6
     - 696BA^2x^5 + (-125A^4 - 1920B^2A)x^4 + (-80BA^3 - 1600B^3)x^3 + (-50A^5 - 240B^2A^2)x^2
-    + (100BA^4 - 640B^3A)x + (A^6 - 32B^2A^3 - 256B4)
+    + (100BA^4 - 640B^3A)x + (A^6 - 32B^2A^3 - 256B^4)
   ......
 
   一般：
@@ -9812,7 +9812,7 @@ begin
     P2Max := P2.MaxDegree;
     if P2Max > MaxDegree then P2Max := MaxDegree;
 
-    // The max possible degree in the result is Min(P1.MaxDegree + P2Max, MaxDegree)
+    // The max possible degree in the result is Min(P1.MaxDegree + P2.MaxDegree)
     Limit := P1.MaxDegree + P2Max;
     if Limit > MaxDegree then Limit := MaxDegree;
     R.MaxDegree := Limit;

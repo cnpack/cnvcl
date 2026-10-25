@@ -371,14 +371,14 @@ function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
 }
 
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Integer): Integer;
-{* 计算 UTF-8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
+{* 计算 UTF-8 字符串转换成 WideString 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
    等于转 WideString 后 Copy(1, WideOffset) 再转回 UTF-8 再取 Length，但不用 UTF-8/WideString 互转，以避免额外的编码问题。
 
    参数：
      Utf8Text: PAnsiChar                  - 待计算的 UTF-8 字符串地址
      WideOffset: Integer                  - 以宽字符为单位的偏移量
 
-   返回值：Integer                        - 返回该 UTF-8 字符串转换成 WideSting 后指定从 1 到 WideOffset 子串所对应的 UTF-8 字符串长度
+   返回值：Integer                        - 返回该 UTF-8 字符串转换成 WideString 后指定从 1 到 WideOffset 子串所对应的 UTF-8 字符串长度
 }
 
 // =============================================================================
@@ -1896,7 +1896,7 @@ begin
     raise ECnWideStringException.Create(SCnErrorInvalidUtf8CharLength);
 end;
 
-// 计算 UTF-8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
+// 计算 UTF-8 字符串转换成 WideString 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
 // 等于转 WideString 后 Copy(1, WideOffset) 再转回 UTF-8 再取 Length，但不用 UTF-8/WideString 互转，以避免额外的编码问题
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar;
   WideOffset: Integer): Integer;

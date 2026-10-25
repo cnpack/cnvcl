@@ -171,7 +171,7 @@ begin
     id := FieldByName(IdFieldName).AsString; 
     // 序号
     code := Copy(id, Length(id) - CodeLength + 1, CodeLength); 
-    // 判断日期是澡当天
+    // 判断日期是否当天
     if FormatDateTime('yyyymmdd', Now) <> Copy(id, 1, Length(id) - codelength) then
       id := FormatDateTime('yyyymmdd', Now) + getId('0')
     else

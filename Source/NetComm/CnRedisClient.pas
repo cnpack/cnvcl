@@ -171,29 +171,29 @@ type
     {$REGION '==========Redis Command v2.8=========='}
 {$ENDIF}
     //--------------------------KEY----------------------------//
-    function DEL(const Keys: string): Int64; //删除给定的一个或多个key,返回值：被删除key的数量,不存在返回0。
-    function DUMP(const Key: string): string; //列化给定 key ，并返回被序列化的值，使用 RESTORE 命令可以将这个值反序列化为 Redis 键。
-    function EXISTS(const Key: string): Boolean;  //检查给定 key 是否存在。
-    function EXPIRE(const Key: string; Seconds: Int64): Boolean; //为给定 key 设置生存时间，当 key 过期时(生存时间为 0 )，它会被自动删除,单位秒。
-    function EXPIREAT(const Key: string; UnixTime: Int64): Boolean; //功能和EXPIRE一样，命令接受的时间参数是 UNIX 时间戳(unix timestamp)。
-    function KEYS(const pattern: string; Value: TStrings): Integer; //查找所有符合给定模式 pattern 的 key
+    function DEL(const Keys: string): Int64; // 删除给定的一个或多个key,返回值：被删除key的数量,不存在返回0。
+    function DUMP(const Key: string): string; // 序列化给定 key ，并返回被序列化的值，使用 RESTORE 命令可以将这个值反序列化为 Redis 键。
+    function EXISTS(const Key: string): Boolean;  // 检查给定 key 是否存在。
+    function EXPIRE(const Key: string; Seconds: Int64): Boolean; // 为给定 key 设置生存时间，当 key 过期时(生存时间为 0 )，它会被自动删除,单位秒。
+    function EXPIREAT(const Key: string; UnixTime: Int64): Boolean; // 功能和EXPIRE一样，命令接受的时间参数是 UNIX 时间戳(unix timestamp)。
+    function KEYS(const pattern: string; Value: TStrings): Integer; // 查找所有符合给定模式 pattern 的 key
     function MIGRATE(const Host: string; Port: Word; const Key: string; DestDB,
-      Timeout: Cardinal; IsCopy, IsReplace: Boolean): Boolean; //将 key 原子性地从当前实例传送到目标实例的指定数据库上
-    function MOVE(const Key: string; DB: Integer): Boolean; //将当前数据库的 key 移动到给定的数据库 db 当中。
+      Timeout: Cardinal; IsCopy, IsReplace: Boolean): Boolean; // 将 key 原子性地从当前实例传送到目标实例的指定数据库上
+    function MOVE(const Key: string; DB: Integer): Boolean; // 将当前数据库的 key 移动到给定的数据库 db 当中。
     function OBJECTREFCOUNT(const key: string): Integer; // 返回给定 key 引用所储存的值的次数。此命令主要用于除错。
     function OBJECTENCODING(const key: string): string; // 返回给定 key 锁储存的值所使用的内部表示(representation)。
     function OBJECTIDLETIME(const key: string): Integer; // 返回给定 key 自储存以来的空转时间(idle， 没有被读取也没有被写入)，以秒为单位。
-    function PERSIST(const Key: string): Boolean;  //移除给定 key 的生存时间，将这个 key 从『易失的』(带生存时间 key )转换成『持久的』(一个不带生存时间、永不过期的 key )。
-    function PEXPIRE(const Key: string; MilliSeconds: Int64): Boolean;  //为给定 key 设置生存时间，当 key 过期时(生存时间为 0 )，它会被自动删除,单位毫秒。
-    function PEXPIREAT(const Key: string; UnixTime: Int64): Boolean; //功能和EXPIREAT一样，但它以毫秒为单位设置 key 的过期 unix 时间戳。
-    function TTL(const Key: string): Int64; //以秒为单位，返回给定 key 的剩余生存时间
-    function PTTL(const Key: string): Int64; //这个命令类似于 TTL 命令，但它以毫秒为单位返回 key 的剩余生存时间，而不是像 TTL 命令那样，以秒为单位。
-    function RANDOMKEY: string; //从当前数据库中随机返回(不删除)一个 key 。
-    function RENAME(const Key, NewKey: string): Boolean; //将key改名为newkey。当key和newkey相同或者key不存在时，返回一个错误。当newkey已经存在时，RENAME命令将覆盖旧值。
-    function RENAMENX(const Key, NewKey: string): Boolean; //当且仅当 newkey 不存在时，将 key 改名为 newkey 。
+    function PERSIST(const Key: string): Boolean;  // 移除给定 key 的生存时间，将这个 key 从『易失的』(带生存时间 key )转换成『持久的』(一个不带生存时间、永不过期的 key )。
+    function PEXPIRE(const Key: string; MilliSeconds: Int64): Boolean;  // 为给定 key 设置生存时间，当 key 过期时(生存时间为 0 )，它会被自动删除,单位毫秒。
+    function PEXPIREAT(const Key: string; UnixTime: Int64): Boolean; // 功能和EXPIREAT一样，但它以毫秒为单位设置 key 的过期 unix 时间戳。
+    function TTL(const Key: string): Int64; // 以秒为单位，返回给定 key 的剩余生存时间
+    function PTTL(const Key: string): Int64; // 这个命令类似于 TTL 命令，但它以毫秒为单位返回 key 的剩余生存时间，而不是像 TTL 命令那样，以秒为单位。
+    function RANDOMKEY: string; // 从当前数据库中随机返回(不删除)一个 key 。
+    function RENAME(const Key, NewKey: string): Boolean; // 将key改名为newkey。当key和newkey相同或者key不存在时，返回一个错误。当newkey已经存在时，RENAME命令将覆盖旧值。
+    function RENAMENX(const Key, NewKey: string): Boolean; // 当且仅当 newkey 不存在时，将 key 改名为 newkey 。
     function RESTORE(const Key: string; ttl: Cardinal; const SValue: string):
-      Boolean; //反序列化给定的序列化值，并将它和给定的key关联。参数ttl以毫秒为单位为key设置生存时间；如果ttl为0 ，那么不设置生存时间。
-    function SORT(const Key, Param: string; Value: TStrings): Integer; //返回或保存给定列表、集合、有序集合 key 中经过排序的元素。
+      Boolean; // 反序列化给定的序列化值，并将它和给定的key关联。参数ttl以毫秒为单位为key设置生存时间；如果ttl为0 ，那么不设置生存时间。
+    function SORT(const Key, Param: string; Value: TStrings): Integer; // 返回或保存给定列表、集合、有序集合 key 中经过排序的元素。
     function _TYPE(const Key: string): TCnRedisDataType;
     function SCAN(cursor: Integer; MATCH: string; Count: Integer):
       TCnRedisMultiBulk; //2.8+

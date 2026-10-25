@@ -27,7 +27,7 @@ unit CnStrings;
 *           基本支持 Win32/64 和 Posix
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 开发平台：PWinXPPro + Delphi 5.01
-* 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
+* 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Builder 5/6
 * 备    注：AnsiStringList 移植自 Delphi 7 的 StringList
 * 最后更新：2025.08.14
 *               增加一个分隔符分隔的全匹配搜索实现函数

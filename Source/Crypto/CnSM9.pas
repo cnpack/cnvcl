@@ -345,7 +345,7 @@ type
     }
 
     procedure SetBigNumbers(Num0, Num1: TCnBigNumber);
-    {* 设置为两个个大数。
+    {* 设置为两个大数。
 
        参数：
          Num0: TCnBigNumber               - 大数一
@@ -876,7 +876,7 @@ type
     {* 封装的密文，需要往外传}
   end;
 
-  TCnSM9EncrytionMode = (semSM4, semKDF);
+  TCnSM9EncryptionMode = (semSM4, semKDF);
   {* SM9 公钥加密的两种模式，用 SM4 分组加密或 KDF 序列密码异或}
 
   TCnSM9KeyExchangeUserPrivateKey = class(TCnFP2Point);
@@ -2238,7 +2238,7 @@ function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
   DataByteLen: Integer; K1ByteLength: Integer; K2ByteLength: Integer; OutStream: TStream;
-  EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
+  EncryptionMode: TCnSM9EncryptionMode = semSM4; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功。
    EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
    SM4 使用 ECB 模式与 PKCS7 对齐。
@@ -2251,7 +2251,7 @@ function CnSM9UserEncryptData(const DestUserID: AnsiString;
      K1ByteLength: Integer                                - 第一个密钥的字节长度
      K2ByteLength: Integer                                - 第二个密钥的字节长度
      OutStream: TStream                                   - 输出的密文流
-     EncryptionMode: TCnSM9EncrytionMode                  - 加密模式
+     EncryptionMode: TCnSM9EncryptionMode                  - 加密模式
      SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
      const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
 
@@ -2261,7 +2261,7 @@ function CnSM9UserEncryptData(const DestUserID: AnsiString;
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
   DataByteLen: Integer; K2ByteLength: Integer; OutStream: TStream;
-  EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
+  EncryptionMode: TCnSM9EncryptionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
 {* 使用用户加密私钥解密数据并写入流，返回解密是否成功。
 
    参数：
@@ -2271,7 +2271,7 @@ function CnSM9UserDecryptData(const DestUserID: AnsiString;
      DataByteLen: Integer                                 - 待解密的密文数据块字节长度
      K2ByteLength: Integer                                - 第二个密钥的字节长度
      OutStream: TStream                                   - 输出的明文流
-     EncryptionMode: TCnSM9EncrytionMode                  - 加密模式
+     EncryptionMode: TCnSM9EncryptionMode                  - 加密模式
      SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
 
    返回值：Boolean                                        - 返回解密是否成功
@@ -5111,7 +5111,7 @@ end;
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
   DataByteLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
-  EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9; const RandHex: string): Boolean;
+  EncryptionMode: TCnSM9EncryptionMode; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   S, KDFKey: AnsiString;
@@ -5247,7 +5247,7 @@ end;
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
   DataByteLen: Integer; K2ByteLength: Integer; OutStream: TStream;
-  EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
+  EncryptionMode: TCnSM9EncryptionMode; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   C1: TCnEccPoint;

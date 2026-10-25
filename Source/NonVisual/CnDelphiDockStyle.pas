@@ -117,7 +117,7 @@ var
 begin
   if IsDockable(DockClient.ParentForm, Source.Control, Source.DropOnControl, Source.DropAlign) then
   begin
-    // 调用ComputeDockingRect函数知道停靠的类型
+    // 调用 ComputeDockingRect 函数得到停靠的类型
     Host := nil;
     { 锁住Windows桌面 }
     if not IsLoading then

@@ -377,7 +377,7 @@ var
   Mark: AnsiString;
   Value1, Value2: DWORD;
 begin
-  // 制定类型
+  // 指定类型
   FHooker.Style := HT_SHORT_JMP;
 
   // 分配内存

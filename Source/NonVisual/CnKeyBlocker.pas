@@ -306,7 +306,7 @@ begin
               boolKey := True;
           end;
 
-      //如果有其他要屏闭的键，添加在此处
+        // 如果有其他要屏蔽的键，添加在此处
         end;
     end;
   end;

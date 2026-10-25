@@ -458,7 +458,7 @@ function GetDirFiles(const Dir: string; FileNames: TStrings = nil): Integer;
 type
   TFindCallBack = procedure(const FileName: string; const Info: TSearchRec;
     var Abort: Boolean) of object;
-  {* 查找指定目录下文件的回调函数，FileName 是是带路径的完整文件名}
+  {* 查找指定目录下文件的回调函数，FileName 是带路径的完整文件名}
 
   TDirCallBack = procedure(const SubDir: string) of object;
   {* 查找指定目录时进入子目录回调函数，SubDir 是不包括根搜索路径的相对子路径，并非完整路径}
@@ -516,7 +516,7 @@ function LoadStringFromFile(const FileName: string): string;
 {* 将文件读为字符串}
 
 function SaveStringToFile(const S, FileName: string): Boolean;
-{* 保存字符串到为文件}
+{* 保存字符串为文件}
 
 procedure QuickSortStringList(List: TStringList; L, R: Integer; SCompare: TStringListSortCompare);
 {* StringList 快排，弥补 D5、6 下排序不开放的局限}
@@ -1258,7 +1258,7 @@ function IndexStr(const AText: string; AValues: array of string; IgCase: Boolean
 {* 查找字符串在动态数组中的索引，用于 string 类型使用 case 语句}
 
 function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
-{* 查找整形变量在动态数组中的索引，用于变量使用 case 语句}
+{* 查找整型变量在动态数组中的索引，用于变量使用 case 语句}
 
 procedure TrimStrings(AList: TStrings);
 {* 删除空行和每一行的行首尾空格}
@@ -1485,7 +1485,7 @@ const
   // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
 
 {$IFNDEF DELPHIXE5_UP}
-  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA and MSGFIT_ADD
+  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA and MSGFLT_ADD
   MSGFLT_ADD        = $00000001;
 {$ENDIF}
 
@@ -6750,7 +6750,7 @@ end;
 {$ENDIF}
 
 //------------------------------------------------------------------------------
-// 位扩展日期时间操作函数
+// 扩展日期时间操作函数
 //------------------------------------------------------------------------------
 
 function GetYear(Date: TDate): Integer;
@@ -8418,7 +8418,7 @@ begin
         SetLength(TargetProcessPath, MAX_PATH);
         SetLength(TargetDosPath, MAX_PATH);
 
-        // 注意如果对方是 64 位，则要换 GetProcesslmageFileName
+        // 注意如果对方是 64 位，则要换 GetProcessImageFileName
         if CheckProcess64(PH) then
         begin
           if not Assigned(Proc) then
@@ -8964,7 +8964,7 @@ begin
     end;
 end;
 
-// 查找整形变量在动态数组中的索引，用于变量使用Case语句
+// 查找整型变量在动态数组中的索引，用于变量使用Case语句
 function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
 var
   Index: Integer;

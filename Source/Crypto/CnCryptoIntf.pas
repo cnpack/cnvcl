@@ -404,7 +404,7 @@ function cn_base32_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
 {* 解码 Base32 字符串为二进制数据。
 
    参数：
-     in_ptr: PByte                          - 输入 Base64 数据指针。如 DLL 是 Unicode 编译，则此处需要双字节字符串内容，否则为单字节字符串内容
+     in_ptr: PByte                          - 输入 Base32 数据指针。如 DLL 是 Unicode 编译，则此处需要双字节字符串内容，否则为单字节字符串内容
      in_len: TCnSize                        - 输入字节长度
      out_ptr: PByte                         - 输出二进制缓冲区
      cap: TCnSize                           - 输出缓冲区容量，单位字节

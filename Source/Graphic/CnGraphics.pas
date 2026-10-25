@@ -7066,7 +7066,7 @@ begin
   Result := TextExtent(Text).cx;
 end;
 
-// 初始化灰度调化板数据
+// 初始化灰度调色板数据
 procedure InitGrayPal;
 var
   I: Integer;

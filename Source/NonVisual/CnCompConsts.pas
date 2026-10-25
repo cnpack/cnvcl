@@ -100,9 +100,9 @@ resourcestring
   SCnTrayIconName = 'Tray Icon Component';
   SCnTrayIconComment = 'Tray Icon Component';
 
-  // CnVolumnCtrl
-  SCnVolumnCtrlName = 'Volume Control Component';
-  SCnVolumnCtrlComment = 'Volume Control Component';
+  // CnVolumeCtrl
+  SCnVolumeCtrlName = 'Volume Control Component';
+  SCnVolumeCtrlComment = 'Volume Control Component';
   SCnMixerOpenError         = 'Open Audio Device Failed!';
   SCnMixerGetDevCapsError   = 'Get Device Caps Failed!';
   SCnMixerGetLineInfoError  = 'Get Line Failed!';

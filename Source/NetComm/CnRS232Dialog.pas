@@ -212,7 +212,7 @@ type
     {* 对话框可显示的页面集合，仅当 Kind 属性为 ckExtended 扩展风格时有效}
     property BaudRateList: Boolean read FBaudRateList write FBaudRateList default True;
     {* 对话框中的波特率参数是否只允许从下拉列表中选择。如果为假，用户可自定义
-       非标准的小特率。仅当 Kind 属性为 ckExtended 扩展风格时有效}
+       非标准的波特率。仅当 Kind 属性为 ckExtended 扩展风格时有效}
     property ShowHint: TCnRS232DialogShowHint read FShowHint write FShowHint default
       csNoHint;
     {* 显示对话框中工具提示的方式，仅当 Kind 属性为 ckExtended 扩展风格时有效}

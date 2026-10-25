@@ -440,16 +440,16 @@ resourcestring
   sMethodOver     = 'Method definition for %s has over %d parameters';
   sTooManyParams  = 'Too many parameters for method %s';
 
- /// ObjectInvoke - function to dymically invoke a method of an object that
+ /// ObjectInvoke - function to dynamically invoke a method of an object that
  /// has sufficient type information.
  ///   Instance -      the object to invoke the method on
  ///   MethodHeader -  the type information for the method obtained through
  ///                   GetMethodInfo.
- ///   ParamIndexs -   the indexs of the parameters. This assumes that the
- ///                   indexs are 1 offset. The number of indexs do not need
+ ///   ParamIndexes -  the indexes of the parameters. This assumes that the
+ ///                   indees are 1 offset. The number of indexes do not need
  ///                   to match the number of parameters. The parameters left
- ///                   over are assumed to fill in the holes left by indexs.
- ///                   Param indexs are assumed to be in lexical order, not
+ ///                   over are assumed to fill in the holes left by indexes.
+ ///                   Param indexes are assumed to be in lexical order, not
  ///                   inverse lexical order like Params.
  ///   Params -        the parameters for the function invocation. The
  ///                   order of the parameters is assumed to be in inverse
@@ -533,7 +533,7 @@ begin
   for I := 0 to High(Params) do
   begin
     // Figure out what parameter index this parameter refers to.
-    // If it is a named parameter it will have an entry in the ParamIndexs
+    // If it is a named parameter it will have an entry in the ParamIndexes
     // array. If not, P points to the current parameter to use for unnamed
     // parameters. K is the formal parameter number.
     // This calculation assumes Self is first and any result parameters are last

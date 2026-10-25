@@ -597,7 +597,7 @@ type
     {* 文件尾的字典，包括 Size、Root、Info 等关键信息}
 
     property XRefStart: Cardinal read FXRefStart write FXRefStart;
-    {* 交叉引用表的起始字节偏移量，可以指向 xref 原始表，也可用是一个 类型是 XRef 的 Object，里头有流式内容}
+    {* 交叉引用表的起始字节偏移量，可以指向 xref 原始表，也可以是一个类型为 XRef 的 Object，里头有流式内容}
     property Comment: string read FComment write FComment;
     {* 最后一块注释}
   end;
@@ -2880,7 +2880,7 @@ var
   D: TCnPDFDictionaryObject;
   Cryptor: TCnPDFDataCryptor;
 begin
-  // 用 V4 R4 结合 CF 的 CTM V2 计算密码并加密，再设置 Encryt 字段
+  // 用 V4 R4 结合 CF 的 CTM V2 计算密码并加密，再设置 Encrypt 字段
   Ver := 4;
   Rev := 4;
   KBL := 128;

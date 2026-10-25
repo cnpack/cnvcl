@@ -262,7 +262,7 @@ type
     property ActivePaneSize: Integer read FActivePaneSize write SetActivePaneSize;
   end;
 
-  { TCnVSChannel 的类引用(类元) }
+  { TCnVSChannel 的类引用 }
   TCnVSChannelClass = class of TCnVSChannel;
 
 {$IFDEF SUPPORT_32_AND_64}

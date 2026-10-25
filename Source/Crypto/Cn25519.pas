@@ -791,8 +791,8 @@ type
     {* 验证一对 Ed25519 公私钥是否配套。
 
        参数：
-         PrivateKey: TCnEd25519PrivateKey     - 待验证的 Ed448 私钥
-         PublicKey: TCnEd25519PublicKey       - 待验证的 Ed448 公钥
+         PrivateKey: TCnEd25519PrivateKey     - 待验证的 Ed25519 私钥
+         PublicKey: TCnEd25519PublicKey       - 待验证的 Ed25519 公钥
 
        返回值：Boolean                        - 返回验证是否成功
     }
@@ -5360,7 +5360,7 @@ begin
   end;
 end;
 
-{ TCnEd25519Sigature }
+{ TCnEd25519Signature }
 
 procedure TCnEd25519Signature.Assign(Source: TPersistent);
 begin

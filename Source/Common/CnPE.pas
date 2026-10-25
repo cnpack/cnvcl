@@ -349,7 +349,7 @@ type
     property DataDirectorySize[Index: Integer]: DWORD read GetDataDirectorySize;
     {* 第 Index 个 DataDirectory 的尺寸，单位字节，似乎对于固定内容来说不重要}
 
-    // Sections 信息。其中 PE 加载器应该将 Section 的物理文件偏移 PointerToRawData 处的数据映射入内存的 VritualAddress 处
+    // Sections 信息。其中 PE 加载器应该将 Section 的物理文件偏移 PointerToRawData 处的数据映射入内存的 VirtualAddress 处
     property SectionCount: Integer read GetSectionCount;
     {* Section 的数量，内部是 NumberOfSections}
     property SectionHeader[Index: Integer]: PImageSectionHeader read GetSectionHeader;

@@ -366,10 +366,10 @@ end;
 procedure TCnCustomVolumeCtrl.GetComponentInfo(var AName, Author, Email,
   Comment: string);
 begin
-  AName := SCnVolumnCtrlName;
+  AName := SCnVolumeCtrlName;
   Author := SCnPack_Kendling + ';' + SCnPack_SuperYoyoNc;
   Email := SCnPack_KendlingEmail + ';' + SCnPack_SuperYoyoNcEmail;
-  Comment := SCnVolumnCtrlComment;
+  Comment := SCnVolumeCtrlComment;
 end;
 
 procedure TCnCustomVolumeCtrl.HandleCoreAudioNotification(pNotify: Pointer);

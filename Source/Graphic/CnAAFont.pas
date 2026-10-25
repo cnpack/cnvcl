@@ -267,9 +267,9 @@ type
     property Outline: Boolean read FOutline write SetOutline default False;
     {* 是否显示轮廓效果}
     property HorzMirror: Boolean read FHorzMirror write SetHorzMirror default False;
-    {* 是否水平镜象}
+    {* 是否水平镜像}
     property VertMirror: Boolean read FVertMirror write SetVertMirror default False;
-    {* 是否垂直镜象}
+    {* 是否垂直镜像}
   end;
 
 { TCnAAMask }
@@ -329,9 +329,9 @@ type
     procedure Spray(Amount: Integer);
     {* 对蒙板图进行喷溅处理}
     procedure HorzMirror;
-    {* 对蒙板图进行水平镜象处理}
+    {* 对蒙板图进行水平镜像处理}
     procedure VertMirror;
-    {* 对蒙板图进行垂直镜象处理}
+    {* 对蒙板图进行垂直镜像处理}
     function TextExtent(const S: string): TSize;
     {* 返回文本高、宽}
     function TextHeight(const S: string): Integer;
@@ -1619,7 +1619,7 @@ begin
   end;
 end;
 
-// 对蒙板图进行水平镜象处理
+// 对蒙板图进行水平镜像处理
 procedure TCnAAMask.HorzMirror;
 var
   X, Y: Integer;
@@ -1638,7 +1638,7 @@ begin
   end;
 end;
 
-// 对蒙板图进行垂直镜象处理
+// 对蒙板图进行垂直镜像处理
 procedure TCnAAMask.VertMirror;
 var
   pSrc, pDst, pBuf: PByteArray;
@@ -1929,7 +1929,7 @@ begin
       AlphaBlend(FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height,
         FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height, Bf);
 
-      // UnPremutiply 化才能做下文的混合
+      // UnPremultiply 化才能做下文的混合
       UnPreMultiplyBitmap(FBGRABmp);
     end
     else
@@ -2091,7 +2091,7 @@ begin
       AlphaBlend(FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height,
         FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height, Bf);
 
-      // UnPremutiply 化才能做下文的混合
+      // UnPremultiply 化才能做下文的混合
       UnPreMultiplyBitmap(FBGRABmp);
     end
     else
@@ -3102,7 +3102,7 @@ begin
   end;
 end;
 
-// 设置水平镜象
+// 设置水平镜像
 procedure TCnAAEffect.SetHorzMirror(const Value: Boolean);
 begin
   if FHorzMirror <> Value then
@@ -3112,7 +3112,7 @@ begin
   end;
 end;
 
-// 设置垂直镜象
+// 设置垂直镜像
 procedure TCnAAEffect.SetVertMirror(const Value: Boolean);
 begin
   if FVertMirror <> Value then

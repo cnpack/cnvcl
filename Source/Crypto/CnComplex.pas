@@ -298,7 +298,7 @@ type
 
        参数：
          AR: Integer                      - 待添加的复数实部整数
-         AI: Integer                      - 待添加的复数实部整数
+         AI: Integer                      - 待添加的复数虚部整数
 
        返回值：TCnBigComplex              - 新增的该大整数复数对象
     }
@@ -1880,14 +1880,14 @@ begin
     if Complex.R >= 0 then     // 正实数辐角返回 0，包括 0 也凑合着返回 0
       Result := 0
     else
-      Result := CN_PI;         // 复实数辐角返回 π
+      Result := CN_PI;         // 负实数辐角返回 π
   end
   else if Complex.R = 0 then
   begin
     if Complex.I > 0 then      // 正纯虚数辐角返回半 π
       Result := CN_PI / 2
     else
-      Result := CN_PI + CN_PI / 2;   // 复纯虚数辐角返回 3π/2
+      Result := CN_PI + CN_PI / 2;   // 负纯虚数辐角返回 3π/2
   end
   else // 实部虚部均不为 0
   begin

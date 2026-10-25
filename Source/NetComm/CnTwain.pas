@@ -1354,9 +1354,9 @@ begin
         DoTwMessage('Error Open DS. (DG_CONTROL/DAT_IDENTITY/MSG_OPENDS)');
     end
     else
-      DoTwMessage('Can not Open DS while It is Openning')
+      DoTwMessage('Can not Open DS while It is Opening')
   else
-    DoTwMessage('Can not Open DS while DSM not Openning');
+    DoTwMessage('Can not Open DS while DSM not Opening');
 end;
 
 function TCnTwain.CloseDS: TW_UINT16;
@@ -1522,7 +1522,7 @@ begin
     else
       DoTwMessage('Can not Enable DS while it already Enabled')
   else
-    DoTwMessage('Can not Enable DS while DS is not Openning');
+    DoTwMessage('Can not Enable DS while DS is not Opening');
 end;
 
 function TCnTwain.DisableDS: TW_UINT16;
@@ -1555,7 +1555,7 @@ begin
       FdsID := NewDsID;
   end
   else
-    DoTwMessage('Can not Select New DS while DS is Openning');
+    DoTwMessage('Can not Select New DS while DS is Opening');
 end;
 
 function TCnTwain.Acquire(Show: Boolean): TW_UINT16;
@@ -1593,7 +1593,7 @@ begin
     CloseDS;
     CloseDSM;
   end
-  else // DSM Openned.
+  else // DSM Opened.
  if FIsDSOpen then
   begin
     DsID := FDsID;
@@ -1620,8 +1620,8 @@ begin
   if not IsDSMOpen then
     OpenDSM;
   if IsDSOpen then
-  begin //Can't Do Select While DS is Openning!
-    DoTwMessage('Can''t Do Select While DS is Openning.', False);
+  begin //Can't Do Select While DS is Opening!
+    DoTwMessage('Can''t Do Select While DS is Opening.', False);
     Exit;
   end;
   Result := SelectDS;

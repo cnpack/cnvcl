@@ -76,7 +76,7 @@ type
     // 此记录是 hash 表的一个结点
     // 允许通过 名称 查找 对象
     // 名称可以不唯一
-    // 但是跟据名称查找对象时
+    // 但是根据名称查找对象时
     // 如果名称有重复，那么只会取出第一个匹配的
     // 如果名称为空，只能通过 index 取出对象
   TCnObjectRec = record
@@ -129,7 +129,7 @@ type
     function IndexOf(obj: TObject): integer;
     // 获取最后对象的序号
     function LastIndexOf(obj: TObject): integer;
-    // 跟据名称获取对象
+    // 根据名称获取对象
     function getObjectByName(ObjName: string): TObject;
     // 移动
     procedure move(oldIndex, newIndex: integer);

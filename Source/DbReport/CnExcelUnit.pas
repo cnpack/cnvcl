@@ -1759,8 +1759,8 @@ end;
 
 procedure TCell.SetMerge(AValue: Boolean);
 begin
-  {把合并的单元格，除左上角的单元格钋，其余Formula的都清空，
-   因为如果除左上角单元以外，其余的单元格有值，将会导致调用Excel
+  {把合并的单元格，除左上角的单元格外，其余 Formula 的都清空，
+   因为如果除左上角单元以外，其余的单元格有值，将会导致调用 Excel
    的合并功能时失败}
   if FRowBOfCur > FRowTOfCur then
   begin

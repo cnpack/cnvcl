@@ -243,7 +243,7 @@ type
 implementation
 
 var
-  DataBases: TStringList; //filled with DB names and appropiate critical sections
+  DataBases: TStringList; //filled with DB names and appropriate critical sections
   CSConnect: TCriticalSection;
 
 const

@@ -182,7 +182,7 @@ const
 type
   tagRAWHID = record
     dwSizeHid: DWORD;    // byte size of each report
-    dwCount: DWORD;      // number of input packed
+    dwCount: DWORD;      // number of input packets
     bRawData: array [0..0] of BYTE;
   end;
   {$EXTERNALSYM tagRAWHID}
@@ -218,7 +218,7 @@ const
 
   RIDI_PREPARSEDDATA = $20000005;
   {$EXTERNALSYM RIDI_PREPARSEDDATA}
-  RIDI_DEVICENAME    = $20000007; // the return valus is the character length, not the byte size
+  RIDI_DEVICENAME    = $20000007; // the return values is the character length, not the byte size
   {$EXTERNALSYM RIDI_DEVICENAME}
   RIDI_DEVICEINFO    = $2000000b;
   {$EXTERNALSYM RIDI_DEVICEINFO}

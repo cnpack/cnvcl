@@ -777,7 +777,7 @@ begin
   FileIsZeroSize := False;
   if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
-    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，，采用流方式循环处理
+    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
       InternalSM3Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Result, CallBack);

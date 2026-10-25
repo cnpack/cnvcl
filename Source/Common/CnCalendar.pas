@@ -439,20 +439,20 @@ procedure ValidLunarDate(ALunarYear, ALunarMonth, ALunarDay: Integer;
    返回值：（无）
 }
 
-function GetTimeIsValid(AHour, AMinitue, ASecond: Integer): Boolean;
+function GetTimeIsValid(AHour, AMinute, ASecond: Integer): Boolean;
 {* 返回时间是否合法。
 
    参数：
-     AHour, AMinitue, ASecond: Integer    - 待判断的时、分、秒
+     AHour, AMinute, ASecond: Integer    - 待判断的时、分、秒
 
    返回值：Boolean                        - 返回是否合法
 }
 
-procedure ValidTime(AHour, AMinitue, ASecond: Integer);
+procedure ValidTime(AHour, AMinute, ASecond: Integer);
 {* 判断时间是否合法，不合法则抛出异常。
 
    参数：
-     AHour, AMinitue, ASecond: Integer    - 待判断的时、分、秒
+     AHour, AMinute, ASecond: Integer    - 待判断的时、分、秒
 
    返回值：（无）
 }
@@ -1297,7 +1297,7 @@ function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer; out ADay: Integer;
-  out AHour: Integer; out AMinitue: Integer; out ASecond: Integer; out ActualYear: Integer): Boolean;
+  out AHour: Integer; out AMinute: Integer; out ASecond: Integer; out ActualYear: Integer): Boolean;
 {* 获得某公历年内的第 N 个节气的交节月日时分秒，0~23，对应物理顺序的小寒到冬至，并非立春到大寒。
    注意：公历 1582 年以前的第 0 个节气小寒可能会落到前一年的 12 月底，本过程处理了这种情况；年份为 0 或序号非法时抛出异常。
    ActualYear 参数会返回本节气落在的实际年份。
@@ -1308,7 +1308,7 @@ function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer; out ADay: Integ
      out AMonth: Integer                  - 返回节气所在月份
      out ADay: Integer                    - 返回节气所在日
      out AHour: Integer                   - 返回节气交接时刻的小时数
-     out AMinitue: Integer                - 返回节气交接时刻的分钟数
+     out AMinute: Integer                - 返回节气交接时刻的分钟数
      out ASecond: Integer                 - 返回节气交接时刻的秒数
      out ActualYear: Integer              - 返回本节气实际所在的年份，公元 1582 年以前的第 0 个节气小寒可能落到前一年
 
@@ -1325,13 +1325,13 @@ function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer;
-  out AHour: Integer; out AMinitue: Integer; out ASecond: Integer): Integer;
+  out AHour: Integer; out AMinute: Integer; out ASecond: Integer): Integer;
 {* 获得公历年月日是本年的什么节气（或者次年的小寒）以及交节时刻，0-23，对应立春到大寒；合法日期但不是节气时返回 -1，日期非法时抛出异常。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
      out AHour: Integer                   - 返回节气交接时刻的小时数
-     out AMinitue: Integer                - 返回节气交接时刻的分钟数
+     out AMinute: Integer                - 返回节气交接时刻的分钟数
      out ASecond: Integer                 - 返回节气交接时刻的秒数
 
    返回值：Integer                        - 返回节气序号，-1 为不是节气
@@ -7246,16 +7246,16 @@ begin
 end;
 
 // 返回时间是否合法
-function GetTimeIsValid(AHour, AMinitue, ASecond: Integer): Boolean;
+function GetTimeIsValid(AHour, AMinute, ASecond: Integer): Boolean;
 begin
-  Result := (AHour in [0..23]) and (AMinitue in [0..59]) and (ASecond in [0..59]);
+  Result := (AHour in [0..23]) and (AMinute in [0..59]) and (ASecond in [0..59]);
 end;
 
 // 判断时间是否合法，不合法则抛出异常
-procedure ValidTime(AHour, AMinitue, ASecond: Integer);
+procedure ValidTime(AHour, AMinute, ASecond: Integer);
 begin
-  if not GetTimeIsValid(AHour, AMinitue, ASecond) then
-    raise ECnDateTimeException.CreateFmt(SCnErrorTimeIsInvalid, [AHour, AMinitue, ASecond]);
+  if not GetTimeIsValid(AHour, AMinute, ASecond) then
+    raise ECnDateTimeException.CreateFmt(SCnErrorTimeIsInvalid, [AHour, AMinute, ASecond]);
 end;
 
 // 公历年月日往前步进一天，考虑各种闰年、格里高利历删 10 天等因素
@@ -8351,7 +8351,7 @@ end;
 
 // 获得某公历年的第 N 个节气的交节月日时分，0-23，对应小寒到冬至
 function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer; out ADay: Integer;
-  out AHour: Integer; out AMinitue: Integer; out ASecond: Integer; out ActualYear: Integer): Boolean;
+  out AHour: Integer; out AMinute: Integer; out ASecond: Integer; out ActualYear: Integer): Boolean;
 var
   Days: Extended;
   I, Day: Integer;
@@ -8394,20 +8394,20 @@ begin
   AHour := Floor(Days * 24);
 
   Days := Days * 24 - AHour;
-  AMinitue := Floor(Days * 60);
+  AMinute := Floor(Days * 60);
 
-  Days := Days * 60 - AMinitue;
+  Days := Days * 60 - AMinute;
   ASecond := Round(Days * 60);
 
   // 如果秒恰好等于60，则分要加一，如分恰好等于 60，则小时数要加一，如果小时恰好到了 24，则天数要加一
   if ASecond >= 60 then
   begin
     Dec(ASecond, 60);
-    Inc(AMinitue);
+    Inc(AMinute);
 
-    if AMinitue >= 60 then
+    if AMinute >= 60 then
     begin
-      Dec(AMinitue, 60);
+      Dec(AMinute, 60);
       Inc(AHour);
 
       if AHour >= 24 then
@@ -8522,13 +8522,13 @@ end;
 
 // 获得公历年月日是本年的什么节气以及交节时刻，0-23，对应立春到大寒，无则返回 -1
 function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer; out AHour: Integer;
-  out AMinitue: Integer; out ASecond: Integer): Integer;
+  out AMinute: Integer; out ASecond: Integer): Integer;
 var
   Month, Day, Idx, TIdx, TYear, DummyActualYear: Integer;
 begin
   Result := CN_CALENDAR_INVALID_NUM;
   AHour := CN_CALENDAR_INVALID_NUM;
-  AMinitue := CN_CALENDAR_INVALID_NUM;
+  AMinute := CN_CALENDAR_INVALID_NUM;
   ASecond := CN_CALENDAR_INVALID_NUM;
   ValidDate(AYear, AMonth, ADay);
 
@@ -8537,7 +8537,7 @@ begin
   if ADay >= 15 then
     Inc(Idx);
 
-  GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinitue, ASecond, DummyActualYear);
+  GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinute, ASecond, DummyActualYear);
   if (AMonth = Month) and (ADay = Day) then
   begin
     // 此时 I 表示 0 是小寒
@@ -8561,7 +8561,7 @@ begin
       Inc(AYear);
   end;
 
-  GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinitue, ASecond, DummyActualYear);
+  GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinute, ASecond, DummyActualYear);
   if (AMonth = Month) and (ADay = Day) then
   begin
     // 此时 I 表示 0 是小寒
@@ -8583,7 +8583,7 @@ begin
       Dec(AYear);
   end;
 
-  GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinitue, ASecond, DummyActualYear);
+  GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinute, ASecond, DummyActualYear);
   if (AMonth = Month) and (ADay = Day) then
   begin
     // 此时 I 表示 0 是小寒
@@ -8595,7 +8595,7 @@ begin
   end;
 
   AHour := CN_CALENDAR_INVALID_NUM;
-  AMinitue := CN_CALENDAR_INVALID_NUM;
+  AMinute := CN_CALENDAR_INVALID_NUM;
   ASecond := CN_CALENDAR_INVALID_NUM;
 end;
 

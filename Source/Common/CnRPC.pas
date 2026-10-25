@@ -135,7 +135,7 @@ type
     {* 错误数据，可以是 TCnJSONObject，可能为 nil}
   end;
 
-  TCnJSONRPCNoficiation = class(TCnJSONRPCBase)
+  TCnJSONRPCNotficiation = class(TCnJSONRPCBase)
   {* JSON-RPC 通知类}
   private
     FMethod: string;
@@ -221,13 +221,13 @@ begin
       end
       else
       begin
-        Result := TCnJSONRPCNoficiation.Create;
-        TCnJSONRPCNoficiation(Result).Method := Obj[SCN_JSONRPC_METHOD].AsString;
+        Result := TCnJSONRPCNotficiation.Create;
+        TCnJSONRPCNotficiation(Result).Method := Obj[SCN_JSONRPC_METHOD].AsString;
 
         if Obj[SCN_JSONRPC_PARAMS] <> nil then
-          TCnJSONRPCNoficiation(Result).Params := Obj[SCN_JSONRPC_PARAMS].Clone
+          TCnJSONRPCNotficiation(Result).Params := Obj[SCN_JSONRPC_PARAMS].Clone
         else
-          TCnJSONRPCNoficiation(Result).Params := nil;
+          TCnJSONRPCNotficiation(Result).Params := nil;
       end;
     end;
 
@@ -407,27 +407,27 @@ begin
   end;
 end;
 
-{ TCnJSONRPCNoficiation }
+{ TCnJSONRPCNotficiation }
 
-constructor TCnJSONRPCNoficiation.Create;
+constructor TCnJSONRPCNotficiation.Create;
 begin
   inherited;
   FParams := TCnJSONObject.Create;
 end;
 
-destructor TCnJSONRPCNoficiation.Destroy;
+destructor TCnJSONRPCNotficiation.Destroy;
 begin
   FreeAndNil(FParams);
   inherited;
 end;
 
-procedure TCnJSONRPCNoficiation.DoToJSON(Root: TCnJSONObject);
+procedure TCnJSONRPCNotficiation.DoToJSON(Root: TCnJSONObject);
 begin
   Root.AddPair(SCN_JSONRPC_METHOD, FMethod);
   Root.AddPair(SCN_JSONRPC_PARAMS, FParams.Clone);
 end;
 
-procedure TCnJSONRPCNoficiation.SetParams(const Value: TCnJSONValue);
+procedure TCnJSONRPCNotficiation.SetParams(const Value: TCnJSONValue);
 begin
   if FParams <> Value then
   begin

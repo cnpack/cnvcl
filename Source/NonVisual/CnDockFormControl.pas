@@ -96,7 +96,7 @@ unit CnDockFormControl;
     CnDockFormControl -- 版本 0.03
     结束时间 -- 2002-03-10
     修正了0.00版中的两个BUG，程序运行的更加稳定、可靠了。
-    增加了TCnVIDDockStyle类，她是模仿Visual InderDev的停靠的风格，还没有完全完成，
+    增加了TCnVIDDockStyle类，她是模仿Visual InterDev的停靠的风格，还没有完全完成，
 +------------------------------------------------------------------------------}
 
 {------------------------------------------------------------------------------+
@@ -120,7 +120,7 @@ unit CnDockFormControl;
     不过应该马上可以修改好的。关于停靠风格，以后还要增加：
     TCnWPSDockStyle(类似WPS的停靠风格)，
     TCnPhotoShopDockStyle(类似PhotoShop的停靠风格),
-    TCnTancentDockStyle(类似腾讯浏览器的停靠风格),
+    TCnTencentDockStyle(类似腾讯浏览器的停靠风格),
     TCnOfficeDockStyle(类似Office XP的停靠风格),
     TCnNETDockStyle(类似.NET的停靠风格),
     TCnVBDockStyle(类似Visual Basic的停靠风格)，
@@ -4500,7 +4500,7 @@ begin
     if not IsLoading then
       Cn_LockWindow(nil);
     try
-      // 调用ComputeDockingRect函数知道停靠的类型
+      // 调用 ComputeDockingRect 函数得到停靠的类型
       with DockClient do
       begin
         DockType := ComputeDockingRect(DockClient.ParentForm, ARect, Point(X, Y));

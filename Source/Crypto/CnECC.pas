@@ -64,7 +64,7 @@ unit CnECC;
 *           2022.06.10 V2.0
 *               点乘改为默认使用仿射坐标以加速，点加不变
 *           2021.12.22 V1.9
-*               增加 In64 与大数范围内仿射坐标与雅可比坐标的加减法与乘法
+*               增加 Int64 与大数范围内仿射坐标与雅可比坐标的加减法与乘法
 *           2021.12.07 V1.8
 *               增加 SM9 与 WAPI 的两条曲线定义
 *           2020.11.13 V1.7
@@ -1719,7 +1719,7 @@ function CnInt64EccGenerateParams(out FiniteFieldSize: Int64; out CoefficientA: 
    参数：
      out FiniteFieldSize: Int64           - 生成的魏尔斯特拉斯椭圆曲线方程的有限域上界
      out CoefficientA: Int64              - 生成的魏尔斯特拉斯椭圆曲线方程的 a 参数
-     out CoefficientB: Int64              - 生成的魏尔斯特拉斯椭圆曲线方程的 a 参数
+     out CoefficientB: Int64              - 生成的魏尔斯特拉斯椭圆曲线方程的 b 参数
      out GX: Int64                        - 生成的魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
      out GY: Int64                        - 生成的魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
      out Order: Int64                     - 生成的魏尔斯特拉斯椭圆曲线方程的 G 点的阶

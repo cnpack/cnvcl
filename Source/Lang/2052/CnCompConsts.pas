@@ -98,9 +98,9 @@ resourcestring
   SCnTrayIconName = '系统托盘组件';
   SCnTrayIconComment = '系统托盘组件';
 
-  // CnVolumnCtrl
-  SCnVolumnCtrlName = '音量控制组件';
-  SCnVolumnCtrlComment = '用于控制系统音量，支持多设备多线路';
+  // CnVolumeCtrl
+  SCnVolumeCtrlName = '音量控制组件';
+  SCnVolumeCtrlComment = '用于控制系统音量，支持多设备多线路';
   SCnMixerOpenError         = '打开音频设备失败!';
   SCnMixerGetDevCapsError   = '获取设备标题失败!';
   SCnMixerGetLineInfoError  = '打开音频线路失败!';

@@ -122,7 +122,7 @@ const
   { CnEclipseDockStyle的信息 }
   gs_LikeEclipseStyle = '类似 Java eclipse 的%s';
 
-  { CnDcokInfo的信息 }
+  { CnDockInfo的信息 }
   gs_CannotFindWindow = '!@#找不到这个窗体#@!';
 
   { DockTree的版本,当进行停靠信息的装载和存储的时候要用到它 }
