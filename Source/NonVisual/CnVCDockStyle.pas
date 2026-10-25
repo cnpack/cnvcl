@@ -1750,7 +1750,7 @@ begin
       { 如果Zone的前一个兄弟存在，就从Zone的前一个兄弟开始调整 }
       if BeforeClosestVisibleZone <> nil then
         DockSiteSize := DockSiteSize - DockSize - BorderSize
-      { 否者，如果Zone的后一个兄弟存在，就从Zone的后一个兄弟开始调整 }
+      { 否则，如果Zone的后一个兄弟存在，就从Zone的后一个兄弟开始调整 }
       else if AfterClosestVisibleZone <> nil then
       begin
         ForEachAt(AfterClosestVisibleZone, ShiftZone, tskForward);
@@ -1930,7 +1930,7 @@ begin
         { 如果Zone的前一个兄弟存在，就从Zone的前一个兄弟开始调整 }
         if PrevSibling <> nil then
           DockSiteSize := DockSiteSize - DockSize - 5
-        { 否者，如果Zone的后一个兄弟存在，就从Zone的后一个兄弟开始调整 }
+        { 否则，如果Zone的后一个兄弟存在，就从Zone的后一个兄弟开始调整 }
         else if NextSibling <> nil then
         begin
           ForEachAt(NextSibling, ShiftZone, tskForward);

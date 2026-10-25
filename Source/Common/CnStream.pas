@@ -262,7 +262,7 @@ begin
   
   //判断 Dest 或 Source 是不是 TCustomMemoryStream，如果是的话，直接从 Memory 的地址上进行操作 ,
   //因为 CustomMemoryStream 的 Read 或 Write 都用到 System.Move
-  //这样省去了原 TStream 不停地创建和写 Buffer 及设置 Capacity，原 Copyfrom 这里最浪费时间
+  //这样省去了原 TStream 不停地创建和写 Buffer 及设置 Capacity，原 CopyFrom 这里最浪费时间
   //用此方法可直接将 Source 的内存块追加到 Dest 的 Memory 地址的后面
 
   if Source is TCustomMemoryStream then     // 直接写入到 Dest 的地址内

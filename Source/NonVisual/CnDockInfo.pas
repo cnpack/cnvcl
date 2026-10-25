@@ -858,7 +858,7 @@ begin
       Host := CreateHostControl(ATreeZone);
     if (Host <> nil) and (DockClientData <> '') then
     begin
-      {请空TMemoryStream}
+      {清空 TMemoryStream}
       FDataStream.Clear;
       {把字符串转换成流格式}
       Cn_StringToStreamData(FDataStream, DockClientData);
@@ -866,7 +866,7 @@ begin
       FDataStream.Position := 0;
       if Host is TCnTabDockHostForm then
       begin
-        {如果是分页窗体，就调用她的LoadFromStream函数}
+        {如果是分页窗体，就调用其 LoadFromStream 函数}
         with TCnTabDockHostForm(Host).PageControl do
         begin
           DisableAlign;
@@ -875,7 +875,7 @@ begin
         end;
       end else if Host is TCnConjoinDockHostForm then
       begin
-        {如果是平铺窗体，就调用她的DockManageer的LoadFromStream函数}
+        {如果是平铺窗体，就调用其 DockManager 的 LoadFromStream 函数}
         with TCnConjoinDockHostForm(Host).Panel do
         begin
           DisableAlign;
@@ -884,7 +884,7 @@ begin
         end;
       end else if Host is TCnDockPanel then
       begin
-        {如果是停靠服务器，就调用她的DockManageer的LoadFromStream函数}
+        {如果是停靠服务器，就调用其 DockManager 的 LoadFromStream 函数}
         with TCnDockPanel(Host) do
         begin
           DisableAlign;

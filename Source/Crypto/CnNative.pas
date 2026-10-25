@@ -2044,7 +2044,7 @@ function ConstTimeExpandBoolean64(V: Boolean): TUInt64;
 }
 
 function ConstTimeConditionalSelect8(Condition: Boolean; A: Byte; B: Byte): Byte;
-{* 针对两个字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B。
+{* 针对两个字节变量执行时间固定的判断选择，Condition 为 True 时返回 A，否则返回 B。
 
    参数：
      Condition: Boolean                   - 是否选择 A 也就是参数一
@@ -2055,7 +2055,7 @@ function ConstTimeConditionalSelect8(Condition: Boolean; A: Byte; B: Byte): Byte
 }
 
 function ConstTimeConditionalSelect16(Condition: Boolean; A: Word; B: Word): Word;
-{* 针对两个双字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B。
+{* 针对两个双字节变量执行时间固定的判断选择，Condition 为 True 时返回 A，否则返回 B。
 
    参数：
      Condition: Boolean                   - 是否选择 A 也就是参数一
@@ -2066,7 +2066,7 @@ function ConstTimeConditionalSelect16(Condition: Boolean; A: Word; B: Word): Wor
 }
 
 function ConstTimeConditionalSelect32(Condition: Boolean; A: Cardinal; B: Cardinal): Cardinal;
-{* 针对两个四字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B
+{* 针对两个四字节变量执行时间固定的判断选择，Condition 为 True 时返回 A，否则返回 B
 
    参数：
      Condition: Boolean                   - 是否选择 A 也就是参数一
@@ -2077,7 +2077,7 @@ function ConstTimeConditionalSelect32(Condition: Boolean; A: Cardinal; B: Cardin
 }
 
 function ConstTimeConditionalSelect64(Condition: Boolean; A: TUInt64; B: TUInt64): TUInt64;
-{* 针对两个八字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B
+{* 针对两个八字节变量执行时间固定的判断选择，Condition 为 True 时返回 A，否则返回 B
 
    参数：
      Condition: Boolean                   - 是否选择 A 也就是参数一

@@ -70,7 +70,7 @@ interface
 {$I CnPack.inc}
 
 {$IFNDEF SUPPORT_ZLIB_WINDOWBITS}
-//  {$MESSAGE WARN 'NOT Compatable with WinZip/WinRAR etc.'}
+//  {$MESSAGE WARN 'NOT Compatible with WinZip/WinRAR etc.'}
 {$ENDIF}
 
 // {$DEFINE DEBUGZIP}
@@ -1882,7 +1882,7 @@ begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
-{ TCnEnryptStoredStream }
+{ TCnEncryptStoredStream }
 
 constructor TCnEncryptStoredStream.Create(OutStream: TStream;
   const APassword: AnsiString; const AZipHeader: PCnZipHeader);

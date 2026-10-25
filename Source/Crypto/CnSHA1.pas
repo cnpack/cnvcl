@@ -125,7 +125,7 @@ function SHA1StringA(const Str: AnsiString): TCnSHA1Digest;
 
 function SHA1StringW(const Str: WideString): TCnSHA1Digest;
 {* 对 WideString 类型字符串进行转换并进行 SHA1 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

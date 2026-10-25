@@ -952,7 +952,7 @@ type
 // ============================ 整数矩阵运算方法 ===============================
 
 procedure CnMatrixMul(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; MulResult: TCnIntMatrix); overload;
-{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
+{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Matrix2 行数相等。
    MulResult 不能是 Matrix1 或 Matrix2。
 
    参数：
@@ -975,7 +975,7 @@ procedure CnMatrixPower(Matrix: TCnIntMatrix; K: Integer; PowerResult: TCnIntMat
 }
 
 procedure CnMatrixAdd(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; AddResult: TCnIntMatrix); overload;
-{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
+{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Matrix2 行数相等。
    AddResult 可以是 Matrix1 或 Matrix2。
 
    参数：
@@ -987,7 +987,7 @@ procedure CnMatrixAdd(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; AddResult: T
 }
 
 procedure CnMatrixHadamardProduct(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; ProductResult: TCnIntMatrix); overload;
-{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Matrix2 相等。
    ProductResult 可以是 Matrix1 或 Matrix2 或其他。
 
    参数：
@@ -1045,7 +1045,7 @@ procedure CnMatrixInverse(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overloa
 // =========================== 浮点数矩阵运算方法 ==============================
 
 procedure CnMatrixMul(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix; MulResult: TCnFloatMatrix); overload;
-{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
+{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Matrix2 行数相等。
    MulResult 不能是 Matrix1 或 Matrix2。
 
    参数：
@@ -1069,7 +1069,7 @@ procedure CnMatrixPower(Matrix: TCnFloatMatrix; K: Integer; PowerResult: TCnFloa
 
 procedure CnMatrixAdd(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
   AddResult: TCnFloatMatrix); overload;
-{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
+{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Matrix2 行数相等。
    AddResult 可以是 Matrix1 或 Matrix2。
 
    参数：
@@ -1082,7 +1082,7 @@ procedure CnMatrixAdd(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
 
 procedure CnMatrixHadamardProduct(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
   ProductResult: TCnFloatMatrix); overload;
-{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Matrix2 相等。
    ProductResult 可以是 Matrix1 或 Matrix2 或其他。
 
    参数：
@@ -1150,7 +1150,7 @@ procedure CnIntToRationalMatrix(Int: TCnIntMatrix; Rational: TCnRationalMatrix);
 
 procedure CnMatrixMul(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
   MulResult: TCnRationalMatrix); overload;
-{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
+{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Matrix2 行数相等。
    MulResult 不能是 Matrix1 或 Matrix2。
 
    参数：
@@ -1174,7 +1174,7 @@ procedure CnMatrixPower(Matrix: TCnRationalMatrix; K: Integer; PowerResult: TCnR
 
 procedure CnMatrixAdd(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
   AddResult: TCnRationalMatrix); overload;
-{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Matrix2 相等。
    AddResult 可以是 Matrix1 或 Matrix2。
 
    参数：
@@ -1187,7 +1187,7 @@ procedure CnMatrixAdd(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
 
 procedure CnMatrixHadamardProduct(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
   ProductResult: TCnRationalMatrix); overload;
-{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Matrix2 相等。
    ProductResult 可以是 Matrix1 或 Matrix2。
 
    参数：
@@ -2413,7 +2413,7 @@ begin
     Minor := TCnIntMatrix(ClassType.NewInstance); // 需要用子类进行统一的运算
     Minor.Create(FRowCount - 1, FColCount - 1);
 
-    // Minor := Self.clas TCnIntMatrix.Create(FRowCount - 1, FColCount - 1);
+    // Minor := Self.class TCnIntMatrix.Create(FRowCount - 1, FColCount - 1);
     try
       for I := 0 to FColCount - 1 do
       begin
@@ -2819,7 +2819,7 @@ begin
     Minor := TCnFloatMatrix(ClassType.NewInstance); // 需要用子类进行统一的运算
     Minor.Create(FRowCount - 1, FColCount - 1);
 
-    // Minor := Self.clas TCnFloatMatrix.Create(FRowCount - 1, FColCount - 1);
+    // Minor := Self.class TCnFloatMatrix.Create(FRowCount - 1, FColCount - 1);
     try
       for I := 0 to FColCount - 1 do
       begin

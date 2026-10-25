@@ -4704,7 +4704,7 @@ procedure Int64BiPolynomialExtractXByY(Res: TCnInt64Polynomial;
    返回值：（无）
 }
 
-// =================== 二元整系数多项式式在有限域上的模运算 ====================
+// ==================== 二元整系数多项式在有限域上的模运算 =====================
 
 function Int64BiPolynomialGaloisEqual(A: TCnInt64BiPolynomial;
   B: TCnInt64BiPolynomial; Prime: Int64): Boolean;
@@ -16410,7 +16410,7 @@ begin
   Res.CorrectTop;
 end;
 
-// ================== 二元大整系数多项式式在有限域上的模运算 ===================
+// =================== 二元大整系数多项式在有限域上的模运算 ====================
 
 function BigNumberBiPolynomialGaloisEqual(A, B: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
 var

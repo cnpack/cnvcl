@@ -175,7 +175,7 @@ function XXH32StringA(const Str: AnsiString; Seed: Cardinal = 0): TCnXXH32Digest
 
 function XXH32StringW(const Str: WideString; Seed: Cardinal = 0): TCnXXH32Digest;
 {* 对 WideString 类型数据进行 XXH32 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -197,7 +197,7 @@ function XXH64StringA(const Str: AnsiString; Seed: TUInt64 = 0): TCnXXH64Digest;
 
 function XXH64StringW(const Str: WideString; Seed: TUInt64 = 0): TCnXXH64Digest;
 {* 对 WideString 类型数据进行 XXH64 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

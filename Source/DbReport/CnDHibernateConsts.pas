@@ -67,7 +67,7 @@ const
   // for events, add "and" after this
   DH_SELECT = 'select * from %s where 1=1'; 
 
-  // fmt: nnormal deletion T-sql
+  // fmt: normal deletion T-sql
   // for events, add "and" after this
   DH_DELETE_RECORD = 'delete from %s where 1=1'; 
 

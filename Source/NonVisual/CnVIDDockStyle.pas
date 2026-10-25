@@ -1020,9 +1020,9 @@ begin
                 TForm(Source.Control).FormStyle := fsStayOnTop;
             end else
             begin
-              // 否则就创建TCnTabDockHostForm，
-              // 把把Parent停靠到TCnTabDockHostForm中，
-              // 再把TCnTabDockHostForm停靠到TCnDockPanel中。
+              // 否则就创建 TCnTabDockHostForm，
+              // 把 Parent 停靠到 TCnTabDockHostForm 中，
+              // 再把 TCnTabDockHostForm 停靠到 TCnDockPanel 中。
               APanelDock := ParentForm.HostDockSite;
               DRect.TopLeft := ParentForm.HostDockSite.ClientToScreen(Point(0, 0));
               Host := CreateTabHostAndDockControl(ParentForm, Source.Control);
@@ -1299,7 +1299,7 @@ procedure TCnVIDDockPanel.CustomGetSiteInfo(Source: TCnDragDockObject;
   var CanDock: Boolean);
 begin
   { 如果VisibleDockClientCount = 0，也就是说停靠服务器中的TCnVIDDockPanel还没有显示出来，
-    就调用默认的CustomGetSiteInfo，否者就要调用CnDockManager.GetSiteInfo来获得InfluenceRect }
+    就调用默认的CustomGetSiteInfo，否则就要调用CnDockManager.GetSiteInfo来获得InfluenceRect }
   if VisibleDockClientCount = 0 then
     inherited CustomGetSiteInfo(Source, Client, InfluenceRect, MousePos, CanDock)
   else
@@ -1430,7 +1430,7 @@ procedure TCnVIDDockTree.InsertControl(Control: TControl; InsertAt: TAlign;
       Result := DockClient.CreateTabHostAndDockControl(TempCtl, Client);
       if TempPanel <> nil then
         { 这条语句是用在TCnDockableForm的DoClose中的，用来判断UnDockControl是否是将要又被停靠进TempPanel，
-          如果是的话，就不把TempPanel.ParentForm释放掉，否者就有可能被释放掉，具体代码请参看TCnDockableForm的DoClose函数 }
+          如果是的话，就不把TempPanel.ParentForm释放掉，否则就有可能被释放掉，具体代码请参看TCnDockableForm的DoClose函数 }
         TempPanel.ParentForm.UnDockControl := Result;
 
       { 设置TempCtl和Control的DockSite属性为False }
@@ -1509,7 +1509,7 @@ begin
               VIDSource := TCnVIDDragDockObject.Create(Control);
               DoFloatForm(Control);
               FreeAllDockableForm;
-              { 否者，就首先创建一个TCnDockableForm用来作为Control的DockClients[0]和DropCtl的服务器Host }
+              { 否则，就首先创建一个TCnDockableForm用来作为Control的DockClients[0]和DropCtl的服务器Host }
               Host := CreateDockPageControl(VIDSource.SourceDockClients[0]);//TCnDockableForm(Control).DockableControl.DockClients[0]);
               if Host <> nil then
               begin
@@ -1534,7 +1534,7 @@ begin
               CnGlobalDockPresident.DragObject.Control := nil;
             end;
           end else
-            { 否者调用原来的虚拟函数 }
+            { 否则调用原来的虚拟函数 }
             inherited InsertControl(Control, InsertAt, DropCtl);
         end;
       end else if Control is TCnConjoinDockHostForm then
@@ -1544,11 +1544,11 @@ begin
         TCnTempWinControl(TCnDockableForm(Control).DockableControl).DockManager.ResetBounds(True);
         InsertControlFromConjoinHost(Control, InsertAt, DropCtl);
       end else
-        { 否者调用原来的虚拟函数 }
+        { 否则调用原来的虚拟函数 }
         inherited InsertControl(Control, InsertAt, DropCtl);
     end else
     begin
-      { 否者，也就是说Control是一个普通的窗体 }
+      { 否则，也就是说Control是一个普通的窗体 }
       if InsertAt in [alLeft, alTop] then
         { 对DockSize进行必要的调整 }
         DropDockSize := DropDockSize + SplitterWidth div 2;
@@ -1563,7 +1563,7 @@ begin
         end
         else if TopZone.ChildZones <> nil then
         begin
-          { 否者如果DockSite本身有停靠客户 }
+          { 否则如果DockSite本身有停靠客户 }
           ChildCount := TopZone.ChildCount;
           if DropCtl <> nil then
           begin
@@ -1600,14 +1600,14 @@ begin
 
             end else
             begin
-              { 否者只是简单的设置Host的位置大小 }
+              { 否则只是简单的设置Host的位置大小 }
               Host.BoundsRect := DockSite.Parent.BoundsRect;
             end;
           end;
         end
         else inherited InsertControl(Control, InsertAt, DropCtl);
       end else
-      { 否者调用原来的虚拟函数 }
+      { 否则调用原来的虚拟函数 }
       inherited InsertControl(Control, InsertAt, DropCtl);
       { 这条语句是用来给DockRect赋值，这是因为有可能InsertControl会调用好几次,
         下次调用InsertControl的时候可能会使用到DockRect }
@@ -1849,7 +1849,7 @@ begin
         就要创建一个Zone作为LastZone和DropCtlZone的父亲 }
         InsertNewParent(LastZone, DropCtlZone, InsertOrientation, MakeLast[InsertAt], True)
       else
-        { 否者就只是简单的使LastZone和DropCtlZone成为兄弟关系 }
+        { 否则就只是简单的使LastZone和DropCtlZone成为兄弟关系 }
         InsertSibling(LastZone, DropCtlZone, MakeLast[InsertAt], True);
       { 调整LastZone的ZoneLimit属性 }
 //      LastZone.ZoneLimit := OffsetXYLimitArr[InsertOrientation] + ControlXYLimitArr[InsertOrientation];
@@ -2258,14 +2258,14 @@ begin
   end
   else begin
 LBDropCtlExist:
-    { 否者，如果DockSite包含超过一个客户的时候， 根据鼠标下面的控件设置DockRect的坐标}
+    { 否则，如果DockSite包含超过一个客户的时候， 根据鼠标下面的控件设置DockRect的坐标}
     Zone := FindControlZone(DropCtl);
     CtrlRect := DockRect;
     MapWindowPoints(0, DockSite.Handle, CtrlRect, 2);
     if Zone <> nil then
     begin
       { 判断鼠标是否在分割条附近，如果是的话，就调用DockOverSplitter函数然后退出，
-        否者就计算CtrlRect的大小，在这里CtrlRect是指的是DropOnControl的大小 }
+        否则就计算CtrlRect的大小，在这里CtrlRect是指的是DropOnControl的大小 }
       if Zone.ParentZone.Orientation = doVertical then
       begin
         if (DropAlign = alRight) and (Zone.NextSibling <> nil) then
@@ -3793,7 +3793,7 @@ begin
     // 只有可见的Tab才能调整Tab的宽度
     if not Sorts[i].TabVisible then Continue;
     // 只有当Tab能够显示的宽度小于Tab本身的宽度TabWidth的时候才重新设置Tab的ShowTabWidth，
-    // 否者就把Tab的ShowTabWidth设置成Tab本身的宽度TabWidth。
+    // 否则就把Tab的ShowTabWidth设置成Tab本身的宽度TabWidth。
     if (VisibleCount - j) * (Sorts[i].TabWidth + FTabSplitterWidth + ImageWidth) > TempWidth then
     begin
       Sorts[i].FShowTabWidth := TempWidth div (VisibleCount - j) - FTabSplitterWidth;

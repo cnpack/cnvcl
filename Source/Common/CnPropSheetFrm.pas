@@ -2713,7 +2713,7 @@ begin
     end
     else if ObjectInstance is TComponent then
     begin
-      // 获得其 Componets
+      // 获得其 Components
       AComp := (FObjectInstance as TComponent);
       for I := 0 to AComp.ComponentCount - 1 do
       begin

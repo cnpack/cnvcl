@@ -2112,7 +2112,7 @@ procedure SM9RatePairing(F: TCnFP12; Q: TCnFP2AffinePoint; P: TCnEccPoint);
 
 function CnSM9KGCGenerateSignatureMasterKey(SignatureMasterKey:
   TCnSM9SignatureMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成签名主密钥。
+{* 由 KGC 调用，生成签名主密钥。
 
    参数：
      SignatureMasterKey: TCnSM9SignatureMasterKey         - 待生成的 SM9 签名主密钥
@@ -2124,7 +2124,7 @@ function CnSM9KGCGenerateSignatureMasterKey(SignatureMasterKey:
 function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey:
   TCnSM9SignatureMasterPrivateKey; const AUserID: AnsiString;
   OutSignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用户签名私钥。
+{* 由 KGC 调用，根据用户 ID 生成用户签名私钥。
 
    参数：
      SignatureMasterPrivateKey: TCnSM9SignatureMasterPrivateKey           - 用来生成用户签名私钥的 SM9 签名主密钥
@@ -2174,7 +2174,7 @@ function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; Data
 
 function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
   TCnSM9EncryptionMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成加密主密钥，可用于加解密或密钥封装。
+{* 由 KGC 调用，生成加密主密钥，可用于加解密或密钥封装。
 
    参数：
      EncryptionMasterKey: TCnSM9EncryptionMasterKey       - 待生成的 SM9 加密主密钥
@@ -2186,7 +2186,7 @@ function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
 function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey:
   TCnSM9EncryptionMasterPrivateKey; const AUserID: AnsiString;
   OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装。
+{* 由 KGC 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装。
 
    参数：
      EncryptionMasterPrivateKey: TCnSM9EncryptionMasterPrivateKey         - 用来生成用户加密私钥的 SM9 加密主密钥
@@ -2281,7 +2281,7 @@ function CnSM9UserDecryptData(const DestUserID: AnsiString;
 
 function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
   TCnSM9KeyExchangeMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成加密主密钥，可用于密钥交换，行为等同于 CnSM9KGCGenerateEncryptionMasterKey。
+{* 由 KGC 调用，生成加密主密钥，可用于密钥交换，行为等同于 CnSM9KGCGenerateEncryptionMasterKey。
 
    参数：
      KeyExchangeMasterKey: TCnSM9KeyExchangeMasterKey     - 待生成的 SM9 密钥交换加密主密钥
@@ -2293,7 +2293,7 @@ function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
 function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
   TCnSM9KeyExchangeMasterPrivateKey; const AUserID: AnsiString;
   OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用于密钥交换的用户加密私钥。
+{* 由 KGC 调用，根据用户 ID 生成用于密钥交换的用户加密私钥。
 
    参数：
      KeyExchangeMasterPrivateKey: TCnSM9KeyExchangeMasterPrivateKey       - 用来密钥交换的 SM9 加密主密钥

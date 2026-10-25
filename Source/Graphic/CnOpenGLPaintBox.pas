@@ -280,7 +280,7 @@ type
     function SetRotation(value: Single): TCnOpenGLPaintBox;
 
     function ConvertScreenToWorld(x, y: Integer): TGLPointF; // GDI coordinate where (0, 0) is Left-Top
-    function UpdateTransformation: TCnOpenGLPaintBox; // You can maually force update transformation
+    function UpdateTransformation: TCnOpenGLPaintBox; // You can manually force update transformation
 
     ///////////////////////////////////////////////
     function SetBlendState(value: Boolean): TCnOpenGLPaintBox; // Use this to enable or disable GL_BLEND, GL_BLEND is enabled by default.
@@ -1703,7 +1703,7 @@ type
 *     Points[0] and Points[3] are begin and endpoint
 *     Points[1] and Points[2] are control points
 *     level is the recursion depth
-*     returns true if the recusion can be terminated
+*     returns true if the recursion can be terminated
 }
 function BezierCheck(level: Integer; const Points: TGDIBezierPoints): Boolean;
 const

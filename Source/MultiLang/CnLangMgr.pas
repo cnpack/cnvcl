@@ -1470,7 +1470,7 @@ begin
             ActionObj := GetObjectProp(AObject, APropName);
             if (ActionObj <> nil) and (ActionObj is TCustomAction)then
             begin
-              // 有 Action 属性不为 nil 的，需要记录对应 Aciton 的 Caption 和 Hint 供比对
+              // 有 Action 属性不为 nil 的，需要记录对应 Action 的 Caption 和 Hint 供比对
               NeedCheckIgnoreAction := True;
               ActionCaption := (ActionObj as TCustomAction).Caption;
               ActionHint := (ActionObj as TCustomAction).Hint;
@@ -1662,7 +1662,7 @@ begin
               else if InheritsFromClassName(AObject, 'TJvWizard') and (APropName = 'Pages') then
               // 不翻译 JVcl Wizards 的 Pages 属性以免 Crash
               else if not (SubObj is TComponent) then
-              // 此处应该判断 SubObj 是否是 TComponet 然后决定是否调用 TranslateRecurComponent
+              // 此处应该判断 SubObj 是否是 TComponent 然后决定是否调用 TranslateRecurComponent
                 TranslateRecurObject(SubObj, AList, BaseName + DefDelimeter +
                   TComponent(AObject).Name + DefDelimeter + APropName, PreStore)
               else

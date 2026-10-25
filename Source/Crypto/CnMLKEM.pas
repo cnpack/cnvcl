@@ -214,124 +214,124 @@ type
 // ============================ MLKEM 工具函数 =================================
 
 procedure MLKEMPolynomialToInt64Polynomial(const Src: TCnMLKEMPolynomial; Dst: TCnInt64Polynomial);
-{* 将 MKLEM 格式的多项式转换为一元整系数多项式对象。
+{* 将 MLKEM 格式的多项式转换为一元整系数多项式对象。
 
    参数：
-     Src: TCnMLKEMPolynomial              - 待转换的 MKLEM 格式的多项式
+     Src: TCnMLKEMPolynomial              - 待转换的 MLKEM 格式的多项式
      Dst: TCnInt64Polynomial              - 目标一元整系数多项式对象
 
    返回值：（无）
 }
 
 procedure Int64PolynomialToMLKEMPolynomial(const Src: TCnInt64Polynomial; var Dst: TCnMLKEMPolynomial);
-{* 将一元整系数多项式对象转换为 MKLEM 格式的多项式。
+{* 将一元整系数多项式对象转换为 MLKEM 格式的多项式。
 
    参数：
      Src: TCnInt64Polynomial              - 待转换的一元整系数多项式对象
-     Dst: TCnMLKEMPolynomial              - 目标 MKLEM 格式的多项式
+     Dst: TCnMLKEMPolynomial              - 目标 MLKEM 格式的多项式
 
    返回值：（无）
 }
 
 procedure MLKEMPolynomialToINTT(var Res: TCnMLKEMPolynomial; const P: TCnMLKEMPolynomial);
-{* 将 NTT 系数的 MKLEM 格式的多项式转换为非 NTT 系数的，俩参数可以相同。
+{* 将 NTT 系数的 MLKEM 格式的多项式转换为非 NTT 系数的，俩参数可以相同。
 
    参数：
-     Res: TCnMLKEMPolynomial              - 非 NTT 系数的 MKLEM 格式的多项式结果
-     P: TCnMLKEMPolynomial                - 待转换的 NTT 系数的 MKLEM 格式的多项式
+     Res: TCnMLKEMPolynomial              - 非 NTT 系数的 MLKEM 格式的多项式结果
+     P: TCnMLKEMPolynomial                - 待转换的 NTT 系数的 MLKEM 格式的多项式
 
    返回值：（无）
 }
 
 procedure MLKEMPolynomialToNTT(var Res: TCnMLKEMPolynomial; const P: TCnMLKEMPolynomial);
-{* 将非 NTT 系数的 MKLEM 格式的多项式转换为 NTT 系数的，俩参数可以相同。
+{* 将非 NTT 系数的 MLKEM 格式的多项式转换为 NTT 系数的，俩参数可以相同。
 
    参数：
-     Res: TCnMLKEMPolynomial              - NTT 系数的 MKLEM 格式的多项式结果
-     P: TCnMLKEMPolynomial                - 待转换的非 NTT 系数的 MKLEM 格式的多项式
+     Res: TCnMLKEMPolynomial              - NTT 系数的 MLKEM 格式的多项式结果
+     P: TCnMLKEMPolynomial                - 待转换的非 NTT 系数的 MLKEM 格式的多项式
 
    返回值：（无）
 }
 
 procedure MLKEMPolynomialAdd(var Res: TCnMLKEMPolynomial;
   const P1: TCnMLKEMPolynomial; const P2: TCnMLKEMPolynomial);
-{* 两个 MKLEM 格式的多项式在 mod 3329 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLKEM 格式的多项式在 mod 3329 有限域中相加，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式和
-     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式加数一
-     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式加数二
+     Res: TCnMLKEMPolynomial              - MLKEM 格式的多项式和
+     P1: TCnMLKEMPolynomial               - MLKEM 格式的多项式加数一
+     P2: TCnMLKEMPolynomial               - MLKEM 格式的多项式加数二
 
    返回值：（无）
 }
 
 procedure MLKEMPolynomialSub(var Res: TCnMLKEMPolynomial;
   const P1: TCnMLKEMPolynomial; const P2: TCnMLKEMPolynomial);
-{* 两个 MKLEM 格式的多项式在 mod 3329 有限域中相减，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLKEM 格式的多项式在 mod 3329 有限域中相减，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式差
-     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式被减数
-     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式减数
+     Res: TCnMLKEMPolynomial              - MLKEM 格式的多项式差
+     P1: TCnMLKEMPolynomial               - MLKEM 格式的多项式被减数
+     P2: TCnMLKEMPolynomial               - MLKEM 格式的多项式减数
 
    返回值：（无）
 }
 
 procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const P1, P2: TCnMLKEMPolynomial;
   IsNTT: Boolean = True);
-{* 两个 MKLEM 格式的多项式在 mod 3329 及 x^256 + 1 的多项式环上相乘。
+{* 两个 MLKEM 格式的多项式在 mod 3329 及 x^256 + 1 的多项式环上相乘。
    IsNTT 指示参数是否是 NTT 模式，是则执行 NTT 乘法，不是则执行普通乘法。
 
    参数：
-     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式积
-     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数一
-     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数二
+     Res: TCnMLKEMPolynomial              - MLKEM 格式的多项式积
+     P1: TCnMLKEMPolynomial               - MLKEM 格式的多项式乘数一
+     P2: TCnMLKEMPolynomial               - MLKEM 格式的多项式乘数二
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
 }
 
 procedure MLKEMVectorToNTT(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector);
-{* 将非 NTT 系数的 MKLEM 格式的多项式向量就地转换为 NTT 系数的。
+{* 将非 NTT 系数的 MLKEM 格式的多项式向量就地转换为 NTT 系数的。
 
    参数：
-     var Res: TCnMLKEMPolyVector          - MKLEM 格式的多项式向量结果
-     V: TCnMLKEMPolyVector                - 待转换的 MKLEM 格式的多项式向量
+     var Res: TCnMLKEMPolyVector          - MLKEM 格式的多项式向量结果
+     V: TCnMLKEMPolyVector                - 待转换的 MLKEM 格式的多项式向量
 
    返回值：（无）
 }
 
 procedure MLKEMVectorToINTT(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector);
-{* 将 NTT 系数的 MKLEM 格式的多项式向量就地转换为非 NTT 系数的。
+{* 将 NTT 系数的 MLKEM 格式的多项式向量就地转换为非 NTT 系数的。
 
    参数：
-     var Res: TCnMLKEMPolyVector          - MKLEM 格式的多项式向量结果
-     V: TCnMLKEMPolyVector                - 待转换的 MKLEM 格式的多项式向量
+     var Res: TCnMLKEMPolyVector          - MLKEM 格式的多项式向量结果
+     V: TCnMLKEMPolyVector                - 待转换的 MLKEM 格式的多项式向量
 
    返回值：（无）
 }
 
 procedure MLKEMVectorAdd(var Res: TCnMLKEMPolyVector;
   const P1: TCnMLKEMPolyVector; const P2: TCnMLKEMPolyVector);
-{* 两个 MKLEM 格式的多项式向量在 mod 3329 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLKEM 格式的多项式向量在 mod 3329 有限域中相加，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式向量和
-     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式向量加数一
-     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式向量加数二
+     Res: TCnMLKEMPolynomial              - MLKEM 格式的多项式向量和
+     P1: TCnMLKEMPolynomial               - MLKEM 格式的多项式向量加数一
+     P2: TCnMLKEMPolynomial               - MLKEM 格式的多项式向量加数二
 
    返回值：（无）
 }
 
 procedure MLKEMMatrixVectorMul(var Res: TCnMLKEMPolyVector;
   const A: TCnMLKEMPolyMatrix; const S: TCnMLKEMPolyVector; IsNTT: Boolean = True);
-{* 一个 MKLEM 格式的多项式方阵在 mod 3329 及 x^256 + 1 的多项式环上乘以一个多项式向量，
+{* 一个 MLKEM 格式的多项式方阵在 mod 3329 及 x^256 + 1 的多项式环上乘以一个多项式向量，
    得到一个多项式向量。用户需自行确保 A 是方阵，及其尺寸与 S 维度一致。
 
    参数：
-     Res: TCnMLKEMPolyVector              - MKLEM 格式的多项式积
-     A: TCnMLKEMPolyMatrix                - MKLEM 格式的多项式方阵
-     S: TCnMLKEMPolyVector                - MKLEM 格式的多项式向量
+     Res: TCnMLKEMPolyVector              - MLKEM 格式的多项式积
+     A: TCnMLKEMPolyMatrix                - MLKEM 格式的多项式方阵
+     S: TCnMLKEMPolyVector                - MLKEM 格式的多项式向量
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
@@ -339,13 +339,13 @@ procedure MLKEMMatrixVectorMul(var Res: TCnMLKEMPolyVector;
 
 procedure MLKEMVectorDotProduct(var Res: TCnMLKEMPolynomial;
   const V1: TCnMLKEMPolyVector; const V2: TCnMLKEMPolyVector; IsNTT: Boolean = True);
-{* 两个 MKLEM 格式的多项式向量在 mod 3329 及 x^256 + 1 的多项式环上点乘，
+{* 两个 MLKEM 格式的多项式向量在 mod 3329 及 x^256 + 1 的多项式环上点乘，
    得到一个多项式向量。
 
    参数：
-     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式点乘积
-     V1: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数一
-     V2: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数二
+     Res: TCnMLKEMPolynomial              - MLKEM 格式的多项式点乘积
+     V1: TCnMLKEMPolynomial               - MLKEM 格式的多项式乘数一
+     V2: TCnMLKEMPolynomial               - MLKEM 格式的多项式乘数二
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
@@ -373,7 +373,7 @@ resourcestring
 type
   // Barrett Reduction 所需的参数结构体
   TMLKEMBarrettReduce = packed record
-    MU: Cardinal;    // Floror(2^k / q) 的近似值 (通常四舍五入)
+    MU: Cardinal;    // Floor(2^k / q) 的近似值 (通常四舍五入)
     K: Integer;      // 幂次 k，用于计算 2^k
     HalfQ: Word;     // q/2 的上取整或下取整，用于中心化约减
     D: Integer;      // 此表项对应的压缩参数 d (如 du 或 dv)
@@ -1385,7 +1385,7 @@ begin
     // 准备好了消息种子 M 和随机种子 R，调用内部加密方法，返回 U V
     KPKEEncrypt(En, M, Seed, U, V);
 
-    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节数组
+    // 压缩编码，将非 NTT 系数的 U V 返回作为 Cipher 字节数组
     MLKEMCompressVector(UC, U, FCompressU);
     MLKEMCompressPolynomial(VC, V, FCompressV);
 
@@ -1486,7 +1486,7 @@ begin
     // 验证，这里重新加解密一遍
     KPKEEncrypt(En, Msg, TCnMLKEMSeed(R), U, V);
 
-    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节数组
+    // 压缩编码，将非 NTT 系数的 U V 返回作为 Cipher 字节数组
     MLKEMCompressVector(UC, U, FCompressU);
     MLKEMCompressPolynomial(VC, V, FCompressV);
 

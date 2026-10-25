@@ -296,7 +296,7 @@ begin
   if Self.FDataSource = nil then
     Exit;
   ds := Self.FDataSource.DataSet; 
-  {Check DataSet is Actived ot not}
+  {Check DataSet is Active or not}
   if not ds.Active then
     Exit; 
   //if (Self.FMethod=gwfirst)or(Self.FMethod=gwlast)then Exit;

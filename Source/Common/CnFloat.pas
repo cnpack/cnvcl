@@ -771,7 +771,7 @@ sign exponent      digits
     mov [EBX + 1], 45 // '-' // Add a "-" to exponent string
     mov ECX, 2
   @NoNegativeInExp:
-    mov ESI, 0 // flag whehter "1" appears
+    mov ESI, 0 // flag whether "1" appears
     // Move exponent digits to Exp
     mov DX, 32768 // 1000000000000000
   @NextExpDigit:

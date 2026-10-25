@@ -904,8 +904,8 @@ begin
   FSundayColor := clRed;
   FSaturdayColor := clMaroon;
   FWeekTextColor := clActiveCaption;    // 增加星期字头颜色
-  FDaySelectColor := clActiveCaption;   // 增加选择日期的填充颜色颜色
-  FDaySelectTextColor := clWhite;       // 增加选择日期字体的填充颜色颜色
+  FDaySelectColor := clActiveCaption;   // 增加选择日期的填充颜色
+  FDaySelectTextColor := clWhite;       // 增加选择日期字体的填充颜色
 end;
 
 procedure TCnCalColors.SetColor(Index: Integer; Value: TColor);
@@ -919,8 +919,8 @@ begin
     5: FSundayColor := Value;
     6: FSaturdayColor := Value;
     7: FWeekTextColor := Value;        // 增加星期字头字头颜色
-    8: FDaySelectColor := Value;       // 增加选择日期的填充颜色颜色
-    9: FDaySelectTextColor := Value;   // 增加选择日期字体的填充颜色颜色
+    8: FDaySelectColor := Value;       // 增加选择日期的填充颜色
+    9: FDaySelectTextColor := Value;   // 增加选择日期字体的填充颜色
   end;
   if Owner.HandleAllocated then
   begin

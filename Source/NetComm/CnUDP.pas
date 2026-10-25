@@ -177,11 +177,11 @@ type
 
     function SendStream(DataStream: TStream; BroadCast: Boolean = False): Boolean;
     {* 发送一个数据流。如果 BroadCase 为真，执行 UDP 广播，否则发送数据到
-       RomoteHost 的机器上的 RemotePort 端口}
+       RemoteHost 的机器上的 RemotePort 端口}
     function SendBuffer(Buff: Pointer; Length: Integer; BroadCast:
       Boolean = False): Boolean;
     {* 发送一个数据块。如果 BroadCase 为真，执行 UDP 广播，否则发送数据到
-       RomoteHost 的机器上的 RemotePort 端口}
+       RemoteHost 的机器上的 RemotePort 端口}
     procedure ClearQueue;
     {* 清空数据队列。如果用户来不及处理接收到的数据，组件会把新数据包放到数据
        队列中，调用该方法可清空数据队列}

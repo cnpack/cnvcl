@@ -410,7 +410,7 @@ type
 {$ENDIF}
   TCnActiveScriptWindow = class(TCnActiveScriptSite, IActiveScriptSiteWindow)
   protected
-    {IActiveSriptSiteWindow}
+    {IActiveScriptSiteWindow}
     function GetWindow(out phwnd: HWND): hResult; stdcall;
     function EnableModeless(fEnable: BOOL): hResult; stdcall;
 

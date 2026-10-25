@@ -1980,7 +1980,7 @@ begin
     L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
 
   ExtractFloatExtended(Value, N, E, S);
-  // 把 1. 开头的有效数字当成整数，E 需要减去 Extendded 类型的有效数字长度
+  // 把 1. 开头的有效数字当成整数，E 需要减去 Extended 类型的有效数字长度
   Result := InternalBigDecimalSetFloat(N, E - L, S, Res);
 end;
 
@@ -3644,7 +3644,7 @@ begin
     L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
 
   ExtractFloatExtended(Value, N, E, S);
-  // 把 1. 开头的有效数字当成整数，E 需要减去 Extendded 类型的有效数字长度
+  // 把 1. 开头的有效数字当成整数，E 需要减去 Extended 类型的有效数字长度
   Result := InternalBigBinarySetFloat(N, E - L, S, Res);
 end;
 

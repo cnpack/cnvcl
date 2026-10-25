@@ -227,7 +227,7 @@ function BLAKE2SStringA(const Str: AnsiString; const Key: AnsiString = '';
 function BLAKE2SStringW(const Str: WideString; const Key: WideString = '';
   DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
 {* 对 WideString 类型数据进行 BLAKE2S 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
    注意当 Key 非空时转换后的长度将截断或补 #0 为 32 字节。
 
@@ -254,7 +254,7 @@ function BLAKE2BStringA(const Str: AnsiString; const Key: AnsiString = '';
 function BLAKE2BStringW(const Str: WideString; const Key: WideString = '';
   DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
 {* 对 WideString 类型数据进行 BLAKE2B 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
    注意当 Key 非空时转换后的长度将截断或补 #0 为 64 字节。
 

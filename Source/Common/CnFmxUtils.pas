@@ -35,7 +35,7 @@ unit CnFmxUtils;
 *   XE2/3，继承于 FMX.Controls 里的 TTextControl 的组件有 Font属性，没 ParentFont 控制。
 *   XE4/5，继承于 FMX.Controls 里的 TTextControl 的组件有 Font属性，有 StyledSettings 可模拟 ParentFont，StyledSettings 类型 ss 开头
 *   XE6/7，继承于 FMX.Controls 里的 TTextControl 的组件有 TextSettings.Font 属性，有 StyledSettings 可模拟 ParentFont，StyledSettings 类型不用 ss 开头
-*   XE8/~，继承于 FMX.StdCtrls 里的 TPresentedTextControl 的组件有 TextSettings.Font 属性，有 StyledSettings 可模拟 ParentFont，之后走上正规没变了。
+*   XE8/~，继承于 FMX.StdCtrls 里的 TPresentedTextControl 的组件有 TextSettings.Font 属性，有 StyledSettings 可模拟 ParentFont，之后走上正轨没变了。
 *
 * 开发平台：WinXP + Delphi XE2
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6

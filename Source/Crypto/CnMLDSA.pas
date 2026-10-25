@@ -230,68 +230,68 @@ type
 // ============================ MLDSA 工具函数 =================================
 
 procedure MLDSAPolynomialToINTT(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
-{* 将 NTT 系数的 MKDSA 格式的多项式转换为非 NTT 系数的，俩参数可以相同。
+{* 将 NTT 系数的 MLDSA 格式的多项式转换为非 NTT 系数的，俩参数可以相同。
 
    参数：
-     Res: TCnMLDSAPolynomial              - 非 NTT 系数的 MKDSA 格式的多项式结果
-     P: TCnMLDSAPolynomial                - 待转换的 NTT 系数的 MKDSA 格式的多项式
+     Res: TCnMLDSAPolynomial              - 非 NTT 系数的 MLDSA 格式的多项式结果
+     P: TCnMLDSAPolynomial                - 待转换的 NTT 系数的 MLDSA 格式的多项式
 
    返回值：（无）
 }
 
 procedure MLDSAPolynomialToNTT(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
-{* 将非 NTT 系数的 MKDSA 格式的多项式转换为 NTT 系数的，俩参数可以相同。
+{* 将非 NTT 系数的 MLDSA 格式的多项式转换为 NTT 系数的，俩参数可以相同。
 
    参数：
-     Res: TCnMLDSAPolynomial              - NTT 系数的 MKDSA 格式的多项式结果
-     P: TCnMLDSAPolynomial                - 待转换的非 NTT 系数的 MKDSA 格式的多项式
+     Res: TCnMLDSAPolynomial              - NTT 系数的 MLDSA 格式的多项式结果
+     P: TCnMLDSAPolynomial                - 待转换的非 NTT 系数的 MLDSA 格式的多项式
 
    返回值：（无）
 }
 
 procedure MLDSAPolynomialAdd(var Res: TCnMLDSAPolynomial;
   const P1: TCnMLDSAPolynomial; const P2: TCnMLDSAPolynomial);
-{* 两个 MKDSA 格式的多项式在 mod 8380417 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLDSA 格式的多项式在 mod 8380417 有限域中相加，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式和
-     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式加数一
-     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式加数二
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式和
+     P1: TCnMLDSAPolynomial               - MLDSA 格式的多项式加数一
+     P2: TCnMLDSAPolynomial               - MLDSA 格式的多项式加数二
 
    返回值：（无）
 }
 
 procedure MLDSAPolynomialSub(var Res: TCnMLDSAPolynomial;
   const P1: TCnMLDSAPolynomial; const P2: TCnMLDSAPolynomial);
-{* 两个 MKDSA 格式的多项式在 mod 8380417 有限域中相减，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLDSA 格式的多项式在 mod 8380417 有限域中相减，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式差
-     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式被减数
-     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式减数
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式差
+     P1: TCnMLDSAPolynomial               - MLDSA 格式的多项式被减数
+     P2: TCnMLDSAPolynomial               - MLDSA 格式的多项式减数
 
    返回值：（无）
 }
 
 procedure MLDSAPolynomialNeg(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
-{* 一个 MKDSA 格式的多项式在 mod 8380417 有限域中取反。
+{* 一个 MLDSA 格式的多项式在 mod 8380417 有限域中取反。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式取反的结果
-     P: TCnMLDSAPolynomial                - 待取反的 MKDSA 格式的多项式
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式取反的结果
+     P: TCnMLDSAPolynomial                - 待取反的 MLDSA 格式的多项式
 
    返回值：（无）
 }
 
 procedure MLDSAPolynomialMul(var Res: TCnMLDSAPolynomial; const P1, P2: TCnMLDSAPolynomial;
   IsNTT: Boolean = True); overload;
-{* 两个 MKDSA 格式的多项式在 mod 8380417 及 x^256 + 1 的多项式环上相乘。
+{* 两个 MLDSA 格式的多项式在 mod 8380417 及 x^256 + 1 的多项式环上相乘。
    IsNTT 指示参数是否是 NTT 模式，是则执行 NTT 乘法，不是则执行普通乘法。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式积
-     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数一
-     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数二
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式积
+     P1: TCnMLDSAPolynomial               - MLDSA 格式的多项式乘数一
+     P2: TCnMLDSAPolynomial               - MLDSA 格式的多项式乘数二
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
@@ -299,79 +299,79 @@ procedure MLDSAPolynomialMul(var Res: TCnMLDSAPolynomial; const P1, P2: TCnMLDSA
 
 procedure MLDSAPolynomialMul(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial;
   N: Integer); overload;
-{* 一个 MKDSA 格式的多项式在 mod 8380417 上每个系数乘以一个整数 N。
+{* 一个 MLDSA 格式的多项式在 mod 8380417 上每个系数乘以一个整数 N。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式积
-     P: TCnMLDSAPolynomial                - MKDSA 格式的多项式乘数
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式积
+     P: TCnMLDSAPolynomial                - MLDSA 格式的多项式乘数
      N: Integer                           - 整数乘数
 
    返回值：（无）
 }
 
 procedure MLDSAVectorToNTT(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
-{* 将非 NTT 系数的 MKDSA 格式的多项式向量就地转换为 NTT 系数的。
+{* 将非 NTT 系数的 MLDSA 格式的多项式向量就地转换为 NTT 系数的。
 
    参数：
-     var Res: TCnMLDSAPolyVector          - MKDSA 格式的多项式向量结果
-     V: TCnMLDSAPolyVector                - 待转换的 MKDSA 格式的多项式向量
+     var Res: TCnMLDSAPolyVector          - MLDSA 格式的多项式向量结果
+     V: TCnMLDSAPolyVector                - 待转换的 MLDSA 格式的多项式向量
 
    返回值：（无）
 }
 
 procedure MLDSAVectorToINTT(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
-{* 将 NTT 系数的 MKDSA 格式的多项式向量就地转换为非 NTT 系数的。
+{* 将 NTT 系数的 MLDSA 格式的多项式向量就地转换为非 NTT 系数的。
 
    参数：
-     var Res: TCnMLDSAPolyVector          - MKDSA 格式的多项式向量结果
-     V: TCnMLDSAPolyVector                - 待转换的 MKDSA 格式的多项式向量
+     var Res: TCnMLDSAPolyVector          - MLDSA 格式的多项式向量结果
+     V: TCnMLDSAPolyVector                - 待转换的 MLDSA 格式的多项式向量
 
    返回值：（无）
 }
 
 procedure MLDSAVectorAdd(var Res: TCnMLDSAPolyVector;
   const V1: TCnMLDSAPolyVector; const V2: TCnMLDSAPolyVector);
-{* 两个 MKDSA 格式的多项式向量在 mod 8380417 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLDSA 格式的多项式向量在 mod 8380417 有限域中相加，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式向量和
-     V1: TCnMLDSAPolynomial               - MKDSA 格式的多项式向量加数一
-     V2: TCnMLDSAPolynomial               - MKDSA 格式的多项式向量加数二
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式向量和
+     V1: TCnMLDSAPolynomial               - MLDSA 格式的多项式向量加数一
+     V2: TCnMLDSAPolynomial               - MLDSA 格式的多项式向量加数二
 
    返回值：（无）
 }
 
 procedure MLDSAVectorSub(var Res: TCnMLDSAPolyVector;
   const V1: TCnMLDSAPolyVector; const V2: TCnMLDSAPolyVector);
-{* 两个 MKDSA 格式的多项式向量在 mod 8380417 有限域中相减，NTT 系数或 非 NTT 系数均适用。
+{* 两个 MLDSA 格式的多项式向量在 mod 8380417 有限域中相减，NTT 系数或 非 NTT 系数均适用。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式向量差
-     V1: TCnMLDSAPolynomial               - MKDSA 格式的多项式向量被减数
-     V2: TCnMLDSAPolynomial               - MKDSA 格式的多项式向量减数
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式向量差
+     V1: TCnMLDSAPolynomial               - MLDSA 格式的多项式向量被减数
+     V2: TCnMLDSAPolynomial               - MLDSA 格式的多项式向量减数
 
    返回值：（无）
 }
 
 procedure MLDSAVectorNeg(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
-{* 一个 MKDSA 格式的多项式向量在 mod 8380417 有限域中取反。
+{* 一个 MLDSA 格式的多项式向量在 mod 8380417 有限域中取反。
 
    参数：
-     Res: TCnMLDSAPolyVector              - MKDSA 格式的多项式向量取反的结果
-     V: TCnMLDSAPolyVector                - 待取反的 MKDSA 格式的多项式向量
+     Res: TCnMLDSAPolyVector              - MLDSA 格式的多项式向量取反的结果
+     V: TCnMLDSAPolyVector                - 待取反的 MLDSA 格式的多项式向量
 
    返回值：（无）
 }
 
 procedure MLDSAPolynomialVectorMul(var Res: TCnMLDSAPolyVector;
   const C: TCnMLDSAPolynomial; const V: TCnMLDSAPolyVector; IsNTT: Boolean = True);
-{* 一个 MKDSA 格式的多项式向量在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式，
+{* 一个 MLDSA 格式的多项式向量在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式，
    得到一个多项式向量。结果维度为 V 的维度。
 
    参数：
-     Res: TCnMLDSAPolyVector              - MKDSA 格式的多项式积
-     C: TCnMLDSAPolynomial                - MKDSA 格式的多项式向
-     V: TCnMLDSAPolyVector                - MKDSA 格式的多项式
+     Res: TCnMLDSAPolyVector              - MLDSA 格式的多项式积
+     C: TCnMLDSAPolynomial                - MLDSA 格式的多项式向
+     V: TCnMLDSAPolyVector                - MLDSA 格式的多项式
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
@@ -379,13 +379,13 @@ procedure MLDSAPolynomialVectorMul(var Res: TCnMLDSAPolyVector;
 
 procedure MLDSAMatrixVectorMul(var Res: TCnMLDSAPolyVector;
   const A: TCnMLDSAPolyMatrix; const S: TCnMLDSAPolyVector; IsNTT: Boolean = True);
-{* 一个 MKDSA 格式的多项式矩阵在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式向量，
+{* 一个 MLDSA 格式的多项式矩阵在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式向量，
    得到一个多项式向量。用户需自行确保 A 的列数与 S 的维度一致，结果维度为 A 的行数。Res 不能是 S。
 
    参数：
-     Res: TCnMLDSAPolyVector              - MKDSA 格式的多项式积
-     A: TCnMLDSAPolyMatrix                - MKDSA 格式的多项式矩阵
-     S: TCnMLDSAPolyVector                - MKDSA 格式的多项式向量
+     Res: TCnMLDSAPolyVector              - MLDSA 格式的多项式积
+     A: TCnMLDSAPolyMatrix                - MLDSA 格式的多项式矩阵
+     S: TCnMLDSAPolyVector                - MLDSA 格式的多项式向量
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
@@ -393,13 +393,13 @@ procedure MLDSAMatrixVectorMul(var Res: TCnMLDSAPolyVector;
 
 procedure MLDSAVectorDotProduct(var Res: TCnMLDSAPolynomial;
   const V1: TCnMLDSAPolyVector; const V2: TCnMLDSAPolyVector; IsNTT: Boolean = True);
-{* 两个 MKDSA 格式的多项式向量在 mod 8380417 及 x^256 + 1 的多项式环上点乘，
+{* 两个 MLDSA 格式的多项式向量在 mod 8380417 及 x^256 + 1 的多项式环上点乘，
    得到一个多项式向量。
 
    参数：
-     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式点乘积
-     V1: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数一
-     V2: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数二
+     Res: TCnMLDSAPolynomial              - MLDSA 格式的多项式点乘积
+     V1: TCnMLDSAPolynomial               - MLDSA 格式的多项式乘数一
+     V2: TCnMLDSAPolynomial               - MLDSA 格式的多项式乘数二
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）

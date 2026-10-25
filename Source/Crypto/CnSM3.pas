@@ -25,11 +25,11 @@ unit CnSM3;
 * 软件名称：开发包基础库
 * 单元名称：国家商用密码 SM3 杂凑算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
-*           参考国密算法公开文档《SM3 Cryptographic Hash Algorith》
+*           参考国密算法公开文档《SM3 Cryptographic Hash Algorithm》
 *           http://www.oscca.gov.cn/UpFile/20101222141857786.pdf
 *           并参考了部分 goldboar 的 C 代码
 * 备    注：本单元实现了国家商用密码 SM3 杂凑算法及对应的 HMAC 算法。
-*           实现过程参考国密算法公开文档《SM3 Cryptographic Hash Algorith》。
+*           实现过程参考国密算法公开文档《SM3 Cryptographic Hash Algorithm》。
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -122,7 +122,7 @@ function SM3StringA(const Str: AnsiString): TCnSM3Digest;
 
 function SM3StringW(const Str: WideString): TCnSM3Digest;
 {* 对 WideString 类型字符串进行转换并进行 SM3 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

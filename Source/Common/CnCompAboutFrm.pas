@@ -104,7 +104,7 @@ begin
     // 如果为作者信箱做链接，考虑为空时的情况
     // 显示时用到的其它字符串，尽量从 CnConsts 中取，特别是版本号等
     // 见 CnConsts 中的资源字符串定义
-    // 考虑到本地化，单元中（不是窗体）用到的中文字符串最好放到 CnCosnts 中定义
+    // 考虑到本地化，单元中（不是窗体）用到的中文字符串最好放到 CnConsts 中定义
     Result := ShowModal = mrOk;
   finally
     Free;

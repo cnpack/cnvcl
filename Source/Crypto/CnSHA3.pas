@@ -343,7 +343,7 @@ function SHA3_224StringA(const Str: AnsiString): TCnSHA3_224Digest;
 
 function SHA3_224StringW(const Str: WideString): TCnSHA3_224Digest;
 {* 对 WideString 类型数据进行 SHA3_224 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -363,7 +363,7 @@ function SHA3_256StringA(const Str: AnsiString): TCnSHA3_256Digest;
 
 function SHA3_256StringW(const Str: WideString): TCnSHA3_256Digest;
 {* 对 WideString类型数据进行 SHA3_256 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -383,7 +383,7 @@ function SHA3_384StringA(const Str: AnsiString): TCnSHA3_384Digest;
 
 function SHA3_384StringW(const Str: WideString): TCnSHA3_384Digest;
 {* 对 WideString 类型数据进行 SHA3_384 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -403,7 +403,7 @@ function SHA3_512StringA(const Str: AnsiString): TCnSHA3_512Digest;
 
 function SHA3_512StringW(const Str: WideString): TCnSHA3_512Digest;
 {* 对 WideString 类型数据进行 SHA512 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -428,7 +428,7 @@ function SHAKE128StringW(const Str: WideString;
   DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 WideString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -452,7 +452,7 @@ function SHAKE256StringA(const Str: AnsiString; DigestByteLength: Cardinal = CN_
 function SHAKE256StringW(const Str: WideString; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 WideString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

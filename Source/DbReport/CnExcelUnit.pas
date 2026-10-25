@@ -525,7 +525,7 @@ type
     //
     // 1.若在所有值链的地址链中找到与给定的单元地址相同的，则在该值中的地址链中删除该单元地址。
     //
-    // 2.若该值已存在，则把单元地址直接加到该值的地址链中，并把AValue指向的空间释放，然后使重新指向值链中该值的地址，返回1。
+    // 2.若该值已存在，则把单元地址直接加到该值的地址链中，并把 AValue 指向的空间释放，然后使重新指向值链中该值的地址，返回1。
     //
     // 3.若该值不存在，则添加该新值到值链中，并将该单元地址添加到新值的地址链中，返回0。
     function SetVA
@@ -535,15 +535,15 @@ type
       ARowB: Integer = 0;
       AColR: Integer = 0): Integer; overload;
   protected
-    // 将AP转化成Inetger的类型，并释放空间
+    // 将 AP 转化成 Integer 的类型，并释放空间
     procedure FreePointer(AP: Pointer); override;
 
-    // 将A，B转化成Integer的类型，并比较A，B指向的值是否相等，如果相等返回True,否则返回False
+    // 将 A，B 转化成 Integer 的类型，并比较 A，B 指向的值是否相等，如果相等返回 True，否则返回 False
     function IsEqual
       (A: Pointer;
       B: Pointer): Boolean; override;
   private
-    // 将值链中某个Pointer转化成Integer型，并返回
+    // 将值链中某个 Pointer 转化成 Integer 型，并返回
     function GetValue(AIndex: Integer): Integer;
   public
     property Value[AIndex: Integer]: Integer read GetValue;

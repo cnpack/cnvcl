@@ -621,7 +621,7 @@ var
 begin
   // 画栅格
   RC := Height div FPointSize; // 纵向多少个点
-  CC := Width div FPointSize; // 模向多少个点
+  CC := Width div FPointSize;  // 横向多少个点
   OldColor := FBackBmp.Canvas.Brush.Color;
 
   try
@@ -652,7 +652,7 @@ begin
     if FCellBorderWidth > 0 then
     begin
       RC := Height div FPointSize; // 纵向多少个点
-      CC := Width div FPointSize; // 模向多少个点
+      CC := Width div FPointSize;  // 横向多少个点
       FBackBmp.Canvas.Pen.Color := FCellBorderColor;
       FBackBmp.Canvas.Pen.Width := FCellBorderWidth;
       for I := 0 to RC do
@@ -718,8 +718,8 @@ begin
     if FWordBorderWidth > 0 then
     begin
       K := FPointSize * Font.Height;
-      RC := Height div k; //纵向多少个点
-      CC := Width div k; //模向多少个点
+      RC := Height div k; // 纵向多少个点
+      CC := Width div k;  // 横向多少个点
 
       FBackBmp.Canvas.Pen.Color := FWordBorderColor;
       FBackBmp.Canvas.Pen.Width := FWordBorderWidth;

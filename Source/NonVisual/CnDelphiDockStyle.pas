@@ -147,9 +147,9 @@ begin
                 TForm(Source.Control).FormStyle := fsStayOnTop;
             end else
             begin
-              // 否则就创建TCnTabDockHostForm，
-              // 把把Parent停靠到TCnTabDockHostForm中，
-              // 再把TCnTabDockHostForm停靠到TCnDockPanel中。
+              // 否则就创建 TCnTabDockHostForm，
+              // 把 Parent 停靠到 TCnTabDockHostForm 中，
+              // 再把 TCnTabDockHostForm 停靠到 TCnDockPanel 中。
               APanelDock := ParentForm.HostDockSite;
               DRect.TopLeft := ParentForm.HostDockSite.ClientToScreen(Point(0, 0));
               Host := CreateTabHostAndDockControl(ParentForm, Source.Control);

@@ -739,7 +739,7 @@ begin
   inherited;
   if (Face.Width <> Width) or (Face.Height <> Height) then
   begin
-    Face.LoadBlank(Width, Height); // ÐÞ¸Ä»­²¼¾¡´ç
+    Face.LoadBlank(Width, Height); // ÐÞ¸Ä»­²¼³ß´ç
     Changed;
   end;
 end;

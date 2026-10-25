@@ -1172,7 +1172,7 @@ begin
 {$IFDEF LINUX}
   except
     // This little bit of code is required to reset the stack back to a more
-    // resonable state since the exception unwinder is completely unaware of
+    // reasonable state since the exception unwinder is completely unaware of
     // the stack pointer adjustments made in this function.
     asm
       MOV EAX, DWORD PTR [TotalParamBytes]

@@ -615,7 +615,7 @@ begin
     dwHandleSignaled := WaitForMultipleObjects(3, @HandlesToWaitFor,
       False, INFINITE);
 
-    // Which event occured?
+    // Which event occurred?
     case dwHandleSignaled of
       WAIT_OBJECT_0:                    // Signal to end the thread.
         begin
@@ -878,7 +878,7 @@ begin
       Exit;
     end;
 
-    // Its possible that multiple errors occured and were handled
+    // Its possible that multiple errors occurred and were handled
     // in the last ClearCommError.  Because all errors were signaled
     // individually, but cleared all at once, pending comm events
     // can yield EV_ERR while dwErrors equals 0.  Ignore this event.

@@ -234,7 +234,7 @@ begin
   if P = nil then
    Exit;
 { 下面这句完全等同于 Dec(P) ; Len := P^
-  因为 Dec(P) = Pchar(P) – 4  同样是移动4 字节的偏移量，只不过后者按字节来移动    }
+  因为 Dec(P) = PChar(P) – 4  同样是移动4 字节的偏移量，只不过后者按字节来移动    }
   Len := PLongint(PChar(P) - 4)^; // 变量的长度 ，偏移量 -4
   if Index >= Len then //要删除的位置超出范围，退出
    Exit;

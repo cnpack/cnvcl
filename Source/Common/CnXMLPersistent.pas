@@ -128,7 +128,7 @@ type
     function ReadXMLToValue(Name: string): variant;
   end;
 
-  // Read a xml to custom object (TPictrue, TGraphic, TStream...)
+  // Read a xml to custom object (TPicture, TGraphic, TStream...)
   TMyCustomReader = class(TCnXMLObjectReader)
   private
     procedure ReadPicture(const Pic: TPicture; const Node: IXMLNode);
@@ -139,7 +139,7 @@ type
     procedure ReadPersistent(Obj: TPersistent; Node: IXMLNode); override;
   end;
 
-  // Custom writer write custom object(TPictrue, TGraphic, TStream...) to a xml
+  // Custom writer write custom object(TPicture, TGraphic, TStream...) to a xml
   TMyCustomWriter = class(TCnXMLObjectWriter)
   private
     procedure SaveGraphic(Obj: TGraphic; Node: IXMLNode);
@@ -536,15 +536,13 @@ begin
   intPropCount :=GetPropList(Instance.ClassInfo,[tkInterface],@PropList,False);
   for I:=0 to intPropCount-1  do
   begin
-      PropNode := Node.ChildNodes.FindNode(PropList[I].Name);
-      if PropNode<>nil then
-      begin
-        PropObj :=(GetObjectProp(Instance,PropNode.NodeName) as IIterface);
-        BuildInterfaceFromXML(PropNode,PropObj);
-      end;
-      end;
-      end;
-  end;   }
+    PropNode := Node.ChildNodes.FindNode(PropList[I].Name);
+    if PropNode<>nil then
+    begin
+      PropObj :=(GetObjectProp(Instance,PropNode.NodeName) as IInterface);
+      BuildInterfaceFromXML(PropNode,PropObj);
+    end;
+  end;}
 end;
 
 procedure TCnXMLObjectReader.LoadXMLFormFile(const FileName: string);

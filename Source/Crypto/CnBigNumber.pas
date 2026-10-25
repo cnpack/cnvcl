@@ -46,7 +46,7 @@ unit CnBigNumber;
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时，现在暂时绕过了。
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2026.10.23 V3.2
-*               Delphi 5/C++Buider 5 下改用 HeapAlloc/HeapFree 取代
+*               Delphi 5/C++Builder 5 下改用 HeapAlloc/HeapFree 取代
 *               有 Bug 的内存管理机制以避免批量跑时出莫名其妙的内存异常
 *           2026.06.12 V3.1
 *               将一些公共域隐藏以增强安全性

@@ -276,7 +276,7 @@ begin
   FLangStrList := TStringList.Create;
   FLangStrList.Add('Connecting to %s...');
   FLangStrList.Add('Verifying username and password...');
-  FLangStrList.Add('An error occured while trying to connect to %s.');
+  FLangStrList.Add('An error occurred while trying to connect to %s.');
 
   // Attempt to load the RASAPI32 DLL.  If the DLL loads, hRasDLL will
   //   be non-zero.  Otherwise, hRasDLL will be zero.
@@ -520,7 +520,7 @@ begin
         RASCS_AllDevicesConnected, RASCS_PrepareForCallback, RASCS_WaitForModemReset,
         RASCS_WaitForCallback, RASCS_Projected, RASCS_CallbackComplete, RASCS_LogonNetwork,
         RASCS_Interactive, RASCS_CallbackSetByCaller, RASCS_Connected: S := Format(FLangStrList[0], [FConnectTo]);
-      // authenticateing
+      // authenticating
       RASCS_Authenticate, RASCS_StartAuthentication, RASCS_Authenticated: S := FLangStrList[1];
       // error
       RASCS_AuthNotify, RASCS_AuthRetry, RASCS_AuthCallback, RASCS_AuthChangePassword,

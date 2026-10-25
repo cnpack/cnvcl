@@ -9787,7 +9787,7 @@ begin
       KPX.Numerator.SetCoefficients([0, 1]);   // x
       KPY.SetOne;                             // 1 * y
 
-      // 算得 K * P 的 X Y 坐标，这里 K 相当于 Wikepedia 步骤中的 q 杆
+      // 算得 K * P 的 X Y 坐标，这里 K 相当于 Wikipedia 步骤中的 q 杆
       TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, Q, LDP);
 
       // 此处 Wikipedia 上增加了 KPX 与 Pi2PX 是否相同的判断，相同则可以用二次剩余判断

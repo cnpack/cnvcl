@@ -36,8 +36,8 @@ unit CnPDF;
 *
 *           Catalog -> Pages -> Page1 -> Resource
 *                   |        |      | -> Content
-*                   |        |      | -> Thunbnail Image
-*                   |        |      | -> Annoation
+*                   |        |      | -> Thumbnail Image
+*                   |        |      | -> Annotation
 *                   |        -> Page2 ...
 *                   |
 *                   -> Outline Hierarchy -> Outline Entry

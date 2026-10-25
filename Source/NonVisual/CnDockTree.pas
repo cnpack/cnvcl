@@ -190,7 +190,7 @@ type
     { 去掉一个大小为DockSize的节点 }
     procedure Remove(DockSize: Integer; Hide: Boolean); virtual;
     { 当有一个控件停靠进来的时候，调用InsertOrRemove重新调整ParentZone上的子节点,
-      其中Insert指示是否是插入操作，如果Insert=True就是插入操作，否者就是删除操作 }
+      其中Insert指示是否是插入操作，如果Insert=True就是插入操作，否则就是删除操作 }
     procedure InsertOrRemove(DockSize: Integer; Insert: Boolean; Hide: Boolean); virtual;
     procedure ResetChildren(Exclude: TCnDockZone); virtual;//重新设置子女的属性，如坐标等
     { 更新当前节点(不包括子节点)，调整当前的ChildControl的位置和大小 }
@@ -2171,7 +2171,7 @@ begin
       end;
   end
   else begin
-    { 否者，如果DockSite包含超过一个客户的时候， 根据鼠标下面的控件设置DockRect的坐标}
+    { 否则，如果DockSite包含超过一个客户的时候， 根据鼠标下面的控件设置DockRect的坐标}
     NewX := DropCtl.Left;
     NewY := DropCtl.Top;
     NewWidth := DropCtl.Width;

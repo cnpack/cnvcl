@@ -370,7 +370,7 @@ function SHA224StringA(const Str: AnsiString): TCnSHA224Digest;
 
 function SHA224StringW(const Str: WideString): TCnSHA224Digest;
 {* 对 WideString 类型数据进行 SHA224 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -390,7 +390,7 @@ function SHA256StringA(const Str: AnsiString): TCnSHA256Digest;
 
 function SHA256StringW(const Str: WideString): TCnSHA256Digest;
 {* 对 WideString 类型数据进行 SHA256 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -410,7 +410,7 @@ function SHA384StringA(const Str: AnsiString): TCnSHA384Digest;
 
 function SHA384StringW(const Str: WideString): TCnSHA384Digest;
 {* 对 WideString 类型数据进行 SHA384 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -430,7 +430,7 @@ function SHA512StringA(const Str: AnsiString): TCnSHA512Digest;
 
 function SHA512StringW(const Str: WideString): TCnSHA512Digest;
 {* 对 WideString 类型数据进行 SHA512 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -450,7 +450,7 @@ function SHA512_224StringA(const Str: AnsiString): TCnSHA512_224Digest;
 
 function SHA512_224StringW(const Str: WideString): TCnSHA512_224Digest;
 {* 对 WideString 类型数据进行 SHA512_224 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -470,7 +470,7 @@ function SHA512_256StringA(const Str: AnsiString): TCnSHA512_256Digest;
 
 function SHA512_256StringW(const Str: WideString): TCnSHA512_256Digest;
 {* 对 WideString 类型数据进行 SHA512_256 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

@@ -25,7 +25,7 @@ unit CnSecretSharing;
 * 软件名称：开发包基础库
 * 单元名称：秘密共享算法实现单元，
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：本单元实现了密码共享相关算法，目前包括目前包括 Shamir 门限方案与 Feldman VSS 方案。
+* 备    注：本单元实现了密码共享相关算法，目前包括 Shamir 门限方案与 Feldman VSS 方案。
 *
 *           Shamir 门限方案是利用构造多项式生成多个点坐标并利用插值还原点的秘密共享方案，
 *           其问题是拆分后的秘密没有验证是否正确的机制，因而有了改进版的 Feldman VSS 方案。

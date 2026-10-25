@@ -564,7 +564,7 @@ begin
           try
             Temps[I] := VarAsType(Params[I], ParamType);
             // The data bytes for sizes < 4 are dirty, that is they are not
-            // guarenteed to have 0's in the high bytes. We need them to be zero'ed
+            // guarantee to have 0's in the high bytes. We need them to be zero'ed
             if ParamType <= CMaxArrayVarType then
               case CVarTypeToElementInfo[ParamType].Size of
                 1: TVarData(Temps[I]).VLongWord := TVarData(Temps[I]).VByte;

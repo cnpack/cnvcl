@@ -1501,7 +1501,7 @@ procedure DecryptAES256StreamECB(Source: TStream; Count: Cardinal;
 procedure DecryptAES256StreamECBExpanded(Source: TStream; Count: Cardinal;
   const ExpandedKey: TCnAESExpandedKey256; Dest: TStream);
   {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* AES156 ECB 模式解密流，使用扩展密钥。
+{* AES256 ECB 模式解密流，使用扩展密钥。
 
    参数：
      Source: TStream                                      - 待解密的密文流

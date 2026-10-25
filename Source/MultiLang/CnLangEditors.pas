@@ -47,7 +47,7 @@ uses
 
 type
   TCnLanguageItemProperty = class(TPropertyEditor)
-  {* 针对 TCnLanguageItem 的 LanugageID 的属性编辑器}
+  {* 针对 TCnLanguageItem 的 LanguageID 的属性编辑器}
     function GetAttributes: TPropertyAttributes; override;
     function GetValue: string; override;
     procedure GetValues(Proc: TGetStrProc); override;
@@ -55,7 +55,7 @@ type
   end;
 
   TCnLangManagerProperty = class(TPropertyEditor)
-  {* 针对 TCnLanguageManager 的 CurrentLanugageIndex 的属性编辑器}
+  {* 针对 TCnLanguageManager 的 CurrentLanguageIndex 的属性编辑器}
     function GetAttributes: TPropertyAttributes; override;
     function GetValue: string; override;
     procedure GetValues(Proc: TGetStrProc); override;
@@ -63,7 +63,7 @@ type
   end;
 
   TCnLanguagePathProperty = class(TStringProperty)
-  {* 针对 TCnLangFileStorage 的 LanugagePath 的属性编辑器}
+  {* 针对 TCnLangFileStorage 的 LanguagePath 的属性编辑器}
     procedure Edit; override;
     function GetAttributes: TPropertyAttributes; override;
   end;
@@ -163,7 +163,7 @@ begin
     SetOrdValue(StrToInt(Value));
 end;
 
-{ TCnLangguagePathProperty }
+{ TCnLanguagePathProperty }
 
 procedure TCnLanguagePathProperty.Edit;
 var

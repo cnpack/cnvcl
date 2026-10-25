@@ -270,7 +270,7 @@ function BLAKE224StringA(const Str: AnsiString): TCnBLAKE224Digest;
 
 function BLAKE224StringW(const Str: WideString): TCnBLAKE224Digest;
 {* 对 WideString 类型数据进行 BLAKE224 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -290,7 +290,7 @@ function BLAKE256StringA(const Str: AnsiString): TCnBLAKE256Digest;
 
 function BLAKE256StringW(const Str: WideString): TCnBLAKE256Digest;
 {* 对 WideString 类型数据进行 BLAKE256 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -310,7 +310,7 @@ function BLAKE384StringA(const Str: AnsiString): TCnBLAKE384Digest;
 
 function BLAKE384StringW(const Str: WideString): TCnBLAKE384Digest;
 {* 对 WideString 类型数据进行 BLAKE384 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：
@@ -330,7 +330,7 @@ function BLAKE512StringA(const Str: AnsiString): TCnBLAKE512Digest;
 
 function BLAKE512StringW(const Str: WideString): TCnBLAKE512Digest;
 {* 对 WideString 类型数据进行 BLAKE512 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

@@ -163,7 +163,7 @@ function BLAKE3StringA(const Str: AnsiString; const Key: AnsiString = ''): TCnBL
 
 function BLAKE3StringW(const Str: WideString; const Key: WideString = ''): TCnBLAKE3Digest;
 {* 对 WideString 类型字符串进行转换并进行 BLAKE3 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

@@ -546,7 +546,7 @@ end;
 type
   // Barrett Reduction 所需的参数结构体
   TMLKEMBarrettReduce = packed record
-    MU: Cardinal;    // Floror(2^k / q) 的近似值 (通常四舍五入)
+    MU: Cardinal;    // Floor(2^k / q) 的近似值 (通常四舍五入)
     K: Integer;      // 幂次 k，用于计算 2^k
     HalfQ: Word;     // q/2 的上取整或下取整，用于中心化约减
     D: Integer;      // 此表项对应的压缩参数 d (如 du 或 dv)

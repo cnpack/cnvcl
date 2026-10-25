@@ -187,7 +187,7 @@ const
   CN_IP_PROTOCOL_SNP             = $6D; // Sitara Networks Protocol
   CN_IP_PROTOCOL_COMPAQ_PEER     = $6E; // Compaq Peer Protocol
   CN_IP_PROTOCOL_IPX_IN_IP       = $6F; // IPX in IP
-  CN_IP_PROTOCOL_VRRP            = $70; // Virtual Router Redundancy Protocol,?Common Address Redundancy Protocol?(not?IANAassigned)
+  CN_IP_PROTOCOL_VRRP            = $70; // Virtual Router Redundancy Protocol, Common Address Redundancy Protocol (not IANA assigned)
   CN_IP_PROTOCOL_PGM             = $71; // PGM Reliable Transport Protocol
   CN_IP_PROTOCOL_ANY_0HOP        = $72; // Any 0-hop protocol
   CN_IP_PROTOCOL_L2TP            = $73; // Layer Two Tunneling Protocol Version 3
@@ -1170,7 +1170,7 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |    Version    |    Command    |   Reserved    |  Adress Type  |
+  |    Version    |    Command    |   Reserved    |  Adrress Type |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |    Destination Address        |        Destination Port       |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -1203,7 +1203,7 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |    Version    |     Reply     |   Reserved    |  Adress Type  |
+  |    Version    |     Reply     |   Reserved    |  Adrress Type |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |         Bind Address          |            Bind Port          |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

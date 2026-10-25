@@ -135,7 +135,7 @@ function MD5StringA(const Str: AnsiString): TCnMD5Digest;
 
 function MD5StringW(const Str: WideString): TCnMD5Digest;
 {* 对 WideString 类型字符串进行转换并进行 MD5 计算。
-   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   计算前 Windows 下会调用 WideCharToMultiByte 转换为 AnsiString 类型，
    其他平台会直接转换为 AnsiString 类型，再进行计算。
 
    参数：

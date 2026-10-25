@@ -36,7 +36,7 @@ unit CnLockFree;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/ 10.3，包括 Win32/64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2021.04.02 V1.2
-*               不支持 Atomic 的 C++Buider 平台上有四个函数会抛出异常
+*               不支持 Atomic 的 C++Builder 平台上有四个函数会抛出异常
 *           2021.01.22 V1.1
 *               实现单线程读单线程写的无锁循环队列
 *           2021.01.10 V1.0
@@ -187,7 +187,7 @@ function CnAtomicExchange32(var Target: Integer; Value: Integer): Integer;
 function CnAtomicExchangeAdd32(var Addend: LongInt; Value: LongInt): Longint;
 {* 原子操作令 32 位值 Addend := Addend + Value，返回 Addend 原始值}
 
-// 以下 4 个 64 位函数在不支持 Atomic 的低版本 Delphi 或 C++Buider 平台上会使用 API
+// 以下 4 个 64 位函数在不支持 Atomic 的低版本 Delphi 或 C++Builder 平台上会使用 API
 // 如果是 32 位 XP 系统或更老的，则运行期不支持，会抛出异常
 
 function CnAtomicIncrement64(var Addend: Int64): Int64;

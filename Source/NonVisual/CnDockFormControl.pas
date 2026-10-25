@@ -822,12 +822,12 @@ type
     FCanFloat: Boolean;             // 是否可以浮动,这个功能是应一个用户的要求添加的,
                                     // 为了防止程序的界面过于凌乱,有时候用户并不希望
                                     // 停靠的窗体浮动出来,就用这个属性来限制,如果是True,
-                                    // 就允许浮动,否者就不允许,只能停靠到服务器上,
+                                    // 就允许浮动,否则就不允许,只能停靠到服务器上,
                                     // 当然在服务器之间是可以相互拖动的,默认为True.
     FRelativeServer: TCnDockServer; // 有关系的TCnDockServer的实例,这个功能也是应一个
                                     // 用户的要求添加的,当一个客户窗体打算停靠到服务器
                                     // 上面的时候,需要判断FRelativeServer和当前打算停靠
-                                    // 的服务器是否是同一个,如果不是,就不能停靠,否者就
+                                    // 的服务器是否是同一个,如果不是,就不能停靠,否则就
                                     // 能够停靠,默认值为nil,当这个属性是nil的时候,就说明
                                     // 可以停靠到所有的服务器上面.
     FDockLevel: Integer;            // 停靠的级别,只有相同级别的客户窗体才可以相互停靠
@@ -4526,9 +4526,9 @@ begin
                 TForm(Source.Control).FormStyle := fsStayOnTop;
             end else
             begin
-              // 否则就创建TCnTabDockHostForm，
-              // 把把Parent停靠到TCnTabDockHostForm中，
-              // 再把TCnTabDockHostForm停靠到TCnDockPanel中。
+              // 否则就创建 TCnTabDockHostForm，
+              // 把 Parent 停靠到 TCnTabDockHostForm 中，
+              // 再把 TCnTabDockHostForm 停靠到 TCnDockPanel 中。
               APanelDock := ParentForm.HostDockSite;
               DRect.TopLeft := ParentForm.HostDockSite.ClientToScreen(Point(0, 0));
               Host := CreateTabHostAndDockControl(ParentForm, Source.Control);

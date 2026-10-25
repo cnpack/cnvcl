@@ -120,7 +120,7 @@ begin
   //
   with TADOQuery.Create(nil) do
   begin
-    // todo: exceute the sql
+    // TODO: execute the sql
     for i := 0 to FSQLList.Count - 1 do
     begin
       hql := FSQLList[i]; 

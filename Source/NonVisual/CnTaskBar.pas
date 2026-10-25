@@ -552,8 +552,7 @@ end;
 
 procedure TCnTaskBar.StartBtnWndProc(var Message: TMessage);
 begin
- { if Message.Msg = WM_LButtonup then
-    ShowMessage('sdf');}
+
 end;
 
 procedure TCnTaskBar.SetStartBtnVisible(const Value: Boolean);
