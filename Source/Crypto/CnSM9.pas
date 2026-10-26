@@ -2251,7 +2251,7 @@ function CnSM9UserEncryptData(const DestUserID: AnsiString;
      K1ByteLength: Integer                                - 第一个密钥的字节长度
      K2ByteLength: Integer                                - 第二个密钥的字节长度
      OutStream: TStream                                   - 输出的密文流
-     EncryptionMode: TCnSM9EncryptionMode                  - 加密模式
+     EncryptionMode: TCnSM9EncryptionMode                 - 加密模式
      SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
      const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
 
@@ -2271,7 +2271,7 @@ function CnSM9UserDecryptData(const DestUserID: AnsiString;
      DataByteLen: Integer                                 - 待解密的密文数据块字节长度
      K2ByteLength: Integer                                - 第二个密钥的字节长度
      OutStream: TStream                                   - 输出的明文流
-     EncryptionMode: TCnSM9EncryptionMode                  - 加密模式
+     EncryptionMode: TCnSM9EncryptionMode                 - 加密模式
      SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
 
    返回值：Boolean                                        - 返回解密是否成功
