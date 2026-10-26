@@ -145,7 +145,7 @@ ConstTimeExpandBoolean系列函数，它最有用的地方，就是打造一个条件交换函数系列：Co
 
   function ConstTimeConditionalSelect8(Condition: Boolean; A, B: Byte): Byte;
 
-它的意思是，如果Condtion是True，就把A和B两个字节的值交换，否则不交换。
+它的意思是，如果Condition是True，就把A和B两个字节的值交换，否则不交换。
 其实现也很简单（比ConstTimeExpandBoolean简单多了）：
 
   procedure ConstTimeConditionalSwap8(CanSwap: Boolean;

@@ -13,7 +13,7 @@
     二、10月份的工作计划：
     1、下个月的开发重点仍是 IDE 专家包，计划发布一个 CnPack IDE 专家包外部测试版，并支持 Delphi5/6/7 和 C++Builder5/6。
     2、在其它方面，开发包公共代码和不可视组件等部分仍由成员根据条件扩充，或做一些原创作品的移植和改写工作，充实 CnPack。
-    3、继续 CnPack 开发网站的 PHP+MySql 改版工作，由 Alphizw 成员负责。
+    3、继续 CnPack 开发网站的 PHP+MySql 改版工作，由 Alphazw 成员负责。
     4、报表、界面类等其它一些有条件完成的开发工作。
 
     开发网站：https://www.cnpack.org

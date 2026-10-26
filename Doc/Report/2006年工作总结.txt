@@ -69,7 +69,7 @@ CnPack Working Report in 2006
 
     Below is the plan of CnPack for next year:
 
-1. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're about 3500 CnWizards users by the end of 2006. We hope this number can increase considerably in the new year.
+1. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and abroad. Now according to the upgrade statistics, there're about 3500 CnWizards users by the end of 2006. We hope this number can increase considerably in the new year.
 
 2. Prepare for the final of the 2nd China OpenSource Contest.
 

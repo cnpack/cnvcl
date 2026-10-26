@@ -171,7 +171,7 @@ TCnThreadPersistent主要是为解决并发访问数据时的冲突而设计，该类的设计
 实现的方法而已。如果有一段数据处理代码允许在多线程中使用，并且不允许在
 执行的过程中被其它线程重入，用户应该用下面的方法来保护这段代码：
 
-bgein
+begin
   CnThreadPersistent.Lock;
   try
     ...  // 需要保护的代码

@@ -81,7 +81,7 @@ CnPack Working Report in the First Half of 2007
 
 1. Publish CnWizards 0.8.2 with support to Delphi 2007 and Windows Vista. Support to C++Builder 2007 is in plan.
 
-2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're about 4000 CnWizards users by the middle of 2007. We hope this number can increase considerably in the next half year.
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and abroad. Now according to the upgrade statistics, there're about 4000 CnWizards users by the middle of 2007. We hope this number can increase considerably in the next half year.
 
 3. Continue documentation.
 

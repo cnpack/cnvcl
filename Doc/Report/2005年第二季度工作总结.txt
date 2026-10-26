@@ -53,7 +53,7 @@ CnPack Working Report in 2nd Quarter 2005
 
 1. Our product CnWizards 0.7.4 and 0.7.5 were published with the changing list:
 
-    I. New license of CnWizards was applied from GPL to customized license with the main topic that the copywrite of CnPack working contents belong to CnPack team, one can use it in open source project freely but business usage is forbidden without formal authorization from CnPack team. Other part of this license is similar to the one of GExperts. Thanks Erik Berry, the GExperts project manager.
+    I. New license of CnWizards was applied from GPL to customized license with the main topic that the copyright of CnPack working contents belong to CnPack team, one can use it in open source project freely but business usage is forbidden without formal authorization from CnPack team. Other part of this license is similar to the one of GExperts. Thanks Erik Berry, the GExperts project manager.
     II. Full English help file is added in CnWizards 0.7.5. Thus CnWizards has a full international version.
     III. Add Project Dir Builder in Project Extension Wizard. Add Group Replacement in Selection Button. Add Smart Copy and Paste in Source Editor Enhancements. Add Batch Renaming Mode in Prefix Wizard. Add Compiler Directive, XML and JavaDoc Comments, Customized Symbol and Templates in Code Input Helper.
     IV. There's no considerable improvements of CnWizards supporting for Delphi 8/Delphi 2005.
@@ -61,7 +61,7 @@ CnPack Working Report in 2nd Quarter 2005
     
 2. CnMisFrame almost paused.
 
-3. New version of CVSTracNT published to imporve the compatibility.
+3. New version of CVSTracNT published to improve the compatibility.
 
 4. CnDebug beta version completed and is used in CnWizards debugging version now.
 
@@ -69,7 +69,7 @@ CnPack Working Report in 2nd Quarter 2005
 
     Below is the plan of CnPack for next quarter:
 
-1. Continue to fix the bugs and do the function improvements for CnWizards, including the supporting for Delphi 8/Delphi 2005. Continue to publicize CnWizards to home and board.
+1. Continue to fix the bugs and do the function improvements for CnWizards, including the supporting for Delphi 8/Delphi 2005. Continue to publicize CnWizards to home and abroad.
 
 2. Continue to develop code formatter.
 

@@ -98,7 +98,7 @@ CnPack Working Report in the First Half of 2009
    I.   Add Highlight to Current Line in Source Highlight.
    II.  Add F2 Shortcut to Rename Identifier under Cursor.
    III. Add a Function that Auto Put to Line End when Enter Semicolon in Source. Defaultly Disabled.
-   IV.  Comment Cropper Supports Directoires. Add an Merge Blank Lines Option.
+   IV.  Comment Cropper Supports Directories. Add an Merge Blank Lines Option.
    V.   Script Wizard Supports Delphi 2009. Some Demos Added.
    VI.  Add F2 Shortcut to Rename Selected Component in Designer.
    VII. Decrease Help File Size.
@@ -141,7 +141,7 @@ CnPack Working Report in the First Half of 2009
 
 1. Publish CnWizards 0.9.2. Prepare the support to Delphi 2010 Stable in future.
 
-2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're more than 10,000 CnWizards users by the middle of 2009. We hope this number can increase considerably in the next half of 2009.
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and abroad. Now according to the upgrade statistics, there're more than 10,000 CnWizards users by the middle of 2009. We hope this number can increase considerably in the next half of 2009.
 
 3. Continue documentation.
 

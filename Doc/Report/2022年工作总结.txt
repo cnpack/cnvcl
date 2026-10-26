@@ -61,7 +61,7 @@ CnPack Working Report in 2022
 
 2. CnPack Sources are maintained at GitHub. https://github.com/cnpack
 
-3. CnVcl Supports GB18030, ECC 25519, AEAD CCM/GCM, Int 128. Crypto Library Supports Win32/Win64/MacOS/Linux with FMX/FPC. Network Library Suppors FMX.
+3. CnVcl Supports GB18030, ECC 25519, AEAD CCM/GCM, Int 128. Crypto Library Supports Win32/Win64/MacOS/Linux with FMX/FPC. Network Library Supports FMX.
 
 4. CnPack Foundation accepts Donation using alipay and wechat QR code in our help files, and paypal: donation@cnpack.org
 

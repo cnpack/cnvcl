@@ -268,7 +268,7 @@ E9这条JMP指令后带四字节偏移量，这个偏移量在32位里能覆盖4GB的进程虚拟地址空间，因
 还记得我们计算这条四字节偏移量的代码，在64位下先适配成：
 
   PCnLongJump(OldFunc)^.Addr := Pointer(DWORD(NativeUInt(NewFunc) -
-    NativeUInt(OldFunc) - SizeOf(TCnLongJump))）;
+    NativeUInt(OldFunc) - SizeOf(TCnLongJump)));
 
 虽然我们将32位下的Integer改成了64位下的NativeUInt，避免NewFunc和OldFunc的地址本身出现截断。但这还远远不够。
 

@@ -98,7 +98,7 @@ end;
   [&T]¥∞ÃÂ∑≠“Îπ‹¿Ì∆˜
 _____________________________________________________________________________
 
-China Pack - MultiLanguage Translation Component Packadge Requirement Specification
+China Pack - MultiLanguage Translation Component Package Requirement Specification
 By Riceball<riceball@cq118.com>
 Platform: D34567, C456, K123 above
 introduction:
@@ -111,7 +111,7 @@ MultiLanguage Translation core Components are made up of the Language DataStorag
 1). Language DataStorage Components
   the Language DataStorage Components use to hold language strings which can be stored in Ini file , XML file, database, or internal EXE file.
  NOTE[riceball]: 
-   I. In the first phase we will implement the TIniLanguageFileStorage to hold language strings in Ini files. Of cause, u can develope ur own Language DataStorage Components(welcome to join us).
+   I. In the first phase we will implement the TIniLanguageFileStorage to hold language strings in Ini files. Of course, you can develop your own Language DataStorage Components(welcome to join us).
    II. Create New Language , Save Language, Set Current Language(Languages Files Manage) are here.
 The valid languages(translated) are accessible via the Languages and LanguageCount properties. The current language is accessible by the CurrentLanguage property.
 
@@ -145,7 +145,7 @@ Components:
 2). then put a proper Language Manager(we use the Component Language Manager generally , this can translate the Components and Forms) on the main form or a DataModule, assign the DataStorage property(if the Language DataStorage component is on the same Form or DataModule, it can automatically assign the DataStorage component to itself). 
 3). Put a translator component to the form u wanna translated.  Or don't put the translator component , write the following code on the FormCreate Event instead:
     aLanguageManager.Translate(Self);
-[Suggestion] create a tranlation form template, u can inherit the form to get the translation ability:
+[Suggestion] create a translation form template, u can inherit the form to get the translation ability:
   TCustomTranslationForm = class(TForm)
   private
   protected
@@ -166,7 +166,7 @@ begin
     GLanguageManager.Translate(Self);
 end;
 
-Of cause u can create a translation Project wizards. this would be done on second phase.
+Of course you can create a translation Project wizards. this would be done on second phase.
 
 Double click on the translator component to active the Form Translation Manager.
 the Form Translation Manager let u choose which properties of these components on the form need be translated(first run). Or begin to translate online.

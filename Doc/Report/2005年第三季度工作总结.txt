@@ -47,7 +47,7 @@ CnPack Working Report in 3rd Quarter 2005
 
     Below are the achievements of CnPack in the 3 month of 3rd quarter in 2005:
 
-1. Our product CnWizards upgrated to 0.7.9 with the changing list:
+1. Our product CnWizards upgraded to 0.7.9 with the changing list:
 
     I. Add highlighting for bracket matching in Editor. Add Insert Color and Collector Tool in Editor Wizard.Add Project Backup in Project Extension Wizard. Add MSDN 2005 support. Add Uses Cleaner.
     II. CnWizards supports Delphi 8/Delphi 2005 with some limitation.
@@ -63,7 +63,7 @@ CnPack Working Report in 3rd Quarter 2005
 
     Below is the plan of CnPack for next quarter:
 
-1. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board.
+1. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and abroad.
 
 2. Continue to develop code formatter.
 
