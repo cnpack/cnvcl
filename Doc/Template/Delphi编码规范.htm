@@ -194,7 +194,7 @@ Tab Character 和Optional Fill
 语句的缩进量相同。</p>  
 <h3>4).注释</h3>  
 <p>&nbsp; 我们通常使用“{...}”类型的块注释，以前的“(*...*)”类型的块注释用于临时注释掉暂不使用的代码，从Delphi  
-2开始支持“//”行注释，如果决定不在支持Delphi  
+2开始支持“//”行注释，如果决定不再支持Delphi  
 2.0以下的版本，可以使用“//”注释。</p>  
 <h2>2.2.<a  
 name="Object Pascal语句格式语句书写规范与用法">Object  
@@ -536,7 +536,7 @@ API
   color="#0000FF">//在System单元中引入的类型标识</font></i></p>  
 </blockquote>  
 <h4>(2). 浮点型</h4>  
-<p>&nbsp; 不鼓励使用Real类型，因为它只是为了与老的Pascal代码兼容而保留的。通常情况下，对于浮点数应当使用Double。Double可被处理器优化，是IEEE定义的标准的数据格式。当需要比Double提供的范围更大时，可以使用Extend。Extend是intel专用的类型，Java不支持。当浮点变量的物理字节数很重要时(可能使用其他语言编写DLL)，则应当使用Single。</p>  
+<p>&nbsp; 不鼓励使用Real类型，因为它只是为了与老的Pascal代码兼容而保留的。通常情况下，对于浮点数应当使用Double。Double可被处理器优化，是IEEE定义的标准的数据格式。当需要比Double提供的范围更大时，可以使用Extended。Extended是Intel专用的类型，Java不支持。当浮点变量的物理字节数很重要时(可能使用其他语言编写DLL)，则应当使用Single。</p>  
 <h4>(3).Variant和OleVariant</h4>  
 <p>&nbsp; 一般不建议使用Variant和OleVariant。但是，当数据类型只有在运行期才知道时(常常是在COM和数据库应用的程序中)，这两个类型对编程就有必要。当进行诸如自动化ActiveX控件的COM编程时，应当使用OleVariant；而对于非COM编程，则应当使用Variant。这是因为，Variant能够有效地保存Delphi的原生字符串，而OleVariant则将所有字符串转换为OLE字符串(即WideChar字符串)，且没有引用计数功能。</p>  
 <h3>6). 语句</h3>  
@@ -715,7 +715,7 @@ name="过程(Procedure)与函数(Function)">过程(Procedure)与函数(Function)</a></h2>
 <p>实际上，数组类型的变量实例与类型名称相同，但没有“T”前缀。</p>  
 <h4>2). 记录类型</h4>  
 <p>&nbsp;  
-记录类型名应表达出记录的用途。类型名必须加字母T为前缀。如果要声明一个指向记录类型的指计，则必须加字母P为前缀，且其声明在类型声明之前。例如：</p>  
+记录类型名应表达出记录的用途。类型名必须加字母T为前缀。如果要声明一个指向记录类型的指针，则必须加字母P为前缀，且其声明在类型声明之前。例如：</p>  
 <blockquote>  
   <p><b>type</b><br>  
   &nbsp; PEmployee = ^TEmployee;<br>  
@@ -736,7 +736,7 @@ type）则要在类名后加“Class”，抽象类一般是在类名前还要加“Custom”。例如：</p>
   &nbsp; TCipher = <b>class</b>(TCustomCipher);<br>  
   &nbsp; ICipher = <b>interface</b>;<br>  
   &nbsp; TCipherClass = <b>class of</b>  
-  TCustomer<br>  
+  TCipher<br>  
   &nbsp; ECipherException = class(Exception);</p>  
 </blockquote>  
 <p>&nbsp;  
@@ -1155,7 +1155,7 @@ name="远程数据模块文件">远程数据模块文件</a></h3>
 <h4>1). <a name="普通单元">普通单元</a></h4>  
 <h5>(1) 单元名</h5>  
 <p>&nbsp;  
-单元的名称应当有描述性。例如，应用程序的主窗体单元叫MaimFrm.pas。</p>  
+单元的名称应当有描述性。例如，应用程序的主窗体单元叫MainFrm.pas。</p>  
 <h5>(2) <b>Uses</b> 子句</h5>  
 <p>&nbsp; Interface部分的Uses子句应当只包含该部分需要的单元。不要包含可能由Delphi自动添加的单元名。Implementation部分的Uses子句应当只包含该部分需要的单元，不要有多余的单元。</p>  
 <h5>(3) <b>Interface</b> 部分</h5>  
@@ -1393,7 +1393,7 @@ Specification），以及定义Delphi
 </div>  
   
 <h1>5.<a name="Delphi代码自动格式化工具">Delphi代码自动格式化工具</a></h1>  
-<p>尽管大多数的代码自动格式化工具能够帮你重排源程序格式，以及更新保留字和标示符的大小写，但是这最好在使用版本控制前进行，如果你已经使用了版本控制，建议你不要轻易使用代码自动格式化工具，哪怕多一个空格，版本控制工具也会认为该行已被修改，从而给程序管理带来不变。</p>  
+<p>尽管大多数的代码自动格式化工具能够帮你重排源程序格式，以及更新保留字和标识符的大小写，但是这最好在使用版本控制前进行，如果你已经使用了版本控制，建议你不要轻易使用代码自动格式化工具，哪怕多一个空格，版本控制工具也会认为该行已被修改，从而给程序管理带来不便。</p>  
 <h1>6.<a name="代码标准文档更新">代码标准文档更新</a></h1>  
 <p>关于Delphi代码标准的最新文档，你可以在 <a  
 href="http://dev.cq118.com/web/">http://dev.cq118.com/web/</a>  
