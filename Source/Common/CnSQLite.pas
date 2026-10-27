@@ -21,7 +21,7 @@
 {            以下为原单元作者的版权声明                                        }
 {******************************************************************************}
 { july 22. 2003                                                                }
-{ taken from the sqlite.pas unit from next listed autors                       }
+{ taken from the sqlite.pas unit from next listed authors                      }
 { adjusted by R.M. Tegel (rene@dubaron.com)                                    }
 { to match my ideas about easy querying                                        }
 { partly based on ideas i had when developing TMyDB.pas library for MySQL      }
@@ -44,22 +44,22 @@ unit CnSQLite;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：SQLite数据库的Delphi封装单元
+* 单元名称：SQLite 数据库的 Delphi 封装单元
 * 单元作者：见以上原单元作者的版权声明
-* 备    注：CnPack将会以SQLite数据库为主要的内部数据库内核，
-*           但要注意该单元需要Sqlite.dll的支持。
+* 备    注：CnPack 将会以 SQLite 数据库为主要的内部数据库内核，
+*           但要注意该单元需要 Sqlite.dll 的支持。
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串暂时不符合本地化处理方式
 * 修改记录：2003.11.17 V1.1 by 何清(QSoft)
-*               取消TLiteDB中创建数据库的默认扩展名，原为.lit，现在的扩展名可由
+*               取消 TLiteDB 中创建数据库的默认扩展名，原为.lit，现在的扩展名可由
 *               调用者自己设定。
 *           2003.11.17 V1.0 by 何清(QSoft)
 *               上传单元。
 ================================================================================
 |</PRE>}
 
-{* 该宏用户决定该单元是否支持GUI，如果定义该宏，TLiteDB类将从 TComponent 继承，
+{* 该宏用户决定该单元是否支持 GUI，如果定义该宏，TLiteDB 类将从 TComponent 继承，
    并增加 QueryComboBox 和 QueryStringGrid 两个GUI相关方法的支持。}
 //{$DEFINE WITH_GUI}
 

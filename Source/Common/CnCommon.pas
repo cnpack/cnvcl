@@ -241,7 +241,7 @@ procedure OpenUrl(const Url: string; UseCmd: Boolean = False);
 procedure MailTo(const Addr: string; const Subject: string = ''; UseCmd: Boolean = False);
 {* 发送邮件}
 
-procedure SendMailTo(const Subject, Body, Addr: string; Attachs: array of string);
+procedure SendMailTo(const Subject, Body, Addr: string; Attachments: array of string);
 {* 使用 MSAPI 发送邮件，支持附件，但要求系统安装了 MSAPI}
 
 function WinExecute(const FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
@@ -2509,7 +2509,7 @@ begin
     ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + Url), '', SW_HIDE);
 end;
 
-procedure SendMailTo(const Subject, Body, Addr: string; Attachs: array of string);
+procedure SendMailTo(const Subject, Body, Addr: string; Attachments: array of string);
 var
   MM, MS: Variant;
   I: Integer;
@@ -2531,10 +2531,10 @@ begin
       MM.MsgSubject := Subject;
       MM.MsgNoteText := Body;
 
-      for I := Low(Attachs) to High(Attachs) do
+      for I := Low(Attachments) to High(Attachments) do
       begin
         MM.AttachmentIndex := I;
-        MM.AttachmentPathName := Attachs[I];
+        MM.AttachmentPathName := Attachments[I];
       end;
       MM.Send(True);
       MS.SignOff;

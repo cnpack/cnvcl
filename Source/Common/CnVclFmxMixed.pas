@@ -54,7 +54,7 @@ procedure SetControlScreenRect(AControl: TComponent; ARect: TRect);
 {* 设置控件在屏幕上的坐标区域。注意：不支持不可视组件}
 
 function GetControlParent(AControl: TComponent): TComponent;
-{* 封装的获取 Conrol 的 Parent 的过程，封装了 FMX 的实现}
+{* 封装的获取 Control 的 Parent 的过程，封装了 FMX 的实现}
 
 function GetControlTop(AControl: TComponent): Integer;
 {* 封装的获取 Control 的 Top 的过程，封装了 FMX 的实现}

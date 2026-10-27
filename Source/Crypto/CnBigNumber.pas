@@ -2814,26 +2814,26 @@ function BigNumberLucasVSequenceMod(X: TCnBigNumber; Y: TCnBigNumber; K: TCnBigN
 }
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
-  Remainers: TCnBigNumberList; Factors: TCnBigNumberList): Boolean; overload;
+  Remainders: TCnBigNumberList; Factors: TCnBigNumberList): Boolean; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功。
   参数为大数列表。Remainers 支持负余数，调用者须确保 Factors 均为正且两两互素。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
-     Remainers: TCnBigNumberList          - 余数列表
+     Remainders: TCnBigNumberList         - 余数列表
      Factors: TCnBigNumberList            - 除数列表
 
    返回值：Boolean                        - 返回是否求解成功
 }
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
-  Remainers: TCnInt64List; Factors: TCnInt64List): Boolean; overload;
+  Remainders: TCnInt64List; Factors: TCnInt64List): Boolean; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功。
    参数为 Int64 列表
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
-     Remainers: TCnInt64List              - 余数列表
+     Remainders: TCnInt64List             - 余数列表
      Factors: TCnInt64List                - 除数列表
 
    返回值：Boolean                        - 返回是否求解成功
@@ -10166,13 +10166,13 @@ end;
 
 // 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
-  Remainers, Factors: TCnBigNumberList): Boolean;
+  Remainders, Factors: TCnBigNumberList): Boolean;
 var
   I, J: Integer;
   G, N, Sum: TCnBigNumber;
 begin
   Result := False;
-  if (Remainers.Count <> Factors.Count) or (Remainers.Count = 0) then
+  if (Remainders.Count <> Factors.Count) or (Remainders.Count = 0) then
     Exit;
 
   Sum := nil;
@@ -10185,7 +10185,7 @@ begin
     N := FLocalBigNumberPool.Obtain;
 
     BigNumberSetZero(Sum);
-    for I := 0 to Remainers.Count - 1 do
+    for I := 0 to Remainders.Count - 1 do
     begin
       // 对于每一个余数和对应除数，找出其他除数的公倍数中除以该除数余 1 的数（涉及到模逆元），
       // 如 5 7 的公倍数 35n，对 3 余 1 的是 70。3 7 对 5 余 1 的是 21，3 5 对 7 余 1 的是 14
@@ -10206,7 +10206,7 @@ begin
       if not BigNumberMul(G, N, G) then // 得到乘数
         Exit;
 
-      if not BigNumberMul(G, Remainers[I], G) then // 乘数与余数相乘
+      if not BigNumberMul(G, Remainders[I], G) then // 乘数与余数相乘
         Exit;
 
       if not BigNumberAdd(Sum, Sum, G) then // 求和
@@ -10227,7 +10227,7 @@ begin
 end;
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
-  Remainers, Factors: TCnInt64List): Boolean; overload;
+  Remainders, Factors: TCnInt64List): Boolean; overload;
 var
   I: Integer;
   BR, BF: TCnBigNumberList;
@@ -10239,8 +10239,8 @@ begin
     BR := TCnBigNumberList.Create;
     BF := TCnBigNumberList.Create;
 
-    for I := 0 to Remainers.Count - 1 do
-      BR.Add.SetInt64(Remainers[I]);
+    for I := 0 to Remainders.Count - 1 do
+      BR.Add.SetInt64(Remainders[I]);
 
     for I := 0 to Factors.Count - 1 do
       BF.Add.SetInt64(Factors[I]);

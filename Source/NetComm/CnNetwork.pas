@@ -809,7 +809,7 @@ type
 
   TCnIPHeader = packed record
     VerionHeaderLength: Byte;           // 版本和包头长度
-    TypeOfService:      Byte;           // 服务类型，高三位是 Precedence 值，再三位是 Delay、Throughtput、Reliability 标记
+    TypeOfService:      Byte;           // 服务类型，高三位是 Precedence 值，再三位是 Delay、Throughput、Reliability 标记
     TotalLength:        Word;           // 总长度，最大 65535
     Identification:     Word;           // 标识
     FlagOffset:         Word;           // 标志和片偏移
@@ -1170,7 +1170,7 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |    Version    |    Command    |   Reserved    |  Adrress Type |
+  |    Version    |    Command    |   Reserved    |  Address Type |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |    Destination Address        |        Destination Port       |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -1203,7 +1203,7 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |    Version    |     Reply     |   Reserved    |  Adrress Type |
+  |    Version    |     Reply     |   Reserved    |  Address Type |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |         Bind Address          |            Bind Port          |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

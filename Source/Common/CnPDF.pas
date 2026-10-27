@@ -43,7 +43,7 @@ unit CnPDF;
 *                   -> Outline Hierarchy -> Outline Entry
 *                   |                  | -> Outline Entry
 *                   |
-*                   -> Artical Threads -> Thread
+*                   -> Article Threads -> Thread
 *                   |                | -> Thread
 *                   -> Named Destination
 *                   -> Interactive Form
@@ -1076,7 +1076,7 @@ const
   // PDF 规范中的空白字符中的回车换行
   WHITESPACES: set of AnsiChar = [#0, #9, #12, #32];
   // PDF 规范中除了回车换行之外的空白字符
-  DELIMETERS: set of AnsiChar = ['(', ')', '<', '>', '[', ']', '{', '}', '%'];
+  DELIMITERS: set of AnsiChar = ['(', ')', '<', '>', '[', ']', '{', '}', '%'];
   // PDF 规范中的分隔字符
 
   // 以下是 PDF 文中的固定字符串
@@ -1606,7 +1606,7 @@ procedure TCnPDFParser.NameBeginProc;
 begin
   repeat
     StepRun;
-  until FOrigin[FRun] in CRLFS + WHITESPACES + DELIMETERS + ['/'];
+  until FOrigin[FRun] in CRLFS + WHITESPACES + DELIMITERS + ['/'];
   FTokenID := pttName;
 end;
 

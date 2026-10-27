@@ -2261,7 +2261,7 @@ implementation
 
 resourcestring
   SCnErrorPointInverse = 'Point Inverse Error.';
-  SCnErrorCanNOTCalcFmt = 'Can NOT Calucate %s,%s + %s,%s';
+  SCnErrorCanNOTCalcFmt = 'Can NOT Calculate %s,%s + %s,%s';
   SCnErrorNumberTooBig = 'Number is Too Big.';
   SCnErrorPointNotOnCurve = 'Point NOT On Curve.';
   SCnErrorInvalidHexLength = 'Invalid Hex String Length.';

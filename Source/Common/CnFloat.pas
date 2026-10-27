@@ -666,7 +666,7 @@ function FloatDecimalToOctExtended(fIn: Extended; DecimalExp: Boolean;
   AlwaysUseExponent: Boolean): AnsiString; deprecated; // Convert to octal
 
 function FloatDecimalToHexExtended(fIn: Extended; DecimalExp: Boolean;
-  AlwaysUseExponent: Boolean): AnsiString; deprecated; // Convert to hexdecimal
+  AlwaysUseExponent: Boolean): AnsiString; deprecated; // Convert to hexadecimal
 
 {$ENDIF}
 {$ENDIF}

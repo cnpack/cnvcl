@@ -69,14 +69,6 @@ uses
 const
   CN_MAX_WSABUF_COUNT = 8;
 
-  SCnErrorCompletePortError = 'Error in Completion IO. Errro code %d';
-  SCnErrorCallbackException = 'Exception in CallBacl: %s';
-  SCnErrorSendBufferOverflow = 'Send Buffer Overflow. Max %d WSABUF.';
-
-//  SCnErrorCompletePortError = '完成端口发生错误，错误代码(%d)';
-//  SCnErrorCallbackException = '回调用户事件中发生异常(%s)';
-//  SCnErrorSendBufferOverflow = '发送缓冲区超过大小！目前程序定义最多只能发送 %d 个WSABUF！';
-
 type
   WSABUF = packed record
     len: U_LONG; { the length of the buffer }
@@ -295,6 +287,11 @@ implementation
 
 const
   WINSOCK2_DLL = 'ws2_32.dll';
+
+resourcestring
+  SCnErrorCompletePortError = 'Error in Completion IO. Error Code %d';
+  SCnErrorCallbackException = 'Exception in CallBack: %s';
+  SCnErrorSendBufferOverflow = 'Send Buffer Overflow. Max %d WSABUF.';
 
 function WSAIoctl; external WINSOCK2_DLL name 'WSAIoctl';
 

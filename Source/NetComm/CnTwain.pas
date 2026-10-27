@@ -321,15 +321,15 @@ type
 
   TW_UINT8 = Byte;
 
-  TW_UINT16 = Word;   // Unsinged  integer  !!!
+  TW_UINT16 = Word;   // Unsigned Integer  !!!
 
   TW_UINT32 = Longword;
 
-  TW_BOOL = Word;   // Unsinged  Short Boolean  !!!
+  TW_BOOL = Word;   // Unsinged Short Boolean  !!!
 
   pTW_UINT16 = ^TW_UINT16;
 
-  TW_FIX32 = packed record // Fixed point structure type.
+  TW_FIX32 = packed record   // Fixed point structure type.
     Whole: TW_INT16;         // maintains the sign
     Frac: TW_UINT16;
   end;

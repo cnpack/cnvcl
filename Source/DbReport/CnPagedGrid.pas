@@ -160,28 +160,28 @@ end;
 -------------------------------------------------------------------------------}
 procedure TCnPagedGrid.GetTitle;
 var
-  i: Integer;
+  I: Integer;
   ColName: string;
   DispName: string;
   Xpo: Integer;
-  ds: TDataSet;
+  DS: TDataSet;
 begin
   if Self.FDataSource = nil then
     Exit;
-  ds := Self.FDataSource.DataSet; 
+  DS := Self.FDataSource.DataSet; 
   {Set Col Count to Fields' Count}
   Self.ColCount := Self.FFieldList.Count + 1;
-  for i := 0 to Self.FFieldList.Count - 1 do
+  for I := 0 to Self.FFieldList.Count - 1 do
   begin
     {Get Equal Signal's Position}
-    XPO := Pos('=', Self.FFieldList.Strings[i]); 
+    XPO := Pos('=', Self.FFieldList.Strings[I]); 
     {Get Value Name}
-    ColName := Copy(Self.FFieldList.Strings[i], 1, xpo - 1);
+    ColName := Copy(Self.FFieldList.Strings[I], 1, xpo - 1);
     DispName := Self.FFieldList.Values[ColName]; 
     {Set Title's Width}
-    Self.ColWidths[i + Self.FixedCols] := ds.FieldByName(ColName).DisplayWidth * Self.Canvas.TextWidth('0'); 
+    Self.ColWidths[I + Self.FixedCols] := DS.FieldByName(ColName).DisplayWidth * Self.Canvas.TextWidth('0'); 
     {Set Title's Caption}
-    Self.Cells[i + Self.FixedCols, 0] := DispName;
+    Self.Cells[I + Self.FixedCols, 0] := DispName;
   end;
 end; 
 
@@ -194,20 +194,20 @@ end;
 -------------------------------------------------------------------------------}
 procedure TCnPagedGrid.DeleteField(const AFieldName: string);
 var
-  i, Cnt: Integer;
+  I, Cnt: Integer;
   ColName: string;
   XPO: Integer;
 begin
   Cnt := Self.FFieldList.Count;
-  for i := 0 to Cnt - 1 do
+  for I := 0 to Cnt - 1 do
   begin
-    XPO := Pos('=', Self.FFieldList.Strings[i]);
-    ColName := Copy(Self.FFieldList.Strings[i], 1, XPO - 1); 
+    XPO := Pos('=', Self.FFieldList.Strings[I]);
+    ColName := Copy(Self.FFieldList.Strings[I], 1, XPO - 1); 
     {If Gotten Value Name Equals to Field Name}
     if ColName = AFieldName then
     begin
       {Delete Current Item}
-      Self.FFieldList.Delete(i);
+      Self.FFieldList.Delete(I);
       Break;
     end;
   end;
@@ -236,7 +236,7 @@ end;
 -------------------------------------------------------------------------------}
 procedure TCnPagedGrid.GetFieldList;
 var
-  i, FldCnt: Integer;
+  I, FldCnt: Integer;
   FldName: string;
 begin
   if Self.FDataSource = nil then
@@ -244,10 +244,10 @@ begin
   {Clear the Field List}
   Self.FFieldList.Clear;
   FldCnt := Self.FDataSource.DataSet.FieldCount;
-  for i := 0 to FldCnt - 1 do
+  for I := 0 to FldCnt - 1 do
   begin
     {Get Field Name and Copy it}
-    FldName := Self.FDataSource.DataSet.Fields.Fields[i].DisplayName;
+    FldName := Self.FDataSource.DataSet.Fields.Fields[I].DisplayName;
     Self.FFieldList.Add(FldName + '=' + FldName);
   end;
 end; 
@@ -288,16 +288,16 @@ procedure TCnPagedGrid.SetPageNo(const Value: Integer);
 var
   RecNum: Integer;
   Rows: Integer;
-  i: Integer;
+  I: Integer;
   ColName: string;
   Xpo: Integer;
-  ds: TDataSet;
+  DS: TDataSet;
 begin
   if Self.FDataSource = nil then
     Exit;
-  ds := Self.FDataSource.DataSet; 
+  DS := Self.FDataSource.DataSet; 
   {Check DataSet is Active or not}
-  if not ds.Active then
+  if not DS.Active then
     Exit; 
   //if (Self.FMethod=gwfirst)or(Self.FMethod=gwlast)then Exit;
   if FPageNo < 1 then
@@ -328,35 +328,35 @@ begin
     Exit;
   end;
   RecNum := (FPageNo - 1) * FMaxRows + 1;
-  if RecNum > ds.RecordCount then
+  if RecNum > DS.RecordCount then
     Exit; 
   {Set Table's Current Record Number}
-  if ds.RecordCount = 0 then
-    ds.Last
+  if DS.RecordCount = 0 then
+    DS.Last
   else
-    ds.RecNo := RecNum;
+    DS.RecNo := RecNum;
   Rows := 0; 
   {Set Rows Forward}
   Self.RowCount := Self.FMaxRows + 1;
   Self.ClearGrid;
-  while not ds.Eof do
+  while not DS.Eof do
   begin
     {Write Record Number to Grid Cell}
     if FixedCols <> 0 then
       Self.Cells[0, Rows + 1] := IntToStr(RecNum);
-    for i := 0 to Self.FFieldList.Count - 1 do
+    for I := 0 to Self.FFieldList.Count - 1 do
     begin
-      XPO := Pos('=', Self.FFieldList.Strings[i]);
-      ColName := Copy(Self.FFieldList.Strings[i], 1, xpo - 1); 
+      XPO := Pos('=', Self.FFieldList.Strings[I]);
+      ColName := Copy(Self.FFieldList.Strings[I], 1, xpo - 1); 
       {Get Data from Table and Write It to Grid}
-      Self.Cells[i + Self.FixedCols, Rows + 1] := ds.FieldByName(ColName).AsString;
+      Self.Cells[I + Self.FixedCols, Rows + 1] := DS.FieldByName(ColName).AsString;
     end;
     Inc(Rows);
     Inc(RecNum);
     if Rows = FMaxRows then
-      break; 
+      Break;
     {dataSet's Pointer Move to Next Record}
-    ds.Next;
+    DS.Next;
   end; 
   {Set Rows}
   if Rows = 0 then
@@ -417,11 +417,11 @@ end;
 -------------------------------------------------------------------------------}
 procedure TCnPagedGrid.ClearGrid;
 var
-  i, j: Integer;
+  I, J: Integer;
 begin
-  for i := 0 to Self.ColCount - 1 do
-    for j := 1 to Self.RowCount - 1 do
-      Self.Cells[i, j] := '';
+  for I := 0 to Self.ColCount - 1 do
+    for J := 1 to Self.RowCount - 1 do
+      Self.Cells[I, J] := '';
 end;
 
 procedure TCnPagedGrid.NavigatePage(GotoWay: TGotoWay);

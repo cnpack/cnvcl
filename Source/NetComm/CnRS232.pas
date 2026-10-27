@@ -60,9 +60,9 @@
 {                 - Add Sender parameter to TReceiveDataEvent                  }
 {                                                                              }
 {  Version 2.0    1997/4/15                                                    }
-{                 - Support separatly DTR/DSR and RTS/CTS hardware flow        }
+{                 - Support separately DTR/DSR and RTS/CTS hardware flow        }
 {                   control setting                                            }
-{                 - Support separatly OutX and InX software flow control       }
+{                 - Support separately OutX and InX software flow control       }
 {                   setting                                                    }
 {                 - Log file(for debug) may used by many comms at the same     }
 {                   time                                                       }
@@ -79,7 +79,7 @@
 {                                                                              }
 {  Version 2.01   1997/4/19                                                    }
 {                 - Support some property for modem                            }
-{                 - Add OnModemStateChange event hander when RLSD(CD) change   }
+{                 - Add OnModemStateChange event handler when RLSD(CD) change   }
 {                   state                                                      }
 {                                                                              }
 {  Version 2.02   1997/4/28                                                    }
@@ -96,7 +96,7 @@
 {                   signal was detected, OnModemStateChange handler is called  }
 {                 - Change XonLim and XoffLim from 100 to 500                  }
 {                 - Remove TWriteThread.WriteData member                       }
-{                 - PostHangupCall is re-design for debuging function          }
+{                 - PostHangupCall is re-design for debugging function         }
 {                 - Add a boolean property SendDataEmpty, True when send       }
 {                   buffer is empty                                            }
 {                                                                              }
@@ -1064,7 +1064,7 @@ begin
     end
   end;                                  {main loop}
 
-  // Thats the end.  Now clean up.
+  // That's the end.  Now clean up.
 EndWriteThread:
 
   PurgeComm(FHCommFile, PURGE_TXABORT + PURGE_TXCLEAR);

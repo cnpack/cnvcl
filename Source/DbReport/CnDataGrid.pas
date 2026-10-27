@@ -70,10 +70,10 @@ type
     property FieldCount: Integer read FFieldCount;
     property FieldName[Index: Integer]: string read GetFieldName;
     // 使用给定的 DataSet 来填充行列表，Canceled 指定用户是否取消了查询，普通的填充
-    Function FillRowListByNormal(DataSet: TCustomADODataSet;var Canceled: Boolean): Boolean;
+    Function FillRowListByNormal(DataSet: TCustomADODataSet; var Canceled: Boolean): Boolean;
     // 使用微软的原生数据集进行绑定，全部交给 OleDB 自己去搞，速度要快些
-    function FillRowListByBinding(DataSet: TCustomADODataSet;Var Canceled: Boolean): Boolean;
-    function FillRowList(DataSet: TCustomADoDataSet;Var Canceled: Boolean): Boolean;
+    function FillRowListByBinding(DataSet: TCustomADODataSet; var Canceled: Boolean): Boolean;
+    function FillRowList(DataSet: TCustomADoDataSet; var Canceled: Boolean): Boolean;
   end;
 
   TCnDataGrid = class(TDrawGrid)
@@ -183,7 +183,7 @@ implementation
 procedure TCnDataGrid.AdjustColumn(ACol: Integer);
 var
   R, R2, I, W1, W2, ColIndex: Integer;
-  s: string;
+  S: string;
 begin
   if (ACol < 1) or (ACol > Self.ColCount) then Exit;
 
@@ -197,8 +197,8 @@ begin
   begin
     if I >= FRows.Data.Count then Break;
 
-    s := GetString(ColIndex, I);
-    W2 := Canvas.TextWidth(s) + 5;
+    S := GetString(ColIndex, I);
+    W2 := Canvas.TextWidth(S) + 5;
     if W2 > FDefaultMaxColumnWidth then
     begin
       W1 := FDefaultMaxColumnWidth;
@@ -688,7 +688,7 @@ end;
 
 function TCnDataGrid.SelectCell(ACol, ARow: Integer): Boolean;
 begin
-  result := true;
+  Result := True;
   if Assigned(FOnSelectCell) then FOnSelectCell(Self, ACol, ARow, Result);
 end;
 
@@ -720,16 +720,16 @@ end;
 
 procedure TCnDataGrid.SetDataSet(DataSet: TCustomADODataSet);
 var
-  Cancle: Boolean;
+  Cancel: Boolean;
 begin
   if FDataSet <> DataSet then
   begin
     FDataSet := DataSet;
     FAfterScroll := DataSet.AfterScroll; //用来保留滚动后函数指针保存
     FBeforeScroll := DataSet.BeforeScroll; //滚动前函数指针保存
-    cancle := false;
-    FRows.FillRowList(DataSet,Cancle);
-    self.SetData;
+    Cancel := False;
+    FRows.FillRowList(DataSet, Cancel);
+    Self.SetData;
   end;
 end;
 
@@ -800,25 +800,27 @@ function TCnDataRowList.FillRowListByNormal(DataSet: TCustomADODataSet;
 var
   Value: OleVariant;
   P: PRowData;
-  i: Integer;
+  I: Integer;
+
   function IsCanceled: Boolean;
   begin
     Result := Canceled;
   end;
+
 begin
-  result := true;
+  Result := True;
   while not DataSet.Eof do
   begin
     P := AllocRowData;
-    for i := 0 to FFieldCount - 1 do
+    for I := 0 to FFieldCount - 1 do
     begin
-      Value := DataSet.Fields[i].Value;
+      Value := DataSet.Fields[I].Value;
       if VarIsNull(Value) then
-        P[i] := 'NULL'
+        P[I] := 'NULL'
       else if VarIsArray(Value) then
-        P[i] := '(Blob)'
+        P[I] := '(Blob)'
       else
-        P[i] := string(Value);
+        P[I] := string(Value);
     end;
     FData.Add(P);
     if IsCanceled then
@@ -838,14 +840,16 @@ var
   Fld: Field;
   FieldData: PColumnRawData;
   P: PRowData;
-  s: string;
+  S: string;
   FldTypes: array of Integer;
   M,N: Integer;
   Rst: _RecordSet;//原生数据记录集
+
   function IsCanceled: Boolean;
   begin
     Result := Canceled;
   end;
+
 begin
   Result := True;
   Rst := DataSet.Recordset;
@@ -898,7 +902,8 @@ begin
           raise Exception.Create('ADO.ISqlW: get field data error.');// 假如出错, 应该是OLE DB不能处理的一些数据转换.
         if FieldData.Status = adFldNull then
           P[I] := 'NULL'
-        else begin
+        else
+        begin
           try
             case FldTypes[I] of
             adLongVarChar,
@@ -917,15 +922,15 @@ begin
             if FieldData.DataLength > 50 then
               FieldData.DataLength := 50;
             end;
-          SetString(s, PChar(@FieldData.RawData), FieldData.DataLength);
+          SetString(S, PChar(@FieldData.RawData), FieldData.DataLength);
           if (FldTypes[I] = adLongVarBinary) or
             (FldTypes[I] = adVarBinary) or (FldTypes[I] = adBinary)
-          then s := '0x' + s;
+          then S := '0x' + S;
 
-          P[I] := s;
+          P[I] := S;
           except  // 好像还有问题, 姑且留着
-            s := Format('Row:%d, Field:%d, Len: %d, Stat: %d', [M, N, FieldData.DataLength, FieldData.Status]);
-            raise Exception.Create(s);
+            S := Format('Row:%d, Field:%d, Len: %d, Stat: %d', [M, N, FieldData.DataLength, FieldData.Status]);
+            raise Exception.Create(S);
           end;
         end;
         Inc(N);
@@ -968,7 +973,6 @@ function TCnDataRowList.FillRowList(DataSet: TCustomADoDataSet;
   var Canceled: Boolean): Boolean;
 var
   I: Integer;
-//  Ver: Double;
   Rst: _ReCordSet;
 
   function IsCanceled: Boolean;
@@ -995,7 +999,7 @@ begin
     //if Ver >= 2.0 then // 用ADO Binding效率会高一些.
     //  result := FillRowListByBinding(DataSet,Canceled)
     //else
-    Result := self.FillRowListByNormal(DataSet,Canceled)
+    Result := Self.FillRowListByNormal(DataSet, Canceled)
   end;
 
 end;

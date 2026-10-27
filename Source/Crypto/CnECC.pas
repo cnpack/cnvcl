@@ -2510,7 +2510,7 @@ uses
   CnContainers, CnRandom, CnBase64;
 
 resourcestring
-  SCnErrorEccCanNotCalucateAffine = 'Can NOT Calucate Affine %d,%d,%d + %d,%d,%d';
+  SCnErrorEccCanNotCalculateAffine = 'Can NOT Calculate Affine %d,%d,%d + %d,%d,%d';
   SCnErrorEccInfiniteFieldMustBeAPrimeNumber = 'Infinite Field Must be a Prime Number.';
   SCnErrorEccGeneratorPointMustBeInInfiniteField = 'Generator Point Must be in Infinite Field.';
   SCnErrorEcc4A327B2 = 'Error: 4 * A^3 + 27 * B^2 = 0';
@@ -3093,7 +3093,7 @@ begin
         Exit;
       end
       else // X 相等且 Y 不互补，没法相加
-        raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucateAffine,
+        raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalculateAffine,
           [P.X, P.Y, P.Z, Q.X, Q.Y, Q.Z]);
     end;
 
@@ -5006,7 +5006,7 @@ begin
           Exit;
         end
         else // X 相等且 Y 不互补，没法相加
-          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalucateAffine,
+          raise ECnEccException.CreateFmt(SCnErrorEccCanNotCalculateAffine,
             [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, Q.X.ToDec, Q.Y.ToDec, Q.Z.ToDec]);
       end;
 
