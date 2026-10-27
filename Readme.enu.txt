@@ -28,7 +28,7 @@ License, and also, is protected by it.
 =====================================================
 
     It's not recommended to use Alpha package of CnPack in formal usage 
-because it's not tested integrallty yet. If you meet any problem during
+because it's not tested integrally yet. If you meet any problem during
 development, please contact us:
 
     https://www.cnpack.org
@@ -72,4 +72,4 @@ run the "ToENU.bat" or other bat files in "Source" directory to copy
 them automatically.
 
     Note: It's not recommended to use Alpha package of CnPack in formal
-usage because it's not tested integrallty yet.
+usage because it's not tested integrally yet.
