@@ -930,7 +930,7 @@ end;
 
 procedure TCnWideStringList.LoadFromStream(Stream: TStream);
 var
-  Size, Len: Integer;
+  Size: Integer;
   S: WideString;
   SA: AnsiString;
   Bytes: TBytes;
@@ -1336,7 +1336,6 @@ begin
     Exit;
   end;
 
-  Result := -1;
   Cnt := 0;
   I := 0;
   if Dest <> nil then
