@@ -46,6 +46,7 @@ type
   private
     FEnKey: TBytes;
     FDeKey: TBytes;
+    function GetEncapKeyFromMemo: TBytes;
     procedure ClearKeyData;
     procedure UpdateStatus(const Msg: string);
   public
@@ -70,6 +71,24 @@ begin
   cbMLKEMType.ItemIndex := 0;
   ClearKeyData;
   UpdateStatus('请先选择MLKEM类型，然后点击"生成公私钥"按钮');
+end;
+
+// 从公开密钥框取得待使用的公开密钥：框内为空时使用内部生成的公开密钥，
+// 否则剔除空白后按十六进制解析，可粘贴对方公开密钥以实现跨方封装或加密
+function TMLKEMMainForm.GetEncapKeyFromMemo: TBytes;
+var
+  S: string;
+begin
+  S := MemoPublicKey.Text;
+  S := StringReplace(S, ' ', '', [rfReplaceAll]);
+  S := StringReplace(S, #9, '', [rfReplaceAll]);
+  S := StringReplace(S, #13, '', [rfReplaceAll]);
+  S := StringReplace(S, #10, '', [rfReplaceAll]);
+
+  if S = '' then
+    Result := FEnKey
+  else
+    Result := HexToBytes(S);
 end;
 
 procedure TMLKEMMainForm.ClearKeyData;
@@ -154,13 +173,16 @@ var
   MLKEMType: TCnMLKEMType;
   PlainBytes, CipherBytes: TBytes;
   PlainText: string;
+  EnKey: TBytes;
 begin
   try
-    if Length(FEnKey) = 0 then
+    // 公开密钥：优先使用公开密钥框中粘贴的对方公开密钥，为空则使用内部生成的公开密钥
+    if (Trim(MemoPublicKey.Text) = '') and (Length(FEnKey) = 0) then
     begin
       ShowMessage('请先生成公私钥');
       Exit;
     end;
+    EnKey := GetEncapKeyFromMemo;
     
     // 获取选择的MLKEM类型
     case cbMLKEMType.ItemIndex of
@@ -182,9 +204,12 @@ begin
     // 创建MLKEM实例并加密
     MLKEM := TCnMLKEM.Create(MLKEMType);
     try
-      CipherBytes := MLKEM.MLKEMEncrypt(FEnKey, PlainBytes);
+      CipherBytes := MLKEM.MLKEMEncrypt(EnKey, PlainBytes);
       MemoEncrypted.Text := BytesToHex(CipherBytes);
-      UpdateStatus('加密成功');
+      if Trim(MemoPublicKey.Text) = '' then
+        UpdateStatus('加密成功（使用内部公开密钥）')
+      else
+        UpdateStatus('加密成功（使用公开密钥框中的公开密钥）');
     finally
       MLKEM.Free;
     end;
@@ -255,13 +280,16 @@ var
   MLKEM: TCnMLKEM;
   MLKEMType: TCnMLKEMType;
   MsgBytes, ShareKey, CipherText: TBytes;
+  EnKey: TBytes;
 begin
   try
-    if Length(FEnKey) = 0 then
+    // 公开密钥：优先使用公开密钥框中粘贴的对方公开密钥，为空则使用内部生成的公开密钥
+    if (Trim(MemoPublicKey.Text) = '') and (Length(FEnKey) = 0) then
     begin
       ShowMessage('请先生成公私钥');
       Exit;
     end;
+    EnKey := GetEncapKeyFromMemo;
     
     // 获取选择的MLKEM类型
     case cbMLKEMType.ItemIndex of
@@ -280,10 +308,13 @@ begin
     // 创建MLKEM实例并封装
     MLKEM := TCnMLKEM.Create(MLKEMType);
     try
-      MLKEM.MLKEMEncaps(FEnKey, MsgBytes, ShareKey, CipherText);
+      MLKEM.MLKEMEncaps(EnKey, MsgBytes, ShareKey, CipherText);
       MemoSharedKey1.Text := BytesToHex(ShareKey);
       MemoCipherText.Text := BytesToHex(CipherText);
-      UpdateStatus('密钥封装成功');
+      if Trim(MemoPublicKey.Text) = '' then
+        UpdateStatus('密钥封装成功（使用内部公开密钥）')
+      else
+        UpdateStatus('密钥封装成功（使用公开密钥框中的公开密钥）');
     finally
       MLKEM.Free;
     end;
