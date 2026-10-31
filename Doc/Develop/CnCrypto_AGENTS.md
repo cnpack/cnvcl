@@ -1,225 +1,485 @@
-# CnPack 密码算法库项目协作与安全审计指南
+# CnCrypto（CnPack 密码算法库）项目指南 (AGENTS.md)
 
-本文件是本项目后续由 AI、自动化工具或人工维护时应遵守的工作约定。它描述的是项目实际约束和安全审计方法，不是对任何算法实现“已经安全”的保证。
+> 本文件为 AI 编程助手提供 CnPack 密码算法库（cncrypto）的完整上下文，涵盖目录结构、源码功能说明、架构设计、构建与测试方法、开发规范及安全协作约定等。
 
-## 1. 项目定位
+---
 
-CnPack 密码算法库是一个纯 Object Pascal 密码算法库，主要目标是兼容较老的 Delphi/C++Builder 到最新版的 RAD Studio，同时支持 Lazarus/Free Pascal（FPC）。项目包含对称密码、非对称密码、哈希、AEAD、密码学大整数、证书/BER、后量子密码及多种辅助算法。
+## 一、项目概述
 
-安全相关任务必须以源码实际行为、调用链和可复现实验为依据。不要因为注释、函数名、README、测试名称或“已验证/安全/严格”等文字而跳过代码检查。
+CnPack 密码算法库（CnPack Crypto Library）源于 CnPack 开发组的 CnVcl 组件包，是一套**纯 Object Pascal** 编写的开源加解密源码库，**不依赖任何 VCL/FMX 界面组件**，以基础库形式提供。
 
-## 2. 目录职责
+- 支持编译器：Delphi 5 至最新版 RAD Studio、C++Builder 5/6、Lazarus/Free Pascal (FPC)
+- 支持平台：32/64 位的 Windows、macOS、Linux（**仅在小端 CPU 上测试过，大端 CPU 不保证支持**）
+- 算法覆盖：国际主流算法 + 中国国家商用密码算法（SM2/SM3/SM4/SM9/ZUC）+ 后量子算法（ML-KEM/ML-DSA/SLH-DSA）
+- 零外部依赖（纯 Pascal 实现）
+- 官方网站：https://www.cnpack.org
+- 开源协议：CnPack 开源协议（详见 `License.txt`）
 
-- `Source/`：核心 Pascal 单元。密码算法、底层整数、随机数、编码解析和辅助功能都在这里。
-- `Include/`：动态库导出接口及 C/Pascal 头文件，主要是 `CnCryptoIntf.h`、`CnCryptoIntf.pas`。
-- `Package/`：Delphi/FPC 动态库和运行时包项目，例如 `CnCrypto.dpk`、`CnCrypto.dpr`、`CnCrypto.lpr`。
-- `Test/`：批量测试工程。`Crypto.lpr` 可由 FPC 编译，`Crypto.dpr`/`Crypto.bpr`/`Crypto.lpi` 用于其他 IDE。
-- `Example/`：Delphi 和 Lazarus 示例工程；修改公共 API 后应检查示例是否仍然能编译。
-- `Doc/`、`Help/`：文档和帮助文件，不能当作安全性质的权威证明。
-- `SECURITY_AUDIT_2026-08-25.md`：本项目已有的安全审计记录。修复审计项时应保留编号、说明修复范围并补充验证证据。
+---
 
-不要直接修改由编译器生成的 `.dcu`、`.ppu`、`.o`、`.rsj`、`.exe`、`.dll`、`.map` 等文件；这些文件已在 `.gitignore` 中排除。
+## 二、与 cnvcl 主库的关系（重要）
 
-## 3. 编译器和兼容性约束
+**本目录整体是生成物**。日常开发在 CnVcl 主库中进行，通过构建脚本同步生成：
 
-项目的最低兼容目标包括 Delphi 5/6/7、C++Builder 5/6，以及 FPC/Lazarus。除非用户明确放弃旧编译器，否则新增代码必须遵守以下限制：
+- 在 Windows 下运行 `cnvcl\GenCrypto.bat`，会**先删除再重建**整个 `cncrypto` 目录
+- `Source/` 内容 = `cnvcl/Source/Common/` 的 15 个公共单元 + `CnPack.inc` + `cnvcl/Source/Crypto/` 的全部 `.pas`（但 `CnCryptoIntf.pas` 被移到 `Include/`，实验性单元不包含）
+- `Include/`、`Package/`、`Test/`、`Example/`、`Doc/`、`README.md`、`License.txt`、`Clean.bat` 及**本文件（AGENTS.md）**均由该脚本从 `cnvcl` 复制或生成
 
-- 不使用 Delphi 5 不支持的泛型、匿名方法、类助手、内联变量、`Exit(value)`、现代字符串/容器特性或仅 FPC 可用的语法。
-- 不假设 `UInt64`、`NativeUInt`、`NativeInt` 在 Delphi 5/6/7 中存在或具有相同语义。
-- 使用 `Source/CnNative.pas` 中的兼容类型和封装函数。项目在旧 Delphi 下通常以 `TUInt64 = Int64` 表示无符号 64 位值；无符号比较必须使用 `UInt64Compare`，不要直接使用可能被解释为有符号比较的 `<`、`>`、`<=`、`>=`。
-- 指针地址和偏移应使用 `TCnNativeUInt`/`TCnIntAddress` 等项目类型，并在乘法、加法前检查溢出。不能先用 `Integer` 或 `Int64` 计算再强制转换为指针宽度类型。
-- 对长度参数先检查负数，再转换为无符号 API 参数。`Integer` 长度与 `Cardinal`、`NativeUInt`、C 的 `size_t` 之间不能隐式假定安全。
-- 保持现有调用约定、导出名称、记录布局、`packed record` 和字节序约定；改动 ABI 前必须同时检查 `Include/` 和 `Package/`。
+因此：
 
-下面是 **Windows 平台**、Win32 FPC 工具链的编译示例；`C:\...` 盘符路径和反斜杠只适用于 Windows，路径按本机安装位置调整：
+1. **直接修改 `cncrypto/` 下的任何内容（包括本文件）都可能在下次运行 `GenCrypto.bat` 时被覆盖**。
+2. 源码的正式修改应在 `cnvcl/Source/`（Common 或 Crypto）中进行，再重新生成同步。
+3. 本文件的持久模板位于 `cnvcl/Doc/Develop/CnCrypto_AGENTS.md`。
+4. 本库与 CnVcl 组件包**不可同时编译安装**（单元命名冲突）；已安装 CnPack 组件包的用户无需也不应再编译本库的包。
 
-```text
-cd Test
-C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe -Fu..\Source Crypto.lpr
+---
+
+## 三、顶层目录结构
+
+```
+cncrypto/
+├── Source/        # 全部源码（扁平结构，无子目录，68 个 .pas + 1 个 .inc）
+├── Include/       # 动态库导出接口（CnCryptoIntf.h / CnCryptoIntf.pas）
+├── Package/       # CnCrypto.dpk(BPL) / CnCrypto.dpr(Delphi DLL) / CnCrypto.lpr(FPC SO/DYLIB)
+├── Test/          # 批量测试工程（CryptoTest.pas + 各 IDE 工程文件）
+├── Example/       # Delphi/ 与 Lazarus/ 两套演示示例
+├── Doc/           # 算法实现说明文档
+├── Help/          # HTML 帮助文件
+├── AGENTS.md      # 本文件
+├── Clean.bat      # 清理编译产物脚本
+├── License.txt    # 中英双语许可协议
+└── README.md      # 中英双语项目说明
 ```
 
-在 **Linux/macOS 平台**，若 `fpc` 已加入 `PATH`，应使用该平台的路径和目录分隔符，例如：
+---
+
+## 四、Source/ 源码单元详解
+
+所有 `.pas` 单元均通过 `{$I CnPack.inc}` 引入全局条件编译配置（`CnPack.inc` 也位于本目录）。以下按功能分类列出全部 68 个单元。
+
+### 4.1 全局配置与公共基础（同步自 cnvcl/Source/Common）
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnPack.inc` | **全局条件编译配置文件**。检测编译器版本（`VERxxx`），定义 `DELPHIX`、`COMPILERX` 等符号及累积符号（`DELPHI7_UP` 等），设置功能标志（`UNICODE_STRING`、`SUPPORT_WIN64` 等）。FPC 编译时自动设置 `{$MODE Delphi}` 并映射 CPU 架构定义。 |
+| `CnConsts.pas` | 全局常量与错误码定义单元。定义 `ECN_OK`、`ECN_FILE_NOT_FOUND` 等通用错误码。 |
+| `CnNative.pas` | 平台整数类型统一单元。定义 `TCnNativeInt`、`TCnNativeUInt`、`TUInt64` 等，解决不同 Delphi 版本间 `NativeInt`/`NativeUInt`/64 位无符号运算差异；提供大小端检测、字节序转换、常量时间交换/选择/比较等底层函数。 |
+| `CnStrings.pas` | 字符串工具单元。字符串分割、匹配、UTF-8 处理、StringBuilder 等函数。 |
+| `CnWideStrings.pas` | 宽字符串列表单元。兼容 Delphi 各版本的宽字符串容器。 |
+| `CnContainers.pas` | 通用容器类单元。简单栈、队列等容器。 |
+| `CnHashMap.pas` | 哈希映射（HashMap）实现单元。 |
+| `CnTree.pas` | 树数据结构实现单元。 |
+| `CnMath.pas` | 数学函数库单元。扩展数学运算函数。 |
+| `CnMatrix.pas` | 矩阵运算单元。浮点矩阵的加减乘除、转置、求逆等。 |
+| `CnFloat.pas` | 高精度浮点运算单元。扩展浮点数（Extended）运算支持。 |
+| `CnBigDecimal.pas` | 十进制无限精度大数单元。基于 `TCnBigBinary` 表示有效数字、Integer 表示十进制指数。 |
+| `CnBigRational.pas` | 有理数（分数）单元。基于两个 `TCnBigNumber` 表示分子和分母。 |
+| `CnCalendar.pas` | 历法计算单元。公历/农历转换（说明见 `Doc/CnCalendar历法说明.txt`）。 |
+| `CnFileUtils.pas` | 文件工具单元。文件/目录操作扩展函数。 |
+| `CnZip.pas` | ZIP 压缩/解压单元。 |
+
+### 4.2 数学与数论基础（密码学基石）
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnBigNumber.pas` | **大数运算核心单元**（约 11600 行）。`TCnBigNumber` 类：加减乘除、模幂、GCD、素数检测、平方根、比特操作等。内部使用 UInt32/UInt64 数组存储，支持多线程；提供固定时间窗口与滑动窗口两种模幂实现（`FAST_POWERMOD` 开关切换）；含 `TCnBigNumberPool` 对象池与常量时间比较。 |
+| `CnPrime.pas` | **素数算法单元**（约 3560 行）。预生成 2^16 以内素数表，Miller-Rabin 素性检测、BPSW 复合检测、Lucas U/V 序列、大数 IsPerfectPower 判断等。 |
+| `CnPolynomial.pas` | **多项式运算单元**（约 17680 行）。Int64 系数和 BigNumber 系数的一元/二元多项式运算，GCD、模运算、求导、求值、有限域因式分解等。 |
+| `CnComplex.pas` | 复数运算单元。复数的加减乘除、幂、指数、对数等。 |
+| `CnDFT.pas` | 离散傅里叶变换单元。DFT/IDFT 及 FFT 快速算法。 |
+| `CnVector.pas` | 向量运算单元。Float 和 BigNumber 的向量运算。 |
+| `CnInt128.pas` | 128 位整数运算单元。在不原生支持 Int128 的编译器上提供 128 位整数运算。 |
+| `CnBits.pas` | 位操作工具单元。位级读写和位域操作。 |
+
+### 4.3 对称加密与序列密码
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnAES.pas` | AES 单元。AES-128/192/256 的 ECB/CBC/CTR 等模式；CCM/GCM 模式在 `CnAEAD.pas` 中。 |
+| `CnDES.pas` | DES/3DES 单元。DES 与 Triple DES 的 ECB/CBC 模式。 |
+| `CnSM4.pas` | SM4 国密分组密码单元（GB/T 32907-2016）。 |
+| `CnRC4.pas` | RC4 流密码单元。 |
+| `CnChaCha20.pas` | ChaCha20 流密码单元。RFC 8439 ChaCha20-Poly1305。 |
+| `CnTEA.pas` | TEA/XTEA/XXTEA 加密单元。 |
+| `CnZUC.pas` | ZUC 祖冲之序列密码单元（GB/T 33133-2016）。 |
+| `CnFEC.pas` | 前向纠删码（FEC）单元。Reed-Solomon 纠删码。 |
+
+### 4.4 哈希与消息认证
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnMD5.pas` | MD5 消息摘要单元。 |
+| `CnSHA1.pas` | SHA-1 消息摘要单元。 |
+| `CnSHA2.pas` | SHA-2 单元。SHA-224/256/384/512。 |
+| `CnSHA3.pas` | SHA-3/Keccak 单元。SHA-3-224/256/384/512 及 SHAKE。 |
+| `CnSM3.pas` | SM3 国密杂凑单元（GM/T 0004-2012）。 |
+| `CnBLAKE.pas` | BLAKE 哈希单元。 |
+| `CnBLAKE2.pas` | BLAKE2 单元。BLAKE2b/BLAKE2s。 |
+| `CnBLAKE3.pas` | BLAKE3 哈希单元。 |
+| `CnCRC32.pas` | CRC 校验单元。CRC8/16/32/64。 |
+| `CnFNV.pas` | FNV 非加密哈希单元。 |
+| `CnXXH.pas` | xxHash 非加密快速哈希单元（32/64 位）。 |
+| `CnPoly1305.pas` | Poly1305 消息认证码（MAC）单元。 |
+
+### 4.5 公钥密码与数字签名
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnRSA.pas` | **RSA 单元**（约 3900 行）。大数范围 RSA 公私钥生成、加解密、签名验签；PKCS1/OAEP 填充；CRT 加速解密（含盲化与故障攻击防护）；PEM 格式密钥读写（PKCS1/PKCS8）；另提供 Int64 范围简化实现。 |
+| `CnDSA.pas` | DSA 数字签名算法单元。 |
+| `CnECC.pas` | **椭圆曲线密码核心单元**（约 10460 行）。Weierstrass 曲线 `y^2 = x^3 + Ax + B mod p` 的点运算、加解密、签名验签；Int64 和大数范围；Schoof 点计数；PEM 密钥读写、ASN.1 编解码。 |
+| `CnSM2.pas` | **SM2 国密椭圆曲线单元**（GM/T 0003.x-2012）。数据加解密、签名验签、密钥交换、协同密钥生成、协同签名、协同加密等。继承自 `TCnEcc`。 |
+| `CnSM9.pas` | SM9 国密标识密码单元（GM/T 0044-2016）。基于标识的加密和签名。 |
+| `Cn25519.pas` | **Curve25519/Ed25519 单元**（约 6400 行）。X25519 密钥交换、Ed25519 签名，及 Ristretto255、Ed448、X448 等变体。 |
+| `CnPaillier.pas` | Paillier 同态加密单元。支持加法同态运算。 |
+| `CnSecretSharing.pas` | 秘密共享单元。Shamir 门限方案及 Feldman VSS 可验证秘密共享。 |
+
+### 4.6 密钥派生、认证加密与口令
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnKDF.pas` | 密钥派生单元。PBKDF2、HKDF、SM2 KDF 等。 |
+| `CnAEAD.pas` | AEAD 认证加密单元。GCM/CCM 等模式的认证加密封装。 |
+| `CnOTP.pas` | 一次性密码单元。RFC 4226 HOTP、RFC 6238 TOTP 及国密动态口令（GB/T 38556-2020）。 |
+| `CnOTS.pas` | 一次性签名（OTS）单元。Lamport/Winternitz 方案。 |
+
+### 4.7 后量子密码
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnMLKEM.pas` | **ML-KEM 单元**（FIPS 203，原 Kyber）。基于模块格的密钥封装机制，支持 ML-KEM-512/768/1024。 |
+| `CnMLDSA.pas` | **ML-DSA 单元**（FIPS 204，原 Dilithium）。基于模块格的数字签名算法。 |
+| `CnSLHDSA.pas` | **SLH-DSA 单元**（FIPS 205，原 SPHINCS+）。无状态基于哈希的数字签名。 |
+| `CnLattice.pas` | 格密码学基础单元。格运算和多项式环运算的基础实现（含 NTRU 相关支持）。 |
+
+### 4.8 高级数论（椭圆曲线求阶）
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnSEA.pas` | **Schoof-Elkies-Atkin 算法单元**（约 3660 行）。计算有限域上椭圆曲线 #E(F_p)。分 Elkies 阶段（Frobenius 迹特征多项式）与 Atkin 阶段（Atkin 素数信息组合求解），支持模多项式文件加载。依赖 BigNumber + Polynomial + Prime + ECC。 |
+
+### 4.9 编码、格式与应用工具
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnBase64.pas` | Base64/Base64URL/Base32 编解码单元。 |
+| `CnBerUtils.pas` | **BER/DER 编解码单元**（约 1700 行）。ASN.1 BER/DER 格式读写解析，用于 X.509 证书、PKCS 密钥等结构化数据。 |
+| `CnPemUtils.pas` | PEM 格式工具单元。PEM 文件加载与保存，支持加密的 PEM。 |
+| `CnCertificateAuthority.pas` | **CA 证书管理单元**。X.509 证书生成、签名、验证，支持自签名 CA 和终端证书。 |
+| `CnPDFCrypt.pas` | PDF 加密单元。PDF 文件密码保护加密。 |
+| `CnQRCode.pas` | **二维码生成单元**（约 4825 行）。QR Code Model 2，版本 1-40、全部纠错级别，数字/字母/字节/汉字模式，自动选择最优编码。 |
+| `CnRandom.pas` | 安全随机数单元。密码学安全的随机数生成器（CSPRNG）。 |
+| `CnCryptoExport.pas` | 动态库导出封装单元。将算法封装为 `CnCrypto.dpr`/`CnCrypto.lpr` 动态库的导出接口（配合 `Include/CnCryptoIntf.*`）。 |
+
+---
+
+## 五、Include/ 动态库导出接口
+
+| 文件 | 功能说明 |
+|------|----------|
+| `CnCryptoIntf.pas` | **C ABI 导出接口的 Pascal 定义**。以 `cn_` 前缀导出百余个函数，涵盖：版本与初始化（`cn_get_version`/`cn_lib_init`）、内存管理（`cn_alloc`/`cn_free`/`cn_memzero`）、字节序检测、常量时间比较/选择、Base64/32、KDF（PBKDF2/HKDF）、OTP、哈希与 HMAC、对称加解密与 AEAD、RSA/ECC/SM2/Ed25519/Curve25519 密钥管理与签名验签、ML-KEM/ML-DSA 等。 |
+| `CnCryptoIntf.h` | 对应的 C 头文件，供 C/C++ 调用者链接参考。 |
+
+注意：导出函数中字符串参数支持双字节（Unicode）或单字节（ANSI），取决于编译动态库的编译器是否为 Unicode 版本。修改 ABI 前必须同时检查 `.h` 与 `.pas` 两个文件，并保持调用约定、结构布局、导出符号与错误码稳定。
+
+---
+
+## 六、Package/ 工程文件
+
+| 文件 | 说明 |
+|------|------|
+| `CnCrypto.dpk` | Delphi 运行期包（编译为 BPL）。Delphi 5 下需手工将 `requires` 中的 `vcl` 改为 `vcl50`。 |
+| `CnCrypto.dpr` | Delphi 动态库工程（编译为 Windows DLL）。 |
+| `CnCrypto.lpr` | FPC 动态库工程（编译为 Linux SO / macOS DYLIB）。 |
+
+三个工程均为脚本生成，`uses` 列表与 `Source/` 单元一一对应；**在 Source 中新增/删除单元后必须同步维护这三个工程文件**（正式流程是在 cnvcl 中修改 `GenCrypto.bat` 后重新生成）。
+
+---
+
+## 七、Test/ 测试框架
+
+| 文件 | 说明 |
+|------|------|
+| `CryptoTest.pas` | **批量测试单元**。测试框架约定如下（修改/新增测试必须遵守）：<br>1. 每个测试是一个无参函数 `function TestXxx: Boolean;`，**声明在 interface 区**、实现在 implementation 区、按算法分节注释组织；<br>2. 总入口 `procedure TestCrypto` 中以 `MyAssert(TestXxx, 'TestXxx');` 注册执行，`MyAssert` 会计时运行并用 Assert 断言结果（失败抛异常终止并报告）；<br>3. 入口先打印 CPU 位数、指针/Extended 长度、大小端信息，最后输出通过/失败计数；<br>4. 该单元为保持纯净性**不 `{$I CnPack.inc}`**，仅在 FPC 下 `{$MODE Delphi}` 并关闭 Range Check。 |
+| `Crypto.dpr` | Delphi 控制台测试工程。 |
+| `Crypto.lpr` / `Crypto.lpi` | FPC 命令行 / Lazarus 测试工程。 |
+| `Crypto.bpr` / `Crypto.bpf` / `Crypto.cpp` | C++Builder 5/6 测试工程。 |
+
+运行方式见"十、构建指南"。部分用例耗时较长（可能数小时）。
+
+---
+
+## 八、Example/ 与 Doc/、Help/
+
+### 8.1 Example/
+
+- `Example/Delphi/`：28 个 Delphi（VCL）示例工程，源自 `cnvcl/Example/VCL/` 对应子目录（搜索路径已改写为本库 `Source`）
+- `Example/Lazarus/`：20 个 Lazarus/FPC 示例工程，源自 `cnvcl/Example/FPC/`
+- 覆盖：25519、BerParse、BigDecimal、BigNumber、BigRational、CertificateAuthority、Complex、Crypto、CryptoDLL、CryptoExport、DFT、DSA、ECC、Float、Int128、KDF、MLDSA、MLKEM、Native、OTP、OTS、Pailler、Polynomial、PrimeNumber、RSA、SEA、SecretSharing、SLHDSA、SM2、SM9
+- 示例工程本身一般仅保证在 Win32/Win64 下运行；**修改公共 API 后应检查示例是否仍能编译**。
+
+### 8.2 Doc/
+
+算法实现说明文档（安全性质的论述不能替代源码审查）：
+
+| 文件 | 内容 |
+|------|------|
+| `CnPack密码算法库怎样抵抗侧信道攻击.txt` | 侧信道防护的设计与限制 |
+| `CnPack密码算法库怎样实现内存安全.txt` | 内存安全（清零、边界）的设计 |
+| `CnRSA算法实现说明与帮助.txt` | RSA 实现细节与使用说明 |
+| `如何在Delphi7下手动支持64位无符号整数运算.txt` | 旧编译器下 `TUInt64` 的实现原理 |
+| `CnCalendar历法说明.txt` | 历法算法说明 |
+
+### 8.3 Help/
+
+HTML 格式的帮助文件（接口与用法参考）。
+
+---
+
+## 九、架构设计
+
+### 9.1 分层依赖
+
+```
+配置层：
+  CnPack.inc        — 条件编译配置（编译器版本、功能标志）
+
+基础类型层：
+  CnNative.pas      — 平台整数类型、字节序、常量时间原语
+  CnConsts.pas      — 错误码与常量
+
+数学基础层：
+  CnBigNumber.pas   — 大数运算（公钥密码的基石）
+  CnPrime.pas       — 素数检测
+  CnPolynomial.pas  — 多项式（后量子/SEA 依赖）
+  CnInt128.pas / CnBits.pas / CnComplex.pas / CnDFT.pas / CnVector.pas
+  CnBigDecimal / CnBigRational / CnMatrix / CnFloat / CnMath
+
+算法层：
+  对称加密：AES / DES / SM4 / RC4 / ChaCha20 / TEA / ZUC
+  哈希摘要：MD5 / SHA1 / SHA2 / SHA3 / SM3 / BLAKE·2·3 / CRC / FNV / xxHash
+  消息认证：Poly1305 / HMAC / OTS
+  公钥密码：RSA / DSA / ECC / SM2 / SM9 / 25519 / Paillier / SecretSharing
+  密钥管理：KDF / AEAD / OTP
+  后量子：  MLKEM / MLDSA / SLHDSA / Lattice
+  高级数论：SEA（椭圆曲线求阶）
+
+编码格式层：
+  Base64 / BER(DER) / PEM / CertificateAuthority
+
+应用工具层：
+  QRCode / PDFCrypt / Zip / Calendar / Random / FileUtils / Strings 等
+
+导出层：
+  CnCryptoExport.pas + Include/CnCryptoIntf.h/.pas — DLL/SO/DYLIB 的 C ABI
+```
+
+### 9.2 密码学类型与安全原语体系
+
+- **64 位无符号**：旧 Delphi 下 `TUInt64 = Int64` 模拟；无符号比较必须用 `UInt64Compare`，禁止直接用可能被解释为有符号的 `<`、`>`、`<=`、`>=`。
+- **指针宽度**：地址与偏移用 `TCnNativeUInt`/`TCnIntAddress`，乘法/加法前检查溢出。
+- **常量时间原语**：`BigNumberConstTimeEqual`（逐 limb 精确相等）、常量时间 Swap/Select/ExpandBool 等，用于防时序侧信道。
+- **CRT 防护**：RSA 私钥运算经盲化，CRT 结果有公钥复核/故障检测。
+- **CSPRNG**：`CnRandom.pas` 按平台选择安全随机源（Windows BCrypt/CryptoAPI、Linux getrandom、macOS 系统 CSPRNG），懒初始化需同步保护。
+- **内存安全**：密钥、明文、中间状态在失败/异常路径上清零；详见 `Doc/CnPack密码算法库怎样实现内存安全.txt` 与 `Doc/CnPack密码算法库怎样抵抗侧信道攻击.txt`。
+
+---
+
+## 十、构建指南
+
+### 10.1 源码方式（推荐）
+
+直接将 `Source/` 目录加入 Delphi 或 Lazarus 工程的搜索路径，`uses` 相应单元即可。
+
+### 10.2 Delphi 运行期包（BPL）
+
+在任一版本 Delphi 中打开 `Package/CnCrypto.dpk` 编译。Delphi 5 需手工将 `requires` 中的 `vcl` 改为 `vcl50`。注意与 CnVcl 组件包不可同装。
+
+### 10.3 动态库（DLL/SO/DYLIB）
+
+- Windows：Delphi 编译 `Package/CnCrypto.dpr` 生成 DLL
+- Linux/macOS：FPC 编译 `Package/CnCrypto.lpr` 生成 SO/DYLIB
+- 调用方参考 `Include/CnCryptoIntf.h` / `CnCryptoIntf.pas`
+
+### 10.4 FPC 命令行编译测试
+
+**Windows（Win32 FPC 示例，路径按本机调整）：**
+
+```bat
+cd Test
+C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe -Fu..\Source Crypto.lpr
+Crypto.exe
+```
+
+**Linux/macOS（fpc 已在 PATH）：**
 
 ```sh
 cd Test
 fpc -Fu../Source Crypto.lpr
+./Crypto
 ```
 
-Delphi、C++Builder、`.dpk`、`.dpr` 和 Win32/Win64 工程主要属于 Windows 工具链；`Crypto.lpr`/`Crypto.lpi` 才是跨平台 FPC/Lazarus 入口。不能用一次 Windows Win32 编译代替 Linux、macOS、Win64、ARM 或其他目标验证。
+**macOS 链接特别说明**：fpc 命令行编译必须指定系统 SDK 路径，否则即使编译通过也无法链接（`ld: library not found for -lc`）。使用 `-XR` 指向 Xcode SDK：
 
-编译产生的中间文件不应纳入提交。完整测试套件可能运行很久，先做针对性测试；启动长时间测试前应明确告知用户，必要时使用当前平台可用的有界超时机制并终止**本次测试对应的精确进程**，不得按模糊进程名杀死无关程序。
+```sh
+fpc -Fu../Source -XR/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk Crypto.lpr
+```
 
-## 4. 文件编码、换行和编辑流程
+SDK 路径按本机 Xcode 版本调整，可用 `xcodebuild -showsdks` 查看。
 
-### 4.1 现有源文件
+### 10.5 其他
 
-大多数 `Source/*.pas` 和 `Test/*.pas` 是 GBK/ANSI 编码、CRLF 换行。终端按 UTF-8 读取时出现乱码，不代表源码本身损坏。不要把整个仓库批量转换成 UTF-8，也不要因为乱码重写无关文件。
+- `Clean.bat`：清理编译产物（`*.dcu`、`*.ppu`、`*.o`、`*.rsj` 等），这些中间文件已在 `.gitignore` 排除，不要提交。
+- 一次 Win32 编译通过**不能**代替 Win64、Linux、macOS、ARM 等其他目标的验证。
 
-修改 GBK 文件时：
+---
 
-1. 只对目标文件做 GBK → UTF-8（无 BOM）临时转换。
-2. 使用 `apply_patch` 进行最小范围编辑。
-3. 编译或检查内容。
-4. 将该文件恢复为 GBK、CRLF，并确认没有产生替换字符 `�` 或整文件编码 diff。
+## 十一、开发规范
 
-本文件 `AGENTS.md` 是例外：必须保持 UTF-8（建议无 BOM）和 CRLF。新增文档不要改变 Pascal 源文件编码作为副作用。
+### 11.1 语言与兼容性
 
-在 **Windows 平台使用 PowerShell** 进行编码恢复时，应显式使用代码页 936 和 `UTF8Encoding($false)`；不要依赖系统默认编码。该 PowerShell/.NET 示例性做法不能原样当作 Linux/macOS 命令。在 Linux/macOS 上可使用确认支持 GBK/CP936 的 `iconv`、受控脚本或编辑器完成等价转换，但同样必须显式指定输入/输出编码。任何平台的转换后都要抽样检查中文、换行和文件头字节。
+- **语言**：Object Pascal (Delphi)
+- **编译器兼容性**：代码必须支持 Delphi 5 到最新版本，以及 C++Builder 5/6 与 FPC/Lazarus。使用 `{$IFDEF DELPHI7_UP}` 等条件编译处理版本差异（符号定义见 `Source/CnPack.inc`）
+- **命名约定**：所有单元以 `Cn` 前缀命名
 
-### 4.2 编辑原则
+### 11.2 CnPack.inc 条件编译符号
 
-- 使用 `apply_patch` 做代码编辑；机械性的换行/编码转换可使用当前平台明确、可复核的文件 API。PowerShell/.NET 文件 API 方案仅限 Windows；Linux/macOS 应使用其本地可用的等价工具。
-- 保留用户已有的未提交修改。开始前检查 `git status --short`，不要用 `git reset --hard`、`git checkout --` 或大范围覆盖来“清理”工作区。
-- 不要重排整个 Pascal 文件、统一格式化无关代码或修改大量注释来掩盖实际改动。
-- 新增异常消息使用 `resourcestring`，命名遵循相应单元已有前缀，例如 `SCnErrorAEAD...`、`SCnError...`。
-- 公共函数新增或改变参数语义时，必须补充与现有函数同风格的参数、返回值、异常和边界说明。
-- 修改后报告具体文件、函数/行附近、行为变化、兼容性影响和验证命令。
+`CnPack.inc` 完成三件事，代码中应使用它定义的符号，而非在业务代码中自行判断编译器版本：
 
-## 5. 安全审计总原则
+1. **编译器版本检测**：通过 `{$IFDEF VERxxx}` 定义 `DELPHIX`、`COMPILERX`、`BDSX` 等符号
+2. **累积版本符号**：定义 `DELPHI7_UP`、`COMPILER12_UP` 等 `_UP` 后缀符号，用于条件编译（如 `{$IFDEF DELPHI7_UP}` 表示 Delphi 7 及以上）
+3. **功能标志**：根据版本定义 `UNICODE_STRING`、`SUPPORT_WIN64`、`SUPPORT_INLINE` 等功能标志
 
-审计必须从攻击者可控输入开始，沿调用链追踪到内存访问、状态更新、异常出口和输出提交。至少检查：
+FPC 编译时自动设置 `{$MODE Delphi}` 并映射 CPU 架构定义（`CPUX86`、`CPUX64` 等）。
 
-1. 长度是否可能为负、截断、乘法溢出、加法溢出或转换为无符号大值。
-2. `nil` 指针和零长度的约定是否明确且在所有平台一致；正长度必须有有效指针。
-3. 输出缓冲区是否带容量，调用方是否可能提供不足空间。
-4. 失败时是否把未认证明文、私钥、临时密钥、Tag、哈希状态和随机数据清零。
-5. 标签、签名、填充和编码解析是否严格拒绝畸形输入，是否存在“先接受再规范化”的绕过。
-6. 错误返回、异常和 C ABI 错误码是否区分了认证失败、参数错误和系统故障。
-7. 并发初始化、全局状态、懒加载函数指针、随机源句柄和缓存是否有明确同步。
-8. 是否存在数据相关分支、非恒时比较、短路验证或错误时序泄露秘密。
-9. 标准中规定的上限、编码长度、Tag 长度、Nonce 长度、子群/密钥范围是否与代码常量完全一致。
-10. 所有“安全”“严格”“常量时间”“已验证”注释都必须由代码和负向测试重新证明。
+### 11.3 语法兼容性（面向 Delphi 5）
 
-报告漏洞时使用严重度和编号，明确：攻击前提、可控输入、触发路径、实际影响、为什么现有防护无效、修复方案、兼容性风险和测试证据。不要把通过 KAT 或现有单元测试写成“库整体安全”。
+代码须兼容 Delphi 5 的基础语法，以下高级语法特性**不可使用**：
 
-## 6. 已知重要安全约定
+- **record 不支持方法**：不使用带方法的记录类型
+- **不使用匿名函数**：不使用匿名方法/闭包、类助手
+- **类中不支持 `const` 和 `type`**：类体内不嵌套常量或类型定义，常量和类型需定义在单元的独立 `const`/`type` 区
+- **不使用带赋值的枚举类型语法**：如 `type TFoo = (a = 1, b = 2)` 不使用，一般用独立常量代替
+- **不使用内联变量声明**（inline var）：局部变量必须在函数/过程头部的 `var` 段中显式声明
+- **不使用 `Exit(True)` 语法**：需写成 `Result := True; Exit;` 两句
+- **不假设 `UInt64`/`NativeUInt`/`NativeInt` 在旧编译器中存在或语义一致**：一律使用 `CnNative.pas` 提供的兼容类型与封装函数
 
-本节是后续修改的安全不变量和审计红线。它覆盖本项目审计中发现的严重、高风险、中风险和低风险主题；**列在这里不表示当前实现已经全部满足**。对尚未修复的条目，后续 AI 必须明确标记为待修复，不得把“约定”写成“现状证明”。任何破坏已验证行为的改动都应视为安全回归。
+### 11.4 uses 子句
 
-### 6.1 所有公开 API、C ABI 和内存边界
+`uses` 中的单元名不使用命名空间前缀（如 `System.`、`Winapi.` 等），直接使用基础单元名。例如写 `uses Classes, SysUtils;` 而非 `uses System.Classes, System.SysUtils;`。
 
-- 每个长度、容量、偏移和计数都要在进入实现的第一层检查负值、截断、加法/乘法溢出和平台类型转换；正长度必须有非空指针，零长度的 `nil` 语义必须明确且一致。
-- 需要写出数据的 API 必须接收并验证输出容量；不能仅凭调用者“应该分配够了”就写入 `out_ptr`。长度与容量不能混用。
-- `Include/CnCryptoIntf.*` 的 C ABI 不能让 Pascal 异常、对象指针、任意裸句柄或不受控的分配跨边界。导出函数应把异常映射成稳定错误码，并核验句柄类型、生命周期、重复释放和线程归属。
-- `cn_alloc`/`cn_free`、内存清零、字符串转换、AEAD 和变长输出入口必须测试负长度、零长度、`nil + 正长度`、空输出、极限容量、整数转换和分配失败。
-- 文件流、BER 节点、动态库导出和所有 `CopyTo`/`SaveTo` 之类的复制 API 都要明确所有权、容量和生命周期；不得返回借用已释放输入的悬空指针。
+### 11.5 标识符命名
 
-### 6.2 AEAD、GHASH 和认证失败语义
+- **类型名**：interface 部分所有类型以 `TCn` 开头（如 `TCnBigNumber`、`TCnEccPoint`）
+- **整型常量**：以 `CN_` 开头（如 `CN_SM2_FINITEFIELD_BYTESIZE`）
+- **字符串常量**：以 `SCN_` 开头（如 `SCN_RSA_ERROR`）；新增异常消息使用 `resourcestring`，命名遵循相应单元已有前缀
+- **标识符大小写**：标识符均采用首字母大写（PascalCase）；一两个字母的局部变量一般全大写（如 `I`、`SL`、`BN`）
 
-- `GHash`/`GHash128Update` 的长度计算必须使用无符号宽度并检查 `2^64` 位长度限制；不要恢复 `Integer * 8` 或 `Int64` 溢出路径。
-- GCM 单次数据上限、AAD 上限、Nonce 约束和 Tag 长度必须与相应标准及常量一致；跨平台类型转换不能绕过上限。
-- GCM、CCM、ChaCha20-Poly1305、XChaCha20-Poly1305 解密应先写临时缓冲，认证成功后才复制到调用方；认证失败、异常、分配失败和参数错误都必须清理临时明文、Tag、Nonce、密钥派生状态和上下文。
-- Tag 比较必须覆盖完整实际长度、使用恒时实现，并避免由编译器短路的 Boolean 链。认证失败不能把部分明文留在调用方输出缓冲区。
-- AEAD 初始化和 `try/finally` 的缩进要反映真实资源边界。不要为了格式“简化”而把清理代码移出 `finally`。
+### 11.6 类成员与属性
 
-### 6.3 CCM 长度、Tag 和 nonce
+- 类的对外变量尽量使用 `property` 暴露
+- 但类的**数组成员变量**不使用 `property`，以保证与 C++Builder 的兼容性
 
-- 当前 `CN_CCM_M_LEN = 8`，默认 Tag 是 8 字节，不是 12 字节；标准允许 4、6、8、10、12、14、16 字节，`M'` 编码为 `(M - 2) / 2`。
-- 当前 `CN_CCM_L_LEN = 2`，Nonce 长度为 `15 - L = 13`，Payload 上限为 `2^(8L)-1 = 65535` 字节。
-- 本项目 CCM API 将 Tag 作为独立 `TCnCCM128Tag` 参数传递；`EnByteLength` 只表示密文主体，不能把 Tag 长度加到 Payload 上限判断，也不能从实际密文主体长度中扣除。
-- 加密和分离标签解密必须使用同一 Payload 上限；65535 应通过，65536 应在处理数据前拒绝。明文和密文主体长度相同，`L` 字段编码 Payload 而不是“密文+Tag”总长度。
-- CCM 的 B0、Ctr、Nonce、AAD 长度编码和字节序必须按规范逐字段核对；不能只依靠已存在的 KAT。
+### 11.7 整数类型与指针安全
 
-### 6.4 CSPRNG、随机 nonce 和并发状态
+整数类型规范：
 
-- `CnRandomFillBytes`、`CnRandomFillBytes2`：负长度返回失败；零长度是无需缓冲区的成功 no-op；正长度而 `Buf=nil` 必须失败。
-- `CnRandomBytes` 的负长度必须抛出 `ECnRandomAPIError`，消息使用 `resourcestring`；零长度返回空数组。
-- Windows BCrypt 懒初始化的状态、模块句柄和函数指针必须在同一同步原语保护下读取/写入，不能用锁外的无同步快速路径观察初始化标志。这里的 BCrypt/CryptoAPI 示例仅适用于 Windows。
-- Linux `getrandom` 必须处理短读和 `EINTR`，失败后才进入 `/dev/urandom` 降级路径；不得把一次调用等同于完整填充。macOS 应使用其可用的系统 CSPRNG 并检查完整填充。
-- 随机洗牌的 `索引 * 元素大小` 必须在无符号本机宽度下检查溢出后计算。
-- AEAD 低层 API 若由调用者传入 nonce，必须明确“同一密钥不得重用 nonce”的责任；高层封装应提供随机/计数 nonce、算法版本和帧格式，并处理持久化计数器的崩溃一致性。
-- 随机源、缓存、懒加载库、全局上下文和清理过程必须审查多线程初始化、并发调用、卸载时序和线程安全；不能因单线程测试通过而默认线程安全。
+| 类别 | 类型 | 说明 |
+|------|------|------|
+| 无符号 8 位 | `Byte` | |
+| 无符号 16 位 | `Word` | |
+| 无符号 32 位 | `Cardinal` | |
+| 无符号 64 位 | `TUInt64` | 自定义类型，兼容低版本 Delphi（旧编译器下以 `Int64` 模拟） |
+| 有符号 8 位 | `ShortInt` | |
+| 有符号 16 位 | `SmallInt` | |
+| 有符号 32 位 | `Integer` | |
+| 有符号 64 位 | `Int64` | |
 
-### 6.5 RSA、填充和密钥强度
+- 动态字节数组使用 `TBytes`，不要使用原始的 `array of Byte`
+- 无符号 64 位比较必须使用 `UInt64Compare` 等 `CnNative` 封装函数，不要直接使用可能被解释为有符号比较的 `<`、`>`、`<=`、`>=`
+- 对长度参数先检查负数，再转换为无符号 API 参数；`Integer` 长度与 `Cardinal`、`NativeUInt`、C 的 `size_t` 之间不能隐式假定安全
+- 指针地址和偏移应使用 `TCnNativeUInt`/`TCnIntAddress` 等项目类型，并在乘法、加法前检查溢出；不能先用 `Integer` 或 `Int64` 计算再强制转换为指针宽度类型
 
-- 私钥解密和私钥签名必须经过盲化私钥原语；不要新增绕过盲化的常用私钥解密路径。CRT 结果应有公钥复核/故障检测，并在失败时清除结果。
-- 拒绝 `c >= n`、非精确模数宽度密文和不符合 API 规定的签名长度；不能让普通模幂把非规范代表值静默约化。
-- PKCS#1 v1.5 加密/签名填充解析必须严格分离：检查正确 block type、至少 8 个填充字节、填充值（type 1 必须全部为 `FF`）、唯一分隔零、精确 DigestInfo/DER/OID/摘要长度和尾部完整消费。
-- “隐式拒绝”不能只依靠返回值、异常或随机长度。若遗留协议要求统一失败，API 必须接收固定期待明文长度并执行协议级验证；不能用随机长度伪明文冒充通用防护。
-- 新应用优先 RSA-PSS 和 OAEP-SHA-256 或更强算法；raw/textbook RSA、无 padding 签名/解密和仅供 CPA 的底层原语不能与生产 API 同级暴露。
-- 新生成 RSA 密钥至少按项目安全策略要求 2048 位，默认使用 65537；低位密钥和 `e=3` 只能在显式测试/兼容入口中存在，并应有弱密钥告警或拒绝策略。
-- 任何 RSA 标签、DigestInfo、CRT、blinding、随机盐和错误路径修改都要用有效向量、畸形向量、边界长度和差分时序测试。
+### 11.8 函数组织方式
 
-### 6.6 ECC、ECDSA、SM2、Ed25519 和 Ed448
+不使用辅助工具类来集合常用函数当作方法集。通常使用固定前缀的独立函数（如 `CnRSAEncrypt`、`BigNumberAdd` 等），而非将函数封装为某个类的静态方法。
 
-- 验签必须拒绝单位元、小阶公钥、无效编码、非规范编码和不在正确子群的点；不能仅检查坐标能否解码。Ed25519/Ed448 的公钥和 `R` 的接受规则必须明确选择 RFC 8032 或兼容策略，不能混用。
-- 验签失败应是稳定的普通失败结果；攻击者输入不能触发未捕获异常、数组越界或明显的错误类别/时序信号。
-- 私钥必须满足 `1 <= d < n` 等曲线范围约束；加载、生成和首次使用都要验证。公私钥成对 API 要验证配对，或从私钥唯一派生公钥，不能只相信调用者同时传入的两份数据。
-- ECDSA/SM2 的 nonce 必须使用 RFC 6979 或经审查的确定性加随机 hedging；点乘、模逆和条件交换应采用固定窗口/ladder、固定宽度和掩码，不能让秘密 nonce 控制循环或表索引。
-- 曲线方程、坐标范围、子群检查、点编码字节序和无穷远点编码必须有正向和负向向量；空消息、尾随签名字节和非规范编码也要测试。
+### 11.9 全局编译选项
 
-### 6.7 大整数、恒时比较、PQC 和秘密清理
+| 选项 | 设置 | 说明 |
+|------|------|------|
+| `{$R-}` | 关闭范围检查 | 性能优先 |
+| `{$OVERFLOWCHECKS OFF}` | 关闭溢出检查 | 密码学运算需要 |
+| `{$B-}` | 短路求值 | 标准布尔求值 |
+| `{$H+}` | 长字符串 | 使用 AnsiString/WideString |
 
-- `BigNumberConstTimeEqual`、字节比较和 CRT/验签检查必须是逐 limb 的精确相等，不能使用可碰撞 XOR 校验和；短数缺失 limb 要在有界读取后按零处理，不能先越界再掩码。
-- 所谓“常量时间”必须检查实际编译产物：禁止秘密相关分支、动态长度、动态扩容、可变循环和秘密索引；源码命名或注释不能单独构成证明。
-- 大数模幂、Montgomery、模逆、比较和对象池必须审查 32/64 位、空值、不同容量、进位和异常路径；不要把 FPC 一种优化级别的结果外推到 Delphi。
-- ML-KEM 解封装必须无条件计算候选密钥和回退密钥，用掩码选择，合法/非法密文走相同主要路径；生产 API 只暴露 KEM KeyGen/Encaps/Decaps，不把 CPA/K-PKE 解密当作通用解密接口。
-- ML-DSA/SLH-DSA 验签对畸形输入应返回稳定失败或稳定错误，不应让远程输入把异常传播到不受控边界；密钥导入必须精确消费固定长度、验证字段一致性并拒绝尾随字节。
-- 后量子签名的拒绝采样、范数检查和秘密相关重试必须做时序/功耗审查；不能因为算法标准正确就假定 Pascal 实现恒时。
-- `MemorySafeZero`、大数扩容/缩容、对象池回收、托管 `TBytes`/字符串、临时密钥和异常出口都要验证是否真正擦除；平台安全清零 API 必须按目标平台选择，不能用 Windows API 名称冒充跨平台方案。
+### 11.10 文件编码与格式
 
-### 6.8 对称算法、哈希和危险默认值
+- `.pas` 源文件使用 **GBK（ANSI）编码 + CRLF 换行，无 BOM**；终端按 UTF-8 读取出现乱码不代表源码损坏
+- **不要把源码批量转成 UTF-8**，不要因乱码重写无关文件
+- 修改 GBK 文件的流程：只对目标文件做临时 GBK→UTF-8 转换 → 最小范围编辑 → 转回 GBK/CRLF → 抽样检查中文、换行和文件头字节，确认无替换字符或整文件编码 diff
+- `.md` 等文档使用 UTF-8；本文件为 UTF-8 + CRLF
+- 每个源文件带统一的 CnPack 版权头模板
 
-- AES T-table、GHASH 等纯 Pascal 回退若秘密相关访存或分支，必须明确存在缓存/功耗侧信道；优先使用硬件加速或经审查的固定访存实现，不能仅凭“预读表”声称恒时。
-- MD5、SHA-1、DES、3DES、RC4、ECB、未认证 CBC/CTR/OFB/CFB 和弱密钥/短 Tag 只能作为显式 Legacy/兼容功能，不能成为新安全 API 的默认值。
-- 新 API 默认使用现代 AEAD、SHA-256/384/512、SHA-3/SM3 或项目批准的更强算法；弃用接口要有名称、文档、编译器告警或隔离单元，不能与安全接口无差别导出。
-- 哈希、MAC、KDF 和签名摘要的算法标识、输出长度、空输入语义和字节序必须严格一致；不能因字符串/流 API 与 Bytes API 不同而产生跨协议歧义。
+### 11.11 条件编译规范
 
-### 6.9 PEM、KDF、口令和密钥存储
+如果代码中需要使用 `{$IFDEF` 这样的条件编译来区分代码的行为，那要尽量避免出现局部多个 `var`、`const`、`begin end` 对，语句中也要避免出现标识符并列，以免影响格式化。因为部分格式化工具会将条件编译指令解释为注释，而在当成注释的情况下，多个 `var`、`const`、`begin end` 对，以及语句中出现的简单的两个或更多的标识符并列而没有其他符号分开，必然导致格式化时出语法错误。
 
-- 新写入的口令保护格式应使用版本化、带认证的现代容器，例如 PBES2 + 足够成本的 PBKDF2-HMAC-SHA-256、scrypt/Argon2id，再使用 AES-GCM 或 ChaCha20-Poly1305；salt、nonce、参数和 Tag 必须完整编码并认证。
-- 传统 PEM MD5/SHA-1 快速派生、DES/3DES/AES-CBC、无认证 padding 只能只读兼容并发出警告；不能把 padding 成功/失败作为远程预言机。
-- 严格检查 salt/IV/Tag/密文长度和完整输入消费；口令、派生密钥、临时明文和异常路径都要清理。不能把短 IV 直接 `Move` 到固定缓冲区。
-- KDF 的迭代次数、输出长度、上下文/域分离和随机 salt 必须有明确上限与下限，防止整数溢出、DoS 或跨用途密钥复用。
+### 11.12 工程文件同步
 
-### 6.10 BER/DER、证书和信任验证
+在 `Source/` 中新增或删除单元后，必须同步维护由脚本生成的各工程文件中的单元列表：`Package/CnCrypto.dpk`（contains）、`CnCrypto.dpr`/`CnCrypto.lpr`（uses 与 exports）、`Test/Crypto.dpr`、`Crypto.lpr`、`Crypto.bpr`/`Crypto.bpf`。正式流程是在 cnvcl 中修改 `GenCrypto.bat` 后重新生成。
 
-- BER/DER 长度、深度、整数最小编码、OID、SET/SEQUENCE 结构、尾随字节和递归总长度必须严格检查；任何复制/写出 API 必须带容量或返回拥有所有权的副本。
-- 证书的“Verify”如果只验证一张证书签名，必须明确命名为 signature-only；不能让调用者误认为完成了信任链验证。
-- 完整证书验证应处理 issuer/subject 链、BasicConstraints `cA`、KeyUsage `keyCertSign`、pathLen、未知 critical 扩展、NameConstraints、策略、EKU、主机名/IP、验证时间和撤销策略（CRL/OCSP）。
-- UTCTime/GeneralizedTime 必须严格解析、完整消费、明确 UTC/偏移，不能回退到本地化日期格式或当前本地时区造成验证差异。
-- 证书签名算法、外层/内层算法标识和公钥用途必须一致；解析失败、过期、用途不符和信任失败应区分记录但不能泄露不必要的敏感信息。
+### 11.13 修改工作流
 
-### 6.11 平台、字节序、并发和导出 ABI
+1. `git status --short` 记录并保护已有未提交修改；不要用 `git reset --hard` 等清理工作区
+2. 通读相关单元的完整接口与实现，定位所有声明、实现、包装函数、导出接口和测试调用点
+3. 先建立最小复现或负向边界测试，再做最小修复；不重排无关代码、不批量格式化
+4. 修改后检查编码/CRLF、资源字符串、条件编译分支和旧编译器语法，编译相关单元及 `Test/Crypto.lpr`
+5. `git diff --stat` 核对只有目标 hunk；报告具体文件、函数、行为变化、兼容性影响和验证命令
+6. 长时间测试需先告知用户；终止测试只杀本次对应的精确进程
 
-- 每个安全路径都要注明依赖的平台 API：Windows 的 BCrypt/CryptoAPI、`SecureZeroMemory`、PageHeap，Linux 的 `getrandom`/`explicit_bzero`/Valgrind，macOS 的系统 CSPRNG 等不能互相冒充。跨平台代码必须有条件编译和失败回退。
-- 当前测试主要针对小端 CPU；不得把小端通过外推为大端安全。网络字节序、ASN.1、CCM/GCM、PQC 序列化和动态库结构要逐字段测试。
-- 全局单例、懒加载、函数指针、随机句柄、对象池和缓存必须明确是否线程安全；初始化、重入、并行销毁和 DLL 卸载时序都要测试。
-- `Include/` 的 C ABI 必须保持调用约定、结构布局、字符串编码、导出符号和错误码稳定；修改 Pascal 实现后同时检查 C 头文件、32/64 位大小和 Unicode/ANSI 变体。
+---
 
-## 7. 修改和测试工作流
+## 十二、安全协作与审计约定
 
-推荐顺序如下：
+安全相关任务必须以**源码实际行为、调用链和可复现实验**为依据，不因注释、函数名或"已验证/安全/严格"等文字跳过代码检查。所有"常量时间""严格"类声明必须由代码与负向测试重新证明。主要审计红线：
 
-1. 读取本文件、相关单元的完整接口/实现和审计报告；不要只看注释片段。
-2. `git status --short`，记录并保护工作区已有修改。
-3. 用 `rg` 定位所有声明、实现、包装函数、导出接口和测试调用点。
-4. 先建立最小复现或负向边界测试，再实施最小修复。
-5. 修改后检查编码、CRLF、资源字符串、条件编译分支和旧编译器语法。
-6. 编译相关单元及 `Test/Crypto.lpr`；对安全修复运行针对性测试。完整测试套件可能很慢，不能无界等待。
-7. 检查 `git diff --stat`、`git diff --check`（注意已有 CRLF/编码差异可能产生误报）和 `git status`，删除测试产生的临时文件/导入库。
-8. 最终报告必须说明：已修复内容、未修复内容、测试命令与结果、警告、平台限制和是否运行过完整测试。
+| 领域 | 核心红线 |
+|------|----------|
+| API 与内存边界 | 长度/容量/偏移先查负值、截断与溢出；正长度必须有非空指针；输出必须验证容量；长度与容量不混用 |
+| C ABI | Pascal 异常、对象指针不得跨边界；导出函数把异常映射为稳定错误码；核验句柄类型、生命周期、重复释放 |
+| AEAD | GHash/GCM/CCM 的长度上限、Tag/Nonce 约束与标准逐项核对；先写临时缓冲、认证成功才输出明文；Tag 恒时全长度比较；失败清理全部敏感中间数据 |
+| CSPRNG | 负长度失败、零长度 no-op、正长度 nil 必须失败；懒初始化需同步保护；Linux getrandom 处理短读与 EINTR |
+| RSA | 私钥运算必须盲化；CRT 结果复核；PKCS#1 填充解析严格分离检查；新密钥至少 2048 位、e=65537；raw RSA 不得与生产 API 同级暴露 |
+| ECC/SM2/Ed25519 | 验签拒绝单位元、小阶、无效/非规范编码点；私钥范围校验；nonce 用 RFC 6979 或审查过的确定性方案；秘密不得控制循环或表索引 |
+| 大数与恒时 | 恒时比较为逐 limb 精确相等；"常量时间"须查实际编译产物，禁止秘密相关分支/动态长度/秘密索引 |
+| 后量子 | ML-KEM 解封装无条件计算候选与回退密钥；畸形输入返回稳定失败；密钥导入精确消费固定长度 |
+| 对称与哈希 | MD5/SHA-1/DES/RC4/ECB 等仅作 Legacy 兼容，不得成为新安全 API 默认值 |
+| PEM/KDF | 口令保护优先现代格式（PBES2/Argon2 等 + AEAD）；传统格式只读兼容并告警；防 padding 预言机 |
+| BER/证书 | 长度/深度/最小编码/尾随字节严格检查；仅验签名的 Verify 须明确命名 signature-only，不冒充信任链验证 |
+| 平台与并发 | 平台 API 不能互相冒充；仅小端测试过，大端安全不得外推；全局状态/懒加载/对象池须明确线程安全 |
 
-针对边界长度，优先测试：负数、零、`nil`、1、块大小减一、块大小、块大小加一、规范最大值、最大值加一、`High(Integer)`，以及无符号转换后可能变成巨大值的输入。
+**不应做的事情**：不为通过测试放宽解析器或吞掉认证失败；不混淆密文主体/附加数据/Tag/编码总长度；不在未确认编码前用脚本重写整文件；不删除用户未提交的安全修复与测试；不凭单平台编译通过宣称全平台兼容。
 
-## 8. 不应做的事情
+---
 
-- 不要为通过测试而放宽解析器、忽略异常、吞掉认证失败或把 `nil` 当作任意长度的合法缓冲区。
-- 不要把固定 Tag 数组大小误认为调用者选择的 Tag 长度；要区分“存储容量”和“实际认证长度”。
-- 不要将密文主体、附加数据、Tag、编码总长度混为同一长度变量。
-- 不要在未确认目标文件编码前直接用脚本重写整文件。
-- 不要删除或覆盖用户未提交的安全修复、测试、审计报告或临时证据。
-- 不要仅凭单一平台 FPC 编译通过就声称 Delphi 5/6/7、Win64、Linux、macOS 或大端平台兼容。
+## 十三、关键文件快速索引
 
-## 9. 交付格式
-
-中文回复优先使用简体中文，先给结论，再给文件和函数级改动点。涉及安全修复时至少列出：
-
-- 漏洞/不一致的精确定义；
-- 受影响的入口和间接包装入口；
-- 修改前后的长度/错误/清理语义；
-- 兼容性与编码处理；
-- 测试命令、边界用例和结果；
-- 尚未验证的编译器、操作系统或攻击模型。
-
-除非用户明确要求提交、回滚或删除，否则不要执行远程推送、提交历史重写或破坏性清理。
+| 需求 | 查看文件 |
+|------|----------|
+| 编译器版本条件编译 | `Source/CnPack.inc` |
+| 平台类型与常量时间原语 | `Source/CnNative.pas` |
+| 大数运算 | `Source/CnBigNumber.pas` |
+| 素数/多项式 | `Source/CnPrime.pas`、`Source/CnPolynomial.pas` |
+| RSA 算法 | `Source/CnRSA.pas` |
+| 椭圆曲线/SM2 | `Source/CnECC.pas`、`Source/CnSM2.pas` |
+| Ed25519/X25519 | `Source/Cn25519.pas` |
+| 国密 SM3/SM4/SM9/ZUC | `Source/CnSM3.pas`、`CnSM4.pas`、`CnSM9.pas`、`CnZUC.pas` |
+| 后量子密码 | `Source/CnMLKEM.pas`、`CnMLDSA.pas`、`CnSLHDSA.pas`、`CnLattice.pas` |
+| 椭圆曲线求阶 | `Source/CnSEA.pas` |
+| AEAD（GCM/CCM） | `Source/CnAEAD.pas` |
+| BER/PEM/证书 | `Source/CnBerUtils.pas`、`CnPemUtils.pas`、`CnCertificateAuthority.pas` |
+| 动态库接口 | `Include/CnCryptoIntf.h`、`Include/CnCryptoIntf.pas`、`Source/CnCryptoExport.pas` |
+| 批量测试 | `Test/CryptoTest.pas`（入口 `TestCrypto`，注册用 `MyAssert`） |
+| 侧信道/内存安全设计 | `Doc/CnPack密码算法库怎样抵抗侧信道攻击.txt`、`Doc/CnPack密码算法库怎样实现内存安全.txt` |
+| 示例 | `Example/Delphi/`、`Example/Lazarus/` |
