@@ -8,7 +8,7 @@ CnPack ÃÜÂëËã·¨¿âÖÂÁ¦ÓÚÌá¹©Ç¿´óµÄ¼Ó½âÃÜËã·¨Ö§³ÖÓëÊı¾İ°²È«±£ÕÏ¡£Ëü¸²¸ÇÁË¹úÄÚÍâ³£¼
 
 ## Ğí¿ÉĞ­Òé
 
-CnPack ¿ª·¢°üÒÔ¿ª·ÅÔ´Âë£¨Open Source£©µÄĞÎÊ½·¢²¼£¬×ñÊØ CnPack µÄĞí¿ÉĞ­Òé£¬ÊÜ CnPack Ğí¿ÉĞ­ÒéµÄ±£»¤¡£License ÎÄ¼şÖĞÓĞ¸ÃĞ­ÒéµÄÏêÏ¸ÃèÊö£¬¾ßÌåÄÚÈİ¿É²Î¿¼Ğ­ÒéÎÄ¼ş¡£
+CnPack ¿ª·¢°üÒÔ¿ª·ÅÔ´Âë£¨Open Source£©µÄĞÎÊ½·¢²¼£¬×ñÊØÄ¾À¼¿íËÉĞí¿ÉÖ¤µÚ 2 °æ£¬ÊÜÄ¾À¼¿íËÉĞí¿ÉÖ¤µÚ 2 °æµÄ±£»¤¡£LICENSE ÎÄ¼şÖĞÓĞ¸ÃĞ­ÒéµÄÏêÏ¸ÃèÊö£¬¾ßÌåÄÚÈİ¿É²Î¿¼Ğ­ÒéÎÄ¼ş¡£
 
 ## Ö÷ÒªÄÚÈİ
 
@@ -88,7 +88,7 @@ The CnPack Crypto Library aims to provide robust cryptographic algorithm support
 
 ## License
 
-The CnPack Development Package is released as open-source software under the CnPack License Agreement, which provides legal protection. Detailed terms of the license are described in the License file. Please refer to the license document for specifics.
+The CnPack Development Package is released as open-source software under the MulanPSL-2.0 License, which provides legal protection. Detailed terms of the license are described in the LICENSE file. Please refer to the license document for specifics.
 
 ## Main Features
 
