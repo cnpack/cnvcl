@@ -98,7 +98,9 @@ begin
   ProgressForm.Show;
 
   // xierenxixi ÐÞ¸Ä
+{$IFNDEF FPC}
   FormList := DisableTaskWindows(ProgressForm.Handle);
+{$ENDIF}
   ProgressForm.Update;
 end;
 
@@ -108,8 +110,10 @@ begin
   if not Assigned(ProgressForm) then Exit;
 
   // xierenxixi ÐÞ¸Ä
+{$IFNDEF FPC}
   EnableTaskWindows(FormList);
-  
+{$ENDIF}
+
   ProgressForm.Hide;
   Application.ProcessMessages;
   ProgressForm.Free;
