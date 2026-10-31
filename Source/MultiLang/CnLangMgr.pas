@@ -765,9 +765,9 @@ begin
               if Prefix <> P then // 说明 Prefix 层数多
               begin
 {$IFDEF CPU64BITS}
-                AObject := TObject(NativeInt(GetPropValueIncludeSub(AObject,
+                AObject := TObject(NativeInt(Int64(GetPropValueIncludeSub(AObject,
                   Copy(Prefix, CharPosWithCounter(DefDelimeter, R) + 1,
-                  Length(Prefix) - CharPosWithCounter(DefDelimeter, R)))));
+                  Length(Prefix) - CharPosWithCounter(DefDelimeter, R))))));
 {$ELSE}
                 AObject := TObject(Integer(GetPropValueIncludeSub(AObject,
                   Copy(Prefix, CharPosWithCounter(DefDelimeter, R) + 1,
