@@ -1,4 +1,4 @@
-# CnVCL 项目指南 (AGENTS.md)
+﻿# CnVCL 项目指南 (AGENTS.md)
 
 > 本文件为 AI 编程助手提供 CnVCL 项目的完整上下文，涵盖目录结构、源码功能说明、架构设计思路等。
 
@@ -27,7 +27,7 @@ cnvcl/
 ├── CleanInplace.bat # 清理编译产物脚本
 ├── GenCrypto.bat    # 加密模块代码生成/编译脚本
 ├── GenMultiLang.bat # 多语言资源生成脚本
-├── Delphinus.Info.json      # Delphinus 包管理器元信息
+├── Delphinus.Info.json     # Delphinus 包管理器元信息
 ├── Delphinus.Install.json  # Delphinus 安装配置
 ├── License.*.txt     # 三语许可证
 └── Readme.*.txt      # 三语说明
@@ -801,6 +801,10 @@ Example/FMX/BuildFmxExamples.bat    # dcc32 编译所有 FMX 示例
 ### 9.6 包文件修改
 
 修改包文件时，`.dpk` 和对应的 `.dproj` 必须同步修改（`.dproj` 中包含源码路径）。
+
+### 9.7 条件编译风格
+
+如果代码中需要使用 {$IFDEF 这样的条件编译来区分代码的行为，那要尽量避免出现局部多个 var、const、begin end 对，语句中也要避免出现标识符并列，以免影响格式化。因为部分格式化工具会将条件编译指令解释为注释，而在当成注释的情况下，多个 var、const、begin end 对，以及语句中出现的简单的两个或更多的标识符并列而没有其他符号分开，必然导致格式化时出语法错误。
 
 ---
 
