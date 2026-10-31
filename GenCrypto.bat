@@ -5,8 +5,7 @@ DEL /S /Q cncrypto
 RMDIR /Q cncrypto /S
 MKDIR cncrypto
 CD cncrypto
-COPY ..\cnvcl\License.chs.txt .\License.txt
-TYPE ..\cnvcl\License.enu.txt >> .\License.txt
+COPY ..\cnvcl\Doc\Project\CnCrypto_MulanPSL-2.0_LICENSE .\LICENSE
 COPY ..\cnvcl\Doc\Develop\CnCrypto_README.md .\README.md
 COPY ..\cnvcl\Doc\Develop\CnCrypto_AGENTS.md .\AGENTS.md
 COPY ..\cnvcl\CleanInplace.bat .\Clean.bat
