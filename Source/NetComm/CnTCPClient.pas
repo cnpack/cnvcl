@@ -93,6 +93,13 @@ type
     {* 关闭连接，等同于 Active := False}
 
     class function LookupHostAddr(const HostName: string): string;
+    {* 把主机名解析为规范化的 IPv4 点分十进制串。以下情况一律返回空串：HostName 为空、
+       字面量不符合严格格式（必须 4 段十进制、每段 0..255、不允许前导零与十六进制）、
+       按名字查询失败、或结果不是 IPv4。也就是说空串是唯一的失败值，而 0.0.0.0 与
+       255.255.255.255 都是合法结果，不会被当成失败。
+       以数字开头的主机名只按 IPv4 字面量对待（沿用本组件既有约定，并避开
+       getaddrinfo 的 inet_aton 数字缩写会把 1.2.3 之类补成另一个地址）。
+       因此形如 3com.example 这种以数字开头的域名不会被解析。本函数不支持 IPv6。}
 
     // send/recv 收发数据封装
     function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer; virtual;
@@ -130,6 +137,137 @@ var
 {$ENDIF}
 
 { TCnTCPClient }
+
+// 单元内部的地址解析辅助函数：避免“主机名 -> 字符串 -> inet_addr”的往返。
+// 往返会让解析失败值与合法地址混淆（实测 inet_addr("") 返回 $FFFFFFFF，那是链路层广播地址），
+// 而且 Windows 的 inet_addr 与 FPC 的 StrToNetAddr 对八进制等宽松形式结论相反。
+function CnStrictIPv4ToCardinal(const S: string; out Addr: Cardinal): Boolean;
+var
+  I, PartIndex, Value, Digits: Integer;
+  C: Char;
+  B: PByte;
+  Octets: array[0..3] of Integer;
+begin
+  Result := False;
+  if S = '' then
+    Exit;
+  PartIndex := 0;
+  Value := 0;
+  Digits := 0;
+  for I := 1 to Length(S) do
+  begin
+    C := S[I];
+    if C = '.' then
+    begin
+      if (Digits = 0) or (Digits > 3) or (PartIndex >= 3) then
+        Exit;
+      Octets[PartIndex] := Value;
+      Inc(PartIndex);
+      Value := 0;
+      Digits := 0;
+    end
+    else if (C >= '0') and (C <= '9') then
+    begin
+      if (Digits = 1) and (Value = 0) then
+        Exit; // 前导零：部分平台按八进制解释，取值与十进制不同，一律拒绝
+      Inc(Digits);
+      Value := Value * 10 + (Ord(C) - Ord('0'));
+      if Value > 255 then
+        Exit;
+    end
+    else
+      Exit;
+  end;
+  if (Digits = 0) or (Digits > 3) or (PartIndex <> 3) then
+    Exit;
+  Octets[3] := Value;
+  // 按地址顺序逐字节写入，得到的就是网络字节序的 32 位值，不依赖本机大小端
+  B := PByte(@Addr);
+  B^ := Byte(Octets[0]);
+  Inc(B);
+  B^ := Byte(Octets[1]);
+  Inc(B);
+  B^ := Byte(Octets[2]);
+  Inc(B);
+  B^ := Byte(Octets[3]);
+  Result := True;
+end;
+
+{ 把网络字节序的地址值还原成规范点分串，读取顺序与 CnStrictIPv4ToCardinal 的写入顺序对称 }
+function CnCardinalToDotQuad(Addr: Cardinal): string;
+var
+  O0, O1, O2, O3: Integer;
+  B: PByte;
+begin
+  B := PByte(@Addr);
+  O0 := B^;
+  Inc(B);
+  O1 := B^;
+  Inc(B);
+  O2 := B^;
+  Inc(B);
+  O3 := B^;
+  Result := Format('%d.%d.%d.%d', [O0, O1, O2, O3]);
+end;
+
+{ 只按名字查询，并且只接受 IPv4 结果；查不到、或结果不是 IPv4 时返回假 }
+function CnLookupHostByName(const HostName: string; out Addr: Cardinal): Boolean;
+var
+{$IFDEF MSWINDOWS}
+  H: PHostEnt;
+  B: PByte;
+{$ELSE}
+  Resolved: string;
+{$ENDIF}
+begin
+  Result := False;
+  if HostName = '' then
+    Exit;
+{$IFDEF MSWINDOWS}
+  H := gethostbyname(PAnsiChar(AnsiString(HostName)));
+  if (H = nil) or (H^.h_addrtype <> AF_INET) or (H^.h_length <> 4) then
+    Exit; // 只有 AAAA 记录时不能拿 16 字节的前 4 字节拼成假 IPv4
+  B := PByte(@Addr);
+  with H^ do
+  begin
+    B^ := Byte(Ord(h_addr^[0]));
+    Inc(B);
+    B^ := Byte(Ord(h_addr^[1]));
+    Inc(B);
+    B^ := Byte(Ord(h_addr^[2]));
+    Inc(B);
+    B^ := Byte(Ord(h_addr^[3]));
+  end;
+  Result := True;
+{$ELSE}
+{$IFDEF FPC}
+  if not TCnIp.GetIPByName(Resolved, HostName) then
+    Exit;
+{$ELSE}
+  try
+    Resolved := TIPAddress.LookupName(HostName).Address;
+  except
+    Exit; // 该分支的失败形式未经本机验证，统一折叠成失败值
+  end;
+{$ENDIF}
+  // 所有平台共用同一个严格解析器验收查询结果，IPv6 文本与异常格式都会被判为失败
+  Result := CnStrictIPv4ToCardinal(Resolved, Addr);
+{$ENDIF}
+end;
+
+{ 解析入口 }
+function CnResolveHostToCardinal(const HostName: string; out Addr: Cardinal): Boolean;
+begin
+  if (HostName <> '') and (HostName[1] in ['0'..'9']) then
+  begin
+    // 数字开头一律只按严格字面量处理，不再交给名字解析：实测 getaddrinfo 会先按
+    // inet_aton 的遗留文法做数字缩写，1.2.3 被补成 1.2.0.3、0177 被当八进制、
+    // 0x04 被当十六进制，静默改变调用者写明的地址
+    Result := CnStrictIPv4ToCardinal(HostName, Addr);
+    Exit;
+  end;
+  Result := CnLookupHostByName(HostName, Addr);
+end;
 
 function TCnTCPClient.CheckSocketError(ResultCode: Integer): Integer;
 begin
@@ -194,57 +332,28 @@ begin
 end;
 
 class function TCnTCPClient.LookupHostAddr(const HostName: string): string;
-{$IFDEF MSWINDOWS}
 var
-  H: PHostEnt;
-{$ENDIF}
-{$IFDEF FPC}
-var
-  IP: string;
-{$ENDIF}
+  Addr: Cardinal;
 begin
-{$IFDEF MSWINDOWS}
-  Result := '';
-  if HostName <> '' then
-  begin
-    if HostName[1] in ['0'..'9'] then // IP 地址
-    begin
-      if inet_addr(PAnsiChar(AnsiString(HostName))) <> INADDR_NONE then
-        Result := HostName;
-    end
-    else
-    begin
-      H := gethostbyname(PAnsiChar(AnsiString(HostName)));
-      if H <> nil then
-        with H^ do
-        Result := Format('%d.%d.%d.%d', [Ord(h_addr^[0]), Ord(h_addr^[1]),
-          Ord(h_addr^[2]), Ord(h_addr^[3])]);
-    end;
-  end
+  // 三个平台分支收敛到同一份实现：成功一律是规范化点分串，失败一律是空串，
+  // 不再把调用者的原始输入透传回去，也不用 0.0.0.0 兼任失败值
+  if CnResolveHostToCardinal(HostName, Addr) then
+    Result := CnCardinalToDotQuad(Addr)
   else
-    Result := '0.0.0.0';
-{$ELSE}
-  {$IFDEF FPC}
-  if HostName = '' then
-    Exit('0.0.0.0');
-  if HostName[1] in ['0'..'9'] then
-    Exit(HostName);
-  if TCnIp.GetIPByName(IP, HostName) then
-    Result := IP
-  else
-    Result := '0.0.0.0';
-  {$ELSE}
-  Result := TIPAddress.LookupName(HostName).Address;
-  {$ENDIF}
-{$ENDIF}
+    Result := '';
 end;
 
 procedure TCnTCPClient.Open;
 var
   SockAddress: TSockAddr;
+  RemoteAddr: Cardinal;
 begin
   if not FActive then
   begin
+    // 先解析主机名再建套接字：解析失败绝不能拿失败值去拨号
+    if not CnResolveHostToCardinal(FRemoteHost, RemoteAddr) then
+      Exit;
+
     FSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     FActive := FSocket <> INVALID_SOCKET;
 
@@ -258,10 +367,10 @@ begin
       SockAddress.sin_port := htons(FRemotePort);
 
 {$IFDEF MSWINDOWS}
-      SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
+      SockAddress.sin_addr.s_addr := RemoteAddr;
 {$ELSE}
   {$IFDEF FPC}
-      SockAddress.sin_addr := StrToNetAddr(LookupHostAddr(FRemoteHost));
+      SockAddress.sin_addr.s_addr := RemoteAddr;
   {$ELSE}
       SockAddress.sin_addr := TIPAddress.LookupName(FRemoteHost);
   {$ENDIF}
@@ -269,7 +378,15 @@ begin
 
       FConnected := CheckSocketError(CnConnect(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
       if FConnected then
-        DoConnect;
+        DoConnect
+      else
+      begin
+        // 连接失败不能留下 Active=True 而套接字仍打开的半开状态：
+        // Open 以 not FActive 为前提，残留会让调用方不先 Close 就无法重试
+        CnCloseSocket(FSocket);
+        FSocket := INVALID_SOCKET;
+        FActive := False;
+      end;
     end;
   end;
 end;

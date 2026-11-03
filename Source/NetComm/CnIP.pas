@@ -127,7 +127,7 @@ type
     procedure SetSubnetMask(const Value: string);
     function GetHosts: Cardinal;
     class function GetIPNotes(const aIP: string; var aResult: TCnIPv4Notes): Boolean;
-    {* 分解 IP 地址各结点，IP 错误时将抛出错误信息}
+    {* 分解 IPv4 地址各结点，IPv4 错误时将抛出错误信息}
     class function GetIPv6Notes(const aIPv6: string; var aResult: TCnIPv6Notes): Boolean;
     {* 分解 IPv6 地址各结点，IPv6 错误时将抛出错误信息}
     function GetLocalIPCount: Integer;
@@ -170,16 +170,16 @@ type
     {* 本机 IPv6 地址数，已经排除环回地址}
 
     class function IPTypeCheck(const aIP: string): TCnIPv4NetType;
-    {* 检查 IP 地址类型以及是否合法}
+    {* 检查 IPv4 地址类型以及是否合法}
     class function IPToInt(const aIP: string): Cardinal;
-    {* 转换 IP 地址为整数}
+    {* 转换 IPv4 地址为主机整数}
     class function IntToIP(const aIP: Cardinal): string;
-    {* 转换整数为 IP 地址}
+    {* 转换主机整数为 IPv4 地址}
 
     class function IPv6ToInt128(const aIPv6: string): TCnUInt128;
-    {* 转换 IP 地址为整数}
+    {* 转换 IPv6 地址为 128 位整数}
     class function Int128ToIPv6(var aIPv6: TCnUInt128): string;
-    {* 转换整数为 IPv6 地址}
+    {* 转换 128 位整数为 IPv6 地址}
 
     function NextIP(const aIP: string): string;
     {* 取下一个 IP 地址}
@@ -900,7 +900,7 @@ begin
       192..223: Result := iptCNet;
       224..239: Result := iptDNet;
       240..255: Result := iptENet;
-      else
+    else
         Result := iptNone;
     end;
   end;

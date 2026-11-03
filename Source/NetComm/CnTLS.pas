@@ -109,6 +109,7 @@ type
       TCnGCM128Tag): TBytes;
     function DecryptAppDataBody(const Body, AAD: TBytes; const Nonce: TBytes;
       var InTag: TCnGCM128Tag): TBytes;
+    function GetMaxAppDataPlainLen: Integer;
     function EncryptAndSendAppData(const Plain: TBytes; Flags: Integer): Integer;
     function ReadAndDecryptAppData(var Buf; Len: Integer; Flags: Integer): Integer;
   protected
@@ -235,6 +236,10 @@ function TLSEccHMacBytes(Key, Data: TBytes; DigestType: TCnEccSignDigestType): T
 function TLSPseudoRandomFunc(Secret: TBytes; const PLabel: AnsiString; Seed: TBytes; DigestType: TCnEccSignDigestType; NeedLength: Integer): TBytes;
 
 implementation
+
+const
+  CN_TLS_CLIENT_SEND_BUF_SIZE = 8192;  // 客户端加密发送用的固定缓冲区大小
+  CN_TLS_RECORD_HEADER_SIZE = 5;       // TLS 记录层固定头长度：类型 1 + 版本 2 + 长度 2
 
 resourcestring
   SHandshakeFailed = 'TLS Handshake Failed: %s';
@@ -1954,15 +1959,35 @@ begin
   end;
 end;
 
+function TCnTLSClient.GetMaxAppDataPlainLen: Integer;
+var
+  Overhead: Integer;
+begin
+  // AEAD 记录除了密文还要带上 nonce 与认证标签：GCM 有 8 字节显式 nonce，
+  // ChaCha20-Poly1305 没有显式 nonce，只有 16 字节认证标签
+  if FCipherIsChaCha20Poly1305 then
+    Overhead := SizeOf(TCnGCM128Tag)
+  else
+    Overhead := 8 + SizeOf(TCnGCM128Tag);
+  Result := CN_TLS_CLIENT_SEND_BUF_SIZE - CN_TLS_RECORD_HEADER_SIZE - Overhead;
+end;
+
 function TCnTLSClient.EncryptAndSendAppData(const Plain: TBytes; Flags: Integer): Integer;
 var
   AAD, Nonce, Body: TBytes;
   Tag: TCnGCM128Tag;
   H: PCnTLSRecordLayer;
-  SendBuf: array[0..8191] of Byte;
+  SendBuf: array[0..CN_TLS_CLIENT_SEND_BUF_SIZE - 1] of Byte;
   SeqBE: array[0..7] of Byte;
   I: Integer;
 begin
+  // 明文过长时一条记录放不下，往固定缓冲区里写会越界，直接失败
+  if Length(Plain) > GetMaxAppDataPlainLen then
+  begin
+    Result := SOCKET_ERROR;
+    Exit;
+  end;
+
   AAD := BuildAppDataAAD(FClientSeq, Length(Plain));
   if FCipherIsChaCha20Poly1305 then
     Nonce := TLSChaChaNonce(FClientFixedIV, FClientSeq)
@@ -2131,6 +2156,7 @@ end;
 function TCnTLSClient.Send(var Buf; Len: Integer; Flags: Integer): Integer;
 var
   Plain: TBytes;
+  Off, SegLen, MaxSeg, R: Integer;
 begin
   if FHandshakeState <> hsConnected then
   begin
@@ -2138,14 +2164,36 @@ begin
     Exit;
   end;
 
+  if Len <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
   SetLength(Plain, Len);
   Move(Buf, Plain[0], Len);
 
-  Result := EncryptAndSendAppData(Plain, Flags);
-  if Result > 0 then
+  // 一条记录最多只能装下 MaxSeg 字节明文，超出的必须分片成多条记录发，
+  // 否则 EncryptAndSendAppData 里的固定缓冲区会被写越界
+  MaxSeg := GetMaxAppDataPlainLen;
+  if (FMaxFragmentLen > 0) and (FMaxFragmentLen < MaxSeg) then
+    MaxSeg := FMaxFragmentLen;
+
+  Off := 0;
+  while Off < Len do
   begin
-    Result := Len;
+    SegLen := Len - Off;
+    if SegLen > MaxSeg then
+      SegLen := MaxSeg;
+    R := EncryptAndSendAppData(Copy(Plain, Off, SegLen), Flags);
+    if R <= 0 then
+    begin
+      Result := R;
+      Exit;
+    end;
+    Inc(Off, SegLen);
   end;
+  Result := Len;
 end;
 
 function TCnTLSClient.Recv(var Buf; Len: Integer; Flags: Integer): Integer;
@@ -2562,7 +2610,7 @@ begin
           DoTLSLog('CertificateRequest received')
       else
         DoTLSLog(Format('Unhandled HandshakeType %d', [B^.HandShakeType]));
-      Off := 4 + (Integer(B^.LengthHi) shl 16) or UInt16NetworkToHost(B^.LengthLo);
+      Off := Off + 4 + ((Integer(B^.LengthHi) shl 16) or UInt16NetworkToHost(B^.LengthLo));
       while Off + 4 <= RecBodyLen do
       begin
         B := PCnTLSHandShakeHeader(@H^.Body[Off]);
