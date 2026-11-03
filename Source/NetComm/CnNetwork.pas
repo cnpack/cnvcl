@@ -676,6 +676,9 @@ const
   {* TLS/SSL 中的 Extension 中的 Server Name Indication 中的 NameType，来自 RFC 6066}
   CN_TLS_EXTENSION_NAMETYPE_HOSTNAME                             = 0;
 
+  {* TLS/SSL 中的 Server Name Indication 里 host_name 的最大字节长度，来自 RFC 6066 第 3 节}
+  CN_TLS_SNI_MAX_HOST_NAME_LEN                                   = 255;
+
   {* TLS/SSL 中的 Extension 中的 signature_algorithms 字段，来自 RFC8446}
   CN_TLS_SIGN_ALG_RSA_PKCS1_SHA256                               = $0401;
   CN_TLS_SIGN_ALG_RSA_PKCS1_SHA384                               = $0501;

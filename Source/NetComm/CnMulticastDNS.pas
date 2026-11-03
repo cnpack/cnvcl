@@ -259,12 +259,12 @@ begin
   try
     FillChar(Head, SizeOf(Head), 0);
     CnSetDNSHeaderId(@Head, 0);
-    CnSetDNSHeaderQR(@Head, False);
+    CnSetDNSHeaderQR(@Head, True);
     CnSetDNSHeaderQDCount(@Head, 1);
     CnSetDNSHeaderANCount(@Head, 0);
     CnSetDNSHeaderNSCount(@Head, 0);
     CnSetDNSHeaderARCount(@Head, 0);
-    S.WriteBuffer(Head, SizeOf(Head));
+    S.WriteBuffer(Head, SizeOf(Head) - SizeOf(Byte));
     WriteName(S, Name);
     WriteWordMSBFirst(S, CN_DNS_TYPE_ANY);
     WriteWordMSBFirst(S, SetCacheFlush(CN_DNS_CLASS_IN));
@@ -419,11 +419,11 @@ begin
   // 线格式域名为 Length(Name) + 2 字节，分配时留足空间
   if (Length(Name) <= 1) or (Length(Name) > 253) then
     Exit;
-  SetLength(Result, SizeOf(TCnDNSHeader) + Length(Name) + 2 * SizeOf(Byte) + 2 *
+  SetLength(Result, SizeOf(TCnDNSHeader) - SizeOf(Byte) + Length(Name) + 2 * SizeOf(Byte) + 2 *
     SizeOf(Word));
   Head := PCnDNSHeader(@Result[0]);
   CnSetDNSHeaderId(Head, 0);
-  CnSetDNSHeaderQR(Head, False);
+  CnSetDNSHeaderQR(Head, True);
   CnSetDNSHeaderRD(Head, False);
   CnSetDNSHeaderQDCount(Head, 1);
   P := PAnsiChar(@Head^.SectionData[0]);

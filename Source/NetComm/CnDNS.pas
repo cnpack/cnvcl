@@ -460,7 +460,7 @@ begin
     Exit;
 
   // 线格式域名为 Length(Name) + 各 label 长度字节 + 结尾 0，共 Length(Name) + 2 字节
-  SetLength(Result, SizeOf(TCnDNSHeader) + Length(Name) + 2 * SizeOf(Byte) + 2 * SizeOf(Word));
+  SetLength(Result, SizeOf(TCnDNSHeader) - SizeOf(Byte) + Length(Name) + 2 * SizeOf(Byte) + 2 * SizeOf(Word));
   Head := PCnDNSHeader(@Result[0]);
   CnSetDNSHeaderId(Head, RandId);  // 查询 ID 号
   CnSetDNSHeaderQR(Head, True);    // 是查询类型
@@ -487,7 +487,6 @@ var
   B: Byte;
   Idx, Len: Integer;
   Str: AnsiString;
-  First: Boolean;
   PacketEnd: PAnsiChar;
 begin
   if Depth > 20 then // Max recursion depth
@@ -516,11 +515,6 @@ begin
         B := PB^;
         Inc(PB);
         Inc(Result); // 指针第一字节
-        if Result + 1 >= MaxLen then
-        begin
-          Inc(Result); // 指针第二字节一并计入，保证与实际消费字节数一致
-          Exit;
-        end;
 
         if PAnsiChar(PB) >= PacketEnd then
           raise ECnDNSException.Create(SCnDNSParsePacketEndReachedPrem);
@@ -535,11 +529,13 @@ begin
           Exit;
         end;
 
+        // 指针指向的域名必须一并解析出来，否则 RDATA 中的域名会是空的
         ParseIndexedString(StrResult, Base, Base + Idx, PacketSize, 0, Depth + 1);
         Inc(PB);
         Inc(Result);             // 指向下一个 2 字节
-        if Result >= MaxLen then
-          Exit;
+
+        // 压缩指针是域名的最后一个元素，其后已经是下一个字段了，不能再当作域名继续解析
+        Exit;
       end
       else if (PB^ and $C0) = 0 then // 高两位都为 0，是字符串长度
       begin
@@ -574,7 +570,6 @@ begin
   begin
     PB := PByte(StrData);
     Result := 0;
-    First := True;
 
     while True do
     begin
@@ -609,13 +604,12 @@ begin
         Inc(PB);
         Inc(Result);         // 指向下一个 2 字节
 
-        if First then // 如果第一个进来的就是索引，说明就一个
-          Exit;
+        // 压缩指针就是域名的最后一个元素，其后已经是下一个字段了，不能再当成域名继续解析，
+        // 否则会多吞一个字节，导致后续所有记录错位
+        Exit;
       end
       else if (PB^ and $C0) = 0 then // 高两位都为 0，是字符串长度
       begin
-        First := False;
-
         Len := PB^;              // 得到本轮长度
         SetLength(Str, Len + 1); // 前面的点也算上
         Str[1] := '.';           // 写点
@@ -749,9 +743,15 @@ var
       end
       else
       begin
-        // 其他长度当作字符串解析
+        // 其他类型当作字符串解析，但 AAAA 等二进制数据并不是域名，
+        // 解析失败时退回空串，不能因此把整个报文丢掉
         S := '';
-        ParseIndexedString(S, Response, @H^.RData[0], ResponseByteLen, Resource.RDLength);
+        try
+          ParseIndexedString(S, Response, @H^.RData[0], ResponseByteLen, Resource.RDLength);
+        except
+          on E: ECnDNSException do
+            S := '';
+        end;
         Resource.RDString := S;
       end;
 
@@ -762,7 +762,7 @@ var
 
 begin
   Result := False;
-  if (Response = nil) or (ResponseByteLen < SizeOf(TCnDNSHeader)) or (Packet = nil) then
+  if (Response = nil) or (ResponseByteLen < SizeOf(TCnDNSHeader) - SizeOf(Byte)) or (Packet = nil) then
     Exit;
 
   PacketEnd := Response + ResponseByteLen;
@@ -819,6 +819,8 @@ begin
     Data := ParseResourceRecord(Data, R);
     Inc(I);
   end;
+
+  Result := True;
 end;
 
 procedure TCnDNS.Loaded;

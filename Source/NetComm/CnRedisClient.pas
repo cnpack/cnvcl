@@ -43,7 +43,7 @@ interface
 {$ENDIF}
 
 uses
-  Windows, Messages, SysUtils, Classes, TypInfo, Graphics, ScktComp, Contnrs;
+  Windows, Messages, SysUtils, Classes, TypInfo, Graphics, ScktComp, Contnrs, CnNative;
 
 const
   SCN_REDIS_CRLF = Char($0D) + Char($0A);
@@ -1012,17 +1012,20 @@ var
   _Value: AnsiString;
   CurNode: TCnRedisMultiBulkNode;
 
-  function _ParseCount(p: DWORD; var Count: Integer): DWORD;
+  function _ParseCount(p: TCnNativeUInt; var Count: Integer): DWORD;
   var
     _Value: AnsiString;
   begin
     Count := 0;
     Result := 0;
     while PWord(p + Result)^ <> $0A0D do
+    begin
       if Result < 4 then
         Inc(Result)
       else
         Exit;
+    end;
+
     SetLength(_Value, Result - 1);
     CopyMemory(@_Value[1], Pointer(p + 1), Result - 1);
     Count := StrToInt(string(_Value));
@@ -1045,7 +1048,7 @@ begin
   try
     while _Curr < DWORD(Length) do
     begin
-      case PAnsiChar(DWORD(Response) + _Curr)^ of
+      case PAnsiChar(TCnNativeUInt(Response) + _Curr)^ of
         Char('*'):
           begin
             if CurNode.MultiBulkRefs.Count > 0 then
@@ -1053,7 +1056,7 @@ begin
               CurNode := TCnRedisMultiBulkNode(CurNode.MultiBulkRefs[CurNode.CurrIndex]);
               CurNode.CurrIndex := 0;
             end;
-            _Pos := _ParseCount(DWORD(Response) + _Curr, _Count);
+            _Pos := _ParseCount(TCnNativeUInt(Response) + _Curr, _Count);
             CurNode.ChangeMultiBulksSize(_Count);
 
             if _Count = 0 then
@@ -1070,9 +1073,9 @@ begin
           begin
             if CurNode.MultiBulkRefs.Count = 0 then
             begin
-              _Pos := _ParseCount(DWORD(Response) + _Curr, _Count);
+              _Pos := _ParseCount(TCnNativeUInt(Response) + _Curr, _Count);
               SetLength(_Value, _Count);
-              CopyMemory(@_Value[1], Pointer(DWORD(Response) + _Curr + _Pos), _Count);
+              CopyMemory(@_Value[1], Pointer(TCnNativeUInt(Response) + _Curr + _Pos), _Count);
               CurNode.Value := string(_Value);
             end
             else
@@ -1082,9 +1085,9 @@ begin
                 CurNode := CurNode.Parent;
                 Inc(CurNode.FCurrIndex);
               end;
-              _Pos := _ParseCount(DWORD(Response) + _Curr, _Count);
+              _Pos := _ParseCount(TCnNativeUInt(Response) + _Curr, _Count);
               SetLength(_Value, _Count);
-              CopyMemory(@_Value[1], Pointer(DWORD(Response) + _Curr + _Pos), _Count);
+              CopyMemory(@_Value[1], Pointer(TCnNativeUIntv(Response) + _Curr + _Pos), _Count);
               TCnRedisMultiBulkNode(CurNode.MultiBulkRefs[CurNode.CurrIndex]).Value := string(_Value);
               Inc(CurNode.FCurrIndex);
             end;
@@ -1093,7 +1096,7 @@ begin
 
         Char('-'), Char('+'), Char(':'):
           begin
-            CurNode.Value := string(PAnsiChar(DWORD(Response) + 1));
+            CurNode.Value := string(PAnsiChar(TCnNativeUInt(Response) + 1));
             SetLength(CurNode.FValue, Length - 3);  //³ýÈ¥×îºó/r/n 2×Ö·û
             Break;
           end;
