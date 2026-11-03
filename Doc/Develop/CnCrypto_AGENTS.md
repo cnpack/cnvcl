@@ -1,4 +1,4 @@
-# CnCrypto（CnPack 密码算法库）项目指南 (AGENTS.md)
+﻿# CnCrypto（CnPack 密码算法库）项目指南 (AGENTS.md)
 
 > 本文件为 AI 编程助手提供 CnPack 密码算法库（cncrypto）的完整上下文，涵盖目录结构、源码功能说明、架构设计、构建与测试方法、开发规范及安全协作约定等。
 
@@ -13,7 +13,7 @@ CnPack 密码算法库（CnPack Crypto Library）源于 CnPack 开发组的 CnVc
 - 算法覆盖：国际主流算法 + 中国国家商用密码算法（SM2/SM3/SM4/SM9/ZUC）+ 后量子算法（ML-KEM/ML-DSA/SLH-DSA）
 - 零外部依赖（纯 Pascal 实现）
 - 官方网站：https://www.cnpack.org
-- 开源协议：CnPack 开源协议（详见 `License.txt`）
+- 开源协议：木兰宽松许可证第 2 版（详见 `LICENSE`）
 
 ---
 
