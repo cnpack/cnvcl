@@ -2493,7 +2493,7 @@ end;
 
 function CnGetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
 var
-  Sum: Cardinal;
+  Sum, T: Cardinal;
   S: Word;
   P: PWord;
 begin
@@ -2519,17 +2519,28 @@ begin
     Sum := Sum + S;
   end;
 
-  Result := (Sum and $FFFF) + (Sum shr 16);
-  Result := not Result;
+  T := Sum;
+  repeat
+    // RFC 1071 要求反复折叠
+    T := (T and $FFFF) + (T shr 16);
+  until T <= High(Word);
+  Result := Word(not T);
 end;
 
 procedure CnFillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
+var
+  HdrLen: Integer;
 begin
   if IPHeader <> nil then
   begin
     IPHeader^.Checksum := 0;
+    // 头部长度由 IHL 决定，单位是 4 字节，带选项的头不能按固定 20 字节计算；
+    // 与 CnPing 接收侧 CnGetIPHeaderLength(HIp) * 4 的用法保持一致
+    HdrLen := CnGetIPHeaderLength(IPHeader) * 4;
+    if HdrLen < SizeOf(TCnIPHeader) then
+      HdrLen := SizeOf(TCnIPHeader);
     // CnGetNetworkCheckSum 返回值已是网络字节序，直接写入（与 ICMP 版本保持一致）
-    IPHeader^.Checksum := CnGetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
+    IPHeader^.Checksum := CnGetNetworkCheckSum(IPHeader, HdrLen);
   end;
 end;
 

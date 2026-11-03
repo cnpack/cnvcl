@@ -170,11 +170,11 @@ function CnGetHostName: string;
 var
   S: array[0..256] of AnsiChar;
 begin
+  FillChar(S[0], SizeOf(S), 0);
 {$IFDEF MSWINDOWS}
   WinSock.gethostname(@S[0], SizeOf(S));
 {$ELSE}
 {$IFDEF FPC}
-  FillChar(S[0], SizeOf(S), 0);
   c_gethostname(@S[0], SizeOf(S));
 {$ELSE}
   Posix.Unistd.gethostname(@S[0], SizeOf(S));
