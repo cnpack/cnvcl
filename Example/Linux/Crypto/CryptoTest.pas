@@ -181,6 +181,7 @@ function TestCalendarSolarLunarConvert: Boolean;
 function TestCalendarReviewValidation: Boolean;
 function TestCalendarReviewJulianFraction: Boolean;
 function TestCalendarReviewJieQiBoundary: Boolean;
+function TestCalendarReviewGanZhiXiaoHanBoundary: Boolean;
 function TestCalendarReviewBCLunarRoundTrip: Boolean;
 function TestCalendarReviewBCLunarRoundTripExt: Boolean;
 function TestCalendarReviewLunarRange: Boolean;
@@ -189,7 +190,6 @@ function TestCalendarReviewGanZhiInvalidInput: Boolean;
 function TestCalendarReviewStrictDateValidation: Boolean;
 function TestCalendarReviewSunRiseSet: Boolean;
 function TestCalendarReviewSunRiseSetQuad: Boolean;
-function TestCalendarReviewGanZhiXiaoHanBoundary: Boolean;
 
 // ============================== Complex ======================================
 
@@ -2108,6 +2108,7 @@ begin
   MyAssert(TestCalendarReviewValidation, 'TestCalendarReviewValidation');
   MyAssert(TestCalendarReviewJulianFraction, 'TestCalendarReviewJulianFraction');
   MyAssert(TestCalendarReviewJieQiBoundary, 'TestCalendarReviewJieQiBoundary');
+  MyAssert(TestCalendarReviewGanZhiXiaoHanBoundary, 'TestCalendarReviewGanZhiXiaoHanBoundary');
   MyAssert(TestCalendarReviewBCLunarRoundTrip, 'TestCalendarReviewBCLunarRoundTrip');
   MyAssert(TestCalendarReviewBCLunarRoundTripExt, 'TestCalendarReviewBCLunarRoundTripExt');
   MyAssert(TestCalendarReviewLunarRange, 'TestCalendarReviewLunarRange');
@@ -2116,7 +2117,6 @@ begin
   MyAssert(TestCalendarReviewStrictDateValidation, 'TestCalendarReviewStrictDateValidation');
   MyAssert(TestCalendarReviewSunRiseSet, 'TestCalendarReviewSunRiseSet');
   MyAssert(TestCalendarReviewSunRiseSetQuad, 'TestCalendarReviewSunRiseSetQuad');
-  MyAssert(TestCalendarReviewGanZhiXiaoHanBoundary, 'TestCalendarReviewGanZhiXiaoHanBoundary');
 
 // =============================== Complex =====================================
 
