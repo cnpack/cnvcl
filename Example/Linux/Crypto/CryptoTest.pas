@@ -189,6 +189,7 @@ function TestCalendarReviewGanZhiInvalidInput: Boolean;
 function TestCalendarReviewStrictDateValidation: Boolean;
 function TestCalendarReviewSunRiseSet: Boolean;
 function TestCalendarReviewSunRiseSetQuad: Boolean;
+function TestCalendarReviewGanZhiXiaoHanBoundary: Boolean;
 
 // ============================== Complex ======================================
 
@@ -2115,6 +2116,7 @@ begin
   MyAssert(TestCalendarReviewStrictDateValidation, 'TestCalendarReviewStrictDateValidation');
   MyAssert(TestCalendarReviewSunRiseSet, 'TestCalendarReviewSunRiseSet');
   MyAssert(TestCalendarReviewSunRiseSetQuad, 'TestCalendarReviewSunRiseSetQuad');
+  MyAssert(TestCalendarReviewGanZhiXiaoHanBoundary, 'TestCalendarReviewGanZhiXiaoHanBoundary');
 
 // =============================== Complex =====================================
 
@@ -6591,6 +6593,48 @@ begin
     on Exception do
       Result := False;
   end;
+end;
+
+function TestCalendarReviewGanZhiXiaoHanBoundary: Boolean;
+var
+  GY, GM: Integer;
+begin
+  // 立春前的日期属于上一干支年，但小寒必须取本公历年 1 月的（需在减年之前取），
+  // 否则与上一公历年的小寒日序比较错位，小寒到立春之间的日期月柱会判错
+  // （如 2025-01-05 应为甲辰年丁丑月，会错成丙子月；2024-01-05 应为癸卯年甲子月，会错成乙丑月）
+  Result := False;
+
+  // 2025 年小寒在 1 月 5 日：当日应为甲辰年 12 月（丁丑），前一日为 11 月（丙子）
+  GY := 2025; GM := 1;
+  if not AdjustYearMonthToGanZhi(GY, GM, 5, 12) then Exit;
+  if (GY <> 2024) or (GM <> 12) then Exit;
+  GY := 2025; GM := 1;
+  if not AdjustYearMonthToGanZhi(GY, GM, 4, 12) then Exit;
+  if (GY <> 2024) or (GM <> 11) then Exit;
+
+  // 2024 年小寒在 1 月 6 日：1 月 5 日应为癸卯年 11 月（甲子），1 月 6 日为 12 月（乙丑）
+  GY := 2024; GM := 1;
+  if not AdjustYearMonthToGanZhi(GY, GM, 5, 12) then Exit;
+  if (GY <> 2023) or (GM <> 11) then Exit;
+  GY := 2024; GM := 1;
+  if not AdjustYearMonthToGanZhi(GY, GM, 6, 12) then Exit;
+  if (GY <> 2023) or (GM <> 12) then Exit;
+
+  // 2020 年小寒在 1 月 6 日：1 月 5 日应为己亥年 11 月（丙子），1 月 6 日为 12 月（丁丑）
+  GY := 2020; GM := 1;
+  if not AdjustYearMonthToGanZhi(GY, GM, 5, 12) then Exit;
+  if (GY <> 2019) or (GM <> 11) then Exit;
+  GY := 2020; GM := 1;
+  if not AdjustYearMonthToGanZhi(GY, GM, 6, 12) then Exit;
+  if (GY <> 2019) or (GM <> 12) then Exit;
+
+  // 经月柱接口复核（0-59 对应甲子..癸亥）：丁丑=13、甲子=0、丙子=12、己丑=25
+  if GetGanZhiFromMonth(2025, 1, 5, 12) <> 13 then Exit;
+  if GetGanZhiFromMonth(2024, 1, 5, 12) <> 0 then Exit;
+  if GetGanZhiFromMonth(2020, 1, 5, 12) <> 12 then Exit;
+  if GetGanZhiFromMonth(2021, 1, 5, 12) <> 25 then Exit;
+
+  Result := True;
 end;
 
 function TestCalendarReviewBCLunarRoundTrip: Boolean;

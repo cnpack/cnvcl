@@ -9052,11 +9052,14 @@ begin
   JieQi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)); // 2 月的立春
   if Days < JieQi then
   begin
+    // Days 是本公历年内的日数，此处的小寒也必须取本公历年 1 月的（需在减年之前取），
+    // 若在减年之后取，得到的是上一公历年的小寒日序，与本年日数比较错位，
+    // 会导致小寒到立春之间的日期月柱判错（如丁丑错成丙子）
+    JieQi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAOHAN)); // 本公历年 1 月的小寒
     Dec(AYear);    // 立春之前，是去年，但要注意公历年没有公元 0 年
     if AYear = 0 then
       Dec(AYear);
 
-    JieQi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAOHAN)); // 1 月的小寒
     if Days < JieQi then
       AMonth := 11       // 小寒前算干支年 11 月
     else

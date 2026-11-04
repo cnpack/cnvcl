@@ -683,7 +683,6 @@ const
 
 resourcestring
   SCnErrorInvalidUtf8CharLength = 'More than UTF8-MB4 NOT Support.';
-  SCnErrorInvalidModeLength = 'More than UTF32 NOT Support.';
   SCnErrorInvalidUtf8Sequence = 'Invalid UTF-8 Sequence.';
 
 function WidePosChar(const C: WideChar; const S: WideString): Integer;
