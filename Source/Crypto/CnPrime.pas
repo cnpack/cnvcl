@@ -3146,6 +3146,10 @@ begin
       Result := 1
     else
       Result := -1;
+    // N 为负奇数时 A 为负，按文档约定须取反，即 (A/-N) = -(A/N)，
+    // 否则与 BigNumber 版结果相反，如 (-1/-15) 会错得 -1 而非 1
+    if NNeg then
+      Result := -Result;
     Exit;
   end
   else if A = 2 then // (2, N) = (-1)^((N^2 - 1)/8)

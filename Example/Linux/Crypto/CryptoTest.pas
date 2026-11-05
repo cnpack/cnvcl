@@ -434,6 +434,8 @@ function TestQREncoderAlphanumericMode: Boolean;
 function TestQREncoderByteMode: Boolean;
 function TestQREncoderTextMatrix: Boolean;
 function TestQRDecoderData: Boolean;
+function TestQRVersionInfoRoundTrip: Boolean;
+function TestQROversizeTextRaises: Boolean;
 
 // ============================= Polynomial ====================================
 
@@ -2362,6 +2364,8 @@ begin
   MyAssert(TestQREncoderByteMode, 'TestQREncoderByteMode');
   MyAssert(TestQREncoderTextMatrix, 'TestQREncoderMaskPatterns');
   MyAssert(TestQRDecoderData, 'TestQRDecoderData');
+  MyAssert(TestQRVersionInfoRoundTrip, 'TestQRVersionInfoRoundTrip');
+  MyAssert(TestQROversizeTextRaises, 'TestQROversizeTextRaises');
 
 // ============================= Polynomial ====================================
 
@@ -16431,6 +16435,60 @@ begin
   Result := S = 'CnPack QRCode Decode Test 123!@#';
 end;
 
+function TestQRVersionInfoRoundTrip: Boolean;
+{* 回归保护：解码器 ExtractVersionBits 曾按位反序组装 18 位版本信息（将
+   LSB 序组成了 MSB 序），导致 V>=7 的码图解码全部失败（仅尺寸校验兜底）。
+   现须与编码器 PaintVersionInformation 的标准 LSB 序布局一致 }
+var
+  Encoder: TCnQREncoder;
+  S, D: string;
+  QRData: TCnQRData;
+  QRSize, I, J: Integer;
+begin
+  Result := False;
+  Encoder := TCnQREncoder.Create;
+  try
+    S := StringOfChar('x', 220);   // Byte 模式，任一纠错级下均需 V >= 7
+    Encoder.Text := S;
+    if Encoder.QRVersion < 7 then
+      Exit;
+
+    QRSize := Encoder.QRSize;
+    SetLength(QRData, QRSize, QRSize);
+    for I := 0 to QRSize - 1 do
+      for J := 0 to QRSize - 1 do
+        QRData[I, J] := Encoder.QRData[I, J];
+
+    D := CnQRDecodeFromMatrix(QRData);
+    Result := D = S;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQROversizeTextRaises: Boolean;
+{* 回归保护：超容量文本曾使 GetOptimalVersion 恒返默认值 40（调用方的
+   NewVersion > 40 检查永不触发），EncodeText 无限升版递归直至栈溢出。
+   现须在选不出可容纳版本时直接抛出数据超长异常 }
+var
+  Encoder: TCnQREncoder;
+  S: string;
+begin
+  Result := False;
+  Encoder := TCnQREncoder.Create;
+  try
+    S := StringOfChar('A', 4000);   // 超出 V40-L 的 2956 总码字容量
+    try
+      Encoder.Text := S;
+    except
+      on E: ECnQRCodeException do
+        Result := True;
+    end;
+  finally
+    Encoder.Free;
+  end;
+end;
+
 // ============================= Polynomial ====================================
 
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
@@ -28031,6 +28089,13 @@ begin
   if not Result then Exit;
 
   Result := CnInt64JacobiSymbol(-7, -37) = -1;
+  if not Result then Exit;
+
+  // A=-1 且 N 为负奇数时按文档约定须取反，如 (-1/-15) = -(-1/15) = 1
+  Result := CnInt64JacobiSymbol(-1, -15) = 1;
+  if not Result then Exit;
+
+  Result := CnInt64JacobiSymbol(-1, -7) = 1;
   if not Result then Exit;
 
   Result := CnInt64JacobiSymbol(-15, -21) = 0;
