@@ -1643,7 +1643,9 @@ begin
 
         Result := True;
         _CnSetLastError(ECN_SM2_OK);
-      end;
+      end
+      else
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
     end
     else // C1C2C3 µƒ≈≈¡–
     begin
@@ -1668,7 +1670,9 @@ begin
 
         Result := True;
         _CnSetLastError(ECN_SM2_OK);
-      end;
+      end
+      else
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
     end;
   finally
     P.Free;
@@ -3072,22 +3076,24 @@ begin
     BigNumberAddMod(OutSignature.S, OutSignature.S, T, SM2.Order);
     BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromB, SM2.Order);
 
-    if not OutSignature.S.IsZero then
+    if OutSignature.S.IsZero then
     begin
-      BigNumberAdd(T, OutSignature.S, InRFromB);
-
-      if not BigNumberEqual(T, SM2.Order) then
-      begin
-        if BigNumberCopy(OutSignature.R, InRFromB) = nil then
-        begin
-          _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
-          Exit;
-        end;
-      end;
-
-      Result := True;
-      _CnSetLastError(ECN_SM2_OK);
+      _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
+      Exit;
     end;
+
+    BigNumberAdd(T, OutSignature.S, InRFromB);
+    if not BigNumberEqual(T, SM2.Order) then
+    begin
+      if BigNumberCopy(OutSignature.R, InRFromB) = nil then
+      begin
+        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+        Exit;
+      end;
+    end;
+
+    Result := True;
+    _CnSetLastError(ECN_SM2_OK);
   finally
     T.Clear;
     T.Free;

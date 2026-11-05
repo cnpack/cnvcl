@@ -620,7 +620,7 @@ begin
     GetMem(Buf, BufLen);
     try
       Stream.Position := StartPos;
-      CRC := not CRC;
+      // 与字节接口 CRC8Calc 语义一致：初始值为 0 不做求反
       while Count > 0 do
       begin
         if Count > BufLen then
@@ -632,7 +632,6 @@ begin
         CRC := DoCrc8Calc(CRC, Buf^, ReadBytes);
         Dec(Count, ReadBytes);
       end;
-      CRC := not CRC;
       Result := True;
     finally
       FreeMem(Buf, BufLen);
@@ -678,7 +677,8 @@ begin
     else
       Count := Size - StartPos;         // 长度为零，计算到文件尾
 
-    CRC := not CRC;
+    // 与字节接口 CRC8Calc 语义一致：初始值为 0 不做求反，
+    // 多余的求反会使结果偏离 CRC-8/SMBUS 的权威 check 值
     SetFilePointer(Handle, Int64Rec(StartPos).Lo, @Int64Rec(StartPos).Hi, FILE_BEGIN);
     while Count > 0 do
     begin
@@ -694,7 +694,6 @@ begin
       CRC := DoCrc8Calc(CRC, Buff, ReadGot);
       Dec(Count, ReadGot);
     end;
-    CRC := not CRC;
   finally
     CloseHandle(Handle);
   end;
@@ -803,7 +802,7 @@ begin
     GetMem(Buf, BufLen);
     try
       Stream.Position := StartPos;
-      CRC := not CRC;
+      CRC := not CRC; // 入口求反得 FFFF 初值，与字节接口 CRC16Calc 一致
       while Count > 0 do
       begin
         if Count > BufLen then
@@ -815,7 +814,6 @@ begin
         CRC := DoCrc16Calc(CRC, Buf^, ReadBytes);
         Dec(Count, ReadBytes);
       end;
-      CRC := not CRC;
       Result := True;
     finally
       FreeMem(Buf, BufLen);
@@ -861,6 +859,8 @@ begin
     else
       Count := Size - StartPos;         // 长度为零，计算到文件尾
 
+    // 与字节接口 CRC16Calc 语义一致：入口求反得 FFFF 初值，出口不再求反，
+    // 出口求反会把 CCITT-FALSE 错算成 GENIBUS（xorout=FFFF）
     CRC := not CRC;
     SetFilePointer(Handle, Int64Rec(StartPos).Lo, @Int64Rec(StartPos).Hi, FILE_BEGIN);
     while Count > 0 do
@@ -877,7 +877,6 @@ begin
       CRC := DoCrc16Calc(CRC, Buff, ReadGot);
       Dec(Count, ReadGot);
     end;
-    CRC := not CRC;
   finally
     CloseHandle(Handle);
   end;

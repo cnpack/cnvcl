@@ -180,7 +180,7 @@ cnvcl/
 | `CnECC.pas` | **椭圆曲线密码学核心单元**（约 10460 行）。实现 Weierstrass 形式椭圆曲线 `y^2 = x^3 + Ax + B mod p` 上的点运算、加解密、签名验签。支持 Int64 和大数范围。实现 Schoof 点计数算法。支持 PEM 格式密钥文件读写、ASN.1 编解码。 |
 | `CnSM2.pas` | **SM2 国密椭圆曲线密码单元**。实现 GM/T 0003.x-2012 规定的 SM2 公钥加密算法，包括数据加解密、签名验签、密钥交换、协同密钥生成、协同签名、协同加密等。继承自 `TCnEcc`。 |
 | `CnSM9.pas` | SM9 国密标识密码单元。实现 GB/T 32918 规定的 SM9 基于标识的加密和签名算法。 |
-| `Cn25519.pas` | **Curve25519/Ed25519 单元**（约 6400 行）。实现 Curve25519 椭圆曲线 Diffie-Hellman 密钥交换和 Ed25519 EdDSA 签名。包含 X25519、Ed25519、Ristretto255、Ed448、X448 等变体。 |
+| `Cn25519.pas` | **Curve25519/Ed25519 单元**（约 6400 行）。实现 Curve25519 椭圆曲线 Diffie-Hellman 密钥交换和 Ed25519 EdDSA 签名。包含 X25519、Ed25519、Ed448、X448 等变体。 |
 | `CnPaillier.pas` | Paillier 同态加密单元。实现 Paillier 概率公钥加密系统，支持加法同态运算。 |
 | `CnSecretSharing.pas` | 秘密共享（Shamir's Secret Sharing）单元。实现基于拉格朗日插值的秘密分割与重构。 |
 

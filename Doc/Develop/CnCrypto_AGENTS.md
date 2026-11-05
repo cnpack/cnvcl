@@ -130,7 +130,7 @@ cncrypto/
 | `CnECC.pas` | **椭圆曲线密码核心单元**（约 10460 行）。Weierstrass 曲线 `y^2 = x^3 + Ax + B mod p` 的点运算、加解密、签名验签；Int64 和大数范围；Schoof 点计数；PEM 密钥读写、ASN.1 编解码。 |
 | `CnSM2.pas` | **SM2 国密椭圆曲线单元**（GM/T 0003.x-2012）。数据加解密、签名验签、密钥交换、协同密钥生成、协同签名、协同加密等。继承自 `TCnEcc`。 |
 | `CnSM9.pas` | SM9 国密标识密码单元（GM/T 0044-2016）。基于标识的加密和签名。 |
-| `Cn25519.pas` | **Curve25519/Ed25519 单元**（约 6400 行）。X25519 密钥交换、Ed25519 签名，及 Ristretto255、Ed448、X448 等变体。 |
+| `Cn25519.pas` | **Curve25519/Ed25519 单元**（约 6400 行）。X25519 密钥交换、Ed25519 签名，及 Ed448、X448 等变体。 |
 | `CnPaillier.pas` | Paillier 同态加密单元。支持加法同态运算。 |
 | `CnSecretSharing.pas` | 秘密共享单元。Shamir 门限方案及 Feldman VSS 可验证秘密共享。 |
 

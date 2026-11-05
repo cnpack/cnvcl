@@ -5274,7 +5274,11 @@ begin
       Exit;
 
     Sig := TCnEd25519Signature.Create;
-    Sig.LoadFromData(SigData);
+    try
+      Sig.LoadFromData(SigData);
+    except
+      ; // 非法签名异常要捕捉并返回 False，RFC 8032 要求的
+    end;
 
     Result := CnEd25519VerifyData(Stream.Memory, Stream.Size, Sig, PublicKey, Ed25519);
   finally
@@ -6560,8 +6564,13 @@ end;
 
 procedure TCnEd448Signature.Assign(Source: TPersistent);
 begin
-  inherited;
-
+  if Source is TCnEd448Signature then
+  begin
+    FR.Assign((Source as TCnEd448Signature).R);
+    BigNumberCopy(FS, (Source as TCnEd448Signature).S);
+  end
+  else
+    inherited;
 end;
 
 constructor TCnEd448Signature.Create;

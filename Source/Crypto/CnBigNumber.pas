@@ -9543,7 +9543,7 @@ begin
 
               T := FLocalBigNumberPool.Obtain;
               BigNumberPowerMod(T, X, OldU, Prime); // T: (4g)^u mod p
-              BigNumberMulMod(Y, R, T, Prime);
+              BigNumberDirectMulMod(Y, R, T, Prime);
 
               BigNumberCopy(Res, Y);
               Result := True;

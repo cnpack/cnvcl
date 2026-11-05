@@ -1735,6 +1735,14 @@ function AddDNOidValueToWriter(AWriter: TCnBerWriter; DNRoot: TCnBerWriteNode;
   AOID: PByte; AOIDLen: Integer; const DN: string; BerTag: Integer =
   CN_BER_TAG_PRINTABLESTRING): TCnBerWriteNode;
 begin
+  // 空属性不得写入 0 长度值：既违反 ASN.1 的 SIZE(1..MAX) 约束，也会导致
+  // 签发时 Issuer 与 CA 证书 Subject 的编码不一致而破坏证书链验证
+  if DN = '' then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
   Result := AWriter.AddContainerNode(CN_BER_TAG_SET, DNRoot);
   Result := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Result);
   AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, AOID, AOIDLen, Result);
@@ -3714,8 +3722,11 @@ begin
         Exit;
     end;
 
-    if (Reader.TotalCount >= 42) and (Reader.Items[2].BerTag = CN_BER_TAG_INTEGER)
-      and (Reader.Items[2].AsInteger = 0) then // 就是有这么多项，版本号必须为 0
+    // 只需保证顶层结构节点（根、CRI、版本号、Subject、公钥、属性、签名算法、
+    // 签名值）足够定位版本号即可，DN 属性个数可变，不能依赖固定的节点总数，
+    // 否则只填 CN 的 CSR 会因节点总数偏小而被误拒
+    if (Reader.TotalCount >= 8) and (Reader.Items[2].BerTag = CN_BER_TAG_INTEGER)
+      and (Reader.Items[2].AsInteger = 0) then // 版本号必须为 0
     begin
       DNRoot := Reader.Items[3];
       PubNode := DNRoot.GetNextSibling;

@@ -3497,7 +3497,7 @@ procedure FP2AffinePointSetCoordinatesBigNumbers(P: TCnFP2AffinePoint;
   X0, X1, Y0, Y1: TCnBigNumber);
 begin
   FP2SetBigNumbers(P.X, X0, X1);
-  FP2SetBigNumbers(P.Y, X1, Y1);
+  FP2SetBigNumbers(P.Y, Y0, Y1);
   FP2SetOne(P.Z);
 end;
 
@@ -4752,7 +4752,10 @@ begin
       BigNumberNonNegativeMod(L, L, SM9.Order);
 
       if HexSet and L.IsZero then // 外部传入的固定随机数导致 L 为 0，重试也没意义了，直接出错退出
+      begin
+        _CnSetLastError(ECN_SM9_INVALID_INPUT);
         Exit;
+      end;
     until not L.IsZero;
 
     // 计算出了 L 和 H，再乘私钥点得到签名

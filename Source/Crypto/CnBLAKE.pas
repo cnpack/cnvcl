@@ -855,9 +855,6 @@ type
   TBLAKEType = (btBLAKE224, btBLAKE256, btBLAKE384, btBLAKE512);
 
 const
-  MAX_FILE_SIZE = 512 * 1024 * 1024;
-  // If file size <= this size (bytes), using Mapping, else stream
-
   HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE = 64;
   HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE = 128;
 
