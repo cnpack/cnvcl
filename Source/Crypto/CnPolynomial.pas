@@ -3042,6 +3042,8 @@ function BigNumberPolynomialGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
 {* 计算两个一元大整系数多项式的最大公因式，返回是否计算成功，Res 可以是 P1 或 P2。
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行。
    如返回 False，调用者可干脆认为互素，最大公因式为 1。
+   成功时结果为 Z[X] 意义上的最大公因式，已含系数公约数部分并统一为首项系数为正的代表，
+   如 gcd(2x+2, 4x+4) 返回 2x+2 而非其本原部分 x+1。
 
    参数：
      Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
@@ -10042,19 +10044,24 @@ function BigNumberPolynomialGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
   P1, P2: TCnBigNumberPolynomial): Boolean;
 var
   A, B, C: TCnBigNumberPolynomial;
-  MF: TCnBigNumber;
+  I: Integer;
+  MF, ContentA, ContentB: TCnBigNumber;
   GcdValue: TCnBigNumber;
 begin
   A := nil;
   B := nil;
   C := nil;
   MF := nil;
+  ContentA := nil;
+  ContentB := nil;
   GcdValue := nil;
 
   try
     A := FLocalBigNumberPolynomialPool.Obtain;
     B := FLocalBigNumberPolynomialPool.Obtain;
     MF := FLocalBigNumberPool.Obtain;
+    ContentA := FLocalBigNumberPool.Obtain;
+    ContentB := FLocalBigNumberPool.Obtain;
 
     if P1.MaxDegree >= P2.MaxDegree then
     begin
@@ -10067,17 +10074,58 @@ begin
       BigNumberPolynomialCopy(B, P1);
     end;
 
+    // 有一方为零多项式：gcd(f, 0) = f，结果取首项系数为正的代表
+    if A.IsZero or B.IsZero then
+    begin
+      if A.IsZero then
+        BigNumberPolynomialCopy(Res, B)
+      else
+        BigNumberPolynomialCopy(Res, A);
+      if not Res.IsZero and Res[Res.MaxDegree].IsNegative then
+        BigNumberPolynomialNegate(Res);
+      Result := True;
+      Exit;
+    end;
+
     // 特殊处理：如果两个多项式都是常数项，直接计算 BigNumber GCD
     if (A.MaxDegree = 0) and (B.MaxDegree = 0) then
     begin
       GcdValue := FLocalBigNumberPool.Obtain;
       if BigNumberGcd(GcdValue, A[0], B[0]) then
       begin
+        BigNumberPolynomialSetZero(Res);
         Res.SetCoefficent(0, GcdValue);
         Result := True;
       end
       else
         Result := False;
+      Exit;
+    end;
+
+    // Z[X] 上 gcd 的系数部分 = 两个输入 content 的 gcd，先取出并把输入本原化，
+    // 否则伪除法引入的系数因子会污染结果，如 gcd(2x+2, 4x+4) 会错得 4x+4
+    GcdValue := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(ContentA, A[0]);
+    for I := 0 to A.MaxDegree - 1 do
+    begin
+      BigNumberGcd(ContentA, ContentA, A[I + 1]);
+      if ContentA.IsOne then
+        Break;
+    end;
+    BigNumberPolynomialDivBigNumber(A, ContentA);
+
+    BigNumberCopy(ContentB, B[0]);
+    for I := 0 to B.MaxDegree - 1 do
+    begin
+      BigNumberGcd(ContentB, ContentB, B[I + 1]);
+      if ContentB.IsOne then
+        Break;
+    end;
+    BigNumberPolynomialDivBigNumber(B, ContentB);
+
+    if not BigNumberGcd(GcdValue, ContentA, ContentB) then
+    begin
+      Result := False;
       Exit;
     end;
 
@@ -10093,10 +10141,17 @@ begin
       BigNumberPolynomialCopy(A, C);        // 原始 B 给 A
     end;
 
+    // 余式链已逐轮本原化，乘回系数部分的 gcd，并统一为首项系数为正的代表
+    if not GcdValue.IsOne then
+      BigNumberPolynomialMulBigNumber(A, GcdValue);
+    if (A.MaxDegree > 0) and A[A.MaxDegree].IsNegative then
+      BigNumberPolynomialNegate(A);
     BigNumberPolynomialCopy(Res, A);
     Result := True;
   finally
     FLocalBigNumberPool.Recycle(GcdValue);
+    FLocalBigNumberPool.Recycle(ContentB);
+    FLocalBigNumberPool.Recycle(ContentA);
     FLocalBigNumberPool.Recycle(MF);
     FLocalBigNumberPolynomialPool.Recycle(C);
     FLocalBigNumberPolynomialPool.Recycle(B);
@@ -10232,7 +10287,7 @@ end;
 
 procedure BigNumberPolynomialReduce2(P1, P2: TCnBigNumberPolynomial);
 var
-  D: TCnBigNumberPolynomial;
+  D, T1, T2: TCnBigNumberPolynomial;
 begin
   if P1 = P2 then
   begin
@@ -10241,17 +10296,27 @@ begin
   end;
 
   D := FLocalBigNumberPolynomialPool.Obtain;
+  T1 := FLocalBigNumberPolynomialPool.Obtain;
+  T2 := FLocalBigNumberPolynomialPool.Obtain;
   try
     if not BigNumberPolynomialGreatestCommonDivisor(D, P1, P2) then
       Exit;
 
     if not D.IsOne then
     begin
-      BigNumberPolynomialDiv(P1, nil, P1, D);
-      BigNumberPolynomialDiv(P2, nil, P2, D);
+      // 先在临时变量中验证两式均能被 D 整除，全部成功后才写回，
+      // 否则会因部分修改而改变分式的值
+      if not BigNumberPolynomialDiv(T1, nil, P1, D) then
+        Exit;
+      if not BigNumberPolynomialDiv(T2, nil, P2, D) then
+        Exit;
+      BigNumberPolynomialCopy(P1, T1);
+      BigNumberPolynomialCopy(P2, T2);
     end;
   finally
     FLocalBigNumberPolynomialPool.Recycle(D);
+    FLocalBigNumberPolynomialPool.Recycle(T1);
+    FLocalBigNumberPolynomialPool.Recycle(T2);
   end;
 end;
 

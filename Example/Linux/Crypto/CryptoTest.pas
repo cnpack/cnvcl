@@ -440,6 +440,7 @@ function TestQRDecoderData: Boolean;
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 function TestInt64Polynomial: Boolean;
 function TestInt64PolynomialGCD: Boolean;
+function TestBigNumberPolynomialGCD: Boolean;
 function TestBigNumberPolynomial: Boolean;
 function TestBigComplexPolynomial: Boolean;
 function TestBigComplexDecimalPolynomial: Boolean;
@@ -2367,6 +2368,7 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisPrimePowerModularInverse, 'TestBigNumberPolynomialGaloisPrimePowerModularInverse');
   MyAssert(TestInt64Polynomial, 'TestInt64Polynomial');
   MyAssert(TestInt64PolynomialGCD, 'TestInt64PolynomialGCD');
+  MyAssert(TestBigNumberPolynomialGCD, 'TestBigNumberPolynomialGCD');
   MyAssert(TestBigNumberPolynomial, 'TestBigNumberPolynomial');
   MyAssert(TestBigComplexPolynomial, 'TestBigComplexPolynomial');
   MyAssert(TestBigComplexDecimalPolynomial, 'TestBigComplexDecimalPolynomial');
@@ -16560,6 +16562,79 @@ begin
 
     // 零多项式特例：gcd(0, f) 取首项系数为正的代表
     if not Check([0], [5, -4], [-5, 4]) then Exit;
+
+    Result := True;
+  finally
+    R.Free;
+    G.Free;
+    F.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialGCD: Boolean;
+{* 回归保护：大整数环多项式 GCD 曾缺失 content 处理，伪除法引入的系数因子
+   会污染结果（gcd(2X+2,4X+4) 曾错得 4X+4，它并不整除被除式），也未做首项
+   正化（gcd(0,5-4X) 曾错得 5-4X）。Reduce2 曾忽略 Div 的返回值，GCD 出错
+   导致分子除不动而分母被改，分式值被静默改变（(2X+2)/(4X+4) 曾得 2X+2/1）。
+   系数按低次在前 }
+var
+  F, G, R: TCnBigNumberPolynomial;
+
+  function Check(FCoef, GCoef, Expect: array of Int64): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+    F.MaxDegree := High(FCoef);
+    for I := 0 to High(FCoef) do
+      F[I].SetInt64(FCoef[I]);
+    G.MaxDegree := High(GCoef);
+    for I := 0 to High(GCoef) do
+      G[I].SetInt64(GCoef[I]);
+    if not BigNumberPolynomialGreatestCommonDivisor(R, F, G) then
+      Exit;
+    if R.MaxDegree <> High(Expect) then
+      Exit;
+    for I := 0 to High(Expect) do
+      if not R[I].IsInt64 or (R[I].GetInt64 <> Expect[I]) then
+        Exit;
+    Result := True;
+  end;
+
+begin
+  Result := False;
+  F := TCnBigNumberPolynomial.Create;
+  G := TCnBigNumberPolynomial.Create;
+  R := TCnBigNumberPolynomial.Create;
+  try
+    // 问题报告例：content 未处理时伪除法引入系数因子，曾错得 4X+4
+    if not Check([2, 2], [4, 4], [2, 2]) then Exit;
+
+    // 负系数同理，且结果须为首项系数为正的代表
+    if not Check([-2, -2], [4, 4], [2, 2]) then Exit;
+
+    // 零多项式特例：gcd(0, f) 取首项系数为正的代表，曾错得 5-4X
+    if not Check([0], [5, -4], [-5, 4]) then Exit;
+
+    // 正常路径回归
+    if not Check([-1, 0, 1], [1, 2, 1], [1, 1]) then Exit;
+    if not Check([1, 3, 2], [2, 2], [1, 1]) then Exit;
+    if not Check([1, 0, 1], [2], [1]) then Exit;
+
+    // 双常数特例
+    if not Check([6], [4], [2]) then Exit;
+
+    // Reduce2 约分：(2X+2)/(4X+4) 应缩至 1/2 且分式值保持不变，
+    // 修复前 GCD 错误导致分子除不动保持 2X+2 而分母已变成 1
+    F.MaxDegree := 1;
+    F[0].SetInt64(2);
+    F[1].SetInt64(2);
+    G.MaxDegree := 1;
+    G[0].SetInt64(4);
+    G[1].SetInt64(4);
+    BigNumberPolynomialReduce2(F, G);
+    if not ((F.MaxDegree = 0) and F[0].IsOne) then Exit;
+    if not ((G.MaxDegree = 0) and G[0].IsWord(2)) then Exit;
 
     Result := True;
   finally
