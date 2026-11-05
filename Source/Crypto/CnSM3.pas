@@ -252,7 +252,7 @@ procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
 }
 
 function SM3HmacBytes(const Key: TBytes; const Data: TBytes): TCnSM3Digest;
-{* 对字节数组进行基于 MD5 的 HMAC 计算。
+{* 对字节数组进行基于 SM3 的 HMAC 计算。
 
    参数：
      const Key: TBytes                    - 待参与 SM3 计算的密钥字节数组

@@ -191,8 +191,6 @@ function GHash128Bytes(var HashKey: TCnGHash128Key; Data: TBytes; AAD: TBytes): 
 }
 
 // 以下三个函数用于外部持续对数据进行零散的 GHash128 计算，GHash128Update 可多次被调用
-// 注意 GHash128Update 中 Data 需要尽量传整块，如不整块，末尾会补 0 计算，
-// 而不是类似于其他杂凑函数那样留存着等下一轮凑足后再整
 
 procedure GHash128Start(var Ctx: TCnGHash128Context; var HashKey: TCnGHash128Key;
   AAD: Pointer; AADByteLength: Integer);

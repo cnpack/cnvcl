@@ -525,7 +525,6 @@ function BLAKE2BDigestToStr(const Digest: TCnBLAKE2BDigest;
 implementation
 
 resourcestring
-  SCnErrorBlake2InvalidKeySize = 'Invalid Key Length';
   SCnErrorBlake2InvalidDigestSize = 'Invalid Digest Length';
 
 const

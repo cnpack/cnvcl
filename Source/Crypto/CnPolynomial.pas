@@ -2046,14 +2046,14 @@ procedure Int64PolynomialGaloisDivWord(P: TCnInt64Polynomial; N: Int64; Prime: I
    返回值：（无）
 }
 
-function Int64PolynomialGaloisMonic(P: TCnInt64Polynomial; Prime: Int64): Integer;
+function Int64PolynomialGaloisMonic(P: TCnInt64Polynomial; Prime: Int64): Int64;
 {* 将 Prime 次方阶有限域上的一元整系数多项式各项系数同除最高项，使首项为一，返回除的值。
 
    参数：
      P: TCnInt64Polynomial                - 待计算的一元整系数多项式
      Prime: Int64                         - 有限域上界
 
-   返回值：Integer                        - 返回除的值
+   返回值：Int64                          - 返回除的值
 }
 
 function Int64PolynomialGaloisGreatestCommonDivisor(Res: TCnInt64Polynomial;
@@ -6208,6 +6208,10 @@ begin
     if VarItemFactor(Result, (I = 0), IntToStr(P[I])) then
       Result := Result + VarPower(VarName, I);
   end;
+
+  // 如果碰上系数全 0 的多项式，就显式塞 0
+  if Result = '' then
+    Result := '0';
 end;
 
 {$WARNINGS OFF}
@@ -7424,7 +7428,7 @@ begin
   end;
 end;
 
-function Int64PolynomialGaloisMonic(P: TCnInt64Polynomial; Prime: Int64): Integer;
+function Int64PolynomialGaloisMonic(P: TCnInt64Polynomial; Prime: Int64): Int64;
 begin
   Result := P[P.MaxDegree];
   if (Result <> 1) and (Result <> 0) then
@@ -9265,6 +9269,10 @@ begin
     if VarItemFactor(Result, (I = 0), P[I].ToDec) then
       Result := Result + VarPower(VarName, I);
   end;
+
+  // 如果碰上系数全 0 的多项式，就显式塞 0
+  if Result = '' then
+    Result := '0';
 end;
 
 {$WARNINGS OFF}
@@ -12730,6 +12738,10 @@ begin
       end;
     end;
   end;
+
+  // 如果碰上系数全 0 的多项式，就显式塞 0
+  if Result = '' then
+    Result := '0';
 end;
 
 function BigComplexPolynomialIsZero(P: TCnBigComplexPolynomial): Boolean;
@@ -14076,6 +14088,7 @@ begin
     end;
   end;
 
+  // 如果碰上系数全 0 的多项式，就显式塞 0
   if Result = '' then
     Result := '0';
 end;
@@ -15491,6 +15504,7 @@ begin
       end;
   end;
 
+  // 如果碰上系数全 0 的多项式，就显式塞 0
   if Result = '' then
     Result := '0';
 end;
@@ -17711,6 +17725,10 @@ begin
       end;
     end;
   end;
+
+  // 如果碰上系数全 0 的多项式，就显式塞 0
+  if Result = '' then
+    Result := '0';
 end;
 
 function BigComplexDecimalPolynomialIsZero(P: TCnBigComplexDecimalPolynomial): Boolean;

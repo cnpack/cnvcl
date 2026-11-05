@@ -2262,7 +2262,8 @@ begin
     try
       AkiSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
       A := StandardExt.AuthorityKeyIdentifier;
-      Inner.AddBasicNode(CN_BER_TAG_OCTET_STRING, @A[1], Length(A), AkiSeq);
+      // RFC 5280 ¡ì4.2.1.1 ÒªÇó `SEQ{[0] KeyIdentifier}
+      Inner.AddBasicNode($80, @A[1], Length(A), AkiSeq);
       AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_AUTHORITYKEYIDENTIFIER[0],
         SizeOf(OID_EXT_AUTHORITYKEYIDENTIFIER),
         Criticals.AuthorityKeyIdentifier, Inner);

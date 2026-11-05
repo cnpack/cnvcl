@@ -2738,11 +2738,11 @@ end;
 
 {* 取 X 的左边高 W 位，其中 W 是 N 的 BitsCount，该函数用于签名验签
    注意它和 SM2 中的同名函数功能不同}
-procedure BuildShortXValue(X: TCnBigNumber; Order: TCnBigNumber);
+procedure BuildShortXValue(X: TCnBigNumber; Order: TCnBigNumber; AHashByteLen: Integer);
 var
   W: Integer;
 begin
-  W := X.GetBitsCount - Order.GetBitsCount;
+  W := AHashByteLen * 8 - Order.GetBitsCount;
   if W > 0 then
     BigNumberShiftRight(X, X, W);
 end;
@@ -6287,6 +6287,26 @@ begin
   end;
 end;
 
+function EccSignDigestTypeBytes(SignType: TCnEccSignDigestType): Integer;
+begin
+  case SignType of
+    esdtMD5:
+      Result := SizeOf(TCnMD5Digest);
+    esdtSHA1:
+      Result := SizeOf(TCnSHA1Digest);
+    esdtSHA256:
+      Result := SizeOf(TCnSHA256Digest);
+    esdtSM3:
+      Result := SizeOf(TCnSM3Digest);
+    esdtSHA384:
+      Result := SizeOf(TCnSHA384Digest);
+    esdtSHA512:
+      Result := SizeOf(TCnSHA512Digest);
+  else
+    Result := 0;
+  end;
+end;
+
 {
   按维基百科上说明的 ECDSA 算法进行签名：
   https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
@@ -6297,7 +6317,7 @@ end;
   均对椭圆曲线的阶求模，并非对有限域求模
 }
 function EccSignValue(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey; InE: TCnBigNumber;
-  OutSignature: TCnEccSignature): Boolean;
+  OutSignature: TCnEccSignature; AHashByteLen: Integer): Boolean;
 var
   K, X, KInv: TCnBigNumber;
   P: TCnEccPoint;
@@ -6307,7 +6327,7 @@ begin
     (InE = nil) or (OutSignature = nil) then
     Exit;
 
-  BuildShortXValue(InE, Ecc.Order); // InE 现在是 z
+  BuildShortXValue(InE, Ecc.Order, AHashByteLen); // InE 现在是 z
 
   K := nil;
   X := nil;
@@ -6450,7 +6470,7 @@ begin
     E.SetBinary(Stream.Memory, Stream.Size);
 
     Sig := TCnEccSignature.Create;
-    if EccSignValue(Ecc, PrivateKey, E, Sig) then
+    if EccSignValue(Ecc, PrivateKey, E, Sig, EccSignDigestTypeBytes(SignType)) then
     begin
       // 然后按格式进行 BER 编码
       Writer := TCnBerWriter.Create;
@@ -6490,7 +6510,7 @@ end;
   https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
 }
 function EccVerifyValue(Ecc: TCnEcc; PublicKey: TCnEccPublicKey; InE: TCnBigNumber;
-  InSignature: TCnEccSignature): Boolean;
+  InSignature: TCnEccSignature; AHashByteLen: Integer): Boolean;
 var
   U1, U2, SInv: TCnBigNumber;
   P1, P2: TCnEccPoint;
@@ -6508,7 +6528,7 @@ begin
      (BigNumberCompare(InSignature.S, Ecc.Order) >= 0) then
     Exit;
 
-  BuildShortXValue(InE, Ecc.Order); // InE is z
+  BuildShortXValue(InE, Ecc.Order, AHashByteLen); // InE is z
 
   U1 := nil;
   U2 := nil;
@@ -6599,7 +6619,7 @@ begin
     PutIndexedBigIntegerToBigNumber(Reader.Items[1], Sig.R);
     PutIndexedBigIntegerToBigNumber(Reader.Items[2], Sig.S);
 
-    Result := EccVerifyValue(Ecc, PublicKey, E, Sig);
+    Result := EccVerifyValue(Ecc, PublicKey, E, Sig, EccSignDigestTypeBytes(SignType));
   finally
     Stream.Free;
     Reader.Free;
@@ -6723,7 +6743,7 @@ begin
     E.SetBinary(Stream.Memory, Stream.Size);
 
     Sig := TCnEccSignature.Create;
-    if EccSignValue(Ecc, PrivateKey, E, Sig) then
+    if EccSignValue(Ecc, PrivateKey, E, Sig, EccSignDigestTypeBytes(SignType)) then
     begin
       // 然后按格式进行 BER 编码
       Writer := TCnBerWriter.Create;
@@ -6799,7 +6819,7 @@ begin
     PutIndexedBigIntegerToBigNumber(Reader.Items[1], Sig.R);
     PutIndexedBigIntegerToBigNumber(Reader.Items[2], Sig.S);
 
-    Result := EccVerifyValue(Ecc, PublicKey, E, Sig);
+    Result := EccVerifyValue(Ecc, PublicKey, E, Sig, EccSignDigestTypeBytes(SignType));
   finally
     Stream.Free;
     Reader.Free;
@@ -8871,6 +8891,7 @@ begin
       begin
         Sum.X.SetZero;
         Sum.Y.SetZero;
+        Exit;
       end;
 
       // Y := Y^-1
