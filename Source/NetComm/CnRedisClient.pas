@@ -1087,7 +1087,7 @@ begin
               end;
               _Pos := _ParseCount(TCnNativeUInt(Response) + _Curr, _Count);
               SetLength(_Value, _Count);
-              CopyMemory(@_Value[1], Pointer(TCnNativeUIntv(Response) + _Curr + _Pos), _Count);
+              CopyMemory(@_Value[1], Pointer(TCnNativeUInt(Response) + _Curr + _Pos), _Count);
               TCnRedisMultiBulkNode(CurNode.MultiBulkRefs[CurNode.CurrIndex]).Value := string(_Value);
               Inc(CurNode.FCurrIndex);
             end;
