@@ -301,6 +301,7 @@ function TestBigRationalSetStringMalformed: Boolean;
 // ============================== Matrix =======================================
 
 function TestRationalNumberNegOneDenominator: Boolean;
+function TestRationalNumberSetString: Boolean;
 function TestMatrixZigZagRowCol: Boolean;
 function TestMatrixAdjointInverse1x1: Boolean;
 function TestMatrixDeleteLastRowCol: Boolean;
@@ -2235,6 +2236,7 @@ begin
 // ============================== Matrix =======================================
 
   MyAssert(TestRationalNumberNegOneDenominator, 'TestRationalNumberNegOneDenominator');
+  MyAssert(TestRationalNumberSetString, 'TestRationalNumberSetString');
   MyAssert(TestMatrixZigZagRowCol, 'TestMatrixZigZagRowCol');
   MyAssert(TestMatrixAdjointInverse1x1, 'TestMatrixAdjointInverse1x1');
   MyAssert(TestMatrixDeleteLastRowCol, 'TestMatrixDeleteLastRowCol');
@@ -11578,6 +11580,92 @@ begin
   finally
     R.Free;
     B.Free;
+    A.Free;
+  end;
+end;
+
+function TestRationalNumberSetString: Boolean;
+var
+  A: TCnRationalNumber;
+  OK: Boolean;
+begin
+  Result := False;
+  A := TCnRationalNumber.Create;
+  try
+    { SetString 原先直接写 FNumerator/FDenominator 字段：'1/0' 能构造出分母为 0
+      的非法状态（错误延迟到后续运算才以 EDivByZero 暴露），'1/-2'、'2/4' 等保留
+      非规范形式（ToString 输出 1/-2），'abc' 抛不含上下文的裸 EConvertError。
+      修复后：格式错误与分母为 0 在入口抛 ECnMatrixException 且消息含原始串，
+      解析成功后统一 Reduce 规范化。 }
+
+    // ---- 合法输入规范化 ----
+    A.SetString('1/-2');
+    if (A.Numerator <> -1) or (A.Denominator <> 2) then Exit;
+
+    A.SetString('2/4');
+    if (A.Numerator <> 1) or (A.Denominator <> 2) then Exit;
+
+    A.SetString('-1/-2');
+    if (A.Numerator <> 1) or (A.Denominator <> 2) then Exit;
+
+    A.SetString('0/5');
+    if (A.Numerator <> 0) or (A.Denominator <> 1) then Exit;
+
+    A.SetString('5');
+    if (A.Numerator <> 5) or (A.Denominator <> 1) then Exit;
+
+    A.SetString(' 1/2 ');
+    if (A.Numerator <> 1) or (A.Denominator <> 2) then Exit;
+
+    A.SetString('1 / 2');
+    if (A.Numerator <> 1) or (A.Denominator <> 2) then Exit;
+
+    A.SetString('$10');
+    if (A.Numerator <> 16) or (A.Denominator <> 1) then Exit;
+
+    A.SetString('-9223372036854775808');
+    if (A.Numerator <> Low(Int64)) or (A.Denominator <> 1) then Exit;
+
+    // ---- 分母为 0：入口即抛，消息含原始串，对象保持原值 ----
+    A.SetString('3/4');
+    OK := False;
+    try
+      A.SetString('1/0');
+    except
+      on E: ECnMatrixException do
+        OK := Pos('1/0', E.Message) > 0;
+    end;
+    if not OK then Exit;
+    if (A.Numerator <> 3) or (A.Denominator <> 4) then Exit;   // 失败后保持原值
+
+    // ---- 格式错误：非数字、多个 '/'、空段、空串 ----
+    OK := False;
+    try A.SetString('abc'); except on E: ECnMatrixException do OK := True; end;
+    if not OK then Exit;
+
+    OK := False;
+    try A.SetString('1/2/3'); except on E: ECnMatrixException do OK := True; end;
+    if not OK then Exit;
+
+    OK := False;
+    try A.SetString('/3'); except on E: ECnMatrixException do OK := True; end;
+    if not OK then Exit;
+
+    OK := False;
+    try A.SetString('1/'); except on E: ECnMatrixException do OK := True; end;
+    if not OK then Exit;
+
+    OK := False;
+    try A.SetString(''); except on E: ECnMatrixException do OK := True; end;
+    if not OK then Exit;
+
+    // ---- 超范围规约（Low/-1 无法翻符号）在入口抛溢出 ----
+    OK := False;
+    try A.SetString('-9223372036854775808/-1'); except on E: ECnMatrixException do OK := True; end;
+    if not OK then Exit;
+
+    Result := True;
+  finally
     A.Free;
   end;
 end;

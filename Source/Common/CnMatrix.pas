@@ -1391,6 +1391,8 @@ resourcestring
   SCnErrorDeterminantSquare = 'Only Square can Determinant';
   SCnErrorInt64Overflow = 'Int64 Overflow in Matrix Operation.';
   SCnErrorMatrixDivideByZero = 'Divided by Zero.';
+  SCnErrorInvalidRationalString = 'Invalid Rational String: %s';
+  SCnErrorRationalStringDenZero = 'Denominator can NOT be Zero in Rational String: %s';
 
 const
   // 浮点矩阵判断奇异的相对阈值：|行列式| <= 缩放因子 * 该值 时视为奇异。
@@ -3295,24 +3297,51 @@ begin
   FNumerator := 1;
 end;
 
+// 把有理数字符串的一个片段解析为 Int64，失败时抛出带原始串的
+// ECnMatrixException，而不是裸的 EConvertError（StrToInt64 各版本均可用）
+function RationalStrToInt64(const S: string; const Original: string): Int64;
+begin
+  try
+    Result := StrToInt64(S);
+  except
+    on EConvertError do
+      raise ECnMatrixException.CreateFmt(SCnErrorInvalidRationalString, [Original]);
+  end;
+end;
+
 procedure TCnRationalNumber.SetString(const Value: string);
 var
   P: Integer;
-  N, D: string;
+  N, D: Int64;
+  S, NS, DS: string;
 begin
-  P := Pos('/', Value);
-  if P > 1 then
+  S := Trim(Value);
+  P := Pos('/', S);
+  if P > 0 then
   begin
-    N := Copy(Value, 1, P - 1);
-    D := Copy(Value, P + 1, MaxInt);
-    FNumerator := StrToInt64(N);
-    FDenominator := StrToInt64(D);
+    // 分数形式：分子分母都不能为空，分母中不允许再出现 '/'
+    NS := Copy(S, 1, P - 1);
+    DS := Copy(S, P + 1, MaxInt);
+    if (NS = '') or (DS = '') or (Pos('/', DS) > 0) then
+      raise ECnMatrixException.CreateFmt(SCnErrorInvalidRationalString, [Value]);
+
+    N := RationalStrToInt64(Trim(NS), Value);
+    D := RationalStrToInt64(Trim(DS), Value);
+
+    // 分母为 0 在入口立即拒绝，避免构造出非法状态延迟到后续运算才出错
+    if D = 0 then
+      raise ECnMatrixException.CreateFmt(SCnErrorRationalStringDenZero, [Value]);
+
+    FDenominator := D;
+    FNumerator := N;
   end
   else
   begin
-    FNumerator := StrToInt64(Value);
+    FNumerator := RationalStrToInt64(S, Value);
     FDenominator := 1;
   end;
+  // 统一约分并把符号归到分子，保证规范形式
+  Reduce;
 end;
 
 procedure TCnRationalNumber.SetValue(ANumerator, ADenominator: Int64);
