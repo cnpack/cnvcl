@@ -498,7 +498,9 @@ type
   end;
 
   TCnRationalNumber = class(TPersistent)
-  {* 表示一个有理数，分子分母均在 Int64 范围内}
+  {* 表示一个有理数，分子分母均在 Int64 范围内。
+     运算结果或中间乘积超出 Int64 范围时抛出 ECnMatrixException，不做回绕；
+     需要更大范围的场景请使用 CnBigRational 单元的 TCnBigRational}
   private
     FNumerator: Int64;
     FDenominator: Int64;
@@ -1034,8 +1036,8 @@ procedure CnMatrixAdjoint(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overloa
 }
 
 procedure CnMatrixInverse(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
-{* 求方阵的逆矩阵，也就是伴随阵除以行列式，注意 TCnIntMatrix 不直接支持逆矩阵，
-   因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵。Matrix2 不能是 Matrix1。
+{* 求方阵的逆矩阵。TCnIntMatrix 不支持逆矩阵，因为除可能导致非整数，
+   调用即抛异常，需要改用 TCnRationalMatrix 来表示，或子类伽罗华矩阵。
 
    参数：
      Matrix1: TCnIntMatrix                - 待求逆矩阵的原矩阵
@@ -1379,6 +1381,7 @@ resourcestring
   SCnErrorMulRowCount = 'Matrix 1 Col Count must Equal to Matrix 2 Row Count';
   SCnErrorPowerSquare = 'Matrix Power Must Be Square';
   SCnErrorDivNotImplInt = 'Operation Div NOT Implemented in Int Matrix';
+  SCnErrorInverseNotImplInt = 'Inverse NOT Implemented in Int Matrix, please Convert to TCnRationalMatrix.';
   SCnErrorTraceSquare = 'Only Square Matrix can Trace';
   SCnErrorInvalidPower = 'Invalid Matrix Power';
   SCnErrorRowColMustEqual = 'Matrix 1/2 Row/Col Count must Equal';
@@ -1386,7 +1389,7 @@ resourcestring
   SCnErrorAdjointSquare = 'Only Square can Adjoint';
   SCnErrorInverseZeroDeteminant = 'NO Inverse Matrix for Deteminant is 0';
   SCnErrorDeterminantSquare = 'Only Square can Determinant';
-  SCnErrorInt64Overflow = 'Int64 Overflow in Rational Operation.';
+  SCnErrorInt64Overflow = 'Int64 Overflow in Matrix Operation.';
   SCnErrorMatrixDivideByZero = 'Divided by Zero.';
 
 const
@@ -2106,6 +2109,7 @@ end;
 procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnIntMatrix);
 var
   I, J: Integer;
+  D: Int64;
   Minor: TCnIntMatrix;
 begin
   if Matrix2 = Matrix1 then
@@ -2133,7 +2137,11 @@ begin
       for J := 0 to Matrix1.ColCount - 1 do
       begin
         CnMatrixMinor(Matrix1, I, J, Minor);
-        Matrix2.Value[I, J] := Matrix1.NegativeOnePower(I + J) * Minor.Determinant;
+        D := Minor.Determinant;
+        // 乘以 -1 时 Low(Int64) 取负回绕变号，无法表示，抛异常
+        if (D = Low(Int64)) and (Matrix1.NegativeOnePower(I + J) < 0) then
+          raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+        Matrix2.Value[I, J] := Matrix1.NegativeOnePower(I + J) * D;
       end;
     end;
     CnMatrixTranspose(Matrix2, Matrix2);
@@ -2226,18 +2234,10 @@ begin
 end;
 
 procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix);
-var
-  D: Int64;
 begin
-  if Matrix2 = Matrix1 then
-    raise ECnMatrixException.Create(SCnErrorResultFactors);
-
-  D := Matrix1.Determinant;
-  if D = 0 then
-    raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
-
-  CnMatrixAdjoint(Matrix1, Matrix2);
-  Matrix2.Divide(D);
+  // 整数矩阵除法求逆会产生非整数（Divide 本就是未实现的 stub），
+  // 入口直接抛异常并提示改用有理数矩阵，避免白算行列式与伴随阵
+  raise ECnMatrixException.Create(SCnErrorInverseNotImplInt);
 end;
 
 procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix);
@@ -2515,6 +2515,7 @@ end;
 
 function TCnIntMatrix.IsSingular: Boolean;
 begin
+  // 溢出时 Determinant 抛 ECnMatrixException 向上传播，不会把溢出回绕值误判为 0
   if not IsSquare then
     Result := False
   else
@@ -2586,6 +2587,10 @@ end;
 
 function TCnIntMatrix.OperationAdd(X, Y: Int64): Int64;
 begin
+  // Int 矩阵定位为精确运算，溢出 Int64 时抛异常而非静默回绕
+  if IsInt64AddOverflow(X, Y) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   Result := X + Y;
 end;
 
@@ -2596,11 +2601,17 @@ end;
 
 function TCnIntMatrix.OperationMul(X, Y: Int64): Int64;
 begin
+  if IsInt64MulOverflow(X, Y) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   Result := X * Y;
 end;
 
 function TCnIntMatrix.OperationSub(X, Y: Int64): Int64;
 begin
+  if IsInt64SubOverflow(X, Y) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   Result := X - Y;
 end;
 
@@ -3118,8 +3129,18 @@ begin
 end;
 
 procedure TCnRationalNumber.Add(Value: Int64);
+var
+  T: Int64;
 begin
-  FNumerator := FNumerator + Value * FDenominator;
+  // Value * FDenominator 及加法可能溢出 Int64，先检查，避免静默回绕
+  if IsInt64MulOverflow(Value, FDenominator) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+  T := Value * FDenominator;
+  if IsInt64AddOverflow(FNumerator, T) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+  FNumerator := FNumerator + T;
 end;
 
 procedure TCnRationalNumber.AssignTo(Dest: TPersistent);
@@ -3151,6 +3172,10 @@ end;
 
 procedure TCnRationalNumber.Divide(Value: Int64);
 begin
+  // FDenominator * Value 可能溢出 Int64，先检查；Value 为 0 时仍由 SetDenominator 抛异常
+  if IsInt64MulOverflow(FDenominator, Value) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   Denominator := FDenominator * Value;
   Reduce;
 end;
@@ -3167,6 +3192,10 @@ end;
 
 function TCnRationalNumber.EqualInt(Value: Int64): Boolean;
 begin
+  // 交叉相乘判等，乘积溢出 Int64 时抛异常，避免静默回绕误判（与 Equal 一致）
+  if IsInt64MulOverflow(FDenominator, Value) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   Result := FNumerator = FDenominator * Value;
 end;
 
@@ -3198,6 +3227,10 @@ end;
 
 procedure TCnRationalNumber.Mul(Value: Int64);
 begin
+  // 乘法可能溢出 Int64，先检查，避免静默回绕
+  if IsInt64MulOverflow(FNumerator, Value) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
   FNumerator := FNumerator * Value;
   Reduce;
 end;
@@ -3224,6 +3257,10 @@ begin
   // 分母为负时把符号挪到分子上，保证规约形式分母恒为正
   if FDenominator < 0 then
   begin
+    // Low(Int64) 取负会回绕变号，无法规约，抛异常而非产生错误值
+    if (FDenominator = Low(Int64)) or (FNumerator = Low(Int64)) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
     FDenominator := -FDenominator;
     FNumerator := -FNumerator;
   end;
@@ -3296,8 +3333,18 @@ begin
 end;
 
 procedure TCnRationalNumber.Sub(Value: Int64);
+var
+  T: Int64;
 begin
-  FNumerator := FNumerator - Value * FDenominator;
+  // Value * FDenominator 及减法可能溢出 Int64，先检查，避免静默回绕
+  if IsInt64MulOverflow(Value, FDenominator) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+  T := Value * FDenominator;
+  if IsInt64SubOverflow(FNumerator, T) then
+    raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+  FNumerator := FNumerator - T;
 end;
 
 function TCnRationalNumber.ToString: string;
@@ -3361,10 +3408,8 @@ begin
 end;
 
 procedure CnRationalNumberAdd(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
-const
-  SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
-  M, F1, F2, D1, D2: Int64;
+  M, F1, F2, D1, D2, T1, T2, N: Int64;
   B1, B2: Boolean;
 begin
   if Number1.IsInt and Number2.IsInt then
@@ -3372,13 +3417,27 @@ begin
     // 注意分母可能为 -1（未规约形式），不能直接加分子，先按分母符号归成带符号整数再运算
     B1 := Number1.Denominator < 0;
     B2 := Number2.Denominator < 0;
-    if B1 = B2 then
-      Res.Numerator := Number1.Numerator + Number2.Numerator
-    else
-      Res.Numerator := Number1.Numerator - Number2.Numerator;
+    T1 := Number1.Numerator;
+    T2 := Number2.Numerator;
+    if B1 then
+    begin
+      if T1 = Low(Int64) then // 取负会回绕
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T1 := -T1;
+    end;
+    if B2 then
+    begin
+      if T2 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T2 := -T2;
+    end;
+
+    // 归一后异号相加不会溢出，同号才需要检查
+    if ((T1 < 0) = (T2 < 0)) and IsInt64AddOverflow(T1, T2) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    Res.Numerator := T1 + T2;
     Res.Denominator := 1;
-    if B1 then // 上面用的是未翻符号的 Number1.Numerator，结果要翻回来
-      Res.Numerator := -Res.Numerator;
   end
   else
   begin
@@ -3389,18 +3448,51 @@ begin
     B1 := D1 < 0;
     B2 := D2 < 0;
     if B1 then
+    begin
+      if D1 = Low(Int64) then // 取负会回绕
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
       D1 := -D1;
+    end;
 
     if B2 then
+    begin
+      if D2 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
       D2 := -D2;
+    end;
 
     M := Int64Lcm(D1, D2);
     F1 := M div D1;
     F2 := M div D2;
 
+    // 展开通分后的分子，乘法与加法都可能溢出 Int64，先检查再运算
+    if IsInt64MulOverflow(Number1.Numerator, F1)
+      or IsInt64MulOverflow(Number2.Numerator, F2) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    T1 := Number1.Numerator * F1;
+    T2 := Number2.Numerator * F2;
+
+    if B1 then
+    begin
+      if T1 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T1 := -T1;
+    end;
+
+    if B2 then
+    begin
+      if T2 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T2 := -T2;
+    end;
+
+    if IsInt64AddOverflow(T1, T2) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    N := T1 + T2;
+    Res.Numerator := N;
     Res.Denominator := M;
-    Res.Numerator := Number1.Numerator * F1 * SIGN_ARRAY[B1]
-      + Number2.Numerator * F2 * SIGN_ARRAY[B2]; // 可能溢出，暂无办法
     Res.Reduce;
   end;
 end;
@@ -3412,10 +3504,8 @@ begin
 end;
 
 procedure CnRationalNumberSub(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
-const
-  SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
-  M, F1, F2, D1, D2: Int64;
+  M, F1, F2, D1, D2, T1, T2, N: Int64;
   B1, B2: Boolean;
 begin
   if Number1.IsInt and Number2.IsInt then
@@ -3423,13 +3513,27 @@ begin
     // 注意分母可能为 -1（未规约形式），不能直接减分子，先按分母符号归成带符号整数再运算
     B1 := Number1.Denominator < 0;
     B2 := Number2.Denominator < 0;
-    if B1 = B2 then
-      Res.Numerator := Number1.Numerator - Number2.Numerator
-    else
-      Res.Numerator := Number1.Numerator + Number2.Numerator;
+    T1 := Number1.Numerator;
+    T2 := Number2.Numerator;
+    if B1 then
+    begin
+      if T1 = Low(Int64) then // 取负会回绕
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T1 := -T1;
+    end;
+    if B2 then
+    begin
+      if T2 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T2 := -T2;
+    end;
+
+    // 归一后按带符号整数值相减
+    if IsInt64SubOverflow(T1, T2) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    Res.Numerator := T1 - T2;
     Res.Denominator := 1;
-    if B1 then // 上面用的是未翻符号的 Number1.Numerator，结果要翻回来
-      Res.Numerator := -Res.Numerator;
   end
   else
   begin
@@ -3440,53 +3544,107 @@ begin
     B1 := D1 < 0;
     B2 := D2 < 0;
     if B1 then
+    begin
+      if D1 = Low(Int64) then // 取负会回绕
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
       D1 := -D1;
+    end;
 
     if B2 then
+    begin
+      if D2 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
       D2 := -D2;
+    end;
 
     M := Int64Lcm(D1, D2);
     F1 := M div D1;
     F2 := M div D2;
 
+    // 展开通分后的分子，乘法与减法都可能溢出 Int64，先检查再运算
+    if IsInt64MulOverflow(Number1.Numerator, F1)
+      or IsInt64MulOverflow(Number2.Numerator, F2) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    T1 := Number1.Numerator * F1;
+    T2 := Number2.Numerator * F2;
+
+    if B1 then
+    begin
+      if T1 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T1 := -T1;
+    end;
+
+    if B2 then
+    begin
+      if T2 = Low(Int64) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+      T2 := -T2;
+    end;
+
+    if IsInt64SubOverflow(T1, T2) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    N := T1 - T2;
+    Res.Numerator := N;
     Res.Denominator := M;
-    Res.Numerator := Number1.Numerator * F1 * SIGN_ARRAY[B1]
-      - Number2.Numerator * F2 * SIGN_ARRAY[B2]; // 可能溢出，暂无办法
     Res.Reduce;
   end;
 end;
 
 procedure CnRationalNumberMul(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 var
-  X, Y: Int64;
+  X, Y, OldX, OldY, N, D: Int64;
 begin
-  // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约
+  // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约。
+  // 约分与否不能靠比较 X 与原值大小判断（负数约分后反而变大），改为比较是否变化
   X := Number1.Numerator;
   Y := Number2.Denominator;
+  OldX := X;
+  OldY := Y;
   CnReduceInt64(X, Y);
-  if X < Number1.Numerator then
+  if (X <> OldX) or (Y <> OldY) then
   begin
     // 有约的了
-    Res.Numerator := X * Number2.Numerator;
-    Res.Denominator := Number1.Denominator * Y;
+    if IsInt64MulOverflow(X, Number2.Numerator)
+      or IsInt64MulOverflow(Number1.Denominator, Y) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+    N := X * Number2.Numerator;
+    D := Number1.Denominator * Y;
   end
   else
   begin
     X := Number1.Denominator;
     Y := Number2.Numerator;
+    OldX := X;
+    OldY := Y;
     CnReduceInt64(X, Y);
-    if X < Number1.Denominator then
+    if (X <> OldX) or (Y <> OldY) then
     begin
       // 有的约了
-      Res.Numerator := Number1.Numerator * Y;
-      Res.Denominator := X * Number2.Denominator;
+      if IsInt64MulOverflow(Number1.Numerator, Y)
+        or IsInt64MulOverflow(X, Number2.Denominator) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+      N := Number1.Numerator * Y;
+      D := X * Number2.Denominator;
     end
     else
     begin
-      Res.Numerator := Number1.Numerator * Number2.Numerator;
-      Res.Denominator := Number1.Denominator * Number2.Denominator;
+      if IsInt64MulOverflow(Number1.Numerator, Number2.Numerator)
+        or IsInt64MulOverflow(Number1.Denominator, Number2.Denominator) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
+      N := Number1.Numerator * Number2.Numerator;
+      D := Number1.Denominator * Number2.Denominator;
     end;
   end;
+
+  // Res 可能与 Number1 或 Number2 是同一对象，先算完再一次性写回
+  Res.Numerator := N;
+  Res.Denominator := D;
   Res.Reduce;
 end;
 
@@ -3498,18 +3656,25 @@ end;
 
 procedure CnRationalNumberDiv(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 var
-  X, Y, N, D: Int64;
+  X, Y, OldX, OldY, N, D: Int64;
 begin
   // 除数为 0 时在任何写入前就抛异常，保证 Res 不被部分改写
   if Number2.Numerator = 0 then
     raise ECnMatrixException.Create(SCnErrorMatrixDivideByZero);
 
-  // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约
+  // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约。
+  // 约分与否不能靠比较 X 与原值大小判断（负数约分后反而变大），改为比较是否变化
   X := Number1.Numerator;
   Y := Number2.Numerator;
+  OldX := X;
+  OldY := Y;
   CnReduceInt64(X, Y);
-  if X < Number1.Numerator then
+  if (X <> OldX) or (Y <> OldY) then
   begin
+    if IsInt64MulOverflow(X, Number2.Denominator)
+      or IsInt64MulOverflow(Number1.Denominator, Y) then
+      raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
     N := X * Number2.Denominator;
     D := Number1.Denominator * Y;
   end
@@ -3517,14 +3682,24 @@ begin
   begin
     X := Number1.Denominator;
     Y := Number2.Denominator;
+    OldX := X;
+    OldY := Y;
     CnReduceInt64(X, Y);
-    if X < Number1.Denominator then
+    if (X <> OldX) or (Y <> OldY) then
     begin
+      if IsInt64MulOverflow(Number1.Numerator, Y)
+        or IsInt64MulOverflow(X, Number2.Numerator) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
       N := Number1.Numerator * Y;
       D := X * Number2.Numerator;
     end
     else
     begin
+      if IsInt64MulOverflow(Number1.Numerator, Number2.Denominator)
+        or IsInt64MulOverflow(Number1.Denominator, Number2.Numerator) then
+        raise ECnMatrixException.Create(SCnErrorInt64Overflow);
+
       N := Number1.Numerator * Number2.Denominator;
       D := Number1.Denominator * Number2.Numerator;
     end;
@@ -3953,6 +4128,8 @@ function TCnRationalMatrix.IsSingular: Boolean;
 var
   D: TCnRationalNumber;
 begin
+  // 溢出时 Determinant 内部的有理数运算抛 ECnMatrixException 向上传播，
+  // 不会把溢出回绕值误判为 0
   if not IsSquare then
     Result := False
   else
