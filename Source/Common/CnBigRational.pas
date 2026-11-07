@@ -619,6 +619,11 @@ resourcestring
   SCnErrorBigRationalMemSize = 'Memory Size Error.';
   SCnErrorBigRationalStringIsInvalid = 'Invalid Rational String.';
 
+const
+  // 序列化 BigNumber 块的最小长度（4 长度 + 2 标志 + 4 数据长度）
+  CN_MIN_BIGNUMBER_MEM_SIZE = SizeOf(Byte) + SizeOf(Byte) +
+    SizeOf(Integer) + SizeOf(Integer);
+
 var
   FLocalBigRationalPool: TCnBigRationalPool = nil;
   FLocalBigNumberPool: TCnBigNumberPool = nil;
@@ -1449,8 +1454,17 @@ begin
   Inc(P4);
   P1 := PByte(P4);
 
+  // 剩余长度必须容得下最小的 BigNumber 块，否则传给内层的
+  // 边界会小于等于 0 而被当作"无界"，读到声明缓冲区之外
+  if (Size > 0) and (Size - SizeOf(Integer) < CN_MIN_BIGNUMBER_MEM_SIZE) then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
   Ln := FNumerator.LoadFromMem(P1, Size - SizeOf(Integer));       // 分子
   Inc(P1, Ln);
+
+  if (Size > 0) and (Size - SizeOf(Integer) - Ln < CN_MIN_BIGNUMBER_MEM_SIZE) then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalMemSize);
+
   FDenominator.LoadFromMem(P1, Size - SizeOf(Integer) - Ln);      // 分母
 end;
 

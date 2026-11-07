@@ -1613,6 +1613,11 @@ uses
 const
   SCnErrorBigComplexMemSize = 'Memory Size Error';
 
+  // 序列化块的最小长度（BigNumber 块 10 字节、BigDecimal 块 18 字节）
+  CN_MIN_BIGNUMBER_MEM_SIZE = SizeOf(Byte) + SizeOf(Byte) +
+    SizeOf(Integer) + SizeOf(Integer);
+  CN_MIN_BIGDECIMAL_MEM_SIZE = SizeOf(Integer) * 2 + CN_MIN_BIGNUMBER_MEM_SIZE;
+
 var
   FBigComplexDecimalPool: TCnBigComplexDecimalPool = nil;
   FBigDecimalPool: TCnBigDecimalPool = nil;
@@ -2183,12 +2188,17 @@ function BigComplexAbsoluteValue(Res: TCnBigNumber; Complex: TCnBigComplex): Boo
 var
   X, Y: TCnBigNumber;
 begin
-  X := BigNumberDuplicate(Complex.FR);
-  Y := BigNumberDuplicate(Complex.FI);
-  BigNumberMul(X, X, X);
-  BigNumberMul(Y, Y, Y);
-  BigNumberAdd(Res, X, Y);
-  Result := BigNumberSqrt(Res, Res);
+  X := FBigNumberPool.Obtain;
+  Y := FBigNumberPool.Obtain;
+  try
+    BigNumberMul(X, Complex.FR, Complex.FR);
+    BigNumberMul(Y, Complex.FI, Complex.FI);
+    BigNumberAdd(Res, X, Y);
+    Result := BigNumberSqrt(Res, Res);
+  finally
+    FBigNumberPool.Recycle(Y);
+    FBigNumberPool.Recycle(X);
+  end;
 end;
 
 function BigComplexArgument(Complex: TCnBigComplex): Extended;
@@ -2377,8 +2387,17 @@ begin
   Inc(P4);
   P1 := PByte(P4);
 
+  // 剩余长度必须容得下最小的块，否则传给内层的边界会退化
+  // 为"无界"，读到声明缓冲区之外
+  if (Size > 0) and (Size - SizeOf(Integer) < CN_MIN_BIGNUMBER_MEM_SIZE) then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+
   Lr := FR.LoadFromMem(P1, Size - SizeOf(Integer));          // 实部
   Inc(P1, Lr);
+
+  if (Size > 0) and (Size - SizeOf(Integer) - Lr < CN_MIN_BIGNUMBER_MEM_SIZE) then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+
   FI.LoadFromMem(P1, Size - SizeOf(Integer) - Lr);     // 虚部
 end;
 
@@ -2832,11 +2851,13 @@ end;
 procedure BigComplexDecimalDiv(Res: TCnBigComplexDecimal;
   Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal; DivPrecision: Integer);
 var
-  T1, T2, D: TCnBigDecimal;
+  T1, T2, D, TR, TI: TCnBigDecimal;
 begin
-  T1 := FBigDecimalPool.Obtain;;
-  T2 := FBigDecimalPool.Obtain;;
-  D := FBigDecimalPool.Obtain;;
+  T1 := FBigDecimalPool.Obtain;
+  T2 := FBigDecimalPool.Obtain;
+  D := FBigDecimalPool.Obtain;
+  TR := FBigDecimalPool.Obtain;
+  TI := FBigDecimalPool.Obtain;
   try
     BigDecimalMul(T1, Complex2.FR, Complex2.FR);
     BigDecimalMul(T2, Complex2.FI, Complex2.FI);
@@ -2845,16 +2866,25 @@ begin
     if D.IsZero then
       raise EZeroDivide.Create(SZeroDivide);
 
+    // 实部 = (a*c + b*d) / D
     BigDecimalMul(T1, Complex1.FR, Complex2.FR);
     BigDecimalMul(T2, Complex1.FI, Complex2.FI);
     BigDecimalAdd(T1, T1, T2);
-    BigDecimalDiv(Res.FR, T1, D, DivPrecision);
+    BigDecimalDiv(TR, T1, D, DivPrecision);
 
+    // 虚部 = (b*c - a*d) / D，原先先写入 Res.FR 再读 Complex1.FR，
+    // Res 与任一操作数别名（文档允许）时读到的是已被覆盖的实部，虚部必然算错；
+    // 现将实部虚部都算入临时对象后一次性写回，别名安全
     BigDecimalMul(T1, Complex1.FI, Complex2.FR);
     BigDecimalMul(T2, Complex1.FR, Complex2.FI);
     BigDecimalSub(T1, T1, T2);
-    BigDecimalDiv(Res.FI, T1, D, DivPrecision);
+    BigDecimalDiv(TI, T1, D, DivPrecision);
+
+    BigDecimalCopy(Res.FR, TR);
+    BigDecimalCopy(Res.FI, TI);
   finally
+    FBigDecimalPool.Recycle(TI);
+    FBigDecimalPool.Recycle(TR);
     FBigDecimalPool.Recycle(D);
     FBigDecimalPool.Recycle(T2);
     FBigDecimalPool.Recycle(T1);
@@ -3231,8 +3261,16 @@ begin
   Inc(P4);
   P1 := PByte(P4);
 
+  // 剩余长度必须容得下最小的 BigDecimal 块
+  if (Size > 0) and (Size - SizeOf(Integer) < CN_MIN_BIGDECIMAL_MEM_SIZE) then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+
   Lr := FR.LoadFromMem(P1, Size - SizeOf(Integer));    // 实部
   Inc(P1, Lr);
+
+  if (Size > 0) and (Size - SizeOf(Integer) - Lr < CN_MIN_BIGDECIMAL_MEM_SIZE) then
+    raise ECnComplexNumberException.Create(SCnErrorBigComplexMemSize);
+
   FI.LoadFromMem(P1, Size - SizeOf(Integer) - Lr);     // 虚部
 end;
 

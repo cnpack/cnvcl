@@ -1494,6 +1494,16 @@ resourcestring
   SCnErrorBigDecimalMemSize = 'Memory Size Error.';
 
 const
+  // 防护常量
+  CN_SQRT_MAX_ITERATIONS = 256;                 // 开方牛顿迭代的防御性上限
+  CN_BIGDECIMAL_MAX_DIV_EXPAND = 100000;        // 除法放大倍数上限，超过则退化为按有效数字放大
+  CN_BIGDECIMAL_MAX_RATIONAL_SCALE = 100000;    // 转大有理数时允许的最大 Scale
+  CN_BIG_BINARY_MAX_SETDEC_DIGITS = 100000;     // BigBinarySetDec 整数分支十进制位数上限
+  CN_BIG_BINARY_MAX_SETDEC_FRAC_DIGITS = 10000; // BigBinarySetDec 小数分支十进制位数上限
+  CN_MIN_BIGNUMBER_MEM_SIZE = SizeOf(Byte) + SizeOf(Byte) +
+    SizeOf(Integer) + SizeOf(Integer);          // 序列化 BigNumber 块最小长度（10 字节）
+  CN_BIGDECIMAL_LOG2_10 = 3.3219280948873623;   // 量级预判估算用
+
   SCN_FIVE_POWER_UINT32 = 13;
   SCN_POWER_FIVES32: array[0..13] of Cardinal = (
     1,                               // 5 ^ 0
@@ -1601,6 +1611,29 @@ begin
   if IsInt32MulOverflow(Scale, Num) then
     raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
   Result := Scale * Num;
+end;
+
+// 估算 Value / 10^Scale（IsDecimal）或 Value / 2^Scale 形态值的
+// 二进制最高位指数。十进制时对真实指数有 ±2 以内的估计误差，供各浮点转换在
+// 正式规约前做量级预判，避免对极端 Scale 的输入计算 5^|Scale| 级别的巨量中间结果。
+function EstimateBinaryExp(Num: TCnBigNumber; Scale: Integer; IsDecimal: Boolean): Integer;
+var
+  D: Double;
+begin
+  if IsDecimal then
+  begin
+    // Trunc 到 Integer 对超过 MaxInt 的值属于未定义行为（|Scale| 极大时
+    // Scale * Log2(10) 可达 7×10^9），先钳制到安全范围；阈值比较所需的
+    // 精度远小于该量级，钳制不影响判定正确性
+    D := Scale * CN_BIGDECIMAL_LOG2_10;
+    if D > 1000000000 then
+      D := 1000000000
+    else if D < -1000000000 then
+      D := -1000000000;
+    Result := Num.GetBitsCount - 1 - Trunc(D);
+  end
+  else
+    Result := Num.GetBitsCount - 1 - Scale;
 end;
 
 procedure RoundDecimalByMode(Quotient, Divisor, Remainder: TCnBigNumber; QWillBeNeg: Boolean;
@@ -2077,7 +2110,14 @@ begin
   else
     Sticky := False;
 
-  M := M shr Shift;
+  // Shift 恰等于 Bits（Extended 的 64）时，x86 的变量移位计数
+  // 对 64 取模，shr 64 是空移位而非整体移出，导致该区间次正规数经进位分支
+  // 被放大 2^63 倍输出为最小规格化数。数学上此时商恒为 0，须显式清零。
+  if Shift >= Bits then
+    M := 0
+  else
+    M := M shr Shift;
+
   if RoundBit and (Sticky or ((M and 1) <> 0)) then
     Inc(M);
 
@@ -2211,10 +2251,26 @@ var
   E: Integer;
   M: TUInt64;
   St: TCnFloatConvertStatus;
+  EstExp: Integer;
 begin
   if Num.Value.IsZero then
   begin
     Result := 0.0;
+    Exit;
+  end;
+
+  // 量级预判，明显超出规格化范围时直接返回带符号无穷或零
+  EstExp := EstimateBinaryExp(Num.FValue, Num.FScale, True);
+  if EstExp >= CN_SINGLE_MAX_EXPONENT + 2 then
+  begin
+    Result := SingleInfinity(Num.IsNegative);
+    Exit;
+  end;
+  if EstExp <= CN_SINGLE_MIN_NORMAL_EXPONENT - CN_SINGLE_SIGNIFICAND_BITLENGTH - 4 then
+  begin
+    Result := 0.0;
+    if Num.IsNegative then
+      Result := -Result;
     Exit;
   end;
 
@@ -2251,10 +2307,26 @@ var
   E: Integer;
   M: TUInt64;
   St: TCnFloatConvertStatus;
+  EstExp: Integer;
 begin
   if Num.Value.IsZero then
   begin
     Result := 0.0;
+    Exit;
+  end;
+
+  // 量级预判，明显超出规格化范围时直接返回带符号无穷或零
+  EstExp := EstimateBinaryExp(Num.FValue, Num.FScale, True);
+  if EstExp >= CN_DOUBLE_MAX_EXPONENT + 2 then
+  begin
+    Result := DoubleInfinity(Num.IsNegative);
+    Exit;
+  end;
+  if EstExp <= CN_DOUBLE_MIN_NORMAL_EXPONENT - CN_DOUBLE_SIGNIFICAND_BITLENGTH - 4 then
+  begin
+    Result := 0.0;
+    if Num.IsNegative then
+      Result := -Result;
     Exit;
   end;
 
@@ -2292,7 +2364,7 @@ var
   M: TUInt64;
   St: TCnFloatConvertStatus;
   ImplicitLeadingOne: Boolean;
-  MinNormal: Integer;
+  MinNormal, MaxExp, EstExp: Integer;
 begin
   if Num.Value.IsZero then
   begin
@@ -2305,12 +2377,29 @@ begin
     L := CN_DOUBLE_SIGNIFICAND_BITLENGTH;       // 8 字节 Extended 按 Double 处理
     ImplicitLeadingOne := True;
     MinNormal := CN_DOUBLE_MIN_NORMAL_EXPONENT;
+    MaxExp := CN_DOUBLE_MAX_EXPONENT;
   end
   else
   begin
     L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;     // 80/128 位 Extended 尾数含整数位
     ImplicitLeadingOne := False;
     MinNormal := CN_EXTENDED_MIN_NORMAL_EXPONENT;
+    MaxExp := CN_EXTENDED_MAX_EXPONENT;
+  end;
+
+  // 量级预判（同 ToSingle/ToDouble）
+  EstExp := EstimateBinaryExp(Num.FValue, Num.FScale, True);
+  if EstExp >= MaxExp + 2 then
+  begin
+    Result := ExtendedInfinity(Num.IsNegative);
+    Exit;
+  end;
+  if EstExp <= MinNormal - L - 4 then
+  begin
+    Result := 0.0;
+    if Num.IsNegative then
+      Result := -Result;
+    Exit;
   end;
 
   T := FLocalBigDecimalPool.Obtain;
@@ -2656,12 +2745,20 @@ begin
 
   if DivPrecision <= 0 then
     DivPrecision := FDefaultDecimalPrecisionDigits;
-  if DivPrecision < 0 then
-    DivPrecision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
-  // 根据精度要求计算将被除数扩大的倍数，注意为了加速可能有 1 位误差
-  M := CheckScaleAddRange(DivPrecision, BigNumberGetTenPrecision2(Num2.FValue)
-    - BigNumberGetTenPrecision2(Num1.FValue) + 1);
+  // 放大倍数只取决于双方的 Scale 差，须保证结果的 Scale 不小于
+  // DivPrecision + 1，令截断误差小于 10^-(DivPrecision+1)。原先按 GetTenPrecision2
+  // 的位数差估算，被除数整数部分长于除数时 M 被钳为 0，TS 停留在 s1-s2，
+  // 商的小数位大量丢失甚至整个丢失（如 12345678901234/3 只能得到整数部分）。
+  M := CheckScaleAddRange(DivPrecision + 1, -TS);
+  if M > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+  begin
+    // 商的量级过大，无法在限定开销内提供 DivPrecision 位小数，退化为按有效
+    // 数字放大（约 DivPrecision + 2 位有效数字），维持符号化 Scale 的可行性
+    M := CheckScaleAddRange(DivPrecision, BigNumberGetTenPrecision2(Num2.FValue)
+      - BigNumberGetTenPrecision2(Num1.FValue) + 1);
+  end;
+
   if M < 0 then  // 无需扩大、精度已经足够
     M := 0
   else if M > 0 then
@@ -2746,6 +2843,7 @@ function BigDecimalSqrt(Res: TCnBigDecimal; Num: TCnBigDecimal;
   SqrtPrecision: Integer = 0): Boolean;
 var
   X0, R, T, D, G: TCnBigDecimal;
+  I, P, EstT, EstG: Integer;
 begin
   if Num.IsNegative then
     raise ERangeError.Create(SCnSqrtRangeError);
@@ -2778,15 +2876,24 @@ begin
     T := FLocalBigDecimalPool.Obtain;
 
     X0 := FLocalBigDecimalPool.Obtain;
-    BigDecimalCopy(X0, Num);
+    // 以 10^(P div 2) 作初值（P 为值的十进制位数估计，恒为
+    // 开方结果的过估计），使牛顿迭代直接进入二次收敛。原先以 Num 自身作初值，
+    // 收敛前要先经历长达位数级的线性减半阶段，大数输入久到形同死循环。
+    // Scale 以符号化方式携带，极端指数的输入也不会产生巨量中间数据。
+    P := BigDecimalGetPrecision(Num) - Num.FScale;
+    X0.SetWord(1);
+    X0.FScale := -(P div 2);
 
     if Res <> Num then
       R := Res
     else
       R := FLocalBigDecimalPool.Obtain;
 
+    I := 0;
     while True do
     begin
+      Inc(I);
+
       // R := (X0 + Num/X0) / 2;
       BigDecimalCopy(R, Num);
       BigDecimalDiv(R, R, X0, SqrtPrecision * 2);
@@ -2797,7 +2904,24 @@ begin
       if T.IsNegative then
         T.Negate;
 
-      if BigDecimalCompare(T, G) <= 0 then
+      // 间隙为零（如完全平方数且初值恰为精确根）直接收敛。
+      // 注意必须先于量级预判判断，EstimateBinaryExp 对零值会给出无意义的结果
+      if T.IsZero then
+        Break;
+
+      // 先用指数估计做量级预判，间隙明显小于或明显大于收敛阈值时直接判定。
+      // BigDecimalCompare 对跨巨 Scale 的比较会把小 Scale 一侧乘 10^Δ，极端
+      // 输入下会物质化上百 MB 的中间数据，只有量级接近时才做全量比较
+      EstT := EstimateBinaryExp(T.FValue, T.FScale, True);
+      EstG := EstimateBinaryExp(G.FValue, G.FScale, True);
+      if EstT + 3 < EstG then
+        Break;
+      if EstT - 3 <= EstG then
+        if BigDecimalCompare(T, G) <= 0 then
+          Break;
+
+      // 迭代上限为防御性保护：牛顿法相对误差每步平方，正常收敛只需对数次迭代
+      if I >= CN_SQRT_MAX_ITERATIONS then
         Break;
 
       // X0 := R;
@@ -2827,6 +2951,14 @@ var
   Neg: Boolean;
 begin
   DS := CheckScaleAddRange(Num.FScale, -Scale);
+  if DS > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+  begin
+    // 舍入量过大不可行，交给带守卫的 RoundToDigits 处理
+    // （其内部对 TowardsZero 语义判零，其余模式拒绝）
+    Result := BigDecimalRoundToDigits(Res, Num, Scale, RoundMode);
+    Exit;
+  end;
+
   if DS > 0 then // 新的小数点后的位数比原来少，要除之后舍入
   begin
     D := FLocalBigNumberPool.Obtain;
@@ -2858,8 +2990,17 @@ begin
       FLocalBigNumberPool.Recycle(R);
     end;
   end
-  else // 新的小数点位数比原来还多，简单变换一下就行
+  else // 新的小数点位数比原来还多
   begin
+    // 目标小数位比当前多出巨量位时，乘 10^-DS 的变换不可行；
+    // 值在当前 Scale 下已精确表示，多出的小数位全为零，舍入是恒等变换，
+    // 保持原表示即可
+    if -DS > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+    begin
+      BigDecimalCopy(Res, Num);
+      Result := True;
+      Exit;
+    end;
     BigNumberCopy(Res.FValue, Num.FValue);
     if DS < 0 then
       BigNumberMulPower10(Res.FValue, -DS);
@@ -2877,6 +3018,22 @@ var
 begin
   Result := False;
   DS := CheckScaleAddRange(Num.FScale, -Digits);
+
+  // DS 巨大时构造 10^DS 做舍入不可行。此时若有效数字的二进制
+  // 位数保证 FValue < 10^DS，则按 TowardsZero 截断到 Digits 位的结果必为零
+  // （Div 的收尾舍入恒为 drTowardsZero）；其余模式在如此极端的 DS 下无法在
+  // 有限开销内完成，直接拒绝而不是形同死循环
+  if DS > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+  begin
+    if (RoundMode = drTowardsZero) and
+      (Num.FValue.GetBitsCount - 1 < DS * CN_BIGDECIMAL_LOG2_10) then
+    begin
+      Res.SetZero;
+      Result := True;
+      Exit;
+    end;
+    raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
+  end;
 
   if DS > 0 then // 新的小数点后的位数得比原来少，才能除之后舍入
   begin
@@ -2942,11 +3099,17 @@ begin
     Res.Denominator.SetOne;
     if Num.FScale > 0 then
     begin
+      // 超大规模的 10^Scale 幂会消耗海量内存与时间，拒绝转换
+      if Num.FScale > CN_BIGDECIMAL_MAX_RATIONAL_SCALE then
+        raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
       Res.Denominator.SetWord(10);
       Res.Denominator.PowerWord(Num.FScale);
     end
     else
     begin
+      // 同上
+      if -Num.FScale > CN_BIGDECIMAL_MAX_RATIONAL_SCALE then
+        raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
       T := FLocalBigNumberPool.Obtain;
       try
         T.SetWord(10);
@@ -3185,6 +3348,11 @@ begin
   FScale := P4^;                                                  // 4 字节 FScale
   Inc(P4);
   P1 := PByte(P4);
+
+  // 剩余长度必须容得下最小的 BigNumber 块，否则传给内层的
+  // 边界会小于等于 0 而被当作"无界"，读到声明缓冲区之外
+  if (Size > 0) and (Size - SizeOf(Integer) * 2 < CN_MIN_BIGNUMBER_MEM_SIZE) then
+    raise ECnBigDecimalException.Create(SCnErrorBigDecimalMemSize);
 
   FValue.LoadFromMem(P1, Size - SizeOf(Integer) * 2);      // 有效数字
 end;
@@ -3449,6 +3617,10 @@ begin
     end
     else if DC < 0 then // 还要乘以 10^-DC，结果仍是整数
     begin
+      // 预判结果规模（约 Length(V) - DC 个十进制位），超限拒绝，
+      // 防止按位乘 10 的循环对巨指数输入近乎死循环
+      if (Int64(Length(V)) - DC) > CN_BIG_BINARY_MAX_SETDEC_DIGITS then
+        Exit;
       if not TmpRes.FValue.SetDec(AnsiString(V)) then
         Exit;
       BigNumberMulPower10(TmpRes.FValue, -DC);
@@ -3456,6 +3628,10 @@ begin
     end
     else // DC > 0，说明有小数
     begin
+      // 小数位数过大时按位转换的二进制循环开销为平方级，
+      // 直接拒绝而不是分配巨量字符串并近乎死循环
+      if DC > CN_BIG_BINARY_MAX_SETDEC_FRAC_DIGITS then
+        Exit;
       if Length(V) > DC then
       begin
         S := Copy(V, 1, Length(V) - DC);             // S 是整数部分的字符串
@@ -3882,10 +4058,26 @@ var
   E: Integer;
   M: TUInt64;
   St: TCnFloatConvertStatus;
+  EstExp: Integer;
 begin
   if Num.Value.IsZero then
   begin
     Result := 0.0;
+    Exit;
+  end;
+
+  // 量级预判（二进制 Scale 的指数估计是精确的）
+  EstExp := EstimateBinaryExp(Num.FValue, Num.FScale, False);
+  if EstExp >= CN_SINGLE_MAX_EXPONENT + 2 then
+  begin
+    Result := SingleInfinity(Num.IsNegative);
+    Exit;
+  end;
+  if EstExp <= CN_SINGLE_MIN_NORMAL_EXPONENT - CN_SINGLE_SIGNIFICAND_BITLENGTH - 4 then
+  begin
+    Result := 0.0;
+    if Num.IsNegative then
+      Result := -Result;
     Exit;
   end;
 
@@ -3922,10 +4114,26 @@ var
   E: Integer;
   M: TUInt64;
   St: TCnFloatConvertStatus;
+  EstExp: Integer;
 begin
   if Num.Value.IsZero then
   begin
     Result := 0.0;
+    Exit;
+  end;
+
+  // 量级预判（二进制 Scale 的指数估计是精确的）
+  EstExp := EstimateBinaryExp(Num.FValue, Num.FScale, False);
+  if EstExp >= CN_DOUBLE_MAX_EXPONENT + 2 then
+  begin
+    Result := DoubleInfinity(Num.IsNegative);
+    Exit;
+  end;
+  if EstExp <= CN_DOUBLE_MIN_NORMAL_EXPONENT - CN_DOUBLE_SIGNIFICAND_BITLENGTH - 4 then
+  begin
+    Result := 0.0;
+    if Num.IsNegative then
+      Result := -Result;
     Exit;
   end;
 
@@ -3963,7 +4171,7 @@ var
   M: TUInt64;
   St: TCnFloatConvertStatus;
   ImplicitLeadingOne: Boolean;
-  MinNormal: Integer;
+  MinNormal, MaxExp, EstExp: Integer;
 begin
   if Num.Value.IsZero then
   begin
@@ -3976,12 +4184,29 @@ begin
     L := CN_DOUBLE_SIGNIFICAND_BITLENGTH;       // 8 字节 Extended 按 Double 处理
     ImplicitLeadingOne := True;
     MinNormal := CN_DOUBLE_MIN_NORMAL_EXPONENT;
+    MaxExp := CN_DOUBLE_MAX_EXPONENT;
   end
   else
   begin
     L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;     // 80/128 位 Extended 尾数含整数位
     ImplicitLeadingOne := False;
     MinNormal := CN_EXTENDED_MIN_NORMAL_EXPONENT;
+    MaxExp := CN_EXTENDED_MAX_EXPONENT;
+  end;
+
+  // 量级预判（二进制 Scale 的指数估计是精确的）
+  EstExp := EstimateBinaryExp(Num.FValue, Num.FScale, False);
+  if EstExp >= MaxExp + 2 then
+  begin
+    Result := ExtendedInfinity(Num.IsNegative);
+    Exit;
+  end;
+  if EstExp <= MinNormal - L - 4 then
+  begin
+    Result := 0.0;
+    if Num.IsNegative then
+      Result := -Result;
+    Exit;
   end;
 
   T := FLocalBigBinaryPool.Obtain;
@@ -4212,11 +4437,15 @@ begin
 
   if DivPrecision <= 0 then
     DivPrecision := FDefaultBinaryPrecisionDigits;
-  if DivPrecision < 0 then
-    DivPrecision := CN_BIG_BINARY_DEFAULT_PRECISION;
 
-  // 根据精度要求计算将被除数扩大的倍数
-  M := CheckScaleAddRange(DivPrecision, (Num2.FValue.GetBitsCount - Num1.FValue.GetBitsCount + 1));
+  // 与 BigDecimalDiv 相同，按 Scale 差保证结果有 DivPrecision + 1
+  // 个二进制小数位；原先按位数差估算，被除数位长于除数时小数位整个丢失
+  M := CheckScaleAddRange(DivPrecision + 1, -TS);
+  if M > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+  begin
+    M := CheckScaleAddRange(DivPrecision, (Num2.FValue.GetBitsCount - Num1.FValue.GetBitsCount + 1));
+  end;
+
   if M < 0 then // 无需扩大、精度已经足够
     M := 0
   else if M > 0 then
@@ -4332,6 +4561,13 @@ begin
   end
   else // 新的小数点位数比原来还多，简单变换一下就行
   begin
+    // 同 BigDecimalChangeToScale，巨量位移的恒等变换直接跳过
+    if -DS > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+    begin
+      BigBinaryCopy(Res, Num);
+      Result := True;
+      Exit;
+    end;
     BigNumberCopy(Res.FValue, Num.FValue);
     if DS < 0 then
       Res.FValue.ShiftLeft(-DS);
@@ -4348,6 +4584,18 @@ var
 begin
   Result := False;
   DS := CheckScaleAddRange(Num.FScale, -Digits);
+
+  // 同 BigDecimalRoundToDigits，二进制下位数判断是精确的
+  if DS > CN_BIGDECIMAL_MAX_DIV_EXPAND then
+  begin
+    if (RoundMode = drTowardsZero) and (Num.FValue.GetBitsCount <= DS) then
+    begin
+      Res.SetZero;
+      Result := True;
+      Exit;
+    end;
+    raise ECnBigBinaryException.Create(SCnScaleOutOfRange);
+  end;
 
   if DS > 0 then // 新的小数点后的位数得比原来少，才能舍入
   begin
@@ -4641,6 +4889,10 @@ begin
   FScale := P4^;                                                  // 4 字节 FScale
   Inc(P4);
   P1 := PByte(P4);
+
+  // 同 TCnBigDecimal.LoadFromMem
+  if (Size > 0) and (Size - SizeOf(Integer) * 2 < CN_MIN_BIGNUMBER_MEM_SIZE) then
+    raise ECnBigBinaryException.Create(SCnErrorBigDecimalMemSize);
 
   FValue.LoadFromMem(P1, Size - SizeOf(Integer) * 2);      // 有效数字
 end;

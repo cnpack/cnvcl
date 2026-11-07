@@ -497,7 +497,7 @@ const
     // (GBHead: $82358F33; GBTail: $8336BE36; UHead: $9FA6; UTail: $D7A3),   // *** CJK 统一汉字头到朝鲜文音节尾
     // 注意：该区 82359037 到 82359134 本来线性对应的八个字符 9FB4 到 9FBB 和其他另外八个调换映射到 Unicode PUA 区因而要拆开处理，这八个字符正反都改写入映射表中
     (GBHead: $82358F33; GBTail: $82359036; UHead: $9FA6; UTail: $9FB3),   //  CJK 统一汉字头到朝鲜文音节尾
-    (GBHead: $82359135; GBTail: $82359036; UHead: $9FBC; UTail: $D7A3),   //  CJK 统一汉字头到朝鲜文音节尾
+    (GBHead: $82359135; GBTail: $8336BE36; UHead: $9FBC; UTail: $D7A3),   //  CJK 统一汉字头到朝鲜文音节尾
 
     // 分隔区十五：
     (GBHead: $8336BE37; GBTail: $8336C738; UHead: $D7A4; UTail: $D7FF),   // 92
@@ -1791,15 +1791,11 @@ begin
 end;
 
 function GetPinYinFromGB18030Char(GB18030Char: WideChar): string;
-var
-  GBS: array[0..1] of WideChar;
-  GBCP: TCnCodePoint;
 begin
-  GBS[0] := GB18030Char;
-  GBS[1] := #0;
-
-  GBCP := GetCodePointFromGB18030Char(PCnGB18030StringPtr(@GBS[0]));
-  Result := GetPinYinFromGB18030CodePoint(GBCP);
+  // 形参携带的本身就是 GB18030/GBK 双字节码值，直接按码点取
+  // 拼音即可。原先把它写进内存后再按字节重新解一遍，小端机上的字节序颠倒使
+  // 码点变成高低字节互换的值（如 $B0A1 被读成 $A1B0），恒查不到拼音
+  Result := GetPinYinFromGB18030CodePoint(TCnCodePoint(GB18030Char));
 end;
 
 initialization

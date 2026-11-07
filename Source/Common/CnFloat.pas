@@ -301,6 +301,8 @@ procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
 {* 从扩展精度浮点数中解出符号位、指数、去除了小数点的完整有效数字，支持 8 字节、10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。该函数实现依赖平台的 Extended 尺寸。
    注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
+   非规格化数（指数域为 0）没有隐含的整数位，指数取最小规格化指数 -16382，
+   使统一公式 值 = 有效数字 * 2^(指数 - 63) 仍然精确成立，与 Single/Double 版一致。
 
    参数：
      Value: Extended                      - 待解开的扩展精度浮点数
@@ -316,6 +318,7 @@ procedure ExtractFloatExtended(ValueAddr: Pointer; ExtendedSize: Integer;
 {* 从不定长度的扩展精度浮点数所在地址中解出符号位、指数、去除了小数点的完整有效数字，支持 8 字节、10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。该函数实现与本平台的 Extended 尺寸无关。
    注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
+   非规格化数（指数域为 0）的指数取最小规格化指数 -16382，与 Single/Double 版一致。
 
    参数：
      ValueAddr: Pointer                   - 待解开的扩展精度浮点数所在地址
@@ -1393,7 +1396,14 @@ begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
     SignNegative := (PCnExtendedRec10(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-    Exponent := (PCnExtendedRec10(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    // 先取指数域原值，指数域为 0 的次正规数取最小规格化指数，
+    // 使 值 = 有效数字 * 2^(指数 - 63) 对次正规数也精确成立（原先按 -16383
+    // 解出导致所有次正规输入被减半），与 ExtractFloatSingle/Double 保持一致
+    Exponent := PCnExtendedRec10(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK;
+    if Exponent = 0 then
+      Exponent := CN_EXTENDED_MIN_NORMAL_EXPONENT
+    else
+      Dec(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
     Mantissa := PCnExtendedRec10(@Value)^.Mantissa; // 有 1，不用加了
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
@@ -1410,7 +1420,12 @@ begin
   if (ExtendedSize = CN_EXTENDED_SIZE_10) or (ExtendedSize = CN_EXTENDED_SIZE_16) then
   begin
     SignNegative := (PCnExtendedRec10(ValueAddr)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-    Exponent := (PCnExtendedRec10(ValueAddr)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    // 次正规数的指数修正，同上一重载
+    Exponent := PCnExtendedRec10(ValueAddr)^.ExpSign and CN_EXPONENT_EXTENDED_MASK;
+    if Exponent = 0 then
+      Exponent := CN_EXTENDED_MIN_NORMAL_EXPONENT
+    else
+      Dec(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
     Mantissa := PCnExtendedRec10(ValueAddr)^.Mantissa; // 有 1，不用加了
   end
   else if ExtendedSize = CN_EXTENDED_SIZE_8 then

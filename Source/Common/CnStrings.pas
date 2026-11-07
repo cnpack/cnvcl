@@ -1239,6 +1239,9 @@ procedure TCnAnsiStrings.AddStrings(Strings: TCnAnsiStrings);
 var
   I: Integer;
 begin
+  if Strings = nil then
+    Exit;
+
   BeginUpdate;
   try
     for I := 0 to Strings.Count - 1 do

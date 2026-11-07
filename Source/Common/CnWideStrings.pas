@@ -588,8 +588,10 @@ type
   }
 
 function CnDetectFileEncoding(const Bytes: TBytes): TCnFileEncoding;
-{* 从字节数组检测文件编码。检测优先级：BOM → UTF-8 启发式 → Ansi。
-   仅检查前 4 字节的 BOM 标记，无 BOM 时做 UTF-8 合法性检查。
+{* 从字节数组检测文件编码。检测优先级：BOM → 纯 ASCII（不含 NUL 与高位字节）
+   → NUL 分布启发式与 UTF-16 结构校验 → 含 NUL 兜底校验 → UTF-8 合法性 → Ansi。
+   NUL 字节视为非文本内容（UTF-8/GBK/Ansi 文本不含 NUL，UTF-16 必然含 NUL），
+   因而无 BOM 的 UTF-16 文件能被正确识别。
 
    参数：
      const Bytes: TBytes                  - 文件内容的字节数组
@@ -731,6 +733,9 @@ procedure TCnWideStringList.AddStrings(Strings: TCnWideStringList);
 var
   I: Integer;
 begin
+  if Strings = nil then
+    Exit;
+
   for I := 0 to Strings.Count - 1 do
     AddObject(Strings[I], Strings.Objects[I]);
 end;
@@ -1325,9 +1330,10 @@ end;
 function InternalUtf8ToUnicode(Dest: PWideChar; MaxDestChars: Integer;
   Source: PAnsiChar; SourceBytes: Integer): Integer;
 var
-  K, I, Cnt: Integer;
+  K, I, Cnt, J, SeqLen: Integer;
   C: Byte;
-  WC: Cardinal;
+  WC, CodePoint: Cardinal;
+  Valid: Boolean;
 begin
   if Source = nil then
   begin
@@ -1344,90 +1350,89 @@ begin
       WC := Cardinal(Source[I]);
       Inc(I);
 
-      if (WC and $80) <> 0 then
+      if (WC and $80) = 0 then
       begin
-        if ((WC and $C0) = $80) or ((WC and $F8) = $F8) then
-        begin
-          // 游离续接字节或非法首字节：输出替换字符并跳过该字节
-          Dest[Cnt] := WideChar($FFFD);
-          Inc(Cnt);
-          Continue;
-        end;
+        // 单字节：0xxxxxxx
+        Dest[Cnt] := WideChar(WC);
+        Inc(Cnt);
+        Continue;
+      end;
 
-        if I >= SourceBytes then
-        begin
-          // 截断于末尾：输出替换字符后结束
-          Dest[Cnt] := WideChar($FFFD);
-          Inc(Cnt);
-          Continue;
-        end;
+      // 游离续接字节，或 F8~FF 的非法首字节（UTF-8 最长四字节）：
+      // 输出替换字符并跳过该字节
+      if ((WC and $C0) = $80) or ((WC and $F8) = $F8) then
+      begin
+        Dest[Cnt] := WideChar($FFFD);
+        Inc(Cnt);
+        Continue;
+      end;
 
-        if (WC and $F0) = $F0 then              // 四字节（未限定第四位必须是 0），单独处理，再步进三个字符，拼成字符值，再算成四字节的 UTF-16 编码
-        begin
-          if SourceBytes - I < 3 then
-          begin
-            // 4 字节序列截断：跳过可用的合法续接字节，输出一个替换字符
-            while I < SourceBytes do
-            begin
-              if (Byte(Source[I]) and $C0) = $80 then
-                Inc(I)
-              else
-                Break;
-            end;
-            Dest[Cnt] := WideChar($FFFD);
-            Inc(Cnt);
-            Continue;
-          end;
+      // 按首字节确定序列字节数
+      if (WC and $E0) = $C0 then      // 110xxxxx：双字节
+        SeqLen := 2
+      else if (WC and $F0) = $E0 then // 1110xxxx：三字节
+        SeqLen := 3
+      else                            // 11110xxx：四字节（F0~F7，F8 以上已排除）
+        SeqLen := 4;
 
-          // WC 是第一个字节，取低三位（未限定第四位必须是 0），后面仨字节各取低六位，得到码点
-          WC := ((WC and $7) shl 18) + ((Cardinal(Source[I]) and $3F) shl 12)
-            + ((Cardinal(Source[I + 1]) and $3F) shl 6) + (Cardinal(Source[I + 2]) and $3F);
-
-          // 根据码点生成 UTF-16 字符，并步进 Cnt
-          K := GetUtf16CharFromCodePoint(WC, @(Dest[Cnt]));
-          if K = 2 then // 生成了四字节字符，先步进一个 WideChar，下一个放 if 后步进
-            Inc(Cnt);
-          Inc(I, 3);
-        end
-        else
-        begin
-          WC := WC and $3F;
-          if (WC and $20) <> 0 then
-          begin
-            C := Byte(Source[I]);
-            Inc(I);
-            if (C and $C0) <> $80 then
-            begin
-              Dec(I);
-              Dest[Cnt] := WideChar($FFFD);
-              Inc(Cnt);
-              Continue;
-            end;
-            if I >= SourceBytes then
-            begin
-              // 截断：首字节与已消耗的合法续接字节输出一个替换字符
-              Dest[Cnt] := WideChar($FFFD);
-              Inc(Cnt);
-              Continue;
-            end;
-            WC := (WC shl 6) or (C and $3F);
-          end;
-          C := Byte(Source[I]);
+      if SourceBytes - I < SeqLen - 1 then
+      begin
+        // 截断于末尾：跳过可用的合法续接字节，输出替换字符后结束
+        while (I < SourceBytes) and ((Byte(Source[I]) and $C0) = $80) do
           Inc(I);
-          if (C and $C0) <> $80 then
-          begin
-            // 非法续接：仅消耗首字节，当前字节留待重新处理
-            Dec(I);
-            Dest[Cnt] := WideChar($FFFD);
-            Inc(Cnt);
-            Continue;
-          end;
+        Dest[Cnt] := WideChar($FFFD);
+        Inc(Cnt);
+        Continue;
+      end;
 
-          Dest[Cnt] := WideChar((WC shl 6) or (C and $3F));
+      // 逐个校验续接字节并拼装码点。原先四字节序列不做任何
+      // 续接字节校验，F0 41 41 41 之类的畸形序列会拼出任意垃圾码点
+      CodePoint := WC and ($FF shr (SeqLen + 1));
+      Valid := True;
+      for J := 1 to SeqLen - 1 do
+      begin
+        C := Byte(Source[I + J - 1]);
+        if (C and $C0) <> $80 then
+        begin
+          Valid := False;
+          Break;
         end;
+        CodePoint := (CodePoint shl 6) or (C and $3F);
+      end;
+
+      if not Valid then
+      begin
+        // 非法续接：按 Unicode 的 Maximal Subpart 语义，消耗首字节与其前的
+        // 合法续接字节，输出一个替换字符，当前字节留待重新处理
+        Dest[Cnt] := WideChar($FFFD);
+        Inc(Cnt);
+        Inc(I, J - 1);
+        Continue;
+      end;
+      Inc(I, SeqLen - 1);
+
+      // 审计修复 WS-2：过长编码与超出 Unicode 范围的码点按畸形序列输出替换
+      // 字符。原先 C0 80、E0 80 80、F0 80 80 80 之类会解出 U+0000 嵌入结果串
+      // 中，F5~F7 首字节会解出错乱的代理对。注意 D800~DFFF 的三字节序列按
+      // CESU-8 习惯原样输出，保持与编码端对未配对代理的处理互逆
+      if ((SeqLen = 2) and (CodePoint < $80)) or
+        ((SeqLen = 3) and (CodePoint < $800)) or
+        ((SeqLen = 4) and ((CodePoint < $10000) or (CodePoint > $10FFFF))) then
+      begin
+        Dest[Cnt] := WideChar($FFFD);
+        Inc(Cnt);
+        Continue;
+      end;
+
+      if CodePoint > $FFFF then
+      begin
+        // 四字节码点生成 UTF-16 代理对，并步进 Cnt
+        K := GetUtf16CharFromCodePoint(CodePoint, @(Dest[Cnt]));
+        if K = 2 then // 生成了四字节字符，先步进一个 WideChar，下一个放 if 后步进
+          Inc(Cnt);
       end
       else
-        Dest[Cnt] := WideChar(WC);
+        Dest[Cnt] := WideChar(CodePoint);
       Inc(Cnt);
     end;
 
@@ -1437,6 +1442,9 @@ begin
   end
   else
   begin
+    // 注意：解码分支对过长编码、超范围码点、非法续接均输出
+    // 一个替换字符单元，本分支按字节序列计数的结果与其保持一致，修改任一
+    // 分支时需同步另一分支的语义
     while (I < SourceBytes) do
     begin
       C := Byte(Source[I]);
@@ -2411,7 +2419,7 @@ function CnDetectFileEncoding(const Bytes: TBytes): TCnFileEncoding;
 var
   I, Len, MaxScan, TotBytes: Integer;
   NullEven, NullOdd, TotalEven, TotalOdd: Integer;
-  Big: Boolean;
+  Big, HasNull: Boolean;
 begin
   Result := cfeUnknown;
   Len := Length(Bytes);
@@ -2442,10 +2450,14 @@ begin
   end;
 
   // Step 2: Pure ASCII check
+  // NUL 字节不是文本内容（UTF-8/GBK/Ansi 文本不含 NUL，
+  // UTF-16 必然含 NUL），必须视为非 ASCII。原先 NUL 被当成 ASCII，无 BOM 的
+  // UTF-16 文件（纯英文乃至常用汉字的 UTF-16LE）会在此被误判为 cfeAscii，
+  // 后面的 NUL 分布启发式永远不可达
   Big := False;
   for I := 0 to Len - 1 do
   begin
-    if Bytes[I] >= $80 then
+    if (Bytes[I] >= $80) or (Bytes[I] = 0) then
     begin
       Big := True;  // mark non-ASCII found
       Break;
@@ -2486,6 +2498,7 @@ begin
     end;
 
     TotBytes := TotalEven + TotalOdd;
+    HasNull := (NullEven + NullOdd) > 0;
     // At least 5% null bytes indicates potential UTF-16
     if (NullEven + NullOdd) > (TotBytes div 20) then
     begin
@@ -2508,13 +2521,40 @@ begin
         end;
       end;
     end;
+
+    // 兜底判定。NUL 占比不高（如中英文混合的 UTF-16 文本）时
+    // 主启发式不命中，但文本编码不会含 NUL，故含 NUL 且能通过 UTF-16 结构
+    // 校验的偶长度数据判为 UTF-16。字节序按 NUL 的奇偶偏置决定优先校验方向
+    // （BE 的 NUL 集中于偶位、LE 于奇位），因为几乎任何数据按两种端序解读都
+    // 能通过不含代理对时的结构校验，顺序错了会判成相反端序；全 NUL 的空白
+    // 数据亦归入 UTF-16，解码后为空文本，无害
+    if (Result = cfeUnknown) and HasNull and ((Len and 1) = 0) then
+    begin
+      if NullEven > NullOdd then
+      begin
+        if CnIsValidUtf16(Bytes, True) then
+          Result := cfeUtf16BE
+        else if CnIsValidUtf16(Bytes, False) then
+          Result := cfeUtf16LE;
+      end
+      else
+      begin
+        if CnIsValidUtf16(Bytes, False) then
+          Result := cfeUtf16LE
+        else if CnIsValidUtf16(Bytes, True) then
+          Result := cfeUtf16BE;
+      end;
+    end;
   end;
 
-  // Step 4: UTF-8 structural validation
-  if CnIsValidUtf8(Bytes) then
-    Result := cfeUtf8
-  else
-    Result := cfeAnsi;
+  // Step 4: UTF-8 structural validation（前序步骤未判定时才执行）
+  if Result = cfeUnknown then
+  begin
+    if CnIsValidUtf8(Bytes) then
+      Result := cfeUtf8
+    else
+      Result := cfeAnsi;
+  end;
 end;
 
 function CnIsValidUtf8(const Bytes: TBytes): Boolean;
