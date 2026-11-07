@@ -3297,23 +3297,24 @@ begin
   FNumerator := 1;
 end;
 
-// 把有理数字符串的一个片段解析为 Int64，失败时抛出带原始串的
-// ECnMatrixException，而不是裸的 EConvertError（StrToInt64 各版本均可用）
-function RationalStrToInt64(const S: string; const Original: string): Int64;
-begin
-  try
-    Result := StrToInt64(S);
-  except
-    on EConvertError do
-      raise ECnMatrixException.CreateFmt(SCnErrorInvalidRationalString, [Original]);
-  end;
-end;
-
 procedure TCnRationalNumber.SetString(const Value: string);
 var
   P: Integer;
   N, D: Int64;
   S, NS, DS: string;
+
+  // 把有理数字符串的一个片段解析为 Int64，失败时抛出带原始串的
+  // ECnMatrixException，而不是裸的 EConvertError（StrToInt64 各版本均可用）
+  function RationalStrToInt64(const S: string; const Original: string): Int64;
+  begin
+    try
+      Result := StrToInt64(S);
+    except
+      on EConvertError do
+        raise ECnMatrixException.CreateFmt(SCnErrorInvalidRationalString, [Original]);
+    end;
+  end;
+
 begin
   S := Trim(Value);
   P := Pos('/', S);
