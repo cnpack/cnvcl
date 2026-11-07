@@ -1387,6 +1387,7 @@ resourcestring
   SCnErrorInverseZeroDeteminant = 'NO Inverse Matrix for Deteminant is 0';
   SCnErrorDeterminantSquare = 'Only Square can Determinant';
   SCnErrorInt64Overflow = 'Int64 Overflow in Rational Operation.';
+  SCnErrorMatrixDivideByZero = 'Divided by Zero.';
 
 const
   // 浮点矩阵判断奇异的相对阈值：|行列式| <= 缩放因子 * 该值 时视为奇异。
@@ -3220,7 +3221,8 @@ end;
 
 procedure TCnRationalNumber.Reduce;
 begin
-  if (FDenominator < 0) and (FNumerator < 0) then
+  // 分母为负时把符号挪到分子上，保证规约形式分母恒为正
+  if FDenominator < 0 then
   begin
     FDenominator := -FDenominator;
     FNumerator := -FNumerator;
@@ -3496,16 +3498,20 @@ end;
 
 procedure CnRationalNumberDiv(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 var
-  X, Y: Int64;
+  X, Y, N, D: Int64;
 begin
+  // 除数为 0 时在任何写入前就抛异常，保证 Res 不被部分改写
+  if Number2.Numerator = 0 then
+    raise ECnMatrixException.Create(SCnErrorMatrixDivideByZero);
+
   // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约
   X := Number1.Numerator;
   Y := Number2.Numerator;
   CnReduceInt64(X, Y);
   if X < Number1.Numerator then
   begin
-    Res.Numerator := X * Number2.Denominator;
-    Res.Denominator := Number1.Denominator * Y;
+    N := X * Number2.Denominator;
+    D := Number1.Denominator * Y;
   end
   else
   begin
@@ -3514,15 +3520,19 @@ begin
     CnReduceInt64(X, Y);
     if X < Number1.Denominator then
     begin
-      Res.Numerator := Number1.Numerator * Y;
-      Res.Denominator := X * Number2.Numerator;
+      N := Number1.Numerator * Y;
+      D := X * Number2.Numerator;
     end
     else
     begin
-      Res.Numerator := Number1.Numerator * Number2.Denominator;
-      Res.Denominator := Number1.Denominator * Number2.Numerator;
+      N := Number1.Numerator * Number2.Denominator;
+      D := Number1.Denominator * Number2.Numerator;
     end;
   end;
+
+  // Res 可能与 Number1 或 Number2 是同一对象，先算完再一次性写回，避免中途读到被改写的值
+  Res.Numerator := N;
+  Res.Denominator := D;
   Res.Reduce;
 end;
 

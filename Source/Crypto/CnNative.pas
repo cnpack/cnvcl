@@ -718,6 +718,16 @@ function IsInt32AddOverflow(A: Integer; B: Integer): Boolean;
    返回值：Boolean                        - 返回相加是否会溢出
 }
 
+function IsInt32SubOverflow(A: Integer; B: Integer): Boolean;
+{* 判断两个 32 位有符号整数相减是否溢出 32 位有符号整数范围。
+
+   参数：
+     A: Integer                           - 被减数
+     B: Integer                           - 减数
+
+   返回值：Boolean                        - 返回相减是否会溢出
+}
+
 function IsUInt32AddOverflow(A: Cardinal; B: Cardinal): Boolean;
 {* 判断两个 32 位无符号整数相加是否溢出 32 位无符号整数上限。
 
@@ -726,6 +736,16 @@ function IsUInt32AddOverflow(A: Cardinal; B: Cardinal): Boolean;
      B: Cardinal                          - 加数二
 
    返回值：Boolean                        - 返回相加是否会溢出
+}
+
+function IsUInt32SubOverflow(A: Cardinal; B: Cardinal): Boolean;
+{* 判断两个 32 位无符号整数相减是否下溢出 32 位无符号整数范围。
+
+   参数：
+     A: Cardinal                          - 被减数
+     B: Cardinal                          - 减数
+
+   返回值：Boolean                        - 返回相减是否会下溢
 }
 
 function IsInt64AddOverflow(A: Int64; B: Int64): Boolean;
@@ -738,6 +758,16 @@ function IsInt64AddOverflow(A: Int64; B: Int64): Boolean;
    返回值：Boolean                        - 返回相加是否会溢出
 }
 
+function IsInt64SubOverflow(A: Int64; B: Int64): Boolean;
+{* 判断两个 64 位有符号整数相减是否溢出 64 位有符号整数范围。
+
+   参数：
+     A: Int64                             - 被减数
+     B: Int64                             - 减数
+
+   返回值：Boolean                        - 返回相减是否会溢出
+}
+
 function IsUInt64AddOverflow(A: TUInt64; B: TUInt64): Boolean;
 {* 判断两个 64 位无符号整数相加是否溢出 64 位无符号整数上限。
 
@@ -746,6 +776,16 @@ function IsUInt64AddOverflow(A: TUInt64; B: TUInt64): Boolean;
      B: TUInt64                           - 加数二
 
    返回值：Boolean                        - 返回相加是否会溢出
+}
+
+function IsUInt64SubOverflow(A: TUInt64; B: TUInt64): Boolean;
+{* 判断两个 64 位无符号整数相减是否下溢出 64 位无符号整数范围。
+
+   参数：
+     A: TUInt64                           - 被减数
+     B: TUInt64                           - 减数
+
+   返回值：Boolean                        - 返回相减是否会下溢
 }
 
 function IsUInt64SubOverflowInt32(A: TUInt64; B: TUInt64): Boolean;
@@ -5458,9 +5498,31 @@ function IsInt32AddOverflow(A, B: Integer): Boolean;
 var
   C: Integer;
 begin
-  C := A + B;
-  Result := ((A > 0) and (B > 0) and (C < 0)) or   // 同符号且结果换号了说明出现了溢出
-    ((A < 0) and (B < 0) and (C > 0));
+  if (A = Low(Integer)) and (B = Low(Integer)) then
+    // Low + Low 真值为 -2^32，回绕后恰为 0，换号检测存在盲点，需特判
+    Result := True
+  else
+  begin
+    C := A + B;
+    Result := ((A > 0) and (B > 0) and (C < 0)) or   // 同符号且结果换号了说明出现了溢出
+      ((A < 0) and (B < 0) and (C > 0));
+  end;
+end;
+
+// 判断两个 32 位有符号整数相减是否溢出 32 位有符号整数范围
+function IsInt32SubOverflow(A, B: Integer): Boolean;
+var
+  C: Integer;
+begin
+  if B = Low(Integer) then
+    // A - Low 等价 A + 2^31，A >= 0 时溢出，A < 0 时结果落在 0..2^31-1 内
+    Result := A >= 0
+  else
+  begin
+    C := A - B;
+    Result := ((A >= 0) and (B < 0) and (C < 0)) or   // 正减负得负说明溢出
+      ((A < 0) and (B >= 0) and (C > 0));             // 负减正得正说明溢出
+  end;
 end;
 
 // 判断两个 32 位无符号整数相加是否溢出 32 位无符号整数上限
@@ -5469,20 +5531,54 @@ begin
   Result := (A + B) < A; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
+// 判断两个 32 位无符号整数相减是否下溢出 32 位无符号整数范围
+function IsUInt32SubOverflow(A, B: Cardinal): Boolean;
+begin
+  Result := A < B; // 无符号相减，被减数小于减数即下溢
+end;
+
 // 判断两个 64 位有符号整数相加是否溢出 64 位有符号整数上限
 function IsInt64AddOverflow(A, B: Int64): Boolean;
 var
   C: Int64;
 begin
-  C := A + B;
-  Result := ((A > 0) and (B > 0) and (C < 0)) or   // 同符号且结果换号了说明出现了溢出
-    ((A < 0) and (B < 0) and (C > 0));
+  if (A = Low(Int64)) and (B = Low(Int64)) then
+    // Low + Low 真值为 -2^64，回绕后恰为 0，换号检测存在盲点，需特判
+    Result := True
+  else
+  begin
+    C := A + B;
+    Result := ((A > 0) and (B > 0) and (C < 0)) or   // 同符号且结果换号了说明出现了溢出
+      ((A < 0) and (B < 0) and (C > 0));
+  end;
+end;
+
+// 判断两个 64 位有符号整数相减是否溢出 64 位有符号整数范围
+function IsInt64SubOverflow(A, B: Int64): Boolean;
+var
+  C: Int64;
+begin
+  if B = Low(Int64) then
+    // A - Low 等价 A + 2^63，A >= 0 时溢出，A < 0 时结果落在 0..2^63-1 内
+    Result := A >= 0
+  else
+  begin
+    C := A - B;
+    Result := ((A >= 0) and (B < 0) and (C < 0)) or   // 正减负得负说明溢出
+      ((A < 0) and (B >= 0) and (C > 0));             // 负减正得正说明溢出
+  end;
 end;
 
 // 判断两个 64 位无符号整数相加是否溢出 64 位无符号整数上限
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
+end;
+
+// 判断两个 64 位无符号整数相减是否下溢出 64 位无符号整数范围
+function IsUInt64SubOverflow(A, B: TUInt64): Boolean;
+begin
+  Result := UInt64Compare(A, B) < 0; // 无符号相减，被减数小于减数即下溢
 end;
 
 function IsUInt64SubOverflowInt32(A: TUInt64; B: TUInt64): Boolean;
@@ -5565,8 +5661,14 @@ function IsInt64MulOverflow(A, B: Int64): Boolean;
 var
   T: Int64;
 begin
-  T := A * B;
-  Result := (B <> 0) and ((T div B) <> A);
+  if (A = Low(Int64)) and (B = -1) then
+    // Low * -1 回绕后仍为 Low，且 (T div B) = A，上述除法检测存在盲点，需特判
+    Result := True
+  else
+  begin
+    T := A * B;
+    Result := (B <> 0) and ((T div B) <> A);
+  end;
 end;
 
 // 指针类型转换成整型，支持 32/64 位
