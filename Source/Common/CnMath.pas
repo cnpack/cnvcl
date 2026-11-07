@@ -30,7 +30,14 @@ unit CnMath;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.20 V1.3
+* 修改记录：2026.11.07 V1.4
+*               BigDecimalArcSin/ArcCos/ArcTan 末结果统一舍入到 Precision；
+*               ArcSin/ArcCos 在 |x|>0.5 时改用半角公式，消除近 ±1 的精度损失
+*               BigDecimalSin/Cos 的 π 精度改为按 |Num| 的整数位数动态追加，
+*               修复大参数范围规约时 π 位数不足导致的静默错误；不新增过大参数异常
+*               修复 FloatToHex 处理 NaN 和无穷大时整数部分循环无法终止的问题：
+*               Int(±Inf)=±Inf、Int(NaN)=NaN 使 A 不再变化，现改为抛出 ERangeError
+*           2026.10.20 V1.3
 *               NormalizeAngle 减掉 2π·k 时 k 由 CnFloor 的 Int64 结果提供，
 *               但 2π 与乘积的舍入误差仍约为 |Angle| 的一个 ulp，角度一大便会
 *               淹没余数。现按机器精度推算出浮点快速路径的角度上限，超过后自动
@@ -307,6 +314,7 @@ function NormalizeAngle(Angle: Extended): Extended;
 
 function FloatToHex(Value: Extended; MaxDigit: Integer = CN_FLOAT_DEFAULT_DIGIT): string;
 {* 浮点数转换为十六进制字符串，包括整数部分与小数部分，MaxDigit 指明除不尽时最多保留小数点后多少位。
+   注意：NaN 和正负无穷大无法用十六进制表示，遇到时抛出 ERangeError 异常。
 
    参数：
      Value: Extended                      - 待转换的浮点数
@@ -414,6 +422,8 @@ function BigDecimalLn(Res: TCnBigDecimal; Num: TCnBigDecimal;
 function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点数计算 Num 弧度的正弦值，精度由 Precision 控制。
+   内部会按 |Num| 的整数位数自动提高 π 的计算精度，大参数不会因 π 位数
+   不足而静默失真。
 
    参数：
      Res: TCnBigDecimal                   - 容纳返回的计算结果
@@ -426,6 +436,8 @@ function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
 function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点数计算 Num 弧度的余弦值，精度由 Precision 控制。
+   内部会按 |Num| 的整数位数自动提高 π 的计算精度，大参数不会因 π 位数
+   不足而静默失真。
 
    参数：
      Res: TCnBigDecimal                   - 容纳返回的计算结果
@@ -438,10 +450,12 @@ function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
 function BigDecimalArcSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点数计算 Num 的反正弦值，精度由 Precision 控制。
+   结果会舍入到 Precision 位小数；|Num| 接近 1 时采用半角公式，
+   避免 1 - Num^2 的有效数字损失。
 
    参数：
      Res: TCnBigDecimal                   - 容纳返回的计算结果
-     Num: TCnBigDecimal                   - 弧度数
+     Num: TCnBigDecimal                   - 正弦值，定义域 [-1, 1]
      Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
 
    返回值：Boolean                        - 返回计算是否成功
@@ -450,10 +464,12 @@ function BigDecimalArcSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
 function BigDecimalArcCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点数计算 Num 的反余弦值，精度由 Precision 控制。
+   结果会舍入到 Precision 位小数；|Num| 接近 1 时采用半角公式，
+   避免 π/2 - ArcSin(Num) 的灾难性抵消。
 
    参数：
      Res: TCnBigDecimal                   - 容纳返回的计算结果
-     Num: TCnBigDecimal                   - 弧度数
+     Num: TCnBigDecimal                   - 余弦值，定义域 [-1, 1]
      Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
 
    返回值：Boolean                        - 返回计算是否成功
@@ -461,7 +477,7 @@ function BigDecimalArcCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
 
 function BigDecimalArcTan(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
-{* 用大浮点数计算 Num 的反正切值，精度由 Precision 控制。
+{* 用大浮点数计算 Num 的反正切值，精度由 Precision 控制，也即结果会舍入到 Precision 位小数。
 
    参数：
      Res: TCnBigDecimal                   - 容纳返回的计算结果
@@ -567,6 +583,7 @@ const
 resourcestring
   SCnErrorMathSqrtRange = 'Sqrt Range Error.';
   SCnErrorMathLogRange = 'Log Range Error.';
+  SCnErrorMathFloatToHexRange = 'FloatToHex Range Error.';
   SCnErrorMathFractionError = 'Error Length for Continue Fraction';
   SCnErrorMathHexCharFmt = 'Error: Not a Hex PChar: %c';
   SCnErrorExpTaylorSeriesDidNotConverge = 'Exp: Taylor Series did Not Converge';
@@ -1162,6 +1179,11 @@ var
   Neg: Boolean;
   R, C: Integer;
 begin
+  // NaN 和正负无穷大无法用十六进制表示，且 Int(±Inf)=±Inf、Int(NaN)=NaN，
+  // 会使下面整数部分的循环永不结束，故先做防护
+  if ExtendedIsNan(Value) or ExtendedIsInfinite(Value) then
+    raise ERangeError.Create(SCnErrorMathFloatToHexRange);
+
   A := Int(Value);
   B := Frac(Value);
 
@@ -1693,6 +1715,27 @@ begin
   end;
 end;
 
+function BigDecimalTrigPiPrecision(Num: TCnBigDecimal;
+  Precision: Integer): Integer;
+{
+  返回 Sin/Cos 范围规约所需的 π 十进制精度。
+
+  π 的误差在 X mod 2π 中会被 X/(2π) 放大，因此除结果精度和固定 guard
+  之外，还要加上 |Num| 的整数位数。Num 为空或取位数失败时只保留前两者。
+}
+var
+  IntCount, DecimalCount: Integer;
+  D: Int64;
+begin
+  D := Int64(Precision) + CN_NORMALIZE_ANGLE_EXTRA_DIGITS;
+  if (Num <> nil) and
+    BigDecimalGetIntDecimalCount(Num, IntCount, DecimalCount) then
+    D := D + IntCount;
+  if D > MaxInt then
+    D := MaxInt;
+  Result := Integer(D);
+end;
+
 function InternalNormalizeAngleBigDecimal(Angle: Extended; var Res: Extended): Boolean;
 {
   用 BigDecimal 把大角度精确规约到 [0, 2π)。
@@ -1757,7 +1800,7 @@ function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   2. 使用恒等式 sin(x) = sin(π-x), sin(x+2π) = sin(x)
 }
 var
-  I, TargetPrecision, Sign: Integer;
+  I, TargetPrecision, PiPrecision, Sign: Integer;
   X, X2, Term, Sum, Gap, Pi, PiOver2, TwoPi: TCnBigDecimal;
   TN: Boolean;
 begin
@@ -1783,8 +1826,9 @@ begin
   try
     TargetPrecision := Precision + 10;
 
-    // 计算 π
-    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+    // π 的位数必须覆盖 |Num| 的整数位数，否则大参数归约后的余数会失真
+    PiPrecision := BigDecimalTrigPiPrecision(Num, TargetPrecision);
+    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(PiPrecision));
 
     BigDecimalCopy(TwoPi, Pi);
     TwoPi.MulWord(2);
@@ -1876,7 +1920,7 @@ function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
   或者利用：cos(x) = sin(π/2 - x)
 }
 var
-  I, TargetPrecision, Sign: Integer;
+  I, TargetPrecision, PiPrecision, Sign: Integer;
   X, X2, Term, Sum, Gap, Pi, TwoPi: TCnBigDecimal;
   TN: Boolean;
 begin
@@ -1901,7 +1945,9 @@ begin
   try
     TargetPrecision := Precision + 10;
 
-    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+    // π 的位数必须覆盖 |Num| 的整数位数，否则大参数归约后的余数会失真
+    PiPrecision := BigDecimalTrigPiPrecision(Num, TargetPrecision);
+    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(PiPrecision));
     BigDecimalCopy(TwoPi, Pi);
     TwoPi.MulWord(2);
 
@@ -1974,14 +2020,20 @@ function BigDecimalArcSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer): Boolean;
 {
   计算 arcsin(x)
-  使用恒等式：arcsin(x) = arctan(x / sqrt(1 - x^2))
+
+  对于 |x| <= 0.5，使用恒等式：
+    arcsin(x) = arctan(x / sqrt(1 - x^2))
+  对于 |x| > 0.5，使用半角公式，避免 x 接近 ±1 时 1 - x^2 的精度损失：
+    arcsin(x) = sign(x) * (π/2 - 2*asin(sqrt((1-|x|)/2)))
 
   定义域：[-1, 1]
   值域：[-π/2, π/2]
 }
 var
   TargetPrecision: Integer;
-  X, X2, OneMinusX2, SqrtTerm, Quotient, Pi: TCnBigDecimal;
+  X, X2, OneMinusX2, SqrtTerm, Quotient: TCnBigDecimal;
+  AbsNum, Diff, Pi, ArcSinSmall: TCnBigDecimal;
+  NegArg: Boolean;
 begin
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
@@ -2008,14 +2060,17 @@ begin
     end;
   end;
 
+  TargetPrecision := Precision + 10;
+
   // 特殊情况：arcsin(1) = π/2，arcsin(-1) = -π/2
   if Num.IsOne then
   begin
     Pi := FLocalBigDecimalPool.Obtain;
     try
-      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(Precision + 10));
-      Pi.DivWord(2, Precision + 10);
+      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+      Pi.DivWord(2, TargetPrecision);
       BigDecimalCopy(Res, Pi);
+      Res.RoundTo(Precision);
       Result := True;
     finally
       FLocalBigDecimalPool.Recycle(Pi);
@@ -2026,13 +2081,67 @@ begin
   begin
     Pi := FLocalBigDecimalPool.Obtain;
     try
-      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(Precision + 10));
-      Pi.DivWord(2, Precision + 10);
+      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+      Pi.DivWord(2, TargetPrecision);
       Pi.Negate;
       BigDecimalCopy(Res, Pi);
+      Res.RoundTo(Precision);
       Result := True;
     finally
       FLocalBigDecimalPool.Recycle(Pi);
+    end;
+    Exit;
+  end;
+
+  // |x| > 0.5：用半角公式，避免 1 - x^2 在 x 接近 ±1 时丢失有效数字
+  if (BigDecimalCompare(Num, 0.5) > 0) or
+    (BigDecimalCompare(Num, -0.5) < 0) then
+  begin
+    AbsNum := FLocalBigDecimalPool.Obtain;
+    Diff := FLocalBigDecimalPool.Obtain;
+    SqrtTerm := FLocalBigDecimalPool.Obtain;
+    Pi := FLocalBigDecimalPool.Obtain;
+    ArcSinSmall := FLocalBigDecimalPool.Obtain;
+    try
+      BigDecimalCopy(AbsNum, Num);
+      NegArg := AbsNum.IsNegative;
+      if NegArg then
+        AbsNum.Negate;
+
+      // Diff := (1 - |x|) / 2，先乘 5 再进位 Scale，避免除法舍入丢位
+      BigDecimalSub(Diff, CnBigDecimalOne, AbsNum);
+      Diff.MulWord(5);
+      Diff.Scale := Diff.Scale + 1;
+
+      if not BigDecimalSqrt(SqrtTerm, Diff, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      if not BigDecimalArcSin(ArcSinSmall, SqrtTerm, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      ArcSinSmall.MulWord(2);
+
+      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+      Pi.DivWord(2, TargetPrecision);
+      BigDecimalSub(ArcSinSmall, Pi, ArcSinSmall);
+      if NegArg then
+        ArcSinSmall.Negate;
+
+      BigDecimalCopy(Res, ArcSinSmall);
+      Res.RoundTo(Precision);
+      Result := True;
+    finally
+      FLocalBigDecimalPool.Recycle(AbsNum);
+      FLocalBigDecimalPool.Recycle(Diff);
+      FLocalBigDecimalPool.Recycle(SqrtTerm);
+      FLocalBigDecimalPool.Recycle(Pi);
+      FLocalBigDecimalPool.Recycle(ArcSinSmall);
     end;
     Exit;
   end;
@@ -2044,7 +2153,6 @@ begin
   Quotient := FLocalBigDecimalPool.Obtain;
 
   try
-    TargetPrecision := Precision + 10;
     BigDecimalCopy(X, Num);
 
     // 计算 x^2
@@ -2074,6 +2182,7 @@ begin
       Exit;
     end;
 
+    Res.RoundTo(Precision);
     Result := True;
   finally
     FLocalBigDecimalPool.Recycle(X);
@@ -2088,44 +2197,99 @@ function BigDecimalArcCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer): Boolean;
 {
   计算 arccos(x)
-  使用恒等式：arccos(x) = π/2 - arcsin(x)
+
+  使用半角公式避免 x 接近 ±1 时 π/2 - arcsin(x) 的灾难性抵消：
+    |x| <= 0.5：arccos(x) = π/2 - arcsin(x)
+    x > 0.5：arccos(x) = 2*asin(sqrt((1-x)/2))
+    x < -0.5：arccos(x) = π - 2*asin(sqrt((1+x)/2))
 
   定义域：[-1, 1]
   值域：[0, π]
 }
 var
   TargetPrecision: Integer;
-  ArcSinRes, Pi, PiOver2: TCnBigDecimal;
+  AbsNum, Diff, SqrtTerm, ArcSinRes, Pi: TCnBigDecimal;
+  NegArg: Boolean;
 begin
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
+  if BigDecimalCompare(Num, CnBigDecimalOne) > 0 then
+  begin
+    Result := False;
+    Exit;
+  end;
+  if BigDecimalCompare(Num, CnBigDecimalNegOne) < 0 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   TargetPrecision := Precision + 10;
 
+  AbsNum := FLocalBigDecimalPool.Obtain;
+  Diff := FLocalBigDecimalPool.Obtain;
+  SqrtTerm := FLocalBigDecimalPool.Obtain;
   ArcSinRes := FLocalBigDecimalPool.Obtain;
   Pi := FLocalBigDecimalPool.Obtain;
-  PiOver2 := FLocalBigDecimalPool.Obtain;
 
   try
-    // 计算 arcsin(x)
-    if not BigDecimalArcSin(ArcSinRes, Num, TargetPrecision) then
+    BigDecimalCopy(AbsNum, Num);
+    NegArg := AbsNum.IsNegative;
+    if NegArg then
+      AbsNum.Negate;
+
+    if BigDecimalCompare(AbsNum, 0.5) > 0 then
     begin
-      Result := False;
-      Exit;
+      // 1 - |x| 精确计算，再乘 0.5（先乘 5 再进位 Scale，避免除法舍入丢位）
+      BigDecimalSub(Diff, CnBigDecimalOne, AbsNum);
+      Diff.MulWord(5);
+      Diff.Scale := Diff.Scale + 1;
+
+      if not BigDecimalSqrt(SqrtTerm, Diff, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      if not BigDecimalArcSin(ArcSinRes, SqrtTerm, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      ArcSinRes.MulWord(2);
+
+      if NegArg then
+      begin
+        // arccos(-a) = π - arccos(a)
+        GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+        BigDecimalSub(Res, Pi, ArcSinRes);
+      end
+      else
+        BigDecimalCopy(Res, ArcSinRes);
+    end
+    else
+    begin
+      if not BigDecimalArcSin(ArcSinRes, Num, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+      Pi.DivWord(2, TargetPrecision);
+      BigDecimalSub(Res, Pi, ArcSinRes);
     end;
 
-    // 计算 π/2
-    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
-    BigDecimalCopy(PiOver2, Pi);
-    PiOver2.DivWord(2, TargetPrecision);
-
-    // 计算 π/2 - arcsin(x)
-    BigDecimalSub(Res, PiOver2, ArcSinRes);
+    Res.RoundTo(Precision);
     Result := True;
   finally
+    FLocalBigDecimalPool.Recycle(AbsNum);
+    FLocalBigDecimalPool.Recycle(Diff);
+    FLocalBigDecimalPool.Recycle(SqrtTerm);
     FLocalBigDecimalPool.Recycle(ArcSinRes);
     FLocalBigDecimalPool.Recycle(Pi);
-    FLocalBigDecimalPool.Recycle(PiOver2);
   end;
 end;
 
@@ -2328,6 +2492,7 @@ begin
     end;
 
     BigDecimalCopy(Res, Sum);
+    Res.RoundTo(Precision);
     Result := True;
   finally
     FLocalBigDecimalPool.Recycle(X);

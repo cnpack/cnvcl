@@ -303,6 +303,7 @@ function TestBigRationalSetStringMalformed: Boolean;
 function TestRationalNumberNegOneDenominator: Boolean;
 function TestMatrixZigZagRowCol: Boolean;
 function TestMatrixAdjointInverse1x1: Boolean;
+function TestMatrixDeleteLastRowCol: Boolean;
 function TestMatrixRationalAssignNilCell: Boolean;
 
 // ================================ Bits =======================================
@@ -396,10 +397,12 @@ function TestBigDecimalEulerExp: Boolean;
 function TestBigDecimalLn: Boolean;
 function TestBigDecimalSin: Boolean;
 function TestBigDecimalCos: Boolean;
+function TestBigDecimalTrigLargeArgument: Boolean;
 function TestBigDecimalArcSin: Boolean;
 function TestBigDecimalArcCos: Boolean;
 function TestBigDecimalArcTan: Boolean;
 function TestBigDecimalArcTanNegative: Boolean;
+function TestBigDecimalInverseTrigPrecision: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
 function TestBigDecimalHyperbolicCos: Boolean;
 function TestBigDecimalSetDecValidation: Boolean;
@@ -410,6 +413,7 @@ function TestBigBinaryRoundToDigitsNoop: Boolean;
 function TestBigDecimalToFloatRounding: Boolean;
 function TestCompareExtendedInfinity: Boolean;
 function TestBigComplexDecimalEulerExp: Boolean;
+function TestBigComplexDecimalEulerExpLarge: Boolean;
 function TestBigComplexDecimalLn: Boolean;
 function TestBigComplexDecimalSin: Boolean;
 function TestBigComplexDecimalCos: Boolean;
@@ -2233,6 +2237,7 @@ begin
   MyAssert(TestRationalNumberNegOneDenominator, 'TestRationalNumberNegOneDenominator');
   MyAssert(TestMatrixZigZagRowCol, 'TestMatrixZigZagRowCol');
   MyAssert(TestMatrixAdjointInverse1x1, 'TestMatrixAdjointInverse1x1');
+  MyAssert(TestMatrixDeleteLastRowCol, 'TestMatrixDeleteLastRowCol');
   MyAssert(TestMatrixRationalAssignNilCell, 'TestMatrixRationalAssignNilCell');
 
 // ================================ Bits =======================================
@@ -2326,10 +2331,12 @@ begin
   MyAssert(TestBigDecimalLn, 'TestBigDecimalLn');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
   MyAssert(TestBigDecimalCos, 'TestBigDecimalCos');
+  MyAssert(TestBigDecimalTrigLargeArgument, 'TestBigDecimalTrigLargeArgument');
   MyAssert(TestBigDecimalArcSin, 'TestBigDecimalArcSin');
   MyAssert(TestBigDecimalArcCos, 'TestBigDecimalArcCos');
   MyAssert(TestBigDecimalArcTan, 'TestBigDecimalArcTan');
   MyAssert(TestBigDecimalArcTanNegative, 'TestBigDecimalArcTanNegative');
+  MyAssert(TestBigDecimalInverseTrigPrecision, 'TestBigDecimalInverseTrigPrecision');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
   MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
   MyAssert(TestBigDecimalSetDecValidation, 'TestBigDecimalSetDecValidation');
@@ -2340,6 +2347,7 @@ begin
   MyAssert(TestBigDecimalToFloatRounding, 'TestBigDecimalToFloatRounding');
   MyAssert(TestCompareExtendedInfinity, 'TestCompareExtendedInfinity');
   MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
+  MyAssert(TestBigComplexDecimalEulerExpLarge, 'TestBigComplexDecimalEulerExpLarge');
   MyAssert(TestBigComplexDecimalLn, 'TestBigComplexDecimalLn');
   MyAssert(TestBigComplexDecimalSin, 'TestBigComplexDecimalSin');
   MyAssert(TestBigComplexDecimalCos, 'TestBigComplexDecimalCos');
@@ -11744,6 +11752,130 @@ begin
   end;
 end;
 
+function TestMatrixDeleteLastRowCol: Boolean;
+{
+  回归用例：DeleteRow/DeleteCol 在矩阵仅剩一行/一列时必须抛 ECnMatrixException，
+  不能把矩阵退化为 0 行/列。
+}
+var
+  IntM: TCnIntMatrix;
+  FltM: TCnFloatMatrix;
+  RatM: TCnRationalMatrix;
+  ObjM: TCn2DObjectList;
+  OK: Boolean;
+begin
+  Result := False;
+
+  // ---- Int64 矩阵 ----
+  IntM := TCnIntMatrix.Create(2, 2);
+  try
+    IntM.DeleteRow(1);
+    OK := False;
+    try
+      IntM.DeleteRow(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Row', E.Message) > 0;
+    end;
+    if not OK then Exit;
+    if (IntM.RowCount <> 1) or (IntM.ColCount <> 2) then Exit;
+
+    IntM.DeleteCol(1);
+    OK := False;
+    try
+      IntM.DeleteCol(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Col', E.Message) > 0;
+    end;
+    if not OK then Exit;
+    if (IntM.RowCount <> 1) or (IntM.ColCount <> 1) then Exit;
+  finally
+    IntM.Free;
+  end;
+
+  // ---- 浮点矩阵 ----
+  FltM := TCnFloatMatrix.Create(1, 2);
+  try
+    OK := False;
+    try
+      FltM.DeleteRow(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Row', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    FltM.DeleteCol(1);
+    OK := False;
+    try
+      FltM.DeleteCol(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Col', E.Message) > 0;
+    end;
+    if not OK then Exit;
+    if (FltM.RowCount <> 1) or (FltM.ColCount <> 1) then Exit;
+  finally
+    FltM.Free;
+  end;
+
+  // ---- 二维对象列表 ----
+  ObjM := TCn2DObjectList.Create(2, 1);
+  try
+    OK := False;
+    try
+      ObjM.DeleteCol(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Col', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    ObjM.DeleteRow(1);
+    OK := False;
+    try
+      ObjM.DeleteRow(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Row', E.Message) > 0;
+    end;
+    if not OK then Exit;
+    if (ObjM.RowCount <> 1) or (ObjM.ColCount <> 1) then Exit;
+  finally
+    ObjM.Free;
+  end;
+
+  // ---- 有理数矩阵（内部委托 TCn2DObjectList） ----
+  RatM := TCnRationalMatrix.Create(2, 2);
+  try
+    RatM.DeleteRow(1);
+    OK := False;
+    try
+      RatM.DeleteRow(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Row', E.Message) > 0;
+    end;
+    if not OK then Exit;
+
+    RatM.DeleteCol(1);
+    OK := False;
+    try
+      RatM.DeleteCol(0);
+    except
+      on E: ECnMatrixException do
+        OK := Pos('Last Col', E.Message) > 0;
+    end;
+    if not OK then Exit;
+    if (RatM.RowCount <> 1) or (RatM.ColCount <> 1) then Exit;
+  finally
+    RatM.Free;
+  end;
+
+  Result := True;
+end;
+
 function TestMatrixRationalAssignNilCell: Boolean;
 {
   回归用例：TCnRationalMatrix 的单元格是惰性创建的，只有写过或读过的格子
@@ -14456,6 +14588,34 @@ begin
 
   S := FloatToHex(-0.5);
   Result := Pos('-', S) > 0;
+  if not Result then Exit;
+
+  // 非有限值无法用十六进制表示，旧实现会因 Int(±Inf)=±Inf、Int(NaN)=NaN 死循环
+  try
+    FloatToHex(ExtendedInfinity);
+    Result := False;
+  except
+    on E: ERangeError do
+      Result := True;
+  end;
+  if not Result then Exit;
+
+  try
+    FloatToHex(ExtendedInfinity(True));
+    Result := False;
+  except
+    on E: ERangeError do
+      Result := True;
+  end;
+  if not Result then Exit;
+
+  try
+    FloatToHex(ExtendedNan);
+    Result := False;
+  except
+    on E: ERangeError do
+      Result := True;
+  end;
 end;
 
 function TestHexToFloat: Boolean;
@@ -14755,6 +14915,75 @@ begin
   finally
     Res.Free;
     Num.Free;
+  end;
+end;
+
+function TestBigDecimalTrigLargeArgument: Boolean;
+var
+  X, R30, R300, R600, Ref: TCnBigDecimal;
+  Values: array[0..4] of string;
+  I: Integer;
+begin
+  Result := False;
+  X := TCnBigDecimal.Create;
+  R30 := TCnBigDecimal.Create;
+  R300 := TCnBigDecimal.Create;
+  R600 := TCnBigDecimal.Create;
+  Ref := TCnBigDecimal.Create;
+  try
+    // 大角度回归：P30 的结果应与 P300 舍入到 30 位后一致。
+    // 1e60 及更大参数可暴露 π 精度不足导致的范围规约失真。
+    Values[0] := '1e30';
+    Values[1] := '1e60';
+    Values[2] := '1e64';
+    Values[3] := '1e100';
+    Values[4] := '1e300';
+    for I := Low(Values) to High(Values) do
+    begin
+      if not X.SetDec(Values[I]) then Exit;
+
+      if not BigDecimalSin(R30, X, 30) then Exit;
+      if not BigDecimalSin(R300, X, 300) then Exit;
+      BigDecimalCopy(Ref, R300);
+      Ref.RoundTo(30);
+      if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+
+      if not BigDecimalCos(R30, X, 30) then Exit;
+      if not BigDecimalCos(R300, X, 300) then Exit;
+      BigDecimalCopy(Ref, R300);
+      Ref.RoundTo(30);
+      if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    end;
+
+    // 1e300 还需确认 P300 自身仍有 300 位有效精度，以 P600 为参照。
+    if not X.SetDec('1e300') then Exit;
+    if not BigDecimalSin(R300, X, 300) then Exit;
+    if not BigDecimalSin(R600, X, 600) then Exit;
+    BigDecimalCopy(Ref, R600);
+    Ref.RoundTo(300);
+    if BigDecimalCompare(R300, Ref) <> 0 then Exit;
+
+    if not BigDecimalCos(R300, X, 300) then Exit;
+    if not BigDecimalCos(R600, X, 600) then Exit;
+    BigDecimalCopy(Ref, R600);
+    Ref.RoundTo(300);
+    if BigDecimalCompare(R300, Ref) <> 0 then Exit;
+
+    // 1e300 的 P30 结果再与独立参考值对照，避免 P30/P300 共用同一 π 误差。
+    if not Ref.SetDec('-0.98575042516037699660904753143') then Exit;
+    if not BigDecimalSin(R30, X, 30) then Exit;
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    if not Ref.SetDec('-0.168214444374245072851875664436') then Exit;
+    if not BigDecimalCos(R30, X, 30) then Exit;
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+
+    Result := True;
+  finally
+    X.Free;
+    R30.Free;
+    R300.Free;
+    R600.Free;
+    Ref.Free;
   end;
 end;
 
@@ -15110,6 +15339,113 @@ begin
   end;
 end;
 
+function TestBigDecimalInverseTrigPrecision: Boolean;
+var
+  X, R30, R100, Ref: TCnBigDecimal;
+  S: string;
+
+  function CheckArcSinCos(const AValue: string): Boolean;
+  begin
+    Result := False;
+    if not X.SetDec(AValue) then Exit;
+    if not BigDecimalArcSin(R30, X, 30) then Exit;
+    if not BigDecimalArcSin(R100, X, 100) then Exit;
+    if R30.Scale > 30 then Exit;
+    if R100.Scale > 100 then Exit;
+    BigDecimalCopy(Ref, R100);
+    Ref.RoundTo(30);
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    if not BigDecimalArcCos(R30, X, 30) then Exit;
+    if not BigDecimalArcCos(R100, X, 100) then Exit;
+    if R30.Scale > 30 then Exit;
+    if R100.Scale > 100 then Exit;
+    BigDecimalCopy(Ref, R100);
+    Ref.RoundTo(30);
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    Result := True;
+  end;
+
+  function CheckArcTan(const AValue: string): Boolean;
+  begin
+    Result := False;
+    if not X.SetDec(AValue) then Exit;
+    if not BigDecimalArcTan(R30, X, 30) then Exit;
+    if not BigDecimalArcTan(R100, X, 100) then Exit;
+    if R30.Scale > 30 then Exit;
+    if R100.Scale > 100 then Exit;
+    BigDecimalCopy(Ref, R100);
+    Ref.RoundTo(30);
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    Result := True;
+  end;
+
+begin
+  Result := False;
+  X := TCnBigDecimal.Create;
+  R30 := TCnBigDecimal.Create;
+  R100 := TCnBigDecimal.Create;
+  Ref := TCnBigDecimal.Create;
+  try
+    S := '0.' + StringOfChar('9', 40);
+    if not CheckArcSinCos(S) then Exit;
+    if not CheckArcSinCos('-' + S) then Exit;
+    S := '0.' + StringOfChar('9', 100);
+    if not CheckArcSinCos(S) then Exit;
+    if not CheckArcSinCos('-' + S) then Exit;
+    if not CheckArcSinCos('1') then Exit;
+    if not CheckArcSinCos('-1') then Exit;
+    if not CheckArcSinCos('0.5') then Exit;
+    if not CheckArcSinCos('-0.5') then Exit;
+    if not CheckArcSinCos('0.6') then Exit;
+    if not CheckArcSinCos('-0.6') then Exit;
+    if not CheckArcSinCos('0.25') then Exit;
+    if not CheckArcSinCos('-0.25') then Exit;
+
+    if not CheckArcTan('0.5') then Exit;
+    if not CheckArcTan('-0.5') then Exit;
+    if not CheckArcTan('1') then Exit;
+    if not CheckArcTan('-1') then Exit;
+    if not CheckArcTan('2') then Exit;
+    if not CheckArcTan('-2') then Exit;
+    if not CheckArcTan('1e50') then Exit;
+    if not CheckArcTan('-1e50') then Exit;
+    S := '0.' + StringOfChar('9', 40);
+    if not CheckArcTan(S) then Exit;
+    if not CheckArcTan('-' + S) then Exit;
+
+    if not X.SetDec('1') then Exit;
+    if not BigDecimalArcSin(R30, X, 30) then Exit;
+    if not Ref.SetDec('1.57079632679489661923132169164') then Exit;
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    if not BigDecimalArcCos(R30, X, 30) then Exit;
+    if not R30.IsZero then Exit;
+
+    if not X.SetDec('-1') then Exit;
+    if not BigDecimalArcCos(R30, X, 30) then Exit;
+    if not Ref.SetDec('3.14159265358979323846264338328') then Exit;
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+
+    if not X.SetDec('1') then Exit;
+    if not BigDecimalArcTan(R30, X, 30) then Exit;
+    if not Ref.SetDec('0.78539816339744830961566084582') then Exit;
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+
+    if not X.SetDec('2') then Exit;
+    if BigDecimalArcSin(R30, X, 30) then Exit;
+    if BigDecimalArcCos(R30, X, 30) then Exit;
+    if not X.SetDec('-2') then Exit;
+    if BigDecimalArcSin(R30, X, 30) then Exit;
+    if BigDecimalArcCos(R30, X, 30) then Exit;
+
+    Result := True;
+  finally
+    Ref.Free;
+    R100.Free;
+    R30.Free;
+    X.Free;
+  end;
+end;
+
 function TestBigDecimalHyperbolicSin: Boolean;
 var
   Res, Num: TCnBigDecimal;
@@ -15397,6 +15733,49 @@ begin
   finally
     Res.Free;
     Num.Free;
+  end;
+end;
+
+function TestBigComplexDecimalEulerExpLarge: Boolean;
+var
+  Res, Num: TCnBigComplexDecimal;
+  R30, I30, R300, I300, Ref: TCnBigDecimal;
+begin
+  Result := False;
+  Res := TCnBigComplexDecimal.Create;
+  Num := TCnBigComplexDecimal.Create;
+  R30 := TCnBigDecimal.Create;
+  I30 := TCnBigDecimal.Create;
+  R300 := TCnBigDecimal.Create;
+  I300 := TCnBigDecimal.Create;
+  Ref := TCnBigDecimal.Create;
+  try
+    // e^(i*1e100) 走纯虚数路径，内部调用 BigDecimalCos/Sin。
+    Num.SetZero;
+    if not Num.I.SetDec('1e100') then Exit;
+    if not BigComplexDecimalEulerExp(Res, Num, 30) then Exit;
+    BigDecimalCopy(R30, Res.R);
+    BigDecimalCopy(I30, Res.I);
+    if not BigComplexDecimalEulerExp(Res, Num, 300) then Exit;
+    BigDecimalCopy(R300, Res.R);
+    BigDecimalCopy(I300, Res.I);
+
+    BigDecimalCopy(Ref, R300);
+    Ref.RoundTo(30);
+    if BigDecimalCompare(R30, Ref) <> 0 then Exit;
+    BigDecimalCopy(Ref, I300);
+    Ref.RoundTo(30);
+    if BigDecimalCompare(I30, Ref) <> 0 then Exit;
+
+    Result := True;
+  finally
+    Res.Free;
+    Num.Free;
+    R30.Free;
+    I30.Free;
+    R300.Free;
+    I300.Free;
+    Ref.Free;
   end;
 end;
 

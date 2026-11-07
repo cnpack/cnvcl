@@ -31,7 +31,9 @@ unit CnMatrix;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行。另外 Hadamard 相关乘法，积矩阵可否是原矩阵待考察
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.10.17 V1.5
+* 修改记录：2026.11.07 V1.6
+*               DeleteRow/DeleteCol 在仅剩一行/一列时抛出 ECnMatrixException，避免矩阵退化为 0 行/列
+*           2026.10.17 V1.5
 *               CnMatrixMinor/Adjoint/Inverse 九个重载补结果与输入同矩阵的守卫，仿 CnMatrixMul，避免原地操作静默错值
 *               CnMatrixAdjoint 三个重载补 1x1 特判，修复 1x1 矩阵伴随/求逆恒抛异常
 *           2026.01.25 V1.4
@@ -203,12 +205,12 @@ type
     }
 
     function IsZero: Boolean;
-    {* 是否全 0 方阵。
+    {* 是否全 0 阵。
 
        参数：
          （无）
 
-       返回值：Boolean                    - 返回是否全 0 方阵
+       返回值：Boolean                    - 返回是否全 0 阵
     }
 
     function IsE: Boolean;
@@ -239,7 +241,7 @@ type
     }
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行。
+    {* 删除其中一行。矩阵仅剩一行时抛出 ECnMatrixException 异常。
 
        参数：
          Row: Integer                     - 待删除的行号
@@ -248,7 +250,7 @@ type
     }
 
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列。
+    {* 删除其中一列。矩阵仅剩一列时抛出 ECnMatrixException 异常。
 
        参数：
          Col: Integer                     - 待删除的列号
@@ -421,12 +423,12 @@ type
     }
 
     function IsZero: Boolean;
-    {* 是否全 0 方阵。
+    {* 是否全 0 阵。
 
        参数：
          （无）
 
-       返回值：Boolean                    - 返回是否全 0 方阵
+       返回值：Boolean                    - 返回是否全 0 阵
     }
 
     function IsE: Boolean;
@@ -457,7 +459,7 @@ type
     }
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行。
+    {* 删除其中一行。矩阵仅剩一行时抛出 ECnMatrixException 异常。
 
        参数：
          Row: Integer                     - 待删除的行号
@@ -466,7 +468,7 @@ type
     }
 
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列。
+    {* 删除其中一列。矩阵仅剩一列时抛出 ECnMatrixException 异常。
 
        参数：
          Col: Integer                     - 待删除的列号
@@ -722,7 +724,7 @@ type
     {* 析构函数}
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行。
+    {* 删除其中一行。矩阵仅剩一行时抛出 ECnMatrixException 异常。
 
        参数：
          Row: Integer                     - 待删除的行号
@@ -731,7 +733,7 @@ type
     }
 
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列。
+    {* 删除其中一列。矩阵仅剩一列时抛出 ECnMatrixException 异常。
 
        参数：
          Col: Integer                     - 待删除的列号
@@ -740,7 +742,7 @@ type
     }
 
     property ValueObject[Row, Col: Integer]: TObject read GetValueObject write SetValueObject; default;
-    {* 二维数组值}
+    {* 二维数组值。获取对象引用，注意设置对象值后，对象即由本二维数组管理，外部不可再释放}
     property RowCount: Integer read GetRowCount write SetRowCount;
     {* 行数}
     property ColCount: Integer read GetColCount write SetColCount;
@@ -848,7 +850,7 @@ type
     {* 矩阵转置，也就是行列互换}
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行。
+    {* 删除其中一行。矩阵仅剩一行时抛出 ECnMatrixException 异常。
 
        参数：
          Row: Integer                     - 待删除的行号
@@ -857,7 +859,7 @@ type
     }
 
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列。
+    {* 删除其中一列。矩阵仅剩一列时抛出 ECnMatrixException 异常。
 
        参数：
          Col: Integer                     - 待删除的列号
@@ -893,12 +895,12 @@ type
     }
 
     function IsZero: Boolean;
-    {* 是否全 0 方阵。
+    {* 是否全 0 阵。
 
        参数：
          （无）
 
-       返回值：Boolean                    - 返回是否全 0 方阵
+       返回值：Boolean                    - 返回是否全 0 阵
     }
 
     function IsE: Boolean;
@@ -1368,6 +1370,8 @@ resourcestring
   SCnErrorRowColCountFmt = 'Error Row or Col Count: %d';
   SCnErrorRowColIndexFmt = 'Error Row or Col: %d';
   SCnErrorRowColIndex2Fmt = 'Error Row or Col: %d, %d';
+  SCnErrorDeleteLastRow = 'Can NOT Delete the Last Row of Matrix';
+  SCnErrorDeleteLastCol = 'Can NOT Delete the Last Col of Matrix';
   SCnErrorZigZagIndexFmt = 'Error ZigZag Index: %d';
   SCnErrorZigZagRowColCount = 'ZigZag Row Col Count must Equal';
   SCnErrorMatrixDenominatorZero = 'Denominator can NOT be Zero.';
@@ -2321,6 +2325,9 @@ var
   T: array of array of Int64;
   I, J, SJ, DJ: Integer;
 begin
+  if FColCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastCol);
+
   if (Col >= 0) and (Col < FColCount) then
   begin
     // 把每 Row 的元素取出来放到临时 T 里，剔除第 Col 个
@@ -2359,6 +2366,9 @@ procedure TCnIntMatrix.DeleteRow(Row: Integer);
 var
   I, J: Integer;
 begin
+  if FRowCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastRow);
+
   if (Row >= 0) and (Row < FRowCount) then
   begin
     // 把第 Row + 1 行到 FRowCount - 1 行的一维数组朝前移动一格，末行时无需移
@@ -2541,8 +2551,6 @@ var
   I, J: Integer;
 begin
   Result := False;
-  if not IsSquare then
-    Exit;
 
   for I := 0 to FRowCount - 1 do
   begin
@@ -2727,6 +2735,9 @@ var
   T: array of array of Extended;
   I, J, SJ, DJ: Integer;
 begin
+  if FColCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastCol);
+
   if (Col >= 0) and (Col < FColCount) then
   begin
     // 把每 Row 的元素取出来放到临时 T 里，剔除第 Col 个
@@ -2765,6 +2776,9 @@ procedure TCnFloatMatrix.DeleteRow(Row: Integer);
 var
   I, J: Integer;
 begin
+  if FRowCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastRow);
+
   if (Row >= 0) and (Row < FRowCount) then
   begin
     // 把第 Row + 1 行到 FRowCount - 1 行的一维数组朝前移动一格，末行时无需移
@@ -2959,8 +2973,6 @@ var
   I, J: Integer;
 begin
   Result := False;
-  if not IsSquare then
-    Exit;
 
   for I := 0 to FRowCount - 1 do
   begin
@@ -3581,6 +3593,9 @@ procedure TCn2DObjectList.DeleteCol(Col: Integer);
 var
   I: Integer;
 begin
+  if FColCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastCol);
+
   if (Col < 0) or (Col >= FColCount) then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [0, Col]);
 
@@ -3591,6 +3606,9 @@ end;
 
 procedure TCn2DObjectList.DeleteRow(Row: Integer);
 begin
+  if FRowCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastRow);
+
   if (Row < 0) or (Row >= FRowCount) then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, 0]);
 
@@ -3667,7 +3685,8 @@ begin
   if (Row < 0) or (Row >= FRowCount) or (Col < 0) or (Col >= FColCount) then
     raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [Row, Col]);
 
-  TObjectList(FRows[Row])[Col] := Value;
+  if TObjectList(FRows[Row])[Col] <> Value then
+    TObjectList(FRows[Row])[Col] := Value;
 end;
 
 { TCnRationalMatrix }
@@ -3725,11 +3744,17 @@ end;
 
 procedure TCnRationalMatrix.DeleteCol(Col: Integer);
 begin
+  if ColCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastCol);
+
   FMatrix.DeleteCol(Col);
 end;
 
 procedure TCnRationalMatrix.DeleteRow(Row: Integer);
 begin
+  if RowCount <= 1 then
+    raise ECnMatrixException.Create(SCnErrorDeleteLastRow);
+
   FMatrix.DeleteRow(Row);
 end;
 
@@ -3963,8 +3988,6 @@ var
   I, J: Integer;
 begin
   Result := False;
-  if not IsSquare then
-    Exit;
 
   for I := 0 to RowCount - 1 do
   begin
