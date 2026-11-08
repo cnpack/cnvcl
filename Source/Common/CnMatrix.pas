@@ -2236,10 +2236,20 @@ begin
 end;
 
 procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix);
+var
+  D: Int64;
 begin
-  // 整数矩阵除法求逆会产生非整数（Divide 本就是未实现的 stub），
-  // 入口直接抛异常并提示改用有理数矩阵，避免白算行列式与伴随阵
-  raise ECnMatrixException.Create(SCnErrorInverseNotImplInt);
+  if Matrix2 = Matrix1 then
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
+
+  D := Matrix1.Determinant;
+  if D = 0 then
+    raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
+
+  CnMatrixAdjoint(Matrix1, Matrix2);
+  Matrix2.Divide(D);
+  // 注意，切勿因为 TCnIntMatrix 的 Divide 没实现，本过程就直接抛异常
+  // 因为参数可能是 TCnIntMatrix 的子类如 Galois 等，可能实现了 Divide
 end;
 
 procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix);
