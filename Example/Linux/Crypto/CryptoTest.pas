@@ -11763,7 +11763,7 @@ begin
       CnMatrixInverse(IntM, IntI);
     except
       on E: ECnMatrixException do
-        OK := Pos('RationalMatrix', E.Message) > 0;
+        OK := Pos('Deteminant', E.Message) > 0;
     end;
     if not OK then Exit;
 
