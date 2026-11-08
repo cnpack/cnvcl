@@ -5899,7 +5899,7 @@ begin
     if B.Parent <> nil then Exit;
     if A.Count <> 2 then Exit;
     if A.Items[0] <> I then Exit;
-    if Tree.RegisteredCount <> 6 then Exit;  // 孤儿仍在注册表中
+    if Tree.RegisteredCount <> 5 then Exit;  // 孤儿已被解除注册
 
     // 孤儿节点 Delete 释放自身
     B.Delete;
