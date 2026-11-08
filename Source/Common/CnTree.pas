@@ -147,9 +147,9 @@ type
     procedure Delete;
     {* 删除本身和子节点}
     function ExtractChild(AIndex: Integer): TCnLeaf; overload;
-    {* 剥离出一直属子节点，子节点以下不会被删除释放}
+    {* 剥离出一直属子节点，子节点以下不会被删除释放，子树所有权移交调用方}
     function ExtractChild(ALeaf: TCnLeaf): TCnLeaf; overload;
-    {* 剥离出指定的一子节点，子节点以下不会被删除释放}
+    {* 剥离出指定的一子节点，子节点以下不会被删除释放，子树所有权移交调用方}
 
     // 获得其他节点的方法
     function GetFirstChild: TCnLeaf;
@@ -188,7 +188,7 @@ type
     property Index: Integer read GetIndex;
     {* 本叶节点在父节点列表中的顺序索引，从 0 开始。无父则为 -1}
     property Items[AIndex: Integer]: TCnLeaf read GetItems write SetItems; default;
-    {* 直属叶节点数组}
+    {* 直属叶节点数组，写入时将节点从旧父节点摘除（不可为 nil，不可跨树）}
     property SubTreeHeight: Integer read GetSubTreeHeight;
     {* 此节点下属子树的最大高度，无子节点时为 0}
 
@@ -283,6 +283,8 @@ type
     {* 仅供叶节点调用，在树中登记此叶节点}
     procedure UnRegisterLeaf(ALeaf: TCnLeaf);
     {* 仅供叶节点调用，取消此叶节点的登记}
+    procedure UnRegisterSubTree(ALeaf: TCnLeaf);
+    {* 取消一叶节点及其所有子孙节点的登记，用于剥离整棵子树时将所有权移交调用方}
 
 {$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
@@ -312,7 +314,7 @@ type
     procedure WidthFirstTravel(Reverse: Boolean = False);
     {* 进行广度优先遍历，Reverse 控制遍历同级子节点的顺序，False 表示从 0 开始增大找，True 表示从最后一个往前找}
     function ExtractLeaf(ALeaf: TCnLeaf): TCnLeaf;
-    {* 从树中剥离一叶节点并返回它}
+    {* 从树中剥离一叶节点并返回它，其子树一并剥离且所有权移交调用方}
     procedure Clear; virtual;
     {* 清除并释放所有叶节点，批量序次释放，不进行树遍历，不进行通知更新 }
 
@@ -422,6 +424,8 @@ resourcestring
   SCnErrorRootCanNotDelete = 'Root Can NOT be Deleted.';
   SCnErrorTreeRingNotAllow = 'Tree Leaf Ring NOT Allowed.';
   SCnErrorLeafParentNil = 'Tree Leaf Without Parent Can NOT be Exchanged.';
+  SCnErrorLeafNil = 'Tree Leaf Can NOT be Assigned to Nil.';
+  SCnErrorTreeNotSame = 'Operate Leafs Must Belong to the Same Tree.';
 
 {$IFDEF ENABLE_UIINTERACT}
 {$IFDEF SUPPORT_FMX}
@@ -544,9 +548,12 @@ begin
   end
   else
     Result := nil;
+  // 整棵子树的登记一并取消，所有权移交调用方，避免树释放时释放仍被引用的子树
+  if (FTree <> nil) and (Result <> nil) then
+    FTree.UnRegisterSubTree(Result);
 end;
 
-function TCnLeaf.ExtractChild(AIndex: Integer): TCnLeaf; 
+function TCnLeaf.ExtractChild(AIndex: Integer): TCnLeaf;
 begin
   Result := nil;
   if (AIndex >= 0) and (AIndex < Count) then
@@ -555,6 +562,9 @@ begin
     if Result <> nil then
       Result.FParent := nil;
     FList.Delete(AIndex);
+    // 整棵子树的登记一并取消，所有权移交调用方，避免树释放时释放仍被引用的子树
+    if (FTree <> nil) and (Result <> nil) then
+      FTree.UnRegisterSubTree(Result);
   end;
 end;
 
@@ -901,15 +911,36 @@ begin
 end;
 
 procedure TCnLeaf.SetItems(AIndex: Integer; const Value: TCnLeaf);
+var
+  OldChild, OldParent: TCnLeaf;
+  OldIndex: Integer;
 begin
-  if (Value <> nil) and ((Value = Self) or HasAsParent(Value)) then
+  if Value = nil then
+    raise ECnTreeException.Create(SCnErrorLeafNil); // nil 槽位会破坏计数并使遍历崩溃
+
+  if (Value = Self) or HasAsParent(Value) then
     raise ECnTreeException.Create(SCnErrorTreeRingNotAllow);
+
+  if (FTree = nil) or (Value.FTree <> FTree) then
+    raise ECnTreeException.Create(SCnErrorTreeNotSame); // 跨树搬移会造成悬挂注册
 
   if (AIndex >= 0) and (AIndex < Count) then
   begin
+    OldChild := TCnLeaf(FList.Items[AIndex]);
+    OldIndex := FList.IndexOf(Value);
+    OldParent := Value.FParent;
+
     FList.Items[AIndex] := Value;
-    if Value <> nil then
-      Value.FParent := Self;
+    Value.FParent := Self;
+
+    if (OldIndex >= 0) and (OldIndex <> AIndex) then
+      FList.Delete(OldIndex); // 原是本节点的子节点：删除旧槽位，避免同一节点被两个槽位持有
+
+    if (OldIndex < 0) and (OldParent <> nil) and (OldParent <> Self) then
+      OldParent.FList.Remove(Value); // 原是其他节点的子节点：先摘除，避免被两个父节点持有
+
+    if (OldChild <> nil) and (OldChild <> Value) then
+      OldChild.FParent := nil; // 原槽位节点被替换，清除其父指针（仍在树中注册，随树释放）
   end;
 end;
 
@@ -1017,6 +1048,17 @@ end;
 procedure TCnTree.UnRegisterLeaf(ALeaf: TCnLeaf);
 begin
   FLeaves.Extract(ALeaf);
+end;
+
+procedure TCnTree.UnRegisterSubTree(ALeaf: TCnLeaf);
+var
+  I: Integer;
+begin
+  if ALeaf = nil then
+    Exit;
+  UnRegisterLeaf(ALeaf);
+  for I := 0 to ALeaf.Count - 1 do
+    UnRegisterSubTree(ALeaf.Items[I]);
 end;
 
 procedure TCnTree.Clear;
