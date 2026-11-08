@@ -11746,7 +11746,8 @@ begin
     CnMatrixAdjoint(IntM, IntA);
     if IntA[0, 0] <> 1 then Exit;
 
-    // Int 求逆不支持：入口直接抛异常并提示转换到 TCnRationalMatrix
+    // Int 求逆的 Divide 是显式 stub（整除截断无意义，作者有意未实现），
+    // 修复后失败点从 Minor.Create(0,0) 移到 Divide，仍抛 ECnMatrixException
     OK := False;
     try
       CnMatrixInverse(IntM, IntI);
@@ -11756,7 +11757,7 @@ begin
     end;
     if not OK then Exit;
 
-    // 奇异 1x1：同样在入口即抛"不支持"，不再先算行列式
+    // 奇异 1x1：行列式为 0，在触及 Divide 前即抛 ZeroDeterminant 异常
     IntM[0, 0] := 0;
     OK := False;
     try
