@@ -561,12 +561,14 @@ function CnSM2SchnorrProve(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2Public
 {* 基于 SM2/SM3 的非交互式 Schnorr 零知识证明步骤一，由私钥拥有者调用。
   私钥拥有者生成 R 和 Z，返回生成是否成功。
   该函数用于 SM2 私钥拥有者证明自己拥有对应公钥的私钥而无需公开该私钥。
+  Z 按曲线阶 N 约简为 (r + c * d) mod N 后输出，验证方只接受 [0, N) 内的 Z；
+  若输出未约简的 c * d + r，拿到证明的人用一次整数除法即可恢复私钥 d。
 
    参数：
      PrivateKey: TCnSM2PrivateKey         - 进行 Schnorr 零知识证明的 SM2 私钥
      PublicKey: TCnSM2PublicKey           - 进行 Schnorr 零知识证明的 SM2 公钥
      OutR: TCnEccPoint                    - SM2 私钥拥有者生成的 R 坐标点
-     OutZ: TCnBigNumber                   - SM2 私钥拥有者生成的 Z 大数值
+     OutZ: TCnBigNumber                   - SM2 私钥拥有者生成的 Z 大数值，已模曲线阶 N
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
 
    返回值：Boolean                        - 返回生成是否成功
@@ -577,6 +579,7 @@ function CnSM2SchnorrCheck(PublicKey: TCnSM2PublicKey; InR: TCnEccPoint;
 {* 基于 SM2/SM3 的非交互式 Schnorr 零知识证明步骤二，由拿到公钥者验证
    验证对方发来的 R 和 Z，如果成功，说明对方拥有该公钥对应的私钥
    该函数用于验证对方是否拥有某 SM2 公钥对应的私钥
+   Z 必须是 [0, N) 内的约简标量，超范围（含旧格式未约简值）一律拒绝
 
    参数：
      PublicKey: TCnSM2PublicKey           - 用来验证 Schnorr 零知识证明的 SM2 公钥
@@ -2698,9 +2701,15 @@ begin
 
     OutZ.SetBinary(@Dig[0], SizeOf(TCnSM3Digest));
 
-    // 注意，此处无需也不能 mod P！
+    // Z 必须按曲线阶约简：直接输出 c*d+r 会让验证方由公开的 z 与 c
+    // 通过整数除法一次恢复私钥 d，因此下面的取模绝不能省略。
     BigNumberMul(OutZ, OutZ, PrivateKey);
     BigNumberAdd(OutZ, OutZ, R);
+    if not BigNumberNonNegativeMod(OutZ, OutZ, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+      Exit;
+    end;
 
     Result := True;
     _CnSetLastError(ECN_SM2_OK);
@@ -2715,6 +2724,7 @@ end;
 
 {
   数 c <= Hash(PublicKey, R)
+  数 z = (r + c * d) mod N，必须落在 [0, N) 内
   点 z * G ?= R + c * PublicKey
 }
 function CnSM2SchnorrCheck(PublicKey: TCnSM2PublicKey; InR: TCnEccPoint;
@@ -2742,6 +2752,14 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    // 拒绝未约简或超出阶范围的 Z：旧格式输出 c*d+r 会泄露私钥，
+    // 且 z 与 z+N 在模 N 意义下等价，必须拒绝以避免证明可锻。
+    if BigNumberIsNegative(InZ) or (BigNumberCompare(InZ, SM2.Order) >= 0) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     Stream := TMemoryStream.Create;
     if CnEccPointToStream(PublicKey, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then

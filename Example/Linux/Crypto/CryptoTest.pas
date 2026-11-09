@@ -780,6 +780,7 @@ function TestSM2Collaborative3KeyGen: Boolean;
 function TestSM2Collaborative3Sign: Boolean;
 function TestSM2VerifyCorruptedSignature: Boolean;
 function TestSM2SchnorrProveCheck: Boolean;
+function TestSM2SchnorrZReduced: Boolean;
 
 // ================================ SM3 ========================================
 
@@ -2715,6 +2716,7 @@ begin
   MyAssert(TestSM2Collaborative3Sign, 'TestSM2Collaborative3Sign');
   MyAssert(TestSM2VerifyCorruptedSignature, 'TestSM2VerifyCorruptedSignature');
   MyAssert(TestSM2SchnorrProveCheck, 'TestSM2SchnorrProveCheck');
+  MyAssert(TestSM2SchnorrZReduced, 'TestSM2SchnorrZReduced');
 
 // ================================ SM3 ========================================
 
@@ -26761,6 +26763,9 @@ begin
     Result := CnSM2SchnorrProve(Priv, Pub, OutR, Z, SM2);
     if not Result then Exit;
 
+    // Z must be reduced modulo the curve order, otherwise the private key leaks
+    if BigNumberIsNegative(Z) or (BigNumberCompare(Z, SM2.Order) >= 0) then Exit;
+
     // Check: verify the proof passes
     Result := CnSM2SchnorrCheck(Pub, OutR, Z, SM2);
     if not Result then Exit;
@@ -26774,6 +26779,82 @@ begin
   finally
     SM2.Free;
     OutR.Free;
+    Z.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
+end;
+
+// CnSM2SchnorrProve 不能直接输出未约简的 c*d+r（约 512 位），
+// 否则验证方只需公开的 z、c 与一次整数除法即可恢复私钥 d。
+// 本用例验证 Z 已约简、不含 c*d 项，且 Check 拒绝超范围的 Z。
+function TestSM2SchnorrZReduced: Boolean;
+var
+  Priv: TCnSM2PrivateKey;
+  Pub: TCnSM2PublicKey;
+  Z, C, CD, T: TCnBigNumber;
+  OutR: TCnEccPoint;
+  SM2: TCnSM2;
+  Stream: TMemoryStream;
+  Dig: TCnSM3Digest;
+  I: Integer;
+begin
+  Result := False;
+  Priv := nil;
+  Pub := nil;
+  Z := nil;
+  C := nil;
+  CD := nil;
+  T := nil;
+  OutR := nil;
+  SM2 := nil;
+  Stream := nil;
+  try
+    Priv := TCnSM2PrivateKey.Create;
+    Pub := TCnSM2PublicKey.Create;
+    Z := TCnBigNumber.Create;
+    C := TCnBigNumber.Create;
+    CD := TCnBigNumber.Create;
+    T := TCnBigNumber.Create;
+    OutR := TCnEccPoint.Create;
+    SM2 := TCnSM2.Create;
+    Stream := TMemoryStream.Create;
+
+    if not CnSM2GenerateKeys(Priv, Pub, SM2) then Exit;
+
+    for I := 1 to 8 do
+    begin
+      if not CnSM2SchnorrProve(Priv, Pub, OutR, Z, SM2) then Exit;
+
+      // 1. Z 必须是 [0, N) 内的标量
+      if BigNumberIsNegative(Z) or (BigNumberCompare(Z, SM2.Order) >= 0) then Exit;
+
+      // 2. 合法证明必须通过验证
+      if not CnSM2SchnorrCheck(Pub, OutR, Z, SM2) then Exit;
+
+      // 3. 重建 c = SM3(PublicKey || R)，Z 不得含有未约简的 c*d 项
+      Stream.Size := 0;
+      if CnEccPointToStream(Pub, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then Exit;
+      if CnEccPointToStream(OutR, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then Exit;
+      Dig := SM3(Stream.Memory, Stream.Size);
+      C.SetBinary(@Dig[0], SizeOf(TCnSM3Digest));
+      BigNumberMul(CD, C, Priv);
+      if BigNumberCompare(CD, SM2.Order) > 0 then
+        if BigNumberCompare(Z, CD) >= 0 then Exit;
+
+      // 4. 拒绝超范围且模 N 等价的可锻 Z（Z + N）
+      BigNumberAdd(T, Z, SM2.Order);
+      if CnSM2SchnorrCheck(Pub, OutR, T, SM2) then Exit;
+    end;
+
+    Result := True;
+  finally
+    Stream.Free;
+    SM2.Free;
+    OutR.Free;
+    T.Free;
+    CD.Free;
+    C.Free;
     Z.Free;
     Pub.Free;
     Priv.Free;
