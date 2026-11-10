@@ -2988,12 +2988,20 @@ var
   BufSize: Integer;
 begin
   BufSize := GetShortPathName(PChar(FileName), nil, 0) + 1;
+{$IFDEF COMPILER5}
+  CnGetMem(Buf, BufSize * SizeOf(Char));
+{$ELSE}
   GetMem(Buf, BufSize * SizeOf(Char));
+{$ENDIF}
   try
     GetShortPathName(PChar(FileName), Buf, BufSize);
     Result := Buf;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Buf);
+{$ELSE}
     FreeMem(Buf);
+{$ENDIF}
   end;
 end;
 
@@ -4263,7 +4271,11 @@ begin
   if VersionInfoBufferSize = 0 then
     Exit;
 
+{$IFDEF COMPILER5}
+  CnGetMem(VersionInfoBuffer, VersionInfoBufferSize);
+{$ELSE}
   GetMem(VersionInfoBuffer, VersionInfoBufferSize);
+{$ENDIF}
   try
     try
       Win32Check(GetFileVersionInfo(PChar(FileName), dummyHandle,
@@ -4278,7 +4290,11 @@ begin
     Result.Release := FixedFileInfoPtr^.dwFileVersionLS shr 16;
     Result.Build := FixedFileInfoPtr^.dwFileVersionLS;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(VersionInfoBuffer);
+{$ELSE}
     FreeMem(VersionInfoBuffer);
+{$ENDIF}
   end;
 end;
 
@@ -8798,7 +8814,11 @@ begin
   APropCount := GetTypeData(PTypeInfo(AComp.ClassInfo))^.PropCount;
   if APropCount > 0 then
   begin
+{$IFDEF COMPILER5}
+    CnGetMem(PropListPtr, APropCount * SizeOf(Pointer));
+{$ELSE}
     GetMem(PropListPtr, APropCount * SizeOf(Pointer));
+{$ENDIF}
     GetPropList(PTypeInfo(AComp.ClassInfo), tkAny, PropListPtr);
 
     try
@@ -8842,7 +8862,11 @@ begin
         end;
       end;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(PropListPtr);
+{$ELSE}
       FreeMem(PropListPtr);
+{$ENDIF}
     end;
   end;
 end;
@@ -8863,7 +8887,11 @@ begin
   APropCount := GetTypeData(PTypeInfo(ACompClass.ClassInfo))^.PropCount;
   if APropCount > 0 then
   begin
+{$IFDEF COMPILER5}
+    CnGetMem(PropListPtr, APropCount * SizeOf(Pointer));
+{$ELSE}
     GetMem(PropListPtr, APropCount * SizeOf(Pointer));
+{$ENDIF}
     GetPropList(PTypeInfo(ACompClass.ClassInfo), tkAny, PropListPtr);
 
     try
@@ -8888,7 +8916,11 @@ begin
         end;
       end;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(PropListPtr);
+{$ELSE}
       FreeMem(PropListPtr);
+{$ENDIF}
     end;
   end;
 end;

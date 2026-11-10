@@ -656,7 +656,11 @@ function TCnEncryptStream.Write(const Buffer; Count: Longint): LongInt;
 var
   MemBuff: Pointer;
 begin
+{$IFDEF COMPILER5}
+  CnGetMem(MemBuff, Count);
+{$ELSE}
   GetMem(MemBuff, Count);
+{$ENDIF}
   try
     DoBeforeEncrypt(Buffer, Count);
     Move(Buffer, MemBuff^, Count);
@@ -665,7 +669,11 @@ begin
     DoAfterEncrypt(Buffer, Count);
     Result := FStream.Write(MemBuff^, Count);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(MemBuff);
+{$ELSE}
     FreeMem(MemBuff);
+{$ENDIF}
   end;
 end;
 

@@ -548,7 +548,11 @@ var
     FL := Length(Source);
     if FL > 0 then
     begin
+{$IFDEF COMPILER5}
+      CnGetMem(P, FL);
+{$ELSE}
       GetMem(P, FL);                   // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+{$ENDIF}
       PP := P;
       FillChar(P^, FL, 0);
       for I := 1 to FL do
@@ -560,7 +564,11 @@ var
         end;
       end;
       SetString(Result, P, PP - P);        // 截取有效部分
+{$IFDEF COMPILER5}
+      CnFreeMem(P);
+{$ELSE}
       FreeMem(P);
+{$ENDIF}
     end;
   end;
 
@@ -889,7 +897,11 @@ var
     FL := Length(Source);
     if FL > 0 then
     begin
+{$IFDEF COMPILER5}
+      CnGetMem(P, FL);
+{$ELSE}
       GetMem(P, FL);
+{$ENDIF}
       PP := P;
       FillChar(P^, FL, 0);
       for I := 1 to FL do
@@ -904,7 +916,11 @@ var
         end;
       end;
       SetString(Result, P, PP - P);
+{$IFDEF COMPILER5}
+      CnFreeMem(P);
+{$ELSE}
       FreeMem(P);
+{$ENDIF}
     end;
   end;
 

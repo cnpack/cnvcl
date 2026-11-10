@@ -306,7 +306,7 @@ type
 implementation
 
 uses
-  CnCommon;
+  CnCommon, CnNative;
 
 function IsDefaultPropertyValue(Instance: TObject; PropInfo: PPropInfo): Boolean;
 var
@@ -566,7 +566,11 @@ var
 begin
   Count := GetPropList(AObject.ClassInfo, tkProperties - [tkArray, tkRecord,
     tkInterface], nil);
+{$IFDEF COMPILER5}
+  CnGetMem(PropList, Count * SizeOf(Pointer));
+{$ELSE}
   GetMem(PropList, Count * SizeOf(Pointer));
+{$ENDIF}
   try
     GetPropList(AObject.ClassInfo, tkProperties - [tkArray, tkDynArray, tkRecord,
       tkVariant, tkMethod, tkInterface], @PropList^[0]);
@@ -653,7 +657,11 @@ begin
       end;
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PropList);
+{$ELSE}
     FreeMem(PropList);
+{$ENDIF}
   end;
 end;
 
@@ -669,7 +677,11 @@ var
 begin
   Count := GetPropList(AObject.ClassInfo, tkProperties - [tkArray, tkRecord,
     tkInterface], nil);
+{$IFDEF COMPILER5}
+  CnGetMem(PropList, Count * SizeOf(Pointer));
+{$ELSE}
   GetMem(PropList, Count * SizeOf(Pointer));
+{$ENDIF}
   try
     GetPropList(AObject.ClassInfo, tkProperties - [tkArray, tkDynArray, tkRecord,
       tkVariant, tkMethod, tkInterface], @PropList^[0]);
@@ -734,7 +746,11 @@ begin
       end;                      
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PropList);
+{$ELSE}
     FreeMem(PropList);
+{$ENDIF}
   end;
 end;
 

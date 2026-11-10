@@ -802,13 +802,21 @@ begin
   if Cnt > 0 then
   begin
     try
+{$IFDEF COMPILER5}
+      CnGetMem(InpBuf, Cnt);
+{$ELSE}
       GetMem(InpBuf, Cnt);
+{$ENDIF}
       InZipStream.Read(InpBuf^, Cnt);
       DecompressBuf(InpBuf, Cnt, 0, OutBuf, OutBytes);
       OutStream.Write(OutBuf^, OutBytes);
     finally
       if InpBuf <> nil then
+{$IFDEF COMPILER5}
+        CnFreeMem(InpBuf);
+{$ELSE}
         FreeMem(InpBuf);
+{$ENDIF}
       if OutBuf <> nil then
         FreeMem(OutBuf);
     end;

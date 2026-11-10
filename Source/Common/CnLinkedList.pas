@@ -794,7 +794,11 @@ begin
   if Len = 0 then
     Exit;
 
+{$IFDEF COMPILER5}
+  CnGetMem(Result, (Len + 1) * SizeOf(AnsiChar) + SizeOf(TCnNativeUInt));
+{$ELSE}
   GetMem(Result, (Len + 1) * SizeOf(AnsiChar) + SizeOf(TCnNativeUInt));
+{$ENDIF}
     // 分配内存空间
   TCnNativeUIntPtr(Result)^ := (Len + 1) * SizeOf(AnsiChar) + SizeOf(TCnNativeUInt);
     // 记录内存空间大小
@@ -818,7 +822,11 @@ begin
   if Len = 0 then
     Exit;
 
+{$IFDEF COMPILER5}
+  CnGetMem(Result, (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt));
+{$ELSE}
   GetMem(Result, (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt));
+{$ENDIF}
     // 分配内存空间
   TCnNativeUIntPtr(Result)^ := (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt);
     // 记录内存空间大小
@@ -833,13 +841,21 @@ end;
 procedure StrDisposeA(var Value: PAnsiChar);
 begin
   Value := Pointer(TCnNativeUInt(Value) - SizeOf(TCnNativeUInt));
+{$IFDEF COMPILER5}
+  CnFreeMem(Value);
+{$ELSE}
   FreeMem(Value, TCnNativeUInt(Value^));
+{$ENDIF}
 end;
 
 procedure StrDisposeW(var Value: PWideChar);
 begin
   Value := Pointer(TCnNativeUInt(Value) - SizeOf(TCnNativeUInt));
+{$IFDEF COMPILER5}
+  CnFreeMem(Value);
+{$ELSE}
   FreeMem(Value, TCnNativeUInt(Value^));
+{$ENDIF}
 end;
 
 function StrCmpA(const Value1, Value2: PAnsiChar): Integer;

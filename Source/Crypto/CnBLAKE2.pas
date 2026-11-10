@@ -827,13 +827,21 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
+{$IFDEF COMPILER5}
+  CnGetMem(Content, CharLength * SizeOf(WideChar));
+{$ELSE}
   GetMem(Content, CharLength * SizeOf(WideChar));
+{$ENDIF}
   try
     iLen := WideCharToMultiByte(0, 0, Key, CharLength, // 代码页默认用 0
       PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     BLAKE2SInit(Context, Content, iLen, DigestLength);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Content);
+{$ELSE}
     FreeMem(Content);
+{$ENDIF}
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Key);
@@ -893,13 +901,21 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
+{$IFDEF COMPILER5}
+  CnGetMem(Content, CharLength * SizeOf(WideChar));
+{$ELSE}
   GetMem(Content, CharLength * SizeOf(WideChar));
+{$ENDIF}
   try
     iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
       PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     BLAKE2SUpdate(Context, Content, iLen);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Content);
+{$ELSE}
     FreeMem(Content);
+{$ENDIF}
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Input);
@@ -1009,13 +1025,21 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
+{$IFDEF COMPILER5}
+  CnGetMem(Content, CharLength * SizeOf(WideChar));
+{$ELSE}
   GetMem(Content, CharLength * SizeOf(WideChar));
+{$ENDIF}
   try
     iLen := WideCharToMultiByte(0, 0, Key, CharLength, // 代码页默认用 0
       PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     BLAKE2BInit(Context, Content, iLen, DigestLength);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Content);
+{$ELSE}
     FreeMem(Content);
+{$ENDIF}
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Key);
@@ -1075,13 +1099,21 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
+{$IFDEF COMPILER5}
+  CnGetMem(Content, CharLength * SizeOf(WideChar));
+{$ELSE}
   GetMem(Content, CharLength * SizeOf(WideChar));
+{$ENDIF}
   try
     iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
       PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     BLAKE2BUpdate(Context, Content, iLen);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Content);
+{$ELSE}
     FreeMem(Content);
+{$ENDIF}
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Input);
@@ -1376,7 +1408,11 @@ begin
   else
     BufLen := BufSize;
  
+{$IFDEF COMPILER5}
+  CnGetMem(Buf, BufLen);
+{$ELSE}
   GetMem(Buf, BufLen);
+{$ENDIF}
   try
     Stream.Position := 0;
     repeat
@@ -1398,7 +1434,11 @@ begin
     _CopyResult;
     Result := True;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Buf);
+{$ELSE}
     FreeMem(Buf, BufLen);
+{$ENDIF}
     Stream.Position := SavePos;
   end;
 end;

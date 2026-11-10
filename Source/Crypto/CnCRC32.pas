@@ -617,7 +617,11 @@ begin
     else
       BufLen := Count;
 
+{$IFDEF COMPILER5}
+    CnGetMem(Buf, BufLen);
+{$ELSE}
     GetMem(Buf, BufLen);
+{$ENDIF}
     try
       Stream.Position := StartPos;
       // 与字节接口 CRC8Calc 语义一致：初始值为 0 不做求反
@@ -634,7 +638,11 @@ begin
       end;
       Result := True;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(Buf);
+{$ELSE}
       FreeMem(Buf, BufLen);
+{$ENDIF}
     end;
   finally
     Stream.Position := SavePos;
@@ -799,7 +807,11 @@ begin
     else
       BufLen := Count;
 
+{$IFDEF COMPILER5}
+    CnGetMem(Buf, BufLen);
+{$ELSE}
     GetMem(Buf, BufLen);
+{$ENDIF}
     try
       Stream.Position := StartPos;
       CRC := not CRC; // 入口求反得 FFFF 初值，与字节接口 CRC16Calc 一致
@@ -816,7 +828,11 @@ begin
       end;
       Result := True;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(Buf);
+{$ELSE}
       FreeMem(Buf, BufLen);
+{$ENDIF}
     end;
   finally
     Stream.Position := SavePos;
@@ -984,7 +1000,11 @@ begin
     else
       BufLen := Count;
 
+{$IFDEF COMPILER5}
+    CnGetMem(Buf, BufLen);
+{$ELSE}
     GetMem(Buf, BufLen);
+{$ENDIF}
     try
       Stream.Position := StartPos;
       CRC := not CRC;
@@ -1002,7 +1022,11 @@ begin
       CRC := not CRC;
       Result := True;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(Buf);
+{$ELSE}
       FreeMem(Buf, BufLen);
+{$ENDIF}
     end;
   finally
     Stream.Position := SavePos;
@@ -1183,7 +1207,11 @@ begin
     else
       BufLen := Count;
 
+{$IFDEF COMPILER5}
+    CnGetMem(Buf, BufLen);
+{$ELSE}
     GetMem(Buf, BufLen);
+{$ENDIF}
     try
       Stream.Position := StartPos;
       CRC := not CRC;
@@ -1201,7 +1229,11 @@ begin
       CRC := not CRC;
       Result := True;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(Buf);
+{$ELSE}
       FreeMem(Buf, BufLen);
+{$ENDIF}
     end;
   finally
     Stream.Position := SavePos;

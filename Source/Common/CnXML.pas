@@ -3376,7 +3376,11 @@ begin
   if PropCount = 0 then
     Exit;
 
+{$IFDEF COMPILER5}
+  CnGetMem(PropList, PropCount * SizeOf(Pointer));
+{$ELSE}
   GetMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
   try
     GetPropList(Obj.ClassInfo, tkAny, PropList);
 
@@ -3441,7 +3445,11 @@ begin
       end;
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PropList);
+{$ELSE}
     FreeMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
   end;
 end;
 
@@ -3662,7 +3670,11 @@ begin
   if PropCount = 0 then
     Exit;
 
+{$IFDEF COMPILER5}
+  CnGetMem(PropList, PropCount * SizeOf(Pointer));
+{$ELSE}
   GetMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
   try
     GetPropList(Obj.ClassInfo, tkAny, PropList);
 
@@ -3702,7 +3714,11 @@ begin
       end;
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PropList);
+{$ELSE}
     FreeMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
   end;
 end;
 

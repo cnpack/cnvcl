@@ -2956,7 +2956,11 @@ begin
   PropCount := GetTypeData(Instance.ClassInfo)^.PropCount;
   if PropCount > 0 then
   begin
+{$IFDEF COMPILER5}
+    CnGetMem(PropList, PropCount * SizeOf(Pointer));
+{$ELSE}
     GetMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
     try
       GetPropInfos(Instance.ClassInfo, PropList);
       for I := 0 to PropCount - 1 do
@@ -2968,7 +2972,11 @@ begin
         ReadProperty(Instance, PropInfo, Obj);
       end;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(PropList);
+{$ELSE}
       FreeMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
     end;
   end;
 
@@ -3272,7 +3280,11 @@ begin
   PropCount := GetTypeData(Instance.ClassInfo)^.PropCount;
   if PropCount > 0 then
   begin
+{$IFDEF COMPILER5}
+    CnGetMem(PropList, PropCount * SizeOf(Pointer));
+{$ELSE}
     GetMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
     try
       GetPropInfos(Instance.ClassInfo, PropList);
       for I := 0 to PropCount - 1 do
@@ -3285,7 +3297,11 @@ begin
           WriteProperty(Instance, PropInfo, Obj)
       end;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(PropList);
+{$ELSE}
       FreeMem(PropList, PropCount * SizeOf(Pointer));
+{$ENDIF}
     end;
   end;
 

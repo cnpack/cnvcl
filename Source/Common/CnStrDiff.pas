@@ -137,6 +137,9 @@ function SimilarText(S1, S2: string; CaseSensitive: Boolean = False): Double;
 
 implementation
 
+uses
+  CnNative;
+
 // Miscellaneous Functions ...
 
 function Min(A, B: Integer): Integer;
@@ -231,8 +234,16 @@ begin
   IntArr_b := nil;
   try
     //allocate the vector memory ...
+{$IFDEF COMPILER5}
+    CnGetMem(IntArr_f, SizeOf(Integer) * (FMaxD * 2 + 1));
+{$ELSE}
     GetMem(IntArr_f, SizeOf(Integer) * (FMaxD * 2 + 1));
+{$ENDIF}
+{$IFDEF COMPILER5}
+    CnGetMem(IntArr_b, SizeOf(Integer) * (FMaxD * 2 + 1));
+{$ELSE}
     GetMem(IntArr_b, SizeOf(Integer) * (FMaxD * 2 + 1));
+{$ENDIF}
     //Align the forward and backward diagonal vector arrays
     //with the memory which has just been allocated ...
     PAnsiChar(FDiagVecF) := PAnsiChar(IntArr_f) - SizeOf(Integer) * (MAX_DIAGONAL - FMaxD);
@@ -246,8 +257,16 @@ begin
 
     if not Result then ClearChanges;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(IntArr_f);
+{$ELSE}
     FreeMem(IntArr_f);
+{$ENDIF}
+{$IFDEF COMPILER5}
+    CnFreeMem(IntArr_b);
+{$ELSE}
     FreeMem(IntArr_b);
+{$ENDIF}
   end;
 end;
 

@@ -432,7 +432,11 @@ begin
     InitHookPool;
 
   APropCount := GetTypeData(PTypeInfo(Self.ClassInfo))^.PropCount;
+{$IFDEF COMPILER5}
+  CnGetMem(PropListPtr, APropCount * SizeOf(Pointer));
+{$ELSE}
   GetMem(PropListPtr, APropCount * SizeOf(Pointer));
+{$ENDIF}
   GetPropList(PTypeInfo(Self.ClassInfo), tkAny, PropListPtr);
 
   try
@@ -488,7 +492,11 @@ begin
       end;
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PropListPtr);
+{$ELSE}
     FreeMem(PropListPtr);
+{$ENDIF}
   end;
 
   SetSelfClassHooked(Self, True);

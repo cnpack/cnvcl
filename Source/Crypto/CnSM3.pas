@@ -469,13 +469,21 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
+{$IFDEF COMPILER5}
+  CnGetMem(pContent, CharLength * SizeOf(WideChar));
+{$ELSE}
   GetMem(pContent, CharLength * SizeOf(WideChar));
+{$ENDIF}
   try
     iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
       PAnsiChar(pContent), CharLength * SizeOf(WideChar), nil, nil);
     SM3Update(Context, pContent, iLen);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(pContent);
+{$ELSE}
     FreeMem(pContent);
+{$ENDIF}
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Input);
@@ -710,7 +718,11 @@ begin
   else
     BufLen := BufSize;
 
+{$IFDEF COMPILER5}
+  CnGetMem(Buf, BufLen);
+{$ELSE}
   GetMem(Buf, BufLen);
+{$ENDIF}
   try
     Stream.Position := 0;
     repeat
@@ -729,7 +741,11 @@ begin
     SM3Final(Context, D);
     Result := True;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Buf);
+{$ELSE}
     FreeMem(Buf, BufLen);
+{$ENDIF}
     Stream.Position := SavePos;
   end;
 end;

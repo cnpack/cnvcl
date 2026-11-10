@@ -158,7 +158,7 @@ procedure ErrorCheck(const ErrorMessage: string);
 implementation
 
 uses
-  Windows, SysUtils, Dialogs, CnDynObjBuilder, EncdDecd;
+  Windows, SysUtils, Dialogs, CnDynObjBuilder, EncdDecd, CnNative;
 
 procedure ErrorCheck(const ErrorMessage: string);
 begin
@@ -404,7 +404,11 @@ begin
   //Save Collection
   Self.WritePersistentObject(Obj, Node);
   intPropCount := GetTypeData(Obj.ClassInfo)^.PropCount;
+{$IFDEF COMPILER5}
+  CnGetMem(PList, intPropCount * SizeOf(Pointer));
+{$ELSE}
   GetMem(PList, intPropCount * SizeOf(Pointer));
+{$ENDIF}
   try
     intPropCount := GetPropList(Obj.ClassInfo, tkAny, PList);
     for I := 0 to intPropCount - 1 do
@@ -414,7 +418,11 @@ begin
       WriteProperties(Obj, PPInfo, Node);
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PList);
+{$ELSE}
     FreeMem(PList, intPropCount * SizeOf(Pointer));
+{$ENDIF}
   end;
 end;
 
@@ -472,7 +480,11 @@ begin
   end; *)
   ReadPersistent(Instance, Node);
   intPropCount := GetTypeData(Instance.ClassInfo)^.PropCount;
+{$IFDEF COMPILER5}
+  CnGetMem(PList, intPropCount * SizeOf(Pointer));
+{$ELSE}
   GetMem(PList, intPropCount * SizeOf(Pointer));
+{$ENDIF}
   try
 
     for I := 0 to GetPropList(Instance.ClassInfo, tkValue, PList, False) - 1 do
@@ -505,7 +517,11 @@ begin
       end;
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(PList);
+{$ELSE}
     FreeMem(PList, intPropCount * Sizeof(Pointer));
+{$ENDIF}
   end;
 end;
 

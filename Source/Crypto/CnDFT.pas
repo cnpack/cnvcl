@@ -356,7 +356,11 @@ begin
     Exit;
 
   // 1. 对每一行做 FFT
+{$IFDEF COMPILER5}
+  CnGetMem(RowData, W * SizeOf(TCnComplexNumber));
+{$ELSE}
   GetMem(RowData, W * SizeOf(TCnComplexNumber));
+{$ENDIF}
   try
     for Y := 0 to H - 1 do
     begin
@@ -368,11 +372,19 @@ begin
       Move(RowData^[0], Data^[Y * W], W * SizeOf(TCnComplexNumber));
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(RowData);
+{$ELSE}
     FreeMem(RowData);
+{$ENDIF}
   end;
 
   // 2. 对每一列做 FFT
+{$IFDEF COMPILER5}
+  CnGetMem(ColData, H * SizeOf(TCnComplexNumber));
+{$ELSE}
   GetMem(ColData, H * SizeOf(TCnComplexNumber));
+{$ENDIF}
   try
     for X := 0 to W - 1 do
     begin
@@ -386,7 +398,11 @@ begin
         Data^[Y * W + X] := ColData^[Y];
     end;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(ColData);
+{$ELSE}
     FreeMem(ColData);
+{$ENDIF}
   end;
 
   Result := True;

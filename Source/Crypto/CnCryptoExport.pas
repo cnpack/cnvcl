@@ -2259,7 +2259,11 @@ begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
+{$IFDEF COMPILER5}
+    CnGetMem(Tmp, in_len);
+{$ELSE}
     GetMem(Tmp, in_len);
+{$ENDIF}
     try
       if not CnRSADecryptData(in_ptr, in_len, Tmp, OutBytes, TCnRSAPublicKey(pub))
         then
@@ -2277,7 +2281,11 @@ begin
         Move(Tmp^, out_ptr^, out_len);
       Result := CN_OK;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(Tmp);
+{$ELSE}
       FreeMem(Tmp);
+{$ENDIF}
     end;
   except
     on E: Exception do
@@ -2317,7 +2325,11 @@ begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
+{$IFDEF COMPILER5}
+    CnGetMem(Tmp, in_len);
+{$ELSE}
     GetMem(Tmp, in_len);
+{$ENDIF}
     try
       if not CnRSADecryptData(in_ptr, in_len, Tmp, OutBytes, TCnRSAPrivateKey(priv),
         Pad) then
@@ -2335,7 +2347,11 @@ begin
         Move(Tmp^, out_ptr^, out_len);
       Result := CN_OK;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(Tmp);
+{$ELSE}
       FreeMem(Tmp);
+{$ENDIF}
     end;
   except
     on E: Exception do
@@ -3662,7 +3678,11 @@ begin
       Result := nil;
       Exit;
     end;
+{$IFDEF COMPILER5}
+    CnGetMem(Result, size);
+{$ELSE}
     GetMem(Result, size);
+{$ENDIF}
     FillChar(Result^, size, 0);
   except
     on E: Exception do
@@ -3682,7 +3702,11 @@ begin
       Result := CN_E_INVALID_ARG;
       Exit;
     end;
+{$IFDEF COMPILER5}
+    CnFreeMem(ptr);
+{$ELSE}
     FreeMem(ptr);
+{$ENDIF}
     Result := CN_OK;
   except
     on E: Exception do
@@ -5035,7 +5059,11 @@ begin
             end;
             Dst.Size := in_len;
             KeyStreamLen := (in_len + SizeOf(Cardinal) - 1) div SizeOf(Cardinal);
+{$IFDEF COMPILER5}
+            CnGetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
+{$ELSE}
             GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
+{$ENDIF}
             try
               ZUC(key, iv, KeyStream, KeyStreamLen);
               // ZUC 密钥流字按大端序取字节（GB/T 33133 密钥流位序），保证跨平台密文一致
@@ -5048,7 +5076,11 @@ begin
               end;
               Result := CN_OK;
             finally
+{$IFDEF COMPILER5}
+              CnFreeMem(KeyStream);
+{$ELSE}
               FreeMem(KeyStream);
+{$ENDIF}
             end;
           end;
         CN_CIPHER_CHACHA20:
@@ -5453,7 +5485,11 @@ begin
             end;
             Dst.Size := in_len;
             KeyStreamLen := (in_len + SizeOf(Cardinal) - 1) div SizeOf(Cardinal);
+{$IFDEF COMPILER5}
+            CnGetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
+{$ELSE}
             GetMem(KeyStream, KeyStreamLen * SizeOf(Cardinal));
+{$ENDIF}
             try
               ZUC(key, iv, KeyStream, KeyStreamLen);
               // ZUC 密钥流字按大端序取字节（GB/T 33133 密钥流位序），保证跨平台密文一致
@@ -5466,7 +5502,11 @@ begin
               end;
               Result := CN_OK;
             finally
+{$IFDEF COMPILER5}
+              CnFreeMem(KeyStream);
+{$ELSE}
               FreeMem(KeyStream);
+{$ENDIF}
             end;
           end;
         CN_CIPHER_CHACHA20:

@@ -928,25 +928,41 @@ begin
 {$IFDEF MSWINDOWS}
   if Length(Key) > 0 then
   begin
+{$IFDEF COMPILER5}
+    CnGetMem(KeyA, Length(Key) * SizeOf(WideChar));
+{$ELSE}
     GetMem(KeyA, Length(Key) * SizeOf(WideChar));
+{$ENDIF}
     try
       KeyLen := WideCharToMultiByte(0, 0, PWideChar(Key), Length(Key),
         PAnsiChar(KeyA), Length(Key) * SizeOf(WideChar), nil, nil);
       BLAKE3Init(Context, KeyA, KeyLen);
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(KeyA);
+{$ELSE}
       FreeMem(KeyA);
+{$ENDIF}
     end;
   end
   else
     BLAKE3Init(Context);
 
+{$IFDEF COMPILER5}
+  CnGetMem(Content, Length(Str) * SizeOf(WideChar));
+{$ELSE}
   GetMem(Content, Length(Str) * SizeOf(WideChar));
+{$ENDIF}
   try
     iLen := WideCharToMultiByte(0, 0, PWideChar(Str), Length(Str),
       PAnsiChar(Content), Length(Str) * SizeOf(WideChar), nil, nil);
     BLAKE3Update(Context, Content, iLen);
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Content);
+{$ELSE}
     FreeMem(Content);
+{$ENDIF}
   end;
 {$ELSE}
   if Length(Key) > 0 then
@@ -1009,7 +1025,11 @@ begin
     BufLen := BufSize;
 
   CancelCalc := False;
+{$IFDEF COMPILER5}
+  CnGetMem(Buf, BufLen);
+{$ELSE}
   GetMem(Buf, BufLen);
+{$ENDIF}
   try
     Stream.Position := 0;
     repeat
@@ -1029,7 +1049,11 @@ begin
     until (ReadBytes = 0) or (TotalBytes = Size);
     Result := True;
   finally
+{$IFDEF COMPILER5}
+    CnFreeMem(Buf);
+{$ELSE}
     FreeMem(Buf, BufLen);
+{$ENDIF}
     Stream.Position := SavePos;
   end;
 end;

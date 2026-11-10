@@ -2354,21 +2354,21 @@ function RotateRight64(A: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE}
 
 {$IFDEF COMPILER5}
 
-procedure CnGetMem(var P: Pointer; Size: Integer);
+procedure CnGetMem(var P; Size: Integer);
 {* 封装的内存分配函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。
 
    参数：
-     var P: Pointer                       - 待分配的内存指针
+     var P                                - 待分配的内存指针，无类型指针变量
      Size: Integer                        - 待分配的内存字节大小
 
    返回值：（无）
 }
 
-procedure CnFreeMem(var P: Pointer);
+procedure CnFreeMem(var P);
 {* 封装的内存释放函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。
 
    参数：
-     var P: Pointer                       - 待释放的内存指针
+     var P                                - 待释放的内存指针，无类型指针变量
 
    返回值：（无）
 }
@@ -6101,23 +6101,23 @@ end;
 
 {$IFDEF COMPILER5}
 
-procedure CnGetMem(var P: Pointer; Size: Integer);
+procedure CnGetMem(var P; Size: Integer);
 begin
   if (FHeap = 0) or (FHeap = INVALID_HANDLE_VALUE) then
     raise ECnNativeException.Create(SCnErrorNoHeap);
 
-  P := HeapAlloc(FHeap, 0, Size);
+  Pointer(P) := HeapAlloc(FHeap, 0, Size);
 end;
 
-procedure CnFreeMem(var P: Pointer);
+procedure CnFreeMem(var P);
 begin
   if (FHeap = 0) or (FHeap = INVALID_HANDLE_VALUE) then
     raise ECnNativeException.Create(SCnErrorNoHeap);
 
-  if P <> nil then
+  if Pointer(P) <> nil then
   begin
-    HeapFree(FHeap, 0, P);
-    P := nil;
+    HeapFree(FHeap, 0, Pointer(P));
+    Pointer(P) := nil;
   end;
 end;
 

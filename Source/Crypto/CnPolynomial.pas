@@ -6603,8 +6603,16 @@ begin
   M1 := nil;
   M2 := nil;
   try
+{$IFDEF COMPILER5}
+    CnGetMem(M1, M * SizeOf(TCnComplexNumber));
+{$ELSE}
     GetMem(M1, M * SizeOf(TCnComplexNumber));
+{$ENDIF}
+{$IFDEF COMPILER5}
+    CnGetMem(M2, M * SizeOf(TCnComplexNumber));
+{$ELSE}
     GetMem(M2, M * SizeOf(TCnComplexNumber));
+{$ENDIF}
 
     C1 := PCnComplexArray(M1);
     C2 := PCnComplexArray(M2);
@@ -6641,8 +6649,16 @@ begin
 
     Res.CorrectTop;
   finally
+{$IFDEF COMPILER5}
+    if M1 <> nil then CnFreeMem(M1);
+{$ELSE}
     if M1 <> nil then FreeMem(M1);
+{$ENDIF}
+{$IFDEF COMPILER5}
+    if M2 <> nil then CnFreeMem(M2);
+{$ELSE}
     if M2 <> nil then FreeMem(M2);
+{$ENDIF}
   end;
 end;
 
@@ -6690,8 +6706,16 @@ begin
   M1 := nil;
   M2 := nil;
   try
+{$IFDEF COMPILER5}
+    CnGetMem(M1, M * SizeOf(Int64));
+{$ELSE}
     GetMem(M1, M * SizeOf(Int64));
+{$ENDIF}
+{$IFDEF COMPILER5}
+    CnGetMem(M2, M * SizeOf(Int64));
+{$ELSE}
     GetMem(M2, M * SizeOf(Int64));
+{$ENDIF}
 
     C1 := PInt64Array(M1);
     C2 := PInt64Array(M2);
@@ -6723,8 +6747,16 @@ begin
 
     Res.CorrectTop;
   finally
+{$IFDEF COMPILER5}
+    if M1 <> nil then CnFreeMem(M1);
+{$ELSE}
     if M1 <> nil then FreeMem(M1);
+{$ENDIF}
+{$IFDEF COMPILER5}
+    if M2 <> nil then CnFreeMem(M2);
+{$ELSE}
     if M2 <> nil then FreeMem(M2);
+{$ENDIF}
   end;
 end;
 

@@ -339,7 +339,11 @@ begin
     // 使用 RTTI 来保证赋值所有 published 属性（流不能传递值为 Default 的属性）
     Count := GetPropList(Dest.ClassInfo, tkProperties - [tkArray, tkRecord,
       tkInterface], nil);
+{$IFDEF COMPILER5}
+    CnGetMem(PropList, Count * SizeOf(Pointer));
+{$ELSE}
     GetMem(PropList, Count * SizeOf(Pointer));
+{$ENDIF}
     try
       GetPropList(Source.ClassInfo, tkProperties - [tkArray, tkRecord,
         tkInterface], @PropList^[0]);
@@ -372,7 +376,11 @@ begin
         end;
       end;
     finally
+{$IFDEF COMPILER5}
+      CnFreeMem(PropList);
+{$ELSE}
       FreeMem(PropList);
+{$ENDIF}
     end;
 
     // 使用流来传递自定义的属性
