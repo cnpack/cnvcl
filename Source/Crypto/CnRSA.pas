@@ -1927,6 +1927,33 @@ begin
   end;
 end;
 
+// 校验 BER 节点树的 [FirstIndex, LastIndex] 区间均为合法的正 INTEGER 节点。
+// RSA 密钥参数必须是 DER INTEGER 且非负；否则拒绝，避免把 OCTET STRING、
+// NULL 等任意类型节点的内容当成模数/私钥指数加载。
+function HasValidIntegerNodes(Reader: TCnBerReader; FirstIndex,
+  LastIndex: Integer): Boolean;
+var
+  I: Integer;
+  Node: TCnBerReadNode;
+begin
+  Result := False;
+  if (Reader = nil) or (FirstIndex < 0) or (LastIndex < FirstIndex)
+    or (LastIndex >= Reader.TotalCount) then
+    Exit;
+
+  for I := FirstIndex to LastIndex do
+  begin
+    Node := Reader.Items[I];
+    if (Node = nil) or (Node.BerTag <> CN_BER_TAG_INTEGER)
+      or (Node.BerDataLength <= 0) then
+      Exit;
+    // DER INTEGER 首字节最高位为 1 表示负数
+    if (Node.BerDataAddress <> nil) and (PByte(Node.BerDataAddress)^ >= $80) then
+      Exit;
+  end;
+  Result := True;
+end;
+
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
@@ -1974,14 +2001,30 @@ begin
       end;
     end;
 
-    if Reader.TotalCount >= 12 then // 子节点多，说明是 PKCS#8 的 PEM 公私钥格式
+    if Reader.TotalCount >= 13 then // 需容纳 Items[0..12]，Items[12] 是 PrimeKey2
     begin
       Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
+      if (Node = nil) or (Node.BerTag <> CN_BER_TAG_INTEGER)
+        or (Node.BerDataLength <> 1) then
+      begin
+        _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+        Exit;
+      end;
+
       if Node.AsByte = 0 then // 只支持版本 0
       begin
-	    // AI 说这里要增加 OID 判断必须是 RSA 的才往下走，先加上
-        if (Reader.TotalCount < 4) or (not CompareObjectIdentifier(Reader.Items[3],
+        // AI 说这里要增加 OID 判断必须是 RSA 的才往下走，先加上
+        if (Reader.TotalCount < 4)
+          or (Reader.Items[3].BerTag <> CN_BER_TAG_OBJECT_IDENTIFIER)
+          or (not CompareObjectIdentifier(Reader.Items[3],
           @CN_OID_RSAENCRYPTION_PKCS1[0], SizeOf(CN_OID_RSAENCRYPTION_PKCS1))) then
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+
+        // 8~12 必须都是正整数 INTEGER，避免任意类型节点被当成密钥参数
+        if not HasValidIntegerNodes(Reader, 8, 12) then
         begin
           _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
           Exit;
@@ -2025,8 +2068,22 @@ begin
       if Reader.TotalCount >= 8 then // 这个数量的子节点，是 PKCS#1 的 PEM 公私钥格式
       begin
         Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
+        if (Node = nil) or (Node.BerTag <> CN_BER_TAG_INTEGER)
+          or (Node.BerDataLength <> 1) then
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+
         if Node.AsByte = 0 then // 只支持版本 0
         begin
+          // 2~6 必须都是正整数 INTEGER，避免任意类型节点被当成密钥参数
+          if not HasValidIntegerNodes(Reader, 2, 6) then
+          begin
+            _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+            Exit;
+          end;
+
           // 2 和 3 整成公钥
           if PublicKey <> nil then
           begin
@@ -2185,8 +2242,18 @@ begin
         end;
       end;
 
-      if Reader.TotalCount >= 7 then
+      if Reader.TotalCount >= 8 then // 需容纳 Items[0..7]，Items[7] 是公钥指数
       begin
+        // PKCS#8 公钥：Items[2] 必须是 rsaEncryption OID
+        if (Reader.Items[2].BerTag <> CN_BER_TAG_OBJECT_IDENTIFIER)
+          or (not CompareObjectIdentifier(Reader.Items[2],
+          @CN_OID_RSAENCRYPTION_PKCS1[0], SizeOf(CN_OID_RSAENCRYPTION_PKCS1)))
+          or (not HasValidIntegerNodes(Reader, 6, 7)) then
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+
         // 6 和 7 整成公钥
         if PublicKey <> nil then
         begin
@@ -2229,6 +2296,12 @@ begin
 
       if Reader.TotalCount in [3, 4] then // 大于等于 5 的话不像 PKCS1 格式
       begin
+        if not HasValidIntegerNodes(Reader, 1, 2) then
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+
         // 1 和 2 整成公钥
         if PublicKey <> nil then
         begin
