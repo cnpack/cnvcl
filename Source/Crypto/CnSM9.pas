@@ -5312,6 +5312,20 @@ begin
     P := PByteArray(PC);
     MLen := DataByteLen - SM9.BitsCount div 4 - SizeOf(TCnSM3Digest); // MLen 密文长度
 
+    // semSM4 使用 PKCS#7 对齐，C2 长度必须是 SM4 块长的整数倍。
+    // 否则 SM4CryptEcb 的尾块会写满 16 字节到只有 MLen mod 16 字节的
+    // 输出缓冲，构成无需用户私钥即可触发的堆越界写。
+    if MLen <= 0 then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
+    if (EncryptionMode = semSM4) and (MLen mod CN_SM4_BLOCKSIZE <> 0) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
+
     AP := TCnFP2AffinePoint.Create;
     FP2PointToFP2AffinePoint(AP, EncryptionUserKey);
     W := TCnFP12.Create;
@@ -5327,31 +5341,47 @@ begin
     begin
       KLen := CN_SM4_KEYSIZE + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
-      Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen); // 用 K2 和 C2 算出 C3
+      Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen);
 
-      // SK4 解出明文到 C2
+      // 先认证再解密：未通过 MAC 的密文绝不进入 SM4 解密与去填充，
+      // 既避免处理未认证数据，也消除填充校验形成的 oracle。
+      if not ConstTimeCompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
+      begin
+        _CnSetLastError(ECN_SM9_INVALID_INPUT);
+        Exit;
+      end;
+
       SM4Decrypt(@KDFKey[1], @P[0], @C2[0], Length(C2));
-      // 去掉 C2 尾部的 PKCS7 内容即为明文
-      BytesRemovePKCS7Padding(C2);
+      if not BytesRemovePKCS7Padding(C2) then
+      begin
+        _CnSetLastError(ECN_SM9_INVALID_INPUT);
+        Exit;
+      end;
     end
     else if EncryptionMode = semKDF then
     begin
       KLen := MLen + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
-      Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen); // 用 K2 和 C2 算出 C3
+      Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen);
+
+      if not ConstTimeCompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
+      begin
+        _CnSetLastError(ECN_SM9_INVALID_INPUT);
+        Exit;
+      end;
 
       // KDFKey 的前面部分的长度与密文相等，XOR 出结果即为明文
       for I := 0 to Length(C2) - 1 do
         C2[I] := Byte(KDFKey[I + 1]) xor P^[I];
-    end;
+    end
+    else
+      Exit;
 
-    if ConstTimeCompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
-    begin
+    if Length(C2) > 0 then
       OutStream.Write(C2[0], Length(C2));
 
-      Result := True;
-      _CnSetLastError(ECN_SM9_OK);
-    end;
+    Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     SetLength(C2, 0);
     Stream.Free;

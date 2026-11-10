@@ -336,6 +336,7 @@ function TestCASerialNumberInvalidInput: Boolean;
 function TestCASignParentRestriction: Boolean;
 function TestCASelfSignedStatus: Boolean;
 function TestCAIssuerUseParentSubject: Boolean;
+function TestCARejectWeakRSAExponent: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -798,6 +799,7 @@ function TestSM9Sign: Boolean;
 function TestSM9KeyExchange: Boolean;
 function TestSM9KeyEncapsulation: Boolean;
 function TestSM9PublicEncryption: Boolean;
+function TestSM9RejectUnalignedSM4Cipher: Boolean;
 
 // ================================ RSA ========================================
 
@@ -2272,6 +2274,7 @@ begin
   MyAssert(TestCASignParentRestriction, 'TestCASignParentRestriction');
   MyAssert(TestCASelfSignedStatus, 'TestCASelfSignedStatus');
   MyAssert(TestCAIssuerUseParentSubject, 'TestCAIssuerUseParentSubject');
+  MyAssert(TestCARejectWeakRSAExponent, 'TestCARejectWeakRSAExponent');
 
 // =============================== Int128 ======================================
 
@@ -2734,6 +2737,7 @@ begin
   MyAssert(TestSM9KeyExchange, 'TestSM9KeyExchange');
   MyAssert(TestSM9KeyEncapsulation, 'TestSM9KeyEncapsulation');
   MyAssert(TestSM9PublicEncryption, 'TestSM9PublicEncryption');
+  MyAssert(TestSM9RejectUnalignedSM4Cipher, 'TestSM9RejectUnalignedSM4Cipher');
 
 // ================================ RSA ========================================
 
@@ -12496,6 +12500,55 @@ begin
   finally
     St.Free;
     CAPub.Free;
+  end;
+end;
+
+// 回归：证书层曾宽松 BER 解析 DigestInfo 并接受 e=3 公钥，
+// 二者叠加可用整数立方根伪造任意自签名证书（Bleichenbacher/BERserk）。
+// 修复后验签改走 CnRSAVerifyStream 严格重建 EM，且拒绝 e < 65537。
+function TestCARejectWeakRSAExponent: Boolean;
+var
+  Priv, WeakPriv: TCnRSAPrivateKey;
+  Pub, WeakPub: TCnRSAPublicKey;
+  St: TMemoryStream;
+begin
+  Result := False;
+  Priv := nil;
+  WeakPriv := nil;
+  Pub := nil;
+  WeakPub := nil;
+  St := nil;
+  try
+    Priv := TCnRSAPrivateKey.Create;
+    Pub := TCnRSAPublicKey.Create;
+    WeakPriv := TCnRSAPrivateKey.Create;
+    WeakPub := TCnRSAPublicKey.Create;
+    St := TMemoryStream.Create;
+
+    // 对照组：默认 e=65537 的自签名证书必须验签通过
+    if not CnRSAGenerateKeys(1024, Priv, Pub) then Exit;
+    if not CnCANewSelfSignedCertificateStream(Priv, Pub, St, 'CN', 'State',
+      'City', 'Org', 'Unit', 'StrongCA', 'a@b.com', '1',
+      Now - 1, Now + 365, ctSha256RSA) then Exit;
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then Exit;
+
+    // e=3 的自签名证书必须被拒绝
+    St.Size := 0;
+    if not CnRSAGenerateKeys(1024, WeakPriv, WeakPub, True) then Exit;
+    if not CnCANewSelfSignedCertificateStream(WeakPriv, WeakPub, St, 'CN', 'State',
+      'City', 'Org', 'Unit', 'WeakCA', 'a@b.com', '2',
+      Now - 1, Now + 365, ctSha256RSA) then Exit;
+    St.Position := 0;
+    if CnCAVerifySelfSignedCertificateStream(St) then Exit;
+
+    Result := True;
+  finally
+    St.Free;
+    WeakPub.Free;
+    WeakPriv.Free;
+    Pub.Free;
+    Priv.Free;
   end;
 end;
 
@@ -27264,6 +27317,128 @@ begin
   end;
 end;
 
+// 回归：CnSM9UserDecryptData 曾先解密再校验 C3，且未校验 semSM4 下 C2 长度。
+// 攻击者构造非 16 倍数的 C2 即可触发 SM4CryptEcb 尾块堆越界写，无需用户私钥。
+// 构造带正确 MAC 的畸形密文：修复前会接受并返回 True，修复后必须拒绝。
+function TestSM9RejectUnalignedSM4Cipher: Boolean;
+var
+  User, S: AnsiString;
+  EnStream, DeStream, MacStream, BadStream: TMemoryStream;
+  KeyEncMasterKey: TCnSM9EncryptionMasterKey;
+  KeyEncUserKey: TCnSM9EncryptionUserPrivateKey;
+  SM9: TCnSM9;
+  C1: TCnEccPoint;
+  AP: TCnFP2AffinePoint;
+  W: TCnFP12;
+  KDFKey: AnsiString;
+  Mac: TCnSM3Digest;
+  C1Len, C3Len, C2Len, I: Integer;
+  C2, BadC2: TBytes;
+  PC: PAnsiChar;
+begin
+  Result := False;
+  KeyEncMasterKey := nil;
+  KeyEncUserKey := nil;
+  SM9 := nil;
+  C1 := nil;
+  AP := nil;
+  W := nil;
+  EnStream := nil;
+  DeStream := nil;
+  MacStream := nil;
+  BadStream := nil;
+  try
+    KeyEncMasterKey := TCnSM9EncryptionMasterKey.Create;
+    KeyEncUserKey := TCnSM9EncryptionUserPrivateKey.Create;
+    SM9 := TCnSM9.Create;
+    C1 := TCnEccPoint.Create;
+    AP := TCnFP2AffinePoint.Create;
+    W := TCnFP12.Create;
+    EnStream := TMemoryStream.Create;
+    DeStream := TMemoryStream.Create;
+    MacStream := TMemoryStream.Create;
+    BadStream := TMemoryStream.Create;
+
+    // 使用标准向量中的固定加密主密钥，保证密文与 C1 可复现
+    KeyEncMasterKey.PrivateKey.SetHex('01EDEE3778F441F8DEA3D9FA0ACC4E07EE36C93F9A08618AF4AD85CEDE1C22');
+    KeyEncMasterKey.PublicKey.X.SetHex('787ED7B8A51F3AB84E0A66003F32DA5C720B17ECA7137D39ABC66E3C80A892FF');
+    KeyEncMasterKey.PublicKey.Y.SetHex('769DE61791E5ADC4B9FF85A31354900B202871279A8C49DC3F220F644C57A7B1');
+    User := 'Bob';
+    if not CnSM9KGCGenerateEncryptionUserKey(KeyEncMasterKey.PrivateKey, User,
+      KeyEncUserKey) then Exit;
+
+    S := 'Chinese IBE standard';
+    if not CnSM9UserEncryptData(User, KeyEncMasterKey.PublicKey, @S[1], Length(S),
+      16, 32, EnStream, semSM4, SM9,
+      'AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C') then Exit;
+
+    // 1. 合法密文往返必须成功，确认修复未破坏正常流程
+    if not CnSM9UserDecryptData(User, KeyEncUserKey, EnStream.Memory, EnStream.Size,
+      32, DeStream, semSM4, SM9) then Exit;
+    if StreamToHex(DeStream) <> '4368696E65736520494245207374616E64617264' then Exit;
+
+    C1Len := SM9.BitsCount div 4;
+    C3Len := SizeOf(TCnSM3Digest);
+    C2Len := EnStream.Size - C1Len - C3Len;
+    if (C2Len <= 0) or (C2Len mod CN_SM4_BLOCKSIZE <> 0) then Exit;
+
+    // 2. 构造非 16 倍数的 C2'（追加 15 字节），并重建解密侧 KDF 算出正确 MAC
+    SetLength(C2, C2Len);
+    PC := PAnsiChar(EnStream.Memory);
+    Inc(PC, C1Len + C3Len);
+    Move(PC^, C2[0], C2Len);
+    SetLength(BadC2, C2Len + 15);
+    Move(C2[0], BadC2[0], C2Len);
+    for I := C2Len to High(BadC2) do
+      BadC2[I] := 0;
+
+    PC := PAnsiChar(EnStream.Memory);
+    C1.X.SetBinary(PC, SM9.BitsCount div 8);
+    Inc(PC, SM9.BitsCount div 8);
+    C1.Y.SetBinary(PC, SM9.BitsCount div 8);
+    FP2PointToFP2AffinePoint(AP, KeyEncUserKey);
+    SM9RatePairing(W, AP, C1);
+    CnEccPointToStream(C1, MacStream, SM9.BytesCount);
+    FP12ToStream(W, MacStream, SM9.BytesCount);
+    MacStream.Write(User[1], Length(User));
+    KDFKey := CnSM9KDF(MacStream.Memory, MacStream.Size, CN_SM4_KEYSIZE + 32);
+    Mac := SM9Mac(@KDFKey[CN_SM4_KEYSIZE + 1], 32, @BadC2[0], Length(BadC2));
+
+    BadStream.Write(PAnsiChar(EnStream.Memory)^, C1Len);
+    BadStream.Write(Mac[0], C3Len);
+    BadStream.Write(BadC2[0], Length(BadC2));
+
+    DeStream.Size := 0;
+    if CnSM9UserDecryptData(User, KeyEncUserKey, BadStream.Memory, BadStream.Size,
+      32, DeStream, semSM4, SM9) then Exit;
+    if DeStream.Size <> 0 then Exit;
+
+    // 3. 对齐但 MAC 被篡改：必须拒绝且不得写出未认证明文
+    BadStream.Size := 0;
+    BadStream.Write(PAnsiChar(EnStream.Memory)^, C1Len);
+    Mac[0] := Mac[0] xor $01;
+    BadStream.Write(Mac[0], C3Len);
+    BadStream.Write(C2[0], C2Len);
+    DeStream.Size := 0;
+    if CnSM9UserDecryptData(User, KeyEncUserKey, BadStream.Memory, BadStream.Size,
+      32, DeStream, semSM4, SM9) then Exit;
+    if DeStream.Size <> 0 then Exit;
+
+    Result := True;
+  finally
+    BadStream.Free;
+    MacStream.Free;
+    DeStream.Free;
+    EnStream.Free;
+    W.Free;
+    AP.Free;
+    C1.Free;
+    SM9.Free;
+    KeyEncUserKey.Free;
+    KeyEncMasterKey.Free;
+  end;
+end;
+
 // ================================ RSA ========================================
 
 function TestRSA1: Boolean;
@@ -30914,7 +31089,7 @@ begin
     // Δ = 4+6 = 10 ≡ 3 mod 7, Δ^(-1) = 5 (3*5=15≡1)
     // j = 1728*4*5 = 34560 ≡ 1 mod 7
     // =====================================================================
-    ECC.Load('1', '1', '7', '0', '0', '0');  // A=1, B=1, P=7
+    ECC.Load('1', '1', '7', '0', '1', '5', 1);  // A=1, B=1, P=7, G=(0,1), n=5, h=1
     if not ECC.GetJInvariance(Res) then Exit;
     if Res.ToDec <> '1' then Exit;
 
@@ -30924,7 +31099,7 @@ begin
     // Δ = 6+9 = 15 ≡ 2 mod 13, Δ^(-1) = 7
     // j = 1728*6*7 mod 13 = 10
     // =====================================================================
-    ECC.Load('2', '3', 'D', '0', '0', '0');
+    ECC.Load('2', '3', 'D', '3', '6', '3', 6);  // G=(3,6), n=3, h=6
     if not ECC.GetJInvariance(Res) then Exit;
     if Res.ToDec <> '10' then Exit;
 

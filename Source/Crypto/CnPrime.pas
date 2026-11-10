@@ -1476,7 +1476,8 @@ begin
     raise Exception.Create(SCnErrorCryptoRandomFailed);
 
   D := PCardinal(@Buf[0])^;
-  D := D mod Cardinal(High(CN_PRIME_NUMBERS_SQRT_UINT32) + 1); // 含下标 0，否则素数 2 永远选不到
+  D := D mod Cardinal(High(CN_PRIME_NUMBERS_SQRT_UINT32) - Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1)
+    + Low(CN_PRIME_NUMBERS_SQRT_UINT32); // mod 数组尺寸，得到 0 到数组尺寸 - 1，加初始下标，范围正好数组内
   Result := CN_PRIME_NUMBERS_SQRT_UINT32[D];
 end;
 

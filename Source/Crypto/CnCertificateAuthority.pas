@@ -3349,6 +3349,21 @@ begin
   end;
 end;
 
+// 证书层 RSA 验签公钥强度下限：只接受 e >= 65537 的奇数指数。
+// e=3 等小指数配合宽松的 DigestInfo 解析，可被 Bleichenbacher 2006 / BERserk
+// 类攻击在整数环上构造立方根伪造签名，因此加载与验签阶段一律拒绝。
+function IsAcceptableRSAVerifyKey(PublicKey: TCnRSAPublicKey): Boolean;
+begin
+  Result := False;
+  if (PublicKey = nil) or (PublicKey.PubKeyExponent = nil) then
+    Exit;
+  if PublicKey.PubKeyExponent.IsEven or PublicKey.PubKeyExponent.IsNegative then
+    Exit;
+  if BigNumberCompareInteger(PublicKey.PubKeyExponent, 65537) < 0 then
+    Exit;
+  Result := True;
+end;
+
 // RSA: 用已知公钥从类似于以下结构中拿出签名值解密并去除 PKCS1 对齐拿到摘要值
 // ECC: 直接拿到签名值的原始树结构
 // RSA 如果无公钥，则只取签名值，不解开。ECC 不管有没有都解不开
@@ -3415,6 +3430,12 @@ begin
 
   if IsRSA then // RSA 签名能解开得到原始杂凑值，但 ECC 不行
   begin
+    // 证书验签一律走 CnRSAVerifyStream 严格重建 EM；这里解出的
+    // DigestValue 只保留给兼容字段，不得用于验签判定。
+    // 拒绝 e < 65537：小指数配合宽松 DigestInfo 解析可伪造签名。
+    if not IsAcceptableRSAVerifyKey(RSAPublicKey) then
+      Exit;
+
     // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的杂凑值与算法
     SetLength(OutBuf, RSAPublicKey.BitsCount div 8);
     Reader := nil;
@@ -3890,13 +3911,19 @@ begin
 
       if CSR.IsRSA then
       begin
-        // 计算其杂凑值
-        P := InfoRoot.BerAddress;
-        CalcDigestData(P^, InfoRoot.BerLength, CSR.CASignType, SignStream);
+        // 严格验签：按 RFC 8017 重建完整 EMSA-PKCS1-v1_5 块并整块比较，
+        // 不再使用加载阶段宽松 BER 解出的摘要值。
+        if not IsAcceptableRSAVerifyKey(CSR.RSAPublicKey) then
+          Exit;
 
-        // 并与 RSA 解密出来的签名值手工对比
-        if SignStream.Size = CSR.DigestLength then
-          Result := ConstTimeCompareMem(SignStream.Memory, CSR.DigestValue, SignStream.Size);
+        SignStream.Write(CSR.SignValue^, CSR.SignLength);
+        InfoStream := TMemoryStream.Create;
+        InfoStream.Write(InfoRoot.BerAddress^, InfoRoot.BerLength);
+        SignStream.Position := 0;
+        InfoStream.Position := 0;
+
+        Result := CnRSAVerifyStream(InfoStream, SignStream, CSR.RSAPublicKey,
+          GetRSASignTypeFromCASignType(CSR.CASignType));
       end
       else // ECC 直接验证数据块的签名与杂凑值
       begin
@@ -4005,16 +4032,22 @@ begin
 
     if Certificate.IsRSA then
     begin
-      // RSA 自签名证书的杂凑值可从签名中解出，对比计算值即可
-      if (Certificate.DigestValue = nil) or (Certificate.RSADigestType <>
-        GetRSASignTypeFromCASignType(Certificate.CASignType)) then
+      // 严格验签：重建完整 EM 并整块常量时间比较，杜绝宽松 DigestInfo
+      // 解析下的尾随垃圾/非规范 DER 伪造（Bleichenbacher/BERserk）。
+      if not IsAcceptableRSAVerifyKey(
+        Certificate.BasicCertificate.SubjectRSAPublicKey) then
         Exit;
 
-      if HashStream.Size = Certificate.DigestLength then
-        Result := ConstTimeCompareMem(HashStream.Memory, Certificate.DigestValue,
-          HashStream.Size)
-      else
-        Result := False;
+      SignStream := TMemoryStream.Create;
+      SignStream.Write(Certificate.SignValue^, Certificate.SignLength);
+      InfoStream := TMemoryStream.Create;
+      InfoStream.Write(P^, TBSNode.BerLength);
+      SignStream.Position := 0;
+      InfoStream.Position := 0;
+
+      Result := CnRSAVerifyStream(InfoStream, SignStream,
+        Certificate.BasicCertificate.SubjectRSAPublicKey,
+        GetRSASignTypeFromCASignType(Certificate.CASignType));
     end
     else
     begin
@@ -4214,22 +4247,27 @@ begin
       if OuterType <> CRT.CASignType then
         Exit;
 
-      // 计算其杂凑值
-      InfoRoot := Reader.Items[1];
-      SignStream := TMemoryStream.Create;
-      P := InfoRoot.BerAddress;
-      CalcDigestData(P^, InfoRoot.BerLength, CRT.CASignType, SignStream);
-
-      // RSA 证书的杂凑值要用父公钥才能从证书里解密出来
+      // 用父公钥提取签名值；验签不再使用宽松 BER 解出的摘要值
       if not ExtractSignaturesByPublicKey(True, ParentPublicKey,
         nil, SignAlgNode, SignValueNode,
         OuterType, CRT.FRSADigestType, CRT.FSignValue,
         CRT.FDigestValue, CRT.FSignLength, CRT.FDigestLength) then
         Exit;
 
-      // 对比计算值
-      if SignStream.Size = CRT.DigestLength then
-        Result := ConstTimeCompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
+      if not IsAcceptableRSAVerifyKey(ParentPublicKey) then
+        Exit;
+
+      // 严格验签：绑定 TBS 内层算法重建完整 EM 并整块比较
+      InfoRoot := Reader.Items[1];
+      SignStream := TMemoryStream.Create;
+      SignStream.Write(CRT.SignValue^, CRT.SignLength);
+      InfoStream := TMemoryStream.Create;
+      InfoStream.Write(InfoRoot.BerAddress^, InfoRoot.BerLength);
+      SignStream.Position := 0;
+      InfoStream.Position := 0;
+
+      Result := CnRSAVerifyStream(InfoStream, SignStream, ParentPublicKey,
+        GetRSASignTypeFromCASignType(CRT.CASignType));
     end;
   finally
     CRT.Free;

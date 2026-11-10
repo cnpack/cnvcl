@@ -2515,6 +2515,8 @@ resourcestring
   SCnErrorEccGeneratorPointMustBeInInfiniteField = 'Generator Point Must be in Infinite Field.';
   SCnErrorEcc4A327B2 = 'Error: 4 * A^3 + 27 * B^2 = 0';
   SCnErrorEccInvalidFiniteFieldSize = 'Invalid Finite Field Size.';
+  SCnErrorEccInvalidCurveOrder = 'Invalid Curve Order or Generator Point.';
+  SCnErrorEccInvalidCoFactor = 'Invalid Curve CoFactor.';
   SCnErrorEccRandomkeyDForOrder = 'Error RandomKey %d for Order.';
   SCnErrorEccCanNotCalucateJacobian = 'Can NOT Calucate Jacobian %d,%d,%d + %d,%d,%d';
   SCnErrorEccCanNotCalucatePointAdd = 'Can NOT Calucate %d,%d + %d,%d';
@@ -4252,6 +4254,8 @@ procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Inte
 var
   R: Cardinal;
   Discriminant, T: TCnBigNumber;
+  SqrtP, Bound, LowerBound, UpperBound, OrderTimesH: TCnBigNumber;
+  GCheck: TCnEccPoint;
 begin
   FGenerator.X.SetHex(GX);
   FGenerator.Y.SetHex(GY);
@@ -4260,6 +4264,44 @@ begin
   FFiniteFieldSize.SetHex(FieldPrime);
   FOrder.SetHex(Order);
   FCoFactor := H;
+
+  // ===== 加载曲线参数时补齐完整合法性校验 =====
+  // 防止注入合数模数、越界坐标、非曲线生成元或弱阶参数，
+  // 这些都会使标量盲化与小子群校验失效（无效曲线/小子群攻击）。
+  if (H < 1) or BigNumberIsNegative(FFiniteFieldSize)
+    or (BigNumberCompareInteger(FFiniteFieldSize, 2) < 0) then
+    raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
+
+  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
+    raise ECnEccException.Create(SCnErrorEccInfiniteFieldMustBeAPrimeNumber);
+
+  // a、b 允许以 -3 这类负十六进制给出：负数归一到 [0, p)，
+  // 但正数越界属于非法参数，必须拒绝而不是静默取模
+  if BigNumberIsNegative(FCoefficientA) then
+    BigNumberNonNegativeMod(FCoefficientA, FCoefficientA, FFiniteFieldSize)
+  else if BigNumberCompare(FCoefficientA, FFiniteFieldSize) >= 0 then
+    raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
+  if BigNumberIsNegative(FCoefficientB) then
+    BigNumberNonNegativeMod(FCoefficientB, FCoefficientB, FFiniteFieldSize)
+  else if BigNumberCompare(FCoefficientB, FFiniteFieldSize) >= 0 then
+    raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
+  if BigNumberIsNegative(FCoefficientA)
+    or (BigNumberCompare(FCoefficientA, FFiniteFieldSize) >= 0)
+    or BigNumberIsNegative(FCoefficientB)
+    or (BigNumberCompare(FCoefficientB, FFiniteFieldSize) >= 0) then
+    raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
+
+  if BigNumberIsNegative(FGenerator.X) or BigNumberIsNegative(FGenerator.Y)
+    or (BigNumberCompare(FGenerator.X, FFiniteFieldSize) >= 0)
+    or (BigNumberCompare(FGenerator.Y, FFiniteFieldSize) >= 0) then
+    raise ECnEccException.Create(SCnErrorEccGeneratorPointMustBeInInfiniteField);
+
+  if FGenerator.IsZero or not IsPointOnCurve(FGenerator) then
+    raise ECnEccException.Create(SCnErrorEccGeneratorPointMustBeInInfiniteField);
+
+  if BigNumberIsNegative(FOrder) or (BigNumberCompareInteger(FOrder, 2) < 0)
+    or not BigNumberIsProbablyPrime(FOrder) then
+    raise ECnEccException.Create(SCnErrorEccInvalidCurveOrder);
 
   // 释放后等后续再延迟创建
   FreeAndNil(F2Inverse);
@@ -4299,9 +4341,58 @@ begin
     FEccBigNumberPool.Recycle(Discriminant);
   end;
 
-//  由调用者保证有限域边界为素数
-//  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
-//    raise ECnEccException.Create('Error: Finite Field Size must be Prime.');
+  // n * G 必须为无穷远点，否则 G 的阶与声明的 n 不符，
+  // 标量盲化 (k + rnd * n) 也不再等价于原点乘。
+  GCheck := TCnEccPoint.Create;
+  try
+    GCheck.Assign(FGenerator);
+    NormalMultiplePoint(FOrder, GCheck);
+    if not GCheck.IsZero then
+      raise ECnEccException.Create(SCnErrorEccInvalidCurveOrder);
+  finally
+    GCheck.Free;
+  end;
+
+  // h 校验：#E = h * n 必须落在 Hasse 区间 [p+1-2*sqrt(p), p+1+2*sqrt(p)]，
+  // 仅要求 h >= 1 无法发现编造的余因子/阶组合。
+  SqrtP := nil;
+  Bound := nil;
+  LowerBound := nil;
+  UpperBound := nil;
+  OrderTimesH := nil;
+  try
+    SqrtP := FEccBigNumberPool.Obtain;
+    Bound := FEccBigNumberPool.Obtain;
+    LowerBound := FEccBigNumberPool.Obtain;
+    UpperBound := FEccBigNumberPool.Obtain;
+    OrderTimesH := FEccBigNumberPool.Obtain;
+
+    if not BigNumberSqrt(SqrtP, FFiniteFieldSize) then
+      raise ECnEccException.Create(SCnErrorEccInvalidFiniteFieldSize);
+    BigNumberCopy(Bound, SqrtP);
+    BigNumberMulWord(Bound, 2);
+
+    BigNumberCopy(LowerBound, FFiniteFieldSize);
+    BigNumberAddWord(LowerBound, 1);
+    BigNumberSub(LowerBound, LowerBound, Bound);
+
+    BigNumberCopy(UpperBound, FFiniteFieldSize);
+    BigNumberAddWord(UpperBound, 1);
+    BigNumberAdd(UpperBound, UpperBound, Bound);
+
+    BigNumberCopy(OrderTimesH, FOrder);
+    BigNumberMulWord(OrderTimesH, H);
+
+    if (BigNumberCompare(OrderTimesH, LowerBound) < 0)
+      or (BigNumberCompare(OrderTimesH, UpperBound) > 0) then
+      raise ECnEccException.Create(SCnErrorEccInvalidCoFactor);
+  finally
+    FEccBigNumberPool.Recycle(OrderTimesH);
+    FEccBigNumberPool.Recycle(UpperBound);
+    FEccBigNumberPool.Recycle(LowerBound);
+    FEccBigNumberPool.Recycle(Bound);
+    FEccBigNumberPool.Recycle(SqrtP);
+  end;
 
   // 确定 PrimeType
   R := BigNumberModWord(FFiniteFieldSize, 4);
