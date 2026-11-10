@@ -1929,6 +1929,24 @@ begin
     try
       Move(sig^, SigBytes[0], SizeOf(TCnEd25519SignatureData));
       SigObj.LoadFromData(SigBytes);
+
+      // 与 CnEd25519VerifyData（Cn25519.pas）保持一致的 RFC 8032 严格校验：
+      // S 必须满足 0 <= S < L，否则 (R, S+nL) 构成可锻签名；
+      // 公钥 A 与 R 必须是规范编码的非零主子群点，否则小阶点会在乘余因子 8
+      // 后消失，可构造对任意消息恒成立的伪造证明。
+      if (SigObj.S = nil) or BigNumberIsNegative(SigObj.S)
+        or (BigNumberCompare(SigObj.S, E.Order) >= 0) then
+      begin
+        Result := 0;
+        Exit;
+      end;
+      if not CnEdDSAIsStrictVerificationPoint(E, TCnEd25519PublicKey(pub))
+        or not CnEdDSAIsStrictVerificationPoint(E, SigObj.R) then
+      begin
+        Result := 0;
+        Exit;
+      end;
+
       DomNeeded := (ph_flag <> 0) or (ctx_len <> 0);
       if DomNeeded then
       begin
@@ -1997,7 +2015,7 @@ begin
       M.Assign(TCnEd25519PublicKey(pub));
       E.MultiplePoint(T, M);
       E.PointAddPoint(R, M, R);
-      if CnEccPointsEqual(L, R) then
+      if CnEccPointsConstTimeEqual(L, R) then
         Result := 1
       else
         Result := 0;
