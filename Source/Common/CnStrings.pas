@@ -2063,13 +2063,21 @@ begin
   if NewCapacity = 0 then
   begin
     if FList <> nil then
+{$IFDEF COMPILER5}
+      CnFreeMem(FList);
+{$ELSE}
       FreeMem(FList);
+{$ENDIF}
     FList := nil;
     FCapacity := 0;
     Exit;
   end;
 
+{$IFDEF COMPILER5}
+  CnReallocMem(FList, NewCapacity * SizeOf(TCnAnsiStringItem));
+{$ELSE}
   ReallocMem(FList, NewCapacity * SizeOf(TCnAnsiStringItem));
+{$ENDIF}
   FCapacity := NewCapacity;
 end;
 

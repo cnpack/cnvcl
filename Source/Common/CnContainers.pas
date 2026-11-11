@@ -1863,7 +1863,11 @@ begin
     Error(SCnInt64ListError, NewCapacity);
   if NewCapacity <> FCapacity then
   begin
+{$IFDEF COMPILER5}
+    CnReallocMem(FList, NewCapacity * SizeOf(Int64));
+{$ELSE}
     ReallocMem(FList, NewCapacity * SizeOf(Int64));
+{$ENDIF}
     FCapacity := NewCapacity;
   end;
 end;
@@ -2124,7 +2128,11 @@ begin
     Error(@SListCapacityError, NewCapacity);
   if NewCapacity <> FCapacity then
   begin
+{$IFDEF COMPILER5}
+    CnReallocMem(FList, NewCapacity * SizeOf(Cardinal));
+{$ELSE}
     ReallocMem(FList, NewCapacity * SizeOf(Cardinal));
+{$ENDIF}
     FCapacity := NewCapacity;
   end;
 end;
@@ -2388,7 +2396,11 @@ begin
     Error(@SListCapacityError, NewCapacity);
   if NewCapacity <> FCapacity then
   begin
+{$IFDEF COMPILER5}
+    CnReallocMem(FList, NewCapacity * SizeOf(TUInt64));
+{$ELSE}
     ReallocMem(FList, NewCapacity * SizeOf(TUInt64));
+{$ENDIF}
     FCapacity := NewCapacity;
   end;
 end;
@@ -2632,7 +2644,11 @@ begin
     Error(SCnExtendedListError, NewCapacity);
   if NewCapacity <> FCapacity then
   begin
+{$IFDEF COMPILER5}
+    CnReallocMem(FList, NewCapacity * SizeOf(Extended));
+{$ELSE}
     ReallocMem(FList, NewCapacity * SizeOf(Extended));
+{$ENDIF}
     FCapacity := NewCapacity;
   end;
 end;
@@ -2835,7 +2851,11 @@ begin
     Error(SCnRefObjectListError, NewCapacity);
   if NewCapacity <> FCapacity then
   begin
+{$IFDEF COMPILER5}
+    CnReallocMem(FList, NewCapacity * SizeOf(TObject));
+{$ELSE}
     ReallocMem(FList, NewCapacity * SizeOf(TObject));
+{$ENDIF}
     FCapacity := NewCapacity;
   end;
 end;

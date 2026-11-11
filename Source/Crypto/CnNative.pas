@@ -2373,6 +2373,16 @@ procedure CnFreeMem(var P);
    返回值：（无）
 }
 
+procedure CnReallocMem(var P; Size: Integer);
+{* 封装的内存重新分配函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。语义同 ReallocMem。
+
+   参数：
+     var P                                - 待重新分配的内存指针，无类型指针变量
+     Size: Integer                        - 重新分配后的内存字节大小
+
+   返回值：（无）
+}
+
 function CnGetMemory(Size: Integer): Pointer;
 {* 封装的内存分配函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。
 
@@ -2389,6 +2399,16 @@ procedure CnFreeMemory(P: Pointer);
      P: Pointer                           - 待分配的内存字节大小
 
    返回值：（无）
+}
+
+function CnReallocMemory(P: Pointer; Size: Integer): Pointer;
+{* 封装的内存重新分配函数，以绕过 Delphi 5 RTL 内存堆管理的 Bug。语义同 ReallocMemory。
+
+   参数：
+     P: Pointer                           - 待重新分配的内存指针
+     Size: Integer                        - 重新分配后的内存字节大小
+
+   返回值：Pointer                        - 返回重新分配后的内存指针
 }
 
 function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
@@ -2411,6 +2431,7 @@ resourcestring
   SCnErrorLengthNotHexAnsi = 'Error Length %d: NOT a Hex AnsiString';
 {$IFDEF COMPILER5}
   SCnErrorNoHeap = 'Error No Heap.';
+  SCnErrorOutOfMemory = 'Error Out Of Memory.';
 {$ENDIF}
 
 var
@@ -6121,6 +6142,32 @@ begin
   end;
 end;
 
+procedure CnReallocMem(var P; Size: Integer);
+var
+  NewP: Pointer;
+begin
+  if (FHeap = 0) or (FHeap = INVALID_HANDLE_VALUE) then
+    raise ECnNativeException.Create(SCnErrorNoHeap);
+
+  if Size = 0 then
+  begin
+    if Pointer(P) <> nil then
+    begin
+      HeapFree(FHeap, 0, Pointer(P));
+      Pointer(P) := nil;
+    end;
+  end
+  else if Pointer(P) = nil then
+    Pointer(P) := HeapAlloc(FHeap, 0, Size)
+  else
+  begin
+    NewP := HeapReAlloc(FHeap, 0, Pointer(P), Size);
+    if NewP = nil then // 失败时原块仍有效，不能把 nil 赋回 P，否则原块泄漏
+      raise EOutOfMemory.Create(SCnErrorOutOfMemory);
+    Pointer(P) := NewP;
+  end;
+end;
+
 function CnGetMemory(Size: Integer): Pointer;
 begin
   if (FHeap = 0) or (FHeap = INVALID_HANDLE_VALUE) then
@@ -6136,6 +6183,12 @@ begin
 
   if P <> nil then
     HeapFree(FHeap, 0, P);
+end;
+
+function CnReallocMemory(P: Pointer; Size: Integer): Pointer;
+begin
+  Result := P;
+  CnReallocMem(Result, Size);
 end;
 
 function BoolToStr(Value: Boolean; UseBoolStrs: Boolean): string;
