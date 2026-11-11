@@ -171,6 +171,14 @@ const
   CN_XML_COLLECTION_ITEM_NODE = 'o';     // Compatible format
   {* 集合序列化常量：集合项节点名}
 
+  // Limits guarding against stack / resource exhaustion on untrusted input.
+  CN_XML_MAX_DEPTH = 256;
+  {* 最大嵌套深度：解析、序列化、克隆与查询超过该深度即报错}
+  CN_XML_MAX_NODE_COUNT = 1000000;
+  {* 单次解析允许创建的最大节点数}
+  CN_XML_MAX_ENTITY_LEN = 64;
+  {* 实体名的最大长度}
+
 //==============================================================================
 // String Constants
 //==============================================================================
@@ -342,6 +350,8 @@ type
     function IndexOfChild(Node: TCnXMLNode): Integer;
     procedure SetOwnerDocumentRecursive(Doc: TCnXMLDocument);
     procedure ValidateNewChild(NewChild: TCnXMLNode);
+    function GetDepthLimit: Integer;
+    function CloneNodeInternal(Deep: Boolean; Depth: Integer): TCnXMLNode;
   public
     constructor Create(AOwnerDocument: TCnXMLDocument; ANodeType: TCnXMLNodeType);
     {* 构造函数。
@@ -564,6 +574,8 @@ type
     FVersion: string;
     FStandalone: string;
     FPreserveWhitespace: Boolean;
+    FMaxDepth: Integer;
+    FMaxNodeCount: Integer;
   public
     constructor Create;
     {* 构造函数}
@@ -696,6 +708,10 @@ type
     {* Standalone 声明值}
     property PreserveWhitespace: Boolean read FPreserveWhitespace write FPreserveWhitespace;
     {* 是否保留空白字符}
+    property MaxDepth: Integer read FMaxDepth write FMaxDepth;
+    {* 序列化、克隆与查询允许的最大嵌套深度，小于等于 0 表示不限制}
+    property MaxNodeCount: Integer read FMaxNodeCount write FMaxNodeCount;
+    {* 传给语法分析器的节点数上限}
   end;
 
 //==============================================================================
@@ -709,9 +725,14 @@ type
     FDocument: TCnXMLDocument;
     FCurrentToken: TCnXMLToken;
     FPreserveWhitespace: Boolean;
+    FDepth: Integer;
+    FNodeCount: Integer;
+    FMaxDepth: Integer;
+    FMaxNodeCount: Integer;
 
     procedure NextToken;                             // Get next token
     procedure RaiseError(const Msg: string);         // Raise parsing error
+    procedure CheckNodeCount;                        // Guard against node floods
     procedure ParseXMLDecl;                          // Parse XML declaration
     procedure ParseElement(ParentNode: TCnXMLNode);  // Parse element
     procedure ParseContent(ParentNode: TCnXMLNode);  // Parse content
@@ -738,6 +759,10 @@ type
     }
 
     property PreserveWhitespace: Boolean read FPreserveWhitespace write FPreserveWhitespace;
+    property MaxDepth: Integer read FMaxDepth write FMaxDepth;
+    {* 最大嵌套深度，小于等于 0 表示不限制}
+    property MaxNodeCount: Integer read FMaxNodeCount write FMaxNodeCount;
+    {* 单次解析允许创建的最大节点数，小于等于 0 表示不限制}
   end;
 
 //==============================================================================
@@ -1026,6 +1051,10 @@ resourcestring
   SCnErrorRootNodeNotInitialized = 'Root Node Not Initialized';
   SCnErrorDocumentNotLoaded = 'Document Not Loaded';
   SCnErrorRootNodeNotFound = 'Root Node Not Found';
+  SCnErrorMaxDepthExceeded = 'Maximum Nesting Depth Exceeded';
+  SCnErrorMaxNodeCountExceeded = 'Maximum Node Count Exceeded';
+  SCnErrorInvalidNameInOutput = 'Invalid Name in Output';
+  SCnErrorInvalidContentInOutput = 'Invalid Content in Output';
 
 //==============================================================================
 // ECnXMLException Implementation
@@ -1263,8 +1292,11 @@ begin
       EntityStr := '';
       Inc(I);
 
-      // Read entity name
-      while (I <= Len) and (Text[I] <> ';') do
+      // Read entity name. A bare '&' must not swallow a following valid
+      // reference (e.g. "a & b &amp; c"), so stop at a new '&' as well.
+      // CN_XML_MAX_ENTITY_LEN bounds work on malformed input.
+      while (I <= Len) and (Text[I] <> ';') and (Text[I] <> '&') and
+        (Length(EntityStr) < CN_XML_MAX_ENTITY_LEN) do
       begin
         EntityStr := EntityStr + Text[I];
         Inc(I);
@@ -1308,23 +1340,31 @@ begin
             else
               CharCode := StrToInt(EntityStr);
 
+            // Only XML 1.0 legal characters may be produced. C0 controls,
+            // lone surrogates and FFFE/FFFF are replaced by '?'.
+            if not ((CharCode = $9) or (CharCode = $A) or (CharCode = $D) or
+               ((CharCode >= $20) and (CharCode <= $D7FF)) or
+               ((CharCode >= $E000) and (CharCode <= $FFFD)) or
+               ((CharCode >= $10000) and (CharCode <= $10FFFF))) then
+              CharCode := $3F;
+
             {$IFDEF UNICODE}
-            if (CharCode >= 0) and (CharCode <= $FFFF) then
+            if CharCode = $3F then
+              EntityValue := '?'
+            else if CharCode <= $FFFF then
               EntityValue := Char(CharCode)
-            else if (CharCode >= $10000) and (CharCode <= $10FFFF) then
+            else
             begin
               // Surrogate pair encoding for code points above BMP
               CharCode := CharCode - $10000;
               EntityValue := Char($D800 + (CharCode shr 10)) +
                              Char($DC00 + (CharCode and $3FF));
             end
-            else
-              EntityValue := '?';  // Invalid character
             {$ELSE}
-            if (CharCode >= 0) and (CharCode <= 255) then
-              EntityValue := Chr(CharCode)
+            if (CharCode = $3F) or (CharCode > 255) then
+              EntityValue := '?'
             else
-              EntityValue := '?';  // Invalid character
+              EntityValue := Chr(CharCode)
             {$ENDIF}
           except
             EntityValue := '?';  // Conversion failed
@@ -2093,12 +2133,26 @@ begin
   Result := OldChild;
 end;
 
-function TCnXMLNode.CloneNode(Deep: Boolean): TCnXMLNode;
+function TCnXMLNode.GetDepthLimit: Integer;
+begin
+  if FOwnerDocument <> nil then
+    Result := FOwnerDocument.FMaxDepth
+  else
+    Result := CN_XML_MAX_DEPTH;
+end;
+
+function TCnXMLNode.CloneNodeInternal(Deep: Boolean; Depth: Integer): TCnXMLNode;
 var
   I: Integer;
   ChildClone: TCnXMLNode;
   SrcAttr: TCnXMLAttribute;
+  Limit: Integer;
 begin
+  Limit := GetDepthLimit;
+  if (Limit > 0) and (Depth > Limit) then
+    raise ECnXMLException.Create(SCnErrorMaxDepthExceeded,
+      CN_XML_ERR_INVALID_STRUCTURE, 0, 0);
+
   // Create new node with correct type
   if Self is TCnXMLDocument then
   begin
@@ -2134,10 +2188,22 @@ begin
   begin
     for I := 0 to ChildCount - 1 do
     begin
-      ChildClone := Children[I].CloneNode(True);
+      // Free the partially built clone when a nested level aborts (e.g. the
+      // depth limit), otherwise every level would leak its own subtree.
+      try
+        ChildClone := Children[I].CloneNodeInternal(True, Depth + 1);
+      except
+        Result.Free;
+        raise;
+      end;
       Result.AppendChild(ChildClone);
     end;
   end;
+end;
+
+function TCnXMLNode.CloneNode(Deep: Boolean): TCnXMLNode;
+begin
+  Result := CloneNodeInternal(Deep, 0);
 end;
 
 function TCnXMLNode.HasChildNodes: Boolean;
@@ -2322,13 +2388,19 @@ var
   I: Integer;
   Child: TCnXMLNode;
 
-  procedure CollectElements(Node: TCnXMLNode);
+  procedure CollectElements(Node: TCnXMLNode; Depth: Integer);
   var
     J: Integer;
     ChildNode: TCnXMLNode;
+    Limit: Integer;
   begin
     if Node = nil then
       Exit;
+
+    Limit := GetDepthLimit;
+    if (Limit > 0) and (Depth > Limit) then
+      raise ECnXMLException.Create(SCnErrorMaxDepthExceeded,
+        CN_XML_ERR_INVALID_STRUCTURE, 0, 0);
 
     // Check if this node matches
     if (Node.NodeType = xntElement) and (Node.NodeName = TagName) then
@@ -2338,18 +2410,22 @@ var
     for J := 0 to Node.ChildCount - 1 do
     begin
       ChildNode := Node.Children[J];
-      CollectElements(ChildNode);
+      CollectElements(ChildNode, Depth + 1);
     end;
   end;
 
 begin
   Result := TList.Create;
-
-  // Collect matching elements from child nodes
-  for I := 0 to ChildCount - 1 do
-  begin
-    Child := Children[I];
-    CollectElements(Child);
+  try
+    // Collect matching elements from child nodes
+    for I := 0 to ChildCount - 1 do
+    begin
+      Child := Children[I];
+      CollectElements(Child, 1);
+    end;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
@@ -2366,6 +2442,8 @@ begin
   FVersion := '1.0';
   FStandalone := '';
   FPreserveWhitespace := False;
+  FMaxDepth := CN_XML_MAX_DEPTH;
+  FMaxNodeCount := CN_XML_MAX_NODE_COUNT;
 end;
 
 destructor TCnXMLDocument.Destroy;
@@ -2452,6 +2530,8 @@ begin
   Parser := TCnXMLParser.Create(S);
   try
     Parser.PreserveWhitespace := FPreserveWhitespace;
+    Parser.MaxDepth := FMaxDepth;
+    Parser.MaxNodeCount := FMaxNodeCount;
     TempDoc := Parser.Parse;
     try
       // Copy properties
@@ -2613,6 +2693,8 @@ begin
 end;
 
 function TCnXMLDocument.SaveToString(Indent: Boolean): string;
+var
+  DepthLimit: Integer;
 
   function EscapeText(const Text: string): string;
   var
@@ -2639,6 +2721,70 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
     end;
   end;
 
+  function EscapeAttributeValue(const Text: string): string;
+  begin
+    // Literal LF/CR/TAB in an attribute value are normalized to spaces by
+    // XML parsers; emit character references so a round-trip is lossless.
+    Result := EscapeText(Text);
+    Result := StringReplace(Result, #10, '&#10;', [rfReplaceAll]);
+    Result := StringReplace(Result, #13, '&#13;', [rfReplaceAll]);
+    Result := StringReplace(Result, #9, '&#9;', [rfReplaceAll]);
+  end;
+
+  function IsValidName(const S: string): Boolean;
+  var
+    I: Integer;
+    C: Char;
+  begin
+    Result := False;
+    if S = '' then
+      Exit;
+
+    // Match TCnXMLLexer.ReadName so names produced by the parser stay valid.
+    C := S[1];
+    if not (((C >= 'A') and (C <= 'Z')) or ((C >= 'a') and (C <= 'z')) or
+       (C = '_') or (C = ':') or (C > #127)) then
+      Exit;
+    for I := 2 to Length(S) do
+    begin
+      C := S[I];
+      if not (((C >= 'A') and (C <= 'Z')) or ((C >= 'a') and (C <= 'z')) or
+         ((C >= '0') and (C <= '9')) or (C = '_') or (C = ':') or
+         (C = '.') or (C = '-') or (C > #127)) then
+        Exit;
+    end;
+    Result := True;
+  end;
+
+  procedure CheckName(const S: string);
+  begin
+    if not IsValidName(S) then
+      raise ECnXMLException.Create(SCnErrorInvalidNameInOutput,
+        CN_XML_ERR_INVALID_NAME, 0, 0);
+  end;
+
+  procedure CheckContent(const S: string);
+  var
+    I: Integer;
+    C: Char;
+  begin
+    // XML 1.0 forbids most C0 controls; writing them produces a document
+    // that no conforming parser can read back.
+    for I := 1 to Length(S) do
+    begin
+      C := S[I];
+      if (C < #32) and (C <> #9) and (C <> #10) and (C <> #13) then
+        raise ECnXMLException.Create(SCnErrorInvalidContentInOutput,
+          CN_XML_ERR_INVALID_CHAR, 0, 0);
+    end;
+  end;
+
+  function EscapeCData(const S: string): string;
+  begin
+    // Split any ']]>' so it cannot terminate the section early.
+    Result := StringReplace(S, ']]>', ']]]]><![CDATA[>', [rfReplaceAll]);
+  end;
+
   function GetIndentString(Level: Integer): string;
   var
     I: Integer;
@@ -2656,10 +2802,19 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
     AttrStr: string;
     HasOnlyText: Boolean;
   begin
+    // Guard the recursive serializer against stack exhaustion.
+    if (DepthLimit > 0) and (Level > DepthLimit) then
+      raise ECnXMLException.Create(SCnErrorMaxDepthExceeded,
+        CN_XML_ERR_INVALID_STRUCTURE, 0, 0);
+
     case Node.NodeType of
       xntElement:
         begin
           Element := TCnXMLElement(Node);
+
+          // Names are emitted verbatim: reject anything that could inject
+          // extra markup or attributes.
+          CheckName(Element.TagName);
 
           // Start tag
           Output := Output + GetIndentString(Level) + '<' + Element.TagName;
@@ -2668,8 +2823,10 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
           for I := 0 to Element.AttributeCount - 1 do
           begin
             AttrStr := Element.AttributeNames[I];
+            CheckName(AttrStr);
+            CheckContent(Element.AttributeValues[I]);
             Output := Output + ' ' + AttrStr + '="' +
-                     EscapeText(Element.AttributeValues[I]) + '"';
+                     EscapeAttributeValue(Element.AttributeValues[I]) + '"';
           end;
 
           // Check if has children
@@ -2713,6 +2870,7 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
 
       xntText:
         begin
+          CheckContent(Node.NodeValue);
           // Only output non-empty text nodes
           // Don't add indentation or newlines for text content
           // to preserve the original text formatting
@@ -2722,14 +2880,22 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
 
       xntCData:
         begin
+          CheckContent(Node.NodeValue);
           Output := Output + GetIndentString(Level) + '<![CDATA[' +
-                   Node.NodeValue + ']]>';
+                   EscapeCData(Node.NodeValue) + ']]>';
           if Indent then
             Output := Output + #13#10;
         end;
 
       xntComment:
         begin
+          CheckContent(Node.NodeValue);
+          // A comment must not contain '--' and must not end with '-'.
+          if (Pos('--', Node.NodeValue) > 0) or
+             ((Node.NodeValue <> '') and
+              (Node.NodeValue[Length(Node.NodeValue)] = '-')) then
+            raise ECnXMLException.Create(SCnErrorInvalidContentInOutput,
+              CN_XML_ERR_INVALID_CHAR, 0, 0);
           Output := Output + GetIndentString(Level) + '<!--' +
                    Node.NodeValue + '-->';
           if Indent then
@@ -2738,6 +2904,12 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
 
       xntPI:
         begin
+          CheckContent(Node.NodeValue);
+          if Pos('?>', Node.NodeValue) > 0 then
+            raise ECnXMLException.Create(SCnErrorInvalidContentInOutput,
+              CN_XML_ERR_INVALID_CHAR, 0, 0);
+          if Node.NodeName <> '' then
+            CheckName(Node.NodeName);
           Output := Output + GetIndentString(Level) + '<?' +
                    Node.NodeName + ' ' + Node.NodeValue + '?>';
           if Indent then
@@ -2748,6 +2920,7 @@ function TCnXMLDocument.SaveToString(Indent: Boolean): string;
 
 begin
   Result := '';
+  DepthLimit := GetDepthLimit;
 
   // XML declaration
   if FVersion <> '' then
@@ -2814,6 +2987,10 @@ begin
   FLexer := TCnXMLLexer.Create(ASource);
   FDocument := nil;
   FCurrentToken.TokenType := xttNone;
+  FDepth := 0;
+  FNodeCount := 0;
+  FMaxDepth := CN_XML_MAX_DEPTH;
+  FMaxNodeCount := CN_XML_MAX_NODE_COUNT;
 end;
 
 destructor TCnXMLParser.Destroy;
@@ -2843,6 +3020,14 @@ procedure TCnXMLParser.RaiseError(const Msg: string);
 begin
   raise ECnXMLException.Create(Msg, CN_XML_ERR_INVALID_STRUCTURE,
     FCurrentToken.Line, FCurrentToken.Column);
+end;
+
+procedure TCnXMLParser.CheckNodeCount;
+begin
+  Inc(FNodeCount);
+  if (FMaxNodeCount > 0) and (FNodeCount > FMaxNodeCount) then
+    raise ECnXMLException.Create(SCnErrorMaxNodeCountExceeded,
+      CN_XML_ERR_INVALID_STRUCTURE, FCurrentToken.Line, FCurrentToken.Column);
 end;
 
 procedure TCnXMLParser.ParseXMLDecl;
@@ -2888,52 +3073,64 @@ var
   AttrStr, AttrName, AttrValue: string;
   EqualPos: Integer;
 begin
-  // Expect start tag or empty tag
-  if not (FCurrentToken.TokenType in [xttStartTag, xttEmptyTag]) then
-    RaiseError(SCnErrorExpectedStartTagOrEmptyTag);
+  // Recursive descent: bound both nesting depth and total node count so
+  // untrusted XML cannot exhaust the stack or the heap.
+  Inc(FDepth);
+  try
+    if (FMaxDepth > 0) and (FDepth > FMaxDepth) then
+      raise ECnXMLException.Create(SCnErrorMaxDepthExceeded,
+        CN_XML_ERR_INVALID_STRUCTURE, FCurrentToken.Line, FCurrentToken.Column);
+    CheckNodeCount;
 
-  TagName := FCurrentToken.Value;
+    // Expect start tag or empty tag
+    if not (FCurrentToken.TokenType in [xttStartTag, xttEmptyTag]) then
+      RaiseError(SCnErrorExpectedStartTagOrEmptyTag);
 
-  // Create element node
-  Element := FDocument.CreateElement(TagName);
-  ParentNode.AppendChild(Element);
+    TagName := FCurrentToken.Value;
 
-  // Parse attributes
-  if FCurrentToken.Attributes <> nil then
-  begin
-    for I := 0 to FCurrentToken.Attributes.Count - 1 do
+    // Create element node
+    Element := FDocument.CreateElement(TagName);
+    ParentNode.AppendChild(Element);
+
+    // Parse attributes
+    if FCurrentToken.Attributes <> nil then
     begin
-      AttrStr := FCurrentToken.Attributes[I];
-      EqualPos := Pos('=', AttrStr);
-      if EqualPos > 0 then
+      for I := 0 to FCurrentToken.Attributes.Count - 1 do
       begin
-        AttrName := Copy(AttrStr, 1, EqualPos - 1);
-        AttrValue := Copy(AttrStr, EqualPos + 1, Length(AttrStr) - EqualPos);
-        Element.SetAttribute(AttrName, AttrValue);
+        AttrStr := FCurrentToken.Attributes[I];
+        EqualPos := Pos('=', AttrStr);
+        if EqualPos > 0 then
+        begin
+          AttrName := Copy(AttrStr, 1, EqualPos - 1);
+          AttrValue := Copy(AttrStr, EqualPos + 1, Length(AttrStr) - EqualPos);
+          Element.SetAttribute(AttrName, AttrValue);
+        end;
       end;
     end;
-  end;
 
-  // If empty tag, we're done
-  if FCurrentToken.TokenType = xttEmptyTag then
-  begin
+    // If empty tag, we're done
+    if FCurrentToken.TokenType = xttEmptyTag then
+    begin
+      NextToken;
+      Exit;
+    end;
+
+    // Parse content
     NextToken;
-    Exit;
+    ParseContent(Element);
+
+    // Expect end tag
+    if FCurrentToken.TokenType <> xttEndTag then
+      RaiseError(SCnErrorExpectedEndTag);
+
+    if FCurrentToken.Value <> TagName then
+      raise ECnXMLException.Create(Format(SCnErrorTagMismatchExpectedFmt, [TagName, FCurrentToken.Value]),
+        CN_XML_ERR_TAG_MISMATCH, FCurrentToken.Line, FCurrentToken.Column);
+
+    NextToken;
+  finally
+    Dec(FDepth);
   end;
-
-  // Parse content
-  NextToken;
-  ParseContent(Element);
-
-  // Expect end tag
-  if FCurrentToken.TokenType <> xttEndTag then
-    RaiseError(SCnErrorExpectedEndTag);
-
-  if FCurrentToken.Value <> TagName then
-    raise ECnXMLException.Create(Format(SCnErrorTagMismatchExpectedFmt, [TagName, FCurrentToken.Value]),
-      CN_XML_ERR_TAG_MISMATCH, FCurrentToken.Line, FCurrentToken.Column);
-
-  NextToken;
 end;
 
 procedure TCnXMLParser.ParseContent(ParentNode: TCnXMLNode);
@@ -2950,6 +3147,7 @@ begin
         begin
           if FPreserveWhitespace or (Trim(FCurrentToken.Value) <> '') then
           begin
+            CheckNodeCount;
             Node := FDocument.CreateTextNode(FCurrentToken.Value);
             ParentNode.AppendChild(Node);
           end;
@@ -2958,6 +3156,7 @@ begin
 
       xttCData:
         begin
+          CheckNodeCount;
           Node := FDocument.CreateCDATASection(FCurrentToken.Value);
           ParentNode.AppendChild(Node);
           NextToken;
@@ -2965,6 +3164,7 @@ begin
 
       xttComment:
         begin
+          CheckNodeCount;
           Node := FDocument.CreateComment(FCurrentToken.Value);
           ParentNode.AppendChild(Node);
           NextToken;
@@ -2972,6 +3172,7 @@ begin
 
       xttPI:
         begin
+          CheckNodeCount;
           Node := FDocument.CreateProcessingInstruction('', FCurrentToken.Value);
           ParentNode.AppendChild(Node);
           NextToken;
@@ -2990,6 +3191,10 @@ function TCnXMLParser.Parse: TCnXMLDocument;
 begin
   FLexer.PreserveWhitespace := FPreserveWhitespace;
   FDocument := TCnXMLDocument.Create;
+  FDocument.MaxDepth := FMaxDepth;
+  FDocument.MaxNodeCount := FMaxNodeCount;
+  FDepth := 0;
+  FNodeCount := 0;
   try
     NextToken;  // Get first token
 
@@ -3008,6 +3213,28 @@ begin
     end
     else
       RaiseError(SCnErrorExpectedRootElement);
+
+    // After the root element only Misc (comments, PIs, whitespace) is legal.
+    // A second element or any other token must not be silently discarded.
+    while True do
+    begin
+      if FCurrentToken.TokenType in [xttComment, xttPI] then
+        NextToken
+      else if (FCurrentToken.TokenType = xttText) and
+              (Trim(FCurrentToken.Value) = '') then
+        NextToken
+      else
+        Break;
+    end;
+
+    if FCurrentToken.TokenType <> xttEOF then
+    begin
+      if FCurrentToken.TokenType in [xttStartTag, xttEmptyTag] then
+        raise ECnXMLException.Create(SCN_XML_MULTIPLE_ROOTS,
+          CN_XML_ERR_MULTIPLE_ROOTS, FCurrentToken.Line, FCurrentToken.Column)
+      else
+        RaiseError(SCnErrorUnexpectedTokenInContent);
+    end;
 
     Result := FDocument;
   except
@@ -3458,6 +3685,7 @@ var
   ObjNode: TCnXMLElement;
   NodeList: TList;
   CName: string;
+  Child: TCnXMLNode;
 begin
   if Obj = nil then
     Exit;
@@ -3491,9 +3719,15 @@ begin
     end
     else
     begin
-      // Clear existing content
+      // Clear existing content. RemoveChild only detaches a node, it does
+      // not free it: without the explicit Free every rewrite leaks the
+      // previous subtree (elements, attribute lists and text nodes).
       while ObjNode.HasChildNodes do
-        ObjNode.RemoveChild(ObjNode.FirstChild);
+      begin
+        Child := ObjNode.FirstChild;
+        ObjNode.RemoveChild(Child);
+        Child.Free;
+      end;
     end;
   end
   else
@@ -3513,9 +3747,15 @@ begin
     end
     else
     begin
-      // Clear existing content
+      // Clear existing content. RemoveChild only detaches a node, it does
+      // not free it: without the explicit Free every rewrite leaks the
+      // previous subtree (elements, attribute lists and text nodes).
       while ObjNode.HasChildNodes do
-        ObjNode.RemoveChild(ObjNode.FirstChild);
+      begin
+        Child := ObjNode.FirstChild;
+        ObjNode.RemoveChild(Child);
+        Child.Free;
+      end;
     end;
   end;
 

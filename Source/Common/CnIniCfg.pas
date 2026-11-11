@@ -78,9 +78,13 @@ type
     
     property Ini: TCustomIniFile read FIni;
   end;
+
 {$M-}
 
 implementation
+
+uses
+  CnNative;
 
 function StrToFloatDef(const S: string; const Default: Extended): Extended;
 begin
@@ -146,30 +150,40 @@ const
 begin
   FPropCount := GetPropList(ClassInfo, csSupportTypes, nil);
   if FPropCount > 0 then
+  begin
+{$IFDEF COMPILER5}
+    FPropList := CnGetMemory(FPropCount * SizeOf(PPropInfo));
+{$ELSE}
     FPropList := GetMemory(FPropCount * SizeOf(PPropInfo));
+{$ENDIF}
+  end;
   GetPropList(ClassInfo, csSupportTypes, FPropList);
 end;
 
 procedure TCnIniCfg.CheckProperties;
 var
-  I, j: Integer;
+  I, J: Integer;
 begin
   if FPropList <> nil then
   begin
     for I := 1 to FPropCount - 1 do
     begin
-      for j := 0 to I - 1 do
-        if (FPropList[I].PropType^ = FPropList[j].PropType^) and
-          (FPropList[I].Index = FPropList[j].Index) then
+      for J := 0 to I - 1 do
+        if (FPropList[I].PropType^ = FPropList[J].PropType^) and
+          (FPropList[I].Index = FPropList[J].Index) then
           raise ECnIniCfgError.CreateFmt('Property index does not allow duplicates. Class: %s, Property: %s and %s',
-            [ClassName, FPropList[I].Name, FPropList[j].Name]);
+            [ClassName, FPropList[I].Name, FPropList[J].Name]);
     end;
   end;
 end;
 
 procedure TCnIniCfg.FreePropLists;
 begin
-  FreeMem(FPropList);
+{$IFDEF COMPILER5}
+  CnFreeMemory(FPropList);
+{$ELSE}
+  FreeMemory(FPropList);
+{$ENDIF}
 end;
 
 function TCnIniCfg.GetDefaultValue(const PropName: string): Variant;
@@ -178,11 +192,13 @@ var
 begin
   Result := '';
   for I := Low(FDefPropNames) to High(FDefPropNames) do
+  begin
     if SameText(FDefPropNames[I], PropName) then
     begin
       Result := FDefPropValues[I];
       Exit;
     end;
+  end;
 end;
 
 function TCnIniCfg.GetBoolean(const Index: Integer): Boolean;
@@ -206,12 +222,14 @@ var
 begin
   Result := 0;
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^.Kind = tkFloat) and (FPropList[I].Index = Index) then
     begin
       Result := FIni.ReadFloat('Float', string(FPropList[I].Name),
         StrToFloatDef(GetDefaultValue(string(FPropList[I].Name)), 0));
       Exit;
     end;
+  end;
 end;
 
 function TCnIniCfg.GetInteger(const Index: Integer): Integer;
@@ -220,12 +238,14 @@ var
 begin
   Result := 0;
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^.Kind = tkInteger) and (FPropList[I].Index = Index) then
     begin
       Result := FIni.ReadInteger('Integer', string(FPropList[I].Name),
         FPropList[I].Default);
       Exit;
     end;
+  end;
 end;
 
 function TCnIniCfg.GetString(const Index: Integer): string;
@@ -233,12 +253,14 @@ var
   I: Integer;
 begin
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^.Kind in [tkString, tkLString]) and (FPropList[I].Index = Index) then
     begin
       Result := FIni.ReadString('String', string(FPropList[I].Name),
         GetDefaultValue(string(FPropList[I].Name)));
       Exit;
     end;
+  end;
 end;
 
 procedure TCnIniCfg.SetBoolean(const Index: Integer;
@@ -247,6 +269,7 @@ var
   I: Integer;
 begin
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^ = TypeInfo(Boolean)) and (FPropList[I].Index = Index) then
     begin
       if Value <> (FPropList[I].Default <> 0) then
@@ -255,6 +278,7 @@ begin
         FIni.DeleteKey('Boolean', string(FPropList[I].Name));
       Exit;
     end;
+  end;
 end;
 
 procedure TCnIniCfg.SetDouble(const Index: Integer; const Value: Double);
@@ -262,6 +286,7 @@ var
   I: Integer;
 begin
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^.Kind = tkFloat) and (FPropList[I].Index = Index) then
     begin
       if Value <> StrToFloatDef(GetDefaultValue(string(FPropList[I].Name)), 0) then
@@ -270,6 +295,7 @@ begin
         FIni.DeleteKey('Float', string(FPropList[I].Name));
       Exit;
     end;
+  end;
 end;
 
 procedure TCnIniCfg.SetInteger(const Index, Value: Integer);
@@ -277,6 +303,7 @@ var
   I: Integer;
 begin
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^.Kind = tkInteger) and (FPropList[I].Index = Index) then
     begin
       if Value <> FPropList[I].Default then
@@ -285,6 +312,7 @@ begin
         FIni.DeleteKey('Integer', string(FPropList[I].Name));
       Exit;
     end;
+  end;
 end;
 
 procedure TCnIniCfg.SetString(const Index: Integer; const Value: string);
@@ -292,6 +320,7 @@ var
   I: Integer;
 begin
   for I := 0 to FPropCount - 1 do
+  begin
     if (FPropList[I].PropType^.Kind in [tkString, tkLString]) and (FPropList[I].Index = Index) then
     begin
       if Value <> GetDefaultValue(string(FPropList[I].Name)) then
@@ -300,6 +329,7 @@ begin
         FIni.DeleteKey('String', string(FPropList[I].Name));
       Exit;
     end;
+  end;
 end;
 
 end.
