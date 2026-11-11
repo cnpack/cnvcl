@@ -91,6 +91,13 @@ type
   {* SVG 文字锚点：start（左对齐）/ middle（居中）/ end（右对齐） }
 
   TCnSVGSpreadMethod = (smsPad, smsRepeat, smsReflect);
+
+  TCnSVGPaintOrder = (spoNormal, spoStrokeFirst);
+  {* paint-order：spoNormal 为先 fill 后 stroke，spoStrokeFirst 为先 stroke 后 fill }
+
+  TCnSVGShapeRendering = (srAuto, srCrispEdges, srGeometricPrecision);
+  {* shape-rendering：控制 GDI+ 反锯齿模式 }
+
 //==============================================================================
 // 样式记录
 //==============================================================================
@@ -172,6 +179,10 @@ type
     {* marker-mid  ID via url(#id) }
     MarkerEndID:      string;
     {* marker-end  ID via url(#id) }
+    PaintOrder:       TCnSVGPaintOrder;
+    {* paint-order，默认 spoNormal }
+    ShapeRendering:   TCnSVGShapeRendering;
+    {* shape-rendering，默认 srAuto }
   end;
 
 //==============================================================================
@@ -612,7 +623,7 @@ type
     function CreateGDIPFillBrush: GpBrush;
     function CreateGDIPStrokeBrush: GpBrush;
     procedure UpdateGDIPWorldTransform;
-    procedure ApplyGDIPClipPath;
+    procedure ApplyGDIPClipPath(AElement: TCnXMLElement);
     procedure RemoveGDIPClipPath;
     function UserToScreen(X, Y: TCnSVGFloat): TPoint;
     function UserLenToScreen(Len: TCnSVGFloat): Integer;
@@ -1043,9 +1054,56 @@ end;
 
 function SVGTryStrToFloat(const S: string; var Value: TCnSVGFloat): Boolean; forward;
 
-function SVGParseColor(const S: string; var Color: TCnSVGColor): Boolean;
-{* 解析 SVG 颜色字符串，支持 none / #RRGGBB / #RGB / rgb(r,g,b) / 命名颜色。
-   返回 False 表示 none 或解析失败，返回 True 表示解析成功（颜色写入 Color）。}
+function SVGHSLToRGB(H, S, L: TCnSVGFloat; var C: TCnSVGColor): Boolean;
+{* 将 HSL(H 为角度, S/L 为 0..1) 转为 RGB。 }
+var
+  Q, P, HueK, RK, GK, BK: TCnSVGFloat;
+
+  function HueToRGB(P1, Q1, T1: TCnSVGFloat): TCnSVGFloat;
+  begin
+    while T1 < 0 do T1 := T1 + 1;
+    while T1 > 1 do T1 := T1 - 1;
+    if T1 < 1 / 6 then
+      Result := P1 + (Q1 - P1) * 6 * T1
+    else if T1 < 1 / 2 then
+      Result := Q1
+    else if T1 < 2 / 3 then
+      Result := P1 + (Q1 - P1) * (2 / 3 - T1) * 6
+    else
+      Result := P1;
+  end;
+
+begin
+  while H < 0 do H := H + 360;
+  while H >= 360 do H := H - 360;
+  if S < 0 then S := 0;
+  if S > 1 then S := 1;
+  if L < 0 then L := 0;
+  if L > 1 then L := 1;
+  if S = 0 then
+  begin
+    RK := L; GK := L; BK := L;
+  end
+  else
+  begin
+    if L < 0.5 then Q := L * (1 + S)
+    else Q := L + S - L * S;
+    P := 2 * L - Q;
+    HueK := H / 360;
+    RK := HueToRGB(P, Q, HueK + 1 / 3);
+    GK := HueToRGB(P, Q, HueK);
+    BK := HueToRGB(P, Q, HueK - 1 / 3);
+  end;
+  C.R := ClampByte(Round(RK * 255));
+  C.G := ClampByte(Round(GK * 255));
+  C.B := ClampByte(Round(BK * 255));
+  Result := True;
+end;
+
+function SVGParseColorWithAlpha(const S: string; var Color: TCnSVGColor;
+  var Alpha: TCnSVGFloat): Boolean;
+{* 解析 SVG 颜色，支持 none / transparent / #RRGGBB / #RGB / rgb() / rgba() /
+   hsl() / hsla() / 命名颜色。Alpha 返回 0..1，none 时返回 False。}
 var
   Trimmed, Lower: string;
   R2, G2, B2: string;
@@ -1056,7 +1114,10 @@ var
   I: Integer;
   PartStr: string;
   IsPercent: Boolean;
+  HVal, SVal, LVal, AVal: TCnSVGFloat;
+  IsHsla, HasAlpha: Boolean;
 begin
+  Alpha := 1.0;
   Trimmed := Trim(S);
   if Trimmed = '' then
   begin
@@ -1067,6 +1128,67 @@ begin
   end;
 
   Lower := LowerCase(Trimmed);
+
+  // transparent = fully transparent black
+  if Lower = 'transparent' then
+  begin
+    Color.R := 0; Color.G := 0; Color.B := 0;
+    Alpha := 0;
+    Result := True;
+    Exit;
+  end;
+
+  // hsl(h,s%,l%) / hsla(h,s%,l%,a)
+  if ((Length(Lower) > 4) and (Copy(Lower, 1, 4) = 'hsl(')) or
+     ((Length(Lower) > 5) and (Copy(Lower, 1, 5) = 'hsla(')) then
+  begin
+    IsHsla := Copy(Lower, 1, 5) = 'hsla(';
+    if IsHsla then
+      RgbStr := Copy(Trimmed, 6, Length(Trimmed) - 6)
+    else
+      RgbStr := Copy(Trimmed, 5, Length(Trimmed) - 5);
+    Parts := TStringList.Create;
+    try
+      for I := 1 to Length(RgbStr) do
+        if RgbStr[I] = ',' then RgbStr[I] := #10;
+      Parts.Text := RgbStr;
+      if Parts.Count >= 3 then
+      begin
+        if not SVGTryStrToFloat(Trim(Parts[0]), HVal) then HVal := 0;
+        PartStr := Trim(Parts[1]);
+        IsPercent := (PartStr <> '') and (PartStr[Length(PartStr)] = '%');
+        if IsPercent then Delete(PartStr, Length(PartStr), 1);
+        if not SVGTryStrToFloat(Trim(PartStr), SVal) then SVal := 0;
+        if IsPercent then SVal := SVal / 100;
+        PartStr := Trim(Parts[2]);
+        IsPercent := (PartStr <> '') and (PartStr[Length(PartStr)] = '%');
+        if IsPercent then Delete(PartStr, Length(PartStr), 1);
+        if not SVGTryStrToFloat(Trim(PartStr), LVal) then LVal := 0;
+        if IsPercent then LVal := LVal / 100;
+        SVGHSLToRGB(HVal, SVal, LVal, Color);
+        if IsHsla and (Parts.Count >= 4) then
+        begin
+          PartStr := Trim(Parts[3]);
+          IsPercent := (PartStr <> '') and (PartStr[Length(PartStr)] = '%');
+          if IsPercent then Delete(PartStr, Length(PartStr), 1);
+          if SVGTryStrToFloat(Trim(PartStr), AVal) then
+          begin
+            if IsPercent then Alpha := AVal / 100 else Alpha := AVal;
+            if Alpha < 0 then Alpha := 0 else if Alpha > 1 then Alpha := 1;
+          end;
+        end;
+        Result := True;
+      end
+      else
+      begin
+        Color.R := 0; Color.G := 0; Color.B := 0;
+        Result := True;
+      end;
+    finally
+      Parts.Free;
+    end;
+    Exit;
+  end;
 
   // 1. none → return False
   if Lower = 'none' then
@@ -1106,12 +1228,16 @@ begin
     Exit;
   end;
 
-  // 3. rgb(r,g,b)
-  if (Length(Lower) > 4) and (Copy(Lower, 1, 4) = 'rgb(') and
+  // 3. rgb(r,g,b) / rgba(r,g,b,a)
+  HasAlpha := (Length(Lower) > 5) and (Copy(Lower, 1, 5) = 'rgba(');
+  if (((Length(Lower) > 4) and (Copy(Lower, 1, 4) = 'rgb(')) or HasAlpha) and
      (Lower[Length(Lower)] = ')') then
   begin
     // 提取括号内内容
-    RgbStr := Copy(Trimmed, 5, Length(Trimmed) - 5);
+    if HasAlpha then
+      RgbStr := Copy(Trimmed, 6, Length(Trimmed) - 6)
+    else
+      RgbStr := Copy(Trimmed, 5, Length(Trimmed) - 5);
     Parts  := TStringList.Create;
     try
       // 将逗号替换为换行符以便拆分
@@ -1145,6 +1271,17 @@ begin
             0: Color.R := ClampByte(IntVal);
             1: Color.G := ClampByte(IntVal);
             2: Color.B := ClampByte(IntVal);
+          end;
+        end;
+        if HasAlpha and (Parts.Count >= 4) then
+        begin
+          PartStr := Trim(Parts[3]);
+          IsPercent := (PartStr <> '') and (PartStr[Length(PartStr)] = '%');
+          if IsPercent then Delete(PartStr, Length(PartStr), 1);
+          if SVGTryStrToFloat(Trim(PartStr), AVal) then
+          begin
+            if IsPercent then Alpha := AVal / 100 else Alpha := AVal;
+            if Alpha < 0 then Alpha := 0 else if Alpha > 1 then Alpha := 1;
           end;
         end;
         Result := True;
@@ -1272,11 +1409,55 @@ begin
   else if Lower = 'wheat' then begin Color.R:=245; Color.G:=222; Color.B:=179; end
   else if Lower = 'whitesmoke' then begin Color.R:=245; Color.G:=245; Color.B:=245; end
   else if Lower = 'yellowgreen' then begin Color.R:=154; Color.G:=205; Color.B:=50;  end
+  else if Lower = 'aliceblue' then begin Color.R:=240; Color.G:=248; Color.B:=255; end
+  else if Lower = 'antiquewhite' then begin Color.R:=250; Color.G:=235; Color.B:=215; end
+  else if Lower = 'blueviolet' then begin Color.R:=138; Color.G:=43;  Color.B:=226; end
+  else if Lower = 'burlywood' then begin Color.R:=222; Color.G:=184; Color.B:=135; end
+  else if Lower = 'darkgoldenrod' then begin Color.R:=184; Color.G:=134; Color.B:=11;  end
+  else if Lower = 'darkgrey' then begin Color.R:=169; Color.G:=169; Color.B:=169; end
+  else if Lower = 'darkkhaki' then begin Color.R:=189; Color.G:=183; Color.B:=107; end
+  else if Lower = 'darkolivegreen' then begin Color.R:=85;  Color.G:=107; Color.B:=47;  end
+  else if Lower = 'darksalmon' then begin Color.R:=233; Color.G:=150; Color.B:=122; end
+  else if Lower = 'darkseagreen' then begin Color.R:=143; Color.G:=188; Color.B:=143; end
+  else if Lower = 'darkslategray' then begin Color.R:=47;  Color.G:=79;  Color.B:=79;  end
+  else if Lower = 'darkslategrey' then begin Color.R:=47;  Color.G:=79;  Color.B:=79;  end
+  else if Lower = 'darkturquoise' then begin Color.R:=0;   Color.G:=206; Color.B:=209; end
+  else if Lower = 'dimgrey' then begin Color.R:=105; Color.G:=105; Color.B:=105; end
+  else if Lower = 'floralwhite' then begin Color.R:=255; Color.G:=250; Color.B:=240; end
+  else if Lower = 'honeydew' then begin Color.R:=240; Color.G:=255; Color.B:=240; end
+  else if Lower = 'lawngreen' then begin Color.R:=124; Color.G:=252; Color.B:=0;   end
+  else if Lower = 'lemonchiffon' then begin Color.R:=255; Color.G:=250; Color.B:=205; end
+  else if Lower = 'lightgoldenrodyellow' then begin Color.R:=250; Color.G:=250; Color.B:=210; end
+  else if Lower = 'lightgrey' then begin Color.R:=211; Color.G:=211; Color.B:=211; end
+  else if Lower = 'lightpink' then begin Color.R:=255; Color.G:=182; Color.B:=193; end
+  else if Lower = 'lightsalmon' then begin Color.R:=255; Color.G:=160; Color.B:=122; end
+  else if Lower = 'lightseagreen' then begin Color.R:=32;  Color.G:=178; Color.B:=170; end
+  else if Lower = 'lightskyblue' then begin Color.R:=135; Color.G:=206; Color.B:=250; end
+  else if Lower = 'lightslategray' then begin Color.R:=119; Color.G:=136; Color.B:=153; end
+  else if Lower = 'lightslategrey' then begin Color.R:=119; Color.G:=136; Color.B:=153; end
+  else if Lower = 'lightsteelblue' then begin Color.R:=176; Color.G:=196; Color.B:=222; end
+  else if Lower = 'limegreen' then begin Color.R:=50;  Color.G:=205; Color.B:=50;  end
+  else if Lower = 'mediumaquamarine' then begin Color.R:=102; Color.G:=205; Color.B:=170; end
+  else if Lower = 'mediumspringgreen' then begin Color.R:=0;   Color.G:=250; Color.B:=154; end
+  else if Lower = 'mediumvioletred' then begin Color.R:=199; Color.G:=21;  Color.B:=133; end
+  else if Lower = 'mintcream' then begin Color.R:=245; Color.G:=255; Color.B:=250; end
+  else if Lower = 'papayawhip' then begin Color.R:=255; Color.G:=239; Color.B:=213; end
+  else if Lower = 'slategrey' then begin Color.R:=112; Color.G:=128; Color.B:=144; end
+  else if Lower = 'snow' then begin Color.R:=255; Color.G:=250; Color.B:=250; end
+  else if Lower = 'rebeccapurple' then begin Color.R:=102; Color.G:=51;  Color.B:=153; end
   else
   begin
     // 未知颜色 → 回退 black
     Color.R := 0; Color.G := 0; Color.B := 0;
   end;
+end;
+
+function SVGParseColor(const S: string; var Color: TCnSVGColor): Boolean;
+{* 兼容旧接口：解析颜色但忽略 alpha 分量。 }
+var
+  A: TCnSVGFloat;
+begin
+  Result := SVGParseColorWithAlpha(S, Color, A);
 end;
 
 //==============================================================================
@@ -1474,6 +1655,8 @@ begin
   S.MarkerStartID    := '';
   S.MarkerMidID      := '';
   S.MarkerEndID      := '';
+  S.PaintOrder       := spoNormal;
+  S.ShapeRendering   := srAuto;
 end;
 
 function SVGClampOpacity(V: TCnSVGFloat): TCnSVGFloat;
@@ -1533,7 +1716,7 @@ procedure SVGReadGradientStopStyle(StopEl: TCnXMLElement;
    PaintOpacity 是元素的有效填充或描边透明度，与 stop-opacity 相乘。 *}
 var
   ColorText, OpacityText: string;
-  Opacity: TCnSVGFloat;
+  Opacity, ColorAlpha: TCnSVGFloat;
 begin
   Color.R := 0;
   Color.G := 0;
@@ -1541,13 +1724,13 @@ begin
   ColorText := SVGGetStyleProperty(StopEl, 'stop-color', 'black');
   if LowerCase(ColorText) = 'currentcolor' then
     ColorText := SVGGetStyleProperty(StopEl, 'color', 'black');
-  SVGParseColor(ColorText, Color);
+  SVGParseColorWithAlpha(ColorText, Color, ColorAlpha);
 
   Opacity := 1.0;
   OpacityText := SVGGetStyleProperty(StopEl, 'stop-opacity', '1');
   if not SVGTryStrToFloat(OpacityText, Opacity) then
     Opacity := 1.0;
-  Alpha := Round(SVGClampOpacity(Opacity) *
+  Alpha := Round(SVGClampOpacity(Opacity) * SVGClampOpacity(ColorAlpha) *
     SVGClampOpacity(PaintOpacity) * 255);
 end;
 
@@ -1719,6 +1902,7 @@ var
   StyleStr, Part, Key, Val, LKey, LVal: string;
   C: TCnSVGColor;
   F: TCnSVGFloat;
+  A: TCnSVGFloat;
   DashStr: string;
   DashIdx: Integer;
   DashVal: TCnSVGFloat;
@@ -1798,8 +1982,10 @@ begin
 
       else if LKey = 'display' then
       begin
-        if LVal = 'none' then
-          Style.DisplayNone := True;
+        if LVal = 'inherit' then
+          Style.DisplayNone := ParentStyle.DisplayNone
+        else
+          Style.DisplayNone := (LVal = 'none');
       end
 
       else if LKey = 'visibility' then
@@ -1940,11 +2126,12 @@ begin
             Delete(Style.FillGradientID, 1, 1);
           Style.FillNone := False;
         end
-        else if SVGParseColor(Val, C) then
+        else if SVGParseColorWithAlpha(Val, C, A) then
         begin
           Style.FillColor := C;
           Style.FillNone  := False;
           Style.FillGradientID := '';
+          Style.FillOpacity := A;
         end;
       end
 
@@ -1996,11 +2183,12 @@ begin
             Delete(Style.StrokeGradientID, 1, 1);
           Style.StrokeNone := False;
         end
-        else if SVGParseColor(Val, C) then
+        else if SVGParseColorWithAlpha(Val, C, A) then
         begin
           Style.StrokeColor := C;
           Style.StrokeNone  := False;
           Style.StrokeGradientID := '';
+          Style.StrokeOpacity := A;
         end;
       end
 
@@ -2142,6 +2330,29 @@ begin
           Style.TextAnchor := staEnd
         else
           Style.TextAnchor := staStart;
+      end
+
+      else if LKey = 'paint-order' then
+      begin
+        if LVal = 'inherit' then
+          Style.PaintOrder := ParentStyle.PaintOrder
+        else if (Pos('stroke', LVal) > 0) and
+          ((Pos('fill', LVal) = 0) or (Pos('stroke', LVal) < Pos('fill', LVal))) then
+          Style.PaintOrder := spoStrokeFirst
+        else
+          Style.PaintOrder := spoNormal;
+      end
+
+      else if LKey = 'shape-rendering' then
+      begin
+        if LVal = 'inherit' then
+          Style.ShapeRendering := ParentStyle.ShapeRendering
+        else if LVal = 'crispedges' then
+          Style.ShapeRendering := srCrispEdges
+        else if (LVal = 'geometricprecision') or (LVal = 'optimizequality') then
+          Style.ShapeRendering := srGeometricPrecision
+        else
+          Style.ShapeRendering := srAuto;
       end;
     end; // for I
 
@@ -3419,9 +3630,9 @@ var
   PenWidth: Integer;
   PenStyle: DWORD;
   LogBrush: TLogBrush;
-  DashStyles: array[0..7] of DWORD;
+  DashStyles: array[0..15] of DWORD;
   DashCount: DWORD;
-  I: Integer;
+  I, EffCount: Integer;
 begin
   Result := 0;
   S := FCtx.Style;
@@ -3463,9 +3674,16 @@ begin
   DashCount := 0;
   if S.DashCount > 0 then
   begin
-    for I := 0 to S.DashCount - 1 do
+    // ExtCreatePen user styles are device units, so no pen-width correction
+    // is needed here; only the odd-count repetition from SVG 1.1 11.4.
+    EffCount := S.DashCount;
+    if (EffCount mod 2) = 1 then
+      EffCount := EffCount * 2;
+    if EffCount > 16 then
+      EffCount := 16;
+    for I := 0 to EffCount - 1 do
     begin
-      DashStyles[I] := UserLenToScreen(S.DashArray[I]);
+      DashStyles[I] := UserLenToScreen(S.DashArray[I mod S.DashCount]);
       if DashStyles[I] = 0 then
         DashStyles[I] := 1;
       Inc(DashCount);
@@ -3546,8 +3764,8 @@ function TCnSVGRenderer.CreateGDIPPPen: GpPen;
 var
   S: TCnSVGStyle;
   PenWidth: Single;
-  DashVals: array[0..7] of Single;
-  I: Integer;
+  DashVals: array[0..15] of Single;
+  I, EffCount: Integer;
   StrokeBrush: GpBrush;
 begin
   Result := nil;
@@ -3591,12 +3809,23 @@ begin
   GdipSetPenMiterLimit(Result, S.MiterLimit);
 
   // DashStyle
+  // GDI+ measures custom dash lengths and the dash offset in units of the
+  // pen width, while SVG specifies them in user units: divide by PenWidth.
+  // An odd number of dasharray values is repeated once to form an even
+  // on/off pattern (SVG 1.1 11.4).
   if S.DashCount > 0 then
   begin
+    EffCount := S.DashCount;
+    if (EffCount mod 2) = 1 then
+      EffCount := EffCount * 2;
+    if EffCount > 16 then
+      EffCount := 16;
     GdipSetPenDashStyle(Result, DashStyleCustom);
-    for I := 0 to S.DashCount - 1 do
-      DashVals[I] := S.DashArray[I]; // 用户坐标，受世界变换缩放
-    GdipSetPenDashArray(Result, @DashVals[0], S.DashCount);
+    for I := 0 to EffCount - 1 do
+      DashVals[I] := S.DashArray[I mod S.DashCount] / PenWidth;
+    GdipSetPenDashArray(Result, @DashVals[0], EffCount);
+    if (S.DashOffset <> 0) and Assigned(GdipSetPenDashOffset) then
+      GdipSetPenDashOffset(Result, S.DashOffset / PenWidth);
   end;
 end;
 
@@ -3621,6 +3850,8 @@ var
   StopEl: TCnXMLElement;
   SC: TCnSVGColor;
   SA: Integer;
+  SCColorText, SCOpacityText: string;
+  SCAlpha, SCOpacity: TCnSVGFloat;
   Colors: array[0..255] of Cardinal;
   Positions: array[0..255] of TCnSVGFloat;
   Path: GpPath;
@@ -3666,6 +3897,22 @@ begin
     if DefEl = nil then Exit;
 
     Tag := LowerCase(DefEl.TagName);
+    if Tag = 'solidcolor' then
+    begin
+      SCColorText := SVGGetStyleProperty(DefEl, 'solid-color', 'black');
+      SVGParseColorWithAlpha(SCColorText, SC, SCAlpha);
+      SCOpacityText := SVGGetStyleProperty(DefEl, 'solid-opacity', '1');
+      if SVGTryStrToFloat(SCOpacityText, SCOpacity) then
+        SCAlpha := SCAlpha * SCOpacity;
+      if SCAlpha < 0 then SCAlpha := 0
+      else if SCAlpha > 1 then SCAlpha := 1;
+      SCAlpha := SCAlpha * EffectiveFillAlpha;
+      if GdipCreateSolidFill(
+        MakeGDIPColor(Round(SCAlpha * 255), SC.R, SC.G, SC.B),
+        GpSolidFill(Result)) <> Ok then
+        Result := nil;
+      Exit;
+    end;
     if Tag = 'lineargradient' then
     begin
       // 解析 linearGradient 属性
@@ -4360,6 +4607,8 @@ var
   StopEl: TCnXMLElement;
   SC: TCnSVGColor;
   SA: Integer;
+  SCColorText, SCOpacityText: string;
+  SCAlpha, SCOpacity: TCnSVGFloat;
   Count: Integer;
   Colors: array[0..255] of Cardinal;
   Positions: array[0..255] of TCnSVGFloat;
@@ -4403,6 +4652,22 @@ begin
     if DefEl = nil then Exit;
 
     Tag := LowerCase(DefEl.TagName);
+    if Tag = 'solidcolor' then
+    begin
+      SCColorText := SVGGetStyleProperty(DefEl, 'solid-color', 'black');
+      SVGParseColorWithAlpha(SCColorText, SC, SCAlpha);
+      SCOpacityText := SVGGetStyleProperty(DefEl, 'solid-opacity', '1');
+      if SVGTryStrToFloat(SCOpacityText, SCOpacity) then
+        SCAlpha := SCAlpha * SCOpacity;
+      if SCAlpha < 0 then SCAlpha := 0
+      else if SCAlpha > 1 then SCAlpha := 1;
+      SCAlpha := SCAlpha * EffectiveStrokeAlpha;
+      if GdipCreateSolidFill(
+        MakeGDIPColor(Round(SCAlpha * 255), SC.R, SC.G, SC.B),
+        GpSolidFill(Result)) <> Ok then
+        Result := nil;
+      Exit;
+    end;
     if Tag = 'lineargradient' then
     begin
       X1 := SVGAttrFloat(DefEl, 'x1', 0);
@@ -5062,9 +5327,64 @@ begin
   end;
 end;
 
-procedure TCnSVGRenderer.ApplyGDIPClipPath;
+function SVGElementBBox(El: TCnXMLElement; VW, VH, FS: TCnSVGFloat;
+  var X, Y, W, H: TCnSVGFloat): Boolean;
+{* 估算元素的用户空间边界框，供 clipPathUnits=objectBoundingBox 使用。
+   支持 rect/circle/ellipse/line/image/use；其它元素返回 False（回退用户坐标）。 }
+var
+  Tag: string;
+  X1, Y1, X2, Y2, R, RX, RY: TCnSVGFloat;
+begin
+  Result := False;
+  if El = nil then Exit;
+  X := 0; Y := 0; W := 0; H := 0;
+  Tag := LowerCase(El.TagName);
+  if (Tag = 'rect') or (Tag = 'image') or (Tag = 'use') then
+  begin
+    X := SVGAttrLength(El, 'x', 0, VW, FS);
+    Y := SVGAttrLength(El, 'y', 0, VH, FS);
+    W := SVGAttrLength(El, 'width', 0, VW, FS);
+    H := SVGAttrLength(El, 'height', 0, VH, FS);
+  end
+  else if Tag = 'circle' then
+  begin
+    X1 := SVGAttrLength(El, 'cx', 0, VW, FS);
+    Y1 := SVGAttrLength(El, 'cy', 0, VH, FS);
+    R := SVGAttrLength(El, 'r', 0, VW, FS);
+    X := X1 - R; Y := Y1 - R; W := R * 2; H := R * 2;
+  end
+  else if Tag = 'ellipse' then
+  begin
+    X1 := SVGAttrLength(El, 'cx', 0, VW, FS);
+    Y1 := SVGAttrLength(El, 'cy', 0, VH, FS);
+    RX := SVGAttrLength(El, 'rx', 0, VW, FS);
+    RY := SVGAttrLength(El, 'ry', 0, VH, FS);
+    X := X1 - RX; Y := Y1 - RY; W := RX * 2; H := RY * 2;
+  end
+  else if Tag = 'line' then
+  begin
+    X1 := SVGAttrLength(El, 'x1', 0, VW, FS);
+    Y1 := SVGAttrLength(El, 'y1', 0, VH, FS);
+    X2 := SVGAttrLength(El, 'x2', 0, VW, FS);
+    Y2 := SVGAttrLength(El, 'y2', 0, VH, FS);
+    if X1 < X2 then begin X := X1; W := X2 - X1; end
+    else begin X := X2; W := X1 - X2; end;
+    if Y1 < Y2 then begin Y := Y1; H := Y2 - Y1; end
+    else begin Y := Y2; H := Y1 - Y2; end;
+  end
+  else
+    Exit;
+  Result := (W > 0) and (H > 0);
+end;
+
+procedure TCnSVGRenderer.ApplyGDIPClipPath(AElement: TCnXMLElement);
 var
   DefEl: TCnXMLElement;
+  IsObjBBoxClip: Boolean;
+  BBX, BBY, BBW, BBH: TCnSVGFloat;
+  PathFillMode: Integer;
+  ClipRuleText: string;
+  K: Integer;
   ClipEl: TCnXMLElement;
   I: Integer;
   Tag: string;
@@ -5098,11 +5418,29 @@ begin
   Inc(FClipPathDepth);
   FHasClipPath := True;
 
-  FillMode := FillModeWinding;
+  // clip-rule on clipPath children overrides the clipped element's fill-rule
+  PathFillMode := FillModeWinding;
   if FCtx.Style.FillRule = sfrEvenOdd then
-    FillMode := FillModeAlternate;
+    PathFillMode := FillModeAlternate;
+  for K := 0 to DefEl.ChildCount - 1 do
+    if DefEl.Children[K].NodeType = xntElement then
+    begin
+      ClipRuleText := LowerCase(Trim(SVGGetStyleProperty(
+        TCnXMLElement(DefEl.Children[K]), 'clip-rule', '')));
+      if ClipRuleText = 'evenodd' then
+        PathFillMode := FillModeAlternate
+      else if ClipRuleText = 'nonzero' then
+        PathFillMode := FillModeWinding;
+    end;
+
+  IsObjBBoxClip :=
+    LowerCase(Trim(DefEl.GetAttribute('clipPathUnits'))) = 'objectboundingbox';
+  if IsObjBBoxClip then
+    IsObjBBoxClip := SVGElementBBox(AElement, FViewportUserWidth,
+      FViewportUserHeight, FCtx.Style.FontSize, BBX, BBY, BBW, BBH);
+
   CombinedPath := nil;
-  GdipCreatePath(FillMode, CombinedPath);
+  GdipCreatePath(PathFillMode, CombinedPath);
   if CombinedPath = nil then
   begin
     RemoveGDIPClipPath;
@@ -5235,6 +5573,13 @@ begin
         CY := SVGAttrLength(ClipEl, 'y', 0, FViewportUserHeight, FCtx.Style.FontSize);
         CW := SVGAttrLength(ClipEl, 'width', 0, FViewportUserWidth, FCtx.Style.FontSize);
         CH := SVGAttrLength(ClipEl, 'height', 0, FViewportUserHeight, FCtx.Style.FontSize);
+        if IsObjBBoxClip then
+        begin
+          CX := BBX + CX * BBW;
+          CY := BBY + CY * BBH;
+          CW := CW * BBW;
+          CH := CH * BBH;
+        end;
         GdipAddPathRectangle(Path, CX, CY, CW, CH);
       end
       else if Tag = 'circle' then
@@ -5244,7 +5589,11 @@ begin
         CRX := SVGAttrLength(ClipEl, 'r', 0,
           Sqrt((FViewportUserWidth * FViewportUserWidth +
             FViewportUserHeight * FViewportUserHeight) / 2), FCtx.Style.FontSize);
-        GdipAddPathEllipse(Path, CX - CRX, CY - CRX, CRX * 2, CRX * 2);
+        if IsObjBBoxClip then
+          GdipAddPathEllipse(Path, BBX + (CX - CRX) * BBW,
+            BBY + (CY - CRX) * BBH, CRX * 2 * BBW, CRX * 2 * BBH)
+        else
+          GdipAddPathEllipse(Path, CX - CRX, CY - CRX, CRX * 2, CRX * 2);
       end
       else if Tag = 'ellipse' then
       begin
@@ -5252,7 +5601,11 @@ begin
         CY := SVGAttrLength(ClipEl, 'cy', 0, FViewportUserHeight, FCtx.Style.FontSize);
         CRX := SVGAttrLength(ClipEl, 'rx', 0, FViewportUserWidth, FCtx.Style.FontSize);
         CRY := SVGAttrLength(ClipEl, 'ry', 0, FViewportUserHeight, FCtx.Style.FontSize);
-        GdipAddPathEllipse(Path, CX - CRX, CY - CRY, CRX * 2, CRY * 2);
+        if IsObjBBoxClip then
+          GdipAddPathEllipse(Path, BBX + (CX - CRX) * BBW,
+            BBY + (CY - CRY) * BBH, CRX * 2 * BBW, CRY * 2 * BBH)
+        else
+          GdipAddPathEllipse(Path, CX - CRX, CY - CRY, CRX * 2, CRY * 2);
       end;
     end;
   end;
@@ -5817,6 +6170,17 @@ begin
             GdipDeletePen(Pen);
           end;
         end;
+        // paint-order="stroke fill": repaint the fill over the stroke
+        if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+           (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+        begin
+            Brush := CreateGDIPFillBrush;
+            if Brush <> nil then
+            begin
+              GdipFillPath(FGDIPGraphics, Brush, Path);
+              GdipDeleteBrush(Brush);
+            end;
+        end;
         GdipDeletePath(Path);
       end;
     end
@@ -5839,6 +6203,17 @@ begin
         begin
           GdipDrawRectangle(FGDIPGraphics, Pen, X, Y, W, H);
           GdipDeletePen(Pen);
+        end;
+      end;
+      // paint-order="stroke fill": repaint the fill over the stroke
+      if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+         (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillRectangle(FGDIPGraphics, Brush, X, Y, W, H);
+          GdipDeleteBrush(Brush);
         end;
       end;
     end;
@@ -5949,6 +6324,18 @@ begin
         GdipDeletePen(Pen);
       end;
     end;
+    // paint-order="stroke fill": repaint the fill over the stroke
+    if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+       (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    begin
+      Brush := CreateGDIPFillBrush;
+      if Brush <> nil then
+      begin
+        GdipFillEllipse(FGDIPGraphics, Brush,
+          CX - R, CY - R, R * 2, R * 2);
+        GdipDeleteBrush(Brush);
+      end;
+    end;
   end
   else
   begin
@@ -6009,6 +6396,18 @@ begin
           CX - RX, CY - RY, RX * 2, RY * 2);
         GdipDeletePen(Pen);
       end;
+    end;
+    // paint-order="stroke fill": repaint the fill over the stroke
+    if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+       (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+    begin
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillEllipse(FGDIPGraphics, Brush,
+            CX - RX, CY - RY, RX * 2, RY * 2);
+          GdipDeleteBrush(Brush);
+        end;
     end;
   end
   else
@@ -6170,6 +6569,17 @@ begin
           GdipDeletePen(Pen);
         end;
       end;
+      // paint-order="stroke fill": repaint the fill over the stroke
+      if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+         (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillPath(FGDIPGraphics, Brush, Path);
+          GdipDeleteBrush(Brush);
+        end;
+      end;
       GdipDeletePath(Path);
     end
     else
@@ -6321,6 +6731,17 @@ begin
           GdipDeletePen(Pen);
         end;
       end;
+      // paint-order="stroke fill": repaint the fill over the stroke
+      if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+         (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillPath(FGDIPGraphics, Brush, Path);
+          GdipDeleteBrush(Brush);
+        end;
+      end;
       GdipDeletePath(Path);
     end
     else
@@ -6346,6 +6767,17 @@ begin
         begin
           GdipDrawLinesI(FGDIPGraphics, Pen, @ClosedPts[0], Count + 1);
           GdipDeletePen(Pen);
+        end;
+      end;
+      // paint-order="stroke fill": repaint the fill over the stroke
+      if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+         (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        Brush := CreateGDIPFillBrush;
+        if Brush <> nil then
+        begin
+          GdipFillPolygonI(FGDIPGraphics, Brush, @ScreenPts[0], Count, FillMode);
+          GdipDeleteBrush(Brush);
         end;
       end;
     end;
@@ -6859,6 +7291,17 @@ begin
         begin
           GdipDrawPath(FGDIPGraphics, GDIPPPen, GDIPPath);
           GdipDeletePen(GDIPPPen);
+        end;
+      end;
+      // paint-order="stroke fill": repaint the fill over the stroke
+      if (FCtx.Style.PaintOrder = spoStrokeFirst) and
+         (not FCtx.Style.FillNone) and (FillAlpha > 0) then
+      begin
+        GDIPBrush := CreateGDIPFillBrush;
+        if GDIPBrush <> nil then
+        begin
+          GdipFillPath(FGDIPGraphics, GDIPBrush, GDIPPath);
+          GdipDeleteBrush(GDIPBrush);
         end;
       end;
     end
@@ -7723,7 +8166,7 @@ begin
   UpdateGDIPWorldTransform;
   SavedClipDepth := FClipPathDepth;
   try
-    ApplyGDIPClipPath;
+    ApplyGDIPClipPath(AElement);
     for I := 0 to AElement.ChildCount - 1 do
       RenderNode(AElement.Children[I]);
   finally
@@ -7842,7 +8285,7 @@ begin
   // 应用 GDI+ 裁剪路径；无论子节点是否抛出异常，都完整恢复状态。
   SavedClipDepth := FClipPathDepth;
   try
-    ApplyGDIPClipPath;
+    ApplyGDIPClipPath(AElement);
     for I := 0 to AElement.ChildCount - 1 do
       RenderNode(AElement.Children[I]);
   finally
@@ -8126,34 +8569,38 @@ begin
     end;
     UpdateGDIPWorldTransform;
 
-    { 每个嵌套的 <svg> 都会建立 viewport，并默认将后代裁剪到该 viewport 内。
-      旧实现只应用了 viewBox 变换，绘制内容可能溢出 viewport。 }
-    if IsRoot then
+    { overflow=visible 时不裁剪 viewport（SVG 1.1 允许嵌套 svg 内容溢出）。 }
+    if LowerCase(Trim(SVGGetStyleProperty(AElement, 'overflow', 'hidden'))) <> 'visible' then
     begin
-      ClipX := 0; ClipY := 0;
-      ClipW := FViewportUserWidth; ClipH := FViewportUserHeight;
-    end
-    else if AElement.HasAttribute('viewBox') and
-      SVGParseViewBoxValue(AElement.GetAttribute('viewBox'), LocalViewBox) then
-    begin
-      ClipX := LocalViewBox.X; ClipY := LocalViewBox.Y;
-      ClipW := LocalViewBox.Width; ClipH := LocalViewBox.Height;
-    end
-    else
-    begin
-      ClipX := 0; ClipY := 0; ClipW := W; ClipH := H;
-    end;
-    if FUseGDIP and Assigned(GdipSetClipRect) then
-      GdipSetClipRect(FGDIPGraphics, ClipX, ClipY, ClipW, ClipH,
-        CombineModeIntersect)
-    else if not FUseGDIP then
-    begin
-      SavedClipDC := SaveDC(FCtx.Canvas.Handle);
-      ClipP1 := UserToScreen(ClipX, ClipY);
-      ClipP2 := UserToScreen(ClipX + ClipW, ClipY + ClipH);
-      IntersectClipRect(FCtx.Canvas.Handle,
-        Min(ClipP1.X, ClipP2.X), Min(ClipP1.Y, ClipP2.Y),
-        Max(ClipP1.X, ClipP2.X), Max(ClipP1.Y, ClipP2.Y));
+      { 每个嵌套的 <svg> 都会建立 viewport，并默认将后代裁剪到该 viewport 内。
+        旧实现只应用了 viewBox 变换，绘制内容可能溢出 viewport。 }
+      if IsRoot then
+      begin
+        ClipX := 0; ClipY := 0;
+        ClipW := FViewportUserWidth; ClipH := FViewportUserHeight;
+      end
+      else if AElement.HasAttribute('viewBox') and
+        SVGParseViewBoxValue(AElement.GetAttribute('viewBox'), LocalViewBox) then
+      begin
+        ClipX := LocalViewBox.X; ClipY := LocalViewBox.Y;
+        ClipW := LocalViewBox.Width; ClipH := LocalViewBox.Height;
+      end
+      else
+      begin
+        ClipX := 0; ClipY := 0; ClipW := W; ClipH := H;
+      end;
+      if FUseGDIP and Assigned(GdipSetClipRect) then
+        GdipSetClipRect(FGDIPGraphics, ClipX, ClipY, ClipW, ClipH,
+          CombineModeIntersect)
+      else if not FUseGDIP then
+      begin
+        SavedClipDC := SaveDC(FCtx.Canvas.Handle);
+        ClipP1 := UserToScreen(ClipX, ClipY);
+        ClipP2 := UserToScreen(ClipX + ClipW, ClipY + ClipH);
+        IntersectClipRect(FCtx.Canvas.Handle,
+          Min(ClipP1.X, ClipP2.X), Min(ClipP1.Y, ClipP2.Y),
+          Max(ClipP1.X, ClipP2.X), Max(ClipP1.Y, ClipP2.Y));
+      end;
     end;
 
     for I := 0 to AElement.ChildCount - 1 do
@@ -9726,6 +10173,8 @@ var
   I: Integer;
   MX: GpMatrix;
   SavedClipDepth: Integer;
+  SavedSmoothing: TSmoothingMode;
+  SmoothChanged: Boolean;
 begin
   if AElement = nil then
     Exit;
@@ -9738,9 +10187,25 @@ begin
   begin
     PushStyle;
     PushMatrix;
+    SmoothChanged := False;
     try
       SavedClipDepth := FClipPathDepth;
       ApplyStyleAttr(AElement);
+
+      // shape-rendering: crispEdges disables GDI+ anti-aliasing for this element
+      if FUseGDIP and (FCtx.Style.ShapeRendering <> srAuto) and
+         Assigned(GdipSetSmoothingMode) and Assigned(GdipGetSmoothingMode) then
+      begin
+        if GdipGetSmoothingMode(FGDIPGraphics, SavedSmoothing) = Ok then
+        begin
+          SmoothChanged := True;
+          if FCtx.Style.ShapeRendering = srCrispEdges then
+            GdipSetSmoothingMode(FGDIPGraphics, SmoothingModeNone)
+          else
+            GdipSetSmoothingMode(FGDIPGraphics, SmoothingModeAntiAlias);
+        end;
+      end;
+
       if FCtx.Style.DisplayNone or FCtx.Style.VisibilityHidden then
         Exit;
       if AElement.HasAttribute('transform') then
@@ -9768,7 +10233,7 @@ begin
       else
       begin
         // normal rendering
-        ApplyGDIPClipPath;
+        ApplyGDIPClipPath(AElement);
 
         if Tag = 'svg' then
           RenderNestedSVG(AElement)
@@ -9807,6 +10272,8 @@ begin
             RenderNode(AElement.Children[I]);
       end;
     finally
+      if SmoothChanged then
+        GdipSetSmoothingMode(FGDIPGraphics, SavedSmoothing);
       while FClipPathDepth > SavedClipDepth do
         RemoveGDIPClipPath;
       PopMatrix;
@@ -9924,6 +10391,76 @@ begin
   end;
 end;
 
+procedure SVGResolveDefInheritance(ADefsMap: TStringList);
+{* 物化 gradient/pattern 的 href 继承：把祖先未显式覆盖的属性写入本节点，
+   并在缺少 <stop> 时克隆祖先的 <stop> 子节点。链式引用递归解析，深度上限 8。 }
+
+  function HasStopChild(El: TCnXMLElement): Boolean;
+  var
+    K: Integer;
+  begin
+    Result := False;
+    for K := 0 to El.ChildCount - 1 do
+      if (El.Children[K].NodeType = xntElement) and
+         (LowerCase(TCnXMLElement(El.Children[K]).TagName) = 'stop') then
+      begin
+        Result := True;
+        Exit;
+      end;
+  end;
+
+  procedure ResolveOne(El: TCnXMLElement; Depth: Integer);
+  var
+    HRef, ID, Name: string;
+    Base: TCnXMLElement;
+    J: Integer;
+    Clone: TCnXMLNode;
+  begin
+    if (El = nil) or (Depth > 8) then Exit;
+    HRef := '';
+    if El.HasAttribute('href') then
+      HRef := Trim(El.GetAttribute('href'))
+    else if El.HasAttribute('xlink:href') then
+      HRef := Trim(El.GetAttribute('xlink:href'));
+    if (Length(HRef) < 2) or (HRef[1] <> '#') then Exit;
+    ID := Copy(HRef, 2, Length(HRef) - 1);
+    Base := SVGFindDefNode(ADefsMap, ID);
+    if (Base = nil) or (Base = El) then Exit;
+
+    ResolveOne(Base, Depth + 1);
+
+    for J := 0 to Base.AttributeCount - 1 do
+    begin
+      Name := Base.AttributeNames[J];
+      if (LowerCase(Name) <> 'id') and (LowerCase(Name) <> 'href') and
+         (LowerCase(Name) <> 'xlink:href') and (not El.HasAttribute(Name)) then
+        El.SetAttribute(Name, Base.AttributeValues[J]);
+    end;
+
+    if (not HasStopChild(El)) and HasStopChild(Base) then
+      for J := 0 to Base.ChildCount - 1 do
+        if (Base.Children[J].NodeType = xntElement) and
+           (LowerCase(TCnXMLElement(Base.Children[J]).TagName) = 'stop') then
+        begin
+          Clone := Base.Children[J].CloneNode(True);
+          El.AppendChild(Clone);
+        end;
+  end;
+
+var
+  I: Integer;
+  Tag: string;
+begin
+  if ADefsMap = nil then Exit;
+  for I := 0 to ADefsMap.Count - 1 do
+  begin
+    Tag := LowerCase(TCnXMLElement(ADefsMap.Objects[I]).TagName);
+    if (Tag = 'lineargradient') or (Tag = 'radialgradient') or
+       (Tag = 'pattern') then
+      ResolveOne(TCnXMLElement(ADefsMap.Objects[I]), 0);
+  end;
+end;
+
 procedure TCnSVGDocument.BuildDefsMap;
 
   procedure ScanNode(ANode: TCnXMLNode);
@@ -9960,6 +10497,7 @@ begin
   FDefsMap.Clear;
   if (FXMLDoc <> nil) and (FXMLDoc.DocumentElement <> nil) then
     ScanNode(FXMLDoc.DocumentElement);
+  SVGResolveDefInheritance(FDefsMap);
 end;
 
 procedure TCnSVGDocument.DoLoad;
