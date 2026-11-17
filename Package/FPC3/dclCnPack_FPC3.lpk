@@ -9,7 +9,7 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\..\Source\Common"/>
-        <OtherUnitFiles Value="..\..\Source\Common;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\NonVisual"/>
+        <OtherUnitFiles Value="..\..\Source\Common;..\..\Source\Crypto;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\NonVisual"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
