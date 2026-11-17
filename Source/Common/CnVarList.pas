@@ -528,7 +528,13 @@ begin
     Exit;
 
   if Pos('Object', FValType[Index]) = 1 then
+  begin
+{$IFDEF FPC}
+    Result := TObject(TCnNativeInt(PtrInt(V)));
+{$ELSE}
     Result := TObject(TCnNativeInt(V));
+{$ENDIF}
+  end;
 end;
 
 function TCnVarList.GetString(cList: TCnVarList): WideString;
