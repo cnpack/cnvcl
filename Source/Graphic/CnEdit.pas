@@ -84,6 +84,9 @@ type
   private
     FButtonWidth: Integer;
     FPaddingWidth: Integer;
+{$IFDEF FPC}
+    FBaseLeftMargin: Integer; // 原生编辑框未计 Padding 时的左边距，避免反复叠加
+{$ENDIF}
     FCanvas: TControlCanvas;
     FLinkStyle: TLinkStyle;
     FAlignment: TAlignment;
@@ -106,11 +109,17 @@ type
     function GetValue: Variant;
     procedure SetButtonCursor(const Value: TCursor);
     procedure SetPaddingWidth(const Value: Integer);
+{$IFDEF FPC}
+    procedure ApplyPaddingMargin;
+{$ENDIF}
   protected
     procedure SetParent(AParent: TWinControl); override;
     procedure EditButtonClick; virtual; // 单击事件
     procedure BoundsChanged;
     procedure CreateParams(var Params: TCreateParams); override; // 这个非常有用
+{$IFDEF FPC}
+    procedure CreateWnd; override;
+{$ENDIF}
     procedure DoEnter; override; // 获取焦点时选择全部文字
     procedure DoExit; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override; // 快捷键
@@ -201,6 +210,11 @@ begin
 {$ELSE}
   SendMessage(Handle, EM_SETRECT, 0, LongInt(@R));
 {$ENDIF}
+{$IFDEF FPC}
+  // EM_SETRECT 会重置 EM_SETMARGINS 设置的原生左边距（DoEnter 等时机都会
+  // 走到这里），必须重新套用，否则文字缩进丢失、被 Padding 自绘图标覆盖
+  ApplyPaddingMargin;
+{$ENDIF}
   Repaint;
 end;
 
@@ -263,7 +277,14 @@ begin
     else
       I := 2;
       
+{$IFDEF FPC}
+    // FPC 下 ApplyPaddingMargin 已把 Padding 与边距补偿 I 一并计入原生
+    // 左边距，这里直接扣回 Padding 即得原始文字边距（不能再加 I，否则
+    // WMPaint 的 L/PR 计算会漂移，FillRect 会盖住首字符前几像素）
+    Result.X := (SendMessage(Handle, EM_GETMARGINS, 0, 0) and $0000FFFF) - FPaddingWidth;
+{$ELSE}
     Result.X := SendMessage(Handle, EM_GETMARGINS, 0, 0) and $0000FFFF + I;
+{$ENDIF}
     Result.Y := I;
   end
   else
@@ -496,6 +517,13 @@ begin
       if PasswordChar <> #0 then
         FillChar(S[1], Length(S), PasswordChar);
 
+{$IFDEF FPC}
+      // 防御：原生编辑框在 WM_SIZE/WM_SETTEXT 等消息可能重置边距，
+      // 每次绘制前重新套用，保证 Padding 缩进稳定不被图标覆盖
+      if FPaddingWidth > 0 then
+        ApplyPaddingMargin;
+{$ENDIF}
+
       // 画文字
       Margins := GetTextMargins;
       if Focused then
@@ -639,9 +667,49 @@ begin
   if Value <> FPaddingWidth then
   begin
     FPaddingWidth := Value;
+{$IFDEF FPC}
+    // FPC 下原生编辑框自绘文字，Padding 变化需同步调整原生左边距
+    ApplyPaddingMargin;
+{$ENDIF}
     Invalidate;
   end;
 end;
+
+{$IFDEF FPC}
+
+const
+  csEmSetMargins = $00D3; // EM_SETMARGINS，避免依赖不同版本 Windows 单元的常量定义
+  csEcLeftMargin = $0001; // EC_LEFTMARGIN，同上
+
+procedure TCnEdit.ApplyPaddingMargin;
+var
+  Cur, I: Integer;
+begin
+  // FPC 下原生编辑框自行绘制文字，把 Padding 计入原生左边距使文字缩进到
+  // Padding 之后绘制，与 WMPaint 的 Padding 自绘区精确对齐；
+  // EM_SETMARGINS 不随尺寸变化重置，故无需在 WMSize 中反复套用
+  if not HandleAllocated then
+    Exit;
+
+  if BorderStyle = bsNone then
+    I := 0
+  else
+    I := 2; // 与 GetTextMargins 的边距补偿取值一致
+
+  Cur := SendMessage(Handle, EM_GETMARGINS, 0, 0);
+  SendMessage(Handle, csEmSetMargins, csEcLeftMargin,
+    MakeLParam(FBaseLeftMargin + I + FPaddingWidth, (Cur shr 16) and $FFFF));
+end;
+
+procedure TCnEdit.CreateWnd;
+begin
+  inherited CreateWnd;
+  // 记录未计 Padding 的原生左边距并套用 Padding；句柄重建时在此重抓
+  FBaseLeftMargin := SendMessage(Handle, EM_GETMARGINS, 0, 0) and $0000FFFF;
+  ApplyPaddingMargin;
+end;
+
+{$ENDIF}
 
 procedure TCnEdit.SetParent(AParent: TWinControl);
 begin
