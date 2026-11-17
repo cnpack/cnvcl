@@ -39,6 +39,8 @@ type
     function GetMLDSAType: TCnMLDSAType;
     function GetHashType: TCnMLDSAHashType;
     function GetHashTypeName(HashType: TCnMLDSAHashType): string;
+    function GetSignKeyFromMemo: TBytes;
+    function GetVerifyKeyFromMemo: TBytes;
   public
     { Public declarations }
   end;
@@ -77,6 +79,42 @@ begin
 
   ClearKeyData;
   UpdateStatus('请先选择MLDSA类型和哈希类型，然后点击"生成公私钥"按钮');
+end;
+
+// 从私钥框获取签名用私钥：私钥框为空时使用本实例生成的私钥；
+// 若粘贴了十六进制私钥，则使用粘贴内容
+function TMLDSAMainForm.GetSignKeyFromMemo: TBytes;
+var
+  S: string;
+begin
+  S := MemoPrivateKey.Text;
+  S := StringReplace(S, ' ', '', [rfReplaceAll]);
+  S := StringReplace(S, #9, '', [rfReplaceAll]);
+  S := StringReplace(S, #13, '', [rfReplaceAll]);
+  S := StringReplace(S, #10, '', [rfReplaceAll]);
+
+  if S = '' then
+    Result := FPrivateKey
+  else
+    Result := HexToBytes(S);
+end;
+
+// 从公钥框获取验证用公钥：公钥框为空时使用本实例生成的公钥；
+// 若粘贴了十六进制公钥（如对方的公钥），则使用粘贴内容，以支持跨实例的签名验证
+function TMLDSAMainForm.GetVerifyKeyFromMemo: TBytes;
+var
+  S: string;
+begin
+  S := MemoPublicKey.Text;
+  S := StringReplace(S, ' ', '', [rfReplaceAll]);
+  S := StringReplace(S, #9, '', [rfReplaceAll]);
+  S := StringReplace(S, #13, '', [rfReplaceAll]);
+  S := StringReplace(S, #10, '', [rfReplaceAll]);
+
+  if S = '' then
+    Result := FPublicKey
+  else
+    Result := HexToBytes(S);
 end;
 
 procedure TMLDSAMainForm.ClearKeyData;
@@ -217,7 +255,7 @@ var
   MessageBytes, SignatureBytes: TBytes;
 begin
   try
-    if Length(FPrivateKey) = 0 then
+    if (Trim(MemoPrivateKey.Text) = '') and (Length(FPrivateKey) = 0) then
     begin
       ShowMessage('请先生成公私钥');
       Exit;
@@ -235,7 +273,7 @@ begin
       PrivateKey := TCnMLDSAPrivateKey.Create;
       try
         // 加载私钥
-        MLDSA.LoadPrivateKeyFromBytes(PrivateKey, FPrivateKey);
+        MLDSA.LoadPrivateKeyFromBytes(PrivateKey, GetSignKeyFromMemo);
         
         // 获取消息字节
         MessageBytes := AnsiToBytes(Trim(edtMessage.Text));
@@ -272,9 +310,9 @@ var
   IsValid: Boolean;
 begin
   try
-    if Length(FPublicKey) = 0 then
+    if (Trim(MemoPublicKey.Text) = '') and (Length(FPublicKey) = 0) then
     begin
-      ShowMessage('请先生成公私钥');
+      ShowMessage('请先生成公私钥或粘贴对方的公钥');
       Exit;
     end;
     
@@ -296,7 +334,7 @@ begin
       PublicKey := TCnMLDSAPublicKey.Create;
       try
         // 加载公钥
-        MLDSA.LoadPublicKeyFromBytes(PublicKey, FPublicKey);
+        MLDSA.LoadPublicKeyFromBytes(PublicKey, GetVerifyKeyFromMemo);
         
         // 获取消息字节
         MessageBytes := AnsiToBytes(Trim(edtMessage.Text));
@@ -314,7 +352,7 @@ begin
         end
         else
         begin
-          ShowMessage('签名验证失败！');
+          ShowMessage('签名验证失败！请确认验证方持有签名者的公钥，且类型和哈希设置与签名时一致。');
           UpdateStatus('签名验证失败');
         end;
         
