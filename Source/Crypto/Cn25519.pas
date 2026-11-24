@@ -2133,6 +2133,19 @@ procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
    返回值：（无）
 }
 
+function CnEdDSAIsStrictVerificationPoint(Curve: TCnTwistedEdwardsCurve;
+  Point: TCnEccPoint): Boolean;
+{* 严格验证外部传入的 EdDSA 点。仅检查“在曲线上”或仅乘余因子都是不够的：
+   单位元和小阶点会被余因子消掉，含扭率分量的混合阶点也不属于基点生成的主子群。
+   因而同时要求坐标规范、点非单位元，并满足 [L]P = 0，其中 L 是基点的素数阶。
+
+   参数：
+     Curve: TCnTwistedEdwardsCurve        - 待验证的曲线实例
+     Point: TCnEccPoint                   - 待验证的点
+
+   返回值：Boolean                        - 验证是否通过
+}
+
 // ================ Curve448 椭圆曲线 Diffie-Hellman 密钥交换  =================
 
 function CnCurve448KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
