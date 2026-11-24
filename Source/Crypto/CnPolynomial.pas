@@ -13514,7 +13514,8 @@ begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
     Res.SetOne;
-    Res.Numerator[0] := F[0];
+    BigNumberCopy(Res.Numerator[0], F[0]);
+    Res.Numerator.CorrectTop;
     Result := True;
     Exit;
   end;
@@ -14930,7 +14931,7 @@ begin
 
     for J := A.YFactorsList[I].Count - 1 downto 0 do
       if (A.YFactorsList[I][J] <> B.YFactorsList[I][J]) and
-        (Int64NonNegativeMod(A.YFactorsList[I][J], Prime) <> Int64NonNegativeMod(A.YFactorsList[I][J], Prime)) then
+        (Int64NonNegativeMod(A.YFactorsList[I][J], Prime) <> Int64NonNegativeMod(B.YFactorsList[I][J], Prime)) then
         Exit;
   end;
   Result := True;

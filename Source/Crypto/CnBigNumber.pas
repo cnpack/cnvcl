@@ -3849,8 +3849,11 @@ var
   Len: Integer;
 begin
   Result := 0;
+  if Stream = nil then
+    Exit;
+
   Len := BigNumberGetBytesCount(Num);
-  if (Stream <> nil) and (Len > 0) then
+  if Len > 0 then
   begin
     if FixedLen > Len then
     begin
@@ -3865,6 +3868,15 @@ begin
       Result := Stream.Write(Buf[0], Len);
     end;
     SetLength(Buf, 0);
+  end
+  else
+  begin
+    if FixedLen > 0 then
+    begin
+      SetLength(Buf, FixedLen);
+      FillChar(Buf[0], FixedLen, 0);
+      Result := Stream.Write(Buf[0], FixedLen);
+    end;
   end;
 end;
 
@@ -3906,6 +3918,12 @@ begin
       SetLength(Result, FixedLen);
       BigNumberToBinary(Num, @Result[FixedLen - L]);
     end;
+  end
+  else
+  begin
+    SetLength(Result, FixedLen);
+    if FixedLen > 0 then
+      FillChar(Result[0], FixedLen, 0);
   end;
 end;
 

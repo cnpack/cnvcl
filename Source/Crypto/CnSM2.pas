@@ -2287,7 +2287,7 @@ begin
 
     Stream.LoadFromFile(FileName);
     if CnSM2SignData(UserID, Stream.Memory, Stream.Size, OutSign, PrivateKey, PublicKey, SM2) then
-      Result := OutSign.ToHex(SM2.BytesCount);
+      Result := OutSign.ToHex(CN_SM2_FINITEFIELD_BYTESIZE);
   finally
     Stream.Free;
     OutSign.Free;

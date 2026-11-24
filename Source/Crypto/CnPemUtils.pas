@@ -452,12 +452,14 @@ end;
 function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
   DataByteLen: Integer; OutStream: TStream): Boolean;
 var
-  I: Integer;
-  B, F: Byte;
+  I, F: Integer;
+  B: Byte;
   RandBuf: TBytes;
 begin
   Result := False;
-  if (Data = nil) or (DataByteLen <= 0) then
+  if (OutStream = nil) or (Data = nil) or (DataByteLen <= 0) then
+    Exit;
+  if (DataByteLen > 0) and (Data = nil) then
     Exit;
 
   // ²»×ãÒÔÌî³ä
@@ -504,7 +506,8 @@ begin
 
   B := 0;
   OutStream.Write(B, 1);
-  OutStream.Write(Data^, DataByteLen);
+  if DataByteLen > 0 then
+    OutStream.Write(Data^, DataByteLen);
   Result := True;
 end;
 

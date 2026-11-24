@@ -2220,6 +2220,12 @@ var
 {$ENDIF}
 begin
   Result := False;
+  if (PemStream = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
   Mem := nil;
   Reader := nil;
 
@@ -2255,11 +2261,8 @@ begin
         end;
 
         // 6 和 7 整成公钥
-        if PublicKey <> nil then
-        begin
-          PutIndexedBigIntegerToBigNumber(Reader.Items[6], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigNumber(Reader.Items[7], PublicKey.PubKeyExponent);
-        end;
+        PutIndexedBigIntegerToBigNumber(Reader.Items[6], PublicKey.PubKeyProduct);
+        PutIndexedBigIntegerToBigNumber(Reader.Items[7], PublicKey.PubKeyExponent);
 
         if PublicKey.PubKeyExponent.IsEven or
           (BigNumberCompareInteger(PublicKey.PubKeyExponent, 3) < 0) then
@@ -2303,11 +2306,8 @@ begin
         end;
 
         // 1 和 2 整成公钥
-        if PublicKey <> nil then
-        begin
-          PutIndexedBigIntegerToBigNumber(Reader.Items[1], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigNumber(Reader.Items[2], PublicKey.PubKeyExponent);
-        end;
+        PutIndexedBigIntegerToBigNumber(Reader.Items[1], PublicKey.PubKeyProduct);
+        PutIndexedBigIntegerToBigNumber(Reader.Items[2], PublicKey.PubKeyExponent);
 
         if PublicKey.PubKeyExponent.IsEven or
           (BigNumberCompareInteger(PublicKey.PubKeyExponent, 3) < 0) then
