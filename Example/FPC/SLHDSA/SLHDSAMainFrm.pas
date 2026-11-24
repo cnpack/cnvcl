@@ -39,12 +39,18 @@ type
   private
     FPublicKey: TCnSlhPublicKey;
     FSecretKey: TCnSlhSecretKey;
+    FPublicKeyHex: string;
+    FSecretKeyHex: string;
     FHasKeys: Boolean;
     procedure ClearKeyData;
     procedure UpdateStatus(const Msg: string);
     function GetParamSet: TCnSlhParamSet;
     function GetPrehashID: TCnSlhPrehashID;
     function GetPrehashName(PrehashID: TCnSlhPrehashID): string;
+    function GetSignKeyFromMemo(Ctx: TCnSLHDSA;
+      out AOwned: Boolean): TCnSlhSecretKey;
+    function GetVerifyKeyFromMemo(Ctx: TCnSLHDSA;
+      out AOwned: Boolean): TCnSlhPublicKey;
   public
 
   end;
@@ -91,11 +97,75 @@ begin
   UpdateStatus('请选择SLH-DSA参数集，然后点击"生成公私钥"按钮');
 end;
 
+// 从私钥框获取签名用私钥：私钥框为空或仍为本实例生成的私钥时使用本实例的私钥；
+// 若粘贴了其他实例的十六进制私钥，则使用粘贴内容，以支持跨实例签名
+function TSLHDSAMainForm.GetSignKeyFromMemo(Ctx: TCnSLHDSA;
+  out AOwned: Boolean): TCnSlhSecretKey;
+var
+  S: string;
+begin
+  S := MemoPrivateKey.Text;
+  S := StringReplace(S, ' ', '', [rfReplaceAll]);
+  S := StringReplace(S, #9, '', [rfReplaceAll]);
+  S := StringReplace(S, #13, '', [rfReplaceAll]);
+  S := StringReplace(S, #10, '', [rfReplaceAll]);
+
+  if (S = '') or ((FHasKeys) and (S = FSecretKeyHex)) then
+  begin
+    Result := FSecretKey;
+    AOwned := False;
+  end
+  else
+  begin
+    Result := TCnSlhSecretKey.Create;
+    try
+      Ctx.BytesToSecretKey(Result, HexToBytes(S));
+    except
+      Result.Free;
+      raise;
+    end;
+    AOwned := True;
+  end;
+end;
+
+// 从公钥框获取验证用公钥：公钥框为空或仍为本实例生成的公钥时使用本实例的公钥；
+// 若粘贴了其他实例的十六进制公钥（如对方的公钥），则使用粘贴内容，以支持跨实例签名验证
+function TSLHDSAMainForm.GetVerifyKeyFromMemo(Ctx: TCnSLHDSA;
+  out AOwned: Boolean): TCnSlhPublicKey;
+var
+  S: string;
+begin
+  S := MemoPublicKey.Text;
+  S := StringReplace(S, ' ', '', [rfReplaceAll]);
+  S := StringReplace(S, #9, '', [rfReplaceAll]);
+  S := StringReplace(S, #13, '', [rfReplaceAll]);
+  S := StringReplace(S, #10, '', [rfReplaceAll]);
+
+  if (S = '') or ((FHasKeys) and (S = FPublicKeyHex)) then
+  begin
+    Result := FPublicKey;
+    AOwned := False;
+  end
+  else
+  begin
+    Result := TCnSlhPublicKey.Create;
+    try
+      Ctx.BytesToPublicKey(Result, HexToBytes(S));
+    except
+      Result.Free;
+      raise;
+    end;
+    AOwned := True;
+  end;
+end;
+
 procedure TSLHDSAMainForm.ClearKeyData;
 begin
   FHasKeys := False;
   FreeAndNil(FPublicKey);
   FreeAndNil(FSecretKey);
+  FPublicKeyHex := '';
+  FSecretKeyHex := '';
   MemoPublicKey.Clear;
   MemoPrivateKey.Clear;
   edtSignature.Clear;
@@ -177,8 +247,10 @@ begin
       Ctx.GenerateKeys(FPublicKey, FSecretKey);
       FHasKeys := True;
 
-      MemoPublicKey.Text := BytesToHex(Ctx.PublicKeyToBytes(FPublicKey));
-      MemoPrivateKey.Text := BytesToHex(Ctx.SecretKeyToBytes(FSecretKey));
+      FPublicKeyHex := BytesToHex(Ctx.PublicKeyToBytes(FPublicKey));
+      FSecretKeyHex := BytesToHex(Ctx.SecretKeyToBytes(FSecretKey));
+      MemoPublicKey.Text := FPublicKeyHex;
+      MemoPrivateKey.Text := FSecretKeyHex;
       lblKeyInfo.Caption := Format('PK: %d bytes, SK: %d bytes, Sig: %d bytes',
         [Ctx.PublicKeySize, Ctx.SecretKeySize, Ctx.SignatureSize]);
 
@@ -200,13 +272,15 @@ procedure TSLHDSAMainForm.btnSignClick(Sender: TObject);
 var
   Ctx: TCnSLHDSA;
   MsgBytes, SigBytes: TBytes;
+  SignKey: TCnSlhSecretKey;
+  OwnKey: Boolean;
   Randomize: Boolean;
   PrehashID: TCnSlhPrehashID;
 begin
   try
-    if not FHasKeys then
+    if (Trim(MemoPrivateKey.Text) = '') and (not FHasKeys) then
     begin
-      ShowMessage('请先生成公私钥');
+      ShowMessage('请先生成公私钥，或在私钥框中粘贴签名者的私钥');
       Exit;
     end;
 
@@ -218,21 +292,27 @@ begin
 
     Ctx := TCnSLHDSA.Create(GetParamSet);
     try
-      MsgBytes := AnsiToBytes(Trim(edtMessage.Text));
-      Randomize := chkRandomize.Checked;
+      SignKey := GetSignKeyFromMemo(Ctx, OwnKey);
+      try
+        MsgBytes := AnsiToBytes(Trim(edtMessage.Text));
+        Randomize := chkRandomize.Checked;
 
-      if chkPrehash.Checked then
-      begin
-        PrehashID := GetPrehashID;
-        SigBytes := Ctx.SignPreHash(MsgBytes, FSecretKey, PrehashID, Randomize);
-        edtSignature.Text := BytesToHex(SigBytes);
-        UpdateStatus(Format('预杂凑签名成功，哈希类型：%s', [GetPrehashName(PrehashID)]));
-      end
-      else
-      begin
-        SigBytes := Ctx.SignBytes(FSecretKey, MsgBytes, Randomize);
-        edtSignature.Text := BytesToHex(SigBytes);
-        UpdateStatus('签名成功（标准模式）');
+        if chkPrehash.Checked then
+        begin
+          PrehashID := GetPrehashID;
+          SigBytes := Ctx.SignPreHash(MsgBytes, SignKey, PrehashID, Randomize);
+          edtSignature.Text := BytesToHex(SigBytes);
+          UpdateStatus(Format('预杂凑签名成功，哈希类型：%s', [GetPrehashName(PrehashID)]));
+        end
+        else
+        begin
+          SigBytes := Ctx.SignBytes(SignKey, MsgBytes, Randomize);
+          edtSignature.Text := BytesToHex(SigBytes);
+          UpdateStatus('签名成功（标准模式）');
+        end;
+      finally
+        if OwnKey then
+          SignKey.Free;
       end;
     finally
       Ctx.Free;
@@ -250,13 +330,15 @@ procedure TSLHDSAMainForm.btnVerifyClick(Sender: TObject);
 var
   Ctx: TCnSLHDSA;
   MsgBytes, SigBytes: TBytes;
+  VerifyKey: TCnSlhPublicKey;
+  OwnKey: Boolean;
   IsValid: Boolean;
   PrehashID: TCnSlhPrehashID;
 begin
   try
-    if not FHasKeys then
+    if (Trim(MemoPublicKey.Text) = '') and (not FHasKeys) then
     begin
-      ShowMessage('请先生成公私钥');
+      ShowMessage('请先生成公私钥，或在公钥框中粘贴对方的公钥');
       Exit;
     end;
 
@@ -274,28 +356,34 @@ begin
 
     Ctx := TCnSLHDSA.Create(GetParamSet);
     try
-      MsgBytes := AnsiToBytes(Trim(edtMessage.Text));
-      SigBytes := HexToBytes(Trim(edtSignature.Text));
+      VerifyKey := GetVerifyKeyFromMemo(Ctx, OwnKey);
+      try
+        MsgBytes := AnsiToBytes(Trim(edtMessage.Text));
+        SigBytes := HexToBytes(Trim(edtSignature.Text));
 
-      if chkPrehash.Checked then
-      begin
-        PrehashID := GetPrehashID;
-        IsValid := Ctx.VerifyPreHash(MsgBytes, SigBytes, FPublicKey, PrehashID);
-      end
-      else
-      begin
-        IsValid := Ctx.VerifyBytes(FPublicKey, MsgBytes, SigBytes);
-      end;
+        if chkPrehash.Checked then
+        begin
+          PrehashID := GetPrehashID;
+          IsValid := Ctx.VerifyPreHash(MsgBytes, SigBytes, VerifyKey, PrehashID);
+        end
+        else
+        begin
+          IsValid := Ctx.VerifyBytes(VerifyKey, MsgBytes, SigBytes);
+        end;
 
-      if IsValid then
-      begin
-        ShowMessage('签名验证成功！');
-        UpdateStatus('签名验证成功');
-      end
-      else
-      begin
-        ShowMessage('签名验证失败！');
-        UpdateStatus('签名验证失败');
+        if IsValid then
+        begin
+          ShowMessage('签名验证成功！');
+          UpdateStatus('签名验证成功');
+        end
+        else
+        begin
+          ShowMessage('签名验证失败！请确认验证方持有签名者的公钥，且参数集和预杂凑设置与签名时一致。');
+          UpdateStatus('签名验证失败');
+        end;
+      finally
+        if OwnKey then
+          VerifyKey.Free;
       end;
     finally
       Ctx.Free;
