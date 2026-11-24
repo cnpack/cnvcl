@@ -432,6 +432,7 @@ begin
     Context.A.ToBinary(@Digest[0], CN_POLY1305_DIGSIZE);
     ReverseMemory(@Digest[0], SizeOf(TCnPoly1305Digest));
 
+    Context.Clear;
     FreeAndNil(Context);
   end;
 end;

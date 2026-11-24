@@ -4912,6 +4912,14 @@ end;
 
 destructor TCnCertificate.Destroy;
 begin
+{$IFDEF COMPILER5}
+  if FSignValue <> nil then CnFreeMemory(FSignValue);
+  if FDigestValue <> nil then CnFreeMemory(FDigestValue);
+{$ELSE}
+  if FSignValue <> nil then FreeMemory(FSignValue);
+  if FDigestValue <> nil then FreeMemory(FDigestValue);
+{$ENDIF}
+
   FBasicCertificate.Free;
   inherited;
 end;

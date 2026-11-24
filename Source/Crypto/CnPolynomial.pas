@@ -15793,9 +15793,8 @@ begin
     Exit
   else if N < 0 then
     BigNumberBiPolynomialShiftRightX(P, -N)
-  else
-    for I := 0 to N - 1 do
-      P.FXs.InsertBatch(0, N);
+  else if not P.IsZero then
+    P.FXs.InsertBatch(0, N);
 end;
 
 procedure BigNumberBiPolynomialShiftRightX(P: TCnBigNumberBiPolynomial; N: Integer);

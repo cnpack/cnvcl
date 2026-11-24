@@ -3109,6 +3109,8 @@ begin
   OrigOutEnData := OutEnData;
   OrigPlainByteLength := PlainByteLength;
   Completed := False;
+
+  Poly1305Context := nil;
   FillChar(ChaChaKey[0], SizeOf(ChaChaKey), 0);
   FillChar(Nonce[0], SizeOf(Nonce), 0);
   FillChar(OutKey[0], SizeOf(OutKey), 0);
@@ -3178,7 +3180,13 @@ begin
     MemorySafeZero(@Lens[0], SizeOf(Lens));
     MemorySafeZero(@Zeros[0], SizeOf(Zeros));
 
-    FreeAndNil(Poly1305Context); // Poly1305Final 里已 FreeAndNil，但如之前异常，此处确保 Context 也能释放
+    // Poly1305Final 里已 FreeAndNil，但如之前异常，此处确保 Context 也能释放
+    if Poly1305Context <> nil then
+    begin
+      Poly1305Context.Clear;
+      Poly1305Context.Free;
+    end;
+
     if not Completed then
     begin
       FillChar(OutTag[0], SizeOf(OutTag), 0);
@@ -3222,11 +3230,12 @@ begin
       [IvByteLength, CN_CHACHA_NONCE_SIZE]);
 
   TempBuf := nil;
+  Poly1305Context := nil;
+
   FillChar(ChaChaKey[0], SizeOf(ChaChaKey), 0);
   FillChar(Nonce[0], SizeOf(Nonce), 0);
   FillChar(OutKey[0], SizeOf(OutKey), 0);
   FillChar(Poly1305Key[0], SizeOf(Poly1305Key), 0);
-  FillChar(Poly1305Context, SizeOf(Poly1305Context), 0);
   FillChar(Tag[0], SizeOf(Tag), 0);
   FillChar(Lens[0], SizeOf(Lens), 0);
   FillChar(Zeros[0], SizeOf(Zeros), 0);
@@ -3311,10 +3320,16 @@ begin
     MemorySafeZero(@Nonce[0], SizeOf(Nonce));
     MemorySafeZero(@OutKey[0], SizeOf(OutKey));
     MemorySafeZero(@Poly1305Key[0], SizeOf(Poly1305Key));
-    MemorySafeZero(@Poly1305Context, SizeOf(Poly1305Context));
     MemorySafeZero(@Tag[0], SizeOf(Tag));
     MemorySafeZero(@Lens[0], SizeOf(Lens));
     MemorySafeZero(@Zeros[0], SizeOf(Zeros));
+
+    // Poly1305Final 里已 FreeAndNil，但如之前异常，此处确保 Context 也能释放
+    if Poly1305Context <> nil then
+    begin
+      Poly1305Context.Clear;
+      Poly1305Context.Free;
+    end;
   end;
 end;
 
