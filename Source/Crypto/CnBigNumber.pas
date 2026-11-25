@@ -6887,10 +6887,6 @@ begin
     C0 := nil;
     C1 := nil;
 
-    // 别的对方没使用，延迟到此处初始化
-    if FLocalBigBinaryPool = nil then
-      FLocalBigBinaryPool := TCnBigBinaryPool.Create;
-
     try
       X0 := FLocalBigBinaryPool.Obtain;
       X1 := FLocalBigBinaryPool.Obtain;
@@ -11884,11 +11880,17 @@ end;
 function TCnBigNumber.GetHashCode: TCnHashCode;
 var
   I: Integer;
+  W: TCnBigNumberElement;
 begin
-  // 把 32 位的内容全不管溢出地加起来，哪怕元素是 64 位也只加其低 32 位
   Result := 0;
   for I := 0 to FTop - 1 do
-    Result := Result + Integer(PCnBigNumberElementArray(FD)^[I]);
+  begin
+{$IFDEF BN_DATA_USE_64}
+    Result := Result * 31 + Integer(Cardinal(W) xor Cardinal(W shr 32));
+{$ELSE}
+    Result := Result * 31 + Integer(W);
+{$ENDIF}
+  end;
 end;
 
 class function TCnBigNumber.FromFloat(F: Extended): TCnBigNumber;
@@ -12495,6 +12497,7 @@ end;
 
 initialization
   FLocalBigNumberPool := TCnBigNumberPool.Create;
+  FLocalBigBinaryPool := TCnBigBinaryPool.Create;
 
   CnBigNumberOne := TCnBigNumber.Create;
   CnBigNumberOne.SetOne;

@@ -224,21 +224,32 @@ var
   FBCryptGenRandom: TBCryptGenRandomFunc = nil;
   FBCryptInitAttempted: Boolean = False;
   FBCryptCS: TRTLCriticalSection;
-  // Critical section to protect BCrypt initialization from race conditions
 
 function TryBCryptRandom(Buf: Pointer; BufByteLen: Integer): Boolean;
+const
+  LOAD_LIBRARY_SEARCH_SYSTEM32 = $00000800;
 var
   Gen: TBCryptGenRandomFunc;
+  SysDir: array[0..MAX_PATH] of Char;
+  Len: UINT;
+  FullPath: string;
 begin
   Result := False;
   EnterCriticalSection(FBCryptCS);
+
   try
     if not FBCryptInitAttempted then
     begin
-      FBCryptHandle := LoadLibrary(bcryptdll);
-      if FBCryptHandle <> 0 then
-        @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
-      FBCryptInitAttempted := True;
+      Len := GetSystemDirectory(SysDir, MAX_PATH);
+      if (Len > 0) and (Len < MAX_PATH) then
+      begin
+        FullPath := IncludeTrailingBackslash(string(SysDir)) + bcryptdll;
+
+        FBCryptHandle := LoadLibrary(PChar(FullPath));
+        if FBCryptHandle <> 0 then
+          @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
+        FBCryptInitAttempted := True;
+      end;
     end;
     Gen := FBCryptGenRandom;
     if Assigned(Gen) then

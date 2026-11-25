@@ -1625,7 +1625,7 @@ var
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 begin
-  Result := (Complex.R = 0) and (Complex.I = 0);
+  Result := FloatEqual(Complex.R, 0) and FloatEqual(Complex.I, 0);
 end;
 
 procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
