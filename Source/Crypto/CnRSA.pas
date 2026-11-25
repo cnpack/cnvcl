@@ -3210,6 +3210,11 @@ begin
         _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
+    end
+    else
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
     end;
 
     Res := TCnBigNumber.Create;

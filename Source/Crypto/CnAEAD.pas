@@ -2057,7 +2057,10 @@ begin
     SetLength(Result, Length(EnData));
     if not GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
       Length(AAD), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
+    begin
+      MemorySafeZero(@Result[0], Length(Result));
       SetLength(Result, 0);
+    end;
   end
   else
   begin
@@ -2947,7 +2950,10 @@ begin
     SetLength(Result, Length(EnData));
     if not CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
       Length(AAD), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
+    begin
+      MemorySafeZero(@Result[0], Length(Result));
       SetLength(Result, 0);
+    end;
   end
   else
   begin
@@ -3403,7 +3409,10 @@ begin
     SetLength(Result, Length(EnData));
     if not ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
       Length(AAD), @Result[0], InTag) then // Tag 比对失败则返回
+    begin
+      MemorySafeZero(@Result[0], Length(Result));
       SetLength(Result, 0);
+    end;
   end
   else
   begin
@@ -3575,7 +3584,10 @@ begin
     SetLength(Result, Length(EnData));
     if not XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
       Length(AAD), @Result[0], InTag) then // Tag 比对失败则返回
+    begin
+      MemorySafeZero(@Result[0], Length(Result));
       SetLength(Result, 0);
+    end;
   end
   else
   begin
