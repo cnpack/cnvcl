@@ -404,6 +404,8 @@ function AES128GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBy
   var InTag: TCnGCM128Tag): TBytes;
 {* 使用密钥、初始化向量、附加数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -419,6 +421,8 @@ function AES192GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBy
   var InTag: TCnGCM128Tag): TBytes;
 {* 使用密钥、初始化向量、附加数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -434,6 +438,8 @@ function AES256GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBy
   var InTag: TCnGCM128Tag): TBytes;
 {* 使用密钥、初始化向量、附加数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -449,6 +455,8 @@ function SM4GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes
   var InTag: TCnGCM128Tag): TBytes;
 {* 使用密钥、初始化向量、附加数据对密文进行 SM4-GCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -458,6 +466,84 @@ function SM4GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes
      var InTag: TCnGCM128Tag              - 待验证的 Tag
 
    返回值：TBytes                         - 返回明文字节数组
+}
+
+// ==================== AES/SM4-GCM 字节数组解密函数（Try 版本） ================
+
+function TryAES128GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-128-GCM 解密并验证。
+   与 AES128GCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
+}
+
+function TryAES192GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-192-GCM 解密并验证。
+   与 AES192GCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
+}
+
+function TryAES256GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-256-GCM 解密并验证。
+   与 AES256GCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
+}
+
+function TrySM4GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、初始化向量、附加数据对密文进行 SM4-GCM 解密并验证。
+   与 SM4GCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
 }
 
 // ======================== AES/SM4-GCM 数据块解密函数 =========================
@@ -734,6 +820,8 @@ function AES128CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: 
   var InTag: TCnCCM128Tag): TBytes;
 {* 使用密钥、临时数据、附加数据对密文进行 AES-128-CCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -749,6 +837,8 @@ function AES192CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: 
   var InTag: TCnCCM128Tag): TBytes;
 {* 使用密钥、临时数据、附加数据对密文进行 AES-192-CCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -764,6 +854,8 @@ function AES256CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: 
   var InTag: TCnCCM128Tag): TBytes;
 {* 使用密钥、临时数据、附加数据对密文进行 AES-256-CCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -779,6 +871,8 @@ function SM4CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBy
   var InTag: TCnCCM128Tag): TBytes;
 {* 使用密钥、临时数据、附加数据对密文进行 SM4-CCM 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -788,6 +882,84 @@ function SM4CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBy
      var InTag: TCnCCM128Tag              - 待验证的 Tag
 
    返回值：TBytes                         - 返回明文字节数组
+}
+
+// ==================== AES/SM4-CCM 字节数组解密函数（Try 版本） ================
+
+function TryAES128CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、临时数据、附加数据对密文进行 AES-128-CCM 解密并验证。
+   与 AES128CCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
+}
+
+function TryAES192CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、临时数据、附加数据对密文进行 AES-192-CCM 解密并验证。
+   与 AES192CCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
+}
+
+function TryAES256CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、临时数据、附加数据对密文进行 AES-256-CCM 解密并验证。
+   与 AES256CCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
+}
+
+function TrySM4CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+{* 使用密钥、临时数据、附加数据对密文进行 SM4-CCM 解密并验证。
+   与 SM4CCMDecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
 }
 
 // ======================== AES/SM4-CCM 数据块加密函数 =========================
@@ -1096,6 +1268,8 @@ function ChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
   AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
 {* 使用密钥、初始化向量、附加数据对密文进行 ChaCha20_Poly1305 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -1105,6 +1279,27 @@ function ChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
      var InTag: TCnPoly1305Digest         - 待验证的 Tag
 
    返回值：TBytes                         - 返回明文字节数组
+}
+
+// ================== ChaCha20_Poly1305 字节数组解密函数（Try 版本） ==============
+
+function TryChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
+  AAD: TBytes; var InTag: TCnPoly1305Digest; out PlainData: TBytes): Boolean;
+{* 使用密钥、初始化向量、附加数据对密文进行 ChaCha20_Poly1305 解密并验证。
+   与 ChaCha20Poly1305DecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnPoly1305Digest         - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
 }
 
 // =================== XChaCha20_Poly1305 数据块加解密函数 =====================
@@ -1179,6 +1374,8 @@ function XChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
   AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
 {* 使用密钥、初始化向量、附加数据对密文进行 XChaCha20_Poly1305 解密并验证，成功则返回明文。
    以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+   注意：明文为空且认证成功时同样返回 nil，无法与认证失败区分；
+   需要区分时请使用对应的 Try 版本。
 
    参数：
      Key: TBytes                          - 解密密钥字节数组
@@ -1188,6 +1385,27 @@ function XChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
      var InTag: TCnPoly1305Digest         - 待验证的 Tag
 
    返回值：TBytes                         - 返回明文字节数组
+}
+
+// ================= XChaCha20_Poly1305 字节数组解密函数（Try 版本） =============
+
+function TryXChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
+  AAD: TBytes; var InTag: TCnPoly1305Digest; out PlainData: TBytes): Boolean;
+{* 使用密钥、初始化向量、附加数据对密文进行 XChaCha20_Poly1305 解密并验证。
+   与 XChaCha20Poly1305DecryptBytes 相比，本函数通过 Boolean 返回值明确表示认证是否成功，
+   并通过 PlainData 返回明文，因此可以区分认证失败与明文为空两种情况。
+   认证成功时返回 True，PlainData 可能为 nil（明文长度为 0）；
+   认证失败时返回 False，PlainData 为 nil。参数非法时仍会抛出异常。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnPoly1305Digest         - 待验证的 Tag
+     out PlainData: TBytes                - 返回明文字节数组，空明文时为 nil
+
+   返回值：Boolean                        - 返回认证是否成功
 }
 
 implementation
@@ -2027,11 +2245,13 @@ begin
   end;
 end;
 
-function GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag;
-  EncryptType: TAEADEncryptType): TBytes;
+function TryGCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag;
+  EncryptType: TAEADEncryptType; out PlainData: TBytes): Boolean;
 var
   K, I, P, A: Pointer;
 begin
+  PlainData := nil;
+
   if Key = nil then
     K := nil
   else
@@ -2054,20 +2274,26 @@ begin
 
   if Length(EnData) > 0 then
   begin
-    SetLength(Result, Length(EnData));
-    if not GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
-    begin
-      MemorySafeZero(@Result[0], Length(Result));
-      SetLength(Result, 0);
-    end;
+    SetLength(PlainData, Length(EnData));
+    Result := GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), @PlainData[0], InTag, EncryptType);
+    if not Result then
+      SetLength(PlainData, 0);
   end
   else
-  begin
-    SetLength(Result, 0);
-    GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+    Result := GCMDecrypt(K, Length(Key), I, Length(Iv), P, 0, A,
       Length(AAD), nil, InTag, EncryptType);
-  end;
+end;
+
+function GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag;
+  EncryptType: TAEADEncryptType): TBytes;
+var
+  P: TBytes;
+begin
+  if TryGCMDecryptBytes(Key, Iv, EnData, AAD, InTag, EncryptType, P) then
+    Result := P
+  else
+    Result := nil;
 end;
 
 function AES128GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag): TBytes;
@@ -2163,6 +2389,30 @@ end;
 function SM4GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
 begin
   Result := GCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetSM4);
+end;
+
+function TryAES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryGCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES128, PlainData);
+end;
+
+function TryAES192GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryGCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES192, PlainData);
+end;
+
+function TryAES256GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryGCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES256, PlainData);
+end;
+
+function TrySM4GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnGCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryGCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetSM4, PlainData);
 end;
 
 function AES128GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
@@ -2920,11 +3170,13 @@ begin
   end;
 end;
 
-function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
-  EncryptType: TAEADEncryptType): TBytes;
+function TryCCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
+  EncryptType: TAEADEncryptType; out PlainData: TBytes): Boolean;
 var
   K, N, P, A: Pointer;
 begin
+  PlainData := nil;
+
   if Key = nil then
     K := nil
   else
@@ -2947,20 +3199,26 @@ begin
 
   if Length(EnData) > 0 then
   begin
-    SetLength(Result, Length(EnData));
-    if not CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
-      Length(AAD), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
-    begin
-      MemorySafeZero(@Result[0], Length(Result));
-      SetLength(Result, 0);
-    end;
+    SetLength(PlainData, Length(EnData));
+    Result := CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
+      Length(AAD), @PlainData[0], InTag, EncryptType);
+    if not Result then
+      SetLength(PlainData, 0);
   end
   else
-  begin
-    SetLength(Result, 0);
-    CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
+    Result := CCMDecrypt(K, Length(Key), N, Length(Nonce), P, 0, A,
       Length(AAD), nil, InTag, EncryptType);
-  end;
+end;
+
+function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
+  EncryptType: TAEADEncryptType): TBytes;
+var
+  P: TBytes;
+begin
+  if TryCCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, EncryptType, P) then
+    Result := P
+  else
+    Result := nil;
 end;
 
 function AES128CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag): TBytes;
@@ -2981,6 +3239,30 @@ end;
 function SM4CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag): TBytes;
 begin
   Result := CCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetSM4);
+end;
+
+function TryAES128CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryCCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetAES128, PlainData);
+end;
+
+function TryAES192CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryCCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetAES192, PlainData);
+end;
+
+function TryAES256CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryCCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetAES256, PlainData);
+end;
+
+function TrySM4CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes;
+  var InTag: TCnCCM128Tag; out PlainData: TBytes): Boolean;
+begin
+  Result := TryCCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetSM4, PlainData);
 end;
 
 function AES128CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
@@ -3380,10 +3662,13 @@ begin
   end;
 end;
 
-function ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+function TryChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnPoly1305Digest; out PlainData: TBytes): Boolean;
 var
   K, I, P, A: Pointer;
 begin
+  PlainData := nil;
+
   if Key = nil then
     K := nil
   else
@@ -3406,20 +3691,26 @@ begin
 
   if Length(EnData) > 0 then
   begin
-    SetLength(Result, Length(EnData));
-    if not ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), @Result[0], InTag) then // Tag 比对失败则返回
-    begin
-      MemorySafeZero(@Result[0], Length(Result));
-      SetLength(Result, 0);
-    end;
+    SetLength(PlainData, Length(EnData));
+    Result := ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P,
+      Length(EnData), A, Length(AAD), @PlainData[0], InTag);
+    if not Result then
+      SetLength(PlainData, 0);
   end
   else
-  begin
-    SetLength(Result, 0);
-    ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+    Result := ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, 0, A,
       Length(AAD), nil, InTag);
-  end;
+end;
+
+function ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnPoly1305Digest): TBytes;
+var
+  P: TBytes;
+begin
+  if TryChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD, InTag, P) then
+    Result := P
+  else
+    Result := nil;
 end;
 
 // =================== XChaCha20_Poly1305 数据块加解密函数 =====================
@@ -3555,10 +3846,13 @@ begin
   end;
 end;
 
-function XChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+function TryXChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnPoly1305Digest; out PlainData: TBytes): Boolean;
 var
   K, I, P, A: Pointer;
 begin
+  PlainData := nil;
+
   if Key = nil then
     K := nil
   else
@@ -3581,20 +3875,26 @@ begin
 
   if Length(EnData) > 0 then
   begin
-    SetLength(Result, Length(EnData));
-    if not XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), @Result[0], InTag) then // Tag 比对失败则返回
-    begin
-      MemorySafeZero(@Result[0], Length(Result));
-      SetLength(Result, 0);
-    end;
+    SetLength(PlainData, Length(EnData));
+    Result := XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P,
+      Length(EnData), A, Length(AAD), @PlainData[0], InTag);
+    if not Result then
+      SetLength(PlainData, 0);
   end
   else
-  begin
-    SetLength(Result, 0);
-    XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+    Result := XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, 0, A,
       Length(AAD), nil, InTag);
-  end;
+end;
+
+function XChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes;
+  var InTag: TCnPoly1305Digest): TBytes;
+var
+  P: TBytes;
+begin
+  if TryXChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD, InTag, P) then
+    Result := P
+  else
+    Result := nil;
 end;
 
 end.
