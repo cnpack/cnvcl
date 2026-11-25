@@ -86,6 +86,7 @@ function TestEndian: Boolean;
 function TestStrToUInt64: Boolean;
 function TestUInt64Div: Boolean;
 function TestUInt64Mod: Boolean;
+function TestUInt128DivUInt64Mod: Boolean;
 function TestMemoryShiftMinInteger: Boolean;
 
 // =========================== Constant Time ===================================
@@ -2024,6 +2025,7 @@ begin
   MyAssert(TestStrToUInt64, 'TestStrToUInt64');
   MyAssert(TestUInt64Div, 'TestUInt64Div');
   MyAssert(TestUInt64Mod, 'TestUInt64Mod');
+  MyAssert(TestUInt128DivUInt64Mod, 'TestUInt128DivUInt64Mod');
   MyAssert(TestMemoryShiftMinInteger, 'TestMemoryShiftMinInteger');
 
 // =========================== Constant Time ===================================
@@ -2954,6 +2956,43 @@ begin
     and (UInt64Mod(A6, B6) = 1229782934524998452)
     and (UInt64Mod(A7, B7) = 825307441)
     and (UInt64Mod(A8, B8) = 3617008645339807486);
+end;
+
+function TestUInt128DivUInt64Mod: Boolean;
+var
+  Q, R: TUInt64;
+begin
+  Result := False;
+
+  // 回归：高位不是 2 的幂时，位扫描起点不能按最低位计算
+  UInt128DivUInt64Mod(0, 3, 5, Q, R);
+  if (Q <> TUInt64($9999999999999999)) or (R <> 3) then Exit;
+
+  UInt128DivUInt64Mod(0, TUInt64($8000000000000001), TUInt64($FFFFFFFFFFFFFFFF), Q, R);
+  if (Q <> TUInt64($8000000000000001)) or (R <> TUInt64($8000000000000001)) then Exit;
+
+  // 回归：除数 >= 2^63 时，余数左移不能丢失第 64 位进位
+  UInt128DivUInt64Mod(1, 1, TUInt64($FFFFFFFFFFFFFFFF), Q, R);
+  if (Q <> 1) or (R <> 2) then Exit;
+
+  // 两个问题同时出现
+  UInt128DivUInt64Mod(0, TUInt64($FFFFFFFFFFFF0001), TUInt64($FFFFFFFFFFFFFFFF), Q, R);
+  if (Q <> TUInt64($FFFFFFFFFFFF0001)) or (R <> TUInt64($FFFFFFFFFFFF0001)) then Exit;
+
+  // 除数恰为 2^63，整除
+  UInt128DivUInt64Mod(0, 1, TUInt64($8000000000000000), Q, R);
+  if (Q <> 2) or (R <> 0) then Exit;
+
+  // 高 64 位为 0，走 UInt64Div/UInt64Mod 分支
+  UInt128DivUInt64Mod(TUInt64($FFFFFFFFFFFFFFFF), 0, 3, Q, R);
+  if (Q <> TUInt64($5555555555555555)) or (R <> 0) then Exit;
+
+  // 原 Example/VCL/Native 中的样例，高位非 2 的幂
+  UInt128DivUInt64Mod(TUInt64($F0000000E0000000), TUInt64($0000000007770000),
+    TUInt64($99999999999), Q, R);
+  if (Q <> TUInt64($C7100019000C)) or (R <> TUInt64($43DACDBCCD4)) then Exit;
+
+  Result := True;
 end;
 
 function TestMemoryShiftMinInteger: Boolean;

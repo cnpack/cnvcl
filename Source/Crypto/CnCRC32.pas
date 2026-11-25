@@ -1314,6 +1314,9 @@ var
   Ipad, Opad: array[0..3] of Byte;
   Sum, Res: Cardinal;
 begin
+  if (Key = nil) or (KeyLength <= 0) then
+    KeyLength := 0;
+
   if KeyLength > HMAC_CRC32_BLOCK_SIZE_BYTE then
   begin
     Sum := CRC32Calc(0, Key^, KeyLength);
@@ -1350,6 +1353,9 @@ var
   Ipad, Opad: array[0..7] of Byte;
   Sum, Res: Int64;
 begin
+  if (Key = nil) or (KeyLength <= 0) then
+    KeyLength := 0;
+
   if KeyLength > HMAC_CRC64_BLOCK_SIZE_BYTE then
   begin
     Sum := CRC64Calc(0, Key^, KeyLength);
@@ -1367,12 +1373,12 @@ begin
     Opad[I] := Byte(Opad[I] xor Byte(Key[I]));
   end;
 
-  Res := $FFFFFFFF;
+  Res := Int64(-1);
   Res := DoCRC64Calc(Res, Ipad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
   Res := DoCRC64Calc(Res, Input^, ByteLength);
   Res := not Res;
 
-  Result := $FFFFFFFF;
+  Result := Int64(-1);
   Result := DoCRC64Calc(Result, Opad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
   Res := Int64ToLittleEndian(Res); // 内层摘要按固定小端字节序参与外层散列
   Result := DoCRC64Calc(Result, Res, HMAC_CRC64_OUTPUT_LENGTH_BYTE);

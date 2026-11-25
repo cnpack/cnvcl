@@ -235,28 +235,33 @@ var
   FullPath: string;
 begin
   Result := False;
-  EnterCriticalSection(FBCryptCS);
+  Gen := FBCryptGenRandom;
+  if not Assigned(Gen) and not FBCryptInitAttempted then
+  begin
+    EnterCriticalSection(FBCryptCS);
 
-  try
-    if not FBCryptInitAttempted then
-    begin
-      Len := GetSystemDirectory(SysDir, MAX_PATH);
-      if (Len > 0) and (Len < MAX_PATH) then
+    try
+      if not FBCryptInitAttempted then
       begin
-        FullPath := IncludeTrailingBackslash(string(SysDir)) + bcryptdll;
+        Len := GetSystemDirectory(SysDir, MAX_PATH);
+        if (Len > 0) and (Len < MAX_PATH) then
+        begin
+          FullPath := IncludeTrailingBackslash(string(SysDir)) + bcryptdll;
 
-        FBCryptHandle := LoadLibrary(PChar(FullPath));
-        if FBCryptHandle <> 0 then
-          @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
-        FBCryptInitAttempted := True;
+          FBCryptHandle := LoadLibrary(PChar(FullPath));
+          if FBCryptHandle <> 0 then
+            @FBCryptGenRandom := GetProcAddress(FBCryptHandle, 'BCryptGenRandom');
+          FBCryptInitAttempted := True;
+        end;
       end;
+      Gen := FBCryptGenRandom;
+    finally
+      LeaveCriticalSection(FBCryptCS);
     end;
-    Gen := FBCryptGenRandom;
-    if Assigned(Gen) then
-      Result := Gen(0, Buf, BufByteLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG) = 0;
-  finally
-    LeaveCriticalSection(FBCryptCS);
   end;
+
+  if Assigned(Gen) then
+    Result := Gen(0, Buf, BufByteLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG) = 0;
 end;
 
 {$ELSE}
@@ -559,7 +564,7 @@ begin
   if ElementCount <= 1 then // 没元素或只有一个元素时不用洗
     Exit;
 
-  for I := ElementCount - 1 downto 0 do
+  for I := ElementCount - 1 downto 1 do
   begin
     R := RandomInt32LessThan(I + 1);  // 0 到 I 这个闭区间内的随机数，所以上限要加 1
     B1 := Pointer(TCnNativeUInt(ArrayBase) +

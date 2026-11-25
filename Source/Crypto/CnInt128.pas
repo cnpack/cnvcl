@@ -1062,6 +1062,9 @@ end;
 
 procedure Int128SetBit(var N: TCnInt128; Bit: Integer);
 begin
+  if (Bit < 0) or (Bit >= 128) then
+    Exit;
+
 {$IFDEF SUPPORT_UINT64}
   if Bit > 63 then
     UInt64SetBit(TUInt64(N.Hi64), Bit - 64)
@@ -1077,6 +1080,9 @@ end;
 
 procedure Int128ClearBit(var N: TCnInt128; Bit: Integer);
 begin
+  if (Bit < 0) or (Bit >= 128) then
+    Exit;
+
 {$IFDEF SUPPORT_UINT64}
   if Bit > 63 then
     UInt64ClearBit(TUInt64(N.Hi64), Bit - 64)
@@ -1597,6 +1603,9 @@ end;
 
 procedure UInt128SetBit(var N: TCnUInt128; Bit: Integer);
 begin
+  if (Bit < 0) or (Bit >= 128) then
+    Exit;
+
   if Bit > 63 then
     UInt64SetBit(N.Hi64, Bit - 64)
   else
@@ -1605,6 +1614,9 @@ end;
 
 procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
 begin
+  if (Bit < 0) or (Bit >= 128) then
+    Exit;
+
   if Bit > 63 then
     UInt64ClearBit(N.Hi64, Bit - 64)
   else

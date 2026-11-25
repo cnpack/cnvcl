@@ -369,18 +369,15 @@ begin
   Context.Hash[4] := $C3D2E1F0;
 end;
 
-procedure SHA1UpdateLen(var Context: TCnSHA1Context; Len: Integer);
+procedure SHA1UpdateLen(var Context: TCnSHA1Context; ByteLength: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
-  I: Cardinal;
-  K: Integer;
+  BitsLo: Cardinal;
 begin
-  for K := 0 to 7 do
-  begin
-    I := Context.Lo;
-    Inc(Context.Lo, Len);
-    if Context.Lo < I then
-      Inc(Context.Hi);
-  end;
+  BitsLo := ByteLength shl 3;
+  Inc(Context.Lo, BitsLo);
+  if Context.Lo < BitsLo then
+    Inc(Context.Hi);
+  Inc(Context.Hi, ByteLength shr 29);
 end;
 
 procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Cardinal);

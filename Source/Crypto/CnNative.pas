@@ -2873,7 +2873,7 @@ begin
   if BMem = nil then
     BMem := AMem;
 
-  if (MemByteLen * 8) <= BitCount then // 移太多不够，全 0
+  if Int64(MemByteLen) * 8 <= Int64(BitCount) then // 移太多不够，全 0
   begin
     FillChar(BMem^, MemByteLen, 0);
     Exit;
@@ -2934,7 +2934,7 @@ begin
   if BMem = nil then
     BMem := AMem;
 
-  if (MemByteLen * 8) <= BitCount then // 移太多不够，全 0
+  if Int64(MemByteLen) * 8 <= Int64(BitCount) then // 移太多不够，全 0
   begin
     FillChar(BMem^, MemByteLen, 0);
     Exit;
@@ -3192,6 +3192,7 @@ function MemoryCompare(AMem, BMem: Pointer; MemByteLen: Integer): Integer;
 var
   A, B: PCnLongWord32Array;
   BA, BB: PByteArray;
+  V1, V2: TCnLongWord32;
 begin
   Result := 0;
   if ((AMem = nil) and (BMem = nil)) or (AMem = BMem) then // 同一块
@@ -3216,12 +3217,14 @@ begin
 
   while (MemByteLen and (not 3)) <> 0 do
   begin
-    if A^[0] > B^[0] then
+    V1 := UInt32HostToNetwork(A^[0]);
+    V2 := UInt32HostToNetwork(B^[0]);
+    if V1 > V2 then
     begin
       Result := 1;
       Exit;
     end
-    else if A^[0] < B^[0] then
+    else if V1 < V2 then
     begin
       Result := -1;
       Exit;
@@ -4343,6 +4346,8 @@ end;
 
 {$IFDEF CALL_SYSV_AMD64}
 
+{$DEFINE INT128_DIV_USE_PASCAL}
+
 // 非 Windows 平台上的 x64 FPC（macOS/Linux）采用 System V AMD64 ABI：
 //   参数依次通过 RDI、RSI、RDX、RCX、R8、R9 寄存器传递。
 //
@@ -4376,59 +4381,6 @@ begin
   ModRes := A mod B;
 end;
 
-procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
-var
-  C: Integer;
-begin
-  if B = 0 then
-    raise EDivByZero.Create(SDivByZero);
-
-  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then
-  begin
-    DivRes := ALo div B;
-    ModRes := ALo mod B;
-  end
-  else
-  begin
-    if B < 0 then
-    begin
-      Int128DivInt64Mod(ALo, AHi, -B, DivRes, ModRes);
-      DivRes := -DivRes;
-      Exit;
-    end;
-
-    if AHi < 0 then
-    begin
-      AHi := not AHi;
-      ALo := not ALo;
-{$IFDEF SUPPORT_UINT64}
-      UInt64Add(UInt64(ALo), UInt64(ALo), 1, C);
-{$ELSE}
-      UInt64Add(ALo, ALo, 1, C);
-{$ENDIF}
-      if C > 0 then
-        AHi := AHi + C;
-
-      Int128DivInt64Mod(ALo, AHi, B, DivRes, ModRes);
-
-      if ModRes = 0 then
-        DivRes := -DivRes
-      else
-      begin
-        DivRes := -DivRes - 1;
-        ModRes := B - ModRes;
-      end;
-      Exit;
-    end;
-
-{$IFDEF SUPPORT_UINT64}
-    UInt128DivUInt64Mod(TUInt64(ALo), TUInt64(AHi), TUInt64(B), TUInt64(DivRes), TUInt64(ModRes));
-{$ELSE}
-    UInt128DivUInt64Mod(ALo, AHi, B, DivRes, ModRes);
-{$ENDIF}
-  end;
-end;
-
 procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64;
   var DivRes, ModRes: TUInt64); assembler; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
@@ -4457,7 +4409,11 @@ end;
 
 {$IFDEF NEED_PASCAL}
 
-// Delphi 下的 MACOS/Linux 不支持 asm，将上面的纯 Pascal 复制过来
+{$DEFINE INT128_DIV_USE_PASCAL}
+
+{$DEFINE UINT128_DIV_USE_PASCAL}
+
+// Delphi 下的 MACOS/Linux 不支持 asm，将上面的纯 Pascal 复制过来；Int128DivInt64Mod 和 UInt128DivUInt64Mod 见下方共享实现
 
 procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
 begin
@@ -4473,100 +4429,6 @@ begin
     raise EDivByZero.Create(SDivByZero);
   DivRes := A div B;
   ModRes := A mod B;
-end;
-
-procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
-var
-  C: Integer;
-begin
-  if B = 0 then
-    raise EDivByZero.Create(SDivByZero);
-
-  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then
-  begin
-    DivRes := ALo div B;
-    ModRes := ALo mod B;
-  end
-  else
-  begin
-    if B < 0 then
-    begin
-      Int128DivInt64Mod(ALo, AHi, -B, DivRes, ModRes);
-      DivRes := -DivRes;
-      Exit;
-    end;
-
-    if AHi < 0 then
-    begin
-      AHi := not AHi;
-      ALo := not ALo;
-{$IFDEF SUPPORT_UINT64}
-      UInt64Add(UInt64(ALo), UInt64(ALo), 1, C);
-{$ELSE}
-      UInt64Add(ALo, ALo, 1, C);
-{$ENDIF}
-      if C > 0 then
-        AHi := AHi + C;
-
-      Int128DivInt64Mod(ALo, AHi, B, DivRes, ModRes);
-
-      if ModRes = 0 then
-        DivRes := -DivRes
-      else
-      begin
-        DivRes := -DivRes - 1;
-        ModRes := B - ModRes;
-      end;
-      Exit;
-    end;
-
-{$IFDEF SUPPORT_UINT64}
-    UInt128DivUInt64Mod(TUInt64(ALo), TUInt64(AHi), TUInt64(B), TUInt64(DivRes), TUInt64(ModRes));
-{$ELSE}
-    UInt128DivUInt64Mod(ALo, AHi, B, DivRes, ModRes);
-{$ENDIF}
-  end;
-end;
-
-procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
-var
-  I, Cnt: Integer;
-  Q, R: TUInt64;
-begin
-  if B = 0 then
-    raise EDivByZero.Create(SDivByZero);
-
-  if AHi = 0 then
-  begin
-    DivRes := UInt64Div(ALo, B);
-    ModRes := UInt64Mod(ALo, B);
-  end
-  else
-  begin
-    // 有高位有低位咋办？先判断是否会溢出，如果 AHi >= B，则表示商要超 64 位，溢出
-    if UInt64Compare(AHi, B) >= 0 then
-      raise EIntOverflow.Create(SIntOverflow);
-
-    Q := 0;
-    R := 0;
-    Cnt := GetUInt64LowBits(AHi) + 64;
-    for I := Cnt downto 0 do
-    begin
-      R := R shl 1;
-      if IsUInt128BitSet(ALo, AHi, I) then  // 被除数的第 I 位是否是 0
-        R := R or 1
-      else
-        R := R and TUInt64(not 1);
-
-      if UInt64Compare(R, B) >= 0 then
-      begin
-        R := R - B;
-        Q := Q or (TUInt64(1) shl I);
-      end;
-    end;
-    DivRes := Q;
-    ModRes := R;
-  end;
 end;
 
 {$ELSE}
@@ -4619,6 +4481,10 @@ end;
 
 {$ELSE}
 
+{$DEFINE INT128_DIV_USE_PASCAL}
+
+{$DEFINE UINT128_DIV_USE_PASCAL}
+
 // 32 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在堆栈上，B 在 EAX，DivRes 地址在 EDX，ModRes 地址在 ECX
 procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler;
 asm
@@ -4648,7 +4514,14 @@ asm
         MOV     [ECX], EDX
 end;
 
-// 32 位下的实现
+{$ENDIF}
+
+{$ENDIF}
+
+{$IFDEF INT128_DIV_USE_PASCAL}
+
+// 纯 Pascal 实现：System V AMD64、x64 Delphi 的 macOS/Linux、32 位 x86 共用
+
 procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
 var
   C: Integer;
@@ -4706,10 +4579,17 @@ begin
   end;
 end;
 
+{$ENDIF}
+
+{$IFDEF UINT128_DIV_USE_PASCAL}
+
+// 纯 Pascal 实现：x64 Delphi 的 macOS/Linux、32 位 x86 共用（System V AMD64 用上面的汇编版）
+
 procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
 var
   I, Cnt: Integer;
   Q, R: TUInt64;
+  Carry: Boolean;
 begin
   if B = 0 then
     raise EDivByZero.Create(SDivByZero);
@@ -4727,16 +4607,17 @@ begin
 
     Q := 0;
     R := 0;
-    Cnt := GetUInt64LowBits(AHi) + 64;
+    Cnt := GetUInt64HighBits(AHi) + 64;
     for I := Cnt downto 0 do
     begin
+      Carry := (R and (TUInt64(1) shl 63)) <> 0;
       R := R shl 1;
       if IsUInt128BitSet(ALo, AHi, I) then  // 被除数的第 I 位是否是 0
         R := R or 1
       else
         R := R and TUInt64(not 1);
 
-      if UInt64Compare(R, B) >= 0 then
+      if Carry or (UInt64Compare(R, B) >= 0) then
       begin
         R := R - B;
         Q := Q or (TUInt64(1) shl I);
@@ -4746,8 +4627,6 @@ begin
     ModRes := R;
   end;
 end;
-
-{$ENDIF}
 
 {$ENDIF}
 
