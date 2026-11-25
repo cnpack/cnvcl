@@ -457,12 +457,20 @@ end;
 function TCnBitBuilder.AppendBitBuilder(Value: TCnBitBuilder): TCnBitBuilder;
 var
   B: TBytes;
+  FullBytes, RemBits, I: Integer;
 begin
-  if Value <> nil then
-  begin
-    B := Value.ToBytes;
-    AppendBytes(B);
-  end;
+  if (Value = nil) or (Value.BitLength <= 0) then
+    Exit;
+
+  B := Value.ToBytes;
+  FullBytes := Value.BitLength div 8;
+  RemBits := Value.BitLength mod 8;
+
+  for I := 0 to FullBytes - 1 do
+    AppendByte(B[I]);
+  if RemBits > 0 then
+    AppendBitRange(B[FullBytes], RemBits - 1);
+
   Result := Self;
 end;
 
@@ -881,8 +889,14 @@ begin
 end;
 
 procedure TCnBitBuilder.EnsureCapacity(ABitSize: Integer);
+var
+  NeedBytes: Integer;
 begin
-  while ByteCapacity * 8 < ABitSize do // 如果要设置的实际位尺寸超过了动态数组的字节长度则扩容
+  if ABitSize <= 0 then
+    Exit;
+
+  NeedBytes := (ABitSize - 1) div 8 + 1; // 通过位数算出容纳的最小字节数
+  while ByteCapacity < NeedBytes do
     ExpandCapacity;
 end;
 
