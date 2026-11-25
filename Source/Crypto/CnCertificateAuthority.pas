@@ -1549,11 +1549,6 @@ function CnCAGetTimeOfDay(ATV: Pointer; ATZ: Pointer): Integer; cdecl;
 {$ENDIF}
 {$ENDIF}
 
-var
-  DummyPointer: Pointer;
-  DummyInteger: Integer;
-  DummyDigestType: TCnRSASignDigestType;
-
 function InternalCurrentUTCDateTime: TDateTime;
 {$IFDEF MSWINDOWS}
 var
@@ -4615,6 +4610,9 @@ var
   Peek5: array[0..4] of AnsiChar;
   SignTypeTmp: TCnCASignType;
   ExtractOK: Boolean;
+  DummyPointer: Pointer;
+  DummyInteger: Integer;
+  DummyDigestType: TCnRSASignDigestType;
 begin
   Result := False;
 
@@ -4800,6 +4798,8 @@ begin
     Certificate.BasicCertificate.SubjectIsRSA := IsRSA;
     if not IsRSA then
     begin
+      if Node.Items[0].Count < 2 then Exit;
+
       CurveType := GetCurveTypeFromOID(Node.Items[0].Items[1].BerAddress,
         Node.Items[0].Items[1].BerLength);
       if CurveType = ctCustomized then
@@ -4871,10 +4871,22 @@ begin
       IsRSA := (Certificate.FCASignType = ctMd5RSA) or
         (Certificate.FCASignType = ctSha1RSA) or
         (Certificate.FCASignType = ctSha256RSA);
+
+      DummyPointer := nil;
       Result := ExtractSignaturesByPublicKey(IsRSA, nil, nil, SignAlgNode,
         SignValueNode, SignTypeTmp,
         DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
         DummyInteger);
+
+      if DummyPointer <> nil then
+      begin
+{$IFDEF COMPILER5}
+        CnFreeMemory(DummyPointer);
+{$ELSE}
+        FreeMemory(DummyPointer);
+{$ENDIF}
+      end;
+
       if Result then
         Certificate.OuterSignType := SignTypeTmp; // 外层不受签名保护的算法单独记录，不回写 CASignType
     end;

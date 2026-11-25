@@ -265,9 +265,14 @@ begin
     ReverseMemory(@Result[0], SizeOf(TCnPoly1305Digest));
   finally
     MemorySafeZero(@RKey[0], SizeOf(TCnPoly1305Key));
+    MemorySafeZero(@Buf[0], SizeOf(Buf));
+    N.Clear;
     N.Free;
+    A.Clear;
     A.Free;
+    S.Clear;
     S.Free;
+    R.Clear;
     R.Free;
   end;
 end;

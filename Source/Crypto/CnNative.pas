@@ -3304,7 +3304,7 @@ end;
 procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
   ElementCount: Integer; CompareProc: TCnMemSortCompareProc);
 begin
-  if (Mem <> nil) and (ElementCount > 0) and (ElementCount > 0) then
+  if (Mem <> nil) and (ElementCount > 0) and (ElementByteSize > 0) then
   begin
     if Assigned(CompareProc) then
       InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, CompareProc)
@@ -3727,6 +3727,9 @@ var
   I: Integer;
 begin
   Result := '';
+  if Stream = nil then
+    Exit;
+
   if Stream.Size > 0 then
   begin
     Stream.Position := 0;
@@ -5499,18 +5502,30 @@ end;
 // 判断一 32 位无符号整数是否 2 的整数次幂
 function IsUInt32PowerOf2(N: Cardinal): Boolean;
 begin
-  Result := (N and (N - 1)) = 0;
+  if N = 0 then
+    Result := False
+  else
+    Result := (N and (N - 1)) = 0;
 end;
 
 // 判断一 64 位无符号整数是否 2 的整数次幂
 function IsUInt64PowerOf2(N: TUInt64): Boolean;
 begin
-  Result := (N and (N - 1)) = 0;
+  if N = 0 then
+    Result := False
+  else
+    Result := (N and (N - 1)) = 0;
 end;
 
 // 得到一比指定 32 位无符号整数数大或等的 2 的整数次幂，如溢出则返回 0
 function GetUInt32PowerOf2GreaterEqual(N: Cardinal): Cardinal;
 begin
+  if N = 0 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
   Result := N - 1;
   Result := Result or (Result shr 1);
   Result := Result or (Result shr 2);
@@ -5523,6 +5538,12 @@ end;
 // 得到一比指定 64 位无符号整数数大的 2 的整数次幂，如溢出则返回 0
 function GetUInt64PowerOf2GreaterEqual(N: TUInt64): TUInt64;
 begin
+  if N = 0 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
   Result := N - 1;
   Result := Result or (Result shr 1);
   Result := Result or (Result shr 2);

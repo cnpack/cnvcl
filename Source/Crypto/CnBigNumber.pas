@@ -3492,6 +3492,7 @@ begin
   Result := False;
   if BigNumberExpandBits(Num, SizeOf(Cardinal) * 8) = nil then
     Exit;
+
   Num.FNeg := 0;
   PCnBigNumberElementArray(Num.FD)^[0] := W;
   if W <> 0 then
@@ -3764,6 +3765,15 @@ begin
 end;
 
 {$ENDIF}
+
+function BigNumberSetElement(Num: TCnBigNumber; W: TCnBigNumberElement): Boolean;
+begin
+{$IFDEF BN_DATA_USE_64}
+  Result := BigNumberSetUInt64(Num, W);
+{$ELSE}
+  Result := BigNumberSetWord(Num, W);
+{$ENDIF}
+end;
 
 // 调整 Top 保证 D[Top - 1] 指向最高位非 0 处
 procedure BigNumberCorrectTop(Num: TCnBigNumber);
@@ -5935,7 +5945,7 @@ begin
 
   if BigNumberIsZero(Num) then
   begin
-    Result := BigNumberSetWord(Num, W);
+    Result := BigNumberSetElement(Num, W);
     Exit;
   end;
 
@@ -5982,7 +5992,7 @@ begin
 
   if BigNumberIsZero(Num) then
   begin
-    Result := BigNumberSetWord(Num, W);
+    Result := BigNumberSetElement(Num, W);
     if Result then
       BigNumberSetNegative(Num, True);
     Exit;
@@ -6134,7 +6144,7 @@ begin
   if Num.FTop > 0 then
     PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] or W
   else
-    Num.SetWord(W);
+    BigNumberSetElement(Num, W);
 end;
 
 procedure BigNumberXorWord(Num: TCnBigNumber; W: TCnBigNumberElement);
@@ -6142,7 +6152,7 @@ begin
   if Num.FTop > 0 then // 32/64 位以上的 xor 0，都不变
     PCnBigNumberElementArray(Num.FD)^[0] := PCnBigNumberElementArray(Num.FD)^[0] xor W
   else
-    Num.SetWord(W); // 0 异或 W 等于 W
+    BigNumberSetElement(Num, W); // 0 异或 W 等于 W
 end;
 
 function BigNumberAndWordTo(Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumberElement;
@@ -6500,12 +6510,25 @@ var
   E: Integer;
   M: TUInt64;
 begin
-  ExtractFloatExtended(F, N, E, M);
+  Result := False;
+  if (Res = nil) or ExtendedIsNan(F) or ExtendedIsInfinite(F) then
+    Exit;
 
+  if F = 0 then
+  begin
+    Result := BigNumberSetZero(Res);
+    Exit;
+  end;
+
+  ExtractFloatExtended(F, N, E, M);
   BigNumberSetUInt64UsingInt64(Res, M);
   Res.SetNegative(N);
 
-  E := E - 63;
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
+    E := E - 63
+  else
+    E := E - 52;
+
   if E > 0 then
     Res.ShiftLeft(E)
   else
