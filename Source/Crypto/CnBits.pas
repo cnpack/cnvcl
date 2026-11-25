@@ -469,7 +469,7 @@ begin
   for I := 0 to FullBytes - 1 do
     AppendByte(B[I]);
   if RemBits > 0 then
-    AppendBitRange(B[FullBytes], RemBits - 1);
+    AppendByteRange(B[FullBytes], RemBits - 1);
 
   Result := Self;
 end;
@@ -960,12 +960,31 @@ begin
 end;
 
 procedure TCnBitBuilder.SetBitLength(const Value: Integer);
+var
+  OldBytes, NewBytes, RemBits: Integer;
 begin
   if Value < 0 then
     raise ERangeError.CreateResFmt(@SCnErrorByteCapacityFmt, [Value]);
 
-  FBitLength := Value;
   EnsureCapacity(FBitLength);
+  OldBytes := (FBitLength + 7) div 8;
+  NewBytes := (Value + 7) div 8;
+
+  if Value > FBitLength then // 扩大 Bit 的话，变换成扩大 Byte 后，可能新内容未知，需要清零
+  begin
+    if NewBytes > OldBytes then
+      FillChar(FData[OldBytes], NewBytes - OldBytes, 0);
+  end
+  else if Value < FBitLength then // 缩小 Bit 的话，变换成缩小 Byte 后，可能有残留 Bit，需要清零
+  begin
+    if OldBytes > NewBytes then
+      FillChar(FData[NewBytes], OldBytes - NewBytes, 0);
+
+    RemBits := Value mod 8;
+    if RemBits > 0 then
+      FData[Value div 8] := FData[Value div 8] and Byte((1 shl RemBits) - 1);
+  end;
+  FBitLength := Value;
 end;
 
 procedure TCnBitBuilder.SetByteCapacity(const Value: Integer);
