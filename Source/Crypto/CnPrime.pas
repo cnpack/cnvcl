@@ -3019,10 +3019,12 @@ end;
 function SquareRootModPrimeLucas(X, P: Int64; out Y: Int64): Boolean;
 var
   G, Z, U, V: Int64;
+  I: Integer;
 begin
   Result := False;
   G := X;
-  while True do
+  // 限制重试次数，避免 U 恒为 0/1/P-1 时死循环
+  for I := 1 to 64 do
   begin
     // 随机取 X
     X := RandomInt64LessThan(P);

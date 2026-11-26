@@ -254,6 +254,7 @@ function TestBigNumberIsProbablyPrime: Boolean;
 function TestBigNumberIsPerfectPower: Boolean;
 function TestBigNumberIsPerfectSquare: Boolean;
 function TestBigNumberSqrt: Boolean;
+function TestBigNumberSquareRootModPrime: Boolean;
 function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
@@ -2193,6 +2194,7 @@ begin
   MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
   MyAssert(TestBigNumberIsPerfectSquare, 'TestBigNumberIsPerfectSquare');
   MyAssert(TestBigNumberSqrt, 'TestBigNumberSqrt');
+  MyAssert(TestBigNumberSquareRootModPrime, 'TestBigNumberSquareRootModPrime');
   MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
@@ -9170,6 +9172,62 @@ begin
   BigNumberFree(A);
   BigNumberFree(Res);
   BigNumberFree(Expected);
+end;
+
+function TestBigNumberSquareRootModPrime: Boolean;
+var
+  A, P, R: TCnBigNumber;
+begin
+  A := BigNumberNew;
+  P := BigNumberNew;
+  R := BigNumberNew;
+
+  A.SetDec('4');
+  P.SetDec('37'); // 37 mod 8 = 5
+  Result := BigNumberSquareRootModPrime(R, A, P);
+  if not Result then Exit;
+  Result := R.ToDec() = '35'; // 35^2 mod 37 = 4
+  if not Result then Exit;
+
+  A.SetDec('5');
+  P.SetDec('11'); // 11 mod 4 = 3
+  Result := BigNumberSquareRootModPrime(R, A, P);
+  if not Result then Exit;
+  Result := R.ToDec() = '4'; // 4^2 mod 11 = 5
+  if not Result then Exit;
+
+  A.SetDec('8');
+  P.SetDec('17'); // 17 mod 8 = 1
+  Result := BigNumberSquareRootModPrime(R, A, P);
+  if not Result then Exit;
+  Result := (R.ToDec() = '5') or (R.ToDec() = '12'); // 5^2 = 12^2 = 8 mod 17
+  if not Result then Exit;
+
+  A.SetDec('9');
+  P.SetDec('25'); // 合数模数，与 TestSquareRoot 对应
+  Result := not BigNumberSquareRootModPrime(R, A, P);
+  if not Result then Exit;
+
+  A.SetDec('20');
+  P.SetDec('25');
+  Result := not BigNumberSquareRootModPrime(R, A, P);
+  if not Result then Exit;
+
+  A.SetDec('1');
+  P.SetDec('2'); // 模 2 的特例
+  Result := BigNumberSquareRootModPrime(R, A, P) and (R.ToDec() = '1');
+  if not Result then Exit;
+
+  A.SetDec('0');
+  P.SetDec('17'); // 0 的平方根为 0
+  Result := BigNumberSquareRootModPrime(R, A, P) and R.IsZero;
+  if not Result then Exit;
+
+  // 注意：A 应小于 P；A = 18, P = 17 这类 A > P 的输入仍无法得到正确结果。
+
+  BigNumberFree(R);
+  BigNumberFree(P);
+  BigNumberFree(A);
 end;
 
 function TestBigNumberJacobiSymbol: Boolean;

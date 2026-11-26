@@ -9399,6 +9399,7 @@ end;
 function BigNumberLucas(Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
 var
   X, Z, U, V, T: TCnBigNumber;
+  I: Integer;
 begin
   Result := False;
 
@@ -9415,7 +9416,8 @@ begin
     V := FLocalBigNumberPool.Obtain;
     T := FLocalBigNumberPool.Obtain;
 
-    while True do
+    // 限制重试次数，避免 U 恒为 0/1/P-1 时死循环
+    for I := 1 to 64 do
     begin
       if not BigNumberRandRange(X, P) then
         Exit;
