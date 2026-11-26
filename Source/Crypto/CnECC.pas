@@ -937,7 +937,7 @@ type
        返回值：Boolean                    - 返回解开是否成功
     }
 
-    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey);
+    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); virtual;
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K。
 
        参数：
@@ -4717,12 +4717,14 @@ function TCnEcc.IsPointInSubGroup(P: TCnEccPoint): Boolean;
 var
   T: TCnEccPoint;
 begin
-  Result := True;
+  Result := False;
   // 余因子为 1 时曲线群本身就是 n 阶循环群，在曲线上即在子群内，无需再验证
   if (P = nil) or (FCoFactor <= 1) then
+  begin
+    Result := True;
     Exit;
+  end;
 
-  Result := False;
   T := TCnEccPoint.Create;
   try
     T.Assign(P);
@@ -5858,11 +5860,13 @@ function ValidateEccPublicKeyByCurveType(CurveType: TCnEccCurveType;
 var
   Ecc: TCnEcc;
 begin
-  Result := True;
-  if (PublicKey = nil) or (CurveType = ctCustomized) or PublicKey.Y.IsZero then
-    Exit;
-
   Result := False;
+  if (PublicKey = nil) or (CurveType = ctCustomized) or PublicKey.Y.IsZero then
+  begin
+    Result := True;
+    Exit;
+  end;
+
   Ecc := TCnEcc.Create(CurveType);
   try
     Result := CheckEccPublicKey(Ecc, PublicKey);

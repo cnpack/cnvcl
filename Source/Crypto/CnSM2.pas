@@ -92,6 +92,10 @@ const
   CN_SM2_MIN_ENCRYPT_BYTESIZE = SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2;
   {* 最小的 SM2 加密结果长度，两个坐标加一个 SM3 摘要长度，共 96 字节}
 
+  CN_SM2_DEF_UID: array[0..15] of Byte =
+    ($31, $32, $33, $34, $35, $36, $37, $38, $31, $32, $33, $34, $35, $36, $37, $38);
+  {* SM2 签名默认的 UID，也即字符串 1234567812345678}
+
   // 错误码
   ECN_SM2_OK                           = ECN_OK;
   {* SM2 系列错误码：无错误，值为 0}
@@ -141,6 +145,17 @@ type
        参数：
          K: TCnBigNumber                  - 乘数，形式为大数
          Point: TCnEcc3Point              - 待计算的坐标点
+
+       返回值：（无）
+    }
+
+    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
+    {* 生成一对 SM2 椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K。
+       注意 SM2 公私钥的要求和普通 ECC 不同，私钥不能等于有限域上界 - 1
+
+       参数：
+         PrivateKey: TCnEccPrivateKey     - 生成的 SM2 私钥
+         PublicKey: TCnEccPublicKey       - 生成的 SM2 公钥
 
        返回值：（无）
     }
@@ -953,10 +968,6 @@ implementation
 uses
   CnKDF, CnBerUtils;
 
-const
-  CN_SM2_DEF_UID: array[0..15] of Byte =
-    ($31, $32, $33, $34, $35, $36, $37, $38, $31, $32, $33, $34, $35, $36, $37, $38);
-
 var
   FLocalSM2Generator: TCnEccPoint = nil;     // SM2 的 G 点供比较用
   FSM2AffineGPower2KList: TObjectList = nil; // SM2 的 G 点的预计算坐标，第 n 个表示 2^n 次方倍点
@@ -1016,6 +1027,118 @@ begin
   finally
     if OwnEcc then
       Ecc.Free;
+  end;
+end;
+
+function InternalSM2IsValidPrivateKey(PrivateKey: TCnSM2PrivateKey;
+  SM2: TCnSM2): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (SM2 = nil) then
+    Exit;
+
+  if (BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0) or
+    (BigNumberCompare(PrivateKey, SM2.Order) >= 0) then
+    Exit;
+
+  { SM2 使用了 (1 + d)^-1 mod n; 必须不能让 d = n - 1 }
+  T := TCnBigNumber.Create;
+  try
+    if BigNumberCopy(T, PrivateKey) = nil then
+      Exit;
+    if not BigNumberAddWord(T, 1) then
+      Exit;
+    Result := BigNumberCompare(T, SM2.Order) < 0;
+  finally
+    T.Clear;
+    T.Free;
+  end;
+end;
+
+function InternalSM2IsValidPrivateShare(PrivateKey: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2): Boolean;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (SM2 = nil) then
+    Exit;
+  if BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0 then
+    Exit;
+  Result := BigNumberCompare(PrivateKey, SM2.Order) < 0;
+end;
+
+function InternalSM2ConstantTimeGeneratorMultiplePoint(SM2: TCnSM2;
+  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey): Boolean;
+var
+  Scalar: TCnBigNumber;
+  BasePoint, R0, R1, Sum, Double0, Double1: TCnEcc3Point;
+  I: Integer;
+  Bit: Boolean;
+begin
+  Result := False;
+  if (SM2 = nil) or (PrivateKey = nil) or (PublicKey = nil) then
+    Exit;
+
+  Scalar := nil;
+  BasePoint := nil;
+  R0 := nil;
+  R1 := nil;
+  Sum := nil;
+  Double0 := nil;
+  Double1 := nil;
+
+  try
+    Scalar := TCnBigNumber.Create;
+    BasePoint := TCnEcc3Point.Create;
+    R0 := TCnEcc3Point.Create;
+    R1 := TCnEcc3Point.Create;
+    Sum := TCnEcc3Point.Create;
+    Double0 := TCnEcc3Point.Create;
+    Double1 := TCnEcc3Point.Create;
+
+    { Add 3*n so the ladder always starts with a fixed leading one bit. }
+    if (BigNumberCopy(Scalar, SM2.Order) = nil) or
+      not BigNumberMulWord(Scalar, 3) or
+      not BigNumberAdd(Scalar, Scalar, PrivateKey) then
+      Exit;
+
+    if not CnEccPointToEcc3Point(SM2.Generator, BasePoint) then
+      Exit;
+
+    R0.Assign(BasePoint);
+    R1.Assign(BasePoint);
+    SM2.AffinePointAddPoint(R1, R1, R1);
+
+    { Fixed-schedule ladder. The underlying field operations are still being
+      migrated to fixed-width arithmetic; this path must not call the generic
+      MultiplePoint implementation. }
+    for I := SM2.BitsCount downto 0 do
+    begin
+      SM2.AffinePointAddPoint(R0, R1, Sum);
+      SM2.AffinePointAddPoint(R0, R0, Double0);
+      SM2.AffinePointAddPoint(R1, R1, Double1);
+
+      R0.Assign(Double0);
+      R1.Assign(Sum);
+      Bit := BigNumberIsBitSet(Scalar, I);
+      BigNumberConstTimeConditionalAssign(Bit, Sum.X, R0.X);
+      BigNumberConstTimeConditionalAssign(Bit, Sum.Y, R0.Y);
+      BigNumberConstTimeConditionalAssign(Bit, Sum.Z, R0.Z);
+      BigNumberConstTimeConditionalAssign(Bit, Double1.X, R1.X);
+      BigNumberConstTimeConditionalAssign(Bit, Double1.Y, R1.Y);
+      BigNumberConstTimeConditionalAssign(Bit, Double1.Z, R1.Z);
+    end;
+
+    Result := CnAffinePointToEccPoint(R0, PublicKey, SM2.FiniteFieldSize);
+  finally
+    Double1.Free;
+    Double0.Free;
+    Sum.Free;
+    R1.Free;
+    R0.Free;
+    BasePoint.Free;
+    Scalar.Free;
   end;
 end;
 
@@ -1158,116 +1281,12 @@ begin
   Load(ctSM2);
 end;
 
-function InternalSM2IsValidPrivateKey(PrivateKey: TCnSM2PrivateKey;
-  SM2: TCnSM2): Boolean;
-var
-  T: TCnBigNumber;
+procedure TCnSM2.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey);
 begin
-  Result := False;
-  if (PrivateKey = nil) or (SM2 = nil) then
-    Exit;
-
-  if (BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0) or
-    (BigNumberCompare(PrivateKey, SM2.Order) >= 0) then
-    Exit;
-
-  { SM2 uses (1 + d)^-1 mod n; d = n - 1 is therefore invalid. }
-  T := TCnBigNumber.Create;
-  try
-    if BigNumberCopy(T, PrivateKey) = nil then
-      Exit;
-    if not BigNumberAddWord(T, 1) then
-      Exit;
-    Result := BigNumberCompare(T, SM2.Order) < 0;
-  finally
-    T.Clear;
-    T.Free;
-  end;
-end;
-
-function InternalSM2IsValidPrivateShare(PrivateKey: TCnSM2CollaborativePrivateKey;
-  SM2: TCnSM2): Boolean;
-begin
-  Result := False;
-  if (PrivateKey = nil) or (SM2 = nil) then
-    Exit;
-  if BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0 then
-    Exit;
-  Result := BigNumberCompare(PrivateKey, SM2.Order) < 0;
-end;
-
-function InternalSM2ConstantTimeGeneratorMultiplePoint(SM2: TCnSM2;
-  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey): Boolean;
-var
-  Scalar: TCnBigNumber;
-  BasePoint, R0, R1, Sum, Double0, Double1: TCnEcc3Point;
-  I: Integer;
-  Bit: Boolean;
-begin
-  Result := False;
-  if (SM2 = nil) or (PrivateKey = nil) or (PublicKey = nil) then
-    Exit;
-
-  Scalar := nil;
-  BasePoint := nil;
-  R0 := nil;
-  R1 := nil;
-  Sum := nil;
-  Double0 := nil;
-  Double1 := nil;
-
-  try
-    Scalar := TCnBigNumber.Create;
-    BasePoint := TCnEcc3Point.Create;
-    R0 := TCnEcc3Point.Create;
-    R1 := TCnEcc3Point.Create;
-    Sum := TCnEcc3Point.Create;
-    Double0 := TCnEcc3Point.Create;
-    Double1 := TCnEcc3Point.Create;
-
-    { Add 3*n so the ladder always starts with a fixed leading one bit. }
-    if (BigNumberCopy(Scalar, SM2.Order) = nil) or
-      not BigNumberMulWord(Scalar, 3) or
-      not BigNumberAdd(Scalar, Scalar, PrivateKey) then
-      Exit;
-
-    if not CnEccPointToEcc3Point(SM2.Generator, BasePoint) then
-      Exit;
-
-    R0.Assign(BasePoint);
-    R1.Assign(BasePoint);
-    SM2.AffinePointAddPoint(R1, R1, R1);
-
-    { Fixed-schedule ladder. The underlying field operations are still being
-      migrated to fixed-width arithmetic; this path must not call the generic
-      MultiplePoint implementation. }
-    for I := SM2.BitsCount downto 0 do
-    begin
-      SM2.AffinePointAddPoint(R0, R1, Sum);
-      SM2.AffinePointAddPoint(R0, R0, Double0);
-      SM2.AffinePointAddPoint(R1, R1, Double1);
-
-      R0.Assign(Double0);
-      R1.Assign(Sum);
-      Bit := BigNumberIsBitSet(Scalar, I);
-      BigNumberConstTimeConditionalAssign(Bit, Sum.X, R0.X);
-      BigNumberConstTimeConditionalAssign(Bit, Sum.Y, R0.Y);
-      BigNumberConstTimeConditionalAssign(Bit, Sum.Z, R0.Z);
-      BigNumberConstTimeConditionalAssign(Bit, Double1.X, R1.X);
-      BigNumberConstTimeConditionalAssign(Bit, Double1.Y, R1.Y);
-      BigNumberConstTimeConditionalAssign(Bit, Double1.Z, R1.Z);
-    end;
-
-    Result := CnAffinePointToEccPoint(R0, PublicKey, SM2.FiniteFieldSize);
-  finally
-    Double1.Free;
-    Double0.Free;
-    Sum.Free;
-    R1.Free;
-    R0.Free;
-    BasePoint.Free;
-    Scalar.Free;
-  end;
+  repeat
+    inherited GenerateKeys(PrivateKey, PublicKey);
+  until InternalSM2IsValidPrivateKey(PrivateKey, Self);
 end;
 
 function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;

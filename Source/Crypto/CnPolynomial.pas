@@ -15786,8 +15786,6 @@ begin
 end;
 
 procedure BigNumberBiPolynomialShiftLeftX(P: TCnBigNumberBiPolynomial; N: Integer);
-var
-  I: Integer;
 begin
   if N = 0 then
     Exit

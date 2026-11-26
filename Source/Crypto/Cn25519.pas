@@ -3955,9 +3955,9 @@ end;
 procedure TCnMontgomeryCurve.XAffinePointToPoint(DestPoint,
   SourcePoint: TCnEccPoint);
 var
-  T, X, DX: TCnBigNumber;
+  T, X, E: TCnBigNumber;
 begin
-  // 输入为射影 (X, Z)，先 x = (X/Z)，再求 y
+  // X25519/X448 仅需仿射 X 坐标，Y 无意义，统一清零
   if SourcePoint.Y.IsZero then
   begin
     DestPoint.SetZero;
@@ -3966,31 +3966,22 @@ begin
 
   T := nil;
   X := nil;
-  DX := nil;
 
   try
     T := FBigNumberPool.Obtain;
     X := FBigNumberPool.Obtain;
-    DX := FBigNumberPool.Obtain;
 
-    BigNumberModularInverse(T, SourcePoint.Y, FFiniteFieldSize); // Z^-1
-    BigNumberDirectMulMod(DX, SourcePoint.X, T, FFiniteFieldSize); // 算出 DX 但先不赋值避免影响
+    // 用费马小定理算 Z^(p-2) 代替欧几里得求逆，且不求解 Y 的模平方根
+    E := FBigNumberPool.Obtain;
+    BigNumberCopy(E, FFiniteFieldSize);
+    BigNumberSubWord(E, 2);
+    BigNumberPowerMod(T, SourcePoint.Y, E, FFiniteFieldSize);
+    FBigNumberPool.Recycle(E);
+    BigNumberDirectMulMod(X, SourcePoint.X, T, FFiniteFieldSize);
 
-    BigNumberCopy(X, DX); // DestPoint.X = X/Z
-
-    // 求 X^3+A*X^2+X mod P
-    BigNumberPowerWordMod(X, DX, 3, FFiniteFieldSize);  // X^3
-
-    BigNumberDirectMulMod(T, DX, DX, FFiniteFieldSize);
-    BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize);  // A*X^2
-
-    BigNumberAddMod(X, T, X, FFiniteFieldSize);
-    BigNumberAddMod(X, X, DX, FFiniteFieldSize);  // 得到 X^3+A*X^2+X mod P
-
-    BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize);  // 求模平方根
-    BigNumberCopy(DestPoint.X, DX);
+    BigNumberCopy(DestPoint.X, X);
+    DestPoint.Y.SetZero;
   finally
-    FBigNumberPool.Recycle(DX);
     FBigNumberPool.Recycle(X);
     FBigNumberPool.Recycle(T);
   end;
@@ -6230,13 +6221,8 @@ procedure TCnEd448.AffineMultiplePoint(K: TCnBigNumber; P: TCnEcc3Point);
 var
   I: Integer;
   E, R, Q: TCnEcc3Point;
+  M: TCnBigNumber;
 begin
-  if BigNumberIsNegative(K) then
-  begin
-    BigNumberSetNegative(K, False);
-    AffinePointInverse(P);
-  end;
-
   if BigNumberIsZero(K) then
   begin
     SetNeutualAffinePoint(P);
@@ -6244,6 +6230,15 @@ begin
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
+
+  // 用局部副本取绝对值，避免修改调用方传入的 K
+  M := FBigNumberPool.Obtain;
+  BigNumberCopy(M, K);
+  if BigNumberIsNegative(M) then
+  begin
+    BigNumberSetNegative(M, False);
+    AffinePointInverse(P);
+  end;
 
   Q := nil;
   R := nil;
@@ -6266,9 +6261,9 @@ begin
     for I := 0 to CN_448_EDWARDS_BLOCK_BYTESIZE * 8 - 1 do
     begin
       AffinePointAddPoint(R, E, Q);
-      BigNumberConstTimeConditionalAssign(K.IsBitSet(I), Q.X, R.X); // 始终加，但只置位时恒定时间 R <- Q，以防止侧信道攻击
-      BigNumberConstTimeConditionalAssign(K.IsBitSet(I), Q.Y, R.Y);
-      BigNumberConstTimeConditionalAssign(K.IsBitSet(I), Q.Z, R.Z);
+      BigNumberConstTimeConditionalAssign(M.IsBitSet(I), Q.X, R.X); // 始终加，但只置位时恒定时间 R <- Q，以防止侧信道攻击
+      BigNumberConstTimeConditionalAssign(M.IsBitSet(I), Q.Y, R.Y);
+      BigNumberConstTimeConditionalAssign(M.IsBitSet(I), Q.Z, R.Z);
 
       if I < CN_448_EDWARDS_BLOCK_BYTESIZE * 8 - 1 then
         AffinePointAddPoint(E, E, E);
@@ -6278,6 +6273,7 @@ begin
     P.Y := R.Y;
     P.Z := R.Z;
   finally
+    FBigNumberPool.Recycle(M);
     Q.Free;
     R.Free;
     E.Free;

@@ -107,7 +107,7 @@ uses
   {$IFNDEF LINUX} DateUtils, {$ENDIF}
   {$ENDIF} {$ENDIF} CnNative,
   CnBigNumber, CnRSA, CnECC, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2,
-  CnSM3;
+  CnSM3, CnSM2;
 
 const
   CN_CRT_BASIC_VERSION_1 = 0;
@@ -669,7 +669,7 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; CASignType:
-  TCnCASignType = ctSha256Ecc): Boolean; overload;
+  TCnCASignType = ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求文件。
 
    参数：
@@ -685,6 +685,7 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
      const CommonName: string             - 域名
      const EmailAddress: string           - 电子邮件地址
      CASignType: TCnCASignType            - 签名杂凑算法类型
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回生成是否成功
 }
@@ -694,7 +695,7 @@ function CnCANewCertificateSignRequestStream(PrivateKey: TCnEccPrivateKey; Publi
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; CASignType:
-  TCnCASignType = ctSha256Ecc): Boolean; overload;
+  TCnCASignType = ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求流。
 
    参数：
@@ -710,6 +711,7 @@ function CnCANewCertificateSignRequestStream(PrivateKey: TCnEccPrivateKey; Publi
      const CommonName: string             - 域名
      const EmailAddress: string           - 电子邮件地址
      CASignType: TCnCASignType            - 签名杂凑算法类型
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回生成是否成功
 }
@@ -776,7 +778,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha256Ecc): Boolean; overload;
+  ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
@@ -795,6 +797,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回生成是否成功
 }
@@ -805,7 +808,7 @@ function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; Public
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType =
-  ctSha256Ecc): Boolean; overload;
+  ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
@@ -824,6 +827,7 @@ function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; Public
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回生成是否成功
 }
@@ -900,7 +904,7 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
   string; NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
   TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
-  ctSha256Ecc): Boolean; overload;
+  ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v2 格式。
 
    参数：
@@ -921,6 +925,7 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
      PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
      CASignType: TCnCASignType                                            - 签名杂凑算法类型
+     const UserID: AnsiString                                             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                                                        - 返回生成是否成功
 }
@@ -933,7 +938,7 @@ function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnEccPrivateKey; Publi
   string; NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
   TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
-  ctSha256Ecc): Boolean; overload;
+  ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书流，使用 v2 格式。
 
    参数：
@@ -954,6 +959,7 @@ function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnEccPrivateKey; Publi
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
      PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
      CASignType: TCnCASignType                                            - 签名杂凑算法类型
+     const UserID: AnsiString                                             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                                                        - 返回生成是否成功
 }
@@ -991,20 +997,24 @@ function CnCALoadCertificateSignRequestFromStream(Stream: TStream;
    返回值：Boolean                                        - 返回加载是否成功
 }
 
-function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
+function CnCAVerifyCertificateSignRequestFile(const FileName: string;
+  const UserID: AnsiString = ''): Boolean;
 {* 验证一 CSR 文件的内容是否合乎签名。
 
    参数：
      const FileName: string               - 待验证的证书请求文件
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
-function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
+function CnCAVerifyCertificateSignRequestStream(Stream: TStream;
+  const UserID: AnsiString = ''): Boolean;
 {* 验证一 CSR 流的内容是否合乎签名。
 
    参数：
      Stream: TStream                      - 待验证的证书请求流
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回是否合乎签名
 }
@@ -1078,7 +1088,7 @@ function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  ACheckTime: Boolean = True): Boolean; overload;
+  ACheckTime: Boolean = True; const UserID: AnsiString = ''): Boolean; overload;
 {* 用 ECC 签发者公钥验证一 CRT 文件的内容是否合乎签名。
 
    参数：
@@ -1086,13 +1096,14 @@ function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
      ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
      ParentCurveType: TCnEccCurveType     - 用于验证的签发者的椭圆曲线类型
      ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  AValidationTimeUTC: TDateTime): Boolean; overload;
+  AValidationTimeUTC: TDateTime; const UserID: AnsiString = ''): Boolean; overload;
 {* 使用 ECC 签发者公钥和调用方给出的 UTC 时刻验证一 CRT 文件。
 
    参数：
@@ -1100,6 +1111,8 @@ function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
      ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
      ParentCurveType: TCnEccCurveType     - 签发者使用的椭圆曲线类型
      AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回签名和所选有效期检查是否通过
 }
@@ -1130,7 +1143,7 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  ACheckTime: Boolean = True): Boolean; overload;
+  ACheckTime: Boolean = True; const UserID: AnsiString = ''): Boolean; overload;
 {* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名。
 
    参数：
@@ -1139,12 +1152,14 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
      ParentCurveType: TCnEccCurveType     - 用于验证的签发者的椭圆曲线类型
      ACheckTime: Boolean                  - 是否检查证书有效期，默认检查
 
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
+
    返回值：Boolean                        - 返回是否合乎签名
 }
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  AValidationTimeUTC: TDateTime): Boolean; overload;
+  AValidationTimeUTC: TDateTime; const UserID: AnsiString = ''): Boolean; overload;
 {* 使用 ECC 签发者公钥和调用方给出的 UTC 时刻验证一 CRT 流。
 
    参数：
@@ -1152,6 +1167,7 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
      ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
      ParentCurveType: TCnEccCurveType     - 签发者使用的椭圆曲线类型
      AValidationTimeUTC: TDateTime        - 用于有效期判断的 UTC 日期时间，不得传本地时间
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回签名和所选有效期检查是否通过
 }
@@ -1215,7 +1231,7 @@ function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; const CRTFile: string; const CSRFile: string; const
   OutCRTFile: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter:
-  TDateTime; CASignType: TCnCASignType = ctSha256Ecc): Boolean; overload;
+  TDateTime; CASignType: TCnCASignType = ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v1 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
@@ -1229,6 +1245,7 @@ function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType:
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
+     const UserID: AnsiString        - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回生成是否成功
 }
@@ -1262,7 +1279,7 @@ function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType:
   OutCRTFile: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter:
   TDateTime; StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
-  ctSha256Ecc): Boolean; overload;
+  ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v2 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
@@ -1278,6 +1295,7 @@ function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType:
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
      PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
      CASignType: TCnCASignType                                            - 签名杂凑算法类型
+     const UserID: AnsiString                                             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                                                        - 返回生成是否成功
 }
@@ -1305,7 +1323,7 @@ function CnCASignCertificateStream(PrivateKey: TCnRSAPrivateKey; CRTStream:
 function CnCASignCertificateStream(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
   const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
-  CASignType: TCnCASignType = ctSha256Ecc): Boolean; overload;
+  CASignType: TCnCASignType = ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 用 ECC CRT 证书流内容与对应私钥签署证书请求流，生成被签发证书流，使用 v1 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
@@ -1319,6 +1337,7 @@ function CnCASignCertificateStream(PrivateKey: TCnEccPrivateKey; CurveType:
      NotBefore: TDateTime                 - 证书有效期开始的日期时间
      NotAfter: TDateTime                  - 证书有效期结束的日期时间
      CASignType: TCnCASignType            - 签名杂凑算法类型
+     const UserID: AnsiString             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                        - 返回生成是否成功
 }
@@ -1352,7 +1371,7 @@ function CnCASignCertificate2Stream(PrivateKey: TCnEccPrivateKey; CurveType:
   const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
   StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
   TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType =
-  ctSha256Ecc): Boolean; overload;
+  ctSha256Ecc; const UserID: AnsiString = ''): Boolean; overload;
 {* 用 ECC CRT 证书流内容与对应私钥签署证书请求流，生成被签发证书流，使用 v2 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
@@ -1368,6 +1387,7 @@ function CnCASignCertificate2Stream(PrivateKey: TCnEccPrivateKey; CurveType:
      StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
      PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
      CASignType: TCnCASignType                                            - 签名杂凑算法类型
+     const UserID: AnsiString                                             - SM2 用户标识，空串表示使用默认值 1234567812345678
 
    返回值：Boolean                                                        - 返回生成是否成功
 }
@@ -1486,6 +1506,10 @@ const
   ); // 1.3.6.1.5.5.7.3.9
 
   // Hash Signature OIDs
+  OID_MD5_RSAENCRYPTION: array[0..8] of Byte = (
+    $2A, $86, $48, $86, $F7, $0D, $01, $01, $04
+  ); // 1.2.840.113549.1.1.4
+
   OID_SHA1_RSAENCRYPTION: array[0..8] of Byte = (
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $05
   ); // 1.2.840.113549.1.1.5
@@ -1639,18 +1663,69 @@ begin
   Result := True;
 end;
 
+function GetCASignUserID(const UserID: AnsiString): AnsiString;
+begin
+  if UserID <> '' then
+    Result := UserID
+  else
+  begin
+    SetLength(Result, SizeOf(CN_SM2_DEF_UID));
+    Move(CN_SM2_DEF_UID[0], Result[1], SizeOf(CN_SM2_DEF_UID));
+  end;
+end;
+
+function InternalVerifySM2Signature(const UserID: AnsiString;
+  InfoStream, SignStream: TMemoryStream; PublicKey: TCnEccPublicKey): Boolean;
+var
+  SM2: TCnSM2;
+  Pub: TCnSM2PublicKey;
+  Sig: TCnSM2Signature;
+  Reader: TCnBerReader;
+  Buf: TBytes;
+begin
+  Result := False;
+  SM2 := TCnSM2.Create;
+  Pub := TCnSM2PublicKey.Create;
+  Sig := TCnSM2Signature.Create;
+  Reader := nil;
+  try
+    Pub.Assign(PublicKey);
+    try
+      Reader := TCnBerReader.Create(PByte(SignStream.Memory), SignStream.Size, True);
+      Reader.ParseToTree;
+    except
+      on E: ECnBerException do Exit;
+    end;
+    if Reader.TotalCount < 3 then Exit;
+    SetLength(Buf, Reader.Items[1].BerDataLength);
+    Reader.Items[1].CopyDataTo(@Buf[0]);
+    if not BigNumberSetBinary(PAnsiChar(@Buf[0]), Length(Buf), Sig.R) then Exit;
+    SetLength(Buf, Reader.Items[2].BerDataLength);
+    Reader.Items[2].CopyDataTo(@Buf[0]);
+    if not BigNumberSetBinary(PAnsiChar(@Buf[0]), Length(Buf), Sig.S) then Exit;
+    Result := CnSM2VerifyData(GetCASignUserID(UserID), InfoStream.Memory,
+      InfoStream.Size, Sig, Pub, SM2);
+  finally
+    Reader.Free;
+    Sig.Free;
+    Pub.Free;
+    SM2.Free;
+  end;
+end;
+
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType:
   TCnCASignType; AParent: TCnBerWriteNode): TCnBerWriteNode;
 begin
   Result := nil;
   case CASignType of
+    ctMd5RSA:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_MD5_RSAENCRYPTION[0],
+        SizeOf(OID_MD5_RSAENCRYPTION), AParent);
     ctSha1RSA:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA1_RSAENCRYPTION
-        [0],
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA1_RSAENCRYPTION[0],
         SizeOf(OID_SHA1_RSAENCRYPTION), AParent);
     ctSha256RSA:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA256_RSAENCRYPTION
-        [0],
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA256_RSAENCRYPTION[0],
         SizeOf(OID_SHA256_RSAENCRYPTION), AParent);
     ctSha1Ecc:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA1_ECDSA[0],
@@ -1659,8 +1734,7 @@ begin
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA256_ECDSA[0],
         SizeOf(OID_SHA256_ECDSA), AParent);
     ctSM2withSM3:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SM2_SM3ENCRYPTION
-        [0],
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SM2_SM3ENCRYPTION[0],
         SizeOf(OID_SM2_SM3ENCRYPTION), AParent);
     ctSha384Ecc:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA384_ECDSA[0],
@@ -1891,16 +1965,22 @@ end;
 }
 function GenerateEccSignatureNode(AWriter: TCnBerWriter; Root, NodeToSign:
   TCnBerWriteNode; PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType;
-  CASignType: TCnCASignType): Boolean;
+  CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   ValueStream, SignStream: TMemoryStream;
-  HashNode: TCnBerWriteNode;
+  HashNode, SignRoot: TCnBerWriteNode;
   Ecc: TCnEcc;
+  SM2: TCnSM2;
+  Sig: TCnSM2Signature;
+  SignWriter: TCnBerWriter;
 begin
   Result := False;
   ValueStream := nil;
   SignStream := nil;
   Ecc := nil;
+  SM2 := nil;
+  Sig := nil;
+  SignWriter := nil;
 
   try
     // 拿出 InfoRoot 的数据
@@ -1908,10 +1988,27 @@ begin
     NodeToSign.SaveToStream(ValueStream);
 
     SignStream := TMemoryStream.Create;
-    Ecc := TCnEcc.Create(CurveType);
-    if not CnEccSignStream(ValueStream, SignStream, Ecc, PrivateKey,
-      GetEccSignTypeFromCASignType(CASignType)) then
-      Exit;
+    if CASignType = ctSM2withSM3 then
+    begin
+      // SM2 须按 GM/T 0003 用 ZA 预处理，不能走普通 ECDSA+SM3
+      Sig := TCnSM2Signature.Create;
+      SM2 := TCnSM2.Create;
+      if not CnSM2SignData(GetCASignUserID(UserID), ValueStream.Memory,
+        ValueStream.Size, Sig, PrivateKey, nil, SM2) then
+        Exit;
+      SignWriter := TCnBerWriter.Create;
+      SignRoot := SignWriter.AddContainerNode(CN_BER_TAG_SEQUENCE);
+      AddBigNumberToWriter(SignWriter, Sig.R, SignRoot);
+      AddBigNumberToWriter(SignWriter, Sig.S, SignRoot);
+      SignWriter.SaveToStream(SignStream);
+    end
+    else
+    begin
+      Ecc := TCnEcc.Create(CurveType);
+      if not CnEccSignStream(ValueStream, SignStream, Ecc, PrivateKey,
+        GetEccSignTypeFromCASignType(CASignType)) then
+        Exit;
+    end;
 
     // 增加杂凑算法说明
     HashNode := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
@@ -1922,6 +2019,9 @@ begin
     AWriter.AddBasicNode(CN_BER_TAG_BIT_STRING, SignStream.Memory, SignStream.Size, Root);
     Result := True;
   finally
+    SignWriter.Free;
+    Sig.Free;
+    SM2.Free;
     Ecc.Free;
     SignStream.Free;
     ValueStream.Free;
@@ -2529,17 +2629,9 @@ function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore, NotAfter: TDateTime; StandardExt:
   TCnCertificateStandardExtensions; PrivateInternetExt:
-  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
-  Writer: TCnBerWriter;
-  Root, BasicNode, SubjectNode: TCnBerWriteNode;
-  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
-  SerialNum: TCnBigNumber;
-  UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
-  VerNode: TCnBerWriteNode;
-  B: Byte;
-  Crit: TCnCertificateExtensionCriticals;
 begin
   Result := False;
   if NotAfter <= NotBefore then
@@ -2560,7 +2652,7 @@ begin
     Result := CnCANewSelfSignedCertificate2Stream(PrivateKey, PublicKey, CurveType, Stream,
       CountryName, StateOrProvinceName, LocalityName, OrganizationName,
       OrganizationalUnitName, CommonName, EmailAddress, IntSerialNum,
-      NotBefore, NotAfter, StandardExt, PrivateInternetExt, CASignType);
+      NotBefore, NotAfter, StandardExt, PrivateInternetExt, CASignType, UserID);
 
     if Result then
       Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
@@ -2577,7 +2669,7 @@ function CnCANewSelfSignedCertificate2Stream(PrivateKey: TCnEccPrivateKey; Publi
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
   string; NotBefore: TDateTime; NotAfter: TDateTime; StandardExt:
   TCnCertificateStandardExtensions; PrivateInternetExt:
-  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -2678,7 +2770,7 @@ begin
       PrivateInternetExt, Crit);
 
     if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey,
-      CurveType, CASignType) then
+      CurveType, CASignType, UserID) then
       Exit;
 
     Writer.SaveToStream(OutCRTStream);
@@ -2879,7 +2971,7 @@ function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; const CRTFile: string; const CSRFile: string; const
   OutCRTFile: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
   StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
-  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   CRTStream, CSRStream, OutCRTStream: TMemoryStream;
 begin
@@ -2900,7 +2992,7 @@ begin
 
     if not CnCASignCertificate2Stream(PrivateKey, CurveType, CRTStream,
       CSRStream, OutCRTStream, IntSerialNum, NotBefore, NotAfter, StandardExt,
-      PrivateInternetExt, CASignType) then
+      PrivateInternetExt, CASignType, UserID) then
       Exit;
 
     OutCRTStream.Position := 0;
@@ -2922,7 +3014,7 @@ function CnCASignCertificate2Stream(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
   const IntSerialNum: string; NotBefore, NotAfter: TDateTime; StandardExt:
   TCnCertificateStandardExtensions; PrivateInternetExt:
-  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -3046,7 +3138,7 @@ begin
       PrivateInternetExt, Crit);
 
     if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey,
-      CurveType, CASignType) then
+      CurveType, CASignType, UserID) then
       Exit;
 
     Stream := TMemoryStream.Create;
@@ -3162,7 +3254,7 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; CASignType:
-  TCnCASignType): Boolean;
+  TCnCASignType; const UserID: AnsiString): Boolean;
 var
   Stream: TMemoryStream;
 begin
@@ -3179,7 +3271,7 @@ begin
   try
     Result := CnCANewCertificateSignRequestStream(PrivateKey, PublicKey, CurveType,
       Stream, CountryName, StateOrProvinceName, LocalityName, OrganizationName,
-      OrganizationalUnitName, CommonName, EmailAddress, CASignType);
+      OrganizationalUnitName, CommonName, EmailAddress, CASignType, UserID);
 
     if Result then
       Result := SaveMemoryToPemFile(OutCSRFile, PEM_CERTIFICATE_REQUEST_HEAD,
@@ -3193,7 +3285,7 @@ function CnCANewCertificateSignRequestStream(PrivateKey: TCnEccPrivateKey; Publi
   TCnEccPublicKey; CurveType: TCnEccCurveType; OutCSRStream: TStream; const
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
-  const CommonName: string; const EmailAddress: string; CASignType: TCnCASignType): Boolean;
+  const CommonName: string; const EmailAddress: string; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   B: Byte;
   Writer: TCnBerWriter;
@@ -3243,7 +3335,8 @@ begin
       Exit;
 
     // 计算 InfoRoot 块的数字摘要并签名
-    GenerateEccSignatureNode(Writer, Root, InfoRoot, PrivateKey, CurveType, CASignType);
+    if not GenerateEccSignatureNode(Writer, Root, InfoRoot, PrivateKey, CurveType, CASignType, UserID) then
+      Exit;
 
     // 保存
     Writer.SaveToStream(OutCSRStream);
@@ -3301,7 +3394,10 @@ function ExtractCASignType(ObjectIdentifierNode: TCnBerReadNode;
   out CASignType: TCnCASignType): Boolean;
 begin
   Result := True;
-  if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA1_RSAENCRYPTION[0],
+  if CompareObjectIdentifier(ObjectIdentifierNode, @OID_MD5_RSAENCRYPTION[0],
+    SizeOf(OID_MD5_RSAENCRYPTION)) then
+    CASignType := ctMd5RSA
+  else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA1_RSAENCRYPTION[0],
     SizeOf(OID_SHA1_RSAENCRYPTION)) then
     CASignType := ctSha1RSA
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA256_RSAENCRYPTION[0],
@@ -3863,25 +3959,26 @@ begin
   end;
 end;
 
-function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
+function CnCAVerifyCertificateSignRequestFile(const FileName: string;
+  const UserID: AnsiString): Boolean;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifyCertificateSignRequestStream(Stream);
+    Result := CnCAVerifyCertificateSignRequestStream(Stream, UserID);
   finally
     Stream.Free;
   end;
 end;
 
-function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
+function CnCAVerifyCertificateSignRequestStream(Stream: TStream;
+  const UserID: AnsiString): Boolean;
 var
   CSR: TCnCertificateRequest;
   Reader: TCnBerReader;
   MemStream, SignStream, InfoStream: TMemoryStream;
   InfoRoot: TCnBerReadNode;
-  P: Pointer;
 begin
   Result := False;
   CSR := nil;
@@ -3943,9 +4040,13 @@ begin
         InfoStream.Position := 0;
         SignStream.Position := 0;
 
-        Result := CnEccVerifyStream(InfoStream, SignStream, CSR.EccCurveType,
-          CSR.EccPublicKey,
-          GetEccSignTypeFromCASignType(CSR.CASignType));
+        if CSR.CASignType = ctSM2withSM3 then
+          Result := InternalVerifySM2Signature(UserID, InfoStream, SignStream,
+            CSR.EccPublicKey)
+        else
+          Result := CnEccVerifyStream(InfoStream, SignStream, CSR.EccCurveType,
+            CSR.EccPublicKey,
+            GetEccSignTypeFromCASignType(CSR.CASignType));
       end;
     end;
   finally
@@ -3966,7 +4067,7 @@ function InternalCAVerifyRSACertificateStream(Stream: TStream;
 
 function InternalCAVerifyEccCertificateStream(Stream: TStream;
   ParentPublicKey: TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean; forward;
+  AValidationTimeUTC: TDateTime; ACheckTime: Boolean; const UserID: AnsiString): Boolean; forward;
 
 function CnCAVerifySelfSignedCertificateFile(const FileName: string;
   ACheckTime: Boolean): Boolean; overload;
@@ -4010,7 +4111,7 @@ begin
 end;
 
 function InternalVerifySelfSignedSignature(Certificate: TCnCertificate;
-  TBSNode: TCnBerReadNode): Boolean;
+  TBSNode: TCnBerReadNode; const UserID: AnsiString): Boolean;
 var
   HashStream, SignStream, InfoStream: TMemoryStream;
   P: Pointer;
@@ -4073,10 +4174,14 @@ begin
       InfoStream.Position := 0;
 
       try
-        Result := CnEccVerifyStream(InfoStream, SignStream,
-          Certificate.BasicCertificate.SubjectEccCurveType,
-          Certificate.BasicCertificate.SubjectEccPublicKey,
-          GetEccSignTypeFromCASignType(Certificate.CASignType));
+        if Certificate.CASignType = ctSM2withSM3 then
+          Result := InternalVerifySM2Signature(UserID, InfoStream, SignStream,
+            Certificate.BasicCertificate.SubjectEccPublicKey)
+        else
+          Result := CnEccVerifyStream(InfoStream, SignStream,
+            Certificate.BasicCertificate.SubjectEccCurveType,
+            Certificate.BasicCertificate.SubjectEccPublicKey,
+            GetEccSignTypeFromCASignType(Certificate.CASignType));
       except
         on E: ECnEccException do
           Result := False;
@@ -4145,14 +4250,14 @@ end;
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  ACheckTime: Boolean): Boolean; overload;
+  ACheckTime: Boolean; const UserID: AnsiString): Boolean; overload;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey,
-      ParentCurveType, ACheckTime);
+      ParentCurveType, ACheckTime, UserID);
   finally
     Stream.Free;
   end;
@@ -4160,14 +4265,14 @@ end;
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  AValidationTimeUTC: TDateTime): Boolean; overload;
+  AValidationTimeUTC: TDateTime; const UserID: AnsiString): Boolean; overload;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey,
-      ParentCurveType, AValidationTimeUTC);
+      ParentCurveType, AValidationTimeUTC, UserID);
   finally
     Stream.Free;
   end;
@@ -4196,7 +4301,6 @@ var
   Root, InfoRoot, SignAlgNode, SignValueNode: TCnBerReadNode;
   MemStream, SignStream, InfoStream: TMemoryStream;
   OuterType: TCnCASignType;
-  P: Pointer;
 begin
   Result := False;
   if ParentPublicKey = nil then
@@ -4290,23 +4394,23 @@ end;
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  ACheckTime: Boolean): Boolean; overload;
+  ACheckTime: Boolean; const UserID: AnsiString): Boolean; overload;
 begin
   Result := InternalCAVerifyEccCertificateStream(Stream, ParentPublicKey,
-    ParentCurveType, InternalDefaultValidationTimeUTC(ACheckTime), ACheckTime);
+    ParentCurveType, InternalDefaultValidationTimeUTC(ACheckTime), ACheckTime, UserID);
 end;
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey:
   TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  AValidationTimeUTC: TDateTime): Boolean; overload;
+  AValidationTimeUTC: TDateTime; const UserID: AnsiString): Boolean; overload;
 begin
   Result := InternalCAVerifyEccCertificateStream(Stream, ParentPublicKey,
-    ParentCurveType, AValidationTimeUTC, True);
+    ParentCurveType, AValidationTimeUTC, True, UserID);
 end;
 
 function InternalCAVerifyEccCertificateStream(Stream: TStream;
   ParentPublicKey: TCnEccPublicKey; ParentCurveType: TCnEccCurveType;
-  AValidationTimeUTC: TDateTime; ACheckTime: Boolean): Boolean;
+  AValidationTimeUTC: TDateTime; ACheckTime: Boolean; const UserID: AnsiString): Boolean;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
@@ -4380,8 +4484,12 @@ begin
       InfoStream.Position := 0;
       SignStream.Position := 0;
 
-      Result := CnEccVerifyStream(InfoStream, SignStream, ParentCurveType,
-        ParentPublicKey, GetEccSignTypeFromCASignType(CRT.CASignType));
+      if CRT.CASignType = ctSM2withSM3 then
+        Result := InternalVerifySM2Signature(UserID, InfoStream, SignStream,
+          ParentPublicKey)
+      else
+        Result := CnEccVerifyStream(InfoStream, SignStream, ParentCurveType,
+          ParentPublicKey, GetEccSignTypeFromCASignType(CRT.CASignType));
     end;
   finally
     CRT.Free;
@@ -4875,7 +4983,7 @@ begin
 
         // 用证书自身公钥验签，失败仅表示不是自签名证书
         Certificate.FIsSelfSigned := InternalVerifySelfSignedSignature(Certificate,
-          Reader.Items[1]);
+          Reader.Items[1], '');
       end;
 
       Result := True;
@@ -5151,8 +5259,6 @@ var
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
   UTCTime: TCnUTCTime;
-  VerNode: TCnBerWriteNode;
-  B: Byte;
 begin
   Result := False;
   if NotAfter <= NotBefore then
@@ -5173,12 +5279,6 @@ begin
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-
-    // 显式写 v1 版本号
-    VerNode := Writer.AddContainerNode(0, BasicNode);
-    VerNode.BerTypeMask := $80;
-    B := 1;
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
     if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
@@ -5254,7 +5354,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
-  string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
+  string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   Stream: TMemoryStream;
 begin
@@ -5276,7 +5376,7 @@ begin
   try
     Result := CnCANewSelfSignedCertificateStream(PrivateKey, PublicKey, CurveType, Stream,
       CountryName, StateOrProvinceName, LocalityName, OrganizationName, OrganizationalUnitName,
-      CommonName, EmailAddress, IntSerialNum, NotBefore, NotAfter, CASignType);
+      CommonName, EmailAddress, IntSerialNum, NotBefore, NotAfter, CASignType, UserID);
 
     if Result then
       Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
@@ -5291,14 +5391,12 @@ function CnCANewSelfSignedCertificateStream(PrivateKey: TCnEccPrivateKey; Public
   CountryName: string; const StateOrProvinceName: string; const LocalityName:
   string; const OrganizationName: string; const OrganizationalUnitName: string;
   const CommonName: string; const EmailAddress: string; const IntSerialNum:
-  string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
+  string; NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
   UTCTime: TCnUTCTime;
-  VerNode: TCnBerWriteNode;
-  B: Byte;
 begin
   Result := False;
   if NotAfter <= NotBefore then
@@ -5321,12 +5419,6 @@ begin
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-
-    // 显式写 v1 版本号
-    VerNode := Writer.AddContainerNode(0, BasicNode);
-    VerNode.BerTypeMask := $80;
-    B := 1;
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
     if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
@@ -5387,7 +5479,7 @@ begin
 
     // 计算并写签名值
     if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey,
-      CurveType, CASignType) then
+      CurveType, CASignType, UserID) then
       Exit;
 
     // 保存
@@ -5453,8 +5545,6 @@ var
   Stream: TMemoryStream;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
-  VerNode: TCnBerWriteNode;
-  B: Byte;
 begin
   Result := False;
   if (PrivateKey = nil) or (CRTStream = nil) or (CSRStream = nil) or
@@ -5493,12 +5583,6 @@ begin
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-
-    // 显式写 v1 版本号
-    VerNode := Writer.AddContainerNode(0, BasicNode);
-    VerNode.BerTypeMask := $80;
-    B := 1;
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
     if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
@@ -5583,7 +5667,7 @@ end;
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; const CRTFile: string; const CSRFile: string; const
   OutCRTFile: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
-  CASignType: TCnCASignType): Boolean;
+  CASignType: TCnCASignType; const UserID: AnsiString): Boolean;
 var
   CRTStream, CSRStream, OutCRTStream: TMemoryStream;
 begin
@@ -5603,7 +5687,7 @@ begin
     end;
 
     if not CnCASignCertificateStream(PrivateKey, CurveType, CRTStream,
-      CSRStream, OutCRTStream, IntSerialNum, NotBefore, NotAfter, CASignType) then
+      CSRStream, OutCRTStream, IntSerialNum, NotBefore, NotAfter, CASignType, UserID) then
       Exit;
 
     OutCRTStream.Position := 0;
@@ -5624,7 +5708,7 @@ end;
 function CnCASignCertificateStream(PrivateKey: TCnEccPrivateKey; CurveType:
   TCnEccCurveType; CRTStream: TStream; CSRStream: TStream; OutCRTStream: TStream;
   const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType:
-  TCnCASignType): Boolean;
+  TCnCASignType; const UserID: AnsiString): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -5633,8 +5717,6 @@ var
   Stream: TMemoryStream;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
-  VerNode: TCnBerWriteNode;
-  B: Byte;
 begin
   Result := False;
   if (PrivateKey = nil) or (CRTStream = nil) or (CSRStream = nil) or
@@ -5673,12 +5755,6 @@ begin
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-
-    // 显式写 v1 版本号
-    VerNode := Writer.AddContainerNode(0, BasicNode);
-    VerNode.BerTypeMask := $80;
-    B := 1;
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
 
     // 写序列号
     if not AddSerialNumberToWriter(Writer, IntSerialNum, BasicNode) then
@@ -5741,7 +5817,7 @@ begin
 
     // 计算并写签名值
     if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey,
-      CurveType, CASignType) then
+      CurveType, CASignType, UserID) then
       Exit;
 
     // 保存

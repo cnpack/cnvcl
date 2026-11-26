@@ -3670,7 +3670,9 @@ begin
       Codewords := ReadCodewords;
 
       // Step 5: 数据块划分
-      SetLength(Blocks, 40);  // 最大 40 块
+      // 按规范表格获取实际分块数，高版本最多可达 81 块
+      SetLength(Blocks, CN_NUM_ERROR_CORRECTION_BLOCKS[FQRVersion,
+        Ord(FFormatInfo.ErrorLevel)]);
       BlockCount := 0;
       ECCPerBlock := 0;
       SplitDataBlocks(Codewords, Blocks, BlockCount, ECCPerBlock);
