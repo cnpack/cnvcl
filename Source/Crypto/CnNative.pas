@@ -1904,7 +1904,7 @@ function SarInt8(V: ShortInt; ShiftCount: Integer): ShortInt;
 
    参数：
      V: ShortInt                          - 待算术右移的 8 位有符号整数
-     ShiftCount: Integer                  - 算术右移的位数
+     ShiftCount: Integer                  - 算术右移的位数，0 或负数时表示不移
 
    返回值：ShortInt                       - 返回移位后的值
 }
@@ -1914,7 +1914,7 @@ function SarInt16(V: SmallInt; ShiftCount: Integer): SmallInt;
 
    参数：
      V: SmallInt                          - 待算术右移的 16 位有符号整数
-     ShiftCount: Integer                  - 算术右移的位数
+     ShiftCount: Integer                  - 算术右移的位数，0 或负数时表示不移
 
    返回值：SmallInt                       - 返回移位后的值
 }
@@ -1924,7 +1924,7 @@ function SarInt32(V: Integer; ShiftCount: Integer): Integer;
 
    参数：
      V: Integer                           - 待算术右移的 32 位有符号整数
-     ShiftCount: Integer                  - 算术右移的位数
+     ShiftCount: Integer                  - 算术右移的位数，0 或负数时表示不移
 
    返回值：Integer                        - 返回移位后的值
 }
@@ -1934,7 +1934,7 @@ function SarInt64(V: Int64; ShiftCount: Integer): Int64;
 
    参数：
      V: Int64                             - 待算术右移的 64 位有符号整数
-     ShiftCount: Integer                  - 算术右移的位数
+     ShiftCount: Integer                  - 算术右移的位数，0 或负数时表示不移
 
    返回值：Int64                          - 返回移位后的值
 }
@@ -4115,6 +4115,20 @@ end;
 
 function SarInt8(V: ShortInt; ShiftCount: Integer): ShortInt;
 begin
+  if ShiftCount <= 0 then
+  begin
+    Result := V;
+    Exit;
+  end;
+  if ShiftCount >= 7 then
+  begin
+    if V < 0 then
+      Result := -1
+    else
+      Result := 0;
+    Exit;
+  end;
+
   Result := V shr ShiftCount;
   if (V and $80) <> 0 then
     Result := Result or ($FF shl (8 - ShiftCount));
@@ -4122,6 +4136,20 @@ end;
 
 function SarInt16(V: SmallInt; ShiftCount: Integer): SmallInt;
 begin
+  if ShiftCount <= 0 then
+  begin
+    Result := V;
+    Exit;
+  end;
+  if ShiftCount >= 15 then
+  begin
+    if V < 0 then
+      Result := -1
+    else
+      Result := 0;
+    Exit;
+  end;
+
   Result := V shr ShiftCount;
   if (V and $8000) <> 0 then
     Result := Result or ($FFFF shl (16 - ShiftCount));
@@ -4129,6 +4157,20 @@ end;
 
 function SarInt32(V: Integer; ShiftCount: Integer): Integer;
 begin
+  if ShiftCount <= 0 then
+  begin
+    Result := V;
+    Exit;
+  end;
+  if ShiftCount >= 31 then
+  begin
+    if V < 0 then
+      Result := -1
+    else
+      Result := 0;
+    Exit;
+  end;
+
   Result := V shr ShiftCount;
   if (V and $80000000) <> 0 then
     Result := Result or Integer($FFFFFFFF shl (32 - ShiftCount));
@@ -4136,6 +4178,20 @@ end;
 
 function SarInt64(V: Int64; ShiftCount: Integer): Int64;
 begin
+  if ShiftCount <= 0 then
+  begin
+    Result := V;
+    Exit;
+  end;
+  if ShiftCount >= 63 then
+  begin
+    if V < 0 then
+      Result := -1
+    else
+      Result := 0;
+    Exit;
+  end;
+
   Result := V shr ShiftCount;
   if (V and $8000000000000000) <> 0 then
     Result := Result or (Int64($FFFFFFFFFFFFFFFF) shl (64 - ShiftCount));
@@ -4822,6 +4878,8 @@ end;
 function _ValUInt64(const S: string; var Code: Integer): TUInt64;
 const
   FirstIndex = 1;
+  MaxDiv10 = 1844674407370955161;
+  MaxMod10 = 5;
 var
   I: Integer;
   Dig: Integer;
@@ -4838,8 +4896,13 @@ begin
     Exit;
   end;
 
-  while S[I] = Char(' ') do
+  while (I <= Length(S)) and (S[I] = Char(' ')) do
     Inc(I);
+  if I > Length(S) then
+  begin
+    Code := I + 1 - FirstIndex;
+    Exit;
+  end;
   Sign := False;
 
   if S[I] =  Char('-') then
@@ -4850,6 +4913,11 @@ begin
   end
   else if S[I] =  Char('+') then
     Inc(I);
+  if I > Length(S) then
+  begin
+    Code := I + 1 - FirstIndex;
+    Exit;
+  end;
   Empty := True;
 
   if (S[I] =  Char('$')) or (UpCase(S[I]) =  Char('X'))
@@ -4892,7 +4960,7 @@ begin
         Break;
       end;
 
-      if Result > UInt64Div(CN_MAX_TUINT64, 10) then
+      if (Result > MaxDiv10) or ((Result = MaxDiv10) and (Dig > MaxMod10)) then
         Break;
       if Sign and (Dig <> 0) then
         Break;
@@ -4912,6 +4980,8 @@ end;
 function _ValUInt32(const S: string; var Code: Integer): Cardinal;
 const
   FirstIndex = 1;
+  MaxDiv10 = 429496729;
+  MaxMod10 = 5;
 var
   I: Integer;
   Dig: Integer;
@@ -4928,8 +4998,13 @@ begin
     Exit;
   end;
 
-  while S[I] = Char(' ') do
+  while (I <= Length(S)) and (S[I] = Char(' ')) do
     Inc(I);
+  if I > Length(S) then
+  begin
+    Code := I + 1 - FirstIndex;
+    Exit;
+  end;
   Sign := False;
 
   if S[I] =  Char('-') then
@@ -4940,6 +5015,11 @@ begin
   end
   else if S[I] =  Char('+') then
     Inc(I);
+  if I > Length(S) then
+  begin
+    Code := I + 1 - FirstIndex;
+    Exit;
+  end;
   Empty := True;
 
   if (S[I] =  Char('$')) or (UpCase(S[I]) =  Char('X'))
@@ -4982,7 +5062,7 @@ begin
         Break;
       end;
 
-      if Result > (CN_MAX_UINT32 div 10) then
+      if (Result > MaxDiv10) or ((Result = MaxDiv10) and (Dig > MaxMod10)) then
         Break;
       if Sign and (Dig <> 0) then
         Break;
@@ -5572,8 +5652,14 @@ function IsInt32MulOverflow(A, B: Integer): Boolean;
 var
   T: Integer;
 begin
-  T := A * B;
-  Result := (B <> 0) and ((T div B) <> A);
+  if ((A = Low(Integer)) and (B = -1)) or ((B = Low(Integer)) and (A = -1)) then
+    // Low * -1 回绕后仍为 Low，且 (T div B) = A，下述除法检测存在盲点，需特判
+    Result := True
+  else
+  begin
+    T := A * B;
+    Result := (B <> 0) and ((T div B) <> A);
+  end;
 end;
 
 // 判断两个 32 位无符号整数相乘是否溢出 32 位无符号整数上限
@@ -5601,8 +5687,8 @@ function IsInt64MulOverflow(A, B: Int64): Boolean;
 var
   T: Int64;
 begin
-  if (A = Low(Int64)) and (B = -1) then
-    // Low * -1 回绕后仍为 Low，且 (T div B) = A，上述除法检测存在盲点，需特判
+  if ((A = Low(Int64)) and (B = -1)) or ((B = Low(Int64)) and (A = -1)) then
+    // Low * -1 回绕后仍为 Low，且 (T div B) = A，下述除法检测存在盲点，需特判
     Result := True
   else
   begin

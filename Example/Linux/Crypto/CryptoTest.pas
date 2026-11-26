@@ -2885,11 +2885,63 @@ end;
 function TestStrToUInt64: Boolean;
 var
   A: TUInt64;
+  C: Cardinal;
   S: string;
+  Raised: Boolean;
 begin
+  Result := False;
   S := '10977225559701242671';
   A := StrToUInt64(S);
-  Result := UInt64ToStr(A) = S;
+  if UInt64ToStr(A) <> S then Exit;
+
+  if StrToUInt64('18446744073709551615') <> CN_MAX_TUINT64 then Exit;
+
+  Raised := False;
+  try
+    StrToUInt64('18446744073709551616');
+  except
+    on E: EConvertError do Raised := True;
+  end;
+  if not Raised then Exit;
+
+  Raised := False;
+  try
+    StrToUInt64('18446744073709551619');
+  except
+    on E: EConvertError do Raised := True;
+  end;
+  if not Raised then Exit;
+
+  Raised := False;
+  try
+    StrToUInt64('   ');
+  except
+    on E: EConvertError do Raised := True;
+  end;
+  if not Raised then Exit;
+
+  if StrToUInt('4294967295') <> CN_MAX_UINT32 then Exit;
+
+  Raised := False;
+  try
+    StrToUInt('4294967296');
+  except
+    on E: EConvertError do Raised := True;
+  end;
+  if not Raised then Exit;
+
+  C := StrToUInt('  4294967295');
+  if C <> CN_MAX_UINT32 then Exit;
+
+  Raised := False;
+  try
+    StrToUInt('   ');
+  except
+    on E: EConvertError do Raised := True;
+  end;
+  if not Raised then Exit;
+
+  Result := True;
 end;
 
 function TestUInt64Div: Boolean;
