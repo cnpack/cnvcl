@@ -9473,7 +9473,7 @@ var
   T, U, X, Y, Z, OldU, R: TCnBigNumber;
 begin
   Result := False;
-  if Prime.IsZero then
+  if A.IsNegative or Prime.IsZero or Prime.IsNegative or Prime.IsOne then
     Exit;
 
   if A.IsZero then // 0 的平方 mod P = 0
@@ -9482,6 +9482,14 @@ begin
     Result := True;
     Exit;
   end;
+  if Prime.IsWord(2) and A.IsOne then // 2 有 1 是 1 的平方剩余，其他更多的解不算
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end;
+  if Prime.IsEven then // 其他正偶数不支持
+    Exit;
 
   U := nil;
   OldU := nil;

@@ -83,8 +83,8 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     {* 内部赋值方法}
 
-    procedure ExpandCapacity;
-    {* 扩展内容区，首先保证大于 ByteLength 否则扩展至两倍，其次容量增长百分之五十}
+    procedure ExpandCapacity(AMinCapacity: Integer = 0);
+    {* 扩展内容区，至少保证满足 AMinCapacity 和 ByteLength，否则扩展至两倍，其次容量增长百分之五十}
 
     procedure EnsureCapacity(ABitSize: Integer);
     {* 确保至少 ABitSize 的容量，常用的调用办法是 FBitLength + Delta。
@@ -459,6 +459,7 @@ var
   B: TBytes;
   FullBytes, RemBits, I: Integer;
 begin
+  Result := Self;
   if (Value = nil) or (Value.BitLength <= 0) then
     Exit;
 
@@ -470,8 +471,6 @@ begin
     AppendByte(B[I]);
   if RemBits > 0 then
     AppendByteRange(B[FullBytes], RemBits - 1);
-
-  Result := Self;
 end;
 
 function TCnBitBuilder.AppendByte(Value: Byte; Full: Boolean): TCnBitBuilder;
@@ -770,7 +769,7 @@ procedure TCnBitBuilder.Clear;
 begin
   FBitLength := 0;
   ByteCapacity := BIT_BUILDER_DEFAULT_CAPACITY;
-  SetLength(FData, 0);
+  FillChar(FData[0], ByteCapacity, 0);
 end;
 
 function TCnBitBuilder.Copy(Index: Integer; Count: Integer): Cardinal;
@@ -897,20 +896,25 @@ begin
 
   NeedBytes := (ABitSize - 1) div 8 + 1; // 通过位数算出容纳的最小字节数
   while ByteCapacity < NeedBytes do
-    ExpandCapacity;
+    ExpandCapacity(NeedBytes);
 end;
 
-procedure TCnBitBuilder.ExpandCapacity;
+procedure TCnBitBuilder.ExpandCapacity(AMinCapacity: Integer);
 var
   NC: Integer;
 begin
-  NC := (ByteCapacity * 3) div 2;
+  NC := ByteCapacity + ByteCapacity div 2;
+  if NC <= ByteCapacity then
+    NC := ByteCapacity + BIT_BUILDER_DEFAULT_CAPACITY;
   if ByteLength > NC then
     NC := ByteLength * 2;
+  if AMinCapacity > NC then
+    NC := AMinCapacity;
   if NC > FMaxByteCapacity then
     NC := FMaxByteCapacity;
-  if NC < 0 then
-    NC := ByteLength;
+
+  if NC <= ByteCapacity then
+    raise ERangeError.CreateResFmt(@SCnErrorByteCapacityFmt, [AMinCapacity]);
 
   ByteCapacity := NC; // 增加实际的容量，同步扩大 ByteCapacity
 end;
@@ -963,10 +967,10 @@ procedure TCnBitBuilder.SetBitLength(const Value: Integer);
 var
   OldBytes, NewBytes, RemBits: Integer;
 begin
-  if Value < 0 then
+  if (Value < 0) or (Value > High(Integer) div 8 * 8) then
     raise ERangeError.CreateResFmt(@SCnErrorByteCapacityFmt, [Value]);
 
-  EnsureCapacity(FBitLength);
+  EnsureCapacity(Value);
   OldBytes := (FBitLength + 7) div 8;
   NewBytes := (Value + 7) div 8;
 

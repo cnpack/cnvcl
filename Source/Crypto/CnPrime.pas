@@ -1462,7 +1462,6 @@ resourcestring
   SCnErrorInvalidKForLucasSequence = 'Invalid K for Lucas Sequence';
   SCnErrorInvalidPrime = 'Invalid Prime';
   SCnErrorInvalidParam = 'Invalid Parameter';
-  SCnErrorCryptoRandomFailed = 'Cryptographically Secure Random Number Generation Failed';
   SCnErrorUInt64Overflow = 'UInt64 Overflow';
 
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
@@ -1473,7 +1472,7 @@ var
 begin
   // 使用密码学安全的随机数生成器替代 Randomize/Random
   if not CnRandomFillBytes(@Buf[0], SizeOf(Buf)) then
-    raise Exception.Create(SCnErrorCryptoRandomFailed);
+    raise Exception.Create(SCnErrorNoSecureRandom);
 
   D := PCardinal(@Buf[0])^;
   D := D mod Cardinal(High(CN_PRIME_NUMBERS_SQRT_UINT32) - Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1)
@@ -1750,7 +1749,7 @@ begin
   // 使用密码学安全的随机数生成器
   repeat
     if not CnRandomFillBytes(@Buf[0], SizeOf(Buf)) then
-      raise Exception.Create(SCnErrorCryptoRandomFailed);
+      raise Exception.Create(SCnErrorNoSecureRandom);
 
     Result := PCardinal(@Buf[0])^;
     if HighBitSet then
@@ -1766,7 +1765,7 @@ begin
   // 使用密码学安全的随机数生成器
   repeat
     if not CnRandomFillBytes(@Buf[0], SizeOf(Buf)) then
-      raise Exception.Create(SCnErrorCryptoRandomFailed);
+      raise Exception.Create(SCnErrorNoSecureRandom);
 
     Result := Integer(PCardinal(@Buf[0])^);
     Result := Result and $7FFFFFFF;
@@ -3060,6 +3059,29 @@ var
   R, U, Y, Z: Int64;
   Pt: Integer;
 begin
+  // 不支持负数和 0，P 不支持大于 2 的正偶数
+  if (X < 0) or (P <= 1) or (X >= P) then
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+  if (P > 2) and ((P and 1) = 0) then
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+
+  if X = 0 then // 0 的平方 mod P 为 0
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  if P = 2 then // 2 有 1 是 1 的平方剩余，其他更多的解不算
+  begin
+    if X = 1 then
+    begin
+      Result := 1;
+      Exit;
+    end
+    else
+      raise ECnPrimeException.Create(SCnErrorInvalidParam);
+  end;
+
   Result := 0;
   if CnInt64Legendre(X, P) <> 1 then
     Exit;

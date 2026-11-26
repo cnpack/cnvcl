@@ -12296,7 +12296,7 @@ begin
   // 测试 TBits 到 BitBuilder
   Bits.Size := 12;
   for I := 0 to 11 do
-    Bits[I] := (I mod 3) = 0; // 每 3 位设为True
+    Bits[I] := (I mod 3) = 0; // 每 3 位设为 True
 
   B.Clear;
   B.SetBits(Bits);

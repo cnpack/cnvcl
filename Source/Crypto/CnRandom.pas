@@ -182,7 +182,7 @@ function CnRandomFloat: Extended;
 }
 
 resourcestring
-  SCnErrorNoSecureRandom = 'NO Secure Random Generator!';
+  SCnErrorNoSecureRandom = 'Cryptographically Secure Random Number Generation Failed!';
   {* 随机数生成器出错信息}
   SCnErrorInvalidRandomLength = 'Invalid Random Buffer Length: %d.';
   {* 随机缓冲区长度非法}
