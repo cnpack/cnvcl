@@ -342,6 +342,7 @@ function TestCASignParentRestriction: Boolean;
 function TestCASelfSignedStatus: Boolean;
 function TestCAIssuerUseParentSubject: Boolean;
 function TestCARejectWeakRSAExponent: Boolean;
+function TestCACertificateExtensionChecks: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -787,6 +788,8 @@ function TestSM2Collaborative3Sign: Boolean;
 function TestSM2VerifyCorruptedSignature: Boolean;
 function TestSM2SchnorrProveCheck: Boolean;
 function TestSM2SchnorrZReduced: Boolean;
+function TestSM2AffineMultipleNegativeScalar: Boolean;
+function TestSM2CollaborativeSignInvalidComponent: Boolean;
 
 // ================================ SM3 ========================================
 
@@ -861,6 +864,7 @@ function Test25519SignTwoBytes: Boolean;
 function Test25519SignShaAbc: Boolean;
 function Test25519Sign1024: Boolean;
 function Test25519Iterate1000: Boolean;
+function TestEd25519ExtendedPointCheck: Boolean;
 function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
 function Test448KeyExchange: Boolean;
@@ -2285,6 +2289,7 @@ begin
   MyAssert(TestCASelfSignedStatus, 'TestCASelfSignedStatus');
   MyAssert(TestCAIssuerUseParentSubject, 'TestCAIssuerUseParentSubject');
   MyAssert(TestCARejectWeakRSAExponent, 'TestCARejectWeakRSAExponent');
+  MyAssert(TestCACertificateExtensionChecks, 'TestCACertificateExtensionChecks');
 
 // =============================== Int128 ======================================
 
@@ -2730,6 +2735,8 @@ begin
   MyAssert(TestSM2VerifyCorruptedSignature, 'TestSM2VerifyCorruptedSignature');
   MyAssert(TestSM2SchnorrProveCheck, 'TestSM2SchnorrProveCheck');
   MyAssert(TestSM2SchnorrZReduced, 'TestSM2SchnorrZReduced');
+  MyAssert(TestSM2AffineMultipleNegativeScalar, 'TestSM2AffineMultipleNegativeScalar');
+  MyAssert(TestSM2CollaborativeSignInvalidComponent, 'TestSM2CollaborativeSignInvalidComponent');
 
 // ================================ SM3 ========================================
 
@@ -2804,6 +2811,7 @@ begin
   MyAssert(Test25519SignShaAbc, 'Test25519SignShaAbc');
   MyAssert(Test25519Sign1024, 'Test25519Sign1024');
   MyAssert(Test25519Iterate1000, 'Test25519Iterate1000');
+  MyAssert(TestEd25519ExtendedPointCheck, 'TestEd25519ExtendedPointCheck');
   MyAssert(Test448CurveMul, 'Test448CurveMul');
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
   MyAssert(Test448KeyExchange, 'Test448KeyExchange');
@@ -12781,6 +12789,109 @@ begin
   finally
     OutSt.Free;
     InSt.Free;
+  end;
+end;
+
+function TestCACertificateExtensionChecks: Boolean;
+const
+  UID_CERT_HEX =
+    '30820283308201ECA003020102020101300D06092A864886F70D01010B05003073310B300906035504061302434E310E300C06035504081305537461'
+    + '7465310D300B0603550407130443697479310C300A060355040A13034F7267310D300B060355040B1304556E6974310F300D06035504031306476F6F'
+    + '6443413117301506092A864886F70D0109011608636140622E636F6D301E170D3236313132353138303633355A170D3237313132363138303633355A'
+    + '3073310B300906035504061302434E310E300C060355040813055374617465310D300B0603550407130443697479310C300A060355040A13034F7267'
+    + '310D300B060355040B1304556E6974310F300D06035504031306476F6F6443413117301506092A864886F70D0109011608636140622E636F6D30819F'
+    + '300D06092A864886F70D010101050003818D0030818902818100965BEDED48B873971CA4A2EA9A5D4453BB5BBF9827FB91442F877D0A5EC906E4A6AA'
+    + '9CABEAB3006F2E8A88951487035610799E38BE30FBBAFC10DF4FF47A30A7F7F704BFD56A0CFF252C2A0C80286CBE3118B9ED24961C3C5AECE1A883B0'
+    + '6DB9B0EDF742B41129D20F1DC9F0C764F4FF5C2E8D495CE0CD83C52A9C056E656F81020301000181020500A3233021300F0603551D130101FF040530'
+    + '030101FF300E06082B0601050507010104023000300D06092A864886F70D01010B05000381810042266AE87AF70B5CFBA31271B46FE11FE010393836'
+    + '75999936C9E43DF25B716E719B75B3A04819093F485E214A039AEDB9A203E9F83F23765A07F0DEA8EB510EA2E4893AA5998F64DDFBA96A485B917A95'
+    + '602E876B70A4BD24FA30D763E188ABE4F3B550D71DD6FCF159FFB91CA01FE668DB0312C4739FBB9478B6F87CA9ED34';
+  CRIT_CERT_HEX =
+    '3082028E308201F7A003020102020101300D06092A864886F70D01010B05003073310B300906035504061302434E310E300C06035504081305537461'
+    + '7465310D300B0603550407130443697479310C300A060355040A13034F7267310D300B060355040B1304556E6974310F300D06035504031306476F6F'
+    + '6443413117301506092A864886F70D0109011608636140622E636F6D301E170D3236313132353138303633355A170D3237313132363138303633355A'
+    + '3073310B300906035504061302434E310E300C060355040813055374617465310D300B0603550407130443697479310C300A060355040A13034F7267'
+    + '310D300B060355040B1304556E6974310F300D06035504031306476F6F6443413117301506092A864886F70D0109011608636140622E636F6D30819F'
+    + '300D06092A864886F70D010101050003818D0030818902818100965BEDED48B873971CA4A2EA9A5D4453BB5BBF9827FB91442F877D0A5EC906E4A6AA'
+    + '9CABEAB3006F2E8A88951487035610799E38BE30FBBAFC10DF4FF47A30A7F7F704BFD56A0CFF252C2A0C80286CBE3118B9ED24961C3C5AECE1A883B0'
+    + '6DB9B0EDF742B41129D20F1DC9F0C764F4FF5C2E8D495CE0CD83C52A9C056E656F810203010001A3323030300F0603551D130101FF040530030101FF'
+    + '300E06082B0601050507010104023000300D06042A0304050101FF04020500300D06092A864886F70D01010B05000381810042266AE87AF70B5CFBA3'
+    + '1271B46FE11FE01039383675999936C9E43DF25B716E719B75B3A04819093F485E214A039AEDB9A203E9F83F23765A07F0DEA8EB510EA2E4893AA599'
+    + '8F64DDFBA96A485B917A95602E876B70A4BD24FA30D763E188ABE4F3B550D71DD6FCF159FFB91CA01FE668DB0312C4739FBB9478B6F87CA9ED34';
+var
+  CAPriv, CliPriv: TCnRSAPrivateKey;
+  CAPub, CliPub: TCnRSAPublicKey;
+  ChildStd: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  NoBC, CSR, Out, MS: TMemoryStream;
+  CRT: TCnCertificate;
+  Buf: TBytes;
+begin
+  Result := False;
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  CliPriv := TCnRSAPrivateKey.Create;
+  CliPub := TCnRSAPublicKey.Create;
+  ChildStd := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  NoBC := TMemoryStream.Create;
+  CSR := TMemoryStream.Create;
+  Out := TMemoryStream.Create;
+  MS := TMemoryStream.Create;
+  CRT := TCnCertificate.Create;
+  try
+
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+    CnRSAGenerateKeys(1024, CliPriv, CliPub);
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, NoBC,
+      'CN', 'State', 'City', 'Org', 'Unit', 'NoBCCA', 'ca@b.com', '1',
+      Now - 1, Now + 365, nil, PrivExt, ctSha256RSA) then
+      Exit;
+    if not CnCANewCertificateSignRequestStream(CliPriv, CliPub, CSR,
+      'CN', 'State', 'City', 'Org', 'Client', 'client', 'client@b.com', ctSha256RSA) then
+      Exit;
+    ChildStd.BasicConstraintsCA := False;
+    if CnCASignCertificate2Stream(CAPriv, NoBC, CSR, Out, '101',
+      Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
+      Exit;
+    if Out.Size <> 0 then
+      Exit;
+
+    SetLength(Buf, Length(UID_CERT_HEX) div 2);
+    HexToData(UID_CERT_HEX, @Buf[0]);
+    MS.Size := 0;
+    MS.WriteBuffer(Buf[0], Length(Buf));
+    MS.Position := 0;
+    CRT.Free;
+    CRT := TCnCertificate.Create;
+    if not CnCALoadCertificateFromStream(MS, CRT) then
+      Exit;
+    if not CRT.BasicCertificate.StandardExtension.BasicConstraintsPresent then
+      Exit;
+
+    SetLength(Buf, Length(CRIT_CERT_HEX) div 2);
+    HexToData(CRIT_CERT_HEX, @Buf[0]);
+    MS.Size := 0;
+    MS.WriteBuffer(Buf[0], Length(Buf));
+    MS.Position := 0;
+    CRT.Free;
+    CRT := TCnCertificate.Create;
+    if CnCALoadCertificateFromStream(MS, CRT) then
+      Exit;
+
+    Result := True;
+  finally
+    CRT.Free;
+    MS.Free;
+    Out.Free;
+    CSR.Free;
+    NoBC.Free;
+    PrivExt.Free;
+    ChildStd.Free;
+    CliPub.Free;
+    CliPriv.Free;
+    CAPub.Free;
+    CAPriv.Free;
   end;
 end;
 
@@ -27218,6 +27329,125 @@ begin
   end;
 end;
 
+function TestSM2AffineMultipleNegativeScalar: Boolean;
+var
+  SM2: TCnSM2;
+  P, NegP: TCnEcc3Point;
+  Ref: TCnEccPoint;
+  K, KCopy, V, X, Y: TCnBigNumber;
+begin
+  Result := False;
+  SM2 := TCnSM2.Create;
+  P := TCnEcc3Point.Create;
+  NegP := TCnEcc3Point.Create;
+  Ref := TCnEccPoint.Create;
+  K := TCnBigNumber.Create;
+  KCopy := TCnBigNumber.Create;
+  V := TCnBigNumber.Create;
+  X := TCnBigNumber.Create;
+  Y := TCnBigNumber.Create;
+  try
+    // 参考值：仿射算法算出的 5 * G
+    Ref.Assign(SM2.Generator);
+    K.SetInt64(5);
+    SM2.MultiplePoint(K, Ref);
+
+    // (-5) * G 再取逆，应等于 5 * G
+    BigNumberCopy(P.X, SM2.Generator.X);
+    BigNumberCopy(P.Y, SM2.Generator.Y);
+    P.Z.SetOne;
+    K.SetInt64(-5);
+    SM2.AffineMultiplePoint(K, P);
+    SM2.AffinePointInverse(P);
+    if not BigNumberModularInverse(V, P.Z, SM2.FiniteFieldSize) then Exit;
+    BigNumberDirectMulMod(X, P.X, V, SM2.FiniteFieldSize);
+    BigNumberDirectMulMod(Y, P.Y, V, SM2.FiniteFieldSize);
+    if (BigNumberCompare(X, Ref.X) <> 0) or (BigNumberCompare(Y, Ref.Y) <> 0) then Exit;
+
+    // (-1) * G 应等于 -G，且传入的 K 不应被修改
+    Ref.Assign(SM2.Generator);
+    SM2.PointInverse(Ref);
+    BigNumberCopy(NegP.X, SM2.Generator.X);
+    BigNumberCopy(NegP.Y, SM2.Generator.Y);
+    NegP.Z.SetOne;
+    K.SetInt64(-1);
+    BigNumberCopy(KCopy, K);
+    SM2.AffineMultiplePoint(K, NegP);
+    if BigNumberCompare(K, KCopy) <> 0 then Exit;
+    if not BigNumberModularInverse(V, NegP.Z, SM2.FiniteFieldSize) then Exit;
+    BigNumberDirectMulMod(X, NegP.X, V, SM2.FiniteFieldSize);
+    BigNumberDirectMulMod(Y, NegP.Y, V, SM2.FiniteFieldSize);
+    if (BigNumberCompare(X, Ref.X) <> 0) or (BigNumberCompare(Y, Ref.Y) <> 0) then Exit;
+
+    Result := True;
+  finally
+    Y.Free;
+    X.Free;
+    V.Free;
+    KCopy.Free;
+    K.Free;
+    Ref.Free;
+    NegP.Free;
+    P.Free;
+    SM2.Free;
+  end;
+end;
+
+function TestSM2CollaborativeSignInvalidComponent: Boolean;
+var
+  SM2: TCnSM2;
+  dA: TCnEccPrivateKey;
+  Ka, R, S1, S2: TCnBigNumber;
+  Sig: TCnSM2Signature;
+begin
+  Result := False;
+  SM2 := TCnSM2.Create;
+  dA := TCnEccPrivateKey.Create;
+  Ka := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+  S1 := TCnBigNumber.Create;
+  S2 := TCnBigNumber.Create;
+  Sig := TCnSM2Signature.Create;
+  try
+    dA.SetWord(123456789);
+    Ka.SetWord(987654321);
+
+    // S1 = 0 会消去 kA 掩码，单次交互即可反推 dA，必须拒绝
+    R.SetOne; S1.SetZero; S2.SetOne;
+    Sig.R.SetWord(999); Sig.S.SetZero;
+    if CnSM2CollaborativeSignAStep2(Ka, R, S1, S2, Sig, dA, SM2) then Exit;
+
+    // S + R = n 是无效签名，必须拒绝
+    R.SetOne; S1.SetZero; S2.SetZero;
+    Sig.R.SetWord(999); Sig.S.SetZero;
+    if CnSM2CollaborativeSignAStep2(Ka, R, S1, S2, Sig, dA, SM2) then Exit;
+
+    // 三方协同的 S = 0 必须拒绝
+    R.SetZero; S1.SetZero; S2.SetZero;
+    Sig.R.SetWord(999); Sig.S.SetZero;
+    if CnSM2Collaborative3SignAStep2(Ka, R, S1, S2, Sig, dA, SM2) then Exit;
+
+    // 三方协同的 S + R = n 必须拒绝
+    R.SetOne; S1.SetZero; S2.SetZero;
+    Sig.R.SetWord(999); Sig.S.SetZero;
+    if CnSM2Collaborative3SignAStep2(Ka, R, S1, S2, Sig, dA, SM2) then Exit;
+
+    // InRandKA 为 nil 必须拒绝
+    R.SetOne; S1.SetOne; S2.SetOne;
+    if CnSM2CollaborativeSignAStep2(nil, R, S1, S2, Sig, dA, SM2) then Exit;
+
+    Result := True;
+  finally
+    Sig.Free;
+    S2.Free;
+    S1.Free;
+    R.Free;
+    Ka.Free;
+    dA.Free;
+    SM2.Free;
+  end;
+end;
+
 // ================================ SM3 ========================================
 
 function TestSM3: Boolean;
@@ -29828,6 +30058,91 @@ begin
     P.Free;
     OldK.Free;
     K.Free;
+  end;
+end;
+
+function TestEd25519ExtendedPointCheck: Boolean;
+var
+  Ed: TCnEd25519;
+  G4, P2, Inv, Diff, Q4, Sum4: TCnEcc4Point;
+  F4, FInv4, FDiff4: TCn25519Field64Ecc4Point;
+  Aff, ThreeG: TCnEccPoint;
+  K, T: TCnBigNumber;
+begin
+  Result := False;
+  Ed := TCnEd25519.Create;
+  G4 := TCnEcc4Point.Create;
+  P2 := TCnEcc4Point.Create;
+  Inv := TCnEcc4Point.Create;
+  Diff := TCnEcc4Point.Create;
+  Q4 := TCnEcc4Point.Create;
+  Sum4 := TCnEcc4Point.Create;
+  Aff := TCnEccPoint.Create;
+  ThreeG := TCnEccPoint.Create;
+  K := TCnBigNumber.Create;
+  T := TCnBigNumber.Create;
+  try
+    CnEccPointToEcc4Point(G4, Ed.Generator, Ed.FiniteFieldSize);
+
+    // 2G - 2G 应为中性点 (0,1)，且结果在曲线上（Z 不为 1 的情形）
+    Ed.ExtendedPointAddPoint(G4, G4, P2);
+    if P2.Z.IsOne then
+      Exit;
+    Inv.Assign(P2);
+    Ed.ExtendedPointInverse(Inv);
+    Ed.ExtendedPointAddPoint(P2, Inv, Diff);
+    CnEcc4PointToEccPoint(Aff, Diff, Ed.FiniteFieldSize);
+    if not (Aff.X.IsZero and Aff.Y.IsOne) then
+      Exit;
+    if not Ed.IsPointOnCurve(Aff) then
+      Exit;
+
+    // 扩展标量乘后 T = X * Y / Z 不变量须保持
+    K.SetWord(2);
+    CnEccPointToEcc4Point(Q4, Ed.Generator, Ed.FiniteFieldSize);
+    Ed.ExtendedMultiplePoint(K, Q4);
+    BigNumberDirectMulMod(T, Q4.X, Q4.Y, Ed.FiniteFieldSize);
+    BigNumberModularInverse(Inv.X, Q4.Z, Ed.FiniteFieldSize);
+    BigNumberDirectMulMod(T, T, Inv.X, Ed.FiniteFieldSize);
+    if BigNumberCompare(T, Q4.T) <> 0 then
+      Exit;
+
+    // 乘后再加 G 应严格等于 3G 且在曲线上
+    Ed.ExtendedPointAddPoint(Q4, G4, Sum4);
+    CnEcc4PointToEccPoint(Aff, Sum4, Ed.FiniteFieldSize);
+    if not Ed.IsPointOnCurve(Aff) then
+      Exit;
+    ThreeG.Assign(Ed.Generator);
+    Ed.MultiplePoint(3, ThreeG);
+    if (BigNumberCompare(Aff.X, ThreeG.X) <> 0) or
+       (BigNumberCompare(Aff.Y, ThreeG.Y) <> 0) then
+      Exit;
+
+    // Field64 路径的 2G - 2G
+    CnEccPointToField64Ecc4Point(F4, Ed.Generator);
+    Ed.ExtendedField64MultiplePoint(K, F4);
+    Cn25519Field64Ecc4PointCopy(FInv4, F4);
+    Ed.ExtendedField64PointInverse(FInv4);
+    Ed.ExtendedField64PointAddPoint(F4, FInv4, FDiff4);
+    CnField64Ecc4PointToEccPoint(Aff, FDiff4);
+    if not (Aff.X.IsZero and Aff.Y.IsOne) then
+      Exit;
+    if not Ed.IsPointOnCurve(Aff) then
+      Exit;
+
+    Result := True;
+  finally
+    T.Free;
+    K.Free;
+    ThreeG.Free;
+    Aff.Free;
+    Sum4.Free;
+    Q4.Free;
+    Diff.Free;
+    Inv.Free;
+    P2.Free;
+    G4.Free;
+    Ed.Free;
   end;
 end;
 

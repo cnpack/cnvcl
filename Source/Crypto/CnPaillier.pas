@@ -430,6 +430,7 @@ begin
   begin
     BigNumberCopy(FN, (Source as TCnPaillierPublicKey).N);
     BigNumberCopy(FG, (Source as TCnPaillierPublicKey).G);
+    BigNumberCopy(FN2, (Source as TCnPaillierPublicKey).N2);
   end
   else
     inherited;

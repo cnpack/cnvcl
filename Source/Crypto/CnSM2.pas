@@ -1043,12 +1043,6 @@ var
   M: TCnBigNumber;
   Naf: TShortInts;
 begin
-  if BigNumberIsNegative(K) then
-  begin
-    // BigNumberSetNegative(K, False);
-    AffinePointInverse(Point);
-  end;
-
   if BigNumberIsZero(K) then
   begin
     Point.X.SetZero;
@@ -1059,6 +1053,15 @@ begin
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
+  // 用局部副本，避免修改传入的 K；负标量改为乘其绝对值并反转点
+  M := TCnBigNumber.Create;
+  BigNumberCopy(M, K);
+  if BigNumberIsNegative(M) then
+  begin
+    BigNumberSetNegative(M, False);
+    AffinePointInverse(Point);
+  end;
+
   // 须判断是否标准 SM2 曲线的 G 点，而不是本曲线的 G 点
   IsG := Point.Z.IsOne and BigNumberEqual(Point.X, FLocalSM2Generator.X) and
     BigNumberEqual(Point.Y, FLocalSM2Generator.Y);
@@ -1066,7 +1069,6 @@ begin
   Q := nil;
   R := nil;
   E := nil;
-  M := nil;
   Naf := nil;
 
   try
@@ -1078,7 +1080,7 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    C := BigNumberGetBitsCount(K);
+    C := BigNumberGetBitsCount(M);
     if IsG then // 注意，以下查表乘法优化必须保证本曲线是 SM2 标准曲线
     begin
       // 判断是 G 点的话，可以查表减少乘法与加法次数
@@ -1086,9 +1088,6 @@ begin
       begin
         // 小于 256 的乘数，直接固定基查表加，最多 64 次加法
         Row := 0;
-
-        M := TCnBigNumber.Create;
-        BigNumberCopy(M, K);
 
         while not M.IsZero do
         begin
@@ -1105,7 +1104,7 @@ begin
         for I := 0 to C - 1 do
         begin
           AffinePointAddPoint(R, E, Q);
-          if BigNumberIsBitSet(K, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
+          if BigNumberIsBitSet(M, I) then // 始终加，但只置位时 R <- Q，以防止侧信道攻击
             R.Assign(Q);
 
           // P 是 G 点，无需点加，直接取出
@@ -1119,7 +1118,7 @@ begin
     else // 不是 G 点，常规加（验证签名时常用，改用 NAF 加速，大概少六分之一的点加法）
     begin
       // R 初始为 0，E 是原始点
-      Naf := BigNumberNonAdjanceFormWidth(K);
+      Naf := BigNumberNonAdjanceFormWidth(M);
       for I := High(Naf) downto Low(Naf) do
       begin
         AffinePointAddPoint(R, R, R);
@@ -3063,7 +3062,7 @@ var
   SM2IsNil: Boolean;
 begin
   Result := False;
-  if (PrivateKeyA = nil) or (OutSignature = nil) or
+  if (PrivateKeyA = nil) or (OutSignature = nil) or (InRandKA = nil) or
     (InRFromB = nil) or (InS1FromB = nil) or (InS2FromB = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -3077,6 +3076,20 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    // 校验对端分量与自身随机数均在 [1, n-1] 内
+    if (BigNumberCompare(InRandKA, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InRandKA, SM2.Order) >= 0) or
+       (BigNumberCompare(InRFromB, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InRFromB, SM2.Order) >= 0) or
+       (BigNumberCompare(InS1FromB, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InS1FromB, SM2.Order) >= 0) or
+       (BigNumberCompare(InS2FromB, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InS2FromB, SM2.Order) >= 0) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     Inv := TCnBigNumber.Create;
     if not InternalSM2IsValidPrivateShare(PrivateKeyA, SM2) or
@@ -3101,13 +3114,16 @@ begin
     end;
 
     BigNumberAdd(T, OutSignature.S, InRFromB);
-    if not BigNumberEqual(T, SM2.Order) then
+    if BigNumberEqual(T, SM2.Order) then
     begin
-      if BigNumberCopy(OutSignature.R, InRFromB) = nil then
-      begin
-        _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
-        Exit;
-      end;
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    if BigNumberCopy(OutSignature.R, InRFromB) = nil then
+    begin
+      _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
+      Exit;
     end;
 
     Result := True;
@@ -3570,7 +3586,8 @@ var
   P, Q: TCnEccPoint;
 begin
   Result := False;
-  if (PrivateKeyC = nil) or (InHashEFromA = nil) or (InQFromB = nil)  then
+  if (PrivateKeyC = nil) or (InHashEFromA = nil) or (InQFromB = nil) or
+    (OutRToBA = nil) or (OutS1ToB = nil) or (OutS2ToB = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
@@ -3642,12 +3659,19 @@ begin
       BigNumberAddMod(K1, K1, OutRToBA, SM2.Order);            // K1 + r
       BigNumberDirectMulMod(OutS2ToB, K1, Inv, SM2.Order);     // 算出 S2 = K1 + r / PrivateKeyC
 
+      // 分量为 0 会使下游无法校验，重新取随机数
+      if OutS1ToB.IsZero or OutS2ToB.IsZero then
+        Continue;
+
       Result := True;
       _CnSetLastError(ECN_SM2_OK);
 
       Break;
     end;
   finally
+    Inv.Clear;
+    RandKC.Clear;
+    K1.Clear;
     Inv.Free;
     Q.Free;
     P.Free;
@@ -3684,6 +3708,20 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    // 校验来自 C 方的分量与自身随机数均在 [1, n-1] 内
+    if (BigNumberCompare(InRandKB, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InRandKB, SM2.Order) >= 0) or
+       (BigNumberCompare(InRFromC, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InRFromC, SM2.Order) >= 0) or
+       (BigNumberCompare(InS1FromC, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InS1FromC, SM2.Order) >= 0) or
+       (BigNumberCompare(InS2FromC, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InS2FromC, SM2.Order) >= 0) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     K2 := TCnBigNumber.Create;
     Inv := TCnBigNumber.Create;
@@ -3748,6 +3786,20 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
+    // 校验来自 B 方的分量与自身随机数均在 [1, n-1] 内
+    if (BigNumberCompare(InRandKA, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InRandKA, SM2.Order) >= 0) or
+       (BigNumberCompare(InRFromC, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InRFromC, SM2.Order) >= 0) or
+       (BigNumberCompare(InS1FromB, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InS1FromB, SM2.Order) >= 0) or
+       (BigNumberCompare(InS2FromB, CnBigNumberZero) <= 0) or
+       (BigNumberCompare(InS2FromB, SM2.Order) >= 0) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     S1 := TCnBigNumber.Create;
     S2 := TCnBigNumber.Create;
     Inv := TCnBigNumber.Create;
@@ -3769,10 +3821,26 @@ begin
     BigNumberAddMod(OutSignature.S, S1, S2, SM2.Order);
     BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromC, SM2.Order);
 
+    if OutSignature.S.IsZero then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    BigNumberAdd(S1, OutSignature.S, InRFromC);
+    if BigNumberCompare(S1, SM2.Order) = 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     BigNumberCopy(OutSignature.R, InRFromC);                  // R S 为最终签名
     Result := True;
     _CnSetLastError(ECN_SM2_OK);
   finally
+    Inv.Clear;
+    S1.Clear;
+    S2.Clear;
     Inv.Free;
     S2.Free;
     S1.Free;

@@ -1627,6 +1627,10 @@ begin
   if Ext = nil then
     Exit;
   // 上级证书明确声明不是 CA，不能签发下级证书
+  // v3 签发者必须携带 BasicConstraints，否则不能签发下级证书
+  if (ParentCertificate.BasicCertificate.Version = CN_CRT_BASIC_VERSION_3) and
+    (not Ext.BasicConstraintsPresent) then
+    Exit;
   if Ext.BasicConstraintsPresent and not Ext.BasicConstraintsCA then
     Exit;
   // 上级证书包含 Key Usage 扩展时，必须包含 keyCertSign 才能签发下级证书
@@ -3487,6 +3491,7 @@ var
   ExtNode, OidNode, ValueNode: TCnBerReadNode;
   Buf: TBytes;
   KU: TCnCerKeyUsages;
+  IsCritical: Boolean;
 begin
   Result := False;
   if (Root = nil) or (Root.Count < 1) then
@@ -3499,10 +3504,14 @@ begin
     begin
       OidNode := ExtNode.Items[0];
       ValueNode := nil;
+      IsCritical := False;
       if ExtNode.Count > 1 then
       begin
         if (ExtNode.Items[1].BerTag = CN_BER_TAG_BOOLEAN) and (ExtNode.Count > 2) then
-          ValueNode := ExtNode.Items[2] // Critical，暂不解析
+        begin
+          IsCritical := ExtNode.Items[1].AsBoolean;
+          ValueNode := ExtNode.Items[2];
+        end
         else
           ValueNode := ExtNode.Items[1];
       end;
@@ -3619,6 +3628,12 @@ begin
                 ValueNode[J].Items[1].AsRawString
           end;
         end;
+      end
+      else if IsCritical then
+      begin
+        // 无法识别的关键扩展必须导致证书被拒绝
+        Result := False;
+        Exit;
       end;
     end;
   end;
@@ -4895,6 +4910,9 @@ begin
     if Result then
     begin
       Node := (Node.Parent as TCnBerReadNode).GetNextSibling;
+      // 跳过可能的 issuerUniqueID [1] 与 subjectUniqueID [2]，按显式标签 [3] 定位扩展
+      while (Node <> nil) and (Node.BerTag <> CN_BER_TAG_BIT_STRING) do
+        Node := Node.GetNextSibling;
       if Node <> nil then  // BITString 又无需跳过了
       begin
         Reader.ManualParseNodeData(Node);

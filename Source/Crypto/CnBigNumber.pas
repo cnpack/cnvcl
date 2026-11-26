@@ -9021,12 +9021,12 @@ begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
     // 判断是否属于 10 字节扩展精度范围
-    Result := BigNumberGetBitsCount(Num) < CN_EXTENDED_MAX_EXPONENT + 1;
+    Result := BigNumberGetBitsCount(Num) <= CN_EXTENDED_MAX_EXPONENT + 1;
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
   begin
     // 判断是否属于 8 字节双精度范围
-    Result := BigNumberGetBitsCount(Num) < CN_DOUBLE_MAX_EXPONENT + 1;
+    Result := BigNumberGetBitsCount(Num) <= CN_DOUBLE_MAX_EXPONENT + 1;
   end
   else
     Result := False;
@@ -12183,11 +12183,11 @@ end;
 function TCnBigNumberPool.Obtain: TCnBigNumber;
 begin
   Result := TCnBigNumber(inherited Obtain);
-  Result.SetZero;
 end;
 
 procedure TCnBigNumberPool.Recycle(Num: TCnBigNumber);
 begin
+  Num.Clear;
   inherited Recycle(Num);
 end;
 

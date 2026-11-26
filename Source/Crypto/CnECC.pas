@@ -4480,13 +4480,8 @@ procedure TCnEcc.NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
   I, C, OrderBits: Integer;
   E, R: TCnEccPoint;
+  M: TCnBigNumber;
 begin
-  if BigNumberIsNegative(K) then
-  begin
-    // BigNumberSetNegative(K, False);
-    PointInverse(Point);
-  end;
-
   if BigNumberIsZero(K) then
   begin
     Point.SetZero;
@@ -4494,6 +4489,15 @@ begin
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
+
+  // 用局部副本，避免修改传入的 K；负标量改为乘其绝对值并反转点
+  M := TCnBigNumber.Create;
+  BigNumberCopy(M, K);
+  if BigNumberIsNegative(M) then
+  begin
+    BigNumberSetNegative(M, False);
+    PointInverse(Point);
+  end;
 
   R := nil;
   E := nil;
@@ -4506,13 +4510,13 @@ begin
     E.X := Point.X;
     E.Y := Point.Y;
 
-    C := BigNumberGetBitsCount(K);
+    C := BigNumberGetBitsCount(M);
     OrderBits := BigNumberGetBitsCount(FOrder);
-    if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
+    if (OrderBits > 0) and (not BigNumberIsNegative(M)) and (C <= OrderBits + 2) then
       C := OrderBits + 2;
     for I := 0 to C - 1 do
     begin
-      if BigNumberIsBitSet(K, I) then
+      if BigNumberIsBitSet(M, I) then
         PointAddPoint(R, E, R);
 
       if I < C - 1 then
@@ -4522,6 +4526,7 @@ begin
     Point.X := R.X;
     Point.Y := R.Y;
   finally
+    M.Free;
     E.Free;
     R.Free;
   end;
@@ -4531,13 +4536,8 @@ procedure TCnEcc.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
   I, C, OrderBits: Integer;
   E, R, Q: TCnEcc3Point;
+  M: TCnBigNumber;
 begin
-  if BigNumberIsNegative(K) then
-  begin
-    // BigNumberSetNegative(K, False);
-    AffinePointInverse(Point);
-  end;
-
   if BigNumberIsZero(K) then
   begin
     Point.X.SetZero;
@@ -4547,6 +4547,15 @@ begin
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
+
+  // 用局部副本，避免修改传入的 K；负标量改为乘其绝对值并反转点
+  M := TCnBigNumber.Create;
+  BigNumberCopy(M, K);
+  if BigNumberIsNegative(M) then
+  begin
+    BigNumberSetNegative(M, False);
+    AffinePointInverse(Point);
+  end;
 
   Q := nil;
   R := nil;
@@ -4561,17 +4570,17 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    C := BigNumberGetBitsCount(K);
+    C := BigNumberGetBitsCount(M);
     OrderBits := BigNumberGetBitsCount(FOrder);
-    if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
+    if (OrderBits > 0) and (not BigNumberIsNegative(M)) and (C <= OrderBits + 2) then
       C := OrderBits + 2;
 
     for I := 0 to C - 1 do
     begin
       AffinePointAddPoint(R, E, Q);
-      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.X, R.X); //始终加，且只置位时时间恒定 R <- Q，以防止侧信道攻击
-      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Y, R.Y);
-      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Z, R.Z);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(M, I), Q.X, R.X); //始终加，且只置位时时间恒定 R <- Q，以防止侧信道攻击
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(M, I), Q.Y, R.Y);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(M, I), Q.Z, R.Z);
 
       if I < C - 1 then // 最后一次循环无需加 E
         AffinePointAddPoint(E, E, E);
@@ -4581,6 +4590,7 @@ begin
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
+    M.Free;
     Q.Free;
     R.Free;
     E.Free;
@@ -4591,13 +4601,8 @@ procedure TCnEcc.JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
   I, C, OrderBits: Integer;
   E, R, Q: TCnEcc3Point;
+  M: TCnBigNumber;
 begin
-  if BigNumberIsNegative(K) then
-  begin
-    // BigNumberSetNegative(K, False);
-    JacobianPointInverse(Point);
-  end;
-
   if BigNumberIsZero(K) then
   begin
     Point.X.SetZero;
@@ -4607,6 +4612,15 @@ begin
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
+
+  // 用局部副本，避免修改传入的 K；负标量改为乘其绝对值并反转点
+  M := TCnBigNumber.Create;
+  BigNumberCopy(M, K);
+  if BigNumberIsNegative(M) then
+  begin
+    BigNumberSetNegative(M, False);
+    JacobianPointInverse(Point);
+  end;
 
   Q := nil;
   R := nil;
@@ -4621,17 +4635,17 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    C := BigNumberGetBitsCount(K);
+    C := BigNumberGetBitsCount(M);
     OrderBits := BigNumberGetBitsCount(FOrder);
-    if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
+    if (OrderBits > 0) and (not BigNumberIsNegative(M)) and (C <= OrderBits + 2) then
       C := OrderBits + 2;
 
     for I := 0 to C - 1 do
     begin
       JacobianPointAddPoint(R, E, Q);
-      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.X, R.X); //始终加，且只置位时时间恒定 R <- Q，以防止侧信道攻击
-      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Y, R.Y);
-      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(K, I), Q.Z, R.Z);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(M, I), Q.X, R.X); //始终加，且只置位时时间恒定 R <- Q，以防止侧信道攻击
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(M, I), Q.Y, R.Y);
+      BigNumberConstTimeConditionalAssign(BigNumberIsBitSet(M, I), Q.Z, R.Z);
 
       if I < C - 1 then
         JacobianPointAddPoint(E, E, E);
@@ -4641,6 +4655,7 @@ begin
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
+    M.Free;
     Q.Free;
     R.Free;
     E.Free;

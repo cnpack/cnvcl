@@ -4379,30 +4379,12 @@ end;
 
 procedure TCnEd25519.ExtendedField64PointInverse(
   var P: TCn25519Field64Ecc4Point);
-var
-  T: TCn25519Field64;
 begin
   // X -> Prime - X
   Cn25519Field64Sub(P.X, F25519Field64Zero, P.X);
 
-  // T := X * Y / Z^3
-  if Cn25519Field64Equal(P.Z, F25519Field64One) then
-  begin
-    // Z = 1 则直接乘
-    Cn25519Field64Mul(P.T, P.X, P.Y);
-  end
-  else // Z <> 1 
-  begin
-    // 计算 Z^3 的模逆元
-    Cn25519Field64Mul(T, P.Z, P.Z);
-    Cn25519Field64Mul(T, T, P.Z);
-
-    Cn25519Field64ModularInverse(T, T);
-
-    // 再乘以 X * Y
-    Cn25519Field64Mul(P.T, P.X, P.Y);
-    Cn25519Field64Mul(P.T, P.T, T);
-  end;
+  // X 取负时 T = X*Y/Z 亦取负，无需除以 Z^3
+  Cn25519Field64Sub(P.T, F25519Field64Zero, P.T);
 end;
 
 procedure TCnEd25519.ExtendedField64PointSubPoint(var P, Q,
@@ -4567,6 +4549,7 @@ begin
     P.X := R.X;
     P.Y := R.Y;
     P.Z := R.Z;
+    P.T := R.T;
   finally
     Q.Free;
     R.Free;
@@ -4682,7 +4665,7 @@ end;
 
 procedure TCnEd25519.ExtendedPointInverse(P: TCnEcc4Point);
 var
-  T, T2: TCnBigNumber;
+  T: TCnBigNumber;
 begin
   T := FBigNumberPool.Obtain;
   try
@@ -4690,17 +4673,8 @@ begin
     BigNumberDirectMulMod(T, P.Z, FFiniteFieldSize, FFiniteFieldSize);
     BigNumberSubMod(P.X, T, P.X, FFiniteFieldSize); // 释放 T
 
-    // T := X * Y / Z^3
-    BigNumberPowerWordMod(T, P.Z, 3, FFiniteFieldSize);
-    // 逆元须写入独立临时量：Res 与 X 同对象会触发重复引用检查抛异常
-    T2 := FBigNumberPool.Obtain;
-    try
-      BigNumberModularInverse(T2, T, FFiniteFieldSize); // T2 是 Z^3 的逆元
-      BigNumberDirectMulMod(P.T, P.X, P.Y, FFiniteFieldSize);
-      BigNumberDirectMulMod(P.T, P.T, T2, FFiniteFieldSize);
-    finally
-      FBigNumberPool.Recycle(T2);
-    end;
+    // X 取负时 T = X*Y/Z 亦取负，无需除以 Z^3
+    BigNumberSubMod(P.T, FFiniteFieldSize, P.T, FFiniteFieldSize);
   finally
     FBigNumberPool.Recycle(T);
   end;
