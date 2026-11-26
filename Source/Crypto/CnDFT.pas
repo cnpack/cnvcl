@@ -495,10 +495,19 @@ function CnDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
 var
   X, U: Integer;
   C: Extended;
+  Temp: TExtendeds;
 begin
   Result := False;
   if (Len <= 0) or (Data = nil) or (Res = nil) then
     Exit;
+
+  // 原地变换时先保存输入，避免写入覆盖尚未读取的源数据
+  if Data = Res then
+  begin
+    SetLength(Temp, Len);
+    Move(Data^, Temp[0], Len * SizeOf(Extended));
+    Data := @Temp[0];
+  end;
 
   Res^[0] := 0;
   for X := 0 to Len - 1 do
@@ -517,6 +526,7 @@ begin
     end;
     Res^[U] := Res^[U] * Sqrt(2.0 / Len);
   end;
+  SetLength(Temp, 0);
   Result := True;
 end;
 
@@ -524,10 +534,19 @@ function CnIDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
 var
   X, U: Integer;
   A1, A2, C: Extended;
+  Temp: TExtendeds;
 begin
   Result := False;
   if (Len <= 0) or (Data = nil) or (Res = nil) then
     Exit;
+
+  // 原地变换时先保存输入，避免写入覆盖尚未读取的源数据
+  if Data = Res then
+  begin
+    SetLength(Temp, Len);
+    Move(Data^, Temp[0], Len * SizeOf(Extended));
+    Data := @Temp[0];
+  end;
 
   A1 := 1.0 / Sqrt(Len);
   A2 := Sqrt(2.0 / Len);
@@ -545,6 +564,7 @@ begin
         Res^[X] := Res^[X] + Data^[U] * C * A2;
     end;
   end;
+  SetLength(Temp, 0);
   Result := True;
 end;
 

@@ -276,6 +276,15 @@ type
   TBooleans = array of Boolean;
   {* 布尔动态数组}
 
+  TSingles = array of Single;
+  {* 单精度浮点数动态数组}
+
+  TDoubles = array of Double;
+  {* 双精度浮点数动态数组}
+
+  TExtendeds = array of Extended;
+  {* 扩展精度浮点数动态数组}
+
   PCnByte = ^Byte;
   {* 指向 8 位无符号数的指针类型}
   PCnWord = ^Word;
