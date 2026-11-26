@@ -9488,7 +9488,7 @@ begin
     Result := True;
     Exit;
   end;
-  if Prime.IsEven then // 其他正偶数不支持
+  if Prime.IsEven or (BigNumberCompare(A, Prime) >= 0) then // 其他正偶数不支持，A 大于等于 Prime 也不支持
     Exit;
 
   U := nil;
