@@ -2236,7 +2236,12 @@ end;
 
 function SM4GetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
 begin
-  Result := (((InputByteLength - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
+  if InputByteLength <= 0 then
+    Result := 0
+  else if InputByteLength > $7FFFFFF0 then
+    raise ECnSM4Exception.Create(SCnErrorSM4InvalidInBufSize)
+  else
+    Result := (((InputByteLength - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
 end;
 
 procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLen: Integer);
