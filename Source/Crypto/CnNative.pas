@@ -3051,7 +3051,7 @@ begin
     end
     else // 该字节有 1，中止
     begin
-      ZO := ZO + 8 - R + 1;
+      ZO := ZO + 7 - R;
       Break;
     end;
   end;
@@ -3059,7 +3059,7 @@ begin
   if ZO = MemByteLen * 8 then // 全零，没 1
     Result := -1
   else
-    Result := MemByteLen * 8 - ZO; // 有 1，总位数减去 0 的个数
+    Result := MemByteLen * 8 - 1 - ZO; // 有 1，总位数减 1 再减去前导 0 的个数
 end;
 
 function MemoryGetLowBits(Mem: Pointer; MemByteLen: Integer): Integer;
@@ -3090,7 +3090,7 @@ begin
   if ZC = MemByteLen * 8 then // 全零，没 1
     Result := -1
   else
-    Result := MemByteLen * 8 - ZC; // 有 1，总位数减去 0 的个数
+    Result := ZC; // 有 1，ZC 即末尾 0 的个数，也就是最低置位序号
 end;
 
 function MemoryToBinStr(Mem: Pointer; MemByteLen: Integer; Sep: Boolean): string;

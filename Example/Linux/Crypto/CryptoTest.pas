@@ -88,6 +88,7 @@ function TestUInt64Div: Boolean;
 function TestUInt64Mod: Boolean;
 function TestUInt128DivUInt64Mod: Boolean;
 function TestMemoryShiftMinInteger: Boolean;
+function TestMemoryGetBits: Boolean;
 
 // =========================== Constant Time ===================================
 
@@ -246,6 +247,7 @@ function TestBigNumberDiv: Boolean;
 function TestBigNumberRoundDiv: Boolean;
 function TestBigNumberShiftLeft: Boolean;
 function TestBigNumberGetBitsCount: Boolean;
+function TestBigNumberIsFloat: Boolean;
 function TestBigNumberShiftRightOne: Boolean;
 function TestBigNumberGcd: Boolean;
 function TestBigNumberLcm: Boolean;
@@ -281,6 +283,7 @@ function TestBigNumberNegativeZero: Boolean;
 function TestBigNumberSetHexValidate: Boolean;
 function TestBigNumberCopyLowNormalize: Boolean;
 function TestBigNumberBSGS: Boolean;
+function TestSparseBigNumberListMerge: Boolean;
 function TestBigNumberGeneratePrimeBits: Boolean;
 function TestBigNumberLoadFromMemSize: Boolean;
 function TestBigNumberCompareNil: Boolean;
@@ -2028,6 +2031,7 @@ begin
   MyAssert(TestUInt64Mod, 'TestUInt64Mod');
   MyAssert(TestUInt128DivUInt64Mod, 'TestUInt128DivUInt64Mod');
   MyAssert(TestMemoryShiftMinInteger, 'TestMemoryShiftMinInteger');
+  MyAssert(TestMemoryGetBits, 'TestMemoryGetBits');
 
 // =========================== Constant Time ===================================
 
@@ -2186,6 +2190,7 @@ begin
   MyAssert(TestBigNumberRoundDiv, 'TestBigNumberRoundDiv');
   MyAssert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
   MyAssert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
+  MyAssert(TestBigNumberIsFloat, 'TestBigNumberIsFloat');
   MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
   MyAssert(TestBigNumberGcd, 'TestBigNumberGcd');
   MyAssert(TestBigNumberLcm, 'TestBigNumberLcm');
@@ -2221,6 +2226,7 @@ begin
   MyAssert(TestBigNumberSetHexValidate, 'TestBigNumberSetHexValidate');
   MyAssert(TestBigNumberCopyLowNormalize, 'TestBigNumberCopyLowNormalize');
   MyAssert(TestBigNumberBSGS, 'TestBigNumberBSGS');
+  MyAssert(TestSparseBigNumberListMerge, 'TestSparseBigNumberListMerge');
   MyAssert(TestBigNumberGeneratePrimeBits, 'TestBigNumberGeneratePrimeBits');
   MyAssert(TestBigNumberLoadFromMemSize, 'TestBigNumberLoadFromMemSize');
   MyAssert(TestBigNumberCompareNil, 'TestBigNumberCompareNil');
@@ -3068,6 +3074,55 @@ begin
   MemoryShiftRight(@Buf, @Buf, SizeOf(Buf), Low(Integer));
   for I := 0 to SizeOf(Buf) - 1 do
     if Buf[I] <> 0 then Exit;
+  Result := True;
+end;
+
+function TestMemoryGetBits: Boolean;
+var
+  B1: array[0..0] of Byte;
+  B2: array[0..1] of Byte;
+  B4: array[0..3] of Byte;
+begin
+  Result := False;
+
+  // 单字节：末字节最低位为 0 位
+  B1[0] := $01;
+  if MemoryGetHighBits(@B1[0], SizeOf(B1)) <> 0 then Exit;
+  if MemoryGetLowBits(@B1[0], SizeOf(B1)) <> 0 then Exit;
+
+  B1[0] := $80;
+  if MemoryGetHighBits(@B1[0], SizeOf(B1)) <> 7 then Exit;
+  if MemoryGetLowBits(@B1[0], SizeOf(B1)) <> 7 then Exit;
+
+  B1[0] := $00;
+  if MemoryGetHighBits(@B1[0], SizeOf(B1)) <> -1 then Exit;
+  if MemoryGetLowBits(@B1[0], SizeOf(B1)) <> -1 then Exit;
+
+  // 双字节：低地址字节是高位字节（bit 15..8），末字节是 bit 7..0
+  B2[0] := $00; B2[1] := $01;
+  if MemoryGetHighBits(@B2[0], SizeOf(B2)) <> 0 then Exit;
+  if MemoryGetLowBits(@B2[0], SizeOf(B2)) <> 0 then Exit;
+
+  B2[0] := $01; B2[1] := $00;
+  if MemoryGetHighBits(@B2[0], SizeOf(B2)) <> 8 then Exit;
+  if MemoryGetLowBits(@B2[0], SizeOf(B2)) <> 8 then Exit;
+
+  B2[0] := $FF; B2[1] := $FF;
+  if MemoryGetHighBits(@B2[0], SizeOf(B2)) <> 15 then Exit;
+  if MemoryGetLowBits(@B2[0], SizeOf(B2)) <> 0 then Exit;
+
+  // 四字节：只有中间某一位为 1，序号为 8 * (3 - 1) + 6 = 22
+  FillChar(B4, SizeOf(B4), 0);
+  B4[1] := $40;
+  if MemoryGetHighBits(@B4[0], SizeOf(B4)) <> 22 then Exit;
+  if MemoryGetLowBits(@B4[0], SizeOf(B4)) <> 22 then Exit;
+
+  // 空输入
+  if MemoryGetHighBits(nil, SizeOf(B4)) <> -1 then Exit;
+  if MemoryGetLowBits(nil, SizeOf(B4)) <> -1 then Exit;
+  if MemoryGetHighBits(@B4[0], 0) <> -1 then Exit;
+  if MemoryGetLowBits(@B4[0], 0) <> -1 then Exit;
+
   Result := True;
 end;
 
@@ -8737,6 +8792,50 @@ begin
   BigNumberFree(A);
 end;
 
+function TestBigNumberIsFloat: Boolean;
+var
+  Num: TCnBigNumber;
+  MaxExp, B: Integer;
+  F: Extended;
+  CanConvert: Boolean;
+begin
+  Result := False;
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
+    MaxExp := CN_EXTENDED_MAX_EXPONENT
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    MaxExp := CN_DOUBLE_MAX_EXPONENT
+  else
+    Exit;
+
+  Num := BigNumberNew;
+  try
+    // 0 在浮点表示范围内
+    if not BigNumberIsFloat(Num) then Exit;
+
+    // IsFloat 只做范围判断，应与 BigNumberGetFloat 是否抛异常一致。
+    // 可表示范围为位数不超过 MaxExp + 1，即最高指数 E = B - 1 不超过 MaxExp。
+    for B := MaxExp - 1 to MaxExp + 2 do
+    begin
+      Num.SetZero;
+      if not BigNumberSetBit(Num, B - 1) then Exit;
+      if BigNumberGetBitsCount(Num) <> B then Exit;
+
+      CanConvert := True;
+      try
+        F := BigNumberGetFloat(Num);
+      except
+        on E: ERangeError do
+          CanConvert := False;
+      end;
+
+      if BigNumberIsFloat(Num) <> CanConvert then Exit;
+    end;
+    Result := True;
+  finally
+    BigNumberFree(Num);
+  end;
+end;
+
 function TestBigNumberShiftRightOne: Boolean;
 var
   A: TCnBigNumber;
@@ -10634,6 +10733,62 @@ begin
     M.Free;
     B.Free;
     A.Free;
+  end;
+end;
+
+function TestSparseBigNumberListMerge: Boolean;
+var
+  S1, S2, D: TCnSparseBigNumberList;
+begin
+  Result := False;
+  S1 := TCnSparseBigNumberList.Create;
+  S2 := TCnSparseBigNumberList.Create;
+  D := TCnSparseBigNumberList.Create;
+  try
+    // Dest 与两源互异且做减法：Source1 先耗尽时 Source2 尾项须取反
+    S1.SetValues([5]);
+    S2.SetValues([2, 7]);
+    SparseBigNumberListMerge(D, S1, S2, False);
+    if (D.Count <> 2) or (D[0].Exponent <> 0) or (D[1].Exponent <> 1) then Exit;
+    if not BigNumberEqual(D[0].Value, Int64(3)) then Exit;
+    if not BigNumberEqual(D[1].Value, Int64(-7)) then Exit;
+
+    // Dest = Source2 的原地减法应得 Source1 - Source2
+    D.Clear;
+    D.SafeValue[0].SetWord(2);
+    D.SafeValue[2].SetWord(9);
+    S1.SetValues([5, 3]);
+    SparseBigNumberListMerge(D, S1, D, False);
+    if (D.Count <> 3) or (D[0].Exponent <> 0) or (D[1].Exponent <> 1) or
+       (D[2].Exponent <> 2) then Exit;
+    if not BigNumberEqual(D[0].Value, Int64(3)) then Exit;
+    if not BigNumberEqual(D[1].Value, Int64(3)) then Exit;
+    if not BigNumberEqual(D[2].Value, Int64(-9)) then Exit;
+
+    // Dest 预置的旧项不能在合并后残留
+    D.SetValues([99, 99, 99, 99]);
+    S1.SetValues([1, 2]);
+    S2.SetValues([3, 4]);
+    SparseBigNumberListMerge(D, S1, S2, True);
+    if (D.Count <> 2) or (D[0].Exponent <> 0) or (D[1].Exponent <> 1) then Exit;
+    if not BigNumberEqual(D[0].Value, Int64(4)) then Exit;
+    if not BigNumberEqual(D[1].Value, Int64(6)) then Exit;
+
+    // 自相减后须清理零系数项，IsZero 才能识别为零
+    S1.SetValues([1, 2]);
+    SparseBigNumberListMerge(D, S1, S1, False);
+    if not SparseBigNumberListIsZero(D) then Exit;
+
+    S1.SetValues([1, 2]);
+    D.SetValues([1, 2]);
+    SparseBigNumberListMerge(D, D, S1, False);
+    if not SparseBigNumberListIsZero(D) then Exit;
+
+    Result := True;
+  finally
+    D.Free;
+    S2.Free;
+    S1.Free;
   end;
 end;
 

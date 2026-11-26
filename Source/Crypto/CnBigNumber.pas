@@ -5831,6 +5831,13 @@ var
   L, Tmp: TCnBigNumberElement;
   T, F: PCnBigNumberElementArray;
 begin
+  if (Num.FTop = 0) or (N >= BigNumberGetBitsCount(Num)) then
+  begin
+    BigNumberSetZero(Res);
+    Result := True;
+    Exit;
+  end;
+
   if N < 0 then
   begin
     // 同 ShiftLeft：CN_MIN_INT32 取相反数溢出回绕，特判走全移空分支
@@ -9014,13 +9021,15 @@ begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
     // 判断是否属于 10 字节扩展精度范围
-    Result := BigNumberGetBitsCount(Num) < CN_EXTENDED_MAX_EXPONENT;
+    Result := BigNumberGetBitsCount(Num) < CN_EXTENDED_MAX_EXPONENT + 1;
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
   begin
     // 判断是否属于 8 字节双精度范围
-    Result := BigNumberGetBitsCount(Num) < CN_DOUBLE_MAX_EXPONENT;
-  end;
+    Result := BigNumberGetBitsCount(Num) < CN_DOUBLE_MAX_EXPONENT + 1;
+  end
+  else
+    Result := False;
 end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
@@ -9171,6 +9180,12 @@ var
 begin
   if (Res = X) or (Res = Modulus) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
+
+  if Modulus.IsNegative or (BigNumberCompare(Modulus, CnBigNumberOne) <= 0) then
+  begin
+    Result := False;
+    Exit;
+  end;
 
   // 由费马小定理知 x^(p-1) = 1 mod p，所以 x 的逆元是 x^(p-2) mod p
   P := FLocalBigNumberPool.Obtain;
@@ -11335,6 +11350,7 @@ begin
       else
         BigNumberSub(Dest[I].Value, Source1[I].Value, Source2[I].Value);
     end;
+    Dest.Compact;
   end
   else // Source1 和 Source2 不是同一个，要归并
   begin
@@ -11394,6 +11410,7 @@ begin
 
       if (I = Source1.Count) and (J = Source2.Count) then
       begin
+        Dest.Count := K;
         Dest.Compact;
         Exit;
       end;
@@ -11410,6 +11427,8 @@ begin
 
           Dest[K].Exponent := Source2[I].Exponent;
           BigNumberCopy(Dest[K].Value, Source2[I].Value);
+          if not Add then
+            Dest[K].Value.Negate;
           Inc(K);
         end;
       end
@@ -11427,6 +11446,7 @@ begin
           Inc(K);
         end;
       end;
+      Dest.Count := K;
       Dest.Compact;
     end
     else if Dest = Source1 then // Dest 是 Source1，且 Source1 和 Source2 不同
@@ -11440,18 +11460,19 @@ begin
         else
           BigNumberSub(Dest.SafeValue[P2.Exponent], Dest.SafeValue[P2.Exponent], P2.Value);
       end;
+      Dest.Compact;
     end
     else if Dest = Source2 then // Dest 是 Source2，且 Source1 和 Source2 不同
     begin
-      // 遍历 Source1，加塞到 Source2 中
+      // 减法时先整体取反得到 -Source2，再逐项加上 Source1 即得 Source1 - Source2
+      if not Add then
+        Dest.Negate;
       for I := 0 to Source1.Count - 1 do
       begin
         P1 := Source1[I];
-        if Add then
-          BigNumberAdd(Dest.SafeValue[P1.Exponent], Dest.SafeValue[P1.Exponent], P1.Value)
-        else
-          BigNumberSub(Dest.SafeValue[P1.Exponent], Dest.SafeValue[P1.Exponent], P1.Value);
+        BigNumberAdd(Dest.SafeValue[P1.Exponent], Dest.SafeValue[P1.Exponent], P1.Value);
       end;
+      Dest.Compact;
     end;
   end;
 end;
@@ -11895,6 +11916,7 @@ begin
   Result := 0;
   for I := 0 to FTop - 1 do
   begin
+    W := PCnBigNumberElementArray(FD)^[I];
 {$IFDEF BN_DATA_USE_64}
     Result := Result * 31 + Integer(Cardinal(W) xor Cardinal(W shr 32));
 {$ELSE}
@@ -12161,7 +12183,7 @@ end;
 function TCnBigNumberPool.Obtain: TCnBigNumber;
 begin
   Result := TCnBigNumber(inherited Obtain);
-  Result.Clear;
+  Result.SetZero;
 end;
 
 procedure TCnBigNumberPool.Recycle(Num: TCnBigNumber);
