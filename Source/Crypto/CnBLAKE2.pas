@@ -1393,56 +1393,62 @@ var
   end;
 
 begin
+  FillChar(D, SizeOf(D), 0);
   Result := False;
   Size := Stream.Size;
   SavePos := Stream.Position;
   TotalBytes := 0;
   CancelCalc := False;
   _BLAKE2Init;
-  if Size = 0 then
-  begin
-    _BLAKE2Final;
-    _CopyResult;
-    Result := True;
-    Exit;
-  end;
-  if Size < BufSize then
-    BufLen := Size
-  else
-    BufLen := BufSize;
- 
-{$IFDEF COMPILER5}
-  CnGetMem(Buf, BufLen);
-{$ELSE}
-  GetMem(Buf, BufLen);
-{$ENDIF}
   try
-    Stream.Position := 0;
-    repeat
-      ReadBytes := Stream.Read(Buf^, BufLen);
-      if ReadBytes <> 0 then
-      begin
-        Inc(TotalBytes, ReadBytes);
-        _BLAKE2Update;
+    if Size = 0 then
+    begin
+      _BLAKE2Final;
+      _CopyResult;
+      Result := True;
+      Exit;
+    end;
+    if Size < BufSize then
+      BufLen := Size
+    else
+      BufLen := BufSize;
 
-        if Assigned(CallBack) then
+  {$IFDEF COMPILER5}
+    CnGetMem(Buf, BufLen);
+  {$ELSE}
+    GetMem(Buf, BufLen);
+  {$ENDIF}
+    try
+      Stream.Position := 0;
+      repeat
+        ReadBytes := Stream.Read(Buf^, BufLen);
+        if ReadBytes <> 0 then
         begin
-          CallBack(Size, TotalBytes, CancelCalc);
-          if CancelCalc then
-            Exit;
+          Inc(TotalBytes, ReadBytes);
+          _BLAKE2Update;
+
+          if Assigned(CallBack) then
+          begin
+            CallBack(Size, TotalBytes, CancelCalc);
+            if CancelCalc then
+              Exit;
+          end;
         end;
-      end;
-    until (ReadBytes = 0) or (TotalBytes = Size);
-    _BLAKE2Final;
-    _CopyResult;
-    Result := True;
+      until (ReadBytes = 0) or (TotalBytes = Size);
+      _BLAKE2Final;
+      _CopyResult;
+      Result := True;
+    finally
+  {$IFDEF COMPILER5}
+      CnFreeMem(Buf);
+  {$ELSE}
+      FreeMem(Buf, BufLen);
+  {$ENDIF}
+      Stream.Position := SavePos;
+    end;
   finally
-{$IFDEF COMPILER5}
-    CnFreeMem(Buf);
-{$ELSE}
-    FreeMem(Buf, BufLen);
-{$ENDIF}
-    Stream.Position := SavePos;
+    MemorySafeZero(@Context2S, SizeOf(Context2S));
+    MemorySafeZero(@Context2B, SizeOf(Context2B));
   end;
 end;
 
