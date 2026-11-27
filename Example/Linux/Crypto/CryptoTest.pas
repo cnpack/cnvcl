@@ -200,6 +200,7 @@ function TestComplexNumberArithmetic: Boolean;
 function TestComplexNumberProperties: Boolean;
 function TestComplexNumberSqrt: Boolean;
 function TestComplexNumberSqrtPrincipal: Boolean;
+function TestComplexNumberDivSmith: Boolean;
 function TestComplexNumberString: Boolean;
 function TestBigComplexBasic: Boolean;
 function TestBigComplexArithmetic: Boolean;
@@ -817,6 +818,7 @@ function TestSM9RejectUnalignedSM4Cipher: Boolean;
 
 function TestRSA1: Boolean;
 function TestRSA2: Boolean;
+function TestDHRejectSmallSubgroup: Boolean;
 function TestRSA3: Boolean;
 function TestRSA4: Boolean;
 function TestRSAPrivPubPkcs1: Boolean;
@@ -825,6 +827,7 @@ function TestRSAPrivPubPkcs8: Boolean;
 function TestRSAPubPkcs8: Boolean;
 function TestChameleonHash: Boolean;
 function TestRSA2Crypt: Boolean;
+function TestRSA2NonCoprimeReject: Boolean;
 function TestRSALongStream1: Boolean;
 function TestRSALongStream2: Boolean;
 function TestRSAVerifyCorruptedSignature: Boolean;
@@ -2153,6 +2156,7 @@ begin
   MyAssert(TestComplexNumberProperties, 'TestComplexNumberProperties');
   MyAssert(TestComplexNumberSqrt, 'TestComplexNumberSqrt');
   MyAssert(TestComplexNumberSqrtPrincipal, 'TestComplexNumberSqrtPrincipal');
+  MyAssert(TestComplexNumberDivSmith, 'TestComplexNumberDivSmith');
   MyAssert(TestComplexNumberString, 'TestComplexNumberString');
   MyAssert(TestBigComplexBasic, 'TestBigComplexBasic');
   MyAssert(TestBigComplexArithmetic, 'TestBigComplexArithmetic');
@@ -2770,6 +2774,7 @@ begin
 
   MyAssert(TestRSA1, 'TestRSA1');
   MyAssert(TestRSA2, 'TestRSA2');
+  MyAssert(TestDHRejectSmallSubgroup, 'TestDHRejectSmallSubgroup');
   MyAssert(TestRSA3, 'TestRSA3');
   MyAssert(TestRSA4, 'TestRSA4');
   MyAssert(TestRSAPrivPubPkcs1, 'TestRSAPrivPubPkcs1');
@@ -2778,6 +2783,7 @@ begin
   MyAssert(TestRSAPubPkcs8, 'TestRSAPubPkcs8');
   MyAssert(TestChameleonHash, 'TestChameleonHash');
   MyAssert(TestRSA2Crypt, 'TestRSA2Crypt');
+  MyAssert(TestRSA2NonCoprimeReject, 'TestRSA2NonCoprimeReject');
   MyAssert(TestRSALongStream1, 'TestRSALongStream1');
   MyAssert(TestRSALongStream2, 'TestRSALongStream2');
   MyAssert(TestRSAVerifyCorruptedSignature, 'TestRSAVerifyCorruptedSignature');
@@ -7332,6 +7338,80 @@ begin
   if not Result then Exit;
   ComplexNumberMul(Temp, Res, Res);
   Result := FloatEqual(Temp.R, 3) and FloatEqual(Temp.I, 4);
+end;
+
+function TestComplexNumberDivSmith: Boolean;
+var
+  A, B, R: TCnComplexNumber;
+  V, BigReal, BigInv, TinyReal, TinyInv: Extended;
+begin
+  Result := False;
+
+  // Extended 在 Win64/ARM 为 8 字节(Double)，Win32 为 10 字节，
+  // macOS/Linux x64 为 16 字节(截断 Quadruple 前 10 字节)，指数范围不同，
+  // 按 SizeOf 选能触发旧实现 c*c+d*d 溢出/下溢的量级
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+  begin
+    BigReal := StrToExtended('1e200');
+    BigInv := StrToExtended('5e-201');
+    TinyReal := StrToExtended('1e-200');
+    TinyInv := StrToExtended('5e199');
+  end
+  else
+  begin
+    BigReal := StrToExtended('1e2500');
+    BigInv := StrToExtended('5e-2501');
+    TinyReal := StrToExtended('1e-2500');
+    TinyInv := StrToExtended('5e2499');
+  end;
+
+  // 常规除法与 Res/Complex1 别名
+  A.R := 3;
+  A.I := 4;
+  B.R := 1;
+  B.I := 2;
+  ComplexNumberDiv(R, A, B);
+  Result := FloatEqual(R.R, 2.2) and FloatEqual(R.I, -0.4);
+  if not Result then Exit;
+
+  ComplexNumberDiv(A, A, B);
+  Result := FloatEqual(A.R, 2.2) and FloatEqual(A.I, -0.4);
+  if not Result then Exit;
+
+  try
+    // 分母极大：旧实现的 c*c + d*d 会溢出
+    A.R := 1;
+    A.I := 0;
+    B.R := BigReal;
+    B.I := BigReal;
+    ComplexNumberDiv(R, A, B);
+    Result := (Abs(R.R / BigInv - 1) < 1e-12) and
+      (Abs(R.I / -BigInv - 1) < 1e-12);
+    if not Result then Exit;
+
+    // 分母极小：旧实现的 c*c + d*d 会下溢为 0
+    B.R := TinyReal;
+    B.I := TinyReal;
+    ComplexNumberDiv(R, A, B);
+    Result := (Abs(R.R / TinyInv - 1) < 1e-12) and
+      (Abs(R.I / -TinyInv - 1) < 1e-12);
+    if not Result then Exit;
+
+    // 模长同样需避免 R*R + I*I 的溢出/下溢
+    A.R := BigReal;
+    A.I := BigReal;
+    V := ComplexNumberAbsoluteValue(A);
+    Result := Abs(V / (Sqrt(2) * BigReal) - 1) < 1e-12;
+    if not Result then Exit;
+
+    A.R := TinyReal;
+    A.I := TinyReal;
+    V := ComplexNumberAbsoluteValue(A);
+    Result := Abs(V / (Sqrt(2) * TinyReal) - 1) < 1e-12;
+  except
+    on E: Exception do
+      Result := False;
+  end;
 end;
 
 function TestComplexNumberString: Boolean;
@@ -28417,6 +28497,45 @@ begin
   end;
 end;
 
+function TestDHRejectSmallSubgroup: Boolean;
+var
+  Prime, Root, Priv, Pub, Sec, Tmp: TCnBigNumber;
+begin
+  Result := False;
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+  Priv := TCnBigNumber.Create;
+  Pub := TCnBigNumber.Create;
+  Sec := TCnBigNumber.Create;
+  Tmp := TCnBigNumber.Create;
+  try
+    if not CnDiffieHellmanGeneratePrimeRootByBitsCount(512, Prime, Root) then
+      Exit;
+    Priv.SetWord(123456789);
+    if not CnDiffieHellmanGenerateOutKey(Prime, Root, Priv, Pub) then
+      Exit;
+
+    // 0、1 与 Prime-1（阶为 2）必须被拒绝
+    Tmp.SetZero;
+    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
+    Tmp.SetOne;
+    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
+    BigNumberCopy(Tmp, Prime);
+    Tmp.SubWord(1);
+    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
+
+    // 正常公钥仍可计算
+    Result := CnDiffieHellmanComputeKey(Prime, Priv, Pub, Sec);
+  finally
+    Tmp.Free;
+    Sec.Free;
+    Pub.Free;
+    Priv.Free;
+    Root.Free;
+    Prime.Free;
+  end;
+end;
+
 function TestRSA3: Boolean;
 var
   Priv: TCnRSAPrivateKey;
@@ -28928,6 +29047,44 @@ begin
     D2 := CnRSA2DecryptBytes(En, Priv2);
 
     Result := CompareBytes(D1, C1) and CompareBytes(D2, C2);
+  finally
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
+  end;
+end;
+
+function TestRSA2NonCoprimeReject: Boolean;
+var
+  Priv1, Priv2: TCnRSAPrivateKey;
+  Pub1, Pub2: TCnRSAPublicKey;
+  M, En, D: TBytes;
+begin
+  Result := False;
+  Priv1 := TCnRSAPrivateKey.Create;
+  Pub1 := TCnRSAPublicKey.Create;
+  Priv2 := TCnRSAPrivateKey.Create;
+  Pub2 := TCnRSAPublicKey.Create;
+  try
+    if not CnRSAGenerateKeys(1024, Priv1, Pub1) then
+      Exit;
+    if not CnRSAGenerateKeys(1024, Priv2, Pub2) then
+      Exit;
+
+    M := AnsiToBytes('hello');
+
+    // 两个公钥相同（模数不互素）必须拒绝，不能产出无法还原的密文
+    En := CnRSA2EncryptBytes(M, M, Pub1, Pub1);
+    Result := Length(En) = 0;
+    if not Result then Exit;
+
+    // 不同公钥的正常路径仍可用
+    En := CnRSA2EncryptBytes(M, M, Pub1, Pub2);
+    if Length(En) = 0 then
+      Exit;
+    D := CnRSA2DecryptBytes(En, Priv1);
+    Result := CompareBytes(D, M);
   finally
     Pub2.Free;
     Pub1.Free;

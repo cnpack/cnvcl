@@ -1802,15 +1802,30 @@ end;
 procedure ComplexNumberDiv(var Res: TCnComplexNumber;
   var Complex1, Complex2: TCnComplexNumber);
 var
-  T, D: Extended;
+  R, Den, VR, VI: Extended;
 begin
   if (Complex2.R = 0) and (Complex2.I = 0) then
     raise EZeroDivide.Create(SZeroDivide);
 
-  D := Complex2.R * Complex2.R + Complex2.I * Complex2.I;
-  T := (Complex1.R * Complex2.R + Complex1.I * Complex2.I) / D;
-  Res.I := (Complex1.I * Complex2.R - Complex1.R * Complex2.I) / D;
-  Res.R := T;
+  // Smith 算法：先按 |c|、|d| 大小选分支，避免 c*c + d*d 溢出或下溢
+  if Abs(Complex2.R) >= Abs(Complex2.I) then
+  begin
+    R := Complex2.I / Complex2.R;
+    Den := Complex2.R + Complex2.I * R;
+    VR := (Complex1.R + Complex1.I * R) / Den;
+    VI := (Complex1.I - Complex1.R * R) / Den;
+  end
+  else
+  begin
+    R := Complex2.R / Complex2.I;
+    Den := Complex2.I + Complex2.R * R;
+    VR := (Complex1.R * R + Complex1.I) / Den;
+    VI := (Complex1.I * R - Complex1.R) / Den;
+  end;
+
+  // 先算完再写 Res，允许 Res 与 Complex1/Complex2 是同一对象
+  Res.R := VR;
+  Res.I := VI;
 end;
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
@@ -1889,8 +1904,26 @@ begin
 end;
 
 function ComplexNumberAbsoluteValue(var Complex: TCnComplexNumber): Extended;
+var
+  A, B: Extended;
 begin
-  Result := Sqrt(Complex.R * Complex.R + Complex.I * Complex.I);
+  // 先取较大者作因子，避免 R*R + I*I 溢出或下溢
+  A := Abs(Complex.R);
+  B := Abs(Complex.I);
+  if A < B then
+  begin
+    Result := A;
+    A := B;
+    B := Result;
+  end;
+
+  if B = 0 then
+  begin
+    Result := A;
+    Exit;
+  end;
+
+  Result := A * Sqrt(1 + (B / A) * (B / A));
 end;
 
 function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;

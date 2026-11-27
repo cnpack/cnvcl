@@ -3330,6 +3330,11 @@ begin
     if in_len > 0 then
       Move(in_ptr^, Plain[0], in_len);
     En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, C1Compress);
+    if Length(En) = 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
     out_len := Length(En);
     if cap < out_len then
     begin
@@ -3380,6 +3385,11 @@ begin
     if in_len > 0 then
       Move(in_ptr^, En[0], in_len);
     Plain := CnSM2DecryptData(En, TCnSM2PrivateKey(priv), nil, ST);
+    if Length(Plain) = 0 then
+    begin
+      Result := CN_E_INTERNAL;
+      Exit;
+    end;
     out_len := Length(Plain);
     if cap < out_len then
     begin

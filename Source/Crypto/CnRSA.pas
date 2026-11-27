@@ -5129,7 +5129,36 @@ end;
 // 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
 function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   SecretKey: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
 begin
+  Result := False;
+  if (Prime = nil) or (SelfPrivateKey = nil) or (OtherPublicKey = nil) or
+    (SecretKey = nil) or Prime.IsNegative or (Prime.GetBitsCount <= 2) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  // 拦住 0、1 与 Prime-1（阶为 2 的元素），避免小子群限制攻击
+  T := TCnBigNumber.Create;
+  try
+    if BigNumberCopy(T, Prime) = nil then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+    T.SubWord(1);
+    if OtherPublicKey.IsNegative or OtherPublicKey.IsZero or OtherPublicKey.IsOne or
+      (BigNumberCompare(OtherPublicKey, T) >= 0) then
+    begin
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
+      Exit;
+    end;
+  finally
+    T.Free;
+  end;
+
   // SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
   Result := BigNumberPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
 end;
@@ -5195,16 +5224,34 @@ function CnRSA2EncryptData(PlainData1: Pointer; DataByteLen1: Integer;
   PublicKey2: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean;
 var
   En1, En2: TBytes;
-  M, Y, C1, C2: TCnBigNumber;
+  M, Y, C1, C2, T: TCnBigNumber;
 begin
-  // TODO: 外部判断私钥，四个素数必须两两不同避免无解
-
   // 位数须相同
   Result := False;
   if PublicKey1.GetBitsCount <> PublicKey2.GetBitsCount then
   begin
     _CnSetLastError(ECN_RSA_INVALID_BITS);
     Exit;
+  end;
+
+  // CRT 合并要求两个模数互素，否则会静默产生无法还原的密文
+  if (PublicKey1.PubKeyProduct.GetBitsCount <= 1) or
+    (PublicKey2.PubKeyProduct.GetBitsCount <= 1) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  T := TCnBigNumber.Create;
+  try
+    if (not BigNumberGcd(T, PublicKey1.PubKeyProduct,
+      PublicKey2.PubKeyProduct)) or (not T.IsOne) then
+    begin
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
+      Exit;
+    end;
+  finally
+    T.Free;
   end;
 
   SetLength(En1, PublicKey1.GetBytesCount);
@@ -5239,18 +5286,18 @@ begin
     // 再合并计算大密文的大数，(C1 * N2 * Y2 + C2 * N1 * Y1) mod N
     BigNumberMul(C1, PublicKey2.PubKeyProduct, C1);
     // 计算各自相互的模逆元
-    if not BigNumberModularInverse(Y, PublicKey2.PubKeyProduct, PublicKey1.PubKeyProduct) then
+    if not BigNumberModularInverse(Y, PublicKey2.PubKeyProduct, PublicKey1.PubKeyProduct, True) then
     begin
-      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
       Exit;
     end;
     BigNumberMul(C1, C1, Y); // 释放 Y
 
     BigNumberMul(C2, PublicKey1.PubKeyProduct, C2);
     // 计算各自相互的模逆元
-    if not BigNumberModularInverse(Y, PublicKey1.PubKeyProduct, PublicKey2.PubKeyProduct) then
+    if not BigNumberModularInverse(Y, PublicKey1.PubKeyProduct, PublicKey2.PubKeyProduct, True) then
     begin
-      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
       Exit;
     end;
     BigNumberMul(C2, C2, Y); // 再释放 Y
