@@ -14755,6 +14755,7 @@ begin
     end;
     Res.Add(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -14778,6 +14779,7 @@ begin
     end;
     Res.Add(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -15206,6 +15208,7 @@ begin
     end;
     Res.Add(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -15230,6 +15233,7 @@ begin
     end;
     Res.Add(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -16261,9 +16265,6 @@ begin
 
     for I := 0 to P.FXs.Count - 1 do
     begin
-      if P.FXs[I] = nil then
-        Continue;
-
       Sum.SetZero;
       YL := P.YFactorsList[I];
 
@@ -16297,6 +16298,7 @@ begin
     FLocalBigNumberPool.Recycle(TY);
     FLocalBigNumberPool.Recycle(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -16338,6 +16340,7 @@ begin
     FLocalBigNumberPool.Recycle(TX);
     FLocalBigNumberPool.Recycle(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -16878,9 +16881,6 @@ begin
 
     for I := 0 to P.FXs.Count - 1 do
     begin
-      if P.FXs[I] = nil then
-        Continue;
-
       Sum.SetZero;
       YL := P.YFactorsList[I];
 
@@ -16924,6 +16924,7 @@ begin
     FLocalBigNumberPool.Recycle(TE);
     FLocalBigNumberPool.Recycle(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 
@@ -16970,6 +16971,7 @@ begin
     FLocalBigNumberPool.Recycle(TX);
     FLocalBigNumberPool.Recycle(Sum);
   end;
+  Res.CorrectTop;
   Result := True;
 end;
 

@@ -462,6 +462,7 @@ function TestInt64RationalPolynomial: Boolean;
 function TestBigNumberRationalPolynomial: Boolean;
 function TestInt64BiPolynomial: Boolean;
 function TestBigNumberBiPolynomial: Boolean;
+function TestBigNumberBiPolynomialEvaluateByY: Boolean;
 function TestInt64BiPolynomialDerivative: Boolean;
 function TestInt64BiPolynomialGaloisDerivative: Boolean;
 function TestBigNumberBiPolynomialDerivative: Boolean;
@@ -2409,6 +2410,7 @@ begin
   MyAssert(TestBigNumberRationalPolynomial, 'TestBigNumberRationalPolynomial');
   MyAssert(TestInt64BiPolynomial, 'TestInt64BiPolynomial');
   MyAssert(TestBigNumberBiPolynomial, 'TestBigNumberBiPolynomial');
+  MyAssert(TestBigNumberBiPolynomialEvaluateByY, 'TestBigNumberBiPolynomialEvaluateByY');
   MyAssert(TestInt64BiPolynomialDerivative, 'TestInt64BiPolynomialDerivative');
   MyAssert(TestInt64BiPolynomialGaloisDerivative, 'TestInt64BiPolynomialGaloisDerivative');
   MyAssert(TestBigNumberBiPolynomialDerivative, 'TestBigNumberBiPolynomialDerivative');
@@ -18036,6 +18038,56 @@ begin
     Res.Free;
     P2.Free;
     P1.Free;
+  end;
+end;
+
+function TestBigNumberBiPolynomialEvaluateByY: Boolean;
+var
+  P: TCnBigNumberBiPolynomial;
+  R: TCnBigNumberPolynomial;
+  Y, Prime: TCnBigNumber;
+begin
+  P := TCnBigNumberBiPolynomial.Create;
+  R := TCnBigNumberPolynomial.Create;
+  Y := TCnBigNumber.Create;
+  Prime := TCnBigNumber.Create;
+  try
+    Prime.SetWord(101);
+
+    // P = X^2*Y，FXs[0] 与 FXs[1] 为 nil，代入 Y=3 应为 3X^2
+    P.SetXYCoefficent(2, 1, 1);
+    Y.SetWord(3);
+    Result := BigNumberBiPolynomialEvaluateByY(R, P, Y) and (R.ToString = '3X^2');
+    if not Result then Exit;
+
+    Result := BigNumberBiPolynomialGaloisEvaluateByY(R, P, Y, Prime)
+      and (R.ToString = '3X^2');
+    if not Result then Exit;
+
+    // 中间多个空 X 槽位仍应与 X 次数对齐
+    P.SetZero;
+    P.SetXYCoefficent(4, 0, 1);
+    P.SetXYCoefficent(0, 0, 1);
+    Result := BigNumberBiPolynomialEvaluateByY(R, P, Y) and (R.ToString = 'X^4+1');
+    if not Result then Exit;
+
+    // 零多项式应至少保留一项零系数
+    P.SetZero;
+    Result := BigNumberBiPolynomialEvaluateByY(R, P, Y) and (R.Count = 1)
+      and (R.ToString = '0');
+    if not Result then Exit;
+
+    // 高次项代入后消零时，CorrectTop 应把结果规范为 0
+    P.SetXYCoefficent(2, 0, 1);
+    P.SetXYCoefficent(2, 1, 1);
+    Y.SetWord(1);
+    Y.Negate;
+    Result := BigNumberBiPolynomialEvaluateByY(R, P, Y) and (R.ToString = '0');
+  finally
+    Prime.Free;
+    Y.Free;
+    R.Free;
+    P.Free;
   end;
 end;
 
