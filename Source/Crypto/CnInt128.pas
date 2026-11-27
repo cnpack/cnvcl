@@ -841,6 +841,7 @@ begin
   // 用本地副本转正，避免 R 与负操作数同址时末尾恢复取反损坏乘积
   Int128Copy(AA, A);
   Int128Copy(BB, B);
+
   // 幅度按补码位型取反：SZ_MIN 的幅度 2^127 与其本身位型相同（mod 2^128），
   // 跳过取反即得正确幅度，避免 Int128Negate 对 SZ_MIN 误抛溢出
   if N1 and not ((AA.Hi64 = CN_MIN_INT64) and (AA.Lo64 = 0)) then
@@ -849,6 +850,7 @@ begin
     Int128Negate(BB);
 
   UInt128Mul(TCnUInt128(R), TCnUInt128(AA), TCnUInt128(BB));
+
   // 乘积位型为负说明幅度不小于 2^127：仅当结果应为负且幅度恰为 2^127 时合法
   //（此时位型已是 SZ_MIN，无需再取反），否则为溢出
   if Int128IsNegative(R) then
@@ -1388,7 +1390,11 @@ begin
   T.Hi64 := R2.Lo64;
   UInt128AddC(Lo, Lo, T, C2);
 
-  UInt128Copy(R, Lo); // 低 128 位结果已经拿到了
+  // 无论是否溢出，都要给调用方一个确定的高 128 位；此时 A、B 已读完，不怕别名
+  if ResHi <> nil then
+    UInt128SetZero(ResHi^);
+
+  UInt128Copy(R, Lo); // 低 128 位结果
 
   if (C1 > 0) or (C2 > 0) or (R1.Hi64 > 0) or (R2.Hi64 > 0) or (R3.Lo64 > 0) or (R3.Hi64 > 0) then
   begin

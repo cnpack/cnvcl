@@ -922,7 +922,7 @@ procedure ComplexNumberDiv(var Res: TCnComplexNumber;
 }
 
 procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
-{* 求复数的平方根，只返回其中一个，如果需要另一个，实部虚部各取负就行。
+{* 求复数的平方根主值：实部非负，虚部符号与虚部一致。若需另一个，实部虚部各取负即可。
 
    参数：
      var Res: TCnComplexNumber            - 复数平方根结果
@@ -1843,12 +1843,27 @@ end;
 
 procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
 var
-  R, A: Extended;
+  AbsValue, U, VR, VI: Extended;
 begin
-  R := FloatSqrt(ComplexNumberAbsoluteValue(Complex));
-  A := ComplexNumberArgument(Complex) / 2;
+  // 主值平方根：实部非负，虚部符号与 Im 一致。用代数式避免辐角取半引入的三角误差
+  AbsValue := ComplexNumberAbsoluteValue(Complex);
+  U := FloatSqrt((AbsValue + Complex.R) / 2);
+  if U = 0 then
+  begin
+    VR := 0;
+    VI := FloatSqrt((AbsValue - Complex.R) / 2);
+    if Complex.I < 0 then
+      VI := -VI;
+  end
+  else
+  begin
+    VR := U;
+    VI := Complex.I / (2 * U);
+  end;
 
-  ComplexNumberSetAbsoluteArgument(Res, R, A);
+  // 先算完再写 Res，允许 Res 与 Complex 是同一对象
+  Res.R := VR;
+  Res.I := VI;
 end;
 
 procedure ComplexNegate(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);

@@ -1597,6 +1597,9 @@ function Int64AddMod(A, B, C: Int64): Int64;
 var
   T: Int64;
 begin
+  if C <= 0 then
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+
   if (A >= 0) and (B >= 0) then // 都正，按 UInt64 处理
     Result := AddMod(A, B, C)
   else if (A < 0) and (B < 0) then // 都负，按 UInt64 处理后用 C 减
@@ -1612,11 +1615,17 @@ begin
   end
   else
     Result := 0;
+
+  if Result = C then
+    Result := 0;
 end;
 
 // 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
 function Int64MultipleMod(A, B, C: Int64): Int64;
 begin
+  if C <= 0 then
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+
   if (A > 0) and (B > 0) then
     Result := MultipleMod(A, B, C)
   else if (A < 0) and (B < 0) then
@@ -1626,6 +1635,9 @@ begin
   else if (A < 0) and (B > 0) then
     Result := C - MultipleMod(-A, B, C)
   else
+    Result := 0;
+
+  if Result = C then
     Result := 0;
 end;
 

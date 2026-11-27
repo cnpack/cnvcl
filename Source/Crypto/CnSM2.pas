@@ -1390,6 +1390,13 @@ begin
     Exit;
   end;
 
+  // 压缩 C1 必须带 02/03 前缀，否则解密端无法区分前缀与 X1 的首字节
+  if C1UseCompress and (not IncludePrefixByte) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
   Py := nil;
   P1 := nil;
   P2 := nil;
@@ -1546,17 +1553,106 @@ end;
 function CnSM2DecryptData(EnData: Pointer; DataByteLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): Boolean;
 var
-  MLen: Integer;
-  M: PAnsiChar;
-  MP: AnsiString;
-  KDFB, T: TBytes;
-  C3H: AnsiString;
   SM2IsNil: Boolean;
-  P, P2: TCnEccPoint;
-  I, PrefixLen, C1Len: Integer;
   PrefixByte: Byte;
-  IsCompressed: Boolean;
-  Sm3Dig: TCnSM3Digest;
+
+  function TryDecryptLayout(APrefixLen: Integer; APrefixByte: Byte;
+    AIsCompressed: Boolean): Boolean;
+  var
+    MLen, I, C1Len: Integer;
+    M: PAnsiChar;
+    MP: AnsiString;
+    KDFB, T: TBytes;
+    C3H: AnsiString;
+    P, C1: TCnEccPoint;
+    Sm3Dig: TCnSM3Digest;
+  begin
+    Result := False;
+    if SM2 = nil then
+      Exit;
+
+    C1Len := CN_SM2_FINITEFIELD_BYTESIZE * 2;
+    if AIsCompressed then
+      C1Len := CN_SM2_FINITEFIELD_BYTESIZE;
+
+    MLen := DataByteLen - SizeOf(TCnSM3Digest) - APrefixLen - C1Len;
+    if MLen <= 0 then
+      Exit;
+
+    P := nil;
+    C1 := nil;
+    try
+      C1 := TCnEccPoint.Create;
+      M := PAnsiChar(EnData);
+      Inc(M, APrefixLen);
+      C1.X.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE);
+
+      if AIsCompressed then
+      begin
+        P := TCnEccPoint.Create;
+        if not SM2.PlainToPoint(C1.X, P) then
+          Exit;
+
+        if (P.Y.IsOdd and (APrefixByte = $03)) or
+          ((not P.Y.IsOdd) and (APrefixByte = $02)) then
+          BigNumberCopy(C1.Y, P.Y)
+        else
+        begin
+          SM2.PointInverse(P);
+          BigNumberCopy(C1.Y, P.Y);
+        end;
+      end
+      else
+        C1.Y.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
+
+      if C1.IsZero then
+        Exit;
+      if not CheckEccPublicKey(SM2, TCnEccPublicKey(C1)) then
+        Exit;
+
+      SM2.MultiplePoint(PrivateKey, C1);
+
+      SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+      C1.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
+      C1.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
+      T := CnSM2KDFBytes(KDFB, MLen);
+      if Length(T) < MLen then
+        Exit;
+
+      SetLength(MP, MLen);
+      M := PAnsiChar(EnData);
+      if SequenceType = cstC1C3C2 then
+        Inc(M, SizeOf(TCnSM3Digest) + C1Len + APrefixLen)  // 跳过 C3 指向 C2
+      else
+        Inc(M, C1Len + APrefixLen);                        // 指向 C2
+
+      for I := 1 to MLen do
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));
+
+      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
+      C1.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
+      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
+      C1.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);
+      Sm3Dig := SM3(@C3H[1], Length(C3H));
+
+      M := PAnsiChar(EnData);
+      if SequenceType = cstC1C3C2 then
+        Inc(M, C1Len + APrefixLen)                         // 指向 C3
+      else
+        Inc(M, C1Len + APrefixLen + MLen);                 // 指向 C3
+
+      if not ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then
+        Exit;
+
+      OutStream.Write(MP[1], Length(MP));
+      Result := True;
+    finally
+      P.Free;
+      C1.Free;
+    end;
+  end;
+
 begin
   Result := False;
   if (EnData = nil) or (DataByteLen <= 0) or (OutStream = nil) or (PrivateKey = nil) then
@@ -1565,139 +1661,33 @@ begin
     Exit;
   end;
 
-  P := nil;
-  P2 := nil;
   SM2IsNil := SM2 = nil;
-
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    P2 := TCnEccPoint.Create;
-    M := PAnsiChar(EnData);
-    PrefixLen := 0;
-    PrefixByte := 0;
-    C1Len := CN_SM2_FINITEFIELD_BYTESIZE * 2;
-    IsCompressed := False;
-    if (M^ = #$02) or (M^ = #$03) or (M^ = #$04) then
+    // 首字节可能是前缀，也可能只是无前缀密文 X1 的首字节，逐个候选试并用 C3 校验
+    PrefixByte := PByte(EnData)^;
+    if (PrefixByte = $02) or (PrefixByte = $03) then
     begin
-      PrefixLen := 1;
-      PrefixByte := Byte(M^);
-      if (PrefixByte = $02) or (PrefixByte = $03) then
-      begin
-        IsCompressed := True;
-        C1Len := CN_SM2_FINITEFIELD_BYTESIZE;
-      end;
-      Inc(M);
-    end;
-
-    MLen := DataByteLen - SizeOf(TCnSM3Digest) - PrefixLen - C1Len;
-    if MLen <= 0 then
+      Result := TryDecryptLayout(1, PrefixByte, True);
+      if not Result then
+        Result := TryDecryptLayout(0, 0, False);
+    end
+    else if PrefixByte = $04 then
     begin
-      _CnSetLastError(ECN_SM2_INVALID_INPUT);
-      Exit;
-    end;
-
-    P2.X.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
-    Inc(M, CN_SM2_FINITEFIELD_BYTESIZE);
-    if IsCompressed then
-    begin
-      P := TCnEccPoint.Create;
-      if not SM2.PlainToPoint(P2.X, P) then
-      begin
-        _CnSetLastError(ECN_SM2_INVALID_INPUT);
-        Exit;
-      end;
-
-      if (P.Y.IsOdd and (PrefixByte = $03)) or ((not P.Y.IsOdd) and (PrefixByte = $02)) then
-        BigNumberCopy(P2.Y, P.Y)
-      else
-      begin
-        SM2.PointInverse(P);
-        BigNumberCopy(P2.Y, P.Y);
-      end;
+      Result := TryDecryptLayout(1, PrefixByte, False);
+      if not Result then
+        Result := TryDecryptLayout(0, 0, False);
     end
     else
-      P2.Y.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
+      Result := TryDecryptLayout(0, 0, False);
 
-    if P2.IsZero then
-    begin
-      _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
-      Exit;
-    end;
-
-    // 校验点以避免攻击
-    if not CheckEccPublicKey(SM2, TCnEccPublicKey(P2)) then
-    begin
+    if Result then
+      _CnSetLastError(ECN_SM2_OK)
+    else
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
-      Exit;
-    end;
-
-    SM2.MultiplePoint(PrivateKey, P2);
-
-    SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
-    P2.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
-    P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
-    T := CnSM2KDFBytes(KDFB, MLen);
-
-    // 解密时无需判断万一此步 T 出现全 0 的情况
-
-    if SequenceType = cstC1C3C2 then
-    begin
-      SetLength(MP, MLen);
-      M := PAnsiChar(EnData);
-      Inc(M, SizeOf(TCnSM3Digest) + C1Len + PrefixLen);        // 跳过 C3 指向 C2
-      for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));  // 和 KDF 做异或，在 MP 里得到明文
-
-      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
-      P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
-      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
-      P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
-
-      M := PAnsiChar(EnData);
-      Inc(M, C1Len + PrefixLen);                                       // M 指向 C3
-      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then
-      begin
-        OutStream.Write(MP[1], Length(MP));
-
-        Result := True;
-        _CnSetLastError(ECN_SM2_OK);
-      end
-      else
-        _CnSetLastError(ECN_SM2_INVALID_INPUT);
-    end
-    else // C1C2C3 的排列
-    begin
-      SetLength(MP, MLen);
-      M := PAnsiChar(EnData);
-      Inc(M, C1Len + PrefixLen);                               // 指向 C2
-
-      for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));  // 和 KDF 做异或，在 MP 里得到明文
-
-      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
-      P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
-      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
-      P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
-
-      M := PAnsiChar(EnData);
-      Inc(M, C1Len + PrefixLen + MLen);                                // 指向 C3
-      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
-      begin
-        OutStream.Write(MP[1], Length(MP));
-
-        Result := True;
-        _CnSetLastError(ECN_SM2_OK);
-      end
-      else
-        _CnSetLastError(ECN_SM2_INVALID_INPUT);
-    end;
   finally
-    P.Free;
-    P2.Free;
     if SM2IsNil then
       SM2.Free;
   end;

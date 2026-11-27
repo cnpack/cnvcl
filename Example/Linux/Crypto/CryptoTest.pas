@@ -199,6 +199,7 @@ function TestComplexNumberBasic: Boolean;
 function TestComplexNumberArithmetic: Boolean;
 function TestComplexNumberProperties: Boolean;
 function TestComplexNumberSqrt: Boolean;
+function TestComplexNumberSqrtPrincipal: Boolean;
 function TestComplexNumberString: Boolean;
 function TestBigComplexBasic: Boolean;
 function TestBigComplexArithmetic: Boolean;
@@ -782,6 +783,7 @@ function TestPDFCheckOwnerPassword: Boolean;
 function TestSM21: Boolean;
 function TestSM22: Boolean;
 function TestSM23: Boolean;
+function TestSM2PrefixFalsePositive: Boolean;
 function TestSM2KeyExchangeExample256: Boolean;
 function TestSM2KeyExchangeInvalidPeerKey: Boolean;
 function TestSM2Collaborative3KeyGen: Boolean;
@@ -2149,6 +2151,7 @@ begin
   MyAssert(TestComplexNumberArithmetic, 'TestComplexNumberArithmetic');
   MyAssert(TestComplexNumberProperties, 'TestComplexNumberProperties');
   MyAssert(TestComplexNumberSqrt, 'TestComplexNumberSqrt');
+  MyAssert(TestComplexNumberSqrtPrincipal, 'TestComplexNumberSqrtPrincipal');
   MyAssert(TestComplexNumberString, 'TestComplexNumberString');
   MyAssert(TestBigComplexBasic, 'TestBigComplexBasic');
   MyAssert(TestBigComplexArithmetic, 'TestBigComplexArithmetic');
@@ -2732,6 +2735,7 @@ begin
   MyAssert(TestSM21, 'TestSM21');
   MyAssert(TestSM22, 'TestSM22');
   MyAssert(TestSM23, 'TestSM23');
+  MyAssert(TestSM2PrefixFalsePositive, 'TestSM2PrefixFalsePositive');
   MyAssert(TestSM2KeyExchangeExample256, 'TestSM2KeyExchangeExample256');
   MyAssert(TestSM2KeyExchangeInvalidPeerKey, 'TestSM2KeyExchangeInvalidPeerKey');
   MyAssert(TestSM2Collaborative3KeyGen, 'TestSM2Collaborative3KeyGen');
@@ -7291,6 +7295,41 @@ begin
   ComplexNumberSqrt(Res, C1);
   ComplexNumberMul(Temp, Res, Res);
   Result := FloatEqual(Temp.R, C1.R) and FloatEqual(Temp.I, C1.I);
+end;
+
+function TestComplexNumberSqrtPrincipal: Boolean;
+var
+  C1, Res, Temp: TCnComplexNumber;
+begin
+  // 负实数的平方根主值，实部必须精确为 0
+  ComplexNumberSetValue(C1, -1, 0);
+  ComplexNumberSqrt(Res, C1);
+  Result := (Res.R = 0) and FloatEqual(Res.I, 1);
+  if not Result then Exit;
+
+  ComplexNumberSetValue(C1, -4, 0);
+  ComplexNumberSqrt(Res, C1);
+  Result := (Res.R = 0) and FloatEqual(Res.I, 2);
+  if not Result then Exit;
+
+  // 下半平面必须返回主值，而不是其相反数
+  ComplexNumberSetValue(C1, 3, -4);
+  ComplexNumberSqrt(Res, C1);
+  Result := FloatEqual(Res.R, 2) and FloatEqual(Res.I, -1);
+  if not Result then Exit;
+
+  ComplexNumberSetValue(C1, -3, -4);
+  ComplexNumberSqrt(Res, C1);
+  Result := FloatEqual(Res.R, 1) and FloatEqual(Res.I, -2);
+  if not Result then Exit;
+
+  // 上半平面不变，平方后仍还原原数
+  ComplexNumberSetValue(C1, 3, 4);
+  ComplexNumberSqrt(Res, C1);
+  Result := FloatEqual(Res.R, 2) and FloatEqual(Res.I, 1);
+  if not Result then Exit;
+  ComplexNumberMul(Temp, Res, Res);
+  Result := FloatEqual(Temp.R, 3) and FloatEqual(Temp.I, 4);
 end;
 
 function TestComplexNumberString: Boolean;
@@ -27005,6 +27044,77 @@ begin
     APrivateKey.Free;
     BPublicKey.Free;
     BPrivateKey.Free;
+  end;
+end;
+
+function TestSM2PrefixFalsePositive: Boolean;
+const
+  // 无前缀密文，X1 首字节分别为 02/03/04，明文均为 'SM2 prefix probe'
+  CIPHER_02 = '0256E4506CEFF2E340BDAB0C1F4FF1A415FCC5A62BB24A357F14B51CFA7AF472554240B474C552468E4CB72C94A53D2A527CB8F1D501F098F84EA8FBF96EC3EC6C695D7C4BAC16B1CB66CAE0577CC853053F4570F438122B3CE230008F267C85A881BF3DCF8DFE8BFE733A81C7A07DE3';
+  CIPHER_03 = '03A31105EFD292B730B4A9208AA411FA6456600613157508E40477AFA1F4E8123CE5DB32753CAB8B5D72490D095BE97DA992FC2E9B16F1CE070E5CD9E1E9CAC768347D64D658B90F0DD3B95FEAE956C6910094165C055B0B5E3BC7F42234AB55B05D9C1B33A0F1E7A9019B0BCF023F0E';
+  CIPHER_04 = '04B3CB10C9C6D8E27C1AAB770F67F543125DCDD589C2FF82668C74D78CE20ACE63516355287E39FE4918E5C02E2B0B930C94816E63C4BC72739A8FD805174A4B859F707C030038EB0384F2EEF22AACF7170DB4B2E8A07C6D65030BBC3FD858C25B3F0A28980274DDDA3BED56C755EE22';
+var
+  M: AnsiString;
+  Priv: TCnSM2PrivateKey;
+  Pub: TCnSM2PublicKey;
+  SM2: TCnSM2;
+  Enc, Dec: TMemoryStream;
+  Cipher: TBytes;
+  Hexes: array[0..2] of string;
+  I: Integer;
+begin
+  Result := False;
+  M := 'SM2 prefix probe';
+  Hexes[0] := CIPHER_02;
+  Hexes[1] := CIPHER_03;
+  Hexes[2] := CIPHER_04;
+
+  Priv := TCnSM2PrivateKey.Create;
+  Pub := TCnSM2PublicKey.Create;
+  SM2 := TCnSM2.Create;
+  Enc := TMemoryStream.Create;
+  Dec := TMemoryStream.Create;
+  try
+    Priv.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
+    Pub.X.SetHex('09F9DF311E5421A150DD7D161E4BC5C672179FAD1833FC076BB08FF356F35020');
+    Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
+
+    // 解密端不得把 X1 首字节 02/03/04 误判为前缀
+    for I := 0 to 2 do
+    begin
+      Cipher := HexToBytes(Hexes[I]);
+      if Length(Cipher) <> 0 then
+      begin
+        Dec.Clear;
+        if CnSM2DecryptData(@Cipher[0], Length(Cipher), Dec, Priv, SM2) then
+          Result := (Dec.Size = Length(M)) and CompareMem(Dec.Memory, @M[1], Length(M))
+        else
+          Result := False;
+      end
+      else
+        Result := False;
+      if not Result then
+        Exit;
+    end;
+
+    // 压缩 C1 必须带前缀
+    Enc.Clear;
+    if CnSM2EncryptData(@M[1], Length(M), Enc, Pub, SM2, cstC1C3C2, False, True) then
+      Exit;
+
+    Enc.Clear;
+    if not CnSM2EncryptData(@M[1], Length(M), Enc, Pub, SM2, cstC1C3C2, True, True) then
+      Exit;
+    Dec.Clear;
+    if not CnSM2DecryptData(Enc.Memory, Enc.Size, Dec, Priv, SM2) then
+      Exit;
+    Result := (Dec.Size = Length(M)) and CompareMem(Dec.Memory, @M[1], Length(M));
+  finally
+    Dec.Free;
+    Enc.Free;
+    SM2.Free;
+    Pub.Free;
+    Priv.Free;
   end;
 end;
 

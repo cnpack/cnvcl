@@ -3041,7 +3041,11 @@ begin
       Exit;
 
     Sig := TCnEd448Signature.Create;
-    Sig.LoadFromData(SigData);
+    try
+      Sig.LoadFromData(SigData);
+    except
+      ; // 非法签名异常要捕捉并返回 False，RFC 8032 要求的
+    end;
 
     Result := CnEd448VerifyData(Stream.Memory, Stream.Size, Sig, PublicKey, UserContext, Ed448);
   finally
