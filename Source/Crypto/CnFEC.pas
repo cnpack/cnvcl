@@ -429,7 +429,7 @@ begin
   OffsetIn := 0;
   OffsetOut := 0;
 
-  while OffsetIn < InBits.Size - 1 do
+  while OffsetIn < InBits.Size do
   begin
     CalcHammingBlock(OffsetIn, OffsetOut);
     Inc(OffsetIn, BlockBitCount);
@@ -505,7 +505,7 @@ begin
   OffsetIn := 0;
   OffsetOut := 0;
 
-  while OffsetIn < OutBits.Size - 1 do
+  while OffsetIn < OutBits.Size do
   begin
     VerifyHammingBlock(OffsetIn, OffsetOut);
     Inc(OffsetIn, BlockBitCount + VerificationBitCount);

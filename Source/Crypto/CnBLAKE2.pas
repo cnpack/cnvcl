@@ -529,6 +529,7 @@ uses
 
 resourcestring
   SCnErrorBlake2InvalidDigestSize = 'Invalid Digest Length';
+  SCnErrorBlake2InvalidKeySize = 'Invalid Key Length';
 
 const
   BLAKE2S_IV: array[0..7] of Cardinal = (
@@ -787,6 +788,10 @@ begin
   if (DigestLength <= 0) or (DigestLength > CN_BLAKE2S_OUTBYTES) then
     raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
 
+  if (KeyLength < 0) or (KeyLength > CN_BLAKE2S_KEYBYTES) or
+     ((KeyLength > 0) and (Key = nil)) then
+    raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidKeySize);
+
   // 初始化结构
   FillChar(Context, SizeOf(TCnBLAKE2SContext), 0);
   Context.OutLen := DigestLength;
@@ -984,6 +989,10 @@ var
 begin
   if (DigestLength <= 0) or (DigestLength > CN_BLAKE2B_OUTBYTES) then
     raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
+
+  if (KeyLength < 0) or (KeyLength > CN_BLAKE2B_KEYBYTES) or
+     ((KeyLength > 0) and (Key = nil)) then
+    raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidKeySize);
 
   // 初始化结构
   FillChar(Context, SizeOf(TCnBLAKE2BContext), 0);

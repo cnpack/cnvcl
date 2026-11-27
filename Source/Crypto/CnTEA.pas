@@ -268,7 +268,7 @@ var
 begin
   // Wheeler-Needham 参考实现要求 n > 1；n = 1 时内层循环上界 n-2 为 -1，
   // 转 Cardinal 后变 $FFFFFFFF，将造成大规模越界读写直至崩溃，必须拒绝
-  if (DataLongWordLength < 2) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
+  if (Data = nil) or (DataLongWordLength < 2) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
     raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;
@@ -302,7 +302,7 @@ var
   Q: Integer;
 begin
   // 与加密方向一致要求 n > 1：n = 1 时 XXTEA 未定义且结果无意义，拒绝处理
-  if (DataLongWordLength < 2) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
+  if (Data = nil) or (DataLongWordLength < 2) or (DataLongWordLength > High(TCnXXTeaData) + 1) then
     raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;

@@ -4501,22 +4501,22 @@ end;
 // 64 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在 RCX 里，B 在 EDX/RDX 里，DivRes 地址在 R8 里，ModRes 地址在 R9 里
 procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler;
 asm
-        PUSH    RCX                           // RCX 是 A
-        MOV     RCX, RDX                      // 除数 B 放入 RCX
-        POP     RAX                           // 被除数 A 放入 RAX
-        XOR     RDX, RDX                      // 被除数高 64 位清零
-        IDIV    RCX
+        MOV     R10D, EDX                     // 除数 B 保存到 R10D
+        MOV     EAX, ECX                      // 被除数 A 低 32 位放入 EAX
+        MOV     RDX, RCX                      // 被除数 A 放入 RDX
+        SAR     RDX, 32                       // 算术右移，EDX 得到 A 高 32 位
+        IDIV    R10D                          // EDX:EAX / R10D，商在 EAX，余数在 EDX
         MOV     [R8], EAX                     // 商放入 R8 所指的 DivRes
         MOV     [R9], EDX                     // 余数放入 R9 所指的 ModRes
 end;
 
 procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal); assembler;
 asm
-        PUSH    RCX                           // RCX 是 A
-        MOV     RCX, RDX                      // 除数 B 放入 RCX
-        POP     RAX                           // 被除数 A 放入 RAX
-        XOR     RDX, RDX                      // 被除数高 64 位清零
-        DIV     RCX
+        MOV     R10D, EDX                     // 除数 B 保存到 R10D
+        MOV     EAX, ECX                      // 被除数 A 低 32 位放入 EAX
+        MOV     RDX, RCX                      // 被除数 A 放入 RDX
+        SHR     RDX, 32                       // 逻辑右移，EDX 得到 A 高 32 位
+        DIV     R10D                          // EDX:EAX / R10D，商在 EAX，余数在 EDX
         MOV     [R8], EAX                     // 商放入 R8 所指的 DivRes
         MOV     [R9], EDX                     // 余数放入 R9 所指的 ModRes
 end;

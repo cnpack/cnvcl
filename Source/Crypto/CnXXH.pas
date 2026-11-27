@@ -499,7 +499,7 @@ begin
   // 处理缓冲区中已有的数据
   if Context.MemSize > 0 then
   begin
-    if Context.MemSize + Len < CN_XXH32_BLOCK_SIZE then
+    if Len < CN_XXH32_BLOCK_SIZE - Context.MemSize then
     begin
       Move(P^, Context.Mem[Context.MemSize], Len);
       Context.MemSize := Context.MemSize + Len;
@@ -655,7 +655,7 @@ begin
   // 处理缓冲区中已有的数据
   if Context.MemSize > 0 then
   begin
-    if Context.MemSize + Len < CN_XXH64_BLOCK_SIZE then
+    if Len < CN_XXH64_BLOCK_SIZE - Context.MemSize then
     begin
       Move(P^, Context.Mem[Context.MemSize], Len);
       Context.MemSize := Context.MemSize + Len;

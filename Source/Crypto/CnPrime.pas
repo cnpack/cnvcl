@@ -2289,7 +2289,10 @@ begin
   begin
     Inc(I);
     X0 := (MultipleMod(X0, X0, X) + C) mod X;
-    D := CnUInt32GreatestCommonDivisor(Y - X0, X);
+    if Y >= X0 then
+      D := CnUInt32GreatestCommonDivisor(Y - X0, X)
+    else
+      D := CnUInt32GreatestCommonDivisor(X0 - Y, X);
 
     if (D <> 1) and (D <> X) then
     begin
@@ -2324,7 +2327,10 @@ begin
   begin
     Inc(I);
     X0 := (MultipleMod(X0, X0, X) + C) mod X;
-    D := CnInt64GreatestCommonDivisor(Y - X0, X);
+    if Y >= X0 then
+      D := CnInt64GreatestCommonDivisor(Y - X0, X)
+    else
+      D := CnInt64GreatestCommonDivisor(X0 - Y, X);
 
     if (D <> 1) and (D <> X) then
     begin
@@ -2610,6 +2616,17 @@ var
   F: TCnUInt32List;
   I: Integer;
 begin
+  if Num <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  if Num = 1 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
   // 先求 Num 的不重复的素数因子，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt32List.Create;
   F.IgnoreDuplicated := True;
@@ -2633,6 +2650,17 @@ var
   F: TCnUInt64List;
   I: Integer;
 begin
+  if Num <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  if Num = 1 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
   // 先求 Num 的不重复的素数因子，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt64List.Create;
   F.IgnoreDuplicated := True;

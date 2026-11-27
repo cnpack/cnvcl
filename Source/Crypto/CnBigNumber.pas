@@ -11754,6 +11754,8 @@ begin
 end;
 
 function TCnBigNumber.LoadFromMem(Mem: Pointer; Size: Integer): Integer;
+const
+  HEADER_SIZE = SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer); // 10
 var
   P1: PByte;
   P4: PInteger;
@@ -11773,7 +11775,7 @@ begin
   if (Size > 0) and (L > Size) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
-  if L < SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) then
+  if L < HEADER_SIZE then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
   Result := L;
@@ -11790,8 +11792,11 @@ begin
   P4 := PInteger(P1);
   L := Integer(UInt32NetworkToHost(PCardinal(P4)^));  // 数据长度按大端序解出
 
+  if (L < 0) or (L > Result - HEADER_SIZE) or (Result - HEADER_SIZE <> L) then
+    raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
+
   // 检查加上 L 后是否超过 Size，超过就抛异常；Size = 0 表示长度未知，按接口约定不做边界检查
-  if (Size > 0) and (SizeOf(Byte) + SizeOf(Byte) + SizeOf(Integer) + SizeOf(Integer) + L > Size) then
+  if (Size > 0) and (L > Size - HEADER_SIZE) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberMemModeSize);
 
   Inc(P4);
