@@ -2330,7 +2330,12 @@ begin
 
   try
     InSign := TCnSM2Signature.Create;
-    InSign.SetHex(AnsiString(InHexSignature));
+    try
+      InSign.SetHex(AnsiString(InHexSignature));
+    except
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     Stream := TMemoryStream.Create;
     Stream.LoadFromFile(FileName);

@@ -6017,6 +6017,7 @@ begin
   try
     MemStream := TMemoryStream.Create;
     OldPos := PemStream.Position;
+    CurveType := ctCustomized;
     IsPkcs1 := False;
     if LoadPemStreamToMemory(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL,
       MemStream, Password, KeyHashMethod) then
@@ -6024,6 +6025,15 @@ begin
       // 读 ECPARAM 也即椭圆曲线类型
       CurveType := GetCurveTypeFromOID(PAnsiChar(MemStream.Memory), MemStream.Size);
       IsPkcs1 := True;
+    end;
+
+    // 标准 SEC1 文件只有单个 EC PRIVATE KEY 段，没有独立的 EC PARAMETERS 段
+    if not IsPkcs1 then
+    begin
+      PemStream.Position := OldPos;
+      if LoadPemStreamToMemory(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL,
+        MemStream, Password, KeyHashMethod) then
+        IsPkcs1 := True;
     end;
 
     PemStream.Position := OldPos;
@@ -6135,6 +6145,27 @@ begin
   end;
 end;
 
+// RFC 5915 要求 EC 私钥为固定域长的 OCTET STRING，不能按 INTEGER 规则补符号字节或省略前导零
+procedure AddEccPrivateKeyOctets(Writer: TCnBerWriter; Parent: TCnBerWriteNode;
+  PrivateKey: TCnBigNumber; FieldBytes: Integer);
+var
+  Buf: TBytes;
+  Bytes: Integer;
+begin
+  if (Writer = nil) or (Parent = nil) or (PrivateKey = nil) or (FieldBytes <= 0) then
+    Exit;
+
+  Bytes := PrivateKey.GetBytesCount;
+  if Bytes > FieldBytes then
+    Bytes := FieldBytes;
+
+  SetLength(Buf, FieldBytes);
+  FillChar(Buf[0], FieldBytes, 0);
+  if Bytes > 0 then
+    PrivateKey.ToBinary(PAnsiChar(@Buf[FieldBytes - Bytes]));
+  Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, @Buf[0], FieldBytes, Parent);
+end;
+
 function CnEccSaveKeysToPem(PemStream: TStream; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType;
   KeyEncryptMethod: TCnKeyEncryptMethod;
@@ -6181,7 +6212,7 @@ begin
       Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
       B := 1;
       Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // 写 Version 1
-      AddBigNumberToWriter(Writer, PrivateKey, Root, CN_BER_TAG_OCTET_STRING);   // 写私钥
+      AddEccPrivateKeyOctets(Writer, Root, PrivateKey, GetCurveFieldBytes(CurveType));   // 写私钥
 
       Node := Writer.AddContainerNode(CN_BER_TAG_RESERVED, Root);
       Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
@@ -6212,7 +6243,7 @@ begin
       B := 1;
       Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Node);
 
-      AddBigNumberToWriter(Writer, PrivateKey, Node, CN_BER_TAG_OCTET_STRING);   // 写私钥
+      AddEccPrivateKeyOctets(Writer, Node, PrivateKey, GetCurveFieldBytes(CurveType));   // 写私钥
 
       Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Node);
       Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
@@ -6777,6 +6808,8 @@ begin
 
     E := TCnBigNumber.Create;
     E.SetBinary(Stream.Memory, Stream.Size);
+    // 与签名/验签一致：杂凑值只取最左 Order.GetBitsCount 位
+    BuildShortXValue(E, Ecc.Order, EccSignDigestTypeBytes(SignType));
 
     Stream.Clear;
     Stream.LoadFromFile(InSignFileName);
@@ -6977,6 +7010,8 @@ begin
 
     E := TCnBigNumber.Create;
     E.SetBinary(Stream.Memory, Stream.Size);
+    // 与签名/验签一致：杂凑值只取最左 Order.GetBitsCount 位
+    BuildShortXValue(E, Ecc.Order, EccSignDigestTypeBytes(SignType));
 
     Stream.Clear;
     Stream.LoadFromStream(InSignStream);

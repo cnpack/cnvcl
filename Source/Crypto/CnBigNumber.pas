@@ -7083,9 +7083,11 @@ function BigNumberMulKaratsuba(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 var
   H: Integer;
+  Negative: Boolean;
   XL, XH, YL, YH, P1, P2, P3: TCnBigNumber;
 begin
   Result := False;
+  Negative := Num1.IsNegative <> Num2.IsNegative;
   H := Num1.GetWordCount;
   if H < Num2.GetWordCount then
     H := Num2.GetWordCount;
@@ -7123,7 +7125,7 @@ begin
 
     if not BigNumberAdd(Res, P3, P1) then Exit;
     if not BigNumberAdd(Res, Res, P2) then Exit;
-    Res.SetNegative(Num1.IsNegative <> Num2.IsNegative);
+    Res.SetNegative(Negative);
     Result := True;
   finally
     FLocalBigNumberPool.Recycle(XL);

@@ -910,6 +910,8 @@ function TestECCECDSA: Boolean;
 function TestECCVerifyWrongPublicKey: Boolean;
 function TestECCPrivPubPkcs1: Boolean;
 function TestECCPrivPubPkcs8: Boolean;
+function TestEccPemPrivateKeyOctetString: Boolean;
+function TestEccRecoverPublicKeyShortHash: Boolean;
 function TestECCPub: Boolean;
 function TestECCPubInvalidBer: Boolean;
 function TestECCJInvariant: Boolean;
@@ -2858,6 +2860,8 @@ begin
   MyAssert(TestECCVerifyWrongPublicKey, 'TestECCVerifyWrongPublicKey');
   MyAssert(TestECCPrivPubPkcs1, 'TestECCPrivPubPkcs1');
   MyAssert(TestECCPrivPubPkcs8, 'TestECCPrivPubPkcs8');
+  MyAssert(TestEccPemPrivateKeyOctetString, 'TestEccPemPrivateKeyOctetString');
+  MyAssert(TestEccRecoverPublicKeyShortHash, 'TestEccRecoverPublicKeyShortHash');
   MyAssert(TestECCPub, 'TestECCPub');
   MyAssert(TestECCPubInvalidBer, 'TestECCPubInvalidBer');
   MyAssert(TestECCJInvariant, 'TestECCJInvariant');
@@ -8513,6 +8517,16 @@ begin
   Result := CheckCase(80, 80, 37, 41, False, False, 1);
   if not Result then Exit;
   Result := CheckCase(80, 80, 43, 47, False, False, 2);
+  if not Result then Exit;
+
+  // In-place multiplication with a negative operand: capture the result sign
+  Result := CheckCase(80, 80, 53, 59, True, False, 1);
+  if not Result then Exit;
+  Result := CheckCase(80, 80, 61, 67, True, False, 2);
+  if not Result then Exit;
+  Result := CheckCase(81, 83, 71, 73, True, True, 1);
+  if not Result then Exit;
+  Result := CheckCase(83, 80, 79, 89, False, True, 2);
 end;
 
 function TestBigNumberModWord: Boolean;
@@ -26687,6 +26701,13 @@ begin
   if not Result then Exit;
 
   Result := CnDSAVerifyBytes(Data, Param, Pub, Sig);
+  if not Result then Exit;
+
+  // 弱公钥 y = 1 必须被拒绝：即便签名由 x = 0 生成也不能通过验签
+  Priv.SetZero;
+  Pub.SetOne;
+  if not CnDSASignBytes(Data, Param, Priv, Sig) then Exit;
+  Result := not CnDSAVerifyBytes(Data, Param, Pub, Sig);
 
   Sig.Free;
   Pub.Free;
@@ -31597,6 +31618,195 @@ begin
   Pub.Free;
   Priv.Free;
   Stream.Free;
+end;
+
+function TestEccPemPrivateKeyOctetString: Boolean;
+const
+  SEC1_HEAD = '-----BEGIN EC PRIVATE KEY-----';
+  SEC1_TAIL = '-----END EC PRIVATE KEY-----';
+  PKCS8_HEAD = '-----BEGIN PRIVATE KEY-----';
+  PKCS8_TAIL = '-----END PRIVATE KEY-----';
+
+  function PrivateKeyOctetLen(Pem: TMemoryStream; IsPKCS8: Boolean): Integer;
+  var
+    Mem: TMemoryStream;
+    Reader: TCnBerReader;
+    Idx: Integer;
+  begin
+    Result := -1;
+    Pem.Position := 0;
+    Mem := TMemoryStream.Create;
+    try
+      if IsPKCS8 then
+      begin
+        if not LoadPemStreamToMemory(Pem, PKCS8_HEAD, PKCS8_TAIL, Mem) then
+          Exit;
+        Idx := 8;
+      end
+      else
+      begin
+        if not LoadPemStreamToMemory(Pem, SEC1_HEAD, SEC1_TAIL, Mem) then
+          Exit;
+        Idx := 2;
+      end;
+
+      Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, IsPKCS8);
+      try
+        Reader.ParseToTree;
+        if Reader.TotalCount > Idx then
+          Result := Reader.Items[Idx].BerDataLength;
+      finally
+        Reader.Free;
+      end;
+    finally
+      Mem.Free;
+    end;
+  end;
+
+  function CopySec1BlockOnly(Src, Dst: TMemoryStream): Boolean;
+  var
+    S: AnsiString;
+    P: Integer;
+  begin
+    Result := False;
+    SetLength(S, Src.Size);
+    if Src.Size > 0 then
+    begin
+      Src.Position := 0;
+      Src.ReadBuffer(S[1], Src.Size);
+    end;
+    P := Pos(SEC1_HEAD, S);
+    if P <= 0 then
+      Exit;
+    S := Copy(S, P, Length(S) - P + 1);
+    Dst.WriteBuffer(S[1], Length(S));
+    Dst.Position := 0;
+    Result := True;
+  end;
+
+var
+  Ecc: TCnEcc;
+  Priv, Priv2: TCnEccPrivateKey;
+  Pub, Pub2: TCnEccPublicKey;
+  Pem, Single: TMemoryStream;
+  Curve: TCnEccCurveType;
+begin
+  Ecc := TCnEcc.Create(ctSecp256r1);
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+  Priv2 := TCnEccPrivateKey.Create;
+  Pub2 := TCnEccPublicKey.Create;
+  Pem := TMemoryStream.Create;
+  Single := TMemoryStream.Create;
+  try
+    Ecc.GenerateKeys(Priv, Pub);
+
+    // SEC1 中私钥必须是 32 字节固定域长 OCTET STRING
+    Pem.Clear;
+    if not CnEccSaveKeysToPem(Pem, Priv, Pub, ctSecp256r1) then
+      Exit;
+    Result := PrivateKeyOctetLen(Pem, False) = 32;
+    if not Result then Exit;
+
+    // 标准单段 SEC1（无独立 EC PARAMETERS 段）必须能导入
+    Single.Clear;
+    if not CopySec1BlockOnly(Pem, Single) then
+      Exit;
+    Result := CnEccLoadKeysFromPem(Single, Priv2, Pub2, Curve);
+    if not Result then Exit;
+    Result := CnEccVerifyKeys(Curve, Priv2, Pub2);
+    if not Result then Exit;
+
+    // PKCS#8 中私钥同样必须是 32 字节
+    Pem.Clear;
+    if not CnEccSaveKeysToPem(Pem, Priv, Pub, ctSecp256r1, CnECC.cktPKCS8) then
+      Exit;
+    Result := PrivateKeyOctetLen(Pem, True) = 32;
+    if not Result then Exit;
+
+    // 私钥字节数小于域长时须左补零，不能丢前导零
+    Priv.SetWord(1);
+    Pem.Clear;
+    if not CnEccSaveKeysToPem(Pem, Priv, Pub, ctSecp256r1) then
+      Exit;
+    Result := PrivateKeyOctetLen(Pem, False) = 32;
+  finally
+    Single.Free;
+    Pem.Free;
+    Pub2.Free;
+    Priv2.Free;
+    Pub.Free;
+    Priv.Free;
+    Ecc.Free;
+  end;
+end;
+
+function TestEccRecoverPublicKeyShortHash: Boolean;
+
+  function KeyMatches(K, Target: TCnEccPublicKey): Boolean;
+  begin
+    Result := CnEccPointToString(K) = CnEccPointToString(Target);
+  end;
+
+var
+  Ecc: TCnEcc;
+  Priv: TCnEccPrivateKey;
+  Pub, K1, K2: TCnEccPublicKey;
+  Data, Sig: TMemoryStream;
+  S: AnsiString;
+  Idx: Integer;
+begin
+  Result := False;
+  Ecc := nil;
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+  K1 := TCnEccPublicKey.Create;
+  K2 := TCnEccPublicKey.Create;
+  Data := TMemoryStream.Create;
+  Sig := TMemoryStream.Create;
+  try
+    // P-256 的阶与 SHA-256 等长，P-224 的阶比 SHA-256 短 32 位
+    for Idx := 0 to 1 do
+    begin
+      Ecc.Free;
+      if Idx = 0 then
+        Ecc := TCnEcc.Create(ctSecp256r1)
+      else
+        Ecc := TCnEcc.Create(ctSecp224r1);
+
+      Ecc.GenerateKeys(Priv, Pub);
+      S := 'abc';
+
+      Data.Clear;
+      Data.WriteBuffer(S[1], Length(S));
+      Data.Position := 0;
+      Sig.Clear;
+      if not CnEccSignStream(Data, Sig, Ecc, Priv, esdtSHA256) then
+        Exit;
+
+      Data.Position := 0;
+      Sig.Position := 0;
+      if not CnEccVerifyStream(Data, Sig, Ecc, Pub, esdtSHA256) then
+        Exit;
+
+      // 从流还原：两个候选中必须包含真正的公钥
+      Data.Position := 0;
+      Sig.Position := 0;
+      if not CnEccRecoverPublicKeyFromStream(Data, Sig, Ecc, K1, K2, esdtSHA256) then
+        Exit;
+      if not (KeyMatches(K1, Pub) or KeyMatches(K2, Pub)) then
+        Exit;
+    end;
+    Result := True;
+  finally
+    Sig.Free;
+    Data.Free;
+    K2.Free;
+    K1.Free;
+    Pub.Free;
+    Priv.Free;
+    Ecc.Free;
+  end;
 end;
 
 function TestECCPub: Boolean;

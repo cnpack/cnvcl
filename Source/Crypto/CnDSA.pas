@@ -582,7 +582,7 @@ end;
 function DSAVerifyHashData(Hash: TCnBigNumber; DSAParameter: TCnDSADomainParameter;
   PublicKey: TCnDSAPublicKey; Signature: TCnDSASignature): Boolean;
 var
-  W, U1, U2, P1, P2: TCnBigNumber;
+  W, U1, U2, P1, P2, T: TCnBigNumber;
 begin
   Result := False;
 
@@ -591,8 +591,23 @@ begin
   U2 := nil;
   P1 := nil;
   P2 := nil;
+  T := nil;
 
   try
+    // FIPS 186 要求公钥 y 满足 2 <= y <= p-2，弱公钥（如 y=1）会导致签名可伪造
+    if PublicKey = nil then
+      Exit;
+    if PublicKey.IsNegative then
+      Exit;
+    T := TCnBigNumber.Create;
+    T.SetWord(2);
+    if BigNumberCompare(PublicKey, T) < 0 then
+      Exit;
+    BigNumberCopy(T, DSAParameter.P);
+    T.SubWord(1);
+    if BigNumberCompare(PublicKey, T) > 0 then
+      Exit;
+
     // FIPS 186 要求验证签名值范围 R、S ∈ [1, Q - 1]，
     // 缺失该检查会导致签名可延展（R' = R + kQ 等价签名均能通过）
     if Signature = nil then
@@ -634,6 +649,7 @@ begin
     // 结果比对 W 和 R
     Result := BigNumberConstTimeEqual(W, Signature.R);
   finally
+    T.Free;
     P2.Free;
     P1.Free;
     U2.Free;
