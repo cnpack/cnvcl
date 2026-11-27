@@ -491,6 +491,7 @@ type
     FNotBefore: TCnUTCTime;
     FVersion: Integer;
     FSubject: TCnCertificateSubjectInfo;
+    FSubjectDer: TBytes;
     FSubjectUniqueID: string;
     FIssuer: TCnCertificateIssuerInfo;
     FIssuerUniqueID: string;
@@ -524,6 +525,8 @@ type
     {* 被签发者是 RSA 还是 ECC，注意没有杂凑算法类型，杂凑算法由签发者决定}
     property Subject: TCnCertificateSubjectInfo read FSubject write FSubject;
     {* 被签发者的基本信息}
+    property SubjectDer: TBytes read FSubjectDer write FSubjectDer;
+    {* 加载证书时保留的 Subject 原始 DER（含 SEQUENCE 头），签发时原样用作 Issuer}
     property SubjectRSAPublicKey: TCnRSAPublicKey read FSubjectRSAPublicKey
       write FSubjectRSAPublicKey;
     {* 被签发者的 RSA 公钥}
@@ -2781,6 +2784,26 @@ begin
   end;
 end;
 
+// 用上级证书 Subject 的原始 DER 直接生成 Issuer，保证逐字节一致。
+// 若上级证书对象没有保存原始 DER（例如手工构造），则回退到按字段重建。
+function AddIssuerFromSubjectDer(Writer: TCnBerWriter; BasicNode: TCnBerWriteNode;
+  const SubjectDer: TBytes; var IssuerNode: TCnBerWriteNode): Boolean;
+begin
+  if (Length(SubjectDer) > 4) and (SubjectDer[0] = $30) then // DER SEQUENCE 原始标签
+  begin
+    Writer.AddRawNode($30, PByte(@SubjectDer[1]),
+      Length(SubjectDer) - 1, BasicNode);
+    IssuerNode := nil;
+    Result := True;
+  end
+  else
+  begin
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    Result := False;
+  end;
+end;
+
+
 function CnCASignCertificate2(PrivateKey: TCnRSAPrivateKey; const CRTFile:
   string; const CSRFile: string; const OutCRTFile: string; const IntSerialNum:
   string; NotBefore, NotAfter: TDateTime; StandardExt:
@@ -2892,25 +2915,28 @@ begin
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
     Writer.AddNullNode(Node);
 
-    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddIssuerFromSubjectDer(Writer, BasicNode, CRT.BasicCertificate.SubjectDer, IssuerNode);
     ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
 
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    if IssuerNode <> nil then
+    begin
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+        SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+        SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+        SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+        SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+        SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    end;
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
@@ -3078,25 +3104,28 @@ begin
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
     Writer.AddNullNode(Node);
 
-    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddIssuerFromSubjectDer(Writer, BasicNode, CRT.BasicCertificate.SubjectDer, IssuerNode);
     ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
 
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    if IssuerNode <> nil then
+    begin
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+        SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+        SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+        SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+        SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+        SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    end;
 
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
@@ -4736,6 +4765,7 @@ var
   DummyPointer: Pointer;
   DummyInteger: Integer;
   DummyDigestType: TCnRSASignDigestType;
+  SubjectDer: TBytes;
 begin
   Result := False;
 
@@ -4888,6 +4918,12 @@ begin
 
       Node := Node.GetNextSibling; // UTC Time 节点后的同级节点是 Subject
       if Node = nil then Exit;
+
+      // 保留 Subject 的完整 DER，签发时 Issuer 必须逐字节复制上级 Subject
+      SetLength(SubjectDer, Node.BerLength);
+      if Node.BerLength > 0 then
+        Node.CopyTLVTo(@SubjectDer[0]);
+      Certificate.BasicCertificate.SubjectDer := SubjectDer;
 
       ExtractDNValuesToList(Node, List);
       Certificate.BasicCertificate.Subject.CountryName := List.Values[SDN_COUNTRYNAME];
@@ -5593,26 +5629,29 @@ begin
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
     Writer.AddNullNode(Node);
 
-    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddIssuerFromSubjectDer(Writer, BasicNode, CRT.BasicCertificate.SubjectDer, IssuerNode);
     ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
 
     // 写签发者
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    if IssuerNode <> nil then
+    begin
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+        SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+        SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+        SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+        SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+        SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    end;
 
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
@@ -5765,26 +5804,29 @@ begin
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
     Writer.AddNullNode(Node);
 
-    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddIssuerFromSubjectDer(Writer, BasicNode, CRT.BasicCertificate.SubjectDer, IssuerNode);
     ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
 
     // 写签发者
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    if IssuerNode <> nil then
+    begin
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+        SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Subject.CountryName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+        SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Subject.StateOrProvinceName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+        SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Subject.LocalityName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Subject.OrganizationName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+        SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Subject.OrganizationalUnitName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+        SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Subject.CommonName);
+      AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+        SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Subject.EmailAddress, CN_BER_TAG_IA5STRING);
+    end;
 
     // 写有效时间
     UTCTime := TCnUTCTime.Create;

@@ -1804,10 +1804,10 @@ procedure ComplexNumberDiv(var Res: TCnComplexNumber;
 var
   T, D: Extended;
 begin
-  D := Complex2.R * Complex2.R + Complex2.I * Complex2.I;
-  if FloatEqual(D, 0.0) then
+  if (Complex2.R = 0) and (Complex2.I = 0) then
     raise EZeroDivide.Create(SZeroDivide);
 
+  D := Complex2.R * Complex2.R + Complex2.I * Complex2.I;
   T := (Complex1.R * Complex2.R + Complex1.I * Complex2.I) / D;
   Res.I := (Complex1.I * Complex2.R - Complex1.R * Complex2.I) / D;
   Res.R := T;

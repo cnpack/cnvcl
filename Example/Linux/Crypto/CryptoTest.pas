@@ -342,6 +342,7 @@ function TestCASerialNumberInvalidInput: Boolean;
 function TestCASignParentRestriction: Boolean;
 function TestCASelfSignedStatus: Boolean;
 function TestCAIssuerUseParentSubject: Boolean;
+function TestCASignIssuerRawDer: Boolean;
 function TestCARejectWeakRSAExponent: Boolean;
 function TestCACertificateExtensionChecks: Boolean;
 
@@ -2294,6 +2295,7 @@ begin
   MyAssert(TestCASignParentRestriction, 'TestCASignParentRestriction');
   MyAssert(TestCASelfSignedStatus, 'TestCASelfSignedStatus');
   MyAssert(TestCAIssuerUseParentSubject, 'TestCAIssuerUseParentSubject');
+  MyAssert(TestCASignIssuerRawDer, 'TestCASignIssuerRawDer');
   MyAssert(TestCARejectWeakRSAExponent, 'TestCARejectWeakRSAExponent');
   MyAssert(TestCACertificateExtensionChecks, 'TestCACertificateExtensionChecks');
 
@@ -12847,109 +12849,6 @@ begin
   end;
 end;
 
-function TestCACertificateExtensionChecks: Boolean;
-const
-  UID_CERT_HEX =
-    '30820283308201ECA003020102020101300D06092A864886F70D01010B05003073310B300906035504061302434E310E300C06035504081305537461'
-    + '7465310D300B0603550407130443697479310C300A060355040A13034F7267310D300B060355040B1304556E6974310F300D06035504031306476F6F'
-    + '6443413117301506092A864886F70D0109011608636140622E636F6D301E170D3236313132353138303633355A170D3237313132363138303633355A'
-    + '3073310B300906035504061302434E310E300C060355040813055374617465310D300B0603550407130443697479310C300A060355040A13034F7267'
-    + '310D300B060355040B1304556E6974310F300D06035504031306476F6F6443413117301506092A864886F70D0109011608636140622E636F6D30819F'
-    + '300D06092A864886F70D010101050003818D0030818902818100965BEDED48B873971CA4A2EA9A5D4453BB5BBF9827FB91442F877D0A5EC906E4A6AA'
-    + '9CABEAB3006F2E8A88951487035610799E38BE30FBBAFC10DF4FF47A30A7F7F704BFD56A0CFF252C2A0C80286CBE3118B9ED24961C3C5AECE1A883B0'
-    + '6DB9B0EDF742B41129D20F1DC9F0C764F4FF5C2E8D495CE0CD83C52A9C056E656F81020301000181020500A3233021300F0603551D130101FF040530'
-    + '030101FF300E06082B0601050507010104023000300D06092A864886F70D01010B05000381810042266AE87AF70B5CFBA31271B46FE11FE010393836'
-    + '75999936C9E43DF25B716E719B75B3A04819093F485E214A039AEDB9A203E9F83F23765A07F0DEA8EB510EA2E4893AA5998F64DDFBA96A485B917A95'
-    + '602E876B70A4BD24FA30D763E188ABE4F3B550D71DD6FCF159FFB91CA01FE668DB0312C4739FBB9478B6F87CA9ED34';
-  CRIT_CERT_HEX =
-    '3082028E308201F7A003020102020101300D06092A864886F70D01010B05003073310B300906035504061302434E310E300C06035504081305537461'
-    + '7465310D300B0603550407130443697479310C300A060355040A13034F7267310D300B060355040B1304556E6974310F300D06035504031306476F6F'
-    + '6443413117301506092A864886F70D0109011608636140622E636F6D301E170D3236313132353138303633355A170D3237313132363138303633355A'
-    + '3073310B300906035504061302434E310E300C060355040813055374617465310D300B0603550407130443697479310C300A060355040A13034F7267'
-    + '310D300B060355040B1304556E6974310F300D06035504031306476F6F6443413117301506092A864886F70D0109011608636140622E636F6D30819F'
-    + '300D06092A864886F70D010101050003818D0030818902818100965BEDED48B873971CA4A2EA9A5D4453BB5BBF9827FB91442F877D0A5EC906E4A6AA'
-    + '9CABEAB3006F2E8A88951487035610799E38BE30FBBAFC10DF4FF47A30A7F7F704BFD56A0CFF252C2A0C80286CBE3118B9ED24961C3C5AECE1A883B0'
-    + '6DB9B0EDF742B41129D20F1DC9F0C764F4FF5C2E8D495CE0CD83C52A9C056E656F810203010001A3323030300F0603551D130101FF040530030101FF'
-    + '300E06082B0601050507010104023000300D06042A0304050101FF04020500300D06092A864886F70D01010B05000381810042266AE87AF70B5CFBA3'
-    + '1271B46FE11FE01039383675999936C9E43DF25B716E719B75B3A04819093F485E214A039AEDB9A203E9F83F23765A07F0DEA8EB510EA2E4893AA599'
-    + '8F64DDFBA96A485B917A95602E876B70A4BD24FA30D763E188ABE4F3B550D71DD6FCF159FFB91CA01FE668DB0312C4739FBB9478B6F87CA9ED34';
-var
-  CAPriv, CliPriv: TCnRSAPrivateKey;
-  CAPub, CliPub: TCnRSAPublicKey;
-  ChildStd: TCnCertificateStandardExtensions;
-  PrivExt: TCnCertificatePrivateInternetExtensions;
-  NoBC, CSR, Out, MS: TMemoryStream;
-  CRT: TCnCertificate;
-  Buf: TBytes;
-begin
-  Result := False;
-  CAPriv := TCnRSAPrivateKey.Create;
-  CAPub := TCnRSAPublicKey.Create;
-  CliPriv := TCnRSAPrivateKey.Create;
-  CliPub := TCnRSAPublicKey.Create;
-  ChildStd := TCnCertificateStandardExtensions.Create;
-  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
-  NoBC := TMemoryStream.Create;
-  CSR := TMemoryStream.Create;
-  Out := TMemoryStream.Create;
-  MS := TMemoryStream.Create;
-  CRT := TCnCertificate.Create;
-  try
-
-    CnRSAGenerateKeys(1024, CAPriv, CAPub);
-    CnRSAGenerateKeys(1024, CliPriv, CliPub);
-    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, NoBC,
-      'CN', 'State', 'City', 'Org', 'Unit', 'NoBCCA', 'ca@b.com', '1',
-      Now - 1, Now + 365, nil, PrivExt, ctSha256RSA) then
-      Exit;
-    if not CnCANewCertificateSignRequestStream(CliPriv, CliPub, CSR,
-      'CN', 'State', 'City', 'Org', 'Client', 'client', 'client@b.com', ctSha256RSA) then
-      Exit;
-    ChildStd.BasicConstraintsCA := False;
-    if CnCASignCertificate2Stream(CAPriv, NoBC, CSR, Out, '101',
-      Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
-      Exit;
-    if Out.Size <> 0 then
-      Exit;
-
-    SetLength(Buf, Length(UID_CERT_HEX) div 2);
-    HexToData(UID_CERT_HEX, @Buf[0]);
-    MS.Size := 0;
-    MS.WriteBuffer(Buf[0], Length(Buf));
-    MS.Position := 0;
-    CRT.Free;
-    CRT := TCnCertificate.Create;
-    if not CnCALoadCertificateFromStream(MS, CRT) then
-      Exit;
-    if not CRT.BasicCertificate.StandardExtension.BasicConstraintsPresent then
-      Exit;
-
-    SetLength(Buf, Length(CRIT_CERT_HEX) div 2);
-    HexToData(CRIT_CERT_HEX, @Buf[0]);
-    MS.Size := 0;
-    MS.WriteBuffer(Buf[0], Length(Buf));
-    MS.Position := 0;
-    CRT.Free;
-    CRT := TCnCertificate.Create;
-    if CnCALoadCertificateFromStream(MS, CRT) then
-      Exit;
-
-    Result := True;
-  finally
-    CRT.Free;
-    MS.Free;
-    Out.Free;
-    CSR.Free;
-    NoBC.Free;
-    PrivExt.Free;
-    ChildStd.Free;
-    CliPub.Free;
-    CliPriv.Free;
-    CAPub.Free;
-    CAPriv.Free;
-  end;
-end;
-
 function TestCARejectInvalidCert: Boolean;
 var
   CAPub: TCnRSAPublicKey;
@@ -12970,55 +12869,6 @@ begin
   finally
     St.Free;
     CAPub.Free;
-  end;
-end;
-
-// 回归：证书层曾宽松 BER 解析 DigestInfo 并接受 e=3 公钥，
-// 二者叠加可用整数立方根伪造任意自签名证书（Bleichenbacher/BERserk）。
-// 修复后验签改走 CnRSAVerifyStream 严格重建 EM，且拒绝 e < 65537。
-function TestCARejectWeakRSAExponent: Boolean;
-var
-  Priv, WeakPriv: TCnRSAPrivateKey;
-  Pub, WeakPub: TCnRSAPublicKey;
-  St: TMemoryStream;
-begin
-  Result := False;
-  Priv := nil;
-  WeakPriv := nil;
-  Pub := nil;
-  WeakPub := nil;
-  St := nil;
-  try
-    Priv := TCnRSAPrivateKey.Create;
-    Pub := TCnRSAPublicKey.Create;
-    WeakPriv := TCnRSAPrivateKey.Create;
-    WeakPub := TCnRSAPublicKey.Create;
-    St := TMemoryStream.Create;
-
-    // 对照组：默认 e=65537 的自签名证书必须验签通过
-    if not CnRSAGenerateKeys(1024, Priv, Pub) then Exit;
-    if not CnCANewSelfSignedCertificateStream(Priv, Pub, St, 'CN', 'State',
-      'City', 'Org', 'Unit', 'StrongCA', 'a@b.com', '1',
-      Now - 1, Now + 365, ctSha256RSA) then Exit;
-    St.Position := 0;
-    if not CnCAVerifySelfSignedCertificateStream(St) then Exit;
-
-    // e=3 的自签名证书必须被拒绝
-    St.Size := 0;
-    if not CnRSAGenerateKeys(1024, WeakPriv, WeakPub, True) then Exit;
-    if not CnCANewSelfSignedCertificateStream(WeakPriv, WeakPub, St, 'CN', 'State',
-      'City', 'Org', 'Unit', 'WeakCA', 'a@b.com', '2',
-      Now - 1, Now + 365, ctSha256RSA) then Exit;
-    St.Position := 0;
-    if CnCAVerifySelfSignedCertificateStream(St) then Exit;
-
-    Result := True;
-  finally
-    St.Free;
-    WeakPub.Free;
-    WeakPriv.Free;
-    Pub.Free;
-    Priv.Free;
   end;
 end;
 
@@ -13976,6 +13826,324 @@ begin
     SubPriv.Free;
     RootPub.Free;
     RootPriv.Free;
+  end;
+end;
+
+function TestCASignIssuerRawDer: Boolean;
+const
+  CA_CERT_PEM =
+    '-----BEGIN CERTIFICATE-----' + SCRLF +
+    'MIIDKjCCAhICCQDkCdU6OUGnWTANBgkqhkiG9w0BAQsFADBXMQswCQYDVQQGEwJD' + SCRLF +
+    'TjEWMBQGA1UECgwNQ25QYWNrLea1i+ivlTEMMAoGA1UECwwDRGV2MQswCQYDVQQL' + SCRLF +
+    'DAJRQTEVMBMGA1UEAwwM5qC5Q0Et5YyX5LqsMB4XDTI2MTEyNzEwMzgyNVoXDTM2' + SCRLF +
+    'MTEyNDEwMzgyNVowVzELMAkGA1UEBhMCQ04xFjAUBgNVBAoMDUNuUGFjay3mtYvo' + SCRLF +
+    'r5UxDDAKBgNVBAsMA0RldjELMAkGA1UECwwCUUExFTATBgNVBAMMDOaguUNBLeWM' + SCRLF +
+    'l+S6rDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAN16As23ZxIIRuDH' + SCRLF +
+    'AOfqWVCkA+3STLOqAnTace9Acz5jwMsc614lWHJ+CooORjmb9rpGbyV0ew8GJ0Lz' + SCRLF +
+    '61xwEelpWgIrcnHN3g61sq0362YtiSnXtewyEYy8F+qUrqNRvk9vK8fyIrx5CGMh' + SCRLF +
+    'JN3tfUDKWC62uJmpoLF2qg6U9xUAw0ieb3L+q6+q6Da+OQtfOg6VTkOtcfAILxlG' + SCRLF +
+    'cZbqOYCTGrRMXlNn+/py1cUuBcwq6bpstrw1Cul/4HKcNpi3jJHBoO2x2G5MnImn' + SCRLF +
+    'OTXBJBjV4TWEkUq1xomFaSIWDqlPMxhyvLmU9j1dFi2JOa7M/B9ZkVpVHC3ZAZ6v' + SCRLF +
+    'L7atX10CAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAxX9mRz2/ZR1fPzy66C619vI8' + SCRLF +
+    'lYy7w8H8XByGNHQGUZHVraXQKEQJhBRQfhKZEOdSelxnoHUOk9XjM8CmsffG06z9' + SCRLF +
+    'euiS3WZ49SBULgssenZqeOBw59AmXWhNx8frjPwku3uLxVIO+2y68bVxGeyBrOXK' + SCRLF +
+    'A9XIyR+t/o36yhZW8JPzA7EHG2/VMM6yWIeyirnRQuxQoJrZErnSfeUTbaFzzdwJ' + SCRLF +
+    'h0wSbovXFU9zmTVg8HLsA0YJA5Nz3nkgJHU0Zh985wNo7f1MT6qybFhY1cS0lCd/' + SCRLF +
+    'KBxKZggUD3JpgZ57fID7FttiQS5m2cJgG6T5kIbNhBjfT+Vbx3uXt9rAmPqZGQ==' + SCRLF +
+    '-----END CERTIFICATE-----';
+  CA_KEY_PEM =
+    '-----BEGIN RSA PRIVATE KEY-----' + SCRLF +
+    'MIIEpAIBAAKCAQEA3XoCzbdnEghG4McA5+pZUKQD7dJMs6oCdNpx70BzPmPAyxzr' + SCRLF +
+    'XiVYcn4Kig5GOZv2ukZvJXR7DwYnQvPrXHAR6WlaAitycc3eDrWyrTfrZi2JKde1' + SCRLF +
+    '7DIRjLwX6pSuo1G+T28rx/IivHkIYyEk3e19QMpYLra4mamgsXaqDpT3FQDDSJ5v' + SCRLF +
+    'cv6rr6roNr45C186DpVOQ61x8AgvGUZxluo5gJMatExeU2f7+nLVxS4FzCrpumy2' + SCRLF +
+    'vDUK6X/gcpw2mLeMkcGg7bHYbkyciac5NcEkGNXhNYSRSrXGiYVpIhYOqU8zGHK8' + SCRLF +
+    'uZT2PV0WLYk5rsz8H1mRWlUcLdkBnq8vtq1fXQIDAQABAoIBAQCt7112S/vxaHip' + SCRLF +
+    'nQA0IpLkRvsi8g705qapOMlT2WzoaZUGrv6V4IR23k/Onmk+YyNApYIyiyj94ppA' + SCRLF +
+    '9ak43nbita9Plul5QPGM4duiOBFyHH7lUph4F9Y6jZnGy9/fOZpZbfiXPa1UEUWp' + SCRLF +
+    '/GSkuhetI3xfq3aMj3A5DvV9IDZv0cRP/oq5k3f4+pwDwb+BJf/oQfl/CgYbKYZB' + SCRLF +
+    'ZUXPezoXCrouwoOYRPs0dBOIXyUnU9S4CD8QSDNtQv7Phmfcj7QtdhsfIhq/sD8o' + SCRLF +
+    'KZzAVhscfOAQHtCfPiKwN31B/mWVRHuh9UxDxTxt6EQh6YbUK1AqgpZHd2wrqNZO' + SCRLF +
+    'tDC4ENZBAoGBAPaTVEaMC72DF0J9UakwtTNRYxvDik4u1Wu2Xu2XF2GZ3QsPh5FM' + SCRLF +
+    'O7y3y7hS6OKkYvaXT3O2lp9/r/Idgg6t3Gg7adxnTLslFRJUZsKwz99CiSHMK0IG' + SCRLF +
+    'DcSmT31DP9+bsd5Hvek8bdyOPdL8LWNI2YTioR/5CNLvnjhvpxQ+OiCtAoGBAOXx' + SCRLF +
+    'GKBdKXI6ZClwwc2Cv6Cnc2+Mun+ru6CHpg75shPhN0k6iI4+dFsbXOFPYUbgF8AQ' + SCRLF +
+    '8KF87Pkr1fLyEkaAe2lE8Bgt5NGsnqYf0hA8qG8vx51KcmOgPcad/5WgTAWVLpax' + SCRLF +
+    'IzcM6jgdDRPrl4zQ/OtfdtQkE33G07FTjB3bUB9xAoGAAJFwVUVHVaVyrUWKpaAm' + SCRLF +
+    'GrsqRksaC3oSJdBiwZtig2gOWVMs1cneLV4jCwat4K/ORpEsrrCSAkYSCrXEsfH2' + SCRLF +
+    'mwrgAJEAXUIFnWgyYGp14CbQGBLXWqyW5YgYkMpR4FsEeuWha2MnQaXWQKEyHZNy' + SCRLF +
+    'ZNr80g0J1yqUK78eHG7URXUCgYBASMELxD/cEXsDIuTroYwVS/s3ym4xVz+jR4kj' + SCRLF +
+    'Uqd4a1RbgqO+sLMy7VlwHBMkD25UYegEHbrahmjP/OEjGLRn38AH4nzAKbRI2UiP' + SCRLF +
+    'BYZJX2A9Fx0XwSrEJlPX7vKR9P0LYAZqU4//lA+d7BV4ZszuuMet01Anr7hrMOJR' + SCRLF +
+    'Toj94QKBgQCFwRL4GV6HwfnjC1rHSJzFo1qSAzAvwyBz8JI7O0ABLNl0wDp/m/tc' + SCRLF +
+    'sgAcReLHJtp1+ssMgrl4prQGcSsDaKnGcncUatsKQbfLTX/dTfQweYQVSUuRWzA+' + SCRLF +
+    'iKeyE8mMq4LhJ6q96lphGldJseGsWrOiJCnJl+QY/W1ortyoT7i8CA==' + SCRLF +
+    '-----END RSA PRIVATE KEY-----';
+  LEAF_CSR_PEM =
+    '-----BEGIN CERTIFICATE REQUEST-----' + SCRLF +
+    'MIICeDCCAWACAQAwMzELMAkGA1UEBhMCQ04xDTALBgNVBAoMBExlYWYxFTATBgNV' + SCRLF +
+    'BAMMDGxlYWYuZXhhbXBsZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB' + SCRLF +
+    'AOG6dS82kUa01nXpbOtwLbEq7Aja494AKoAWoJBgN6tkObAkw3oQ7I3ynHlKa7O8' + SCRLF +
+    'ToNs/ql6RT5FCZFI2V367dvzjMiHuLB26qhA7OjnDFGV7R6xMKEujbt+MJfAiMZL' + SCRLF +
+    'HI1oIUDCiEzltK+B3dRtn+5rUcCrJpIdK0STtsA2Lr2I7w3/ZffuRsguw//q1vqc' + SCRLF +
+    'VswHVyA78eOn3oXYBM5roi5WQLAwdhL9SpZVzVRvp0rH0ES1NL/bfm1P0UvKd4eo' + SCRLF +
+    'MfuA8fpClJIByxRVMWCDl8iYhOO85PyOegclmp7KfL0GDbkgjucb6mWfNQlUgm8K' + SCRLF +
+    'Y5f9T1pXU8zfDfzxHHmrdW8CAwEAAaAAMA0GCSqGSIb3DQEBCwUAA4IBAQBhmaKF' + SCRLF +
+    '/6ftzxevovnD6P6ypZv+HZ+s2pnc2OfBU1Lb1Z4MRZTwUPka7/lZf1AxGrueHCGj' + SCRLF +
+    'U2AwQgH3hIWCQGzmmeEq3pwZGz0v1JOTZU0yLni7T/1HdNzTcWc8HpfYizRZmq2Y' + SCRLF +
+    'TbINgrHcso2rjOLzbnmOHjmjhxzSVi56RtrF8FihJ1Vmu3NUTMDnQ90olVE5w3Zb' + SCRLF +
+    'zIo6+3PH4ewUrceC/Iq7hZVHKHp1KriYR0TH6/YVgvagmCmLng8bkLZw58hdPjCq' + SCRLF +
+    'uUW9Y/8yEkAYN5d9pw+g3YeLb6QlMMGIRT6/MQboa2qUdWUJj175kmKX9ZeoPx8F' + SCRLF +
+    'vbQ7GZ8fZBvFvKB9' + SCRLF +
+    '-----END CERTIFICATE REQUEST-----';
+
+  function PemToStream(const S: AnsiString): TMemoryStream;
+  begin
+    Result := TMemoryStream.Create;
+    if Length(S) > 0 then
+      Result.WriteBuffer(S[1], Length(S));
+    Result.Position := 0;
+  end;
+
+  function GetNameTLV(St: TMemoryStream; WantSubject: Boolean;
+    out Buf: TBytes): Boolean;
+  var
+    Mem: TMemoryStream;
+    Reader: TCnBerReader;
+    Tbs, N: TCnBerReadNode;
+    Idx: Integer;
+  begin
+    Result := False;
+    SetLength(Buf, 0);
+    Mem := TMemoryStream.Create;
+    try
+      St.Position := 0;
+      if not LoadPemStreamToMemory(St, '-----BEGIN CERTIFICATE-----',
+        '-----END CERTIFICATE-----', Mem) then
+        Exit;
+      Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
+      try
+        Reader.ParseToTree;
+        Tbs := Reader.Items[0].Items[0];
+        Idx := 0;
+        if (Tbs.Items[0].BerTag = 0) and (Tbs.Items[0].Count = 1) then
+          Inc(Idx);
+        Inc(Idx, 2); // 跳过序列号与签名算法
+        if WantSubject then
+          Inc(Idx, 2); // 跳过 issuer 与 validity
+        N := Tbs.Items[Idx];
+        SetLength(Buf, N.BerLength);
+        if N.BerLength > 0 then
+          N.CopyTLVTo(@Buf[0]);
+        Result := N.BerLength > 0;
+      except
+        on E: ECnBerException do
+          Result := False;
+      end;
+    finally
+      Mem.Free;
+    end;
+  end;
+
+var
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+  CRT: TCnCertificate;
+  CSR: TCnCertificateRequest;
+  KeySt, CertSt, CsrSt, OutSt: TMemoryStream;
+  SubDer, IssDer: TBytes;
+begin
+  Result := False;
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+  CRT := TCnCertificate.Create;
+  CSR := TCnCertificateRequest.Create;
+  KeySt := PemToStream(CA_KEY_PEM);
+  CertSt := PemToStream(CA_CERT_PEM);
+  CsrSt := PemToStream(LEAF_CSR_PEM);
+  OutSt := TMemoryStream.Create;
+  try
+    if not CnRSALoadKeysFromPem(KeySt, Priv, Pub) then
+      Exit;
+    if not CnCALoadCertificateFromStream(CertSt, CRT) then
+      Exit;
+    if Length(CRT.BasicCertificate.SubjectDer) = 0 then
+      Exit;
+    if not CnCALoadCertificateSignRequestFromStream(CsrSt, CSR) then
+      Exit;
+
+    if not CnCASignCertificate2Stream(Priv, CertSt, CsrSt, OutSt, '1001',
+      EncodeDate(2025, 1, 1), EncodeDate(2030, 1, 1), nil, nil, ctSha256RSA) then
+      Exit;
+
+    // 上级 subject 与签出证书 issuer 的原始 DER 必须逐字节相同
+    if not GetNameTLV(CertSt, True, SubDer) then
+      Exit;
+    if not GetNameTLV(OutSt, False, IssDer) then
+      Exit;
+    Result := (Length(SubDer) > 0) and (Length(SubDer) = Length(IssDer)) and
+      CompareMem(@SubDer[0], @IssDer[0], Length(SubDer));
+  finally
+    OutSt.Free;
+    CsrSt.Free;
+    CertSt.Free;
+    KeySt.Free;
+    CSR.Free;
+    CRT.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
+end;
+
+// 回归：证书层曾宽松 BER 解析 DigestInfo 并接受 e=3 公钥，
+// 二者叠加可用整数立方根伪造任意自签名证书（Bleichenbacher/BERserk）。
+// 修复后验签改走 CnRSAVerifyStream 严格重建 EM，且拒绝 e < 65537。
+function TestCARejectWeakRSAExponent: Boolean;
+var
+  Priv, WeakPriv: TCnRSAPrivateKey;
+  Pub, WeakPub: TCnRSAPublicKey;
+  St: TMemoryStream;
+begin
+  Result := False;
+  Priv := nil;
+  WeakPriv := nil;
+  Pub := nil;
+  WeakPub := nil;
+  St := nil;
+  try
+    Priv := TCnRSAPrivateKey.Create;
+    Pub := TCnRSAPublicKey.Create;
+    WeakPriv := TCnRSAPrivateKey.Create;
+    WeakPub := TCnRSAPublicKey.Create;
+    St := TMemoryStream.Create;
+
+    // 对照组：默认 e=65537 的自签名证书必须验签通过
+    if not CnRSAGenerateKeys(1024, Priv, Pub) then Exit;
+    if not CnCANewSelfSignedCertificateStream(Priv, Pub, St, 'CN', 'State',
+      'City', 'Org', 'Unit', 'StrongCA', 'a@b.com', '1',
+      Now - 1, Now + 365, ctSha256RSA) then Exit;
+    St.Position := 0;
+    if not CnCAVerifySelfSignedCertificateStream(St) then Exit;
+
+    // e=3 的自签名证书必须被拒绝
+    St.Size := 0;
+    if not CnRSAGenerateKeys(1024, WeakPriv, WeakPub, True) then Exit;
+    if not CnCANewSelfSignedCertificateStream(WeakPriv, WeakPub, St, 'CN', 'State',
+      'City', 'Org', 'Unit', 'WeakCA', 'a@b.com', '2',
+      Now - 1, Now + 365, ctSha256RSA) then Exit;
+    St.Position := 0;
+    if CnCAVerifySelfSignedCertificateStream(St) then Exit;
+
+    Result := True;
+  finally
+    St.Free;
+    WeakPub.Free;
+    WeakPriv.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
+end;
+
+function TestCACertificateExtensionChecks: Boolean;
+const
+  UID_CERT_HEX =
+    '30820283308201ECA003020102020101300D06092A864886F70D01010B05003073310B300906035504061302434E310E300C06035504081305537461'
+    + '7465310D300B0603550407130443697479310C300A060355040A13034F7267310D300B060355040B1304556E6974310F300D06035504031306476F6F'
+    + '6443413117301506092A864886F70D0109011608636140622E636F6D301E170D3236313132353138303633355A170D3237313132363138303633355A'
+    + '3073310B300906035504061302434E310E300C060355040813055374617465310D300B0603550407130443697479310C300A060355040A13034F7267'
+    + '310D300B060355040B1304556E6974310F300D06035504031306476F6F6443413117301506092A864886F70D0109011608636140622E636F6D30819F'
+    + '300D06092A864886F70D010101050003818D0030818902818100965BEDED48B873971CA4A2EA9A5D4453BB5BBF9827FB91442F877D0A5EC906E4A6AA'
+    + '9CABEAB3006F2E8A88951487035610799E38BE30FBBAFC10DF4FF47A30A7F7F704BFD56A0CFF252C2A0C80286CBE3118B9ED24961C3C5AECE1A883B0'
+    + '6DB9B0EDF742B41129D20F1DC9F0C764F4FF5C2E8D495CE0CD83C52A9C056E656F81020301000181020500A3233021300F0603551D130101FF040530'
+    + '030101FF300E06082B0601050507010104023000300D06092A864886F70D01010B05000381810042266AE87AF70B5CFBA31271B46FE11FE010393836'
+    + '75999936C9E43DF25B716E719B75B3A04819093F485E214A039AEDB9A203E9F83F23765A07F0DEA8EB510EA2E4893AA5998F64DDFBA96A485B917A95'
+    + '602E876B70A4BD24FA30D763E188ABE4F3B550D71DD6FCF159FFB91CA01FE668DB0312C4739FBB9478B6F87CA9ED34';
+  CRIT_CERT_HEX =
+    '3082028E308201F7A003020102020101300D06092A864886F70D01010B05003073310B300906035504061302434E310E300C06035504081305537461'
+    + '7465310D300B0603550407130443697479310C300A060355040A13034F7267310D300B060355040B1304556E6974310F300D06035504031306476F6F'
+    + '6443413117301506092A864886F70D0109011608636140622E636F6D301E170D3236313132353138303633355A170D3237313132363138303633355A'
+    + '3073310B300906035504061302434E310E300C060355040813055374617465310D300B0603550407130443697479310C300A060355040A13034F7267'
+    + '310D300B060355040B1304556E6974310F300D06035504031306476F6F6443413117301506092A864886F70D0109011608636140622E636F6D30819F'
+    + '300D06092A864886F70D010101050003818D0030818902818100965BEDED48B873971CA4A2EA9A5D4453BB5BBF9827FB91442F877D0A5EC906E4A6AA'
+    + '9CABEAB3006F2E8A88951487035610799E38BE30FBBAFC10DF4FF47A30A7F7F704BFD56A0CFF252C2A0C80286CBE3118B9ED24961C3C5AECE1A883B0'
+    + '6DB9B0EDF742B41129D20F1DC9F0C764F4FF5C2E8D495CE0CD83C52A9C056E656F810203010001A3323030300F0603551D130101FF040530030101FF'
+    + '300E06082B0601050507010104023000300D06042A0304050101FF04020500300D06092A864886F70D01010B05000381810042266AE87AF70B5CFBA3'
+    + '1271B46FE11FE01039383675999936C9E43DF25B716E719B75B3A04819093F485E214A039AEDB9A203E9F83F23765A07F0DEA8EB510EA2E4893AA599'
+    + '8F64DDFBA96A485B917A95602E876B70A4BD24FA30D763E188ABE4F3B550D71DD6FCF159FFB91CA01FE668DB0312C4739FBB9478B6F87CA9ED34';
+var
+  CAPriv, CliPriv: TCnRSAPrivateKey;
+  CAPub, CliPub: TCnRSAPublicKey;
+  ChildStd: TCnCertificateStandardExtensions;
+  PrivExt: TCnCertificatePrivateInternetExtensions;
+  NoBC, CSR, Out, MS: TMemoryStream;
+  CRT: TCnCertificate;
+  Buf: TBytes;
+begin
+  Result := False;
+  CAPriv := TCnRSAPrivateKey.Create;
+  CAPub := TCnRSAPublicKey.Create;
+  CliPriv := TCnRSAPrivateKey.Create;
+  CliPub := TCnRSAPublicKey.Create;
+  ChildStd := TCnCertificateStandardExtensions.Create;
+  PrivExt := TCnCertificatePrivateInternetExtensions.Create;
+  NoBC := TMemoryStream.Create;
+  CSR := TMemoryStream.Create;
+  Out := TMemoryStream.Create;
+  MS := TMemoryStream.Create;
+  CRT := TCnCertificate.Create;
+
+  try
+    CnRSAGenerateKeys(1024, CAPriv, CAPub);
+    CnRSAGenerateKeys(1024, CliPriv, CliPub);
+    if not CnCANewSelfSignedCertificate2Stream(CAPriv, CAPub, NoBC,
+      'CN', 'State', 'City', 'Org', 'Unit', 'NoBCCA', 'ca@b.com', '1',
+      Now - 1, Now + 365, nil, PrivExt, ctSha256RSA) then
+      Exit;
+    if not CnCANewCertificateSignRequestStream(CliPriv, CliPub, CSR,
+      'CN', 'State', 'City', 'Org', 'Client', 'client', 'client@b.com', ctSha256RSA) then
+      Exit;
+    ChildStd.BasicConstraintsCA := False;
+    if CnCASignCertificate2Stream(CAPriv, NoBC, CSR, Out, '101',
+      Now - 1, Now + 365, ChildStd, PrivExt, ctSha256RSA) then
+      Exit;
+    if Out.Size <> 0 then
+      Exit;
+
+    SetLength(Buf, Length(UID_CERT_HEX) div 2);
+    HexToData(UID_CERT_HEX, @Buf[0]);
+    MS.Size := 0;
+    MS.WriteBuffer(Buf[0], Length(Buf));
+    MS.Position := 0;
+    CRT.Free;
+    CRT := TCnCertificate.Create;
+    if not CnCALoadCertificateFromStream(MS, CRT) then
+      Exit;
+    if not CRT.BasicCertificate.StandardExtension.BasicConstraintsPresent then
+      Exit;
+
+    SetLength(Buf, Length(CRIT_CERT_HEX) div 2);
+    HexToData(CRIT_CERT_HEX, @Buf[0]);
+    MS.Size := 0;
+    MS.WriteBuffer(Buf[0], Length(Buf));
+    MS.Position := 0;
+    CRT.Free;
+    CRT := TCnCertificate.Create;
+    if CnCALoadCertificateFromStream(MS, CRT) then
+      Exit;
+
+    Result := True;
+  finally
+    CRT.Free;
+    MS.Free;
+    Out.Free;
+    CSR.Free;
+    NoBC.Free;
+    PrivExt.Free;
+    ChildStd.Free;
+    CliPub.Free;
+    CliPriv.Free;
+    CAPub.Free;
+    CAPriv.Free;
   end;
 end;
 
