@@ -427,6 +427,9 @@ function XXH64DigestToStr(const Digest: TCnXXH64Digest): string;
 
 implementation
 
+uses
+  CnFileUtils;
+
 const
   CN_XXH32_BLOCK_SIZE  = 16;
   CN_XXH64_BLOCK_SIZE  = 32;
@@ -1079,37 +1082,6 @@ var
 begin
   InternalXXHStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Seed, Dig, xtXXH64, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnXXH64Digest));
-end;
-
-function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
-{$IFDEF MSWINDOWS}
-var
-  H: THandle;
-  Info: BY_HANDLE_FILE_INFORMATION;
-  Rec: Int64Rec;
-{$ENDIF}
-begin
-{$IFDEF MSWINDOWS}
-  Result := False;
-  IsEmpty := False;
-  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
-    OPEN_EXISTING, 0, 0);
-  if H = INVALID_HANDLE_VALUE then
-    Exit;
-  try
-    if not GetFileInformationByHandle(H, Info) then
-      Exit;
-  finally
-    CloseHandle(H);
-  end;
-  Rec.Lo := Info.nFileSizeLow;
-  Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
-  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
-{$ELSE}
-  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
-  IsEmpty := False;
-{$ENDIF}
 end;
 
 function InternalXXHFile(const FileName: string; Seed: TUInt64; XXHType: TCnXXHType;

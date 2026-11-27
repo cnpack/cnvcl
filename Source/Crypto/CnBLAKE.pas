@@ -851,6 +851,9 @@ function BLAKE512HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE512Di
 
 implementation
 
+uses
+  CnFileUtils;
+
 type
   TBLAKEType = (btBLAKE224, btBLAKE256, btBLAKE384, btBLAKE512);
 
@@ -2028,37 +2031,6 @@ var
 begin
   InternalBLAKEStream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, Dig, btBLAKE512, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnBLAKE512Digest));
-end;
-
-function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
-{$IFDEF MSWINDOWS}
-var
-  H: THandle;
-  Info: BY_HANDLE_FILE_INFORMATION;
-  Rec: Int64Rec;
-{$ENDIF}
-begin
-{$IFDEF MSWINDOWS}
-  Result := False;
-  IsEmpty := False;
-  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
-    OPEN_EXISTING, 0, 0);
-  if H = INVALID_HANDLE_VALUE then
-    Exit;
-  try
-    if not GetFileInformationByHandle(H, Info) then
-      Exit;
-  finally
-    CloseHandle(H);
-  end;
-  Rec.Lo := Info.nFileSizeLow;
-  Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
-  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
-{$ELSE}
-  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
-  IsEmpty := False;
-{$ENDIF}
 end;
 
 function InternalBLAKEFile(const FileName: string; BLAKEType: TBLAKEType;

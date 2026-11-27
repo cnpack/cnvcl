@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF COMPILER5}, Windows {$ENDIF};
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
 
 type
   TCnFindFileCallBack = procedure(const FullFileName: string; const Info: TSearchRec;
@@ -81,6 +81,17 @@ function CnFindFile(const Path: string; const FileNamePattern: string = '*';
      IncludeSubDir: Boolean               - 查找时是否包含子目录，为 True 时才会调用子目录回调
 
    返回值：Boolean                        - 返回是否查找完成、未被中断   
+}
+
+function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string;
+  out IsEmpty: Boolean): Boolean;
+{* 判断文件是否大到无法内存映射。IsEmpty 返回文件是否为空。
+
+   参数：
+     const AFileName: string              - 待判断的文件名
+     out IsEmpty: Boolean                 - 返回文件是否为空
+
+   返回值：Boolean                        - 返回是否无法内存映射
 }
 
 {$IFDEF COMPILER5}
@@ -209,6 +220,38 @@ begin
   AbortFlag := False;
   DoFindFile(Path, '', FileNamePattern, FileProc, DirProc, IncludeSubDir, AbortFlag);
   Result := not AbortFlag;
+end;
+
+function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string;
+  out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
+var
+  H: THandle;
+  Info: BY_HANDLE_FILE_INFORMATION;
+  Rec: Int64Rec;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  Result := False;
+  IsEmpty := False;
+  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
+    OPEN_EXISTING, 0, 0);
+  if H = INVALID_HANDLE_VALUE then
+    Exit;
+  try
+    if not GetFileInformationByHandle(H, Info) then
+      Exit;
+  finally
+    CloseHandle(H);
+  end;
+  Rec.Lo := Info.nFileSizeLow;
+  Rec.Hi := Info.nFileSizeHigh;
+  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
+  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+  Result := True;
+  IsEmpty := False;
+{$ENDIF}
 end;
 
 {$IFDEF COMPILER5}

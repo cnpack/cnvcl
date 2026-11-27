@@ -846,7 +846,12 @@ end;
 
 function DESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
 begin
-  Result := (((InputByteLength - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
+  if InputByteLength <= 0 then
+    Result := 0
+  else if InputByteLength > $7FFFFFF8 then
+    raise ECnDESException.Create(SCnErrorDESInvalidInBufSize)
+  else
+    Result := (((InputByteLength - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
 end;
 
 procedure DESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
@@ -1416,7 +1421,12 @@ end;
 
 function TripleDESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
 begin
-  Result := (((InputByteLength - 1) div CN_TRIPLE_DES_BLOCKSIZE) + 1) * CN_TRIPLE_DES_BLOCKSIZE;
+  if InputByteLength <= 0 then
+    Result := 0
+  else if InputByteLength > $7FFFFFF8 then
+    raise ECnDESException.Create(SCnErrorDESInvalidInBufSize)
+  else
+    Result := (((InputByteLength - 1) div CN_TRIPLE_DES_BLOCKSIZE) + 1) * CN_TRIPLE_DES_BLOCKSIZE;
 end;
 
 procedure TripleDESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);

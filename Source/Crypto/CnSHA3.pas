@@ -1252,6 +1252,9 @@ function SHA3_512HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_512Di
 
 implementation
 
+uses
+  CnFileUtils;
+
 type
   TSHA3Type = (stSHA3_224, stSHA3_256, stSHA3_384, stSHA3_512, stSHAKE128, stSHAKE256);
 
@@ -2388,37 +2391,6 @@ function SHAKE256Stream(Stream: TStream; DigestByteLength: Cardinal;
   CallBack: TCnSHA3CalcProgressFunc): TBytes;
 begin
   InternalSHA3Stream(Stream, CN_CRYPTO_STREAM_BUF_SIZE, stSHAKE256, DigestByteLength, Result, CallBack);
-end;
-
-function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
-{$IFDEF MSWINDOWS}
-var
-  H: THandle;
-  Info: BY_HANDLE_FILE_INFORMATION;
-  Rec: Int64Rec;
-{$ENDIF}
-begin
-{$IFDEF MSWINDOWS}
-  Result := False;
-  IsEmpty := False;
-  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
-    OPEN_EXISTING, 0, 0);
-  if H = INVALID_HANDLE_VALUE then
-    Exit;
-  try
-    if not GetFileInformationByHandle(H, Info) then
-      Exit;
-  finally
-    CloseHandle(H);
-  end;
-  Rec.Lo := Info.nFileSizeLow;
-  Rec.Hi := Info.nFileSizeHigh;
-  Result := (Rec.Hi > 0) or (Rec.Lo > CN_CRYPTO_MAX_FILE_SIZE_MAPPING);
-  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
-{$ELSE}
-  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
-  IsEmpty := False;
-{$ENDIF}
 end;
 
 function InternalSHA3File(const FileName: string; SHA3Type: TSHA3Type;
