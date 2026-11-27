@@ -8170,7 +8170,8 @@ begin
   // 蒙哥马利约减要求模数为奇数，偶数模数直接失败
   if not C.IsOdd then
     Exit;
-
+  if B.IsNegative then // 不支持负指数
+    Exit;
   Bits := BigNumberGetBitsCount(B);
 
   // 指数为 0 时结果为 1 mod C
@@ -8331,6 +8332,8 @@ begin
   if (Res = A) or (Res = B) or (Res = C) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
 
+  if B.IsNegative then // 不支持负指数
+    Exit;
   Bits := BigNumberGetBitsCount(B);
 
   if Bits = 0 then
@@ -8448,6 +8451,8 @@ begin
   if (Res = A) or (Res = B) or (Res = C) then
     raise ECnBigNumberException.Create(SCnErrorBigNumberParamDupRef);
 
+  if B.IsNegative then // 不支持负指数
+    Exit;
   Bits := BigNumberGetBitsCount(B);
 
   if Bits = 0 then
