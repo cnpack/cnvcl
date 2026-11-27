@@ -672,7 +672,9 @@ begin
       finally
         CloseHandle(FileHandle);
       end;
-    end;
+    end
+    else
+      raise EFOpenError.CreateFmt(SCnErrorOpenFileFmt, [FileName, SysErrorMessage(GetLastError)]);
     SHA1Final(Context, Result);
 {$ENDIF}
   end;

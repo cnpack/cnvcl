@@ -1199,7 +1199,9 @@ begin
       finally
         CloseHandle(FileHandle);
       end;
-    end;
+    end
+    else
+      raise EFOpenError.CreateFmt(SCnErrorOpenFileFmt, [FileName, SysErrorMessage(GetLastError)]);
     _XXHFinal;
     _CopyResult(Result);
 {$ENDIF}

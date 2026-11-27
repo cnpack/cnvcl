@@ -1598,7 +1598,9 @@ begin
       finally
         CloseHandle(FileHandle);
       end;
-    end;
+    end
+    else
+      raise EFOpenError.CreateFmt(SCnErrorOpenFileFmt, [FileName, SysErrorMessage(GetLastError)]);
     _BLAKE2Final;
     _CopyResult(Result);
 {$ENDIF}

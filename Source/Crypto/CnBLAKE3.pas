@@ -1136,7 +1136,9 @@ begin
       finally
         CloseHandle(FileHandle);
       end;
-    end;
+    end
+    else
+      raise EFOpenError.CreateFmt(SCnErrorOpenFileFmt, [FileName, SysErrorMessage(GetLastError)]);
 {$ENDIF}
   end;
   BLAKE3Final(Context, Result);

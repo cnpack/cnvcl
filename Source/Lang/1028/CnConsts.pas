@@ -233,6 +233,7 @@ const
 resourcestring
   SCnErrorMapViewOfFile = 'MapViewOfFile 失敗 ';
   SCnErrorCreateFileMapping = 'CreateFileMapping 失敗 ';
+  SCnErrorOpenFileFmt = '文件打開失敗 ''%s'': ''%s''';
 
 function CnGetLastError: Integer;
 

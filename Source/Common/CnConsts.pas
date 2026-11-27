@@ -229,7 +229,7 @@ const
 resourcestring
   SCnErrorMapViewOfFile = 'MapViewOfFile Failed. ';
   SCnErrorCreateFileMapping = 'CreateFileMapping Failed. ';
-  SCnErrorOpenFileFmt = 'Can NOT Open File %s: %s';
+  SCnErrorOpenFileFmt = 'Can NOT Open File ''%s'': ''%s''';
 
 function CnGetLastError: Integer;
 

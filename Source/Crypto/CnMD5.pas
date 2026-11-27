@@ -784,7 +784,9 @@ begin
       finally
         CloseHandle(FileHandle);
       end;
-    end;
+    end
+    else
+      raise EFOpenError.CreateFmt(SCnErrorOpenFileFmt, [FileName, SysErrorMessage(GetLastError)]);
     MD5Final(Context, Result);
 {$ENDIF}
   end;
