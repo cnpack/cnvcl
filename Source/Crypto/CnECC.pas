@@ -2333,12 +2333,13 @@ function GetOIDFromCurveType(Curve: TCnEccCurveType; out OIDAddr: Pointer): Inte
 }
 
 function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode;
-  PublicKey: TCnEccPublicKey): Boolean;
+  PublicKey: TCnEccPublicKey; Ecc: TCnEcc = nil): Boolean;
 {* 读取 BER 节点 BITSTRING 中的 ECC 公钥，返回是否成功。
 
    参数：
      BitStringNode: TCnBerReadNode        - 待读取的 BER 节点
      PublicKey: TCnEccPublicKey           - 读出的椭圆曲线公钥
+     Ecc: TCnEcc                          - 曲线对象，用于解压压缩公钥，传 nil 时只解出 X
 
    返回值：Boolean                        - 返回读取是否成功
 }
@@ -3942,38 +3943,42 @@ begin
 
       // 把前导字节算进来的长度是对的，直接劈开 Buf 赋值
       C := Length(Buf) div 2;
-      FX.SetHex(Copy(Buf, 1, C));
-      FY.SetHex(Copy(Buf, C + 1, MaxInt));
+      if not FX.SetHex(Copy(Buf, 1, C)) then
+        raise ECnEccException.Create(SCnErrorEccKeyData);
+      if not FY.SetHex(Copy(Buf, C + 1, MaxInt)) then
+        raise ECnEccException.Create(SCnErrorEccKeyData);
     end
     else // 前导字节内容后的长度对
     begin
       if C = EC_PUBLICKEY_UNCOMPRESSED then
       begin
         C := Length(S) div 2;
-        FX.SetHex(Copy(S, 1, C));
-        FY.SetHex(Copy(S, C + 1, MaxInt));
+        if not FX.SetHex(Copy(S, 1, C)) then
+          raise ECnEccException.Create(SCnErrorEccKeyData);
+        if not FY.SetHex(Copy(S, C + 1, MaxInt)) then
+          raise ECnEccException.Create(SCnErrorEccKeyData);
       end
       else if (C = EC_PUBLICKEY_COMPRESSED_EVEN) or (C = EC_PUBLICKEY_COMPRESSED_ODD) then
       begin
-        FX.SetHex(S);
-        FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，再去求解
+        if Ecc = nil then
+          raise ECnEccException.Create(SCnErrorEccKeyData);      // 没有曲线就无法解压，必须显式拒绝
+        if not FX.SetHex(S) then
+          raise ECnEccException.Create(SCnErrorEccKeyData);
 
-        if Ecc <> nil then
-        begin
-          P := TCnEccPoint.Create;
-          try
-            // 将 Y 是奇偶的信息带出去供外界在求得的两个 Y 值中求解
-            if Ecc.PlainToPoint(FX, P) then
-            begin
-              if P.Y.IsOdd <> (C = EC_PUBLICKEY_COMPRESSED_ODD) then
-                Ecc.PointInverse(P);
-              BigNumberCopy(FY, P.Y);
-            end
-            else
-              raise ECnEccException.Create(SCnErrorEccKeyData);
-          finally
-            P.Free;
-          end;
+        FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，再去求解
+        P := TCnEccPoint.Create;
+        try
+          // 将 Y 是奇偶的信息带出去供外界在求得的两个 Y 值中求解
+          if Ecc.PlainToPoint(FX, P) then
+          begin
+            if P.Y.IsOdd <> (C = EC_PUBLICKEY_COMPRESSED_ODD) then
+              Ecc.PointInverse(P);
+            BigNumberCopy(FY, P.Y);
+          end
+          else
+            raise ECnEccException.Create(SCnErrorEccKeyData);
+        finally
+          P.Free;
         end;
       end
       else  // 前导字节内容非法
@@ -3986,8 +3991,10 @@ begin
       raise ECnEccException.Create(SCnErrorEccKeyData);
 
     C := Length(Buf) div 2;
-    FX.SetHex(Copy(Buf, 1, C));
-    FY.SetHex(Copy(Buf, C + 1, MaxInt));
+    if not FX.SetHex(Copy(Buf, 1, C)) then
+      raise ECnEccException.Create(SCnErrorEccKeyData);
+    if not FY.SetHex(Copy(Buf, C + 1, MaxInt)) then
+      raise ECnEccException.Create(SCnErrorEccKeyData);
   end;
 end;
 
@@ -5388,7 +5395,8 @@ begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
     raise ECnEccException.Create(SCnErrorEccInverseError);
 
-  BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
+  if not P.Y.IsZero then
+    BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
 
 procedure TCnEcc.AffinePointInverse(P: TCnEcc3Point);
@@ -5725,10 +5733,13 @@ begin
   end;
 end;
 
-function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode; PublicKey: TCnEccPublicKey): Boolean;
+function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode;
+  PublicKey: TCnEccPublicKey; Ecc: TCnEcc): Boolean;
 var
   B: PByte;
+  P: TCnEccPoint;
   Len: Integer;
+  Prefix: Byte;
 begin
   Result := False;
   if (BitStringNode = nil) or (PublicKey = nil) then
@@ -5766,6 +5777,7 @@ begin
   end
   else if (B^ = EC_PUBLICKEY_COMPRESSED_ODD) or (B^ = EC_PUBLICKEY_COMPRESSED_EVEN) then
   begin
+    Prefix := B^;
     Inc(B);
     // 压缩格式，全是公钥 X
     Len := BitStringNode.BerDataLength - 2;
@@ -5773,7 +5785,22 @@ begin
       Exit;
 
     PublicKey.X.SetBinary(PAnsiChar(B), Len);
-    PublicKey.Y.SetZero; // Y 先 0，外部再去求解
+    PublicKey.Y.SetZero;
+
+    // 若调用方提供曲线对象，按压缩前缀的奇偶性解出 Y
+    if Ecc <> nil then
+    begin
+      P := TCnEccPoint.Create;
+      try
+        if not Ecc.PlainToPoint(PublicKey.X, P) then
+          Exit;
+        if P.Y.IsOdd <> (Prefix = EC_PUBLICKEY_COMPRESSED_ODD) then
+          Ecc.PointInverse(P);
+        BigNumberCopy(PublicKey.Y, P.Y);
+      finally
+        P.Free;
+      end;
+    end;
 
     Result := True;
   end;
@@ -5875,6 +5902,29 @@ begin
   end;
 end;
 
+// 按曲线类型校验 PEM 读入的私钥，必须满足 0 < d < n
+function ValidateEccPrivateKeyByCurveType(CurveType: TCnEccCurveType;
+  PrivateKey: TCnEccPrivateKey): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  Result := False;
+  if PrivateKey = nil then
+    Exit;
+  if CurveType = ctCustomized then // 自定义曲线无从得知阶，沿用旧行为
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := InternalEccIsValidPrivateKey(Ecc, PrivateKey);
+  finally
+    Ecc.Free;
+  end;
+end;
+
 (*
   SEQUENCE (2 elem)
     SEQUENCE (2 elem)
@@ -5903,6 +5953,7 @@ var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
+  Ecc: TCnEcc;
 begin
   Result := False;
   MemStream := nil;
@@ -5938,8 +5989,17 @@ begin
 
         // 读 4 里的公钥，并按曲线校验其合法性。此处 4 须是 BIT STRING，防止结构异常的节点被误读
         if Reader.Items[4].BerTag = CN_BER_TAG_BIT_STRING then
-          Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey) and
-            ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
+        begin
+          Ecc := nil;
+          if CurveType <> ctCustomized then
+            Ecc := TCnEcc.Create(CurveType);
+          try
+            Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey, Ecc) and
+              ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
+          finally
+            Ecc.Free;
+          end;
+        end;
       end;
     end;
   finally
@@ -6005,6 +6065,7 @@ var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
+  Ecc: TCnEcc;
   CurveType2: TCnEccCurveType;
   OldPos: Int64;
   IsPkcs1: Boolean;
@@ -6055,10 +6116,6 @@ begin
           Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
           if Node.AsByte = 1 then  // 只支持版本 1
           begin
-            // 2 是私钥
-            if PrivateKey <> nil then
-              PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey);
-
             // 4 又是曲线类型
             Node := Reader.Items[4];
             CurveType2 := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
@@ -6067,10 +6124,27 @@ begin
 
             CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
 
+            // 2 是私钥，必须在得知曲线阶之后校验 0 < d < n
+            if PrivateKey <> nil then
+            begin
+              PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey);
+              if not ValidateEccPrivateKeyByCurveType(CurveType, PrivateKey) then
+                Exit;
+            end;
+
             // 读 6 里的公钥，并按曲线校验其合法性
             if PublicKey <> nil then
-              Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey) and
-                ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
+            begin
+              Ecc := nil;
+              if CurveType <> ctCustomized then
+                Ecc := TCnEcc.Create(CurveType);
+              try
+                Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey, Ecc) and
+                  ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
+              finally
+                Ecc.Free;
+              end;
+            end;
           end;
         end;
       end;
@@ -6101,21 +6175,32 @@ begin
               CurveType := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
 
               if PrivateKey <> nil then
+              begin
                 PutIndexedBigIntegerToBigNumber(Reader.Items[8], PrivateKey);
+                if not ValidateEccPrivateKeyByCurveType(CurveType, PrivateKey) then
+                  Exit;
+              end;
 
               if PublicKey <> nil then
               begin
                 Result := False;
-                // 兼容处理，AI 说私钥的子节点是首个 BitString
-                for I := 0 to Reader.TotalCount - 1 do
-                begin
-                  if Reader.Items[I].BerTag = CN_BER_TAG_BIT_STRING then
+                Ecc := nil;
+                if CurveType <> ctCustomized then
+                  Ecc := TCnEcc.Create(CurveType);
+                try
+                  // 兼容处理，AI 说私钥的子节点是首个 BitString
+                  for I := 0 to Reader.TotalCount - 1 do
                   begin
-                    Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[I], PublicKey) and
-                      ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
-                    if Result then
-                      Break;
+                    if Reader.Items[I].BerTag = CN_BER_TAG_BIT_STRING then
+                    begin
+                      Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[I], PublicKey, Ecc) and
+                        ValidateEccPublicKeyByCurveType(CurveType, PublicKey);
+                      if Result then
+                        Break;
+                    end;
                   end;
+                finally
+                  Ecc.Free;
                 end;
               end;
             end;

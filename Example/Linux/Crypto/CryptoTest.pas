@@ -825,9 +825,9 @@ function TestSM9RejectUnalignedSM4Cipher: Boolean;
 
 function TestRSA1: Boolean;
 function TestRSA2: Boolean;
-function TestDHRejectSmallSubgroup: Boolean;
 function TestRSA3: Boolean;
 function TestRSA4: Boolean;
+function TestDHRejectSmallSubgroup: Boolean;
 function TestRSAPrivPubPkcs1: Boolean;
 function TestRSAPubPkcs1: Boolean;
 function TestRSAPrivPubPkcs8: Boolean;
@@ -925,6 +925,8 @@ function TestECCPrivPubPkcs1: Boolean;
 function TestECCPrivPubPkcs8: Boolean;
 function TestEccPemPrivateKeyOctetString: Boolean;
 function TestEccRecoverPublicKeyShortHash: Boolean;
+function TestEccPemPrivateKeyRange: Boolean;
+function TestEccPemCompressedPublicKey: Boolean;
 function TestECCPub: Boolean;
 function TestECCPubInvalidBer: Boolean;
 function TestECCJInvariant: Boolean;
@@ -2788,9 +2790,9 @@ begin
 
   MyAssert(TestRSA1, 'TestRSA1');
   MyAssert(TestRSA2, 'TestRSA2');
-  MyAssert(TestDHRejectSmallSubgroup, 'TestDHRejectSmallSubgroup');
   MyAssert(TestRSA3, 'TestRSA3');
   MyAssert(TestRSA4, 'TestRSA4');
+  MyAssert(TestDHRejectSmallSubgroup, 'TestDHRejectSmallSubgroup');
   MyAssert(TestRSAPrivPubPkcs1, 'TestRSAPrivPubPkcs1');
   MyAssert(TestRSAPubPkcs1, 'TestRSAPubPkcs1');
   MyAssert(TestRSAPrivPubPkcs8, 'TestRSAPrivPubPkcs8');
@@ -2888,6 +2890,8 @@ begin
   MyAssert(TestECCPrivPubPkcs8, 'TestECCPrivPubPkcs8');
   MyAssert(TestEccPemPrivateKeyOctetString, 'TestEccPemPrivateKeyOctetString');
   MyAssert(TestEccRecoverPublicKeyShortHash, 'TestEccRecoverPublicKeyShortHash');
+  MyAssert(TestEccPemPrivateKeyRange, 'TestEccPemPrivateKeyRange');
+  MyAssert(TestEccPemCompressedPublicKey, 'TestEccPemCompressedPublicKey');
   MyAssert(TestECCPub, 'TestECCPub');
   MyAssert(TestECCPubInvalidBer, 'TestECCPubInvalidBer');
   MyAssert(TestECCJInvariant, 'TestECCJInvariant');
@@ -29026,45 +29030,6 @@ begin
   end;
 end;
 
-function TestDHRejectSmallSubgroup: Boolean;
-var
-  Prime, Root, Priv, Pub, Sec, Tmp: TCnBigNumber;
-begin
-  Result := False;
-  Prime := TCnBigNumber.Create;
-  Root := TCnBigNumber.Create;
-  Priv := TCnBigNumber.Create;
-  Pub := TCnBigNumber.Create;
-  Sec := TCnBigNumber.Create;
-  Tmp := TCnBigNumber.Create;
-  try
-    if not CnDiffieHellmanGeneratePrimeRootByBitsCount(512, Prime, Root) then
-      Exit;
-    Priv.SetWord(123456789);
-    if not CnDiffieHellmanGenerateOutKey(Prime, Root, Priv, Pub) then
-      Exit;
-
-    // 0、1 与 Prime-1（阶为 2）必须被拒绝
-    Tmp.SetZero;
-    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
-    Tmp.SetOne;
-    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
-    BigNumberCopy(Tmp, Prime);
-    Tmp.SubWord(1);
-    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
-
-    // 正常公钥仍可计算
-    Result := CnDiffieHellmanComputeKey(Prime, Priv, Pub, Sec);
-  finally
-    Tmp.Free;
-    Sec.Free;
-    Pub.Free;
-    Priv.Free;
-    Root.Free;
-    Prime.Free;
-  end;
-end;
-
 function TestRSA3: Boolean;
 var
   Priv: TCnRSAPrivateKey;
@@ -29189,6 +29154,48 @@ begin
   Data.Free;
   Pub.Free;
   Priv.Free;
+end;
+
+function TestDHRejectSmallSubgroup: Boolean;
+var
+  Prime, Root, Priv, Pub, Sec, Tmp: TCnBigNumber;
+begin
+  Result := False;
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+  Priv := TCnBigNumber.Create;
+  Pub := TCnBigNumber.Create;
+  Sec := TCnBigNumber.Create;
+  Tmp := TCnBigNumber.Create;
+  try
+    // 固定使用预先生成的 512 位安全素数 P = 2Q + 1 与生成元 G
+    // （现场生成时单个 P 很快，但 (P-1)/2 也是素数的概率约 1/350，需反复试）
+    Prime.SetHex('8A90AEF667F514C987A918FF0FB06144BC74C47772782833A5B8C4A4A3A57E10' +
+      '33D2FD7CD7DBF544D61087978A0883F6367DEC9EF448963FC60489A2DB73F7');
+    Root.SetHex('05');
+    Priv.SetWord(123456789);
+    if not CnDiffieHellmanGenerateOutKey(Prime, Root, Priv, Pub) then
+      Exit;
+
+    // 0、1 与 Prime-1（阶为 2）必须被拒绝
+    Tmp.SetZero;
+    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
+    Tmp.SetOne;
+    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
+    BigNumberCopy(Tmp, Prime);
+    Tmp.SubWord(1);
+    if CnDiffieHellmanComputeKey(Prime, Priv, Tmp, Sec) then Exit;
+
+    // 正常公钥仍可计算
+    Result := CnDiffieHellmanComputeKey(Prime, Priv, Pub, Sec);
+  finally
+    Tmp.Free;
+    Sec.Free;
+    Pub.Free;
+    Priv.Free;
+    Root.Free;
+    Prime.Free;
+  end;
 end;
 
 function TestRSAPrivPubPkcs1: Boolean;
@@ -32767,6 +32774,262 @@ begin
     Data.Free;
     K2.Free;
     K1.Free;
+    Pub.Free;
+    Priv.Free;
+    Ecc.Free;
+  end;
+end;
+
+function TestEccPemPrivateKeyRange: Boolean;
+const
+  SEC1_HEAD = '-----BEGIN EC PRIVATE KEY-----';
+  SEC1_TAIL = '-----END EC PRIVATE KEY-----';
+  PKCS8_HEAD = '-----BEGIN PRIVATE KEY-----';
+  PKCS8_TAIL = '-----END PRIVATE KEY-----';
+var
+  Ecc: TCnEcc;
+  Priv, LoadedPriv: TCnEccPrivateKey;
+  Pub, LoadedPub: TCnEccPublicKey;
+  MS, Der, Mut: TMemoryStream;
+  V: TCnBigNumber;
+  CT: TCnEccCurveType;
+  KeyType: TCnEccKeyType;
+  I: Integer;
+
+  function TryLoad(Value: TCnBigNumber; AKeyType: TCnEccKeyType;
+    ExpectOK: Boolean): Boolean;
+  var
+    Reader: TCnBerReader;
+    Node: TCnBerReadNode;
+    Head, Tail: string;
+    NodeIndex, Pad, Bytes: Integer;
+    OK: Boolean;
+  begin
+    Result := False;
+    MS.Clear;
+    Der.Clear;
+    Mut.Clear;
+
+    if not CnEccSaveKeysToPem(MS, Priv, Pub, ctSecp256r1, AKeyType,
+      ckeNone, ckhSha256, '') then
+      Exit;
+
+    MS.Position := 0;
+    if AKeyType = cktPKCS1 then
+    begin
+      Head := SEC1_HEAD;
+      Tail := SEC1_TAIL;
+      NodeIndex := 2;
+      if not LoadPemStreamToMemory(MS, Head, Tail, Der) then
+        Exit;
+      Reader := TCnBerReader.Create(PByte(Der.Memory), Der.Size);
+    end
+    else
+    begin
+      Head := PKCS8_HEAD;
+      Tail := PKCS8_TAIL;
+      NodeIndex := 8;
+      if not LoadPemStreamToMemory(MS, Head, Tail, Der) then
+        Exit;
+      Reader := TCnBerReader.Create(PByte(Der.Memory), Der.Size, True);
+    end;
+
+    try
+      Reader.ParseToTree;
+      Node := Reader.Items[NodeIndex];
+      if Node.BerDataLength <> 32 then
+        Exit;
+
+      // 私钥是定长 32 字节 OCTET STRING，按域长左补零写入
+      Bytes := Value.GetBytesCount;
+      Pad := 32 - Bytes;
+      if Pad < 0 then
+        Pad := 0;
+      FillChar(Node.BerDataAddress^, 32, 0);
+      if Bytes > 0 then
+        Value.ToBinary(PAnsiChar(PByte(TCnNativeUInt(Node.BerDataAddress) + Pad)));
+    finally
+      Reader.Free;
+    end;
+
+    Der.Position := 0;
+    if not SaveMemoryToPemStream(Mut, Head, Tail, Der) then
+      Exit;
+
+    Mut.Position := 0;
+    LoadedPriv.SetZero;
+    LoadedPub.X.SetZero;
+    LoadedPub.Y.SetZero;
+    OK := CnEccLoadKeysFromPem(Mut, LoadedPriv, LoadedPub, CT, ckhSha256, '');
+    if OK <> ExpectOK then
+      Exit;
+    if OK and (BigNumberCompare(LoadedPriv, Value) <> 0) then
+      Exit;
+    Result := True;
+  end;
+
+begin
+  Result := False;
+  Ecc := TCnEcc.Create(ctSecp256r1);
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+  LoadedPriv := TCnEccPrivateKey.Create;
+  LoadedPub := TCnEccPublicKey.Create;
+  MS := TMemoryStream.Create;
+  Der := TMemoryStream.Create;
+  Mut := TMemoryStream.Create;
+  V := TCnBigNumber.Create;
+  try
+    Ecc.GenerateKeys(Priv, Pub);
+
+    // SEC1 与 PKCS#8 两条导入路径都须拒绝越界私钥
+    for I := 0 to 1 do
+    begin
+      if I = 0 then
+        KeyType := cktPKCS1
+      else
+        KeyType := cktPKCS8;
+
+      V.SetZero;
+      if not TryLoad(V, KeyType, False) then
+        Exit;
+      if not TryLoad(Ecc.Order, KeyType, False) then
+        Exit;
+
+      BigNumberAdd(V, Ecc.Order, CnBigNumberOne);
+      if not TryLoad(V, KeyType, False) then
+        Exit;
+
+      BigNumberSub(V, Ecc.FiniteFieldSize, CnBigNumberOne);
+      if not TryLoad(V, KeyType, False) then
+        Exit;
+
+      // n - 1 与正常私钥都满足 0 < d < n，应成功
+      BigNumberSub(V, Ecc.Order, CnBigNumberOne);
+      if not TryLoad(V, KeyType, True) then
+        Exit;
+      if not TryLoad(Priv, KeyType, True) then
+        Exit;
+    end;
+
+    Result := True;
+  finally
+    V.Free;
+    Mut.Free;
+    Der.Free;
+    MS.Free;
+    LoadedPub.Free;
+    LoadedPriv.Free;
+    Pub.Free;
+    Priv.Free;
+    Ecc.Free;
+  end;
+end;
+
+function TestEccPemCompressedPublicKey: Boolean;
+const
+  PUB_HEAD = '-----BEGIN PUBLIC KEY-----';
+  PUB_TAIL = '-----END PUBLIC KEY-----';
+var
+  Ecc: TCnEcc;
+  Priv: TCnEccPrivateKey;
+  Pub, LoadedPub, OtherPub, InvPub: TCnEccPublicKey;
+  MS, Mut: TMemoryStream;
+  Buf: TBytes;
+  CT: TCnEccCurveType;
+  Prefix, OtherPrefix, Bytes: Integer;
+
+  function LoadCompressed(APrefix: Byte; OutPub: TCnEccPublicKey): Boolean;
+  var
+    Writer: TCnBerWriter;
+    Root, Sub: TCnBerWriteNode;
+    OIDAddr: Pointer;
+    OIDLen: Integer;
+  begin
+    Result := False;
+    OIDLen := GetOIDFromCurveType(ctSecp256r1, OIDAddr);
+    if (OIDAddr = nil) or (OIDLen <= 0) then
+      Exit;
+
+    Writer := TCnBerWriter.Create;
+    try
+      Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+      Sub := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER,
+        @CN_OID_EC_PUBLIC_KEY[0], SizeOf(CN_OID_EC_PUBLIC_KEY), Sub);
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDAddr, OIDLen, Sub);
+
+      // BIT STRING 内容：模式字节 + 定长 32 字节 X，BER 写入器会补未用位数字节
+      SetLength(Buf, 33);
+      FillChar(Buf[0], 33, 0);
+      Buf[0] := APrefix;
+      Bytes := Pub.X.GetBytesCount;
+      if Bytes > 32 then
+        Bytes := 32;
+      Pub.X.ToBinary(PAnsiChar(@Buf[1 + 32 - Bytes]));
+      Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, @Buf[0], 33, Root);
+
+      MS.Clear;
+      Writer.SaveToStream(MS);
+    finally
+      Writer.Free;
+    end;
+
+    MS.Position := 0;
+    Mut.Clear;
+    if not SaveMemoryToPemStream(Mut, PUB_HEAD, PUB_TAIL, MS) then
+      Exit;
+    Mut.Position := 0;
+    OutPub.X.SetZero;
+    OutPub.Y.SetZero;
+    Result := CnEccLoadPublicKeyFromPem(Mut, OutPub, CT, ckhSha256, '');
+  end;
+
+begin
+  Result := False;
+  Ecc := TCnEcc.Create(ctSecp256r1);
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+  LoadedPub := TCnEccPublicKey.Create;
+  OtherPub := TCnEccPublicKey.Create;
+  InvPub := TCnEccPublicKey.Create;
+  MS := TMemoryStream.Create;
+  Mut := TMemoryStream.Create;
+  try
+    Ecc.GenerateKeys(Priv, Pub);
+
+    if Pub.Y.IsOdd then
+      Prefix := 3
+    else
+      Prefix := 2;
+    if Prefix = 3 then
+      OtherPrefix := 2
+    else
+      OtherPrefix := 3;
+
+    // 与原点奇偶一致的压缩编码应解出原点
+    if not LoadCompressed(Prefix, LoadedPub) then
+      Exit;
+    if LoadedPub.Y.IsZero then
+      Exit;
+    if not CnEccPointsEqual(Pub, LoadedPub) then
+      Exit;
+
+    // 奇偶标志取反时解出的应是反点
+    if not LoadCompressed(OtherPrefix, OtherPub) then
+      Exit;
+    InvPub.Assign(Pub);
+    Ecc.PointInverse(InvPub);
+    if not CnEccPointsEqual(InvPub, OtherPub) then
+      Exit;
+
+    Result := True;
+  finally
+    Mut.Free;
+    MS.Free;
+    InvPub.Free;
+    OtherPub.Free;
+    LoadedPub.Free;
     Pub.Free;
     Priv.Free;
     Ecc.Free;
