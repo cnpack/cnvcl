@@ -7483,7 +7483,8 @@ begin
       // 除数是偶数时，H 是除数的一半，因而余数大于或等于 H 时符合五入
       // 除数是奇数时，H 是除数的一半大一，因而余数大于或等于 H 时一定大于一半，也符合五入
       // 五入是商的绝对值加一，要看商的符号决定是加一还是减一
-      if Res.IsNegative then
+      // 商为 0 时不带符号，需按被除数与除数是否异号决定五入方向
+      if Res.IsNegative or (Res.IsZero and (Num.IsNegative <> Divisor.IsNegative)) then
         Res.SubWord(1)
       else
         Res.AddWord(1);

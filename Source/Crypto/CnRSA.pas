@@ -1771,7 +1771,7 @@ end;
 
 function CnRSAVerifyKeys(PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
 var
-  T, M, P: TCnBigNumber;
+  T, M, P, L: TCnBigNumber;
 begin
   // 私钥的俩素数乘积要等于私钥的 Product
   // 公私钥的 Product 得相等
@@ -1800,6 +1800,7 @@ begin
   T := nil;
   P := nil;
   M := nil;
+  L := nil;
 
   try
     T := TCnBigNumber.Create;
@@ -1810,19 +1811,24 @@ begin
       Exit;
     end;
 
-    // 验证 d 是否是 e * d mod (p-1)(q-1) = 1
+    // 用 Carmichael 函数 λ(n)=lcm(p-1,q-1) 校验，兼容按 φ 或 λ 生成的标准密钥
     P := TCnBigNumber.Create;
     BigNumberCopy(P, PrivateKey.PrimeKey1);
     BigNumberCopy(T, PrivateKey.PrimeKey2);
     BigNumberSubWord(P, 1);
     BigNumberSubWord(T, 1);
 
-    BigNumberMul(T, P, T); // T 得到 (p-1)(q-1)
+    L := TCnBigNumber.Create;
+    if not BigNumberLcm(L, P, T) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
 
     M := TCnBigNumber.Create;
     BigNumberMul(M, PrivateKey.FPrivKeyExponent, PublicKey.PubKeyExponent); // M 得到 e * d
 
-    BigNumberMod(P, M, T);
+    BigNumberMod(P, M, L);
     if not P.IsOne then
     begin
       _CnSetLastError(ECN_RSA_INVALID_INPUT);
@@ -1832,6 +1838,7 @@ begin
     Result := True;
     _CnSetLastError(ECN_RSA_OK);
   finally
+    L.Free;
     M.Free;
     P.Free;
     T.Free;
@@ -2828,13 +2835,21 @@ begin
     BigNumberCopy(FPrivKeyProduct, (Source as TCnRSAPrivateKey).PrivKeyProduct);
     BigNumberCopy(FPrivKeyExponent, (Source as TCnRSAPrivateKey).PrivKeyExponent);
 
-    // 都用 CRT 加速时复制这仨才有意义
-    if FUseCRT and (Source as TCnRSAPrivateKey).UseCRT then
+    // 根据对方用 CRT 加速的状态，复制这仨，如果对方没这仨，自己还得算
+    if TCnRSAPrivateKey(Source).UseCRT then
     begin
-      BigNumberCopy(FDP1, (Source as TCnRSAPrivateKey).FDP1);
-      BigNumberCopy(FDQ1, (Source as TCnRSAPrivateKey).FDQ1);
-      BigNumberCopy(FQInv, (Source as TCnRSAPrivateKey).FQInv);
-    end;
+      FUseCRT := True;
+      if not TCnRSAPrivateKey(Source).FDP1.IsZero then
+      begin
+        BigNumberCopy(FDP1, (Source as TCnRSAPrivateKey).FDP1);
+        BigNumberCopy(FDQ1, (Source as TCnRSAPrivateKey).FDQ1);
+        BigNumberCopy(FQInv, (Source as TCnRSAPrivateKey).FQInv);
+      end
+      else
+        UpdateCRT;
+    end
+    else
+      FUseCRT := False;
   end
   else
     inherited;
@@ -4711,7 +4726,7 @@ begin
     SetLength(mHash, DigestStream.Size);
     Move(DigestStream.Memory^, mHash[0], DigestStream.Size);
     hLen := Length(mHash);
-    emLen := PrivateKey.GetBytesCount;
+    emLen := (PrivateKey.PrivKeyProduct.GetBitsCount - 1 + 7) div 8;
     sLen := emLen - hLen - 2;
     if sLen < 0 then
       sLen := 0;
@@ -4844,7 +4859,7 @@ var
   Data, Res: TCnBigNumber;
   ResBuf: TBytes;
   EM, maskedDB, H, dbMask, DB, mHashBytes, MPrime: TBytes;
-  emLen, hLen, mdBits, lBits, DBLen, I, OnePos, sLen, MPrimeLen: Integer;
+  emLen, hLen, mdBits, lBits, DBLen, I, OnePos, sLen, MPrimeLen, K: Integer;
   DigestStream: TMemoryStream;
   Md5Dig: TCnMD5Digest;
   Sha1Dig: TCnSHA1Digest;
@@ -4863,13 +4878,22 @@ begin
   DigestStream := nil;
 
   try
+    // RFC 8017：签名 S 必须恰为 k 字节，防止前导零造成签名可延展
+    K := PublicKey.GetBytesCount;
+    if (K <= 0) or (InSignStream.Size <> K) then
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
+    end;
+
     Data := TCnBigNumber.FromBinary(PAnsiChar(InSignStream.Memory), InSignStream.Size);
     Res := TCnBigNumber.Create;
 
     if RSAPublicCrypt(Data, PublicKey, Res) then
     begin
-      SetLength(ResBuf, PublicKey.GetBytesCount);
-      Res.ToBinary(@ResBuf[0], PublicKey.GetBytesCount);
+      emLen := (PublicKey.PubKeyProduct.GetBitsCount - 1 + 7) div 8;
+      SetLength(ResBuf, emLen);
+      Res.ToBinary(@ResBuf[0], emLen);
       EM := ResBuf;
       emLen := Length(EM);
       if emLen <= 0 then
@@ -4905,15 +4929,20 @@ begin
         Exit;
       end;
 
+      mdBits := PublicKey.GetBitsCount;
+      lBits := 8 * emLen - (mdBits - 1);
+      // RFC 8017 9.1.2 Step 6：maskedDB 的最高 lBits 位必须全为 0（XOR 之前检查）
+      if (lBits > 0) and ((maskedDB[0] and ($FF xor ($FF shr lBits))) <> 0) then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+
       SetLength(DB, Length(maskedDB));
       for I := 0 to Length(maskedDB) - 1 do
         DB[I] := maskedDB[I] xor dbMask[I];
-      mdBits := PublicKey.GetBitsCount;
-      lBits := 8 * emLen - (mdBits - 1);
       if lBits > 0 then
-      begin
         DB[0] := DB[0] and ($FF shr lBits);
-      end;
 
       DBLen := Length(DB);
       OnePos := -1;

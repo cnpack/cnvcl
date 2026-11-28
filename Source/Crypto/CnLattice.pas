@@ -413,9 +413,16 @@ begin
     // U1 := X;  U2 := Y;
     while True do
     begin
-      BigNumberVectorDotProduct(M2, U2, U1);
       BigNumberVectorDotProduct(M1, U1, U1);
-      BigNumberRoundDiv(M, M2, M1, Ru); // Ru 如果为 True 表示整数 M 比真实结果大
+      if M1.IsZero then // U1 已被约成零向量，原格退化为一维
+      begin
+        BigNumberVectorCopy(V1, U2);
+        BigNumberVectorCopy(V2, U1);
+        Result := True;
+        Exit;
+      end;
+      BigNumberVectorDotProduct(M2, U2, U1);
+      BigNumberRoundDiv(M, M2, M1, Ru); // Ru 如果为 True 表示整数 M 比实际结果大
 
       BigNumberVectorMul(T, U1, M);
       BigNumberVectorSub(U2, U2, T);

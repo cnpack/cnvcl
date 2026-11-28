@@ -51,7 +51,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnBerUtils, CnCertificateAuthority, CnLattice, CnOTS,
+  CnPolynomial, CnBits, CnBerUtils, CnCertificateAuthority, CnLattice, CnVector, CnOTS,
   CnPemUtils, CnInt128, CnRC4, CnPDFCrypt, CnDSA, CnBLAKE, CnBLAKE2, CnBLAKE3,
   CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA, CnSLHDSA, CnCalendar,
   CnBigDecimal, CnBigRational, CnComplex, CnDFT, CnMath, CnMatrix, CnQRCode, CnRandom,
@@ -247,6 +247,7 @@ function TestBigNumberUnsignedAdd: Boolean;
 function TestBigNumberPowerMod: Boolean;
 function TestBigNumberDiv: Boolean;
 function TestBigNumberRoundDiv: Boolean;
+function TestBigNumberGaussianLatticeReduction: Boolean;
 function TestBigNumberShiftLeft: Boolean;
 function TestBigNumberGetBitsCount: Boolean;
 function TestBigNumberIsFloat: Boolean;
@@ -2203,6 +2204,7 @@ begin
   MyAssert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
   MyAssert(TestBigNumberDiv, 'TestBigNumberDiv');
   MyAssert(TestBigNumberRoundDiv, 'TestBigNumberRoundDiv');
+  MyAssert(TestBigNumberGaussianLatticeReduction, 'TestBigNumberGaussianLatticeReduction');
   MyAssert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
   MyAssert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
   MyAssert(TestBigNumberIsFloat, 'TestBigNumberIsFloat');
@@ -8906,11 +8908,93 @@ begin
   Result := F and (C.ToDec() = '102');
   if not Result then Exit;
 
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('-2');
+  B.SetDec('3');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('-1');
+  B.SetDec('2');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('-5');
+  B.SetDec('10');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('-7');
+  B.SetDec('10');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('1');
+  B.SetDec('-2');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('2');
+  B.SetDec('-3');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+  // 截断商为 0 且需五入时的符号
+  A.SetDec('4');
+  B.SetDec('-5');
+  BigNumberRoundDiv(C, A, B, F);
+  Result := F and (C.ToDec() = '-1');
+  if not Result then Exit;
+
   BigNumberFree(R);
   BigNumberFree(C);
   BigNumberFree(B);
   BigNumberFree(A);
 end;
+
+function TestBigNumberGaussianLatticeReduction: Boolean;
+var
+  X, Y, V1, V2: TCnBigNumberVector;
+begin
+  Result := False;
+  X := TCnBigNumberVector.Create(2);
+  Y := TCnBigNumberVector.Create(2);
+  V1 := TCnBigNumberVector.Create(2);
+  V2 := TCnBigNumberVector.Create(2);
+  try
+    X[0].SetWord(1);
+    X[1].SetWord(2);
+    Y[0].SetWord(1);
+    Y[1].SetWord(2);
+    Y[1].Negate;
+
+    if not BigNumberGaussianLatticeReduction(V1, V2, X, Y) then
+      Exit;
+
+    // (1,2) 与 (1,-2) 的高斯约减结果之一
+    Result := ((V1[0].ToDec = '2') and (V1[1].IsZero) and
+      (V2[0].ToDec = '-1') and (V2[1].ToDec = '2'));
+    if not Result then Exit;
+
+    // 两个向量平行时退化为（非零向量, 零向量），不得抛异常
+    Y[0].SetWord(1);
+    Y[1].SetWord(2);
+    Result := BigNumberGaussianLatticeReduction(V1, V2, X, Y);
+    if not Result then Exit;
+    Result := (V1[1].ToDec = '2') and V2[1].IsZero;
+  finally
+    V2.Free;
+    V1.Free;
+    Y.Free;
+    X.Free;
+  end;
+end;
+
 
 function TestBigNumberShiftLeft: Boolean;
 var

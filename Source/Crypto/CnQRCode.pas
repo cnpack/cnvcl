@@ -3221,9 +3221,11 @@ begin
       Inc(DegR1)
     else
     begin
-      // 保存旧 C(x) 到 PolyR2
-      SetLength(PolyR2, DegSigma + 1);
-      for J := 0 to DegSigma do PolyR2[J] := Sigma[J];
+      // 保存旧 C(x) 到 PolyR2；长度取 L + 1，高位补 0，保证下面按 L 复制时不越界
+      SetLength(PolyR2, DegR0 + 1);
+      FillChar(PolyR2[0], (DegR0 + 1) * SizeOf(Integer), 0);
+      for J := 0 to DegSigma do
+        PolyR2[J] := Sigma[J];
 
       // T(x) = C(x) - d/b * x^m * B(x)
       TempDeg := GFMul(TempVal, GFInv(DegT0));  // d/b

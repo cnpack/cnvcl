@@ -6223,7 +6223,7 @@ function Int64PolynomialSetString(P: TCnInt64Polynomial;
 var
   C, Ptr: PChar;
   Num: string;
-  MDFlag, E: Integer;
+  E: Integer;
   F: Int64;
   IsNeg: Boolean;
 begin
@@ -6231,7 +6231,7 @@ begin
   if Str = '' then
     Exit;
 
-  MDFlag := -1;
+  P.SetZero;
   C := @Str[1];
 
   while C^ <> #0 do
@@ -6290,13 +6290,9 @@ begin
       E := 0;
 
     // 指数找完了，凑
-    if MDFlag = -1 then // 第一个指数是 MaxDegree
-    begin
+    if E > P.MaxDegree then
       P.MaxDegree := E;
-      MDFlag := 0;
-    end;
-
-    P[E] := F;
+    P[E] := P[E] + F;
   end;
 
   P.CorrectTop;
@@ -9316,82 +9312,84 @@ function BigNumberPolynomialSetString(P: TCnBigNumberPolynomial;
 var
   C, Ptr: PChar;
   Num, ES: string;
-  MDFlag, E: Integer;
+  E: Integer;
+  T: TCnBigNumber;
   IsNeg: Boolean;
 begin
   Result := False;
   if Str = '' then
     Exit;
 
-  MDFlag := -1;
-  C := @Str[1];
+  P.SetZero;
+  T := TCnBigNumber.Create;
+  try
+    C := @Str[1];
 
-  while C^ <> #0 do
-  begin
-    if not (C^ in ['+', '-', '0'..'9']) and (C^ <> VarName) then
+    while C^ <> #0 do
     begin
-      Inc(C);
-      Continue;
-    end;
-
-    IsNeg := False;
-    if C^ = '+' then
-      Inc(C)
-    else if C^ = '-' then
-    begin
-      IsNeg := True;
-      Inc(C);
-    end;
-
-    Num := '1';
-    if C^ in ['0'..'9'] then // 找系数
-    begin
-      Ptr := C;
-      while C^ in ['0'..'9'] do
-        Inc(C);
-
-      // Ptr 到 C 之间是数字，代表一个系数
-      SetString(Num, Ptr, C - Ptr);
-      if IsNeg then
-        Num := '-' + Num;
-    end
-    else if IsNeg then
-      Num := '-' + Num;
-
-    if C^ = VarName then
-    begin
-      E := 1;
-      Inc(C);
-      if C^ = '^' then // 找指数
+      if not (C^ in ['+', '-', '0'..'9']) and (C^ <> VarName) then
       begin
         Inc(C);
-        if C^ in ['0'..'9'] then
-        begin
-          Ptr := C;
-          while C^ in ['0'..'9'] do
-            Inc(C);
-
-          // Ptr 到 C 之间是数字，代表一个指数
-          SetString(ES, Ptr, C - Ptr);
-          E := StrToInt64(ES);
-        end;
+        Continue;
       end;
-    end
-    else
-      E := 0;
 
-    // 指数找完了，凑
-    if MDFlag = -1 then // 第一个指数是 MaxDegree
-    begin
-      P.MaxDegree := E;
-      MDFlag := 0;
+      IsNeg := False;
+      if C^ = '+' then
+        Inc(C)
+      else if C^ = '-' then
+      begin
+        IsNeg := True;
+        Inc(C);
+      end;
+
+      Num := '1';
+      if C^ in ['0'..'9'] then // 找系数
+      begin
+        Ptr := C;
+        while C^ in ['0'..'9'] do
+          Inc(C);
+
+        // Ptr 到 C 之间是数字，代表一个系数
+        SetString(Num, Ptr, C - Ptr);
+        if IsNeg then
+          Num := '-' + Num;
+      end
+      else if IsNeg then
+        Num := '-' + Num;
+
+      if C^ = VarName then
+      begin
+        E := 1;
+        Inc(C);
+        if C^ = '^' then // 找指数
+        begin
+          Inc(C);
+          if C^ in ['0'..'9'] then
+          begin
+            Ptr := C;
+            while C^ in ['0'..'9'] do
+              Inc(C);
+
+            // Ptr 到 C 之间是数字，代表一个指数
+            SetString(ES, Ptr, C - Ptr);
+            E := StrToInt64(ES);
+          end;
+        end;
+      end
+      else
+        E := 0;
+
+      // 指数找完了，凑
+      if E > P.MaxDegree then
+        P.MaxDegree := E;
+      T.SetDec(AnsiString(Num));
+      BigNumberAdd(P[E], P[E], T);
     end;
 
-    P[E].SetDec(AnsiString(Num));
+    Result := True;
+  finally
+    T.Free;
   end;
-
-  P.CorrectTop;
-  Result := True;
 end;
 
 {$WARNINGS ON}
@@ -12537,6 +12535,7 @@ end;
 constructor TCnBigComplexDecimalPolynomial.Create;
 begin
   inherited Create;
+  BigComplexDecimalPolynomialSetZero(Self);
 end;
 
 constructor TCnBigComplexDecimalPolynomial.Create(LowToHighCoefficients: array of const);
@@ -12547,6 +12546,7 @@ end;
 
 destructor TCnBigComplexDecimalPolynomial.Destroy;
 begin
+
   inherited;
 end;
 
@@ -12657,7 +12657,7 @@ end;
 
 procedure TCnBigComplexDecimalPolynomial.SetZero;
 begin
-  Clear;
+  BigComplexDecimalPolynomialSetZero(Self);
 end;
 
 function TCnBigComplexDecimalPolynomial.IsOne: Boolean;
