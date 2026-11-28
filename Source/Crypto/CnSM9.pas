@@ -3671,7 +3671,7 @@ begin
   else if FP2AffinePointIsAtInfinity(Q) then
     FP2AffinePointCopy(Res, P)
   else if FP2AffinePointEqual(P, Q) then
-    FP2AffinePointDouble(P, Q, Prime)
+    FP2AffinePointDouble(Res, P, Prime)
   else
   begin
     T := nil;
@@ -4942,7 +4942,7 @@ begin
       Exit;
     end;
 
-    BigNumberAdd(T1, T1, EncryptionMasterPrivateKey);
+    BigNumberAddMod(T1, T1, EncryptionMasterPrivateKey, SM9.Order);
 
     if T1.IsZero then
     begin
@@ -5454,7 +5454,7 @@ begin
       Exit;
     end;
 
-    BigNumberAdd(T1, T1, KeyExchangeMasterPrivateKey);
+    BigNumberAddMod(T1, T1, KeyExchangeMasterPrivateKey, SM9.Order);
 
     if T1.IsZero then
     begin

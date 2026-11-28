@@ -1373,7 +1373,7 @@ function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType;
   IncludePrefixByte: Boolean; C1UseCompress: Boolean): Boolean;
 var
-  Py, P1, P2: TCnEccPoint;
+  P1, P2: TCnEccPoint;
   K: TCnBigNumber;
   B: Byte;
   M: PAnsiChar;
@@ -1397,7 +1397,6 @@ begin
     Exit;
   end;
 
-  Py := nil;
   P1 := nil;
   P2 := nil;
   K := nil;
@@ -1410,12 +1409,12 @@ begin
     K := TCnBigNumber.Create;
 
     // 确保公钥 X Y 均存在
-    if PublicKey.Y.IsZero then
+    // Y = 0 的公钥无效（SM2 曲线无二阶点），直接拒绝，不得静默修补或改写调用方对象
+    if PublicKey.Y.IsZero or
+      (not CheckEccPublicKey(SM2, TCnEccPublicKey(PublicKey))) then
     begin
-      Py := TCnEccPoint.Create;
-      if not SM2.PlainToPoint(PublicKey.X, Py) then
-        Exit;
-      BigNumberCopy(PublicKey.Y, Py.Y);
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
     end;
 
     K.SetZero;
@@ -1509,7 +1508,6 @@ begin
   finally
     P2.Free;
     P1.Free;
-    Py.Free;
     K.Free;
     if SM2IsNil then
       SM2.Free;
@@ -2248,6 +2246,11 @@ begin
     Q.Assign(PublicKey);
     SM2.MultiplePoint(R, Q);
     SM2.PointAddPoint(P, Q, P);   // s * G + t * PublicKey => P
+    if P.IsZero then              // s*G == -(r+s)*PA：无穷远点没有横坐标
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     E.SetBinary(@Sm3Dig[0], SizeOf(TCnSM3Digest));
     BigNumberAdd(E, E, P.X);
@@ -2627,6 +2630,7 @@ begin
     OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, True);
     if not ConstTimeCompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
     begin
+      SetLength(OutKeyA, 0); // 失败不得带出密钥哪怕是错的
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
     end;
@@ -3123,7 +3127,7 @@ begin
 
     if OutSignature.S.IsZero then
     begin
-      _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
     end;
 
@@ -3175,6 +3179,12 @@ begin
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    if not InternalSM2IsValidPrivateShare(PrivateKeyA, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
 
     MLen := DataByteLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
@@ -3242,6 +3252,12 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
+    if not InternalSM2IsValidPrivateShare(PrivateKeyB, SM2) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
     // 校验 A 方传来的 T 点在曲线上且属于正确子群
     if not InternalCheckCollaborativePoint(InTFromA, SM2) then
     begin
@@ -3283,6 +3299,7 @@ begin
   end;
 
   SM2IsNil := SM2 = nil;
+  P2 := nil;
 
   try
     if SM2IsNil then
@@ -3370,7 +3387,7 @@ begin
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // 指向 C2
 
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));    // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));          // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
@@ -3389,6 +3406,7 @@ begin
       end;
     end;
   finally
+    P2.Free;
     if SM2IsNil then
       SM2.Free;
   end;

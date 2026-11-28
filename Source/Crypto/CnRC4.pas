@@ -25,7 +25,7 @@ unit CnRC4;
 * 软件名称：开发包基础库
 * 单元名称：RC4 流加解密算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
-* 备    注：本单元实现了 RC4 流加解密算法。
+* 备    注：本单元实现了 RC4 流加解密算法。各函数的密码最多支持  256 字节，多余会被截断。
 *           注意，因 RC4 算法本身已不再安全，本单元除必要的外部要求场合外，不建议使用。
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
@@ -218,7 +218,10 @@ end;
 
 function RC4EncryptBytes(const Key, Input: TBytes): TBytes;
 begin
-  if (Length(Key) = 0) or (Length(Input) = 0) then
+  if Length(Key) = 0 then
+    raise ECnRC4Exception.Create(SCnRC4EmptyKey);
+
+  if Length(Input) = 0 then
   begin
     Result := nil;
     Exit;
@@ -230,7 +233,10 @@ end;
 
 function RC4DecryptBytes(const Key, Input: TBytes): TBytes;
 begin
-  if (Length(Key) = 0) or (Length(Input) = 0) then
+  if Length(Key) = 0 then
+    raise ECnRC4Exception.Create(SCnRC4EmptyKey);
+
+  if Length(Input) = 0 then
   begin
     Result := nil;
     Exit;

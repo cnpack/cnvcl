@@ -490,6 +490,12 @@ function TestBigNumberRationalPolynomialLoadSaveMem: Boolean;
 function TestBigNumberPolynomialListLoadSaveMem: Boolean;
 function TestBigComplexDecimalPolynomialLoadSaveMem: Boolean;
 
+// ================================ Padding ====================================
+
+function TestISO10126Padding: Boolean;
+function TestPKCS7Padding: Boolean;
+function TestPKCS5Padding: Boolean;
+
 // ================================ NTRU =======================================
 
 function TestNTRUHPS2048509: Boolean;
@@ -2446,6 +2452,12 @@ begin
   MyAssert(TestBigNumberRationalPolynomialLoadSaveMem, 'TestBigNumberRationalPolynomialLoadSaveMem');
   MyAssert(TestBigNumberPolynomialListLoadSaveMem, 'TestBigNumberPolynomialListLoadSaveMem');
   MyAssert(TestBigComplexDecimalPolynomialLoadSaveMem, 'TestBigComplexDecimalPolynomialLoadSaveMem');
+
+// ================================ Padding ====================================
+
+  MyAssert(TestISO10126Padding, 'TestISO10126Padding');
+  MyAssert(TestPKCS7Padding, 'TestPKCS7Padding');
+  MyAssert(TestPKCS5Padding, 'TestPKCS5Padding');
 
 // ================================ NTRU =======================================
 
@@ -19653,6 +19665,439 @@ begin
   finally
     Restored.Free;
     P.Free;
+  end;
+end;
+
+// ================================ Padding ====================================
+
+function TestISO10126Padding: Boolean;
+var
+  S, Padded, Padded2: AnsiString;
+  B, B2, BPadded: TBytes;
+  MS: TMemoryStream;
+  I, L, R, BlockSize, Pass, J: Integer;
+  V: Byte;
+  Same: Boolean;
+begin
+  Result := False;
+  MS := TMemoryStream.Create;
+  try
+    for Pass := 0 to 1 do
+    begin
+      if Pass = 0 then
+        BlockSize := 8
+      else
+        BlockSize := 16;
+
+      for L := 0 to 17 do
+      begin
+        SetLength(S, L);
+        for I := 1 to L do
+          S[I] := AnsiChar(Ord('a') + (I mod 26));
+
+        R := L mod BlockSize;
+        R := BlockSize - R;
+        if R = 0 then
+          R := BlockSize;
+
+        if GetISO10126PaddingByteLength(L, BlockSize) <> L + R then
+          Exit;
+
+        // 字符串版：末字节是长度，填充字节随机，可正确去除
+        Padded := StrAddISO10126Padding(S, BlockSize);
+        if Length(Padded) <> L + R then
+          Exit;
+        if Ord(Padded[L + R]) <> R then
+          Exit;
+        if StrRemoveISO10126Padding(Padded) <> S then
+          Exit;
+        if R > 1 then
+        begin
+          Same := True;
+          for J := 1 to 4 do
+          begin
+            Padded2 := StrAddISO10126Padding(S, BlockSize);
+            if Padded2 <> Padded then
+              Same := False;
+          end;
+          if Same then
+            Exit;
+        end;
+
+        // 字节数组版：结构、往返、随机填充均检查
+        SetLength(B, L);
+        for I := 0 to L - 1 do
+          B[I] := Ord(S[I + 1]);
+        BytesAddISO10126Padding(B, BlockSize);
+        if Length(B) <> L + R then
+          Exit;
+        if B[L + R - 1] <> R then
+          Exit;
+        if R > 1 then
+        begin
+          SetLength(BPadded, L + R);
+          for I := 0 to L + R - 1 do
+            BPadded[I] := B[I];
+
+          Same := True;
+          for J := 1 to 4 do
+          begin
+            SetLength(B2, L);
+            for I := 0 to L - 1 do
+              B2[I] := Ord(S[I + 1]);
+            BytesAddISO10126Padding(B2, BlockSize);
+            for I := L to L + R - 2 do
+              if B2[I] <> BPadded[I] then
+                Same := False;
+          end;
+          if Same then
+            Exit;
+        end;
+        if not BytesRemoveISO10126Padding(B) then
+          Exit;
+        if Length(B) <> L then
+          Exit;
+        for I := 0 to L - 1 do
+          if B[I] <> Ord(S[I + 1]) then
+            Exit;
+
+        // 内存流版
+        MS.Clear;
+        if L > 0 then
+          MS.WriteBuffer(S[1], L);
+        AddISO10126Padding(MS, BlockSize);
+        if MS.Size <> L + R then
+          Exit;
+        MS.Position := L + R - 1;
+        if MS.Read(V, 1) <> 1 then
+          Exit;
+        if V <> R then
+          Exit;
+        if not RemoveISO10126Padding(MS) then
+          Exit;
+        if MS.Size <> L then
+          Exit;
+        if L > 0 then
+        begin
+          SetLength(B, L);
+          MS.Position := 0;
+          if MS.Read(B[0], L) <> L then
+            Exit;
+          for I := 0 to L - 1 do
+            if B[I] <> Ord(S[I + 1]) then
+              Exit;
+        end;
+      end;
+    end;
+
+    // 非法填充长度应被拒绝，且不改动数据
+    S := 'abc';
+    Padded := StrAddISO10126Padding(S, 8);
+    Padded[Length(Padded)] := #0;
+    if StrRemoveISO10126Padding(Padded) <> Padded then
+      Exit;
+    Padded[Length(Padded)] := AnsiChar(255);
+    if StrRemoveISO10126Padding(Padded) <> Padded then
+      Exit;
+
+    SetLength(B, 8);
+    for I := 0 to 7 do
+      B[I] := 0;
+    B[7] := 0;
+    if BytesRemoveISO10126Padding(B) then
+      Exit;
+    B[7] := 9;
+    if BytesRemoveISO10126Padding(B) then
+      Exit;
+
+    MS.Clear;
+    MS.WriteBuffer(S[1], 3);
+    AddISO10126Padding(MS, 8);
+    V := 0;
+    MS.Position := 7;
+    MS.WriteBuffer(V, 1);
+    if RemoveISO10126Padding(MS) then
+      Exit;
+    V := 9;
+    MS.Position := 7;
+    MS.WriteBuffer(V, 1);
+    if RemoveISO10126Padding(MS) then
+      Exit;
+
+    Result := True;
+  finally
+    MS.Free;
+  end;
+end;
+
+function TestPKCS7Padding: Boolean;
+var
+  S, Padded: AnsiString;
+  B: TBytes;
+  MS: TMemoryStream;
+  I, L, R, BlockSize, Pass: Integer;
+  V: Byte;
+begin
+  Result := False;
+  MS := TMemoryStream.Create;
+  try
+    for Pass := 0 to 1 do
+    begin
+      if Pass = 0 then
+        BlockSize := 8
+      else
+        BlockSize := 16;
+
+      for L := 0 to 20 do
+      begin
+        SetLength(S, L);
+        for I := 1 to L do
+          S[I] := AnsiChar(Ord('a') + (I mod 26));
+
+        R := L mod BlockSize;
+        R := BlockSize - R;
+        if R = 0 then
+          R := BlockSize;
+
+        if GetPKCS7PaddingByteLength(L, BlockSize) <> L + R then
+          Exit;
+
+        // 字符串版：每个填充字节都等于填充长度
+        Padded := StrAddPKCS7Padding(S, BlockSize);
+        if Length(Padded) <> L + R then
+          Exit;
+        for I := L + 1 to L + R do
+          if Ord(Padded[I]) <> R then
+            Exit;
+        if StrRemovePKCS7Padding(Padded) <> S then
+          Exit;
+
+        // 字节数组版
+        SetLength(B, L);
+        for I := 0 to L - 1 do
+          B[I] := Ord(S[I + 1]);
+        BytesAddPKCS7Padding(B, BlockSize);
+        if Length(B) <> L + R then
+          Exit;
+        for I := L to L + R - 1 do
+          if B[I] <> R then
+            Exit;
+        if not BytesRemovePKCS7Padding(B) then
+          Exit;
+        if Length(B) <> L then
+          Exit;
+        for I := 0 to L - 1 do
+          if B[I] <> Ord(S[I + 1]) then
+            Exit;
+
+        // 内存流版
+        MS.Clear;
+        if L > 0 then
+          MS.WriteBuffer(S[1], L);
+        AddPKCS7Padding(MS, BlockSize);
+        if MS.Size <> L + R then
+          Exit;
+        SetLength(B, R);
+        MS.Position := L;
+        if MS.Read(B[0], R) <> R then
+          Exit;
+        for I := 0 to R - 1 do
+          if B[I] <> R then
+            Exit;
+        if not RemovePKCS7Padding(MS) then
+          Exit;
+        if MS.Size <> L then
+          Exit;
+        if L > 0 then
+        begin
+          SetLength(B, L);
+          MS.Position := 0;
+          if MS.Read(B[0], L) <> L then
+            Exit;
+          for I := 0 to L - 1 do
+            if B[I] <> Ord(S[I + 1]) then
+              Exit;
+        end;
+      end;
+    end;
+
+    // 填充字节被篡改或末字节非法时应拒绝
+    S := 'abc';
+    Padded := StrAddPKCS7Padding(S, 8);
+    Padded[Length(Padded) - 1] := #6;
+    if StrRemovePKCS7Padding(Padded) <> Padded then
+      Exit;
+    Padded[Length(Padded)] := #0;
+    if StrRemovePKCS7Padding(Padded) <> Padded then
+      Exit;
+    Padded[Length(Padded)] := AnsiChar(255);
+    if StrRemovePKCS7Padding(Padded) <> Padded then
+      Exit;
+
+    SetLength(B, 3);
+    B[0] := Ord('a');
+    B[1] := Ord('b');
+    B[2] := Ord('c');
+    BytesAddPKCS7Padding(B, 8);
+    B[3] := 6;
+    if BytesRemovePKCS7Padding(B) then
+      Exit;
+    B[3] := 5;
+    B[7] := 0;
+    if BytesRemovePKCS7Padding(B) then
+      Exit;
+    B[7] := 17;
+    if BytesRemovePKCS7Padding(B) then
+      Exit;
+
+    MS.Clear;
+    MS.WriteBuffer(S[1], 3);
+    AddPKCS7Padding(MS, 8);
+    V := 6;
+    MS.Position := 3;
+    MS.WriteBuffer(V, 1);
+    if RemovePKCS7Padding(MS) then
+      Exit;
+    V := 5;
+    MS.Position := 3;
+    MS.WriteBuffer(V, 1);
+    V := 0;
+    MS.Position := 7;
+    MS.WriteBuffer(V, 1);
+    if RemovePKCS7Padding(MS) then
+      Exit;
+    V := 17;
+    MS.Position := 7;
+    MS.WriteBuffer(V, 1);
+    if RemovePKCS7Padding(MS) then
+      Exit;
+
+    Result := True;
+  finally
+    MS.Free;
+  end;
+end;
+
+function TestPKCS5Padding: Boolean;
+var
+  S, Padded: AnsiString;
+  B: TBytes;
+  MS: TMemoryStream;
+  I, L, R: Integer;
+  V: Byte;
+begin
+  Result := False;
+  MS := TMemoryStream.Create;
+  try
+    for L := 0 to 17 do
+    begin
+      SetLength(S, L);
+      for I := 1 to L do
+        S[I] := AnsiChar(Ord('a') + (I mod 26));
+
+      R := L mod 8;
+      R := 8 - R;
+      if R = 0 then
+        R := 8;
+
+      if GetPKCS7PaddingByteLength(L, 8) <> L + R then
+        Exit;
+
+      Padded := StrAddPKCS5Padding(S);
+      if Length(Padded) <> L + R then
+        Exit;
+      for I := L + 1 to L + R do
+        if Ord(Padded[I]) <> R then
+          Exit;
+      if StrRemovePKCS5Padding(Padded) <> S then
+        Exit;
+
+      SetLength(B, L);
+      for I := 0 to L - 1 do
+        B[I] := Ord(S[I + 1]);
+      BytesAddPKCS5Padding(B);
+      if Length(B) <> L + R then
+        Exit;
+      for I := L to L + R - 1 do
+        if B[I] <> R then
+          Exit;
+      if not BytesRemovePKCS5Padding(B) then
+        Exit;
+      if Length(B) <> L then
+        Exit;
+      for I := 0 to L - 1 do
+        if B[I] <> Ord(S[I + 1]) then
+          Exit;
+
+      MS.Clear;
+      if L > 0 then
+        MS.WriteBuffer(S[1], L);
+      AddPKCS5Padding(MS);
+      if MS.Size <> L + R then
+        Exit;
+      SetLength(B, R);
+      MS.Position := L;
+      if MS.Read(B[0], R) <> R then
+        Exit;
+      for I := 0 to R - 1 do
+        if B[I] <> R then
+          Exit;
+      if not RemovePKCS5Padding(MS) then
+        Exit;
+      if MS.Size <> L then
+        Exit;
+      if L > 0 then
+      begin
+        SetLength(B, L);
+        MS.Position := 0;
+        if MS.Read(B[0], L) <> L then
+          Exit;
+        for I := 0 to L - 1 do
+          if B[I] <> Ord(S[I + 1]) then
+            Exit;
+      end;
+    end;
+
+    // 篡改填充与非法长度
+    S := 'abc';
+    Padded := StrAddPKCS5Padding(S);
+    Padded[Length(Padded) - 1] := #6;
+    if StrRemovePKCS5Padding(Padded) <> Padded then
+      Exit;
+    Padded[Length(Padded)] := #0;
+    if StrRemovePKCS5Padding(Padded) <> Padded then
+      Exit;
+
+    SetLength(B, 3);
+    B[0] := Ord('a');
+    B[1] := Ord('b');
+    B[2] := Ord('c');
+    BytesAddPKCS5Padding(B);
+    B[3] := 6;
+    if BytesRemovePKCS5Padding(B) then
+      Exit;
+    B[3] := 5;
+    B[7] := 17;
+    if BytesRemovePKCS5Padding(B) then
+      Exit;
+
+    MS.Clear;
+    MS.WriteBuffer(S[1], 3);
+    AddPKCS5Padding(MS);
+    V := 6;
+    MS.Position := 3;
+    MS.WriteBuffer(V, 1);
+    if RemovePKCS5Padding(MS) then
+      Exit;
+    V := 17;
+    MS.Position := 7;
+    MS.WriteBuffer(V, 1);
+    if RemovePKCS5Padding(MS) then
+      Exit;
+
+    Result := True;
+  finally
+    MS.Free;
   end;
 end;
 

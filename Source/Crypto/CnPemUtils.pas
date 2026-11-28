@@ -793,9 +793,7 @@ begin
   if R = 0 then
     R := R + BlockSize;
 
-  // 使用密码学安全随机数填充，符合 ISO/IEC 9797-1 标准
-  // 修复原代码使用 FillChar 全填 0 使加密结果具有确定性特征的问题
-  SetLength(RandBuf, R);
+  // ISO10126 除末字节外的填充字节为随机数据，末字节记录填充长度
   RandBuf := CnRandomBytes(R);    // 生成安全随机字节
   RandBuf[R - 1] := R;            // 最后一个字节记录填充长度
   Stream.Position := Stream.Size;
@@ -803,14 +801,30 @@ begin
 end;
 
 function RemoveISO10126Padding(Stream: TMemoryStream): Boolean;
+var
+  L: Byte;
 begin
-  Result := RemovePKCS7Padding(Stream); // 行为等同，可直接调用
+  Result := False;
+  if Stream.Size < 1 then
+    Exit;
+
+  Stream.Position := Stream.Size - 1;
+  Stream.Read(L, 1);
+
+  // ISO10126 只以末字节记录长度，前面的填充字节是任意数据，不可按 PKCS7 校验
+  if (L < 1) or (L > CN_PKCS7_BLOCK_SIZE) or (Stream.Size < L) then
+    Exit;
+
+  Stream.Size := Stream.Size - L;
+  Stream.Position := Stream.Size;
+  Result := True;
 end;
 
 function StrAddISO10126Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
 var
-  I, L: Integer;
+  L: Integer;
   R: Byte;
+  RandBuf: TBytes;
 begin
   L := Length(Str);
   R := L mod BlockSize;
@@ -818,27 +832,39 @@ begin
   if R = 0 then
     R := R + BlockSize;
 
+  // 与流版本一致：填充字节随机，末字节为长度
+  RandBuf := CnRandomBytes(R);
+  RandBuf[R - 1] := R;
+
   SetLength(Result, L + R);
   if L > 0 then
     Move(Str[1], Result[1], L);
-
-  if R > 1 then
-  begin
-    for I := 1 to R - 1 do
-      Result[L + I] := #0;
-  end;
-  Result[L + R] := AnsiChar(R);
+  Move(RandBuf[0], Result[L + 1], R);
 end;
 
 function StrRemoveISO10126Padding(const Str: AnsiString): AnsiString;
+var
+  L: Integer;
+  V: Byte;
 begin
-  Result := StrRemovePKCS7Padding(Str); // 行为等同，可直接调用
+  Result := Str;
+  if Result = '' then
+    Exit;
+
+  L := Length(Result);
+  V := Ord(Result[L]);
+  if (V < 1) or (V > CN_PKCS7_BLOCK_SIZE) or (V > L) then
+    Exit;
+
+  // ISO10126 前面的填充字节是随机数据，只按末字节长度去除
+  Delete(Result, L - V + 1, V);
 end;
 
 procedure BytesAddISO10126Padding(var Data: TBytes; BlockSize: Integer);
 var
   R: Byte;
-  L, I: Integer;
+  L: Integer;
+  RandBuf: TBytes;
 begin
   L := Length(Data);
   R := L mod BlockSize;
@@ -846,18 +872,28 @@ begin
   if R = 0 then
     R := R + BlockSize;
 
+  RandBuf := CnRandomBytes(R);
+  RandBuf[R - 1] := R;
+
   SetLength(Data, L + R);
-  if R > 1 then
-  begin
-    for I := 0 to R - 2 do
-      Data[L + I] := 0;
-  end;
-  Data[L - 1 + R] := R;
+  Move(RandBuf[0], Data[L], R);
 end;
 
 function BytesRemoveISO10126Padding(var Data: TBytes): Boolean;
+var
+  L, V: Integer;
 begin
-  Result := BytesRemovePKCS7Padding(Data); // 行为等同，可直接调用
+  Result := False;
+  L := Length(Data);
+  if L = 0 then
+    Exit;
+
+  V := Ord(Data[L - 1]);
+  if (V < 1) or (V > CN_PKCS7_BLOCK_SIZE) or (V > L) then
+    Exit;
+
+  SetLength(Data, L - V);
+  Result := True;
 end;
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;

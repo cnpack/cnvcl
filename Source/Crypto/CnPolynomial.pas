@@ -6095,6 +6095,7 @@ begin
   CheckDegree(Degree);
   EnsureDegree(Degree);
   Items[Degree] := Coefficient;
+  CorrectTop;
 end;
 
 procedure TCnInt64Polynomial.SetCoefficients(LowToHighCoefficients: array of const);
@@ -6903,9 +6904,14 @@ var
 begin
   if P.MaxDegree = 0 then
   begin
-    Result := P[P.MaxDegree];
-    if P[P.MaxDegree] <> 0 then
-      P[P.MaxDegree] := 1;
+    Result := Abs(P[0]);
+    if P[0] <> 0 then
+    begin
+      if P[0] < 0 then
+        P[0] := -1
+      else
+        P[0] := 1;
+    end;
   end
   else
   begin
@@ -7003,7 +7009,7 @@ begin
 
     // 余式链已逐轮本原化，乘回系数部分的 gcd，并统一为首项系数为正的代表
     Int64PolynomialMulWord(A, GcdValue);
-    if (A.MaxDegree > 0) and (A[A.MaxDegree] < 0) then
+    if (not A.IsZero) and (A[A.MaxDegree] < 0) then
       Int64PolynomialMulWord(A, -1);
     Int64PolynomialCopy(Res, A);
     Result := True;
@@ -7455,7 +7461,9 @@ begin
       if B and (P[I] <> 0) then
         P[I] := Prime - P[I];
     end;
-  end;
+  end
+  else
+    raise ECnPolynomialException.Create(SCnErrorPolynomialGCDMustOne);
 end;
 
 function Int64PolynomialGaloisMonic(P: TCnInt64Polynomial; Prime: Int64): Int64;
@@ -8195,6 +8203,12 @@ end;
 procedure Int64RationalPolynomialSub(Res: TCnInt64RationalPolynomial;
   R1, R2: TCnInt64RationalPolynomial);
 begin
+  if R1 = R2 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
   R2.Numerator.Negate;
   Int64RationalPolynomialAdd(Res, R1, R2);
   if Res <> R2 then
@@ -8537,6 +8551,12 @@ end;
 procedure Int64RationalPolynomialGaloisSub(Res: TCnInt64RationalPolynomial;
   R1, R2: TCnInt64RationalPolynomial; Prime: Int64);
 begin
+  if R1 = R2 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
   R2.Numerator.Negate;
   Int64RationalPolynomialGaloisAdd(Res, R1, R2, Prime);
   if Res <> R2 then
@@ -8938,6 +8958,7 @@ begin
   CheckDegree(Degree);
   EnsureDegree(Degree);
   BigNumberCopy(Items[Degree], Coefficient);
+  CorrectTop;
 end;
 
 procedure TCnBigNumberPolynomial.SetCoefficients(LowToHighCoefficients: array of const);
@@ -10031,7 +10052,12 @@ begin
   if P.MaxDegree = 0 then
   begin
     if not P[P.MaxDegree].IsZero then
-      P[P.MaxDegree].SetOne;
+    begin
+      if P[P.MaxDegree].IsNegative then
+        P[P.MaxDegree].SetInt64(-1)
+      else
+        P[P.MaxDegree].SetOne;
+    end;
   end
   else
   begin
@@ -10174,7 +10200,7 @@ begin
     // 余式链已逐轮本原化，乘回系数部分的 gcd，并统一为首项系数为正的代表
     if not GcdValue.IsOne then
       BigNumberPolynomialMulBigNumber(A, GcdValue);
-    if (A.MaxDegree > 0) and A[A.MaxDegree].IsNegative then
+    if (not A.IsZero) and A[A.MaxDegree].IsNegative then
       BigNumberPolynomialNegate(A);
     BigNumberPolynomialCopy(Res, A);
     Result := True;
@@ -11381,7 +11407,8 @@ begin
 
   K := FLocalBigNumberPool.Obtain;
   try
-    BigNumberModularInverse(K, N, Prime);
+    if not BigNumberModularInverse(K, N, Prime, True) then
+      raise ECnPolynomialException.Create(SCnErrorPolynomialGCDMustOne);
 
     for I := 0 to P.MaxDegree do
     begin
@@ -12535,7 +12562,7 @@ end;
 constructor TCnBigComplexDecimalPolynomial.Create;
 begin
   inherited Create;
-  BigComplexDecimalPolynomialSetZero(Self);
+
 end;
 
 constructor TCnBigComplexDecimalPolynomial.Create(LowToHighCoefficients: array of const);
@@ -12657,7 +12684,7 @@ end;
 
 procedure TCnBigComplexDecimalPolynomial.SetZero;
 begin
-  BigComplexDecimalPolynomialSetZero(Self);
+  Clear;
 end;
 
 function TCnBigComplexDecimalPolynomial.IsOne: Boolean;
@@ -13137,7 +13164,7 @@ function BigComplexPolynomialCompose(Res: TCnBigComplexPolynomial;
   F: TCnBigComplexPolynomial; P: TCnBigComplexPolynomial): Boolean;
 var
   I: Integer;
-  Temp, Temp2, PowerP: TCnBigComplexPolynomial;
+  Temp, Temp2, PowerP, ResultPoly: TCnBigComplexPolynomial;
 begin
   Result := True;
 
@@ -13147,11 +13174,17 @@ begin
     Exit;
   end;
 
-  Temp := TCnBigComplexPolynomial.Create;
-  Temp2 := TCnBigComplexPolynomial.Create;
-  PowerP := TCnBigComplexPolynomial.Create;
+  Temp := nil;
+  Temp2 := nil;
+  PowerP := nil;
+  ResultPoly := nil;
   try
-    Res.SetZero;
+    Temp := TCnBigComplexPolynomial.Create;
+    Temp2 := TCnBigComplexPolynomial.Create;
+    PowerP := TCnBigComplexPolynomial.Create;
+    ResultPoly := TCnBigComplexPolynomial.Create;
+
+    ResultPoly.SetZero;
     PowerP.SetOne;
 
     for I := 0 to F.MaxDegree do
@@ -13167,9 +13200,13 @@ begin
       BigComplexCopy(Temp.Items[0], F.Items[I]);
 
       BigComplexPolynomialMul(Temp2, Temp, PowerP);
-      BigComplexPolynomialAdd(Res, Res, Temp2);
+      BigComplexPolynomialAdd(ResultPoly, ResultPoly, Temp2);
     end;
+
+    // 先算完再写 Res，兼容 Res 与 F/P 是同一对象
+    BigComplexPolynomialCopy(Res, ResultPoly);
   finally
+    ResultPoly.Free;
     Temp.Free;
     Temp2.Free;
     PowerP.Free;
@@ -13316,6 +13353,12 @@ end;
 procedure BigNumberRationalPolynomialSub(Res: TCnBigNumberRationalPolynomial;
   R1, R2: TCnBigNumberRationalPolynomial); overload;
 begin
+  if R1 = R2 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
   R2.Numerator.Negate;
   BigNumberRationalPolynomialAdd(Res, R1, R2);
   if Res <> R2 then
@@ -13663,6 +13706,12 @@ end;
 procedure BigNumberRationalPolynomialGaloisSub(Res: TCnBigNumberRationalPolynomial;
   R1, R2: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 begin
+  if R1 = R2 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
   R2.Numerator.Negate;
   BigNumberRationalPolynomialGaloisAdd(Res, R1, R2, Prime);
   if Res <> R2 then
@@ -15370,7 +15419,9 @@ begin
           P.YFactorsList[I][J] := Prime - P.YFactorsList[I][J];
       end;
     end;
-  end;
+  end
+  else
+    raise ECnPolynomialException.Create(SCnErrorPolynomialGCDMustOne);
 end;
 
 procedure TCnInt64BiPolynomial.SetXCoefficents(YDegree: Integer;
@@ -17122,7 +17173,8 @@ begin
     T := FLocalBigNumberPool.Obtain;
     T.SetWord(N);
 
-    BigNumberModularInverse(K, T, Prime);
+    if not BigNumberModularInverse(K, T, Prime, True) then
+      raise ECnPolynomialException.Create(SCnErrorPolynomialGCDMustOne);
 
     for I := P.FXs.Count - 1 downto 0 do
     begin

@@ -5817,20 +5817,20 @@ begin
     B := -B;
   end;
 
-  // 移位循环算
+  // 移位循环算，相加与加倍均用非负加法取模函数完成，不能用传统算法里
+  // A := A shl 1 后大于 N 再 mod N 的写法，模数大于 2^62 或乘数绝对值
+  // 大于等于 2^62 时左移会溢出变负
   while B <> 0 do
   begin
     if (B and 1) <> 0 then
-      Result := ((Result mod N) + (A mod N)) mod N;
+      Result := Int64NonNegativeAddMod(Result, A, N);
 
-    A := A shl 1;
-    if A >= N then
-      A := A mod N;
-
+    A := Int64NonNegativeAddMod(A, A, N);
     B := B shr 1;
   end;
 
-  if Neg then
+  // 结果为 0 时直接保持，避免 N - 0 误得 N
+  if Neg and (Result <> 0) then
     Result := N - Result;
 end;
 
